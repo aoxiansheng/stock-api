@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ValidationModule } from '../validation';
+import * as Joi from 'joi';
 
 // 导入所有配置
 import { appConfig } from '../config/app.config';
@@ -35,8 +35,32 @@ import { notificationConfig } from '../../notification/config/notification.confi
       cache: true,
       expandVariables: true,
       envFilePath: ['.env.local', '.env'],
+      validationSchema: Joi.object({
+        // 基础
+        NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
+        PORT: Joi.number().integer().min(1).max(65535).optional(),
+
+        // 数据库/缓存
+        MONGODB_URI: Joi.string().pattern(/^mongodb:\/\//).required(),
+        REDIS_HOST: Joi.string().optional(),
+        REDIS_PORT: Joi.number().integer().min(1).optional(),
+
+        // 安全
+        JWT_SECRET: Joi.string().min(32).required(),
+        JWT_EXPIRES_IN: Joi.string()
+          .pattern(/^(\d+[smhd]|\d+)$/)
+          .optional(),
+
+        // LongPort（可选）
+        LONGPORT_APP_KEY: Joi.string().optional(),
+        LONGPORT_APP_SECRET: Joi.string().optional(),
+        LONGPORT_ACCESS_TOKEN: Joi.string().optional(),
+
+        // 功能开关（字符串布尔）
+        AUTO_INIT_ENABLED: Joi.boolean().truthy('true').falsy('false').optional(),
+        MONITORING_ENABLED: Joi.boolean().truthy('true').falsy('false').optional(),
+      }).unknown(true),
     }),
-    ValidationModule,          // 配置验证
   ],
   providers: [
     ConfigService,
@@ -45,7 +69,6 @@ import { notificationConfig } from '../../notification/config/notification.confi
   exports: [
     ConfigModule,
     ConfigService,
-    ValidationModule,
     FeatureFlags, // 导出FeatureFlags
   ],
 })

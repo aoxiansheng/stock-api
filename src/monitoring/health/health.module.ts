@@ -5,7 +5,6 @@
 
 import { Module } from "@nestjs/common";
 
-import { ValidationModule } from "@appcore/validation";
 import { HealthCheckService } from "./health-check.service";
 import { ExtendedHealthService } from "./extended-health.service";
 
@@ -19,7 +18,7 @@ import { ExtendedHealthService } from "./extended-health.service";
  *
  * 依赖模块：
  * - ConfigValidationModule: 配置验证功能
-
+ *
  *
  * 与现有监控系统的关系：
  * - 复用现有的 MonitoringModule 架构
@@ -28,7 +27,6 @@ import { ExtendedHealthService } from "./extended-health.service";
  */
 @Module({
   imports: [
-    ValidationModule,
   ],
   providers: [
     ExtendedHealthService,

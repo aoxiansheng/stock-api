@@ -208,7 +208,6 @@
     "// ========== 其他工具 ==========": "",
     "cli": "bun src/providers/cli/index.ts",
     "typecheck:file": "node scripts/tsc-single-file.js",
- 
     "// ========== 常量使用分析工具 ==========": "",
     "analyze:constants-usage": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts",
     "analyze:constants-usage:report": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts docs",
@@ -246,6 +245,7 @@
     "glob": "^11.0.3",
     "helmet": "^8.1.0",
     "ioredis": "^5.7.0",
+    "joi": "^18.0.1",
     "longport": "^3.0.13",
     "lru-cache": "^11.1.0",
     "mongoose": "^7.8.7",
