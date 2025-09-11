@@ -147,33 +147,3 @@ export const createAppConfig = (): Partial<AppConfig> => ({
  */
 export const appConfig = () => createAppConfig();
 
-/**
- * 类型安全的配置服务包装器
- */
-export class TypedConfigService {
-  constructor(private readonly configService: ConfigService<AppConfig>) {}
-
-  get app() {
-    return this.configService.get("app", { infer: true })!;
-  }
-
-  get database() {
-    return this.configService.get("database", { infer: true })!;
-  }
-
-  get security() {
-    return this.configService.get("security", { infer: true })!;
-  }
-
-  get cache() {
-    return this.configService.get("cache", { infer: true })!;
-  }
-
-  get alert() {
-    return this.configService.get("alert", { infer: true })!;
-  }
-
-  get monitoring() {
-    return this.configService.get("monitoring", { infer: true })!;
-  }
-}

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { InfrastructureModule } from '../infrastructure/infrastructure.module';
 import { ConfigurationModule } from '../configuration/config.module';
-import { BootstrapModule } from '../bootstrap/bootstrap.module';
 import { ApplicationService } from './services/application.service';
 import { LifecycleService } from './services/lifecycle.service';
 
@@ -18,7 +17,6 @@ import { LifecycleService } from './services/lifecycle.service';
   imports: [
     ConfigurationModule,    // 配置管理
     InfrastructureModule,   // 基础设施
-    BootstrapModule,        // 启动管理
   ],
   providers: [
     ApplicationService,

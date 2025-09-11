@@ -1,13 +1,10 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { FeatureFlagsModule } from './feature-flags.module';
 import { ValidationModule } from '../validation';
 
 // 导入所有配置
 import { appConfig } from '../config/app.config';
-import { startupConfig } from '../config/startup.config';
 import { FeatureFlags } from '../config/feature-flags.config';
-import { getAutoInitConfig } from '../config/auto-init.config';
 import { alertConfig } from '../../alert/config/alert.config';
 import { securityConfig } from '../../auth/config/security.config';
 import { notificationConfig } from '../config/notification.config';
@@ -27,12 +24,8 @@ import { notificationConfig } from '../config/notification.config';
     ConfigModule.forRoot({
       load: [
         appConfig, // 应用基础配置
-        startupConfig, // 启动配置
         () => ({
           featureFlags: new FeatureFlags(), // 功能开关配置
-        }),
-        () => ({
-          autoInit: getAutoInitConfig(), // 自动初始化配置
         }),
         alertConfig, // 告警配置
         () => ({ security: securityConfig }), // 安全配置
@@ -43,7 +36,6 @@ import { notificationConfig } from '../config/notification.config';
       expandVariables: true,
       envFilePath: ['.env.local', '.env'],
     }),
-    FeatureFlagsModule,        // 功能开关
     ValidationModule,          // 配置验证
   ],
   providers: [
@@ -53,7 +45,6 @@ import { notificationConfig } from '../config/notification.config';
   exports: [
     ConfigModule,
     ConfigService,
-    FeatureFlagsModule,
     ValidationModule,
     FeatureFlags, // 导出FeatureFlags
   ],
