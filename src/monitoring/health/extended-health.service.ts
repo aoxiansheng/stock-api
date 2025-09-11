@@ -10,9 +10,9 @@ import {
   FullValidationResult,
 } from "../../app/config/validation/config-validator.service";
 import {
-  StartupHealthCheckerService,
-  StartupResult,
-} from "../../app/startup/health-checker.service";
+  HealthCheckService,
+  HealthCheckResult,
+} from "../../app/infrastructure/health/health-check.service";
 
 export interface ExtendedHealthReport {
   status: ExtendedHealthStatus;
@@ -85,12 +85,12 @@ export interface ExtendedHealthReport {
 @Injectable()
 export class ExtendedHealthService {
   private readonly logger = createLogger(ExtendedHealthService.name);
-  private lastStartupCheck: StartupResult | null = null;
+  private lastHealthCheck: HealthCheckResult | null = null;
   private lastConfigValidation: FullValidationResult | null = null;
 
   constructor(
     private readonly configValidator: ConfigValidatorService,
-    private readonly startupChecker: StartupHealthCheckerService,
+    private readonly healthCheckService: HealthCheckService,
   ) {}
 
   /**
@@ -145,11 +145,16 @@ export class ExtendedHealthService {
             : undefined,
 
         dependencies: dependenciesInfo,
-        startup: this.lastStartupCheck
+        startup: this.lastHealthCheck
           ? {
-              lastCheck: new Date().toISOString(),
-              success: this.lastStartupCheck.success,
-              phases: this.lastStartupCheck.phases,
+              lastCheck: this.lastHealthCheck.timestamp.toISOString(),
+              success: this.lastHealthCheck.status === 'healthy',
+              phases: this.lastHealthCheck.checks.map(check => ({
+                name: check.name,
+                success: check.status === 'healthy',
+                duration: check.duration || 0,
+                error: check.status === 'unhealthy' ? check.message : undefined,
+              })),
             }
           : undefined,
 
@@ -218,10 +223,10 @@ export class ExtendedHealthService {
   /**
    * 执行启动检查并更新缓存
    */
-  async performStartupCheck(): Promise<StartupResult> {
+  async performStartupCheck(): Promise<HealthCheckResult> {
     try {
-      this.lastStartupCheck = await this.startupChecker.performQuickCheck();
-      return this.lastStartupCheck;
+      this.lastHealthCheck = await this.healthCheckService.checkHealth();
+      return this.lastHealthCheck;
     } catch (error) {
       this.logger.error("Startup check failed", { error: error.message });
       throw error;
@@ -357,7 +362,7 @@ export class ExtendedHealthService {
 
       await client.connect();
       await client.ping();
-      await client.disconnect();
+      await client.quit();
 
       return {
         status: "connected",

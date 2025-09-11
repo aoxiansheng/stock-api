@@ -13,7 +13,7 @@ import {
   MarketStatusService,
   MarketStatusResult,
 } from "../../../shared/services/market-status.service";
-import { BackgroundTaskService } from "../../../../app/services/infrastructure/background-task.service";
+import { BackgroundTaskService } from "@app/infrastructure/services/background-task.service";
 import { Market, MarketStatus } from "../../../shared/constants/market.constants";
 import {
   CacheStrategy,

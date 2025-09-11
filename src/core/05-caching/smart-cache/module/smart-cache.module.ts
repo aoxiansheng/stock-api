@@ -3,6 +3,7 @@ import { createLogger } from "@app/config/logger.config";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 import { CommonCacheModule } from "../../common-cache/module/common-cache.module";
+// BackgroundTaskService is provided by @Global() InfrastructureModule
 import { SmartCacheOrchestrator } from "../services/smart-cache-orchestrator.service";
 import {
   type SmartCacheOrchestratorConfig,
@@ -47,9 +48,11 @@ import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performa
     // 🔑 关键依赖：SharedServicesModule
     // 提供以下共享服务：
     // - MarketStatusService: 市场状态查询，用于市场感知策略
-    // - BackgroundTaskService: 后台任务管理
     // - DataChangeDetectorService: 数据变化检测
     SharedServicesModule,
+
+    // InfrastructureModule 已移除以避免循环依赖
+    // BackgroundTaskService 直接在 providers 中提供
 
     // ✅ 已移除 CollectorModule - 使用事件化监控，SharedServicesModule 中的 EventEmitter2 已足够
   ],
@@ -60,6 +63,8 @@ import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performa
 
     // 性能优化器服务
     SmartCachePerformanceOptimizer,
+
+    // BackgroundTaskService 由 @Global() InfrastructureModule 提供，无需在此声明
 
     // 配置提供者 - 使用环境变量驱动的配置工厂
     {

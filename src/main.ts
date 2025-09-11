@@ -17,6 +17,7 @@ import { InfrastructureInterceptor } from "./monitoring/infrastructure/intercept
 import { ApiMonitoringInterceptor } from "./monitoring/infrastructure/interceptors/api-monitoring.interceptor";
 // 完全事件驱动架构，移除CollectorService直接依赖
 import { SecurityMiddleware } from "./auth/middleware/security.middleware";
+import { ApplicationService } from "./app/core/services/application.service";
 
 async function bootstrap() {
   const nodeEnv = process.env.NODE_ENV || "development";
@@ -320,11 +321,19 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
       });
     }
 
+    // 获取应用服务，执行启动初始化
+    const applicationService = app.get(ApplicationService);
+    await applicationService.initialize();
+
     const port = process.env.PORT || 3000;
 
     // 添加更详细的错误处理
     try {
       await app.listen(port);
+      
+      // 应用启动完成后的回调
+      await applicationService.onApplicationBootstrap();
+      
       logger.log(`
   ================================================
   🚀 智能股票数据系统启动成功
@@ -344,6 +353,7 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
   🔐 三层认证架构已启用
   📊 性能监控已启用
   🛡️ 安全中间件已启用
+  🔧 应用生命周期管理已启用
   ================================================
   `);
     } catch (error) {

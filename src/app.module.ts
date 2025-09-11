@@ -7,10 +7,9 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 // 基础设施层模块
 import { DatabaseModule } from "./database/database.module"; // 🆕 统一数据库模块
-import { AppConfigModule } from "./app/config/config.module"; // 🆕 统一配置模块
 
 // 应用服务层模块
-import { AppCoreModule } from "./app";
+import { ApplicationModule } from "./app/core/application.module";
 
 // 核心业务层模块 - 准备阶段
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
@@ -52,9 +51,6 @@ import { RATE_LIMIT_CONFIG } from "@auth/constants";
     // ========================================
     // 基础设施层 (Infrastructure Layer)
     // ========================================
-    // ✅ 完整的统一配置模块 (包含所有应用级配置)
-    AppConfigModule,
-
     // 统一数据库模块 (替换原有MongooseModule.forRoot)
     DatabaseModule,
 
@@ -87,7 +83,7 @@ import { RATE_LIMIT_CONFIG } from "@auth/constants";
     // ========================================
     // 应用服务层 (Application Services Layer)
     // ========================================
-    AppCoreModule,
+    ApplicationModule,
     PaginationModule, // 通用模块
 
     // ========================================
