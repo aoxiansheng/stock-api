@@ -6,13 +6,13 @@ import { ApiKey } from "../../schemas/apikey.schema";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 
 /**
- * 通知服务 - 业务事件和监控事件的发送
- * 专注于事件发送和通知逻辑
+ * 认证业务事件通知服务 - 业务事件和监控事件的发送
+ * 专注于认证相关的事件发送和通知逻辑
  * 支持多种通知渠道：事件总线、邮件、SMS、推送通知等
  */
 @Injectable()
-export class NotificationService {
-  private readonly logger = new Logger(NotificationService.name);
+export class AuthEventNotificationService {
+  private readonly logger = new Logger(AuthEventNotificationService.name);
 
   constructor(
     private readonly eventBus: EventEmitter2,

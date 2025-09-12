@@ -9,7 +9,7 @@ import { ApiKeyManagementService } from "../domain/apikey-management.service";
 import { SessionManagementService } from "../domain/session-management.service";
 import { SecurityPolicyService } from "../domain/security-policy.service";
 import { AuditService } from "../domain/audit.service";
-import { NotificationService } from "../domain/notification.service";
+import { AuthEventNotificationService } from "../domain/notification.service";
 
 /**
  * 认证服务门面 - 统一入口点
@@ -26,7 +26,7 @@ export class AuthFacadeService {
     private readonly sessionService: SessionManagementService,
     private readonly securityService: SecurityPolicyService,
     private readonly auditService: AuditService,
-    private readonly notificationService: NotificationService,
+    private readonly notificationService: AuthEventNotificationService,
   ) {}
 
   /**

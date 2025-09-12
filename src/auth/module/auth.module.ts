@@ -22,7 +22,7 @@ import { SessionManagementService } from "../services/domain/session-management.
 import { ApiKeyManagementService } from "../services/domain/apikey-management.service";
 import { SecurityPolicyService } from "../services/domain/security-policy.service";
 import { AuditService } from "../services/domain/audit.service";
-import { NotificationService } from "../services/domain/notification.service";
+import { AuthEventNotificationService } from "../services/domain/notification.service";
 import { PasswordService } from "../services/infrastructure/password.service";
 import { TokenService } from "../services/infrastructure/token.service";
 import { PermissionService } from "../services/infrastructure/permission.service";
@@ -61,7 +61,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ApiKeyManagementService,
     SecurityPolicyService,
     AuditService,
-    NotificationService,
+    AuthEventNotificationService,
     
     // 基础设施层
     PasswordService,

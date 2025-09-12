@@ -6,18 +6,21 @@
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
 
-export { EmailSender } from './email.sender';
-export { WebhookSender } from './webhook.sender';
-export { SlackSender } from './slack.sender';
-export { DingTalkSender } from './dingtalk.sender';
-export { LogSender } from './log.sender';
-
-// 导出发送器类型映射
+// 导入所有发送器
 import { EmailSender } from './email.sender';
 import { WebhookSender } from './webhook.sender';
 import { SlackSender } from './slack.sender';
 import { DingTalkSender } from './dingtalk.sender';
 import { LogSender } from './log.sender';
+
+// 统一导出所有发送器
+export {
+  EmailSender,
+  WebhookSender,
+  SlackSender,
+  DingTalkSender,
+  LogSender,
+};
 
 import { NotificationChannelType } from '../../types/notification.types';
 
