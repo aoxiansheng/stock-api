@@ -2,6 +2,8 @@ import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { TokenService, JwtPayload } from "../infrastructure/token.service";
 import { User } from "../../schemas/user.schema";
 import { UserAuthenticationService } from "./user-authentication.service";
+import { CacheService } from "../../../cache/services/cache.service";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 
 /**
  * 会话管理服务 - 用户会话和令牌生命周期管理
@@ -15,6 +17,8 @@ export class SessionManagementService {
   constructor(
     private readonly tokenService: TokenService,
     private readonly userAuthService: UserAuthenticationService,
+    private readonly cacheService: CacheService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -158,10 +162,35 @@ export class SessionManagementService {
       // 解析令牌获取用户信息
       const payload = await this.tokenService.verifyAccessToken(accessToken);
       
-      // TODO: 在实际实现中，可以：
       // 1. 将令牌加入Redis黑名单
+      const tokenId = payload.sub; // 使用用户ID作为唯一标识
+      const blacklistKey = `auth:blacklist:${tokenId}`;
+      const tokenExpiry = payload.exp ? payload.exp - Math.floor(Date.now() / 1000) : 3600; // 剩余过期时间或默认1小时
+      await this.cacheService.set(blacklistKey, 'revoked', { ttl: tokenExpiry });
+
       // 2. 记录会话销毁事件
+      this.eventEmitter.emit('auth.session.destroyed', {
+        userId: payload.sub,
+        username: payload.username,
+        tokenId,
+        timestamp: new Date(),
+        reason: 'user_logout'
+      });
+
       // 3. 清理相关的缓存数据
+      const userCacheKeys = [
+        `auth:session:${payload.sub}`,
+        `auth:user:${payload.sub}`,
+        `auth:permissions:${payload.sub}`
+      ];
+      
+      for (const key of userCacheKeys) {
+        try {
+          await this.cacheService.del(key);
+        } catch (error) {
+          this.logger.warn(`清理缓存失败: ${key}`, error);
+        }
+      }
       
       this.logger.log('用户会话销毁成功', { 
         userId: payload.sub, 
@@ -181,10 +210,41 @@ export class SessionManagementService {
     this.logger.log('销毁用户所有会话', { userId });
 
     try {
-      // TODO: 在实际实现中，可以：
-      // 1. 将该用户的所有令牌加入黑名单
-      // 2. 清理Redis中该用户的会话数据
+      // 1. 将该用户的所有令牌加入黑名单（通过用户ID模式匹配）
+      const userBlacklistKey = `auth:blacklist:user:${userId}`;
+      await this.cacheService.set(userBlacklistKey, 'all_sessions_revoked', { ttl: 24 * 3600 }); // 24小时过期
+
+      // 2. 清理Redis中该用户的所有会话相关数据
+      const userDataPatterns = [
+        `auth:session:${userId}*`,
+        `auth:user:${userId}*`,
+        `auth:permissions:${userId}*`,
+        `auth:refresh:${userId}*`
+      ];
+
+      const deletedKeys: string[] = [];
+      for (const pattern of userDataPatterns) {
+        try {
+          // 直接通过Redis实例使用通配符删除匹配的键
+          const keys = await this.cacheService['redis'].keys(pattern);
+          if (keys.length > 0) {
+            await this.cacheService['redis'].del(...keys);
+            deletedKeys.push(...keys);
+          }
+        } catch (error) {
+          this.logger.warn(`批量清理用户缓存失败: ${pattern}`, error);
+        }
+      }
+
       // 3. 记录安全事件
+      this.eventEmitter.emit('auth.security.all_sessions_destroyed', {
+        userId,
+        timestamp: new Date(),
+        reason: 'security_operation',
+        deletedCacheKeys: deletedKeys,
+        totalDeletedKeys: deletedKeys.length,
+        initiatedBy: 'system' // 可以根据实际情况传入操作者信息
+      });
       
       this.logger.log('用户所有会话销毁成功', { userId });
     } catch (error) {

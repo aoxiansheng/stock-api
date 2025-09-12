@@ -192,15 +192,6 @@ export const RATE_LIMIT_MESSAGES = {
   RATE_LIMIT_RESET: "频率限制已重置",
 } as const;
 
-// 兼容性常量导出 - 时间倍数转换
-export const RATE_LIMIT_TIME_MULTIPLIERS = {
-  [TIME_UNITS.SECOND]: 1,              // 1秒 = 1秒
-  [TIME_UNITS.MINUTE]: 60,             // 1分钟 = 60秒
-  [TIME_UNITS.HOUR]: 3600,             // 1小时 = 3600秒
-  [TIME_UNITS.DAY]: 86400,             // 1天 = 86400秒
-  [TIME_UNITS.WEEK]: 604800,           // 1周 = 604800秒
-  [TIME_UNITS.MONTH]: 2592000          // 1月 = 2592000秒（30天近似）
-} as const;
 
 // 兼容性工具类 - 频率限制模板工具
 export class RateLimitTemplateUtil {

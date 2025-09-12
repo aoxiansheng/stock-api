@@ -6,8 +6,6 @@ import { CONSTANTS } from "@common/constants";
 import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 import { SECURITY_LIMITS } from "@auth/constants";
 
-// Extract rate limit and security constants for backward compatibility
-// const RATE_LIMIT_CONFIG = CONSTANTS.DOMAIN.RATE_LIMIT;
 import { RATE_LIMIT_CONFIG } from "@auth/constants";
 // 修复IP_RATE_LIMIT_CONFIG引用，提供默认值
 const IP_RATE_LIMIT_CONFIG = {
@@ -18,8 +16,7 @@ const IP_RATE_LIMIT_CONFIG = {
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import { HttpStatus } from "@nestjs/common";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const xss = require("xss");
+import xss from "xss";
 
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {

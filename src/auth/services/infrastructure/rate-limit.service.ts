@@ -8,7 +8,7 @@ import { securityConfig } from "@auth/config/security.config";
 import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
-  RATE_LIMIT_TIME_MULTIPLIERS,
+  TIME_MULTIPLIERS,
   RateLimitTemplateUtil,
   RateLimitStrategy,
 } from "@auth/constants";
@@ -245,7 +245,7 @@ export class RateLimitService {
     const value = parseInt(match[1], 10);
     const unit = match[2];
 
-    const multiplier = RATE_LIMIT_TIME_MULTIPLIERS[unit];
+    const multiplier = TIME_MULTIPLIERS[unit];
     if (multiplier === undefined) {
       throw new BadRequestException(
         RateLimitTemplateUtil.generateErrorMessage("UNSUPPORTED_TIME_UNIT", {
