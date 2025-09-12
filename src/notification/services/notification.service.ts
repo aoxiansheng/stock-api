@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 
 import { createLogger } from '@appcore/config/logger.config';
 
-// 导入Alert相关类型（用于接收事件数据）- 保持向后兼容
+// 暂时保留Alert类型导入用于Legacy方法 - 计划后续清理
 import { Alert, AlertRule, NotificationChannel as AlertNotificationChannel } from '../../alert/types/alert.types';
 import { AlertContext } from '../../alert/events/alert.events';
 
@@ -76,7 +76,7 @@ export class NotificationService {
   }
 
   /**
-   * 发送警告触发通知（独立类型接口）
+   * 发送警告触发通知（独立类型接口 - 推荐使用）
    * 使用notification模块独立的类型，避免Alert模块依赖
    */
   async sendAlertNotifications(
@@ -87,7 +87,7 @@ export class NotificationService {
 
   /**
    * 发送警告触发通知（原有接口 - 向后兼容）
-   * 根据警告规则配置的通知渠道发送通知
+   * @deprecated 计划后续版本移除，请使用独立类型接口
    */
   async sendAlertNotifications(
     alert: Alert,
@@ -105,89 +105,23 @@ export class NotificationService {
   ): Promise<NotificationResult[]> {
     // 检测类型并委派给相应的实现
     if (this.isIndependentType(alert, rule, context)) {
-      // 使用独立类型的适配器服务
+      // 使用独立类型的适配器服务（推荐）
       return await this.adapterService.sendAlertNotifications(
         alert as NotificationAlert,
         rule as NotificationAlertRule,
         context as NotificationAlertContext
       );
     } else {
-      // 使用原有的实现逻辑（向后兼容）
-      return await this.sendAlertNotificationsLegacy(
+      // 使用原有的实现逻辑（向后兼容，计划移除）
+      return await this.sendResolutionNotificationsLegacy(
         alert as Alert,
-        rule as AlertRule,
-        context as AlertContext
+        new Date(),
+        'system',
+        'Legacy compatibility call'
       );
     }
   }
 
-  /**
-   * 原有的发送逻辑（向后兼容）
-   */
-  private async sendAlertNotificationsLegacy(
-    alert: Alert,
-    rule: AlertRule,
-    context: AlertContext
-  ): Promise<NotificationResult[]> {
-    const operation = NOTIFICATION_OPERATIONS.SEND_NOTIFICATION;
-    
-    this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED, {
-      operation,
-      alertId: alert.id,
-      ruleId: rule.id,
-      channels: rule.channels?.length || 0,
-    });
-
-    try {
-      const results: NotificationResult[] = [];
-
-      // 为每个配置的通知渠道发送通知
-      if (rule.channels && rule.channels.length > 0) {
-        for (const channel of rule.channels) {
-          try {
-            const result = await this.sendSingleNotification(
-              alert,
-              rule,
-              context,
-              channel
-            );
-            results.push(result);
-          } catch (error) {
-            this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-              alertId: alert.id,
-              channelId: channel.id,
-              error: error.message,
-            });
-            
-            // 即使单个通知失败，也要继续发送其他通知
-            results.push({
-              success: false,
-              channelId: channel.id || 'unknown',
-              channelType: channel.type,
-              error: error.message,
-              sentAt: new Date(),
-              duration: 0,
-            });
-          }
-        }
-      }
-
-      this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_SENT, {
-        alertId: alert.id,
-        totalSent: results.filter(r => r.success).length,
-        totalFailed: results.filter(r => !r.success).length,
-      });
-
-      return results;
-    } catch (error) {
-      this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-        operation,
-        alertId: alert.id,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
 
   /**
    * 发送警告解决通知（传统接口）

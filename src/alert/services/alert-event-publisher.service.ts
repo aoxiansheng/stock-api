@@ -59,11 +59,8 @@ export class AlertEventPublisher {
       const ruleForEvent = this.convertToAlertRuleType(rule);
       const contextForEvent = this.convertToAlertContext(context);
 
-      // 发出双重格式事件
-      await Promise.all([
-        this.emitNativeEvent(alertForEvent, ruleForEvent, contextForEvent, 'alert.fired'),
-        this.emitGenericEvent(alertForEvent, ruleForEvent, contextForEvent, GenericAlertEventType.FIRED),
-      ]);
+      // 只发布通用事件（解耦后）
+      await this.emitGenericEvent(alertForEvent, ruleForEvent, contextForEvent, GenericAlertEventType.FIRED);
 
       this.logger.debug('告警触发事件发布成功', {
         operation,
@@ -103,10 +100,8 @@ export class AlertEventPublisher {
       const alertForEvent = this.convertToAlertType(alert);
       const eventData = { resolvedAt, resolvedBy, resolutionComment: comment };
 
-      await Promise.all([
-        this.emitNativeEvent(alertForEvent, null, eventData, 'alert.resolved'),
-        this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.RESOLVED, eventData),
-      ]);
+      // 只发布通用事件（解耦后）
+      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.RESOLVED, eventData);
 
       this.logger.debug('告警解决事件发布成功', {
         operation,
@@ -144,10 +139,8 @@ export class AlertEventPublisher {
       const alertForEvent = this.convertToAlertType(alert);
       const eventData = { acknowledgedBy, acknowledgedAt, acknowledgmentComment: comment };
 
-      await Promise.all([
-        this.emitNativeEvent(alertForEvent, null, eventData, 'alert.acknowledged'),
-        this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ACKNOWLEDGED, eventData),
-      ]);
+      // 只发布通用事件（解耦后）
+      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ACKNOWLEDGED, eventData);
 
       this.logger.debug('告警确认事件发布成功', {
         operation,
@@ -187,10 +180,8 @@ export class AlertEventPublisher {
       const alertForEvent = this.convertToAlertType(alert);
       const eventData = { suppressedBy, suppressedAt, suppressionDuration, suppressionReason: reason };
 
-      await Promise.all([
-        this.emitNativeEvent(alertForEvent, null, eventData, 'alert.suppressed'),
-        this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.SUPPRESSED, eventData),
-      ]);
+      // 只发布通用事件（解耦后）
+      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.SUPPRESSED, eventData);
 
       this.logger.debug('告警抑制事件发布成功', {
         operation,
@@ -235,10 +226,8 @@ export class AlertEventPublisher {
         escalationReason,
       };
 
-      await Promise.all([
-        this.emitNativeEvent(alertForEvent, null, { previousSeverity, newSeverity, escalatedAt, escalationReason }, 'alert.escalated'),
-        this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ESCALATED, eventData),
-      ]);
+      // 只发布通用事件（解耦后）
+      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ESCALATED, eventData);
 
       this.logger.debug('告警升级事件发布成功', {
         operation,
@@ -256,22 +245,6 @@ export class AlertEventPublisher {
     }
   }
 
-  /**
-   * 发出原生事件格式
-   */
-  private async emitNativeEvent(
-    alert: Alert,
-    rule: AlertRule | null,
-    context: any,
-    eventName: string
-  ): Promise<void> {
-    this.eventEmitter.emit(eventName, {
-      alert,
-      rule,
-      context,
-      timestamp: new Date(),
-    });
-  }
 
   /**
    * 发出通用事件

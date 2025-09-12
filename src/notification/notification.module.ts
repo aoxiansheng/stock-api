@@ -25,7 +25,6 @@ import { NotificationTemplateService } from './services/notification-template.se
 import { NotificationTemplateInitializerService } from './services/notification-template-initializer.service';
 
 // Event Listeners
-import { AlertEventListener } from './listeners/alert-event.listener';
 import { GenericAlertEventListener } from './listeners/generic-alert-event.listener';
 
 // Schemas
@@ -64,7 +63,6 @@ import { LogSender } from './services/senders/log.sender';
     NotificationTemplateInitializerService,
     
     // Event Listeners
-    AlertEventListener,                  // 向后兼容（依赖Alert模块）
     GenericAlertEventListener,           // 解耦架构（独立类型）
     
     // Notification Senders (已迁移)

@@ -173,9 +173,54 @@ export class NotificationAdapterService {
       resolvedBy,
     });
 
-    // TODO: 实现解决通知逻辑
-    // 这里需要获取相关的规则信息或者从通知历史中获取渠道配置
-    return [];
+    const results: NotificationResult[] = [];
+
+    try {
+      // 创建解决通知消息
+      const notification: Notification = {
+        id: `resolution_${alert.id}_${Date.now()}`,
+        alertId: alert.id,
+        title: `警告已解决: ${alert.metric}`,
+        content: this.buildResolutionNotificationContent(alert, resolvedAt, resolvedBy, comment),
+        priority: this.mapSeverityToPriority(alert.severity),
+        status: 'pending',
+        channelId: '',
+        channelType: NotificationChannelType.LOG,
+        recipient: '',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          alertId: alert.id,
+          metric: alert.metric,
+          severity: alert.severity,
+          resolvedAt: resolvedAt.toISOString(),
+          resolvedBy,
+          notificationType: 'resolution',
+        },
+      };
+
+      // 发送到日志渠道（最基本的通知）
+      const logResult = await this.logSender.send(notification, {});
+      results.push(logResult);
+
+      this.logger.log('警告解决通知发送完成', {
+        alertId: alert.id,
+        resolvedBy,
+        successCount: results.filter(r => r.success).length,
+      });
+
+      return results;
+
+    } catch (error) {
+      this.logger.error('发送警告解决通知时发生错误', {
+        alertId: alert.id,
+        resolvedBy,
+        error: error.message,
+      });
+      
+      throw error;
+    }
   }
 
   /**
@@ -193,8 +238,54 @@ export class NotificationAdapterService {
       acknowledgedAt,
     });
 
-    // TODO: 实现确认通知逻辑
-    return [];
+    const results: NotificationResult[] = [];
+
+    try {
+      // 创建确认通知消息
+      const notification: Notification = {
+        id: `acknowledgment_${alert.id}_${Date.now()}`,
+        alertId: alert.id,
+        title: `警告已确认: ${alert.metric}`,
+        content: this.buildAcknowledgmentNotificationContent(alert, acknowledgedBy, acknowledgedAt, comment),
+        priority: this.mapSeverityToPriority(alert.severity),
+        status: 'pending',
+        channelId: '',
+        channelType: NotificationChannelType.LOG,
+        recipient: '',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          alertId: alert.id,
+          metric: alert.metric,
+          severity: alert.severity,
+          acknowledgedBy,
+          acknowledgedAt: acknowledgedAt.toISOString(),
+          notificationType: 'acknowledgment',
+        },
+      };
+
+      // 发送到日志渠道
+      const logResult = await this.logSender.send(notification, {});
+      results.push(logResult);
+
+      this.logger.log('警告确认通知发送完成', {
+        alertId: alert.id,
+        acknowledgedBy,
+        successCount: results.filter(r => r.success).length,
+      });
+
+      return results;
+
+    } catch (error) {
+      this.logger.error('发送警告确认通知时发生错误', {
+        alertId: alert.id,
+        acknowledgedBy,
+        error: error.message,
+      });
+      
+      throw error;
+    }
   }
 
   /**
@@ -214,8 +305,56 @@ export class NotificationAdapterService {
       suppressionDuration,
     });
 
-    // TODO: 实现抑制通知逻辑
-    return [];
+    const results: NotificationResult[] = [];
+
+    try {
+      // 创建抑制通知消息
+      const notification: Notification = {
+        id: `suppression_${alert.id}_${Date.now()}`,
+        alertId: alert.id,
+        title: `警告已抑制: ${alert.metric}`,
+        content: this.buildSuppressionNotificationContent(alert, suppressedBy, suppressedAt, suppressionDuration, reason),
+        priority: this.mapSeverityToPriority(alert.severity),
+        status: 'pending',
+        channelId: '',
+        channelType: NotificationChannelType.LOG,
+        recipient: '',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          alertId: alert.id,
+          metric: alert.metric,
+          severity: alert.severity,
+          suppressedBy,
+          suppressedAt: suppressedAt.toISOString(),
+          suppressionDuration,
+          notificationType: 'suppression',
+        },
+      };
+
+      // 发送到日志渠道
+      const logResult = await this.logSender.send(notification, {});
+      results.push(logResult);
+
+      this.logger.log('警告抑制通知发送完成', {
+        alertId: alert.id,
+        suppressedBy,
+        suppressionDuration,
+        successCount: results.filter(r => r.success).length,
+      });
+
+      return results;
+
+    } catch (error) {
+      this.logger.error('发送警告抑制通知时发生错误', {
+        alertId: alert.id,
+        suppressedBy,
+        error: error.message,
+      });
+      
+      throw error;
+    }
   }
 
   /**
@@ -236,8 +375,57 @@ export class NotificationAdapterService {
       escalationReason,
     });
 
-    // TODO: 实现升级通知逻辑
-    return [];
+    const results: NotificationResult[] = [];
+
+    try {
+      // 创建升级通知消息
+      const notification: Notification = {
+        id: `escalation_${alert.id}_${Date.now()}`,
+        alertId: alert.id,
+        title: `警告已升级: ${alert.metric}`,
+        content: this.buildEscalationNotificationContent(alert, previousSeverity, newSeverity, escalatedAt, escalationReason),
+        priority: this.mapSeverityToPriority(newSeverity), // 使用新的严重程度
+        status: 'pending',
+        channelId: '',
+        channelType: NotificationChannelType.LOG,
+        recipient: '',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          alertId: alert.id,
+          metric: alert.metric,
+          previousSeverity,
+          newSeverity,
+          escalatedAt: escalatedAt.toISOString(),
+          escalationReason,
+          notificationType: 'escalation',
+        },
+      };
+
+      // 发送到日志渠道
+      const logResult = await this.logSender.send(notification, {});
+      results.push(logResult);
+
+      this.logger.log('警告升级通知发送完成', {
+        alertId: alert.id,
+        previousSeverity,
+        newSeverity,
+        successCount: results.filter(r => r.success).length,
+      });
+
+      return results;
+
+    } catch (error) {
+      this.logger.error('发送警告升级通知时发生错误', {
+        alertId: alert.id,
+        previousSeverity,
+        newSeverity,
+        error: error.message,
+      });
+      
+      throw error;
+    }
   }
 
   /**
@@ -294,6 +482,148 @@ export class NotificationAdapterService {
 
     if (alert.description) {
       lines.push(`- 描述: ${alert.description}`);
+    }
+
+    if (alert.tags && Object.keys(alert.tags).length > 0) {
+      const tags = Object.entries(alert.tags).map(([k, v]) => `${k}=${v}`).join(', ');
+      lines.push(`- 标签: ${tags}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 构建解决通知内容
+   */
+  private buildResolutionNotificationContent(
+    alert: NotificationAlert,
+    resolvedAt: Date,
+    resolvedBy?: string,
+    comment?: string
+  ): string {
+    const lines = [
+      `**警告已解决**`,
+      `- 警告ID: ${alert.id}`,
+      `- 指标: ${alert.metric}`,
+      `- 严重程度: ${alert.severity}`,
+      `- 解决时间: ${resolvedAt.toLocaleString()}`,
+    ];
+
+    if (resolvedBy) {
+      lines.push(`- 解决人: ${resolvedBy}`);
+    }
+
+    if (alert.description) {
+      lines.push(`- 描述: ${alert.description}`);
+    }
+
+    if (comment) {
+      lines.push(`- 解决备注: ${comment}`);
+    }
+
+    if (alert.tags && Object.keys(alert.tags).length > 0) {
+      const tags = Object.entries(alert.tags).map(([k, v]) => `${k}=${v}`).join(', ');
+      lines.push(`- 标签: ${tags}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 构建确认通知内容
+   */
+  private buildAcknowledgmentNotificationContent(
+    alert: NotificationAlert,
+    acknowledgedBy: string,
+    acknowledgedAt: Date,
+    comment?: string
+  ): string {
+    const lines = [
+      `**警告已确认**`,
+      `- 警告ID: ${alert.id}`,
+      `- 指标: ${alert.metric}`,
+      `- 严重程度: ${alert.severity}`,
+      `- 确认人: ${acknowledgedBy}`,
+      `- 确认时间: ${acknowledgedAt.toLocaleString()}`,
+    ];
+
+    if (alert.description) {
+      lines.push(`- 描述: ${alert.description}`);
+    }
+
+    if (comment) {
+      lines.push(`- 确认备注: ${comment}`);
+    }
+
+    if (alert.tags && Object.keys(alert.tags).length > 0) {
+      const tags = Object.entries(alert.tags).map(([k, v]) => `${k}=${v}`).join(', ');
+      lines.push(`- 标签: ${tags}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 构建抑制通知内容
+   */
+  private buildSuppressionNotificationContent(
+    alert: NotificationAlert,
+    suppressedBy: string,
+    suppressedAt: Date,
+    suppressionDuration: number,
+    reason?: string
+  ): string {
+    const lines = [
+      `**警告已抑制**`,
+      `- 警告ID: ${alert.id}`,
+      `- 指标: ${alert.metric}`,
+      `- 严重程度: ${alert.severity}`,
+      `- 抑制人: ${suppressedBy}`,
+      `- 抑制时间: ${suppressedAt.toLocaleString()}`,
+      `- 抑制时长: ${suppressionDuration}分钟`,
+    ];
+
+    if (alert.description) {
+      lines.push(`- 描述: ${alert.description}`);
+    }
+
+    if (reason) {
+      lines.push(`- 抑制原因: ${reason}`);
+    }
+
+    if (alert.tags && Object.keys(alert.tags).length > 0) {
+      const tags = Object.entries(alert.tags).map(([k, v]) => `${k}=${v}`).join(', ');
+      lines.push(`- 标签: ${tags}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 构建升级通知内容
+   */
+  private buildEscalationNotificationContent(
+    alert: NotificationAlert,
+    previousSeverity: NotificationSeverity,
+    newSeverity: NotificationSeverity,
+    escalatedAt: Date,
+    escalationReason?: string
+  ): string {
+    const lines = [
+      `**警告已升级**`,
+      `- 警告ID: ${alert.id}`,
+      `- 指标: ${alert.metric}`,
+      `- 原严重程度: ${previousSeverity}`,
+      `- 新严重程度: ${newSeverity}`,
+      `- 升级时间: ${escalatedAt.toLocaleString()}`,
+    ];
+
+    if (alert.description) {
+      lines.push(`- 描述: ${alert.description}`);
+    }
+
+    if (escalationReason) {
+      lines.push(`- 升级原因: ${escalationReason}`);
     }
 
     if (alert.tags && Object.keys(alert.tags).length > 0) {
