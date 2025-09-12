@@ -32,11 +32,7 @@ import { SymbolMapperService } from "../services/symbol-mapper.service";
     SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
     SymbolTransformerModule, // 🔄 导入 Symbol Transformer 模块
 
-    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
-    // MongooseModule.forFeature([
-    //   // SymbolMappingRuleDocument已在CoreDatabaseModule中注册
-    //   { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
-    // ]),
+    // ✅ 使用统一DatabaseModule (CoreDatabaseModule包含SymbolMappingRuleDocument schema)
   ],
   controllers: [SymbolMapperController],
   providers: [

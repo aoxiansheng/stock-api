@@ -15,10 +15,7 @@ import { StorageService } from "../services/storage.service";
     AuthModule,
     PaginationModule, // 🔥 导入PaginationModule以支持分页功能
     MonitoringModule, // ✅ 新增监控模块
-    // ❌ 删除重复的 MongooseModule.forFeature - StoredData Schema 已在 CoreDatabaseModule 中注册
-    // MongooseModule.forFeature([
-    //   { name: StoredData.name, schema: StoredDataSchema },
-    // ]),
+    // ✅ 使用统一DatabaseModule (CoreDatabaseModule包含StoredData schema)
   ],
   controllers: [StorageController],
   providers: [StorageService, StorageRepository],

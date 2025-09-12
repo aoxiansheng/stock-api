@@ -3,7 +3,7 @@ import { createLogger } from "@appcore/config/logger.config";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 import { CommonCacheModule } from "../../common-cache/module/common-cache.module";
-// BackgroundTaskService is provided by @Global() InfrastructureModule
+// BackgroundTaskService is provided by this module
 import { SmartCacheOrchestrator } from "../services/smart-cache-orchestrator.service";
 import {
   type SmartCacheOrchestratorConfig,
@@ -13,6 +13,7 @@ import {
 import { SmartCacheConfigFactory } from "../config/smart-cache-config.factory";
 import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performance-optimizer.service";
 // 移除 CollectorModule 依赖 - 事件化监控不再需要直接导入监控模块
+import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
 
 /**
  * 智能缓存模块
@@ -64,7 +65,8 @@ import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performa
     // 性能优化器服务
     SmartCachePerformanceOptimizer,
 
-    // BackgroundTaskService 由 @Global() InfrastructureModule 提供，无需在此声明
+    // BackgroundTaskService 由本模块直接提供
+    BackgroundTaskService,
 
     // 配置提供者 - 使用环境变量驱动的配置工厂
     {

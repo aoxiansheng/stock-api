@@ -215,10 +215,3 @@ constructor(
 4. **动态权限**
    - 增强`PermissionService`
    - 支持实时权限计算
-
-## 📚 相关文档
-
-- [API文档](../docs/api.md)
-- [测试指南](../docs/testing.md)
-- [部署指南](../docs/deployment.md)
-- [性能优化](../docs/performance.md)

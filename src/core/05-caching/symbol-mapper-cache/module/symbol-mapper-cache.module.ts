@@ -1,5 +1,4 @@
 import { Module } from "@nestjs/common";
-import { MongooseModule } from "@nestjs/mongoose";
 
 import { FeatureFlags } from "@config/feature-flags.config";
 // ✅ 事件驱动架构：不再直接依赖监控模块，EventEmitterModule 在 AppModule 中全局配置

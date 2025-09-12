@@ -49,11 +49,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
       inject: [ConfigService],
     }),
 
-    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的AuthDatabaseModule)
-    // MongooseModule.forFeature([
-    //   { name: User.name, schema: UserSchema },
-    //   { name: ApiKey.name, schema: ApiKeySchema },
-    // ]),
+    // ✅ 使用统一DatabaseModule (AuthDatabaseModule包含User和ApiKey schemas)
   ],
   providers: [
     // 门面层

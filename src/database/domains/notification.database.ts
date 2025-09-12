@@ -10,11 +10,11 @@ import {
   AlertHistory,
   AlertHistorySchema,
 } from "../../alert/schemas/alert-history.schema";
-// NOTE: NotificationLog schema has been moved to notification module
-// import {
-//   NotificationLog,
-//   NotificationLogSchema,
-// } from "../../notification/schemas/notification-log.schema";
+// 导入NotificationLog相关Schema
+import {
+  NotificationLog,
+  NotificationLogSchema,
+} from "../../notification/schemas/notification-log.schema";
 
 /**
  * 通知域数据库模块
@@ -29,8 +29,7 @@ import {
     MongooseModule.forFeature([
       { name: AlertRule.name, schema: AlertRuleSchema },
       { name: AlertHistory.name, schema: AlertHistorySchema },
-      // NOTE: NotificationLog schema registration moved to notification module
-      // { name: NotificationLog.name, schema: NotificationLogSchema },
+      { name: NotificationLog.name, schema: NotificationLogSchema },
     ]),
   ],
   exports: [MongooseModule],

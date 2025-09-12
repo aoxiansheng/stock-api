@@ -44,12 +44,7 @@ import {
     PaginationModule,
     DataMapperCacheModule, // 专用DataMapper缓存模块，替换通用CacheModule
 
-    // 🔄 移除重复的MongooseModule.forFeature (改用DatabaseModule中的CoreDatabaseModule)
-    // MongooseModule.forFeature([
-    //   // 核心Schema - DataSourceTemplate和FlexibleMappingRule已在CoreDatabaseModule中注册
-    //   { name: DataSourceTemplate.name, schema: DataSourceTemplateSchema },
-    //   { name: FlexibleMappingRule.name, schema: FlexibleMappingRuleSchema },
-    // ]),
+    // ✅ 使用统一DatabaseModule (CoreDatabaseModule包含DataSourceTemplate和FlexibleMappingRule schemas)
   ],
   controllers: [
     UserJsonPersistenceController, // 用户JSON持久化控制器

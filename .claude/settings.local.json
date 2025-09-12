@@ -14,7 +14,8 @@
       "mcp__serena__check_onboarding_performed",
       "Bash(cp:*)",
       "Bash(chmod:*)",
-      "Bash(DISABLE_AUTO_INIT=true bun run build)"
+      "Bash(DISABLE_AUTO_INIT=true bun run build)",
+      "mcp__serena__find_referencing_symbols"
     ],
     "deny": [],
     "ask": []

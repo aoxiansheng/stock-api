@@ -24,9 +24,9 @@ import { OPERATION_LIMITS } from '@common/constants/domain';
 // Controllers
 import { AlertController } from "../controller/alert.controller";
 
-// Schemas
-import { AlertRule, AlertRuleSchema } from "../schemas/alert-rule.schema";
-import { AlertHistory, AlertHistorySchema } from "../schemas/alert-history.schema";
+// Schemas (类定义用于repository注入，Schema定义已在DatabaseModule中注册)
+import { AlertRule } from "../schemas/alert-rule.schema";
+import { AlertHistory } from "../schemas/alert-history.schema";
 
 // Repositories
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
@@ -49,14 +49,8 @@ import { RuleEvaluator } from "../evaluators/rule.evaluator";
 
 @Module({
   imports: [
-    // 数据库模块
+    // 🗄️ 统一数据库模块 (包含AlertRule, AlertHistory, NotificationLog schemas)
     DatabaseModule,
-    
-    // MongoDB Schemas - 同时支持新旧服务
-    MongooseModule.forFeature([
-      { name: AlertRule.name, schema: AlertRuleSchema },
-      { name: AlertHistory.name, schema: AlertHistorySchema },
-    ]),
 
     // 基础模块
     AuthModule,

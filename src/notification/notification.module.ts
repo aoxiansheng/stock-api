@@ -10,6 +10,9 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 
+// 🗄️ 统一数据库模块 (提供NotificationLog Schema)
+import { DatabaseModule } from '../database/database.module';
+
 // Controllers
 import { NotificationController } from './controllers/notification.controller';
 
@@ -36,6 +39,8 @@ import { LogSender } from './services/senders/log.sender';
 @Module({
   imports: [
     HttpModule,
+    // 🗄️ 统一数据库模块 (包含NotificationLog Schema)
+    DatabaseModule,
     MongooseModule.forFeature([
       { name: 'Notification', schema: NotificationSchema },
       { name: 'NotificationChannel', schema: NotificationChannelSchema },
