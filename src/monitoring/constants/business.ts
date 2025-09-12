@@ -7,7 +7,7 @@
  * ✅ 直观优先：常量名称直接体现业务含义
  * ✅ 就近原则：相关常量组织在一起
  * 
- * 注意: 兼容性层(compatibility.ts)已移除，这是唯一的MONITORING_BUSINESS定义
+ * 零抽象架构：MONITORING_BUSINESS 统一定义
  */
 
 /**

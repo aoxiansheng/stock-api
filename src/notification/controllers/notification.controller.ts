@@ -24,7 +24,7 @@ import { NotificationService } from '../services/notification.service';
 import { NotificationHistoryService } from '../services/notification-history.service';
 
 // 导入类型
-import {
+import type {
   NotificationQuery,
   NotificationStats,
 } from '../types/notification.types';

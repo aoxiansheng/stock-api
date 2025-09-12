@@ -13,11 +13,26 @@
 export const NOTIFICATION_OPERATIONS = Object.freeze({
   SEND_NOTIFICATION: "send_notification",
   SEND_BATCH_NOTIFICATIONS: "send_batch_notifications",
+  SEND_RESOLUTION_NOTIFICATION: "send_resolution_notification",
+  SEND_ACKNOWLEDGMENT_NOTIFICATION: "send_acknowledgment_notification",
+  SEND_SUPPRESSION_NOTIFICATION: "send_suppression_notification",
+  SEND_ESCALATION_NOTIFICATION: "send_escalation_notification",
   TEST_CHANNEL: "test_channel",
   GENERATE_TEMPLATE: "generate_template",
   INITIALIZE_SENDERS: "initialize_senders",
   RETRY_FAILED_NOTIFICATION: "retry_failed_notification",
   VALIDATE_CHANNEL_CONFIG: "validate_channel_config",
+  
+  // 模板相关操作
+  CREATE_TEMPLATE: "create_template",
+  UPDATE_TEMPLATE: "update_template",
+  DELETE_TEMPLATE: "delete_template",
+  RENDER_TEMPLATE: "render_template",
+  RENDER_TEMPLATES_BATCH: "render_templates_batch",
+  QUERY_TEMPLATES: "query_templates",
+  DUPLICATE_TEMPLATE: "duplicate_template",
+  VALIDATE_TEMPLATE: "validate_template",
+  INITIALIZE_DEFAULT_TEMPLATES: "initialize_default_templates",
 });
 
 /**
@@ -35,6 +50,7 @@ export const NOTIFICATION_MESSAGES = Object.freeze({
   BATCH_NOTIFICATIONS_COMPLETED: "批量通知完成",
   NOTIFICATION_RETRIED: "通知重试成功",
   CHANNEL_CONFIG_VALID: "通道配置验证通过",
+  NO_CHANNELS_CONFIGURED: "未配置通知渠道",
   
   // Error messages
   NOTIFICATION_FAILED: "通知发送失败",

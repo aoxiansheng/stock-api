@@ -155,7 +155,7 @@ export {
   MONITORING_STATUS_COLORS
 } from './config/monitoring-health.constants';
 
-// ========================= 状态层常量（向后兼容导出） =========================
+// ========================= 状态层常量导出 =========================
 export type {
   MonitoringHealthStatus,
   BasicHealthStatus,

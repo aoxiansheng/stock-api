@@ -61,9 +61,12 @@ export class CollectorService
   @OnEvent(SYSTEM_STATUS_EVENTS.DATA_REQUEST)
   async handleDataRequest(eventData: DataRequestEvent): Promise<void> {
     try {
-      this.logger.debug("接收到数据请求", {
+      this.logger.debug('Collector: 接收到数据请求', {
+        component: 'CollectorService',
+        operation: 'handleDataRequest',
         requestId: eventData.requestId,
         requestType: eventData.requestType,
+        success: true
       });
 
       let responseData: any = null;
@@ -104,9 +107,12 @@ export class CollectorService
 
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_RESPONSE, responseEvent);
 
-      this.logger.debug("数据请求处理完成", {
+      this.logger.debug('Collector: 数据请求处理完成', {
+        component: 'CollectorService',
+        operation: 'handleDataRequest',
         requestId: eventData.requestId,
         dataSize,
+        success: true
       });
     } catch (error) {
       this.logger.error("处理数据请求失败", {
@@ -163,9 +169,15 @@ export class CollectorService
       },
     });
 
-    this.logger.debug(
-      `记录HTTP请求: ${method} ${endpoint} - ${statusCode} (${responseTimeMs}ms)`,
-    );
+    this.logger.debug('Collector: 记录HTTP请求', {
+      component: 'CollectorService',
+      operation: 'recordRequest',
+      method,
+      endpoint,
+      statusCode,
+      responseTimeMs,
+      success: statusCode >= 200 && statusCode < 400
+    });
   }
 
   /**
@@ -204,9 +216,13 @@ export class CollectorService
       },
     });
 
-    this.logger.debug(
-      `记录数据库操作: ${operation} - ${success ? "成功" : "失败"} (${responseTimeMs}ms)`,
-    );
+    this.logger.debug('Collector: 记录数据库操作', {
+      component: 'CollectorService',
+      operation: 'recordDatabaseOperation',
+      dbOperation: operation,
+      responseTimeMs,
+      success
+    });
   }
 
   /**
@@ -247,9 +263,14 @@ export class CollectorService
       },
     });
 
-    this.logger.debug(
-      `记录缓存操作: ${operation} - ${hit ? "命中" : "未命中"} (${responseTimeMs}ms)`,
-    );
+    this.logger.debug('Collector: 记录缓存操作', {
+      component: 'CollectorService',
+      operation: 'recordCacheOperation',
+      cacheOperation: operation,
+      hit,
+      responseTimeMs,
+      success: true
+    });
   }
 
   /**
@@ -283,9 +304,14 @@ export class CollectorService
       metadata: metrics,
     });
 
-    this.logger.debug(
-      `记录系统指标: CPU ${metrics.cpu.usage}%, 内存 ${metrics.memory.percentage}%`,
-    );
+    this.logger.debug('Collector: 记录系统指标', {
+      component: 'CollectorService',
+      operation: 'recordSystemMetrics',
+      cpuUsage: metrics.cpu.usage,
+      memoryPercentage: metrics.memory.percentage,
+      uptime: metrics.uptime,
+      success: true
+    });
   }
 
   /**
@@ -334,9 +360,15 @@ export class CollectorService
       metadata: data.metadata,
     });
 
-    this.logger.debug(
-      `收集请求性能数据: ${data.operation} - ${data.success ? "成功" : "失败"} (${data.responseTimeMs}ms)`,
-    );
+    this.logger.debug('Collector: 收集请求性能数据', {
+      component: 'CollectorService',
+      operation: 'collectRequestMetrics',
+      requestOperation: data.operation,
+      responseTimeMs: data.responseTimeMs,
+      statusCode: data.statusCode,
+      source: data.source,
+      success: data.success
+    });
   }
 
   /**
@@ -382,9 +414,16 @@ export class CollectorService
       metadata: data.metadata,
     });
 
-    this.logger.debug(
-      `收集性能数据: ${data.operation} [${metricType}] - ${data.success ? "成功" : "失败"} (${data.responseTimeMs}ms)`,
-    );
+    this.logger.debug('Collector: 收集性能数据', {
+      component: 'CollectorService',
+      operation: 'collectPerformanceData',
+      performanceOperation: data.operation,
+      metricType,
+      responseTimeMs: data.responseTimeMs,
+      source: data.source,
+      layer: data.layer,
+      success: data.success
+    });
   }
 
   /**
@@ -395,7 +434,13 @@ export class CollectorService
     endTime?: Date,
   ): Promise<RawMetricsDto> {
     try {
-      this.logger.debug("获取原始指标数据", { startTime, endTime });
+      this.logger.debug('Collector: 获取原始指标数据', {
+        component: 'CollectorService',
+        operation: 'getRawMetrics',
+        startTime,
+        endTime,
+        success: true
+      });
 
       // 从仓储层获取原始数据
       const rawData = await this.repository.findMetrics(startTime, endTime);
@@ -465,9 +510,15 @@ export class CollectorService
         timestamp: new Date(),
       };
 
-      this.logger.debug("获取系统指标成功", {
+      this.logger.debug('Collector: 获取系统指标成功', {
+        component: 'CollectorService',
+        operation: 'getSystemMetrics',
         memoryUsed: metrics.memory.used,
+        memoryTotal: metrics.memory.total,
+        memoryPercentage: metrics.memory.percentage,
         cpuUsage: metrics.cpu.usage,
+        uptime: metrics.uptime,
+        success: true
       });
 
       return metrics;
@@ -550,7 +601,13 @@ export class CollectorService
 
       await this.repository.saveRawMetrics(metricsToFlush);
 
-      this.logger.debug(`刷新缓冲区: 保存了 ${metricsToFlush.length} 条指标`);
+      this.logger.debug('Collector: 刷新缓冲区', {
+        component: 'CollectorService',
+        operation: 'flushBuffer',
+        metricsCount: metricsToFlush.length,
+        bufferSizeBefore: metricsToFlush.length,
+        success: true
+      });
     } catch (error) {
       this.logger.error("刷新缓冲区失败", error.stack);
 

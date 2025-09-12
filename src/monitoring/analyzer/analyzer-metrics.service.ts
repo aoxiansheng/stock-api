@@ -204,11 +204,14 @@ export class AnalyzerMetricsCalculator {
       const errorRate =
         Math.round((failedOperations / totalOperations) * 10000) / 10000;
 
-      this.logger.debug("数据库指标计算完成", {
+      this.logger.debug('MetricsCalculator: 数据库指标计算完成', {
+        component: 'AnalyzerMetricsCalculator',
+        operation: 'calculateDatabaseMetrics',
         totalOperations,
         responseTimeMs,
         slowQueries,
         errorRate,
+        success: true
       });
 
       return {

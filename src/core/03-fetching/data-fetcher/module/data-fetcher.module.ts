@@ -11,7 +11,7 @@ import { DataFetcherService } from "../services/data-fetcher.service";
  */
 @Module({
   imports: [
-    ProvidersModule, // 导入提供商模块以访问CapabilityRegistryService
+    ProvidersModule, // 导入提供商模块以访问EnhancedCapabilityRegistryService
     EventEmitterModule, // 导入事件模块以访问EventEmitter2（事件驱动监控）
   ],
   providers: [DataFetcherService],

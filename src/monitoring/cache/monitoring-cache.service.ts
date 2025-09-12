@@ -182,19 +182,25 @@ export class MonitoringCacheService {
             });
           } catch (eventError) {
             // 静默处理事件发送错误，不影响缓存操作
-            this.logger.debug("事件发送失败", {
-              event: "CACHE_HIT",
+            this.logger.debug('MonitoringCacheService: 事件发送失败', {
+              component: 'MonitoringCacheService',
+              operation: 'eventBus.emit',
+              event: 'CACHE_HIT',
               error: eventError.message,
+              success: false
             });
           }
         }
 
-        this.logger.debug("监控缓存命中", {
-          category: "health",
+        this.logger.debug('MonitoringCacheService: 监控缓存命中', {
+          component: 'MonitoringCacheService',
+          operation: 'getHealthData',
+          category: 'health',
           key,
           hit: true,
           duration,
-          source: "cache",
+          source: 'cache',
+          success: true
         });
 
         return cached;
@@ -215,17 +221,23 @@ export class MonitoringCacheService {
             },
           });
         } catch (eventError) {
-          this.logger.debug("事件发送失败", {
-            event: "CACHE_MISS",
+          this.logger.debug('MonitoringCacheService: 事件发送失败', {
+            component: 'MonitoringCacheService',
+            operation: 'eventBus.emit',
+            event: 'CACHE_MISS',
             error: eventError.message,
+            success: false
           });
         }
       }
 
-      this.logger.debug("监控缓存未命中，开始回填", {
-        category: "health",
+      this.logger.debug('MonitoringCacheService: 监控缓存未命中，开始回填', {
+        component: 'MonitoringCacheService',
+        operation: 'getHealthData',
+        category: 'health',
         key,
         hit: false,
+        success: true
       });
 
       const factoryStartTime = Date.now();
@@ -255,9 +267,12 @@ export class MonitoringCacheService {
               },
             });
           } catch (eventError) {
-            this.logger.debug("事件发送失败", {
-              event: "CACHE_SET",
+            this.logger.debug('MonitoringCacheService: 事件发送失败', {
+              component: 'MonitoringCacheService',
+              operation: 'eventBus.emit',
+              event: 'CACHE_SET',
               error: eventError.message,
+              success: false
             });
           }
         }
@@ -277,9 +292,12 @@ export class MonitoringCacheService {
               },
             });
           } catch (eventError) {
-            this.logger.debug("事件发送失败", {
-              event: "CACHE_ERROR",
+            this.logger.debug('MonitoringCacheService: 事件发送失败', {
+              component: 'MonitoringCacheService',
+              operation: 'eventBus.emit',
+              event: 'CACHE_ERROR',
               error: eventError.message,
+              success: false
             });
           }
         }
@@ -296,14 +314,17 @@ export class MonitoringCacheService {
       this.recordOperationTime(totalDuration);
       this.metrics.operations.misses++;
 
-      this.logger.debug("监控缓存回填完成", {
-        category: "health",
+      this.logger.debug('MonitoringCacheService: 监控缓存回填完成', {
+        component: 'MonitoringCacheService',
+        operation: 'getHealthData',
+        category: 'health',
         key,
         hit: false,
         totalDuration,
         factoryDuration,
         cacheWriteDuration: totalDuration - factoryDuration,
-        source: "factory",
+        source: 'factory',
+        success: true
       });
 
       return result;
@@ -329,9 +350,12 @@ export class MonitoringCacheService {
             },
           });
         } catch (eventError) {
-          this.logger.debug("事件发送失败", {
-            event: "CACHE_ERROR",
+          this.logger.debug('MonitoringCacheService: 事件发送失败', {
+            component: 'MonitoringCacheService',
+            operation: 'eventBus.emit',
+            event: 'CACHE_ERROR',
             error: eventError.message,
+            success: false
           });
         }
       }
@@ -419,10 +443,24 @@ export class MonitoringCacheService {
 
       if (result !== null) {
         this.metrics.operations.hits++;
-        this.logger.debug(`监控缓存命中: ${category}`, { key, duration });
+        this.logger.debug('MonitoringCacheService: 监控缓存命中', {
+          component: 'MonitoringCacheService',
+          operation: 'safeGet',
+          category,
+          key,
+          duration,
+          success: true
+        });
       } else {
         this.metrics.operations.misses++;
-        this.logger.debug(`监控缓存未命中: ${category}`, { key, duration });
+        this.logger.debug('MonitoringCacheService: 监控缓存未命中', {
+          component: 'MonitoringCacheService',
+          operation: 'safeGet',
+          category,
+          key,
+          duration,
+          success: true
+        });
       }
       return result;
     } catch (error) {
@@ -458,10 +496,14 @@ export class MonitoringCacheService {
       const duration = Date.now() - startTime;
       this.recordOperationTime(duration);
 
-      this.logger.debug(`监控缓存写入成功: ${category}`, {
+      this.logger.debug('MonitoringCacheService: 监控缓存写入成功', {
+        component: 'MonitoringCacheService',
+        operation: 'safeSet',
+        category,
         key,
         ttl,
         duration,
+        success: true
       });
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -521,9 +563,13 @@ export class MonitoringCacheService {
       await this.cacheService.expire(indexKey, dataTtl * 2);
     } catch (error) {
       // 索引失败不影响主流程
-      this.logger.debug(`维护键索引失败: ${category}`, {
+      this.logger.debug('MonitoringCacheService: 维护键索引失败', {
+        component: 'MonitoringCacheService',
+        operation: 'addToKeyIndex',
+        category,
         cacheKey,
         error: error.message,
+        success: false
       });
     }
   }
@@ -557,15 +603,22 @@ export class MonitoringCacheService {
               },
             });
           } catch (eventError) {
-            this.logger.debug("事件发送失败", {
-              event: "CACHE_INVALIDATED",
+            this.logger.debug('MonitoringCacheService: 事件发送失败', {
+              component: 'MonitoringCacheService',
+              operation: 'eventBus.emit',
+              event: 'CACHE_INVALIDATED',
               error: eventError.message,
+              success: false
             });
           }
         }
 
-        this.logger.debug(`基于索引批量删除监控缓存: ${category}`, {
+        this.logger.debug('MonitoringCacheService: 基于索引批量删除监控缓存', {
+          component: 'MonitoringCacheService',
+          operation: 'invalidateByKeyIndex',
+          category,
           count: keys.length,
+          success: true
         });
       }
     } catch (error) {
@@ -616,7 +669,12 @@ export class MonitoringCacheService {
         // 回退到受保护的模式删除
         await this.fallbackPatternDelete(fullPattern);
       }
-      this.logger.debug("监控缓存模式失效成功", { pattern: fullPattern });
+      this.logger.debug('MonitoringCacheService: 监控缓存模式失效成功', {
+        component: 'MonitoringCacheService',
+        operation: 'invalidateByPattern',
+        pattern: fullPattern,
+        success: true
+      });
     } catch (error) {
       this.logger.warn("监控缓存模式失效失败", {
         pattern: fullPattern,
@@ -651,10 +709,13 @@ export class MonitoringCacheService {
       const duration = Date.now() - startTime;
       this.recordOperationTime(duration);
 
-      this.logger.debug("回退模式删除完成", {
+      this.logger.debug('MonitoringCacheService: 回退模式删除完成', {
+        component: 'MonitoringCacheService',
+        operation: 'fallbackPatternDelete',
         pattern,
         duration,
         fallbackCount: this.metrics.fallbackCount,
+        success: true
       });
 
       // 如果操作时间过长，记录警告
@@ -694,10 +755,13 @@ export class MonitoringCacheService {
     const batchSize = this.config.cache.batchSize;
     const totalBatches = Math.ceil(keys.length / batchSize);
 
-    this.logger.debug("开始并发控制批量删除", {
+    this.logger.debug('MonitoringCacheService: 开始并发控制批量删除', {
+      component: 'MonitoringCacheService',
+      operation: 'batchDeleteWithConcurrencyControl',
       totalKeys: keys.length,
       batchSize,
       totalBatches,
+      success: true
     });
 
     // 统计成功和失败数量
@@ -738,10 +802,14 @@ export class MonitoringCacheService {
         successCount += batchSuccess;
         failureCount += batchFailure;
 
-        this.logger.debug(`批次 ${batchIndex}/${totalBatches} 完成`, {
+        this.logger.debug('MonitoringCacheService: 批次完成', {
+          component: 'MonitoringCacheService',
+          operation: 'batchDeleteWithConcurrencyControl',
+          batchIndex,
+          totalBatches,
           batchSize: batch.length,
           success: batchSuccess,
-          failure: batchFailure,
+          failure: batchFailure
         });
 
         // 批次间间隔防止压力过大（仅在大批量时）
@@ -760,13 +828,16 @@ export class MonitoringCacheService {
     const totalTime = Date.now() - startTime;
 
     // 记录最终统计结果
-    this.logger.debug("并发控制批量删除完成", {
+    this.logger.debug('MonitoringCacheService: 并发控制批量删除完成', {
+      component: 'MonitoringCacheService',
+      operation: 'batchDeleteWithConcurrencyControl',
       totalKeys: keys.length,
       successCount,
       failureCount,
       totalTime,
       averageTimePerKey: totalTime / keys.length,
-      successRate: ((successCount / keys.length) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2) + "%",
+      successRate: ((successCount / keys.length) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER).toFixed(2) + '%',
+      success: true
     });
 
     // 如果失败率过高，记录警告

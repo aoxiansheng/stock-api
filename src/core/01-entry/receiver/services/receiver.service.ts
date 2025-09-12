@@ -19,7 +19,7 @@ import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/sy
 
 import { RequestContext } from "../interfaces/request-context.interface";
 
-import { CapabilityRegistryService } from "../../../../providers/services/capability-registry.service";
+import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
 import {
   MarketStatusService,
   // MarketStatusResult,
@@ -81,7 +81,7 @@ export class ReceiverService {
     private readonly storageService: StorageService,
 
     // 🎯 服务注册与状态依赖
-    private readonly capabilityRegistryService: CapabilityRegistryService,
+    private readonly capabilityRegistryService: EnhancedCapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
 
     // ✅ 事件化监控依赖 - 符合监控组件集成规范

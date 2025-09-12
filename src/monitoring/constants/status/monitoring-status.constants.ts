@@ -24,6 +24,6 @@ export {
 // 导出类型
 export type { MonitoringHealthStatus } from '../config/monitoring-health.constants';
 
-// 为了保持向后兼容，提供类型别名
+// 统一状态类型别名
 export type BasicHealthStatus = MonitoringHealthStatus;
 export type ExtendedHealthStatus = MonitoringHealthStatus;

@@ -108,11 +108,14 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
       this.eventBus.emit(eventType, eventData);
     } catch (error) {
       // 静默处理事件发送错误，记录调试信息但不影响请求
-      this.logger.debug("API监控事件发送失败", {
+      this.logger.debug('ApiMonitoringInterceptor: API监控事件发送失败', {
+        component: 'ApiMonitoringInterceptor',
+        operation: 'emitEvent',
         eventType,
         error: error.message,
         endpoint: eventData.endpoint,
         method: eventData.method,
+        success: false
       });
     }
   }

@@ -30,7 +30,7 @@ import { StreamCacheModule } from "../../../05-caching/stream-cache/module/strea
 @Module({
   imports: [
     SharedServicesModule, // 导入共享服务(包含BaseFetcherService相关依赖)
-    ProvidersModule, // 导入提供商模块以访问CapabilityRegistryService
+    ProvidersModule, // 导入提供商模块以访问EnhancedCapabilityRegistryService
     MonitoringModule, // ✅ 仅保留全局监控模块导入
     StreamCacheModule, // 🎯 新增：导入专用流缓存模块
   ],

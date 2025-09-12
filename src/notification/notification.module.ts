@@ -15,11 +15,14 @@ import { DatabaseModule } from '../database/database.module';
 
 // Controllers
 import { NotificationController } from './controllers/notification.controller';
+import { TemplateController } from './controllers/template.controller';
 
 // Services  
 import { NotificationService } from './services/notification.service';
 import { NotificationHistoryService } from './services/notification-history.service';
 import { NotificationAdapterService } from './services/notification-adapter.service';
+import { NotificationTemplateService } from './services/notification-template.service';
+import { NotificationTemplateInitializerService } from './services/notification-template-initializer.service';
 
 // Event Listeners
 import { AlertEventListener } from './listeners/alert-event.listener';
@@ -28,6 +31,7 @@ import { GenericAlertEventListener } from './listeners/generic-alert-event.liste
 // Schemas
 import { NotificationSchema } from './schemas/notification.schema';
 import { NotificationChannelSchema } from './schemas/notification-channel.schema';
+import { NotificationTemplate, NotificationTemplateSchema } from './schemas/notification-template.schema';
 
 // Senders (已从alert模块迁移)
 import { EmailSender } from './services/senders/email.sender';
@@ -44,16 +48,20 @@ import { LogSender } from './services/senders/log.sender';
     MongooseModule.forFeature([
       { name: 'Notification', schema: NotificationSchema },
       { name: 'NotificationChannel', schema: NotificationChannelSchema },
+      { name: NotificationTemplate.name, schema: NotificationTemplateSchema },
     ]),
   ],
   controllers: [
     NotificationController,
+    TemplateController,
   ],
   providers: [
     // Core Services
     NotificationService,
     NotificationHistoryService,
     NotificationAdapterService,
+    NotificationTemplateService,
+    NotificationTemplateInitializerService,
     
     // Event Listeners
     AlertEventListener,                  // 向后兼容（依赖Alert模块）
@@ -70,6 +78,8 @@ import { LogSender } from './services/senders/log.sender';
     NotificationService,
     NotificationHistoryService,
     NotificationAdapterService,          // 独立类型服务
+    NotificationTemplateService,         // 模板服务
+    NotificationTemplateInitializerService, // 模板初始化服务
   ],
 })
 export class NotificationModule {}

@@ -13,11 +13,10 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { createLogger } from '@appcore/config/logger.config';
 
 // 导入通用事件接口
-import {
+import type {
   GenericAlertEvent,
-  GenericAlertEventType,
-  GENERIC_EVENT_TYPES,
 } from '@common/events';
+import { GENERIC_EVENT_TYPES, GenericAlertEventType } from '@common/events';
 
 // 导入通知模块独立类型
 import {

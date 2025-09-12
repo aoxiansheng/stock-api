@@ -54,12 +54,33 @@ export class MonitoringEventBridgeService
         try {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, payload);
         } catch (error) {
-          this.logger.debug("装饰器事件桥接失败", { error: error.message });
+          this.logger.debug('EventBridge: 装饰器事件桥接失败', {
+            component: 'MonitoringEventBridge',
+            operation: 'decoratorEventBridge',
+            error: {
+              message: error.message,
+              type: error.constructor.name
+            },
+            success: false
+          });
         }
       });
-      this.logger.debug("已订阅装饰器性能事件: performance-metric");
+      this.logger.debug('EventBridge: 已订阅装饰器性能事件', {
+        component: 'MonitoringEventBridge',
+        operation: 'subscribeDecoratorEvents',
+        eventType: 'performance-metric',
+        success: true
+      });
     } catch (error) {
-      this.logger.debug("订阅装饰器性能事件失败", { error: error.message });
+      this.logger.debug('EventBridge: 订阅装饰器性能事件失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'subscribeDecoratorEvents',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
+      });
     }
   }
 
@@ -95,9 +116,15 @@ export class MonitoringEventBridgeService
       }
     } catch (error) {
       // 静默处理，不影响主流程
-      this.logger.debug("事件处理失败", {
-        eventType: "METRIC_COLLECTED",
-        error: error.message,
+      this.logger.debug('EventBridge: 指标收集事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleMetricCollected',
+        eventType: 'METRIC_COLLECTED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -114,14 +141,25 @@ export class MonitoringEventBridgeService
       const aggregatedMetrics = this.aggregateEvents(batch.events);
       this.updateMetricsBatch(eventType, aggregatedMetrics);
 
-      this.logger.debug(`批次处理完成: ${eventType}`, {
+      this.logger.debug('EventBridge: 批次处理完成', {
+        component: 'MonitoringEventBridge',
+        operation: 'processBatch',
+        eventType,
         eventCount: batch.count,
         duration: batch.lastTimestamp - batch.firstTimestamp,
+        success: true
       });
     } catch (error) {
-      this.logger.debug(`批处理失败: ${eventType}`, {
-        error: error.message,
+      this.logger.debug('EventBridge: 批处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'processBatch',
+        eventType,
         eventCount: batch.count,
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -200,10 +238,16 @@ export class MonitoringEventBridgeService
             );
         }
       } catch (error) {
-        this.logger.debug("批量指标更新失败", {
+        this.logger.debug('EventBridge: 批量指标更新失败', {
+          component: 'MonitoringEventBridge',
+          operation: 'updateMetricsBatch',
           eventType,
           metricName,
-          error: error.message,
+          error: {
+            message: error.message,
+            type: error.constructor.name
+          },
+          success: false
         });
       }
     });
@@ -220,9 +264,16 @@ export class MonitoringEventBridgeService
         const aggregatedMetrics = this.aggregateEvents(batch.events);
         this.updateMetricsBatch(batch.type, aggregatedMetrics);
       } catch (error) {
-        this.logger.debug(`批量刷新失败: ${batch.type}`, {
-          error: error.message,
+        this.logger.debug('EventBridge: 批量刷新失败', {
+          component: 'MonitoringEventBridge',
+          operation: 'flushAllBatches',
+          batchType: batch.type,
           eventCount: batch.count,
+          error: {
+            message: error.message,
+            type: error.constructor.name
+          },
+          success: false
         });
       }
     });
@@ -230,9 +281,12 @@ export class MonitoringEventBridgeService
     this.eventCounter = 0;
     this.lastFlush = Date.now();
 
-    this.logger.debug("所有批次已刷新", {
+    this.logger.debug('EventBridge: 所有批次已刷新', {
+      component: 'MonitoringEventBridge',
+      operation: 'flushAllBatches',
       batchCount: allBatches.length,
       totalEvents: allBatches.reduce((sum, batch) => sum + batch.count, 0),
+      success: true
     });
   }
 
@@ -260,9 +314,15 @@ export class MonitoringEventBridgeService
         storage_type: "redis",
       });
     } catch (error) {
-      this.logger.debug("缓存事件处理失败", {
-        eventType: "CACHE_EVENT",
-        error: error.message,
+      this.logger.debug('EventBridge: 缓存事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleCacheEvent',
+        eventType: 'CACHE_EVENT',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -289,9 +349,15 @@ export class MonitoringEventBridgeService
         );
       }
     } catch (error) {
-      this.logger.debug("缓存设置事件处理失败", {
-        eventType: "CACHE_SET",
-        error: error.message,
+      this.logger.debug('EventBridge: 缓存设置事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleCacheSetEvent',
+        eventType: 'CACHE_SET',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -307,9 +373,15 @@ export class MonitoringEventBridgeService
         storage_type: "redis",
       });
     } catch (error) {
-      this.logger.debug("缓存失效事件处理失败", {
-        eventType: "CACHE_INVALIDATED",
-        error: error.message,
+      this.logger.debug('EventBridge: 缓存失效事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleCacheInvalidatedEvent',
+        eventType: 'CACHE_INVALIDATED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -331,9 +403,15 @@ export class MonitoringEventBridgeService
         1, // 表示有错误发生
       );
     } catch (error) {
-      this.logger.debug("缓存错误事件处理失败", {
-        eventType: "CACHE_ERROR",
-        error: error.message,
+      this.logger.debug('EventBridge: 缓存错误事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleCacheErrorEvent',
+        eventType: 'CACHE_ERROR',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -372,9 +450,15 @@ export class MonitoringEventBridgeService
         );
       }
     } catch (error) {
-      this.logger.debug("分析事件处理失败", {
-        eventType: "ANALYSIS_COMPLETED",
-        error: error.message,
+      this.logger.debug('EventBridge: 分析完成事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleAnalysisCompleted',
+        eventType: 'ANALYSIS_COMPLETED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -396,9 +480,15 @@ export class MonitoringEventBridgeService
         operation: event.endpoint || "unknown",
       });
     } catch (error) {
-      this.logger.debug("API请求开始事件处理失败", {
-        eventType: "API_REQUEST_STARTED",
-        error: error.message,
+      this.logger.debug('EventBridge: API请求开始事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleApiRequestStarted',
+        eventType: 'API_REQUEST_STARTED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -435,9 +525,15 @@ export class MonitoringEventBridgeService
         );
       }
     } catch (error) {
-      this.logger.debug("API请求完成事件处理失败", {
-        eventType: "API_REQUEST_COMPLETED",
-        error: error.message,
+      this.logger.debug('EventBridge: API请求完成事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleApiRequestCompleted',
+        eventType: 'API_REQUEST_COMPLETED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -478,9 +574,15 @@ export class MonitoringEventBridgeService
       // 更新错误率
       this.metricsRegistry.receiverErrorRate.set({ error_type: "api" }, 1);
     } catch (error) {
-      this.logger.debug("API请求错误事件处理失败", {
-        eventType: "API_REQUEST_ERROR",
-        error: error.message,
+      this.logger.debug('EventBridge: API请求错误事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleApiRequestError',
+        eventType: 'API_REQUEST_ERROR',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -504,9 +606,15 @@ export class MonitoringEventBridgeService
         storage_type: component || "system",
       });
     } catch (error) {
-      this.logger.debug("健康检查事件处理失败", {
-        eventType: "HEALTH_SCORE_UPDATED",
-        error: error.message,
+      this.logger.debug('EventBridge: 健康检查事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleHealthScoreUpdated',
+        eventType: 'HEALTH_SCORE_UPDATED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }
@@ -533,9 +641,15 @@ export class MonitoringEventBridgeService
         );
       }
     } catch (error) {
-      this.logger.debug("趋势检测事件处理失败", {
-        eventType: "TREND_DETECTED",
-        error: error.message,
+      this.logger.debug('EventBridge: 趋势检测事件处理失败', {
+        component: 'MonitoringEventBridge',
+        operation: 'handleTrendDetected',
+        eventType: 'TREND_DETECTED',
+        error: {
+          message: error.message,
+          type: error.constructor.name
+        },
+        success: false
       });
     }
   }

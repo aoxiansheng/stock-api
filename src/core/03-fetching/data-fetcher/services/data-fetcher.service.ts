@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
-import { CapabilityRegistryService } from "../../../../providers/services/capability-registry.service";
+import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import {
   IDataFetcher,
@@ -58,7 +58,7 @@ export class DataFetcherService implements IDataFetcher {
   );
 
   constructor(
-    private readonly capabilityRegistryService: CapabilityRegistryService,
+    private readonly capabilityRegistryService: EnhancedCapabilityRegistryService,
     private readonly eventBus: EventEmitter2,
   ) {}
 

@@ -144,7 +144,6 @@ export class StreamDataFetcherService
   };
 
   constructor(
-    @Inject("ENHANCED_CAPABILITY_REGISTRY_SERVICE")
     private readonly capabilityRegistry: EnhancedCapabilityRegistryService,
     private readonly streamCache: StreamCacheService,
     private readonly clientStateManager: StreamClientStateManager,

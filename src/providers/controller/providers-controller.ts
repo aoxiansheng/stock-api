@@ -23,14 +23,14 @@ import { RequirePermissions } from "../../auth/decorators/permissions.decorator"
 import { Permission } from "../../auth/enums/user-role.enum";
 import { RATE_LIMIT_CONFIG } from "@auth/constants";
 
-import { CapabilityRegistryService } from "../services/capability-registry.service";
+import { EnhancedCapabilityRegistryService } from "../services/enhanced-capability-registry.service";
 
 @ApiTags("数据源提供商")
 @Controller("providers")
 export class ProvidersController {
   private readonly logger = createLogger(ProvidersController.name);
 
-  constructor(private readonly capabilityRegistry: CapabilityRegistryService) {}
+  constructor(private readonly capabilityRegistry: EnhancedCapabilityRegistryService) {}
 
   /**
    * 格式化能力注册信息为统一的返回格式

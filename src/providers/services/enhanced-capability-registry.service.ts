@@ -7,7 +7,7 @@ import {
   IStreamCapability,
   IStreamCapabilityRegistration,
 } from "../interfaces/stream-capability.interface";
-import { CapabilityRegistryService } from "./capability-registry.service";
+// import { CapabilityRegistryService } from "./capability-registry.service"; // 已移除旧服务
 
 import { CapabilityCollector } from "../decorators/capability-collector";
 import { SmartPathResolver } from "../utils/smart-path-resolver";
@@ -486,6 +486,29 @@ export class EnhancedCapabilityRegistryService implements OnModuleInit {
    */
   getTotalCapabilitiesCount(): number {
     return this.registryStats?.totalCapabilities || 0;
+  }
+
+  /**
+   * 获取能力 - 兼容现有接口
+   */
+  getCapability(
+    providerName: string,
+    capabilityName: string,
+  ): ICapability | null {
+    const registration = this.capabilities
+      .get(providerName)
+      ?.get(capabilityName);
+    return registration?.isEnabled ? registration.capability : null;
+  }
+
+  /**
+   * 获取所有流能力 - 兼容现有接口
+   */
+  getAllStreamCapabilities(): Map<
+    string,
+    Map<string, IStreamCapabilityRegistration>
+  > {
+    return this.streamCapabilities;
   }
 
   // === 新增的增强API ===

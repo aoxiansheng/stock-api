@@ -168,10 +168,13 @@ export class ExtendedHealthService {
         recommendations,
       };
 
-      this.logger.debug("Extended health check completed", {
+      this.logger.debug('ExtendedHealthService: 扩展健康检查完成', {
+        component: 'ExtendedHealthService',
+        operation: 'getFullHealthStatus',
         status: status.status,
         healthScore,
         duration: Date.now() - startTime,
+        success: true
       });
 
       return status;

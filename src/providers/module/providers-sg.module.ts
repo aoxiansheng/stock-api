@@ -2,7 +2,6 @@ import { Module, OnModuleInit } from "@nestjs/common";
 
 import { AuthModule } from "../../auth/module/auth.module";
 
-import { CapabilityRegistryService } from "../services/capability-registry.service";
 import { EnhancedCapabilityRegistryService } from "../services/enhanced-capability-registry.service";
 import { LongportModule } from "../longport/module/longport.module";
 import { LongportProvider } from "../longport/longport.provider";
@@ -17,34 +16,17 @@ import { ProvidersController } from "../controller/providers-controller";
   controllers: [ProvidersController],
   providers: [
     EnhancedCapabilityRegistryService,
-    // 提供别名以保持向后兼容性 - 让旧代码继续使用 CapabilityRegistryService
-    {
-      provide: CapabilityRegistryService,
-      useExisting: EnhancedCapabilityRegistryService,
-    },
-    // 为增强服务提供别名
-    {
-      provide: "ENHANCED_CAPABILITY_REGISTRY",
-      useExisting: EnhancedCapabilityRegistryService,
-    },
-    // 为StreamDataFetcherService提供正确的token
-    {
-      provide: "ENHANCED_CAPABILITY_REGISTRY_SERVICE",
-      useExisting: EnhancedCapabilityRegistryService,
-    },
   ],
   exports: [
-    CapabilityRegistryService,
     EnhancedCapabilityRegistryService,
-    "ENHANCED_CAPABILITY_REGISTRY_SERVICE", // 导出新添加的token
   ],
 })
 export class ProvidersModule implements OnModuleInit {
   private initialized = false;
 
   constructor(
-    // 只注入增强服务，由于别名设置，capabilityRegistry 实际上也是 EnhancedCapabilityRegistryService
-    private readonly capabilityRegistry: CapabilityRegistryService,
+    // 直接注入增强服务
+    private readonly capabilityRegistry: EnhancedCapabilityRegistryService,
     private readonly longportProvider: LongportProvider,
     private readonly longportSgProvider: LongportSgProvider,
   ) {}

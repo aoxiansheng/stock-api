@@ -57,7 +57,7 @@ export const EXTENDED_HEALTH_STATUS_VALUES: MonitoringHealthStatus[] = [
   MONITORING_HEALTH_STATUS.UNKNOWN,
 ];
 
-// 监控模块特定的状态值数组（与其他模块保持兼容）
+// 监控模块专用的状态值数组
 export const MONITORING_BASIC_HEALTH_STATUS_VALUES: MonitoringHealthStatus[] = BASIC_HEALTH_STATUS_VALUES;
 export const MONITORING_EXTENDED_HEALTH_STATUS_VALUES: MonitoringHealthStatus[] = EXTENDED_HEALTH_STATUS_VALUES;
 
@@ -142,13 +142,13 @@ export function getMonitoringStatusSeverity(status: MonitoringHealthStatus): num
 }
 
 /**
- * 状态映射工具（用于与其他模块兼容）
- * @description 将监控模块状态映射到通用状态格式
+ * 状态映射工具
+ * @description 将监控模块状态映射到标准状态格式
  */
 export function mapInternalToExternalStatus(
   internalStatus: MonitoringHealthStatus
 ): string {
-  // 保持与缓存模块状态的兼容性
+  // 映射到标准状态字符串格式
   switch (internalStatus) {
     case MONITORING_HEALTH_STATUS.HEALTHY:
       return 'healthy';

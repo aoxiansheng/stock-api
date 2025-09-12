@@ -40,7 +40,9 @@ export class AnalyzerHealthScoreCalculator {
 
       const finalScore = Math.round(Math.max(0, Math.min(MONITORING_SYSTEM_LIMITS.FULL_SCORE, overallScore)));
 
-      this.logger.debug("健康分计算完成", {
+      this.logger.debug('ScoreCalculator: 健康分计算完成', {
+        component: 'AnalyzerHealthScoreCalculator',
+        operation: 'calculateOverallHealthScore',
         overall: finalScore,
         components: {
           api: apiScore,
@@ -48,6 +50,7 @@ export class AnalyzerHealthScoreCalculator {
           cache: cacheScore,
           system: systemScore,
         },
+        success: true
       });
 
       return finalScore;

@@ -957,9 +957,13 @@ export class PresenterService {
         dashboard.config,
       );
 
-      this.logger.debug(`获取仪表盘数据: ${dashboardId}`, {
+      this.logger.debug('Presenter: 获取仪表盘数据成功', {
+        component: 'PresenterService',
+        operation: 'getDashboard',
+        dashboardId,
         panelsCount: dashboardData.panels?.length || 0,
         viewCount: dashboard.viewCount,
+        success: true
       });
 
       return {

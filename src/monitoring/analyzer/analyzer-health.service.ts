@@ -33,7 +33,11 @@ export class HealthAnalyzerService {
     rawMetrics: RawMetricsDto,
   ): Promise<HealthReportDto> {
     try {
-      this.logger.debug("开始生成健康报告");
+      this.logger.debug('HealthAnalyzer: 开始生成健康报告', {
+        component: 'HealthAnalyzerService',
+        operation: 'generateHealthReport',
+        success: true
+      });
 
       // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
       const cacheKey = this.buildCacheKey("health_report", rawMetrics);
@@ -43,7 +47,12 @@ export class HealthAnalyzerService {
           cacheKey,
           async () => {
             // 缓存未命中，重新计算健康报告
-            this.logger.debug("健康报告缓存未命中，重新生成");
+            this.logger.debug('HealthAnalyzer: 健康报告缓存未命中，重新生成', {
+              component: 'HealthAnalyzerService',
+              operation: 'generateHealthReport',
+              cacheKey,
+              success: true
+            });
 
             // 计算健康分
             const healthScore =
@@ -175,9 +184,14 @@ export class HealthAnalyzerService {
               });
             }
 
-            this.logger.debug(
-              `健康报告生成完成: 健康分 ${healthScore}, 状态 ${healthStatus}`,
-            );
+            this.logger.debug('HealthAnalyzer: 健康报告生成完成', {
+              component: 'HealthAnalyzerService',
+              operation: 'generateHealthReport',
+              healthScore,
+              healthStatus,
+              recommendationsCount: report.recommendations?.length || 0,
+              success: true
+            });
             return report;
           },
         );
@@ -321,7 +335,11 @@ export class HealthAnalyzerService {
   async invalidateHealthCache(): Promise<void> {
     try {
       await this.monitoringCache.invalidateHealthCache();
-      this.logger.debug("健康相关缓存已失效");
+      this.logger.debug('HealthAnalyzer: 健康相关缓存已失效', {
+        component: 'HealthAnalyzerService',
+        operation: 'invalidateHealthCache',
+        success: true
+      });
 
       // 发射缓存失效事件
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.CACHE_INVALIDATED, {

@@ -101,9 +101,12 @@ export class AnalyzerService
       this.dataRequestPromises.delete(requestId);
       pendingRequest.resolve(data);
 
-      this.logger.debug("数据响应处理完成", {
+      this.logger.debug('Analyzer: 数据响应处理完成', {
+        component: 'AnalyzerService',
+        operation: 'handleDataResponse',
         requestId,
         dataSize: responseEvent.dataSize,
+        success: true
       });
     } else {
       this.logger.warn("收到未知请求ID的数据响应", { requestId });
@@ -123,7 +126,12 @@ export class AnalyzerService
       this.dataRequestPromises.delete(requestId);
       pendingRequest.reject(new Error(metadata?.error || "数据不可用"));
 
-      this.logger.debug("数据不可用事件处理完成", { requestId });
+      this.logger.debug('Analyzer: 数据不可用事件处理完成', {
+        component: 'AnalyzerService',
+        operation: 'handleDataNotAvailable',
+        requestId,
+        success: false
+      });
     }
   }
 
@@ -166,9 +174,12 @@ export class AnalyzerService
 
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_REQUEST, requestEvent);
 
-      this.logger.debug("已发送数据请求", {
+      this.logger.debug('Analyzer: 已发送数据请求', {
+        component: 'AnalyzerService',
+        operation: 'requestRawMetrics',
         requestId,
         requestType: "raw_metrics",
+        success: true
       });
     });
   }
@@ -180,7 +191,12 @@ export class AnalyzerService
     options?: AnalysisOptions,
   ): Promise<PerformanceAnalysisDto> {
     try {
-      this.logger.debug("开始性能分析", { options });
+      this.logger.debug('Analyzer: 开始性能分析', {
+        component: 'AnalyzerService',
+        operation: 'getPerformanceAnalysis',
+        options,
+        success: true
+      });
 
       // 获取原始指标数据
       const rawMetrics = await this.requestRawMetrics(
@@ -240,11 +256,14 @@ export class AnalyzerService
         },
       });
 
-      this.logger.debug("性能分析完成", {
+      this.logger.debug('Analyzer: 性能分析完成', {
+        component: 'AnalyzerService',
+        operation: 'getPerformanceAnalysis',
         healthScore,
         totalOperations: summary.totalOperations,
         responseTimeMs,
         errorRate,
+        success: true
       });
 
       return analysis;
@@ -407,7 +426,11 @@ export class AnalyzerService
    */
   async getOptimizationSuggestions(): Promise<SuggestionDto[]> {
     try {
-      this.logger.debug("生成优化建议");
+      this.logger.debug('Analyzer: 生成优化建议', {
+        component: 'AnalyzerService',
+        operation: 'getOptimizationSuggestions',
+        success: true
+      });
 
       // 检查缓存
       const cacheKey = "optimization_suggestions";
@@ -454,7 +477,12 @@ export class AnalyzerService
       // 缓存结果
       await this.monitoringCache.setPerformanceData(cacheKey, suggestions);
 
-      this.logger.debug(`优化建议生成完成: ${suggestions.length} 条建议`);
+      this.logger.debug('Analyzer: 优化建议生成完成', {
+        component: 'AnalyzerService',
+        operation: 'getOptimizationSuggestions',
+        suggestionsCount: suggestions.length,
+        success: true
+      });
       return suggestions;
     } catch (error) {
       this.logger.error("优化建议生成失败", error.stack);
@@ -495,7 +523,12 @@ export class AnalyzerService
         metadata: { pattern: pattern || "all", reason: "manual_invalidation" },
       });
 
-      this.logger.debug(`缓存失效完成: ${pattern || "all"}`);
+      this.logger.debug('Analyzer: 缓存失效完成', {
+        component: 'AnalyzerService',
+        operation: 'invalidateCache',
+        pattern: pattern || "all",
+        success: true
+      });
     } catch (error) {
       this.logger.error("缓存失效失败", error.stack);
     }
@@ -543,7 +576,12 @@ export class AnalyzerService
   private setupEventListeners(): void {
     // 监听数据收集完成事件
     const collectionCompletedHandler = async (data) => {
-      this.logger.debug("数据收集完成，触发分析流程", data);
+      this.logger.debug('Analyzer: 数据收集完成，触发分析流程', {
+        component: 'AnalyzerService',
+        operation: 'setupEventListeners',
+        dataType: data?.type || 'unknown',
+        success: true
+      });
 
       // 可以在这里触发自动分析
       try {
