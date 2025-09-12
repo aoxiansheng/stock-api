@@ -427,10 +427,9 @@ export class SecurityMiddleware implements NestMiddleware {
 
     // 检查危险的字符集
     if (contentType.includes("charset=")) {
-      const dangerousCharsets = [
+      const dangerousCharsets: readonly string[] = [
         "utf-7", // 可能绕过XSS过滤器
         "utf-32", // 可能导致解析问题
-        "utf-1", // 过时且不安全
         "cesu-8", // 可能导致安全问题
       ];
 
@@ -741,7 +740,8 @@ export class SecurityMiddleware implements NestMiddleware {
         longString &&
         longString.length > SECURITY_LIMITS.FIND_LONG_STRING_THRESHOLD
       ) {
-        // 临时阈值
+        // 长字符串检测阈值 - 基于SECURITY_LIMITS.FIND_LONG_STRING_THRESHOLD配置
+        // 用于识别可能的攻击载荷或异常数据
         return longString;
       }
     }

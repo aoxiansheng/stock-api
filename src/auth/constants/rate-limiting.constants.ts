@@ -45,14 +45,6 @@ export const GLOBAL_RATE_LIMITS = {
 } as const;
 
 // 频率限制策略枚举 - 算法类型
-export const RATE_LIMIT_STRATEGIES = {
-  FIXED_WINDOW: 'fixed_window',       // 固定窗口
-  SLIDING_WINDOW: 'sliding_window',   // 滑动窗口  
-  TOKEN_BUCKET: 'token_bucket',       // 令牌桶
-  LEAKY_BUCKET: 'leaky_bucket'        // 漏桶
-} as const;
-
-// 兼容性枚举导出 - 与旧文件保持一致
 export enum RateLimitStrategy {
   FIXED_WINDOW = "fixed_window",
   SLIDING_WINDOW = "sliding_window", 

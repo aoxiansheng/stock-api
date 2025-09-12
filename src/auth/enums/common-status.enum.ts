@@ -77,12 +77,47 @@ export const StatusGroups = deepFreeze({
 } as const);
 
 /**
- * 简化的状态转换规则
- * @description 基于状态分组的简单转换逻辑
+ * 明确的状态转换规则
+ * @description 基于业务场景的具体状态转换逻辑
  */
 export const StatusTransitionRules = deepFreeze({
-  /** 临时状态可转为任何状态（除终态保护） */
-  fromTemporary: (toStatus: CommonStatus): boolean => !StatusGroups.FINAL.includes(toStatus as any) || toStatus === CommonStatus.DELETED,
+  /** 
+   * PENDING状态转换规则
+   * @description 用户注册或资源创建后的初始状态
+   * 业务场景：用户注册等待邮箱验证、资源创建等待初始化
+   * 可转换为:
+   * - ACTIVE: 验证通过，激活资源
+   * - INACTIVE: 验证失败或管理员禁用
+   * - DELETED: 用户主动删除或系统超时清理（24小时）
+   * - EXPIRED: 验证链接过期
+   */
+  fromPending: (toStatus: CommonStatus): boolean => {
+    return [
+      CommonStatus.ACTIVE,
+      CommonStatus.INACTIVE,
+      CommonStatus.DELETED,
+      CommonStatus.EXPIRED
+    ].includes(toStatus as any);
+  },
+  
+  /** 
+   * PENDING_VERIFICATION状态转换规则
+   * @description API密钥等敏感资源的审核状态
+   * 业务场景：API密钥申请、权限提升请求
+   * 可转换为:
+   * - ACTIVE: 管理员审核通过
+   * - REVOKED: 管理员审核拒绝
+   * - DELETED: 申请人撤回或系统超时清理（72小时）
+   * - EXPIRED: 审核超时自动过期
+   */
+  fromPendingVerification: (toStatus: CommonStatus): boolean => {
+    return [
+      CommonStatus.ACTIVE,
+      CommonStatus.REVOKED,
+      CommonStatus.DELETED,
+      CommonStatus.EXPIRED
+    ].includes(toStatus as any);
+  },
   
   /** 可用状态可转为任何状态 */
   fromAvailable: (): boolean => true,
@@ -125,9 +160,12 @@ export const StatusUtils = deepFreeze({
     // 不能转换到相同状态
     if (fromStatus === toStatus) return false;
     
-    // 基于状态分组判断转换规则
-    if (StatusUtils.isTemporary(fromStatus)) {
-      return StatusTransitionRules.fromTemporary(toStatus);
+    // 基于具体状态判断转换规则
+    if (fromStatus === CommonStatus.PENDING) {
+      return StatusTransitionRules.fromPending(toStatus);
+    }
+    if (fromStatus === CommonStatus.PENDING_VERIFICATION) {
+      return StatusTransitionRules.fromPendingVerification(toStatus);
     }
     if (StatusUtils.isAvailable(fromStatus)) {
       return StatusTransitionRules.fromAvailable();

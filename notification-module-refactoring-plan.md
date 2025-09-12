@@ -149,36 +149,7 @@ async findNotificationsByAlert(alertId: string): Promise<any[]> {
 
 ### 3.2 核心解决策略
 
-#### 策略1: 服务拆分重构 (Service Decomposition)
-
-**当前问题**: 1517行的超大NotificationService
-**解决方案**: 按职责域拆分为多个专门服务
-
-```typescript
-// 重构前 (单一大服务)
-class NotificationService {
-  // 1517行，包含所有功能
-}
-
-// 重构后 (职责分离)
-class CoreNotificationService {
-  // 核心通知发送逻辑 (~200行)
-}
-
-class BusinessNotificationService {
-  // 业务特定处理逻辑 (~250行)
-}
-
-class NotificationHistoryService {
-  // 历史记录管理 (~150行)
-}
-
-class LegacyNotificationService {
-  // 向后兼容支持 (~100行)
-}
-```
-
-#### 策略2: 依赖解耦架构 (Dependency Decoupling)
+#### 策略1: 依赖解耦架构 (Dependency Decoupling)
 
 **当前问题**: 直接依赖Alert模块类型
 **解决方案**: 通过DTO和适配器模式解耦
@@ -214,48 +185,9 @@ export class AlertToNotificationAdapter {
 }
 ```
 
-#### 策略3: 功能完善实现 (Feature Completion)
+#### 策略2: 事件驱动架构 (Event-Driven Architecture)
 
-**当前问题**: NotificationHistoryService空实现
-**解决方案**: 基于Repository模式实现完整功能
-
-```typescript
-// 重构前 (空实现)
-class NotificationHistoryService {
-  async findNotificationsByAlert(): Promise<any[]> {
-    // TODO: 实现
-    return [];
-  }
-}
-
-// 重构后 (完整实现)
-@Injectable()
-export class NotificationHistoryService {
-  constructor(
-    @InjectModel('NotificationHistory') 
-    private historyModel: Model<NotificationHistoryDocument>,
-    private readonly logger: Logger
-  ) {}
-
-  async findNotificationsByAlert(alertId: string): Promise<NotificationHistoryDto[]> {
-    try {
-      const histories = await this.historyModel
-        .find({ alertId })
-        .sort({ createdAt: -1 })
-        .lean()
-        .exec();
-      
-      return histories.map(this.mapToDto);
-    } catch (error) {
-      this.logger.error(`查找通知历史失败: ${error.message}`, { alertId });
-      throw new InternalServerErrorException('查找通知历史失败');
-    }
-  }
-}
-```
-
-#### 策略4: 事件驱动架构 (Event-Driven Architecture)
-
+**当前问题**: 模块间紧耦合，同步调用链复杂
 **解决方案**: 使用NestJS EventEmitter实现松耦合
 
 ```typescript
@@ -305,58 +237,13 @@ export class NotificationHistoryListener {
 
 ### 4.1 实施阶段规划
 
-#### 🚀 阶段1: 紧急修复 (Week 1-2)
+#### 🚀 阶段1: 依赖解耦重构 (Week 1-2)
 
-**目标**: 解决架构设计问题，为后续重构奠定基础
+**目标**: 解除Alert模块直接依赖，建立清晰的模块边界
 
 **主要任务**:
 
-##### Task 1.1: 服务拆分 (3-4天)
-
-1. **创建新的服务类**
-   ```bash
-   # 创建新服务文件
-   src/notification/services/core/
-   ├── core-notification.service.ts
-   ├── business-notification.service.ts  
-   ├── legacy-notification.service.ts
-   └── notification-orchestrator.service.ts
-   ```
-
-2. **迁移核心逻辑**
-   ```typescript
-   // core-notification.service.ts
-   @Injectable()
-   export class CoreNotificationService {
-     async sendNotification(dto: NotificationRequestDto): Promise<NotificationResult> {
-       // 从原NotificationService迁移核心发送逻辑
-       return await this.performSend(dto);
-     }
-   }
-   ```
-
-3. **创建编排服务**
-   ```typescript
-   // notification-orchestrator.service.ts
-   @Injectable()
-   export class NotificationOrchestrator {
-     constructor(
-       private coreService: CoreNotificationService,
-       private businessService: BusinessNotificationService,
-       private legacyService: LegacyNotificationService,
-     ) {}
-     
-     async processNotification(request: any): Promise<NotificationResult[]> {
-       // 根据请求类型选择适当的服务处理
-       if (this.isLegacyRequest(request)) {
-         return this.legacyService.handle(request);
-       }
-       return this.coreService.sendNotification(request);
-     }
-   }
-   ```
-
-##### Task 1.2: 依赖解耦 (2-3天)
+##### Task 1.1: 依赖解耦 (4-5天)
 
 1. **创建独立DTO**
    ```typescript
@@ -402,97 +289,31 @@ export class NotificationHistoryListener {
    // import { AlertContext } from '../../alert/events/alert.events'; // 删除
    ```
 
-#### 🔧 阶段2: 功能完善 (Week 3-4)
+##### Task 1.2: 服务重构 (3-4天)
 
-**目标**: 实现未完成功能，完善业务逻辑
-
-##### Task 2.1: 实现NotificationHistoryService (4-5天)
-
-1. **设计数据模型**
+1. **重构NotificationService核心方法**
    ```typescript
-   // schemas/notification-history.schema.ts
-   @Schema({ collection: 'notification_histories' })
-   export class NotificationHistory {
-     @Prop({ required: true })
-     notificationId: string;
-   
-     @Prop({ required: true })
-     alertId: string;
-   
-     @Prop({ required: true, enum: NotificationStatus })
-     status: NotificationStatus;
-   
-     @Prop({ required: true })
-     sentAt: Date;
-   
-     @Prop()
-     error?: string;
-   }
-   ```
-
-2. **实现Repository模式**
-   ```typescript
-   // repositories/notification-history.repository.ts
-   @Injectable()
-   export class NotificationHistoryRepository {
-     constructor(
-       @InjectModel(NotificationHistory.name)
-       private model: Model<NotificationHistoryDocument>
-     ) {}
-   
-     async findByAlert(alertId: string): Promise<NotificationHistory[]> {
-       return this.model
-         .find({ alertId })
-         .sort({ sentAt: -1 })
-         .exec();
-     }
-   }
-   ```
-
-3. **实现业务逻辑**
-   ```typescript
-   // 实现所有9个TODO方法
-   export class NotificationHistoryService {
-     async findNotificationsByAlert(alertId: string): Promise<NotificationHistoryDto[]> {
-       const histories = await this.repository.findByAlert(alertId);
-       return histories.map(this.mapToDto);
-     }
-   
-     async createNotificationRecord(data: CreateNotificationHistoryDto): Promise<void> {
-       await this.repository.create(data);
+   // 使用DTO替代Alert类型
+   export class NotificationService {
+     // 新方法：使用DTO
+     async sendNotificationByDto(dto: NotificationRequestDto): Promise<NotificationResult> {
+       return await this.performSend(dto);
      }
      
-     // ... 其他7个方法的完整实现
+     // Legacy方法：保持向后兼容
+     @Deprecated('使用sendNotificationByDto替代')
+     async sendAlertNotifications(alert: any): Promise<NotificationResult[]> {
+       const dto = this.adapter.adapt(alert);
+       return [await this.sendNotificationByDto(dto)];
+     }
    }
    ```
 
-##### Task 2.2: DTO验证增强 (2-3天)
-
-1. **创建完整的DTO验证**
-   ```typescript
-   // dto/create-notification.dto.ts
-   export class CreateNotificationDto {
-     @IsString()
-     @IsNotEmpty()
-     @ApiProperty({ description: '警告ID' })
-     alertId: string;
-   
-     @IsEnum(NotificationSeverity)
-     @ApiProperty({ enum: NotificationSeverity })
-     severity: NotificationSeverity;
-   
-     @IsArray()
-     @ValidateNested({ each: true })
-     @Type(() => NotificationChannelDto)
-     channels: NotificationChannelDto[];
-   }
-   ```
-
-#### 🏗️ 阶段3: 架构优化 (Week 5-6)
+#### 🏗️ 阶段2: 事件驱动架构 (Week 3-4)
 
 **目标**: 实现事件驱动架构，提升性能和可扩展性
 
-##### Task 3.1: 事件驱动重构 (4-5天)
+##### Task 2.1: 事件驱动重构 (4-5天)
 
 1. **定义事件模型**
    ```typescript
@@ -536,37 +357,30 @@ export class NotificationHistoryListener {
    }
    ```
 
-##### Task 3.2: 性能优化 (2-3天)
+##### Task 2.2: NotificationHistoryService完善 (3-4天)
 
-1. **实现批量处理**
+1. **实现TODO方法**
    ```typescript
-   export class BatchNotificationService {
-     async sendBatch(requests: NotificationRequestDto[]): Promise<BatchResult> {
-       const chunks = this.chunkRequests(requests, 10);
-       const results = await Promise.allSettled(
-         chunks.map(chunk => this.processBatch(chunk))
-       );
-       return this.aggregateResults(results);
+   // 实现所有9个TODO方法
+   export class NotificationHistoryService {
+     async findNotificationsByAlert(alertId: string): Promise<NotificationHistoryDto[]> {
+       const histories = await this.repository.findByAlert(alertId);
+       return histories.map(this.mapToDto);
      }
+   
+     async createNotificationRecord(data: CreateNotificationHistoryDto): Promise<void> {
+       await this.repository.create(data);
+     }
+     
+     // ... 其他7个方法的完整实现
    }
    ```
 
-2. **添加缓存机制**
-   ```typescript
-   @Injectable()
-   export class CachedNotificationService {
-     @Cacheable('notification-templates', 300) // 5分钟缓存
-     async getTemplate(templateId: string): Promise<NotificationTemplate> {
-       return this.templateService.findById(templateId);
-     }
-   }
-   ```
-
-#### ✅ 阶段4: 质量保证 (Week 7-8)
+#### ✅ 阶段3: 质量保证和优化 (Week 5-6)
 
 **目标**: 全面测试，确保可靠性和向后兼容性
 
-##### Task 4.1: 测试覆盖 (4-5天)
+##### Task 3.1: 测试覆盖 (4-5天)
 
 1. **单元测试**
    ```typescript
@@ -605,7 +419,7 @@ export class NotificationHistoryListener {
    });
    ```
 
-##### Task 4.2: 向后兼容验证 (2-3天)
+##### Task 3.2: 向后兼容验证和性能优化 (2-3天)
 
 1. **兼容性测试**
    ```typescript
@@ -1099,17 +913,16 @@ describe('Resource Usage', () => {
 ### 实施时间线
 
 ```
-Week 1-2  ████████░░░░░░░░░░░░ 阶段1: 紧急修复 
-Week 3-4  ░░░░░░░░████████░░░░ 阶段2: 功能完善
-Week 5-6  ░░░░░░░░░░░░░░░░████ 阶段3: 架构优化  
-Week 7-8  ░░░░░░░░░░░░░░░░░░██ 阶段4: 质量保证
+Week 1-2  ████████████░░░░░░░░ 阶段1: 依赖解耦重构 
+Week 3-4  ░░░░░░░░░░░░████████ 阶段2: 事件驱动架构
+Week 5-6  ░░░░░░░░░░░░░░░░████ 阶段3: 质量保证和优化  
 ```
 
 ### 成功标准
 
-- **代码质量**: 文件规模减少70%，Legacy代码减少90%
-- **架构解耦**: 完全移除Alert模块直接依赖  
-- **功能完整**: 所有TODO方法实现完成
+- **架构解耦**: 完全移除Alert模块直接依赖，实现松耦合设计
+- **事件驱动**: 建立完整的事件驱动架构，支持异步处理
+- **功能完整**: 所有TODO方法实现完成，业务逻辑健全
 - **性能保证**: 响应时间和处理能力不低于现有系统
 - **可靠性**: 测试覆盖率达到90%以上
 
