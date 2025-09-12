@@ -19,15 +19,15 @@ export const CORE_VALUES = Object.freeze({
     THREE: 3,
     FIVE: 5,
     TEN: 10,
-    TWENTY: 20,           // 🆕 从Unified迁移
+    TWENTY: 20,
     FIFTY: 50,
     HUNDRED: 100,
-    TWO_HUNDRED: 200,     // 🆕 从Unified迁移
-    THREE_HUNDRED: 300,   // 🆕 从Unified迁移
-    FIVE_HUNDRED: 500,    // 🆕 从Unified迁移
+    TWO_HUNDRED: 200,
+    THREE_HUNDRED: 300,
+    FIVE_HUNDRED: 500,
     THOUSAND: 1000,       // 🎯 解决1000重复定义
-    TWO_THOUSAND: 2000,   // 🆕 从Unified迁移
-    FIVE_THOUSAND: 5000,  // 🆕 从Unified迁移
+    TWO_THOUSAND: 2000,
+    FIVE_THOUSAND: 5000,
     TEN_THOUSAND: 10000,  // 🎯 解决10000重复定义
     ONE_HUNDRED_THOUSAND: 100000,
   },
@@ -108,7 +108,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 文件大小基础值 (字节)
-   * 🆕 从Unified层迁移，解决文件大小重复定义
+   * 文件大小相关定义
    */
   FILE_SIZE_BYTES: {
     FIVE_HUNDRED_MB: 524288000, // 500MB
@@ -123,7 +123,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 性能阈值基础值 (毫秒)
-   * 🆕 从performance.constants.ts迁移，解决性能阈值重复定义
+   * 性能阈值相关定义
    */
   PERFORMANCE_MS: {
     VERY_FAST: 50,      // 非常快的操作 - 缓存操作阈值
@@ -140,7 +140,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 超时配置基础值 (毫秒)
-   * 🆕 从performance.constants.ts迁移，解决超时时间重复定义
+   * 超时配置相关定义
    */
   TIMEOUT_MS: {
     QUICK: 5000,        // 快速操作超时：5秒
@@ -151,7 +151,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 重试配置基础值
-   * 🆕 从performance.constants.ts迁移，解决重试配置重复定义
+   * 重试配置相关定义
    */
   RETRY: {
     MAX_ATTEMPTS: 3,    // 最大重试次数
@@ -162,7 +162,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 批量处理限制基础值
-   * 🆕 从performance.constants.ts迁移，解决批量限制重复定义  
+   * 批量处理限制相关定义
    */
   BATCH_LIMITS: {
     MAX_BATCH_SIZE: 1000,    // 最大批量处理大小
@@ -173,7 +173,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 内存使用阈值基础值 (MB)
-   * 🆕 从performance.constants.ts迁移，解决内存阈值重复定义
+   * 内存使用阈值相关定义
    */
   MEMORY_MB: {
     LOW_USAGE: 50,       // 低内存使用阈值
@@ -186,7 +186,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 连接池配置基础值
-   * 🆕 从performance.constants.ts迁移，解决连接池配置重复定义
+   * 连接池配置相关定义
    */
   CONNECTION_POOL: {
     MIN_SIZE: 5,         // 最小连接池大小
@@ -195,7 +195,7 @@ export const CORE_VALUES = Object.freeze({
 
   /**
    * 监控和采样配置基础值
-   * 🆕 从performance.constants.ts迁移，解决监控配置重复定义
+   * 监控和采样配置相关定义
    */
   MONITORING: {
     HEALTH_CHECK_INTERVAL_MS: 30000, // 健康检查间隔：30秒

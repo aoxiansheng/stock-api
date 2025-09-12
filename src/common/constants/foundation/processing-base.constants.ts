@@ -2,7 +2,7 @@
  * 处理基础常量配置
  * 🏛️ Foundation层 - 批量处理和重试策略的基础配置
  * 📊 提供可继承的通用配置模板和防护策略
- * 🆕 从Unified层processing-base.constants.ts迁移
+ * 基础处理常量定义
  */
 
 import { NUMERIC_CONSTANTS } from '../core';

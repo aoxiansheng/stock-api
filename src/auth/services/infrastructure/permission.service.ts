@@ -7,7 +7,7 @@ import { securityConfig } from "@auth/config/security.config";
 // 更新导入路径，从utils导入PermissionTemplateUtil
 // 使用新的权限常量
 import { PERMISSION_CHECK } from "../../constants/permission-control.constants";
-import { PERMISSION_MESSAGES as SEMANTIC_PERMISSION_MESSAGES } from "@common/constants/semantic/message-semantics.constants";
+import { CONSTANTS } from "@common/constants";
 
 // 简化的权限操作和消息常量
 const PERMISSION_OPERATIONS = {

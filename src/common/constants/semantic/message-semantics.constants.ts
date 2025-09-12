@@ -419,18 +419,7 @@ export class MessageTemplateSemanticsUtil {
 }
 
 
-/**
- * 🆕 权限消息常量 - 从permission-message.constants.ts迁移的向后兼容导出
- */
-export const PERMISSION_MESSAGES = MESSAGE_SEMANTICS.PERMISSION;
 
-/**
- * 🆕 权限消息工具函数 - 从permission-message.constants.ts迁移的向后兼容导出
- */
-export const PERMISSION_UTILS = Object.freeze({
-  getResourceDeniedMessage: MessageSemanticsUtil.getResourceDeniedMessage,
-  getOperationDeniedMessage: MessageSemanticsUtil.getOperationDeniedMessage,
-  getRolePermissionMessage: MessageSemanticsUtil.getRolePermissionMessage});
 
 /**
  * 类型定义
@@ -445,4 +434,4 @@ export type QuickMessageSemantics = typeof QUICK_MESSAGE_SEMANTICS;
 
 // 🆕 权限消息相关类型定义 - 从permission-message.constants.ts迁移
 export type PermissionMessageKey = keyof typeof MESSAGE_SEMANTICS.PERMISSION;
-export type PermissionMessages = typeof PERMISSION_MESSAGES;
+export type PermissionMessages = typeof MESSAGE_SEMANTICS.PERMISSION;

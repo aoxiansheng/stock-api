@@ -16,7 +16,8 @@ import { Permission, UserRole } from "../enums/user-role.enum";
 import { AuthSubjectType } from "../interfaces/auth-subject.interface";
 import { PermissionService } from "../services/infrastructure/permission.service";
 import { AuthSubjectFactory } from "../subjects/auth-subject.factory";
-import { PERMISSION_MESSAGES } from "@common/constants/semantic/message-semantics.constants";
+import { CONSTANTS } from "@common/constants";
+import { MESSAGE_SEMANTICS } from "@common/constants/semantic/message-semantics.constants";
 
 /**
  * 统一权限验证守卫
@@ -173,7 +174,7 @@ export class UnifiedPermissionsGuard implements CanActivate {
     checkResult: any,
   ): string {
     const subjectName = authSubject.getDisplayName();
-    const messages = [subjectName + " " + PERMISSION_MESSAGES.INSUFFICIENT];
+    const messages = [subjectName + " " + MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT];
 
     if (checkResult.missingRoles.length > 0) {
       messages.push(`所需角色: [${checkResult.missingRoles.join(", ")}]`);
