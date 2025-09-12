@@ -24,13 +24,18 @@ import { NotificationAdapterService } from './services/notification-adapter.serv
 import { NotificationTemplateService } from './services/notification-template.service';
 import { NotificationTemplateInitializerService } from './services/notification-template-initializer.service';
 
-// Event Listeners
+// Event Listeners and Handlers
 import { GenericAlertEventListener } from './listeners/generic-alert-event.listener';
+import { NotificationEventHandler } from './handlers/notification-event.handler';
+
+// Adapters
+import { AlertToNotificationAdapter } from './adapters/alert-to-notification.adapter';
 
 // Schemas
-import { NotificationSchema } from './schemas/notification.schema';
-import { NotificationChannelSchema } from './schemas/notification-channel.schema';
+import { NotificationInstance, NotificationSchema } from './schemas/notification.schema';
+import { NotificationChannel, NotificationChannelSchema } from './schemas/notification-channel.schema';
 import { NotificationTemplate, NotificationTemplateSchema } from './schemas/notification-template.schema';
+import { NotificationLog, NotificationLogSchema } from './schemas/notification-log.schema';
 
 // Senders (已从alert模块迁移)
 import { EmailSender } from './services/senders/email.sender';
@@ -45,9 +50,10 @@ import { LogSender } from './services/senders/log.sender';
     // 🗄️ 统一数据库模块 (包含NotificationLog Schema)
     DatabaseModule,
     MongooseModule.forFeature([
-      { name: 'Notification', schema: NotificationSchema },
-      { name: 'NotificationChannel', schema: NotificationChannelSchema },
+      { name: NotificationInstance.name, schema: NotificationSchema },
+      { name: NotificationChannel.name, schema: NotificationChannelSchema },
       { name: NotificationTemplate.name, schema: NotificationTemplateSchema },
+      { name: NotificationLog.name, schema: NotificationLogSchema },
     ]),
   ],
   controllers: [
@@ -62,8 +68,12 @@ import { LogSender } from './services/senders/log.sender';
     NotificationTemplateService,
     NotificationTemplateInitializerService,
     
-    // Event Listeners
+    // Adapters
+    AlertToNotificationAdapter,
+    
+    // Event Listeners and Handlers
     GenericAlertEventListener,           // 解耦架构（独立类型）
+    NotificationEventHandler,
     
     // Notification Senders (已迁移)
     EmailSender,

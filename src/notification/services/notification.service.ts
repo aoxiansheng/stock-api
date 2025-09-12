@@ -7,12 +7,22 @@
  */
 
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from '@appcore/config/logger.config';
 
-// 暂时保留Alert类型导入用于Legacy方法 - 计划后续清理
+// @deprecated Alert模块类型导入 - 仅用于向后兼容，将逐步移除
+// TODO: 在所有调用方迁移到DTO后移除这些导入
 import { Alert, AlertRule, NotificationChannel as AlertNotificationChannel } from '../../alert/types/alert.types';
 import { AlertContext } from '../../alert/events/alert.events';
+
+// 导入新的DTO和适配器（解耦架构的核心）
+import {
+  NotificationRequestDto,
+  NotificationRequestResultDto,
+  BatchNotificationRequestDto,
+} from '../dto/notification-request.dto';
+import { AlertToNotificationAdapter } from '../adapters/alert-to-notification.adapter';
 
 // 导入独立类型和适配器服务
 import {
@@ -49,6 +59,16 @@ import {
   NOTIFICATION_OPERATIONS,
 } from '../constants/notification.constants';
 
+// 导入事件类
+import {
+  NotificationEventFactory,
+  NotificationRequestedEvent,
+  NotificationSentEvent,
+  NotificationFailedEvent,
+  BatchNotificationStartedEvent,
+  BatchNotificationCompletedEvent,
+} from '../events/notification.events';
+
 @Injectable()
 export class NotificationService {
   private readonly logger = createLogger('NotificationService');
@@ -62,6 +82,8 @@ export class NotificationService {
     private readonly logSender: LogSender,
     private readonly adapterService: NotificationAdapterService,
     private readonly templateService: NotificationTemplateService,
+    private readonly alertToNotificationAdapter: AlertToNotificationAdapter,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     // 初始化发送器映射
     this.senders.set(NotificationChannelType.EMAIL, this.emailSender);
@@ -74,6 +96,302 @@ export class NotificationService {
       senderCount: this.senders.size,
     });
   }
+
+  // ==================== 新的DTO架构方法 ====================
+  
+  /**
+   * 发送通知（基于DTO - 解耦架构的核心方法）
+   * 🎯 使用NotificationRequestDto完全解耦Alert模块依赖
+   */
+  async sendNotificationByDto(request: NotificationRequestDto): Promise<NotificationRequestResultDto> {
+    const startTime = Date.now();
+    const requestId = `req_${Date.now()}`;
+    
+    this.logger.debug('开始处理DTO通知请求', {
+      alertId: request.alertId,
+      severity: request.severity,
+      channelCount: request.channelTypes?.length || 0,
+      requestId,
+    });
+
+    // 发布通知请求事件
+    const notificationRequestedEvent = NotificationEventFactory.createNotificationRequested(
+      request.alertId,
+      requestId,
+      request.severity,
+      request.title,
+      request.message,
+      request.channelTypes || [],
+      request.recipients,
+      { requestStartTime: startTime }
+    );
+    this.eventEmitter.emit(notificationRequestedEvent.eventType, notificationRequestedEvent);
+
+    try {
+      const notificationResults: NotificationResult[] = [];
+      const channelResults: Record<string, any> = {};
+
+      // 如果指定了渠道类型，使用指定的渠道
+      if (request.channelTypes && request.channelTypes.length > 0) {
+        for (const channelType of request.channelTypes) {
+          try {
+            const result = await this.sendToChannelByType(request, channelType);
+            notificationResults.push(result);
+            
+            const notificationId = result.success ? `notif_${Date.now()}` : undefined;
+            channelResults[channelType] = {
+              success: result.success,
+              notificationId,
+              error: result.error,
+              duration: result.duration,
+            };
+
+            // 发布渠道发送结果事件
+            if (result.success && notificationId) {
+              const sentEvent = NotificationEventFactory.createNotificationSent(
+                request.alertId,
+                notificationId,
+                result.channelId,
+                channelType,
+                request.recipients?.join(', ') || 'default',
+                result.duration || 0,
+                { requestId }
+              );
+              this.eventEmitter.emit(sentEvent.eventType, sentEvent);
+            } else {
+              const failedEvent = NotificationEventFactory.createNotificationFailed(
+                request.alertId,
+                notificationId || `failed_${Date.now()}`,
+                channelType,
+                result.error || 'Unknown error',
+                0,
+                false,
+                { requestId }
+              );
+              this.eventEmitter.emit(failedEvent.eventType, failedEvent);
+            }
+
+          } catch (error) {
+            this.logger.error('渠道发送失败', {
+              channelType,
+              error: error.message,
+            });
+            
+            channelResults[channelType] = {
+              success: false,
+              error: error.message,
+              duration: 0,
+            };
+
+            // 发布发送失败事件
+            const failedEvent = NotificationEventFactory.createNotificationFailed(
+              request.alertId,
+              `failed_${Date.now()}`,
+              channelType,
+              error.message,
+              0,
+              false,
+              { requestId }
+            );
+            this.eventEmitter.emit(failedEvent.eventType, failedEvent);
+          }
+        }
+      } else {
+        // 使用默认渠道（根据优先级）
+        const defaultChannelTypes = this.getDefaultChannelTypes(request.severity);
+        for (const channelType of defaultChannelTypes) {
+          try {
+            const result = await this.sendToChannelByType(request, channelType);
+            notificationResults.push(result);
+            
+            const notificationId = result.success ? `notif_${Date.now()}` : undefined;
+            channelResults[channelType] = {
+              success: result.success,
+              notificationId,
+              error: result.error,
+              duration: result.duration,
+            };
+
+            // 发布渠道发送结果事件
+            if (result.success && notificationId) {
+              const sentEvent = NotificationEventFactory.createNotificationSent(
+                request.alertId,
+                notificationId,
+                result.channelId,
+                channelType,
+                request.recipients?.join(', ') || 'default',
+                result.duration || 0,
+                { requestId, useDefaultChannels: true }
+              );
+              this.eventEmitter.emit(sentEvent.eventType, sentEvent);
+            } else {
+              const failedEvent = NotificationEventFactory.createNotificationFailed(
+                request.alertId,
+                notificationId || `failed_${Date.now()}`,
+                channelType,
+                result.error || 'Unknown error',
+                0,
+                false,
+                { requestId, useDefaultChannels: true }
+              );
+              this.eventEmitter.emit(failedEvent.eventType, failedEvent);
+            }
+
+          } catch (error) {
+            channelResults[channelType] = {
+              success: false,
+              error: error.message,
+              duration: 0,
+            };
+
+            // 发布发送失败事件
+            const failedEvent = NotificationEventFactory.createNotificationFailed(
+              request.alertId,
+              `failed_${Date.now()}`,
+              channelType,
+              error.message,
+              0,
+              false,
+              { requestId, useDefaultChannels: true }
+            );
+            this.eventEmitter.emit(failedEvent.eventType, failedEvent);
+          }
+        }
+      }
+
+      const successCount = notificationResults.filter(r => r.success).length;
+      const isSuccess = successCount > 0;
+
+      const result: NotificationRequestResultDto = {
+        requestId,
+        success: isSuccess,
+        notificationIds: notificationResults
+          .filter(r => r.success)
+          .map(r => `notif_${r.channelId}_${Date.now()}`),
+        errorMessage: isSuccess ? undefined : '所有渠道发送失败',
+        duration: Date.now() - startTime,
+        processedAt: new Date(),
+        channelResults,
+      };
+
+      this.logger.log('DTO通知请求处理完成', {
+        alertId: request.alertId,
+        success: isSuccess,
+        successCount,
+        totalChannels: request.channelTypes?.length || 0,
+        duration: result.duration,
+      });
+
+      return result;
+
+    } catch (error) {
+      this.logger.error('处理DTO通知请求时发生错误', {
+        alertId: request.alertId,
+        error: error.message,
+      });
+
+      return {
+        requestId,
+        success: false,
+        notificationIds: [],
+        errorMessage: error.message,
+        duration: Date.now() - startTime,
+        processedAt: new Date(),
+      };
+    }
+  }
+
+  /**
+   * 批量发送通知（基于DTO）
+   */
+  async sendNotificationsBatch(batchRequest: BatchNotificationRequestDto): Promise<NotificationRequestResultDto[]> {
+    const batchId = `batch_${Date.now()}`;
+    const startTime = Date.now();
+    
+    this.logger.debug('开始处理批量DTO通知请求', {
+      requestCount: batchRequest.requests.length,
+      concurrency: batchRequest.concurrency || 10,
+      batchId,
+    });
+
+    const concurrency = Math.min(batchRequest.concurrency || 10, 50);
+    const results: NotificationRequestResultDto[] = [];
+
+    // 发布批量处理开始事件
+    if (batchRequest.requests.length > 0) {
+      const batchStartedEvent = new BatchNotificationStartedEvent(
+        batchRequest.requests[0]?.alertId || 'batch',
+        batchId,
+        batchRequest.requests.length,
+        concurrency,
+        new Date()
+      );
+      this.eventEmitter.emit(batchStartedEvent.eventType, batchStartedEvent);
+    }
+    
+    // 分批处理以控制并发
+    for (let i = 0; i < batchRequest.requests.length; i += concurrency) {
+      const batch = batchRequest.requests.slice(i, i + concurrency);
+      
+      const batchPromises = batch.map(request => 
+        batchRequest.continueOnFailure 
+          ? this.sendNotificationByDto(request).catch(error => ({
+              requestId: `req_${Date.now()}`,
+              success: false,
+              notificationIds: [],
+              errorMessage: error.message,
+              duration: 0,
+              processedAt: new Date(),
+            }))
+          : this.sendNotificationByDto(request)
+      );
+
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      batchResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          results.push({
+            requestId: `req_${Date.now()}`,
+            success: false,
+            notificationIds: [],
+            errorMessage: result.reason.message,
+            duration: 0,
+            processedAt: new Date(),
+          });
+        }
+      });
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    const totalDuration = Date.now() - startTime;
+
+    // 发布批量处理完成事件
+    if (batchRequest.requests.length > 0) {
+      const batchCompletedEvent = NotificationEventFactory.createBatchCompleted(
+        batchRequest.requests[0]?.alertId || 'batch',
+        batchId,
+        successCount,
+        failureCount,
+        totalDuration
+      );
+      this.eventEmitter.emit(batchCompletedEvent.eventType, batchCompletedEvent);
+    }
+
+    this.logger.log('批量DTO通知请求处理完成', {
+      totalRequests: batchRequest.requests.length,
+      successCount,
+      failureCount,
+      batchId,
+      totalDuration,
+    });
+
+    return results;
+  }
+
+  // ==================== Legacy方法（向后兼容） ====================
 
   /**
    * 发送警告触发通知（独立类型接口 - 推荐使用）
@@ -97,28 +415,49 @@ export class NotificationService {
 
   /**
    * 发送警告触发通知 - 实现
+   * @deprecated 请使用 sendNotificationByDto 方法
    */
   async sendAlertNotifications(
     alert: Alert | NotificationAlert,
     rule: AlertRule | NotificationAlertRule,
     context: AlertContext | NotificationAlertContext
   ): Promise<NotificationResult[]> {
-    // 检测类型并委派给相应的实现
-    if (this.isIndependentType(alert, rule, context)) {
-      // 使用独立类型的适配器服务（推荐）
-      return await this.adapterService.sendAlertNotifications(
-        alert as NotificationAlert,
-        rule as NotificationAlertRule,
-        context as NotificationAlertContext
-      );
-    } else {
-      // 使用原有的实现逻辑（向后兼容，计划移除）
-      return await this.sendResolutionNotificationsLegacy(
-        alert as Alert,
-        new Date(),
-        'system',
-        'Legacy compatibility call'
-      );
+    this.logger.debug('使用Legacy接口发送警告通知', {
+      alertId: alert.id,
+      useNewArchitecture: true,
+    });
+
+    try {
+      // 统一转换为DTO - 这是Facade模式的核心
+      const notificationRequest = this.convertLegacyToDto(alert, rule, context);
+      
+      // 调用新的DTO方法
+      const result = await this.sendNotificationByDto(notificationRequest);
+      
+      // 转换回Legacy格式以保持兼容性
+      return this.convertDtoResultToLegacy(result, alert, rule);
+
+    } catch (error) {
+      this.logger.error('Legacy接口发送失败，降级到原有逻辑', {
+        alertId: alert.id,
+        error: error.message,
+      });
+
+      // 降级到原有实现
+      if (this.isIndependentType(alert, rule, context)) {
+        return await this.adapterService.sendAlertNotifications(
+          alert as NotificationAlert,
+          rule as NotificationAlertRule,
+          context as NotificationAlertContext
+        );
+      } else {
+        return await this.sendResolutionNotificationsLegacy(
+          alert as Alert,
+          new Date(),
+          'system',
+          'Legacy compatibility fallback'
+        );
+      }
     }
   }
 
@@ -1484,6 +1823,364 @@ export class NotificationService {
       });
       return null; // 返回null表示使用传统方法
     }
+  }
+
+  // ==================== DTO架构辅助方法 ====================
+
+  /**
+   * 将Legacy参数转换为DTO（Facade模式的核心转换）
+   */
+  private convertLegacyToDto(
+    alert: Alert | NotificationAlert,
+    rule: AlertRule | NotificationAlertRule,
+    context: AlertContext | NotificationAlertContext
+  ): NotificationRequestDto {
+    // 提取通用属性
+    const alertId = alert.id;
+    
+    // 映射严重程度
+    let severity: NotificationPriority;
+    if ('severity' in alert && typeof alert.severity === 'string') {
+      // 如果是Alert类型，需要映射字符串到枚举
+      switch (alert.severity.toLowerCase()) {
+        case 'low': severity = NotificationPriority.LOW; break;
+        case 'normal': 
+        case 'medium': severity = NotificationPriority.NORMAL; break;
+        case 'high': severity = NotificationPriority.HIGH; break;
+        case 'urgent': severity = NotificationPriority.URGENT; break;
+        case 'critical': severity = NotificationPriority.CRITICAL; break;
+        default: severity = NotificationPriority.NORMAL; break;
+      }
+    } else {
+      // 如果是NotificationAlert类型，直接使用
+      severity = (alert as any).severity || NotificationPriority.NORMAL;
+    }
+
+    // 构建标题和消息
+    const title = `警告: ${alert.metric || (alert as any).name || alertId}`;
+    const message = this.buildLegacyMessage(alert, rule, context);
+
+    // 提取渠道类型
+    let channelTypes: NotificationChannelType[] | undefined;
+    if ('channels' in rule && Array.isArray((rule as any).channels)) {
+      channelTypes = (rule as any).channels
+        .filter((ch: any) => ch.enabled)
+        .map((ch: any) => this.mapLegacyChannelType(ch.type))
+        .filter(Boolean);
+    }
+
+    // 构建元数据
+    const metadata: Record<string, any> = {
+      legacyConversion: true,
+      originalAlert: {
+        id: alert.id,
+        metric: alert.metric,
+        type: (alert as any).type,
+      },
+      originalRule: {
+        id: rule.id,
+        name: rule.name,
+      },
+      originalContext: context,
+    };
+
+    // 添加Alert特定的元数据
+    if ('tags' in alert && alert.tags) {
+      metadata.tags = alert.tags;
+    }
+    if ('description' in alert && (alert as any).description) {
+      metadata.description = (alert as any).description;
+    }
+
+    return {
+      alertId,
+      severity,
+      title,
+      message,
+      metadata,
+      channelTypes,
+      triggeredAt: new Date().toISOString(),
+      requiresAcknowledgment: severity >= NotificationPriority.HIGH,
+    };
+  }
+
+  /**
+   * 将DTO结果转换回Legacy格式
+   */
+  private convertDtoResultToLegacy(
+    dtoResult: NotificationRequestResultDto,
+    originalAlert: Alert | NotificationAlert,
+    originalRule: AlertRule | NotificationAlertRule
+  ): NotificationResult[] {
+    const results: NotificationResult[] = [];
+
+    // 如果有渠道结果，转换每个渠道的结果
+    if (dtoResult.channelResults) {
+      for (const [channelType, result] of Object.entries(dtoResult.channelResults)) {
+        results.push({
+          success: result.success,
+          channelId: result.notificationId || `channel_${channelType}`,
+          channelType: channelType as NotificationChannelType,
+          message: result.success 
+            ? `通知发送成功 - ${channelType}` 
+            : `通知发送失败 - ${channelType}: ${result.error}`,
+          error: result.error,
+          sentAt: dtoResult.processedAt,
+          duration: result.duration || dtoResult.duration,
+          retryCount: 0,
+        });
+      }
+    }
+
+    // 如果没有渠道结果，创建一个通用结果
+    if (results.length === 0) {
+      results.push({
+        success: dtoResult.success,
+        channelId: 'legacy_channel',
+        channelType: NotificationChannelType.LOG,
+        message: dtoResult.success 
+          ? '通知发送成功' 
+          : `通知发送失败: ${dtoResult.errorMessage}`,
+        error: dtoResult.errorMessage,
+        sentAt: dtoResult.processedAt,
+        duration: dtoResult.duration,
+        retryCount: 0,
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * 构建Legacy格式的消息
+   */
+  private buildLegacyMessage(
+    alert: Alert | NotificationAlert,
+    rule: AlertRule | NotificationAlertRule,
+    context: AlertContext | NotificationAlertContext
+  ): string {
+    const lines: string[] = [];
+    
+    lines.push(`**警告详情**`);
+    lines.push(`- 规则: ${rule.name}`);
+    lines.push(`- 指标: ${alert.metric}`);
+    
+    if ('severity' in alert) {
+      lines.push(`- 严重程度: ${alert.severity}`);
+    }
+
+    // 添加上下文信息
+    if (context) {
+      if ('metricValue' in context && context.metricValue !== undefined) {
+        lines.push(`- 当前值: ${context.metricValue}`);
+      }
+      if ('threshold' in context && context.threshold !== undefined) {
+        lines.push(`- 阈值: ${context.threshold}`);
+      }
+      if ('operator' in context && context.operator) {
+        lines.push(`- 条件: ${context.operator}`);
+      }
+    }
+
+    lines.push(`- 时间: ${new Date().toLocaleString('zh-CN')}`);
+
+    // 添加描述
+    if ('description' in alert && (alert as any).description) {
+      lines.push(`- 描述: ${(alert as any).description}`);
+    }
+
+    // 添加标签
+    if ('tags' in alert && alert.tags && Object.keys(alert.tags).length > 0) {
+      const tags = Object.entries(alert.tags).map(([k, v]) => `${k}=${v}`).join(', ');
+      lines.push(`- 标签: ${tags}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * 映射Legacy渠道类型到新的渠道类型
+   */
+  private mapLegacyChannelType(legacyType: string): NotificationChannelType | null {
+    const typeMap: Record<string, NotificationChannelType> = {
+      'email': NotificationChannelType.EMAIL,
+      'webhook': NotificationChannelType.WEBHOOK,
+      'slack': NotificationChannelType.SLACK,
+      'dingtalk': NotificationChannelType.DINGTALK,
+      'sms': NotificationChannelType.SMS,
+      'log': NotificationChannelType.LOG,
+    };
+
+    return typeMap[legacyType?.toLowerCase()] || null;
+  }
+
+  /**
+   * 根据渠道类型发送通知
+   */
+  private async sendToChannelByType(
+    request: NotificationRequestDto,
+    channelType: NotificationChannelType
+  ): Promise<NotificationResult> {
+    const startTime = Date.now();
+    
+    try {
+      const sender = this.senders.get(channelType);
+      if (!sender) {
+        throw new Error(`不支持的通知渠道类型: ${channelType}`);
+      }
+
+      // 构建Notification对象
+      const notification: Notification = {
+        id: `notif_${Date.now()}_${channelType}`,
+        alertId: request.alertId,
+        title: request.title,
+        content: request.message,
+        priority: request.severity,
+        status: 'pending',
+        channelId: `channel_${channelType}`,
+        channelType: channelType,
+        recipient: request.recipients?.join(', ') || 'default',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          ...request.metadata,
+          originalRequest: {
+            alertId: request.alertId,
+            severity: request.severity,
+            triggeredAt: request.triggeredAt,
+          },
+        },
+      };
+
+      // 构建发送配置
+      const channelConfig = {
+        retryCount: 3,
+        timeout: 30000,
+        ...this.getChannelSpecificConfig(channelType, request),
+      };
+
+      const result = await sender.send(notification, channelConfig);
+      
+      return {
+        ...result,
+        duration: Date.now() - startTime,
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        channelId: `channel_${channelType}`,
+        channelType: channelType,
+        error: error.message,
+        sentAt: new Date(),
+        duration: Date.now() - startTime,
+        message: `发送到 ${channelType} 渠道失败`,
+        retryCount: 0,
+      };
+    }
+  }
+
+  /**
+   * 根据优先级获取默认通知渠道
+   */
+  private getDefaultChannelTypes(severity: NotificationPriority): NotificationChannelType[] {
+    const channelMap: Record<NotificationPriority, NotificationChannelType[]> = {
+      [NotificationPriority.LOW]: [NotificationChannelType.LOG],
+      [NotificationPriority.NORMAL]: [
+        NotificationChannelType.LOG, 
+        NotificationChannelType.EMAIL
+      ],
+      [NotificationPriority.HIGH]: [
+        NotificationChannelType.LOG,
+        NotificationChannelType.EMAIL,
+        NotificationChannelType.SLACK
+      ],
+      [NotificationPriority.URGENT]: [
+        NotificationChannelType.LOG,
+        NotificationChannelType.EMAIL,
+        NotificationChannelType.SLACK,
+        NotificationChannelType.SMS
+      ],
+      [NotificationPriority.CRITICAL]: [
+        NotificationChannelType.LOG,
+        NotificationChannelType.EMAIL,
+        NotificationChannelType.SLACK,
+        NotificationChannelType.SMS,
+        NotificationChannelType.WEBHOOK
+      ],
+    };
+
+    return channelMap[severity] || [NotificationChannelType.LOG];
+  }
+
+  /**
+   * 获取渠道特定配置
+   */
+  private getChannelSpecificConfig(
+    channelType: NotificationChannelType,
+    request: NotificationRequestDto
+  ): Record<string, any> {
+    const baseConfig = {
+      priority: request.severity,
+      metadata: request.metadata,
+    };
+
+    switch (channelType) {
+      case NotificationChannelType.EMAIL:
+        return {
+          ...baseConfig,
+          subject: request.title,
+          recipients: request.recipients,
+        };
+      
+      case NotificationChannelType.SLACK:
+        return {
+          ...baseConfig,
+          channel: request.metadata?.slackChannel || '#alerts',
+          username: 'Alert Bot',
+          icon_emoji: this.getSeverityEmoji(request.severity),
+        };
+      
+      case NotificationChannelType.DINGTALK:
+        return {
+          ...baseConfig,
+          msgtype: 'markdown',
+          title: request.title,
+        };
+      
+      case NotificationChannelType.WEBHOOK:
+        return {
+          ...baseConfig,
+          url: request.metadata?.webhookUrl,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        };
+      
+      case NotificationChannelType.SMS:
+        return {
+          ...baseConfig,
+          phoneNumbers: request.recipients,
+        };
+      
+      default:
+        return baseConfig;
+    }
+  }
+
+  /**
+   * 根据严重程度获取对应的emoji
+   */
+  private getSeverityEmoji(severity: NotificationPriority): string {
+    const emojiMap: Record<NotificationPriority, string> = {
+      [NotificationPriority.LOW]: ':white_circle:',
+      [NotificationPriority.NORMAL]: ':yellow_circle:',
+      [NotificationPriority.HIGH]: ':orange_circle:',
+      [NotificationPriority.URGENT]: ':red_circle:',
+      [NotificationPriority.CRITICAL]: ':rotating_light:',
+    };
+
+    return emojiMap[severity] || ':bell:';
   }
 
   /**
