@@ -75,25 +75,10 @@ export { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES };
 
 // 移除以下重复的常量，改为导出通用配置
 // 创建一个兼容的CACHE_CONSTANTS对象
+// 注意：配置相关的常量已移至 cache.config.ts，这里仅保留非配置类的结构化常量
 export const CACHE_CONSTANTS = Object.freeze({
-  TTL_SETTINGS: {
-  },
   KEY_PREFIXES: CACHE_KEY_PREFIX_SEMANTICS,
-  SIZE_LIMITS: {
-    MAX_KEY_LENGTH: 255,
-    MAX_VALUE_SIZE_MB: CACHE_SIZE_SEMANTICS.ENTRY_SIZE.MAX_BYTES / (1024 * 1024),
-    // 添加缺失的配置
-    COMPRESSION_THRESHOLD_KB: 10, // 10KB压缩阈值
-    MAX_BATCH_SIZE: CACHE_SIZE_SEMANTICS.BATCH_OPERATIONS.MAX_SIZE, // 最大批量大小
-  },
-  // 添加监控配置
-  MONITORING_CONFIG: {
-    SLOW_OPERATION_MS: CACHE_MONITORING_SEMANTICS.MONITORING.SLOW_OPERATION_MS, // 慢操作阈值
-  },
-  // 添加Redis配置
-  REDIS_CONFIG: {
-    RETRY_DELAY_MS: CACHE_CONNECTION_SEMANTICS.REDIS.RETRY_DELAY_MS, // 重试延迟
-  },
+  // 其他配置已迁移至 ConfigService
 });
 
 // 向后兼容导出 - 重新导出缓存键值

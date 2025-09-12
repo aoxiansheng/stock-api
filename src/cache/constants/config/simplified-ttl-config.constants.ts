@@ -37,9 +37,10 @@ export const SIMPLIFIED_TTL_CONFIG = Object.freeze({
   /**
    * 默认TTL（秒）
    * 用于未明确分类的缓存场景
+   * 注意：实际默认值现在通过 ConfigService 获取，支持环境变量覆盖
    */
   DEFAULT: {
-    GENERAL: 3600,         // 通用默认：1小时
+    GENERAL: 300,         // 通用默认：5分钟（与环境变量保持一致）
   }
 } as const);
 
@@ -66,7 +67,7 @@ export const TTL_VALUES = Object.freeze({
   LOCK_TTL: SIMPLIFIED_TTL_CONFIG.SYSTEM.DISTRIBUTED_LOCK, // 添加 LOCK_TTL 别名
   METRICS: SIMPLIFIED_TTL_CONFIG.SYSTEM.METRICS_COLLECTION,
   
-  // 默认值
+  // 默认值（注意：实际使用时通过 ConfigService 获取）
   DEFAULT: SIMPLIFIED_TTL_CONFIG.DEFAULT.GENERAL,
   
 } as const);

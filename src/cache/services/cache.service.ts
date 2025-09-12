@@ -1,5 +1,6 @@
 import { promisify } from "util";
 import * as zlib from "zlib";
+import * as msgpack from "msgpack-lite";
 
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import {
@@ -7,28 +8,27 @@ import {
   ServiceUnavailableException,
   BadRequestException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
 
 import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
+import { CacheConfig } from "../config/cache.config";
 
 // Import modern structured constants directly
 import { CACHE_MESSAGES } from "../constants/messages/cache-messages.constants";
-import { TTL_VALUES } from "../constants/config/simplified-ttl-config.constants";
 import { CACHE_KEYS } from "../constants/config/cache-keys.constants";
 import { CACHE_CORE_OPERATIONS } from "../constants/operations/core-operations.constants";
 import { CACHE_EXTENDED_OPERATIONS } from "../constants/operations/extended-operations.constants";
 import { CACHE_INTERNAL_OPERATIONS } from "../constants/operations/internal-operations.constants";
-import { CACHE_CONSTANTS } from "../constants/cache.constants";
 import { CACHE_DATA_FORMATS, SerializerType, SERIALIZER_TYPE_VALUES } from "../constants/config/data-formats.constants";
 
 // 🎯 Gzip 压缩/解压缩
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
 // 🎯 使用统一的压缩前缀常量，替代硬编码魔法字符串
-// const COMPRESSION_PREFIX = "COMPRESSED::"; // 已移除硬编码
 
 // 🎯 使用内部 DTO 类型替换原始接口定义
 import {
@@ -38,18 +38,24 @@ import {
 } from "../dto/cache-internal.dto";
 
 // 🎯 为了向后兼容，保留类型别名
-export type CacheConfig = CacheConfigDto;
 export type CacheStats = RedisCacheRuntimeStatsDto;
 
 @Injectable()
 export class CacheService {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(CacheService.name);
+  private readonly cacheConfig: CacheConfig;
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.cacheConfig = this.configService.get<CacheConfig>('cache');
+    if (!this.cacheConfig) {
+      throw new Error('Cache configuration not found');
+    }
+  }
 
   /**
    * 获取底层的 ioredis 客户端实例
@@ -65,7 +71,7 @@ export class CacheService {
   async set<T = any>(
     key: string,
     value: T,
-    options: CacheConfigDto = { ttl: TTL_VALUES.DEFAULT },
+    options: CacheConfigDto = { ttl: this.cacheConfig.defaultTtl },
   ): Promise<boolean> {
     // 检查键长度
     this.validateKeyLength(key);
@@ -75,7 +81,7 @@ export class CacheService {
       const serializedValue = this.serialize(value, options.serializer);
       const compressedValue = this.shouldCompress(
         serializedValue,
-        options.compressionThreshold,
+        options.compressionThreshold ?? this.cacheConfig.compressionThreshold,
       )
         ? await this.compress(serializedValue)
         : serializedValue;
@@ -90,12 +96,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
+      if (duration > this.cacheConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.SET,
           key,
           duration,
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
+          threshold: this.cacheConfig.slowOperationMs,
         });
       }
 
@@ -144,12 +150,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
+      if (duration > this.cacheConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.GET,
           key,
           duration,
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
+          threshold: this.cacheConfig.slowOperationMs,
         });
       }
 
@@ -174,7 +180,7 @@ export class CacheService {
   async getOrSet<T>(
     key: string,
     callback: () => Promise<T>,
-    options: CacheConfigDto = { ttl: TTL_VALUES.DEFAULT },
+    options: CacheConfigDto = { ttl: this.cacheConfig.defaultTtl },
   ): Promise<T> {
     // 先尝试从缓存获取
     const cached = await this.get<T>(key, options.serializer);
@@ -185,7 +191,7 @@ export class CacheService {
     // 使用分布式锁防止缓存击穿
     const lockKey = `${CACHE_KEYS.PREFIXES.LOCK}${key}`;
     const lockValue = `${Date.now()}-${Math.random()}`;
-    const lockTtl = TTL_VALUES.LOCK_TTL;
+    const lockTtl = this.cacheConfig.lockTtl;
 
     try {
       // 尝试获取锁
@@ -210,8 +216,8 @@ export class CacheService {
       } else {
         // 未获得锁，等待一段时间后重试获取缓存
         await this.sleep(
-          CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2 +
-            Math.random() * (CACHE_CONSTANTS.REDIS_CONFIG.RETRY_DELAY_MS / 2),
+          this.cacheConfig.retryDelayMs / 2 +
+            Math.random() * (this.cacheConfig.retryDelayMs / 2),
         );
 
         const retryResult = await this.get<T>(key, options.serializer);
@@ -473,11 +479,11 @@ export class CacheService {
     if (keys.length === 0) return result;
 
     // 检查批量大小
-    if (keys.length > CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE) {
+    if (keys.length > this.cacheConfig.maxBatchSize) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
         operation: CACHE_CORE_OPERATIONS.MGET,
         batchSize: keys.length,
-        limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
+        limit: this.cacheConfig.maxBatchSize,
       });
     }
 
@@ -507,12 +513,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
+      if (duration > this.cacheConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.MGET,
           batchSize: keys.length,
           duration,
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
+          threshold: this.cacheConfig.slowOperationMs,
         });
       }
     } catch (error) {
@@ -541,16 +547,16 @@ export class CacheService {
    */
   async mset<T>(
     entries: Map<string, T>,
-    ttl: number = TTL_VALUES.DEFAULT,
+    ttl: number = this.cacheConfig.defaultTtl,
   ): Promise<boolean> {
     if (entries.size === 0) return true;
 
     // 检查批量大小
-    if (entries.size > CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE) {
+    if (entries.size > this.cacheConfig.maxBatchSize) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
         operation: CACHE_CORE_OPERATIONS.MSET,
         batchSize: entries.size,
-        limit: CACHE_CONSTANTS.SIZE_LIMITS.MAX_BATCH_SIZE,
+        limit: this.cacheConfig.maxBatchSize,
       });
     }
 
@@ -569,12 +575,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS) {
+      if (duration > this.cacheConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.MSET,
           batchSize: entries.size,
           duration,
-          threshold: CACHE_CONSTANTS.MONITORING_CONFIG.SLOW_OPERATION_MS,
+          threshold: this.cacheConfig.slowOperationMs,
         });
       }
 
@@ -639,7 +645,7 @@ export class CacheService {
    */
   async warmup<T>(
     warmupData: Map<string, T>,
-    options: CacheConfigDto = { ttl: TTL_VALUES.DEFAULT },
+    options: CacheConfigDto = { ttl: this.cacheConfig.defaultTtl },
   ): Promise<void> {
     this.logger.log(
       `${CACHE_MESSAGES.SUCCESS.WARMUP_STARTED}，共 ${warmupData.size} 个项目...`,
@@ -674,14 +680,24 @@ export class CacheService {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
       return "null";
     }
-    // TODO: support msgpack when serializerType is 'msgpack'
-    const serialized =
-      serializerType === "json" ? JSON.stringify(value) : JSON.stringify(value);
+    
+    let serialized: string;
+    switch (serializerType) {
+      case 'json':
+        serialized = JSON.stringify(value);
+        break;
+      case 'msgpack':
+        // msgpack序列化并转为base64字符串存储
+        serialized = msgpack.encode(value).toString('base64');
+        break;
+      default:
+        throw new BadRequestException(`不支持的序列化类型: ${serializerType}`);
+    }
 
     // 检查序列化后的大小
     const sizeInBytes = Buffer.byteLength(serialized, "utf8");
     const maxSizeBytes =
-      CACHE_CONSTANTS.SIZE_LIMITS.MAX_VALUE_SIZE_MB * 1024 * 1024;
+      this.cacheConfig.maxValueSizeMB * 1024 * 1024;
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
@@ -702,14 +718,22 @@ export class CacheService {
     if (value === null) {
       return null;
     }
-    // TODO: support msgpack when deserializerType is 'msgpack'
-    return deserializerType === "json" ? JSON.parse(value) : JSON.parse(value);
+    
+    switch (deserializerType) {
+      case 'json':
+        return JSON.parse(value);
+      case 'msgpack':
+        // 从base64字符串解码并反序列化
+        const buffer = Buffer.from(value, 'base64');
+        return msgpack.decode(buffer);
+      default:
+        throw new BadRequestException(`不支持的反序列化类型: ${deserializerType}`);
+    }
   }
 
   private shouldCompress(
     value: string,
-    threshold: number = CACHE_CONSTANTS.SIZE_LIMITS.COMPRESSION_THRESHOLD_KB *
-      1024,
+    threshold: number = this.cacheConfig.compressionThreshold,
   ): boolean {
     if (!value) {
       return false;
@@ -852,16 +876,16 @@ export class CacheService {
    * 验证缓存键长度
    */
   private validateKeyLength(key: string): void {
-    if (key.length > CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH) {
+    if (key.length > this.cacheConfig.maxKeyLength) {
       const errorMessage = `${
         CACHE_MESSAGES.ERRORS.INVALID_KEY_LENGTH
       }: 键 '${key.substring(0, 50)}...' 的长度 ${key.length} 超过了最大限制 ${
-        CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH
+        this.cacheConfig.maxKeyLength
       }`;
       this.logger.error(errorMessage, {
         operation: "validateKeyLength",
         keyLength: key.length,
-        maxLength: CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH,
+        maxLength: this.cacheConfig.maxKeyLength,
       });
       throw new BadRequestException(errorMessage);
     }

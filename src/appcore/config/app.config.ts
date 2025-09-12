@@ -111,14 +111,6 @@ export const createAppConfig = (): Partial<AppConfig> => ({
     },
   },
 
-  cache: {
-    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL || "300", 10),
-    maxItems: parseInt(process.env.CACHE_MAX_ITEMS || "10000", 10),
-    compressionThreshold: parseInt(
-      process.env.CACHE_COMPRESSION_THRESHOLD || "1024",
-      10,
-    ),
-  },
 
   alert: {
     enabled: process.env.ALERT_ENABLED !== "false",
