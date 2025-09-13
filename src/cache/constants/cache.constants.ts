@@ -31,9 +31,6 @@ import { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES } from './config/data-format
 export type { SerializerType };
 // 旧的TTL配置导入已移除，使用简化版本
 import { CACHE_KEYS as MODULAR_CACHE_KEYS } from './config/cache-keys.constants';
-import { CACHE_CORE_OPERATIONS } from './operations/core-operations.constants';
-import { CACHE_EXTENDED_OPERATIONS } from './operations/extended-operations.constants';
-import { CACHE_INTERNAL_OPERATIONS } from './operations/internal-operations.constants';
 import { CACHE_STATUS } from './status/cache-status.constants';
 // 旧的健康状态导入已移除，使用统一的健康状态定义
 import { CACHE_MESSAGES } from './messages/cache-messages.constants';
@@ -49,7 +46,13 @@ import { CACHE_METRICS } from './metrics/cache-metrics.constants';
 export { SIMPLIFIED_TTL_CONFIG as CACHE_TTL_CONFIG, TTL_VALUES as CACHE_TTL } from './config/simplified-ttl-config.constants';
 
 // 重新导出操作常量
-export { CACHE_EXTENDED_OPERATIONS, CACHE_INTERNAL_OPERATIONS };
+export { 
+  CACHE_CORE_OPERATIONS,
+  CACHE_EXTENDED_OPERATIONS, 
+  CACHE_INTERNAL_OPERATIONS,
+  CACHE_OPERATIONS,
+  type CacheOperation 
+} from './operations/cache-operations.constants';
 
 // 重新导出状态相关常量和类型
 export { CACHE_STATUS };
@@ -87,5 +90,3 @@ export { MODULAR_CACHE_KEYS as CACHE_KEYS };
 // 重新导出消息常量
 export { CACHE_MESSAGES };
 
-// 直接导出操作常量 - 推荐使用 CACHE_CORE_OPERATIONS
-export { CACHE_CORE_OPERATIONS };

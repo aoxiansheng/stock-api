@@ -96,25 +96,6 @@ export const PERMISSION_TIMING = {
   METRICS_COLLECTION_INTERVAL_MS: 300000  // 指标收集间隔5分钟
 } as const;
 
-// 权限日志级别 - 日志记录级别
-export const PERMISSION_LOG_LEVELS = {
-  TRACE: 'trace',
-  DEBUG: 'debug',
-  INFO: 'info',
-  WARN: 'warn',
-  ERROR: 'error',
-  FATAL: 'fatal'
-} as const;
-
-// 权限统计类型 - 统计数据分类
-export const PERMISSION_STATS_TYPES = {
-  HOURLY: 'hourly',       // 小时统计
-  DAILY: 'daily',         // 日统计  
-  WEEKLY: 'weekly',       // 周统计
-  MONTHLY: 'monthly',     // 月统计
-  REAL_TIME: 'real_time'  // 实时统计
-} as const;
-
 // 权限配置参数 - 系统配置常量
 export const PERMISSION_CONFIG = {
   CACHE_KEY_SEPARATOR: ':',           // 缓存键分隔符

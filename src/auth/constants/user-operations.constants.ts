@@ -38,35 +38,10 @@ export const ACCOUNT_DEFAULTS = {
   PASSWORD_RESET_REQUIRED: false  // 密码重置要求状态
 } as const;
 
-// 密码安全要求 - 密码复杂度配置
-export const PASSWORD_REQUIREMENTS = {
-  REQUIRE_NUMBERS: true,       // 是否要求数字
-  REQUIRE_UPPERCASE: true,     // 是否要求大写字母
-  REQUIRE_LOWERCASE: true,     // 是否要求小写字母
-  REQUIRE_SPECIAL_CHARS: false // 是否要求特殊字符
-} as const;
-
 // 会话管理配置 - 会话生命周期控制
 export const SESSION_CONFIG = {
   ACCESS_TOKEN_HOURS: 24,      // 访问令牌有效期（小时）
   REFRESH_TOKEN_DAYS: 7,       // 刷新令牌有效期（天）
   SESSION_TIMEOUT_MINUTES: 60, // 会话超时时间（分钟）
   REMEMBER_ME_DAYS: 30         // 记住我功能天数
-} as const;
-
-// 用户状态枚举值
-export const USER_STATUS_VALUES = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive', 
-  SUSPENDED: 'suspended',
-  PENDING: 'pending'
-} as const;
-
-// 用户角色枚举值
-export const USER_ROLE_VALUES = {
-  DEVELOPER: 'developer',
-  ADMIN: 'admin',
-  SUPER_ADMIN: 'super_admin',
-  USER: 'user',
-  GUEST: 'guest'
 } as const;

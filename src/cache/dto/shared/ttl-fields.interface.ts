@@ -23,8 +23,3 @@ export interface TTLFields extends OptionalTTL {
   remainingTime?: number;
 }
 
-// 向后兼容性导出
-/**
- * @deprecated 使用 RequiredTTL 替代
- */
-export interface BaseTTL extends RequiredTTL {}

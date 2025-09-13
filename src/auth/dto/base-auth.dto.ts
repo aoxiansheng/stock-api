@@ -44,22 +44,6 @@ export abstract class BasePasswordDto extends BaseAuthDto {
 }
 
 /**
- * 包含邮箱验证的基础DTO类
- * 用于需要邮箱验证的场景
- */
-export abstract class BaseEmailDto extends BaseAuthDto {
-  @ApiProperty({
-    description: '邮箱地址',
-    example: 'admin@example.com',
-  })
-  @IsEmail()
-  @Matches(USER_REGISTRATION.EMAIL_PATTERN, {
-    message: '邮箱格式不正确',
-  })
-  email: string;
-}
-
-/**
  * 完整的用户基础DTO类
  * 包含用户名、密码和邮箱验证
  */

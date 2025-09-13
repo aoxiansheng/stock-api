@@ -20,12 +20,10 @@ import { TemplateController } from './controllers/template.controller';
 // Services  
 import { NotificationService } from './services/notification.service';
 import { NotificationHistoryService } from './services/notification-history.service';
-import { NotificationAdapterService } from './services/notification-adapter.service';
 import { NotificationTemplateService } from './services/notification-template.service';
 import { NotificationTemplateInitializerService } from './services/notification-template-initializer.service';
 
 // Event Listeners and Handlers
-import { GenericAlertEventListener } from './listeners/generic-alert-event.listener';
 import { NotificationEventHandler } from './handlers/notification-event.handler';
 
 // Adapters
@@ -64,7 +62,6 @@ import { LogSender } from './services/senders/log.sender';
     // Core Services
     NotificationService,
     NotificationHistoryService,
-    NotificationAdapterService,
     NotificationTemplateService,
     NotificationTemplateInitializerService,
     
@@ -72,7 +69,6 @@ import { LogSender } from './services/senders/log.sender';
     AlertToNotificationAdapter,
     
     // Event Listeners and Handlers
-    GenericAlertEventListener,           // 解耦架构（独立类型）
     NotificationEventHandler,
     
     // Notification Senders (已迁移)
@@ -85,7 +81,6 @@ import { LogSender } from './services/senders/log.sender';
   exports: [
     NotificationService,
     NotificationHistoryService,
-    NotificationAdapterService,          // 独立类型服务
     NotificationTemplateService,         // 模板服务
     NotificationTemplateInitializerService, // 模板初始化服务
   ],

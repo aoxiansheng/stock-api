@@ -25,20 +25,6 @@ export {
   NotificationAlertTypeUtil,
 } from './notification-alert.types';
 
-// 独立事件类型（替代Alert事件依赖）
-export {
-  NotificationEventType,
-  BaseNotificationEvent,
-  NotificationAlertFiredEvent,
-  NotificationAlertResolvedEvent,
-  NotificationAlertAcknowledgedEvent,
-  NotificationAlertSuppressedEvent,
-  NotificationAlertEscalatedEvent,
-  NotificationSentEvent,
-  NotificationFailedEvent,
-  NotificationChannelTestedEvent,
-  NotificationEvent,
-  NotificationEventHandleResult,
-  NotificationEventMapper,
-} from './notification-event.types';
+// 独立事件类型来自主事件系统
+export * from '../events/notification.events';
 

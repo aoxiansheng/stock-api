@@ -2,8 +2,8 @@
  * 通知服务
  * 🎯 负责通知的编排、发送和管理
  * 
- * @description 从Alert模块拆分出来的独立通知服务
- * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
+ * @description 从NotificationAlert模块拆分出来的独立通知服务
+ * @see docs/代码审查文档/常量枚举值审查说明/NotificationAlert组件拆分计划.md
  */
 
 import { Injectable } from '@nestjs/common';
@@ -11,10 +11,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from '@appcore/config/logger.config';
 
-// @deprecated Alert模块类型导入 - 仅用于向后兼容，将逐步移除
-// TODO: 在所有调用方迁移到DTO后移除这些导入
-import { Alert, AlertRule, NotificationChannel as AlertNotificationChannel } from '../../alert/types/alert.types';
-import { AlertContext } from '../../alert/events/alert.events';
 
 // 导入新的DTO和适配器（解耦架构的核心）
 import {
@@ -31,7 +27,6 @@ import {
   NotificationAlertContext,
   NotificationSeverity,
 } from '../types/notification-alert.types';
-import { NotificationAdapterService } from './notification-adapter.service';
 import { NotificationTemplateService } from './notification-template.service';
 
 // 导入通知发送器
@@ -80,7 +75,6 @@ export class NotificationService {
     private readonly slackSender: SlackSender,
     private readonly dingtalkSender: DingTalkSender,
     private readonly logSender: LogSender,
-    private readonly adapterService: NotificationAdapterService,
     private readonly templateService: NotificationTemplateService,
     private readonly alertToNotificationAdapter: AlertToNotificationAdapter,
     private readonly eventEmitter: EventEmitter2,
@@ -101,7 +95,7 @@ export class NotificationService {
   
   /**
    * 发送通知（基于DTO - 解耦架构的核心方法）
-   * 🎯 使用NotificationRequestDto完全解耦Alert模块依赖
+   * 🎯 使用NotificationRequestDto完全解耦NotificationAlert模块依赖
    */
   async sendNotificationByDto(request: NotificationRequestDto): Promise<NotificationRequestResultDto> {
     const startTime = Date.now();
@@ -393,437 +387,21 @@ export class NotificationService {
 
   // ==================== Legacy方法（向后兼容） ====================
 
-  /**
-   * 发送警告触发通知（独立类型接口 - 推荐使用）
-   * 使用notification模块独立的类型，避免Alert模块依赖
-   */
-  async sendAlertNotifications(
-    alert: NotificationAlert,
-    rule: NotificationAlertRule,
-    context: NotificationAlertContext
-  ): Promise<NotificationResult[]>;
-
-  /**
-   * 发送警告触发通知（原有接口 - 向后兼容）
-   * @deprecated 计划后续版本移除，请使用独立类型接口
-   */
-  async sendAlertNotifications(
-    alert: Alert,
-    rule: AlertRule,
-    context: AlertContext
-  ): Promise<NotificationResult[]>;
-
-  /**
-   * 发送警告触发通知 - 实现
-   * @deprecated 请使用 sendNotificationByDto 方法
-   */
-  async sendAlertNotifications(
-    alert: Alert | NotificationAlert,
-    rule: AlertRule | NotificationAlertRule,
-    context: AlertContext | NotificationAlertContext
-  ): Promise<NotificationResult[]> {
-    this.logger.debug('使用Legacy接口发送警告通知', {
-      alertId: alert.id,
-      useNewArchitecture: true,
-    });
-
-    try {
-      // 统一转换为DTO - 这是Facade模式的核心
-      const notificationRequest = this.convertLegacyToDto(alert, rule, context);
-      
-      // 调用新的DTO方法
-      const result = await this.sendNotificationByDto(notificationRequest);
-      
-      // 转换回Legacy格式以保持兼容性
-      return this.convertDtoResultToLegacy(result, alert, rule);
-
-    } catch (error) {
-      this.logger.error('Legacy接口发送失败，降级到原有逻辑', {
-        alertId: alert.id,
-        error: error.message,
-      });
-
-      // 降级到原有实现
-      if (this.isIndependentType(alert, rule, context)) {
-        return await this.adapterService.sendAlertNotifications(
-          alert as NotificationAlert,
-          rule as NotificationAlertRule,
-          context as NotificationAlertContext
-        );
-      } else {
-        return await this.sendResolutionNotificationsLegacy(
-          alert as Alert,
-          new Date(),
-          'system',
-          'Legacy compatibility fallback'
-        );
-      }
-    }
-  }
 
 
-  /**
-   * 发送警告解决通知（传统接口）
-   */
-  async sendResolutionNotificationsLegacy(
-    alert: Alert,
-    resolvedAt: Date,
-    resolvedBy?: string,
-    comment?: string
-  ): Promise<NotificationResult[]> {
-    const operation = NOTIFICATION_OPERATIONS.SEND_RESOLUTION_NOTIFICATION;
-    
-    this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED, {
-      operation,
-      alertId: alert.id,
-      resolvedAt,
-      resolvedBy,
-    });
 
-    try {
-      const results: NotificationResult[] = [];
 
-      // 1. 获取原始警告规则配置
-      // 注意：这里假设alert对象包含了规则信息或者我们需要通过其他方式获取
-      // 在实际实现中，可能需要从数据库查询原始规则配置
-      const alertRule = await this.getAlertRuleForAlert(alert);
-      
-      if (!alertRule || !alertRule.channels || alertRule.channels.length === 0) {
-        this.logger.warn(NOTIFICATION_MESSAGES.NO_CHANNELS_CONFIGURED, {
-          alertId: alert.id,
-          operation,
-        });
-        return results;
-      }
 
-      // 2. 为每个配置的通知渠道发送解决通知
-      for (const channel of alertRule.channels) {
-        try {
-          const result = await this.sendResolutionNotificationToChannel(
-            alert,
-            alertRule,
-            channel,
-            resolvedAt,
-            resolvedBy,
-            comment
-          );
-          results.push(result);
-        } catch (error) {
-          this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-            alertId: alert.id,
-            channelId: channel.id,
-            channelType: channel.type,
-            operation,
-            error: error.message,
-          });
-          
-          // 即使单个通知失败，也要继续发送其他通知
-          results.push({
-            success: false,
-            channelId: channel.id || 'unknown',
-            channelType: channel.type,
-            error: error.message,
-            sentAt: new Date(),
-            duration: 0,
-            message: `解决通知发送失败: ${error.message}`,
-          });
-        }
-      }
-
-      this.logger.log(NOTIFICATION_MESSAGES.NOTIFICATION_SENT, {
-        operation,
-        alertId: alert.id,
-        totalSent: results.filter(r => r.success).length,
-        totalFailed: results.filter(r => !r.success).length,
-        resolvedBy,
-      });
-
-      return results;
-    } catch (error) {
-      this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-        operation,
-        alertId: alert.id,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 发送警告确认通知
-   */
-  async sendAcknowledgmentNotificationsLegacy(
-    alert: Alert,
-    acknowledgedBy: string,
-    acknowledgedAt: Date,
-    comment?: string
-  ): Promise<NotificationResult[]> {
-    const operation = NOTIFICATION_OPERATIONS.SEND_ACKNOWLEDGMENT_NOTIFICATION;
-    
-    this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED, {
-      operation,
-      alertId: alert.id,
-      acknowledgedBy,
-      acknowledgedAt,
-    });
-
-    try {
-      const results: NotificationResult[] = [];
-
-      // 1. 获取原始警告规则配置
-      const alertRule = await this.getAlertRuleForAlert(alert);
-      
-      if (!alertRule || !alertRule.channels || alertRule.channels.length === 0) {
-        this.logger.warn(NOTIFICATION_MESSAGES.NO_CHANNELS_CONFIGURED, {
-          alertId: alert.id,
-          operation,
-        });
-        return results;
-      }
-
-      // 2. 为每个配置的通知渠道发送确认通知
-      for (const channel of alertRule.channels) {
-        try {
-          const result = await this.sendAcknowledgmentNotificationToChannel(
-            alert,
-            alertRule,
-            channel,
-            acknowledgedBy,
-            acknowledgedAt,
-            comment
-          );
-          results.push(result);
-        } catch (error) {
-          this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-            alertId: alert.id,
-            channelId: channel.id,
-            channelType: channel.type,
-            operation,
-            error: error.message,
-          });
-          
-          // 即使单个通知失败，也要继续发送其他通知
-          results.push({
-            success: false,
-            channelId: channel.id || 'unknown',
-            channelType: channel.type,
-            error: error.message,
-            sentAt: new Date(),
-            duration: 0,
-            message: `确认通知发送失败: ${error.message}`,
-          });
-        }
-      }
-
-      this.logger.log(NOTIFICATION_MESSAGES.NOTIFICATION_SENT, {
-        operation,
-        alertId: alert.id,
-        totalSent: results.filter(r => r.success).length,
-        totalFailed: results.filter(r => !r.success).length,
-        acknowledgedBy,
-      });
-
-      return results;
-    } catch (error) {
-      this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-        operation,
-        alertId: alert.id,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 发送警告抑制通知
-   */
-  async sendSuppressionNotificationsLegacy(
-    alert: Alert,
-    suppressedBy: string,
-    suppressedAt: Date,
-    suppressionDuration: number,
-    reason?: string
-  ): Promise<NotificationResult[]> {
-    const operation = NOTIFICATION_OPERATIONS.SEND_SUPPRESSION_NOTIFICATION;
-    
-    this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED, {
-      operation,
-      alertId: alert.id,
-      suppressedBy,
-      suppressionDuration,
-      suppressedAt,
-    });
-
-    try {
-      const results: NotificationResult[] = [];
-
-      // 1. 获取原始警告规则配置
-      const alertRule = await this.getAlertRuleForAlert(alert);
-      
-      if (!alertRule || !alertRule.channels || alertRule.channels.length === 0) {
-        this.logger.warn(NOTIFICATION_MESSAGES.NO_CHANNELS_CONFIGURED, {
-          alertId: alert.id,
-          operation,
-        });
-        return results;
-      }
-
-      // 2. 为每个配置的通知渠道发送抑制通知
-      for (const channel of alertRule.channels) {
-        try {
-          const result = await this.sendSuppressionNotificationToChannel(
-            alert,
-            alertRule,
-            channel,
-            suppressedBy,
-            suppressedAt,
-            suppressionDuration,
-            reason
-          );
-          results.push(result);
-        } catch (error) {
-          this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-            alertId: alert.id,
-            channelId: channel.id,
-            channelType: channel.type,
-            operation,
-            error: error.message,
-          });
-          
-          // 即使单个通知失败，也要继续发送其他通知
-          results.push({
-            success: false,
-            channelId: channel.id || 'unknown',
-            channelType: channel.type,
-            error: error.message,
-            sentAt: new Date(),
-            duration: 0,
-            message: `抑制通知发送失败: ${error.message}`,
-          });
-        }
-      }
-
-      this.logger.log(NOTIFICATION_MESSAGES.NOTIFICATION_SENT, {
-        operation,
-        alertId: alert.id,
-        totalSent: results.filter(r => r.success).length,
-        totalFailed: results.filter(r => !r.success).length,
-        suppressedBy,
-        suppressionDuration,
-      });
-
-      return results;
-    } catch (error) {
-      this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-        operation,
-        alertId: alert.id,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 发送警告升级通知
-   */
-  async sendEscalationNotificationsLegacy(
-    alert: Alert,
-    previousSeverity: string,
-    newSeverity: string,
-    escalatedAt: Date,
-    escalationReason: string
-  ): Promise<NotificationResult[]> {
-    const operation = NOTIFICATION_OPERATIONS.SEND_ESCALATION_NOTIFICATION;
-    
-    this.logger.debug(NOTIFICATION_MESSAGES.NOTIFICATION_PROCESSING_STARTED, {
-      operation,
-      alertId: alert.id,
-      previousSeverity,
-      newSeverity,
-      escalatedAt,
-      escalationReason,
-    });
-
-    try {
-      const results: NotificationResult[] = [];
-
-      // 1. 获取原始警告规则配置
-      const alertRule = await this.getAlertRuleForAlert(alert);
-      
-      if (!alertRule || !alertRule.channels || alertRule.channels.length === 0) {
-        this.logger.warn(NOTIFICATION_MESSAGES.NO_CHANNELS_CONFIGURED, {
-          alertId: alert.id,
-          operation,
-        });
-        return results;
-      }
-
-      // 2. 为每个配置的通知渠道发送升级通知
-      // 对于升级通知，可能需要发送到更高级别的渠道
-      for (const channel of alertRule.channels) {
-        try {
-          const result = await this.sendEscalationNotificationToChannel(
-            alert,
-            alertRule,
-            channel,
-            previousSeverity,
-            newSeverity,
-            escalatedAt,
-            escalationReason
-          );
-          results.push(result);
-        } catch (error) {
-          this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-            alertId: alert.id,
-            channelId: channel.id,
-            channelType: channel.type,
-            operation,
-            error: error.message,
-          });
-          
-          // 即使单个通知失败，也要继续发送其他通知
-          results.push({
-            success: false,
-            channelId: channel.id || 'unknown',
-            channelType: channel.type,
-            error: error.message,
-            sentAt: new Date(),
-            duration: 0,
-            message: `升级通知发送失败: ${error.message}`,
-          });
-        }
-      }
-
-      this.logger.log(NOTIFICATION_MESSAGES.NOTIFICATION_SENT, {
-        operation,
-        alertId: alert.id,
-        totalSent: results.filter(r => r.success).length,
-        totalFailed: results.filter(r => !r.success).length,
-        previousSeverity,
-        newSeverity,
-        escalationReason,
-      });
-
-      return results;
-    } catch (error) {
-      this.logger.error(NOTIFICATION_MESSAGES.NOTIFICATION_FAILED, {
-        operation,
-        alertId: alert.id,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
 
   /**
    * 发送单个通知
    * @private
    */
   private async sendSingleNotification(
-    alert: Alert,
-    rule: AlertRule,
-    context: AlertContext,
-    channel: AlertNotificationChannel
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
+    context: NotificationAlertContext,
+    channel: NotificationChannel
   ): Promise<NotificationResult> {
     const startTime = Date.now();
     
@@ -833,19 +411,13 @@ export class NotificationService {
       channelType: channel.type,
     });
 
-    // TODO: 实现具体的通知发送逻辑
-    // 1. 根据渠道类型选择对应的发送器
-    // 2. 生成通知内容（使用模板）
-    // 3. 调用发送器发送通知
-    // 4. 记录发送结果和日志
-
-    // 临时返回成功结果
     const duration = Date.now() - startTime;
     return {
-      success: true,
+      success: false,
       channelId: channel.id || 'unknown',
       channelType: channel.type,
-      message: '通知发送成功（临时实现）',
+      message: '兼容层方法已移除',
+      error: 'Legacy method removed during cleanup',
       sentAt: new Date(),
       duration,
     };
@@ -856,9 +428,9 @@ export class NotificationService {
    */
   async sendBatchNotifications(
     notifications: Array<{
-      alert: Alert;
-      rule: AlertRule;
-      context: AlertContext;
+      alert: NotificationAlert;
+      rule: NotificationAlertRule;
+      context: NotificationAlertContext;
     }>
   ): Promise<BatchNotificationResult> {
     const operation = NOTIFICATION_OPERATIONS.SEND_BATCH_NOTIFICATIONS;
@@ -875,7 +447,15 @@ export class NotificationService {
       // 并行处理批量通知
       const promises = notifications.map(async ({ alert, rule, context }) => {
         try {
-          return await this.sendAlertNotifications(alert, rule, context);
+          return await this.sendNotificationByDto({
+            alertId: alert.id,
+            severity: alert.severity as any,
+            title: `警告: ${alert.id}`,
+            message: `警告触发: ${alert.description || alert.id}`,
+            metadata: { alert, rule, context },
+            triggeredAt: new Date().toISOString(),
+            requiresAcknowledgment: false,
+          });
         } catch (error) {
           this.logger.error(NOTIFICATION_MESSAGES.BATCH_NOTIFICATION_FAILED, {
             alertId: alert.id,
@@ -889,7 +469,9 @@ export class NotificationService {
       
       // 合并所有结果
       for (const resultList of batchResults) {
-        results.push(...resultList);
+        if (Array.isArray(resultList)) {
+          results.push(...resultList);
+        }
       }
 
       const duration = Date.now() - startTime;
@@ -1002,9 +584,15 @@ export class NotificationService {
     resolvedBy?: string,
     comment?: string
   ): Promise<NotificationResult[]> {
-    return await this.adapterService.sendResolutionNotifications(
-      alert, resolvedAt, resolvedBy, comment
-    );
+    return [{
+      success: false,
+      channelId: 'legacy',
+      channelType: NotificationChannelType.LOG,
+      message: '兼容层方法已移除',
+      error: 'AdapterService removed during cleanup',
+      sentAt: new Date(),
+      duration: 0,
+    }];
   }
 
   /**
@@ -1016,9 +604,15 @@ export class NotificationService {
     acknowledgedAt: Date,
     comment?: string
   ): Promise<NotificationResult[]> {
-    return await this.adapterService.sendAcknowledgmentNotifications(
-      alert, acknowledgedBy, acknowledgedAt, comment
-    );
+    return [{
+      success: false,
+      channelId: 'legacy',
+      channelType: NotificationChannelType.LOG,
+      message: '兼容层方法已移除',
+      error: 'AdapterService removed during cleanup',
+      sentAt: new Date(),
+      duration: 0,
+    }];
   }
 
   /**
@@ -1031,9 +625,15 @@ export class NotificationService {
     suppressionDuration: number,
     reason?: string
   ): Promise<NotificationResult[]> {
-    return await this.adapterService.sendSuppressionNotifications(
-      alert, suppressedBy, suppressedAt, suppressionDuration, reason
-    );
+    return [{
+      success: false,
+      channelId: 'legacy',
+      channelType: NotificationChannelType.LOG,
+      message: '兼容层方法已移除',
+      error: 'AdapterService removed during cleanup',
+      sentAt: new Date(),
+      duration: 0,
+    }];
   }
 
   /**
@@ -1046,9 +646,15 @@ export class NotificationService {
     escalatedAt: Date,
     escalationReason?: string
   ): Promise<NotificationResult[]> {
-    return await this.adapterService.sendEscalationNotifications(
-      alert, previousSeverity, newSeverity, escalatedAt, escalationReason
-    );
+    return [{
+      success: false,
+      channelId: 'legacy',
+      channelType: NotificationChannelType.LOG,
+      message: '兼容层方法已移除',
+      error: 'AdapterService removed during cleanup',
+      sentAt: new Date(),
+      duration: 0,
+    }];
   }
 
   /**
@@ -1056,9 +662,9 @@ export class NotificationService {
    * 通过检查对象的特征属性来判断类型
    */
   private isIndependentType(
-    alert: Alert | NotificationAlert,
-    rule: AlertRule | NotificationAlertRule,
-    context: AlertContext | NotificationAlertContext
+    alert: NotificationAlert | NotificationAlert,
+    rule: NotificationAlertRule | NotificationAlertRule,
+    context: NotificationAlertContext | NotificationAlertContext
   ): boolean {
     // 检查NotificationAlert的特征属性
     const isNotificationAlert = (
@@ -1112,7 +718,7 @@ export class NotificationService {
    * 获取警告对应的规则配置
    * @private
    */
-  private async getAlertRuleForAlert(alert: Alert): Promise<AlertRule | null> {
+  private async getNotificationAlertRuleForNotificationAlert(alert: NotificationAlert): Promise<NotificationAlertRule | null> {
     try {
       // 方法1: 如果alert对象中包含规则信息
       if ((alert as any).rule) {
@@ -1121,9 +727,7 @@ export class NotificationService {
       
       // 方法2: 如果alert对象中包含ruleId，需要查询数据库
       if ((alert as any).ruleId) {
-        // TODO: 这里需要注入AlertRule的数据访问服务
-        // 暂时返回null，在后续迭代中完善
-        this.logger.warn('需要通过ruleId查询AlertRule，暂未实现', {
+        this.logger.warn('NotificationAlertRule查询服务已移除', {
           alertId: alert.id,
           ruleId: (alert as any).ruleId,
         });
@@ -1131,13 +735,13 @@ export class NotificationService {
       }
       
       // 方法3: 通过alert的其他属性推断规则（备用方案）
-      this.logger.warn('无法获取Alert对应的规则配置', {
+      this.logger.warn('无法获取NotificationAlert对应的规则配置', {
         alertId: alert.id,
       });
       
       return null;
     } catch (error) {
-      this.logger.error('获取Alert规则配置失败', {
+      this.logger.error('获取NotificationAlert规则配置失败', {
         alertId: alert.id,
         error: error.message,
       });
@@ -1150,9 +754,9 @@ export class NotificationService {
    * @private
    */
   private async sendResolutionNotificationToChannel(
-    alert: Alert,
-    rule: AlertRule,
-    channel: AlertNotificationChannel,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
+    channel: NotificationChannel,
     resolvedAt: Date,
     resolvedBy?: string,
     comment?: string
@@ -1188,7 +792,7 @@ export class NotificationService {
         alertId: alert.id,
         title: `✅ 警告已解决: ${alert.metric}`,
         content: notificationContent,
-        priority: this.mapAlertSeverityToPriority(alert.severity),
+        priority: this.mapNotificationAlertSeverityToPriority(alert.severity),
         status: 'pending',
         channelId: channel.id || '',
         channelType: channel.type as NotificationChannelType,
@@ -1230,8 +834,8 @@ export class NotificationService {
    * @private
    */
   private buildResolutionNotificationContent(
-    alert: Alert,
-    rule: AlertRule,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
     resolvedAt: Date,
     resolvedBy?: string,
     comment?: string
@@ -1254,8 +858,8 @@ export class NotificationService {
     }
 
     // 添加原始警告的详细信息
-    if (alert.message) {
-      lines.push(``, `**原始警告:**`, `- ${alert.message}`);
+    if (alert.description) {
+      lines.push(``, `**原始警告:**`, `- ${alert.description}`);
     }
 
     if (alert.tags && Object.keys(alert.tags).length > 0) {
@@ -1272,7 +876,7 @@ export class NotificationService {
    * 映射警告严重程度到通知优先级
    * @private  
    */
-  private mapAlertSeverityToPriority(severity: string): NotificationPriority {
+  private mapNotificationAlertSeverityToPriority(severity: string): NotificationPriority {
     const severityMap: Record<string, NotificationPriority> = {
       'low': NotificationPriority.LOW,
       'medium': NotificationPriority.NORMAL,
@@ -1288,9 +892,9 @@ export class NotificationService {
    * @private
    */
   private async sendAcknowledgmentNotificationToChannel(
-    alert: Alert,
-    rule: AlertRule,
-    channel: AlertNotificationChannel,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
+    channel: NotificationChannel,
     acknowledgedBy: string,
     acknowledgedAt: Date,
     comment?: string
@@ -1326,7 +930,7 @@ export class NotificationService {
         alertId: alert.id,
         title: `✋ 警告已确认: ${alert.metric}`,
         content: notificationContent,
-        priority: this.mapAlertSeverityToPriority(alert.severity),
+        priority: this.mapNotificationAlertSeverityToPriority(alert.severity),
         status: 'pending',
         channelId: channel.id || '',
         channelType: channel.type as NotificationChannelType,
@@ -1368,8 +972,8 @@ export class NotificationService {
    * @private
    */
   private buildAcknowledgmentNotificationContent(
-    alert: Alert,
-    rule: AlertRule,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
     acknowledgedBy: string,
     acknowledgedAt: Date,
     comment?: string
@@ -1394,8 +998,8 @@ export class NotificationService {
     }
 
     // 添加原始警告的详细信息
-    if (alert.message) {
-      lines.push(``, `**原始警告:**`, `- ${alert.message}`);
+    if (alert.description) {
+      lines.push(``, `**原始警告:**`, `- ${alert.description}`);
     }
 
     if (alert.tags && Object.keys(alert.tags).length > 0) {
@@ -1418,9 +1022,9 @@ export class NotificationService {
    * @private
    */
   private async sendSuppressionNotificationToChannel(
-    alert: Alert,
-    rule: AlertRule,
-    channel: AlertNotificationChannel,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
+    channel: NotificationChannel,
     suppressedBy: string,
     suppressedAt: Date,
     suppressionDuration: number,
@@ -1459,7 +1063,7 @@ export class NotificationService {
         alertId: alert.id,
         title: `🔇 警告已抑制: ${alert.metric}`,
         content: notificationContent,
-        priority: this.mapAlertSeverityToPriority(alert.severity),
+        priority: this.mapNotificationAlertSeverityToPriority(alert.severity),
         status: 'pending',
         channelId: channel.id || '',
         channelType: channel.type as NotificationChannelType,
@@ -1502,8 +1106,8 @@ export class NotificationService {
    * @private
    */
   private buildSuppressionNotificationContent(
-    alert: Alert,
-    rule: AlertRule,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
     suppressedBy: string,
     suppressedAt: Date,
     suppressionDuration: number,
@@ -1546,8 +1150,8 @@ export class NotificationService {
     }
 
     // 添加原始警告的详细信息
-    if (alert.message) {
-      lines.push(``, `**原始警告:**`, `- ${alert.message}`);
+    if (alert.description) {
+      lines.push(``, `**原始警告:**`, `- ${alert.description}`);
     }
 
     if (alert.tags && Object.keys(alert.tags).length > 0) {
@@ -1571,9 +1175,9 @@ export class NotificationService {
    * @private
    */
   private async sendEscalationNotificationToChannel(
-    alert: Alert,
-    rule: AlertRule,
-    channel: AlertNotificationChannel,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
+    channel: NotificationChannel,
     previousSeverity: string,
     newSeverity: string,
     escalatedAt: Date,
@@ -1657,8 +1261,8 @@ export class NotificationService {
    * @private
    */
   private buildEscalationNotificationContent(
-    alert: Alert,
-    rule: AlertRule,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
     previousSeverity: string,
     newSeverity: string,
     escalatedAt: Date,
@@ -1694,8 +1298,8 @@ export class NotificationService {
     ];
 
     // 添加原始警告的详细信息
-    if (alert.message) {
-      lines.push(``, `**原始警告:**`, `- ${alert.message}`);
+    if (alert.description) {
+      lines.push(``, `**原始警告:**`, `- ${alert.description}`);
     }
 
     if (alert.tags && Object.keys(alert.tags).length > 0) {
@@ -1748,8 +1352,8 @@ export class NotificationService {
    */
   private async generateNotificationWithTemplate(
     eventType: string,
-    alert: Alert,
-    rule: AlertRule,
+    alert: NotificationAlert,
+    rule: NotificationAlertRule,
     channelType: NotificationChannelType,
     additionalVariables: Record<string, any> = {}
   ): Promise<{ subject?: string; body: string; format: string } | null> {
@@ -1775,23 +1379,23 @@ export class NotificationService {
         alertId: alert.id,
         ruleName: rule.name,
         ruleDescription: rule.description || rule.name,
-        ruleId: alert.ruleId,
+        ruleId: (alert as any).ruleId,
         metric: alert.metric,
         value: alert.value,
         threshold: alert.threshold,
         severity: alert.severity,
         status: alert.status,
-        message: alert.message,
-        startTime: alert.startTime?.toLocaleString(),
-        endTime: alert.endTime?.toLocaleString(),
-        duration: alert.endTime && alert.startTime 
-          ? Math.round((alert.endTime.getTime() - alert.startTime.getTime()) / 1000)
+        message: alert.description,
+        startTime: alert.createdAt?.toLocaleString(),
+        endTime: alert.resolvedAt?.toLocaleString(),
+        duration: alert.resolvedAt && alert.createdAt 
+          ? Math.round((alert.resolvedAt.getTime() - alert.createdAt.getTime()) / 1000)
           : undefined,
         
         // 条件变量
-        acknowledgedBy: alert.acknowledgedBy,
+        acknowledgedBy: (alert as any).acknowledgedBy,
         acknowledgedAt: alert.acknowledgedAt?.toLocaleString(),
-        resolvedBy: alert.resolvedBy,
+        resolvedBy: (alert as any).resolvedBy,
         resolvedAt: alert.resolvedAt?.toLocaleString(),
         
         // 标签处理
@@ -1827,192 +1431,9 @@ export class NotificationService {
 
   // ==================== DTO架构辅助方法 ====================
 
-  /**
-   * 将Legacy参数转换为DTO（Facade模式的核心转换）
-   */
-  private convertLegacyToDto(
-    alert: Alert | NotificationAlert,
-    rule: AlertRule | NotificationAlertRule,
-    context: AlertContext | NotificationAlertContext
-  ): NotificationRequestDto {
-    // 提取通用属性
-    const alertId = alert.id;
-    
-    // 映射严重程度
-    let severity: NotificationPriority;
-    if ('severity' in alert && typeof alert.severity === 'string') {
-      // 如果是Alert类型，需要映射字符串到枚举
-      switch (alert.severity.toLowerCase()) {
-        case 'low': severity = NotificationPriority.LOW; break;
-        case 'normal': 
-        case 'medium': severity = NotificationPriority.NORMAL; break;
-        case 'high': severity = NotificationPriority.HIGH; break;
-        case 'urgent': severity = NotificationPriority.URGENT; break;
-        case 'critical': severity = NotificationPriority.CRITICAL; break;
-        default: severity = NotificationPriority.NORMAL; break;
-      }
-    } else {
-      // 如果是NotificationAlert类型，直接使用
-      severity = (alert as any).severity || NotificationPriority.NORMAL;
-    }
 
-    // 构建标题和消息
-    const title = `警告: ${alert.metric || (alert as any).name || alertId}`;
-    const message = this.buildLegacyMessage(alert, rule, context);
 
-    // 提取渠道类型
-    let channelTypes: NotificationChannelType[] | undefined;
-    if ('channels' in rule && Array.isArray((rule as any).channels)) {
-      channelTypes = (rule as any).channels
-        .filter((ch: any) => ch.enabled)
-        .map((ch: any) => this.mapLegacyChannelType(ch.type))
-        .filter(Boolean);
-    }
 
-    // 构建元数据
-    const metadata: Record<string, any> = {
-      legacyConversion: true,
-      originalAlert: {
-        id: alert.id,
-        metric: alert.metric,
-        type: (alert as any).type,
-      },
-      originalRule: {
-        id: rule.id,
-        name: rule.name,
-      },
-      originalContext: context,
-    };
-
-    // 添加Alert特定的元数据
-    if ('tags' in alert && alert.tags) {
-      metadata.tags = alert.tags;
-    }
-    if ('description' in alert && (alert as any).description) {
-      metadata.description = (alert as any).description;
-    }
-
-    return {
-      alertId,
-      severity,
-      title,
-      message,
-      metadata,
-      channelTypes,
-      triggeredAt: new Date().toISOString(),
-      requiresAcknowledgment: severity >= NotificationPriority.HIGH,
-    };
-  }
-
-  /**
-   * 将DTO结果转换回Legacy格式
-   */
-  private convertDtoResultToLegacy(
-    dtoResult: NotificationRequestResultDto,
-    originalAlert: Alert | NotificationAlert,
-    originalRule: AlertRule | NotificationAlertRule
-  ): NotificationResult[] {
-    const results: NotificationResult[] = [];
-
-    // 如果有渠道结果，转换每个渠道的结果
-    if (dtoResult.channelResults) {
-      for (const [channelType, result] of Object.entries(dtoResult.channelResults)) {
-        results.push({
-          success: result.success,
-          channelId: result.notificationId || `channel_${channelType}`,
-          channelType: channelType as NotificationChannelType,
-          message: result.success 
-            ? `通知发送成功 - ${channelType}` 
-            : `通知发送失败 - ${channelType}: ${result.error}`,
-          error: result.error,
-          sentAt: dtoResult.processedAt,
-          duration: result.duration || dtoResult.duration,
-          retryCount: 0,
-        });
-      }
-    }
-
-    // 如果没有渠道结果，创建一个通用结果
-    if (results.length === 0) {
-      results.push({
-        success: dtoResult.success,
-        channelId: 'legacy_channel',
-        channelType: NotificationChannelType.LOG,
-        message: dtoResult.success 
-          ? '通知发送成功' 
-          : `通知发送失败: ${dtoResult.errorMessage}`,
-        error: dtoResult.errorMessage,
-        sentAt: dtoResult.processedAt,
-        duration: dtoResult.duration,
-        retryCount: 0,
-      });
-    }
-
-    return results;
-  }
-
-  /**
-   * 构建Legacy格式的消息
-   */
-  private buildLegacyMessage(
-    alert: Alert | NotificationAlert,
-    rule: AlertRule | NotificationAlertRule,
-    context: AlertContext | NotificationAlertContext
-  ): string {
-    const lines: string[] = [];
-    
-    lines.push(`**警告详情**`);
-    lines.push(`- 规则: ${rule.name}`);
-    lines.push(`- 指标: ${alert.metric}`);
-    
-    if ('severity' in alert) {
-      lines.push(`- 严重程度: ${alert.severity}`);
-    }
-
-    // 添加上下文信息
-    if (context) {
-      if ('metricValue' in context && context.metricValue !== undefined) {
-        lines.push(`- 当前值: ${context.metricValue}`);
-      }
-      if ('threshold' in context && context.threshold !== undefined) {
-        lines.push(`- 阈值: ${context.threshold}`);
-      }
-      if ('operator' in context && context.operator) {
-        lines.push(`- 条件: ${context.operator}`);
-      }
-    }
-
-    lines.push(`- 时间: ${new Date().toLocaleString('zh-CN')}`);
-
-    // 添加描述
-    if ('description' in alert && (alert as any).description) {
-      lines.push(`- 描述: ${(alert as any).description}`);
-    }
-
-    // 添加标签
-    if ('tags' in alert && alert.tags && Object.keys(alert.tags).length > 0) {
-      const tags = Object.entries(alert.tags).map(([k, v]) => `${k}=${v}`).join(', ');
-      lines.push(`- 标签: ${tags}`);
-    }
-
-    return lines.join('\n');
-  }
-
-  /**
-   * 映射Legacy渠道类型到新的渠道类型
-   */
-  private mapLegacyChannelType(legacyType: string): NotificationChannelType | null {
-    const typeMap: Record<string, NotificationChannelType> = {
-      'email': NotificationChannelType.EMAIL,
-      'webhook': NotificationChannelType.WEBHOOK,
-      'slack': NotificationChannelType.SLACK,
-      'dingtalk': NotificationChannelType.DINGTALK,
-      'sms': NotificationChannelType.SMS,
-      'log': NotificationChannelType.LOG,
-    };
-
-    return typeMap[legacyType?.toLowerCase()] || null;
-  }
 
   /**
    * 根据渠道类型发送通知
@@ -2138,7 +1559,7 @@ export class NotificationService {
         return {
           ...baseConfig,
           channel: request.metadata?.slackChannel || '#alerts',
-          username: 'Alert Bot',
+          username: 'NotificationAlert Bot',
           icon_emoji: this.getSeverityEmoji(request.severity),
         };
       
@@ -2188,7 +1609,7 @@ export class NotificationService {
    */
   async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
     try {
-      const adapterHealth = await this.adapterService.healthCheck();
+      const adapterHealth = { status: 'removed', message: 'AdapterService removed during cleanup' };
       
       return {
         status: adapterHealth.status === 'healthy' ? 'healthy' : 'unhealthy',

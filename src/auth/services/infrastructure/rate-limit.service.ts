@@ -9,9 +9,9 @@ import {
   RATE_LIMIT_OPERATIONS,
   RATE_LIMIT_MESSAGES,
   TIME_MULTIPLIERS,
-  RateLimitTemplateUtil,
   RateLimitStrategy,
 } from "@auth/constants";
+import { RateLimitTemplateUtil } from "../../utils/rate-limit-template.util";
 import { RateLimitLuaScriptsService } from "../../../common/scripts/lua/rate-limit-lua-scripts.service";
 import { RateLimitResult } from "../../interfaces/rate-limit.interface";
 import { ApiKey } from "../../schemas/apikey.schema";

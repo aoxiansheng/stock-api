@@ -20,9 +20,11 @@ import { CacheConfig } from "../config/cache.config";
 // Import modern structured constants directly
 import { CACHE_MESSAGES } from "../constants/messages/cache-messages.constants";
 import { CACHE_KEYS } from "../constants/config/cache-keys.constants";
-import { CACHE_CORE_OPERATIONS } from "../constants/operations/core-operations.constants";
-import { CACHE_EXTENDED_OPERATIONS } from "../constants/operations/extended-operations.constants";
-import { CACHE_INTERNAL_OPERATIONS } from "../constants/operations/internal-operations.constants";
+import { 
+  CACHE_CORE_OPERATIONS,
+  CACHE_EXTENDED_OPERATIONS, 
+  CACHE_INTERNAL_OPERATIONS 
+} from "../constants/operations/cache-operations.constants";
 import { CACHE_DATA_FORMATS, SerializerType, SERIALIZER_TYPE_VALUES } from "../constants/config/data-formats.constants";
 
 // 🎯 Gzip 压缩/解压缩
@@ -663,13 +665,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * 获取缓存统计信息
-   */
-
-  /**
-   * 缓存健康检查
-   */
 
   // 私有辅助方法
   private serialize<T>(

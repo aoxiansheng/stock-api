@@ -45,7 +45,7 @@ export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 /**
  * 模块化迁移指南
  * 
- * @deprecated 推荐使用模块化导入方式：
+ * @deprecated 推荐使用模块化导入方式，详见 docs/cache-dto-migration-guide.md
  * 
  * ```typescript
  * // 旧方式（仍然支持）
@@ -59,18 +59,3 @@ export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
  * import { CacheConfigDto, CacheOperationResultDto } from '@/cache/dto'
  * ```
  */
-export const CACHE_DTO_MIGRATION_GUIDE = Object.freeze({
-  "从单一文件迁移到模块化结构": {
-    "CacheConfigDto": "config/cache-config.dto.ts",
-    "CacheOperationResultDto": "operations/cache-operation-result.dto.ts", 
-    "BatchCacheOperationDto": "operations/batch-operation.dto.ts",
-    "CacheWarmupConfigDto": "operations/warmup-config.dto.ts",
-    "CacheHealthCheckResultDto": "health/health-check-result.dto.ts",
-    "CacheCompressionInfoDto": "data-processing/compression-info.dto.ts",
-    "CacheSerializationInfoDto": "data-processing/serialization-info.dto.ts",
-    "DistributedLockInfoDto": "locking/distributed-lock-info.dto.ts",
-    "CacheKeyPatternAnalysisDto": "analytics/key-pattern-analysis.dto.ts",
-    "CachePerformanceMonitoringDto": "monitoring/performance-monitoring.dto.ts",
-    "CacheMetricsUpdateDto": "metrics/metrics-update.dto.ts",
-  }
-} as const);
