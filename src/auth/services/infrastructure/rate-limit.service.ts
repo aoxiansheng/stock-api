@@ -6,8 +6,8 @@ import { createLogger } from "@appcore/config/logger.config";
 
 import { securityConfig } from "@auth/config/security.config";
 import {
-  RATE_LIMIT_OPERATIONS,
-  RATE_LIMIT_MESSAGES,
+  RateLimitOperation,
+  RateLimitMessage,
   TIME_MULTIPLIERS,
   RateLimitStrategy,
 } from "@auth/constants";
@@ -45,12 +45,12 @@ export class RateLimitService {
     apiKey: ApiKey,
     strategy: RateLimitStrategy = RateLimitStrategy.FIXED_WINDOW,
   ): Promise<RateLimitResult> {
-    const operation = RATE_LIMIT_OPERATIONS.CHECK_RATE_LIMIT;
+    const operation = RateLimitOperation.CHECK_RATE_LIMIT;
     const { rateLimit, appKey } = apiKey;
     const windowSeconds = this.parseWindowToSeconds(rateLimit.window);
     const key = this.generateRedisKey(appKey, rateLimit.window);
 
-    this.logger.debug(RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_STARTED, {
+    this.logger.debug(RateLimitMessage.RATE_LIMIT_CHECK_STARTED, {
       operation,
       appKey,
       strategy,
@@ -86,7 +86,7 @@ export class RateLimitService {
           );
       }
     } catch (error) {
-      this.logger.error(RATE_LIMIT_MESSAGES.RATE_LIMIT_CHECK_FAILED, {
+      this.logger.error(RateLimitMessage.RATE_LIMIT_CHECK_FAILED, {
         operation,
         appKey,
         strategy,
@@ -120,14 +120,14 @@ export class RateLimitService {
     limit: number,
     windowSeconds: number,
   ): Promise<RateLimitResult> {
-    const operation = RATE_LIMIT_OPERATIONS.CHECK_FIXED_WINDOW;
+    const operation = RateLimitOperation.CHECK_FIXED_WINDOW;
     const currentTime = Date.now();
     const windowStart =
       Math.floor(currentTime / (windowSeconds * 1000)) * windowSeconds * 1000;
     const windowKey = `${key}:fixed:${windowStart}`;
     const resetTime = windowStart + windowSeconds * 1000;
 
-    this.logger.debug(RATE_LIMIT_MESSAGES.FIXED_WINDOW_CHECK, {
+    this.logger.debug(RateLimitMessage.FIXED_WINDOW_CHECK, {
       operation,
       windowKey,
       limit,
@@ -148,7 +148,7 @@ export class RateLimitService {
     const allowed = current <= limit;
 
     if (!allowed) {
-      this.logger.warn(RATE_LIMIT_MESSAGES.FIXED_WINDOW_EXCEEDED, {
+      this.logger.warn(RateLimitMessage.FIXED_WINDOW_EXCEEDED, {
         operation,
         key,
         current,
@@ -176,11 +176,11 @@ export class RateLimitService {
     limit: number,
     windowSeconds: number,
   ): Promise<RateLimitResult> {
-    const operation = RATE_LIMIT_OPERATIONS.CHECK_SLIDING_WINDOW;
+    const operation = RateLimitOperation.CHECK_SLIDING_WINDOW;
     const currentTime = Date.now();
     const slidingKey = `${key}:sliding`;
 
-    this.logger.debug(RATE_LIMIT_MESSAGES.SLIDING_WINDOW_CHECK, {
+    this.logger.debug(RateLimitMessage.SLIDING_WINDOW_CHECK, {
       operation,
       slidingKey,
       limit,
@@ -202,7 +202,7 @@ export class RateLimitService {
     const [allowed, current, remaining, retryAfter] = result;
 
     if (allowed !== 1) {
-      this.logger.warn(RATE_LIMIT_MESSAGES.SLIDING_WINDOW_EXCEEDED, {
+      this.logger.warn(RateLimitMessage.SLIDING_WINDOW_EXCEEDED, {
         operation,
         key,
         current,
@@ -311,7 +311,7 @@ export class RateLimitService {
     apiKey: ApiKey,
     strategy: RateLimitStrategy,
   ): Promise<void> {
-    const operation = RATE_LIMIT_OPERATIONS.RESET_RATE_LIMIT;
+    const operation = RateLimitOperation.RESET_RATE_LIMIT;
     const { rateLimit, appKey } = apiKey;
     const key = this.generateRedisKey(appKey, rateLimit.window);
 
@@ -326,7 +326,7 @@ export class RateLimitService {
     } else if (strategy === RateLimitStrategy.SLIDING_WINDOW) {
       keyToDelete = `${key}:sliding`;
     } else {
-      this.logger.warn(RATE_LIMIT_MESSAGES.UNSUPPORTED_STRATEGY_RESET, {
+      this.logger.warn(RateLimitMessage.UNSUPPORTED_STRATEGY_RESET, {
         operation,
         appKey,
         strategy,
@@ -336,7 +336,7 @@ export class RateLimitService {
 
     if (keyToDelete) {
       await this.redis.del(keyToDelete);
-      this.logger.log(RATE_LIMIT_MESSAGES.RATE_LIMIT_RESET, {
+      this.logger.log(RateLimitMessage.RATE_LIMIT_RESET, {
         operation,
         appKey,
         strategy,

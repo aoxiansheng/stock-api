@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { RATE_LIMIT_CONFIG } from "@auth/constants";
 
 /**
  * StreamRecovery 配置类 - Phase 3 Critical Fix
@@ -108,12 +107,12 @@ export class StreamRecoveryConfigService {
           longport: {
             maxQPS: parseInt(process.env.RECOVERY_LONGPORT_QPS || "200"),
             burstSize: parseInt(process.env.RECOVERY_LONGPORT_BURST || "250"),
-            window: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
+            window: parseInt(process.env.AUTH_RATE_LIMIT_TTL || "60000"),
           },
           itick: {
             maxQPS: parseInt(process.env.RECOVERY_ITICK_QPS || "50"),
             burstSize: parseInt(process.env.RECOVERY_ITICK_BURST || "75"),
-            window: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
+            window: parseInt(process.env.AUTH_RATE_LIMIT_TTL || "60000"),
           },
         },
       },

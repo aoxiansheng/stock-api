@@ -6,14 +6,12 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { Request, Response } from "express";
+import { Response } from "express";
+import { AuthenticatedRequest } from "../interfaces/authenticated-request.interface";
 
 import { createLogger } from "@appcore/config/logger.config";
 import { CONSTANTS } from "@common/constants";
-import { 
-  RATE_LIMIT_CONFIG,
-  RateLimitStrategy 
-} from "@auth/constants";
+import { RateLimitStrategy } from "@auth/constants";
 
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
@@ -49,11 +47,11 @@ export class RateLimitGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
 
     // 获取API Key对象（由API Key认证守卫设置）
-    const apiKey = request.user as ApiKeyDocument;
+    const apiKey = request.user;
 
     // 如果没有API Key，跳过频率限制检查
     if (!apiKey || !apiKey.rateLimit) {

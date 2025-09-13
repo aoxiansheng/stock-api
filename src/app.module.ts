@@ -2,6 +2,7 @@ import { RedisModule } from "@nestjs-modules/ioredis";
 import { BullModule } from "@nestjs/bull";
 import { Global, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
+import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
@@ -44,7 +45,7 @@ import { ApiKeyAuthGuard } from "./auth/guards/apikey-auth.guard";
 import { UnifiedPermissionsGuard } from "./auth/guards/unified-permissions.guard";
 import { RateLimitGuard } from "./auth/guards/rate-limit.guard";
 
-import { RATE_LIMIT_CONFIG } from "@auth/constants";
+import authConfig from "./auth/config/auth-configuration";
 
 @Global() // ✅ 添加全局装饰器，使RedisModule全局可用
 @Module({
@@ -52,6 +53,9 @@ import { RATE_LIMIT_CONFIG } from "@auth/constants";
     // ========================================
     // 基础设施层 (Infrastructure Layer)
     // ========================================
+    // 配置模块
+    ConfigModule.forFeature(authConfig),
+    
     // 统一数据库模块 (替换原有MongooseModule.forRoot)
     DatabaseModule,
 
@@ -61,11 +65,11 @@ import { RATE_LIMIT_CONFIG } from "@auth/constants";
       url: `redis://${process.env.REDIS_HOST || "localhost"}:${parseInt(process.env.REDIS_PORT) || 6379}`,
       options: {
         enableReadyCheck: false,
-        maxRetriesPerRequest: RATE_LIMIT_CONFIG.REDIS.MAX_RETRIES,
+        maxRetriesPerRequest: parseInt(process.env.AUTH_REDIS_MAX_RETRIES || '3'),
         lazyConnect: true,
         keepAlive: 30000,
-        connectTimeout: RATE_LIMIT_CONFIG.REDIS.CONNECTION_TIMEOUT,
-        commandTimeout: RATE_LIMIT_CONFIG.REDIS.COMMAND_TIMEOUT,
+        connectTimeout: parseInt(process.env.AUTH_REDIS_CONNECTION_TIMEOUT || '5000'),
+        commandTimeout: parseInt(process.env.AUTH_REDIS_COMMAND_TIMEOUT || '5000'),
         family: 4,
       },
     }),
@@ -125,8 +129,8 @@ import { RATE_LIMIT_CONFIG } from "@auth/constants";
     // 速率限制模块
     ThrottlerModule.forRoot([
       {
-        ttl: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.TTL,
-        limit: RATE_LIMIT_CONFIG.GLOBAL_THROTTLE.LIMIT,
+        ttl: parseInt(process.env.AUTH_RATE_LIMIT_TTL || '60000'), // 60秒
+        limit: parseInt(process.env.AUTH_RATE_LIMIT_LIMIT || '100'), // 100次
       },
     ]),
   ],

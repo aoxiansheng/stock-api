@@ -4,15 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import { createLogger } from "@appcore/config/logger.config";
 import { CONSTANTS } from "@common/constants";
 import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
-import { SECURITY_LIMITS } from "@auth/constants";
-
-import { RATE_LIMIT_CONFIG } from "@auth/constants";
-// 修复IP_RATE_LIMIT_CONFIG引用，提供默认值
-const IP_RATE_LIMIT_CONFIG = {
-  ENABLED: process.env.IP_RATE_LIMIT_ENABLED !== 'false', // 默认启用
-  MAX_REQUESTS: parseInt(process.env.IP_RATE_LIMIT_MAX_REQUESTS) || 1000, // 默认每分钟1000次
-  WINDOW_MS: parseInt(process.env.IP_RATE_LIMIT_WINDOW_MS) || 60000, // 默认1分钟窗口
-};
+import { AuthConfigService } from "../services/infrastructure/auth-config.service";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import { HttpStatus } from "@nestjs/common";
 
@@ -21,11 +13,13 @@ import xss from "xss";
 @Injectable()
 export class SecurityMiddleware implements NestMiddleware {
   private readonly logger = createLogger(SecurityMiddleware.name);
+
+  constructor(private readonly authConfigService: AuthConfigService) {}
   
-  // 修复SECURITY_LIMITS引用
-  private readonly enabled = IP_RATE_LIMIT_CONFIG.ENABLED;
-  private readonly maxRequests = IP_RATE_LIMIT_CONFIG.MAX_REQUESTS;
-  private readonly windowMs = IP_RATE_LIMIT_CONFIG.WINDOW_MS;
+  // IP限制配置通过配置服务获取
+  private get ipRateLimitConfig() {
+    return this.authConfigService.getIpRateLimitConfig();
+  }
 
   use(req: Request, res: Response, next: NextFunction) {
     try {
@@ -33,12 +27,12 @@ export class SecurityMiddleware implements NestMiddleware {
       if (this.isRequestTooLarge(req)) {
         this.logger.warn(`请求体过大被拒绝: ${req.method} ${req.url}`, {
           contentLength: req.get("content-length"),
-          maxAllowed: SECURITY_LIMITS.MAX_PAYLOAD_SIZE_STRING,
+          maxAllowed: this.authConfigService.getMaxPayloadSizeString(),
         });
 
         res.status(HttpStatus.PAYLOAD_TOO_LARGE).json({
           statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
-          message: `请求体过大，最大允许${SECURITY_LIMITS.MAX_PAYLOAD_SIZE_STRING}`,
+          message: `请求体过大，最大允许${this.authConfigService.getMaxPayloadSizeString()}`,
           error: "Payload Too Large",
           timestamp: new Date().toISOString(),
         });
@@ -116,7 +110,7 @@ export class SecurityMiddleware implements NestMiddleware {
     const contentLength = req.get("content-length");
     if (contentLength) {
       const sizeInBytes = parseInt(contentLength, 10);
-      const maxSizeInBytes = SECURITY_LIMITS.MAX_PAYLOAD_SIZE_BYTES;
+      const maxSizeInBytes = this.authConfigService.getMaxPayloadSizeBytes();
       return sizeInBytes > maxSizeInBytes;
     }
     return false;
@@ -263,7 +257,7 @@ export class SecurityMiddleware implements NestMiddleware {
     return value
       .replace(/[<>\"'%;()&+]/g, "") // 移除潜在的危险字符
       .trim() // 去除首尾空格
-      .substring(0, SECURITY_LIMITS.MAX_STRING_LENGTH_SANITIZE); // 限制长度防止DoS攻击
+      .substring(0, this.authConfigService.getMaxStringLengthSanitize()); // 限制长度防止DoS攻击
   }
 
   private setSecurityHeaders(res: Response) {
@@ -554,7 +548,7 @@ export class SecurityMiddleware implements NestMiddleware {
     details?: any;
   } {
     // 检查对象深度
-    const maxDepth = SECURITY_LIMITS.MAX_OBJECT_DEPTH_COMPLEXITY; // 允许的最大嵌套深度
+    const maxDepth = this.authConfigService.getMaxObjectDepthComplexity(); // 允许的最大嵌套深度
     const actualDepth = this.getObjectDepth(body);
     if (actualDepth > maxDepth) {
       return {
@@ -565,7 +559,7 @@ export class SecurityMiddleware implements NestMiddleware {
     }
 
     // 检查对象字段数量
-    const maxFields = SECURITY_LIMITS.MAX_OBJECT_FIELDS_COMPLEXITY; // 允许的最大字段数
+    const maxFields = this.authConfigService.getMaxObjectFieldsComplexity(); // 允许的最大字段数
     const actualFields = this.countObjectFields(body);
     if (actualFields > maxFields) {
       return {
@@ -576,7 +570,7 @@ export class SecurityMiddleware implements NestMiddleware {
     }
 
     // 检查字符串长度
-    const maxStringLength = SECURITY_LIMITS.MAX_STRING_LENGTH_COMPLEXITY; // 单个字符串最大长度
+    const maxStringLength = this.authConfigService.getMaxStringLengthComplexity(); // 单个字符串最大长度
     const longString = this.findLongString(body);
     if (longString && longString.length > maxStringLength) {
       return {
@@ -650,7 +644,7 @@ export class SecurityMiddleware implements NestMiddleware {
     reason?: string;
     details?: any;
   } {
-    const maxQueryParams = SECURITY_LIMITS.MAX_QUERY_PARAMS;
+    const maxQueryParams = this.authConfigService.getMaxQueryParams();
     const paramCount = Object.keys(query).length;
 
     if (paramCount > maxQueryParams) {
@@ -668,7 +662,7 @@ export class SecurityMiddleware implements NestMiddleware {
    * 计算对象嵌套深度
    */
   private getObjectDepth(obj: any, currentDepth: number = 0): number {
-    if (currentDepth > SECURITY_LIMITS.MAX_RECURSION_DEPTH) {
+    if (currentDepth > this.authConfigService.getMaxRecursionDepth()) {
       // 防止无限递归
       return currentDepth;
     }
@@ -738,9 +732,9 @@ export class SecurityMiddleware implements NestMiddleware {
       const longString = this.findLongString(value, visited);
       if (
         longString &&
-        longString.length > SECURITY_LIMITS.FIND_LONG_STRING_THRESHOLD
+        longString.length > this.authConfigService.getFindLongStringThreshold()
       ) {
-        // 长字符串检测阈值 - 基于SECURITY_LIMITS.FIND_LONG_STRING_THRESHOLD配置
+        // 长字符串检测阈值 - 基于 authConfigService.getFindLongStringThreshold() 配置
         // 用于识别可能的攻击载荷或异常数据
         return longString;
       }
@@ -834,11 +828,20 @@ export class RateLimitByIPMiddleware implements NestMiddleware {
     { count: number; resetTime: number }
   >();
 
+  constructor(private readonly authConfigService: AuthConfigService) {}
+
   // 支持环境变量配置的IP级别限速
-  private readonly enabled = IP_RATE_LIMIT_CONFIG.ENABLED;
-  private readonly maxRequestsPerMinute =
-    IP_RATE_LIMIT_CONFIG.MAX_REQUESTS;
-  private readonly windowMs = IP_RATE_LIMIT_CONFIG.WINDOW_MS;
+  private get enabled() {
+    return this.authConfigService.isIpRateLimitEnabled();
+  }
+  
+  private get maxRequestsPerMinute() {
+    return this.authConfigService.getIpRateLimitConfig().maxRequests;
+  }
+  
+  private get windowMs() {
+    return this.authConfigService.getIpRateLimitConfig().windowMs;
+  }
 
   use(req: Request, res: Response, next: NextFunction) {
     // 如果IP级别限速被禁用，直接跳过

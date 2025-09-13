@@ -21,7 +21,6 @@ import {
 import { ApiKeyAuth } from "../../auth/decorators/auth.decorator";
 import { RequirePermissions } from "../../auth/decorators/permissions.decorator";
 import { Permission } from "../../auth/enums/user-role.enum";
-import { RATE_LIMIT_CONFIG } from "@auth/constants";
 
 import { EnhancedCapabilityRegistryService } from "../services/enhanced-capability-registry.service";
 

@@ -133,53 +133,26 @@ export const RATE_LIMIT_PERFORMANCE = {
   MAX_OBJECT_FIELDS: 10000       // 最大对象字段数
 } as const;
 
-// 兼容性常量导出 - 安全中间件限制
-export const SECURITY_LIMITS = {
-  MAX_PAYLOAD_SIZE_BYTES: 10485760,  // 10MB (10 * 1024 * 1024)
-  MAX_PAYLOAD_SIZE_STRING: "10MB",
-  MAX_STRING_LENGTH_SANITIZE: 10000,
-  MAX_OBJECT_DEPTH_COMPLEXITY: 50,
-  MAX_OBJECT_FIELDS_COMPLEXITY: 10000,
-  MAX_STRING_LENGTH_COMPLEXITY: 100000,
-  MAX_QUERY_PARAMS: 100,
-  MAX_RECURSION_DEPTH: 100,
-  FIND_LONG_STRING_THRESHOLD: 1000,
-} as const;
+// SECURITY_LIMITS 和 RATE_LIMIT_CONFIG 已弃用
+// 请使用新的 AuthConfigService 统一配置
+// import { AuthConfigService } from '../services/infrastructure/auth-config.service';
 
-// 兼容性常量导出 - 全局频率限制配置
-export const RATE_LIMIT_CONFIG = {
-  GLOBAL_THROTTLE: {
-    TTL: 60000,    // 时间窗口：60秒
-    LIMIT: 100,    // 请求限制：100次/分钟
-  },
-  REDIS: {
-    MAX_RETRIES: 3,                  // 最大重试次数
-    CONNECTION_TIMEOUT: 10000,       // 连接超时：10秒
-    COMMAND_TIMEOUT: 5000,           // 命令超时：5秒
-    EXPIRE_BUFFER_SECONDS: 10,       // 过期缓冲时间：10秒
-  },
-  PERFORMANCE: {
-    TEST_MODE: false,                // 是否启用测试模式
-    MULTIPLIER: 1,                   // 速率乘数
-  },
-} as const;
+// 频率限制操作枚举
+export enum RateLimitOperation {
+  CHECK_RATE_LIMIT = "checkRateLimit",
+  CHECK_FIXED_WINDOW = "checkFixedWindow", 
+  CHECK_SLIDING_WINDOW = "checkSlidingWindow",
+  RESET_RATE_LIMIT = "resetRateLimit",
+}
 
-// 兼容性常量导出 - 频率限制操作常量
-export const RATE_LIMIT_OPERATIONS = {
-  CHECK_RATE_LIMIT: "checkRateLimit",
-  CHECK_FIXED_WINDOW: "checkFixedWindow", 
-  CHECK_SLIDING_WINDOW: "checkSlidingWindow",
-  RESET_RATE_LIMIT: "resetRateLimit",
-} as const;
-
-// 兼容性常量导出 - 频率限制消息模板
-export const RATE_LIMIT_MESSAGES = {
-  RATE_LIMIT_CHECK_STARTED: "开始频率限制检查",
-  RATE_LIMIT_CHECK_FAILED: "频率限制检查失败", 
-  FIXED_WINDOW_CHECK: "固定窗口检查",
-  FIXED_WINDOW_EXCEEDED: "固定窗口超出限制",
-  SLIDING_WINDOW_CHECK: "滑动窗口检查",
-  SLIDING_WINDOW_EXCEEDED: "滑动窗口超出限制",
-  UNSUPPORTED_STRATEGY_RESET: "不支持的策略重置",
-  RATE_LIMIT_RESET: "频率限制已重置",
-} as const;
+// 频率限制消息枚举
+export enum RateLimitMessage {
+  RATE_LIMIT_CHECK_STARTED = "开始频率限制检查",
+  RATE_LIMIT_CHECK_FAILED = "频率限制检查失败", 
+  FIXED_WINDOW_CHECK = "固定窗口检查",
+  FIXED_WINDOW_EXCEEDED = "固定窗口超出限制",
+  SLIDING_WINDOW_CHECK = "滑动窗口检查",
+  SLIDING_WINDOW_EXCEEDED = "滑动窗口超出限制",
+  UNSUPPORTED_STRATEGY_RESET = "不支持的策略重置",
+  RATE_LIMIT_RESET = "频率限制已重置",
+}

@@ -5,6 +5,7 @@ import { PassportModule } from "@nestjs/passport";
 
 import { CacheModule } from "../../cache/module/cache.module";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 统一数据库模块
+import authConfig from "../config/auth-configuration";
 
 import { AuthController } from "../controller/auth.controller";
 import { RateLimitExceptionFilter } from "../filters/rate-limit.filter";
@@ -27,6 +28,7 @@ import { PasswordService } from "../services/infrastructure/password.service";
 import { TokenService } from "../services/infrastructure/token.service";
 import { PermissionService } from "../services/infrastructure/permission.service";
 import { RateLimitService } from "../services/infrastructure/rate-limit.service";
+import { AuthConfigService } from "../services/infrastructure/auth-config.service";
 import { ApiKeyStrategy } from "../strategies/apikey.strategy";
 import { JwtStrategy } from "../strategies/jwt.strategy";
 
@@ -34,6 +36,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
   imports: [
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
+
+    // 配置模块
+    ConfigModule.forFeature(authConfig),
 
     CacheModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
@@ -64,6 +69,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     AuthEventNotificationService,
     
     // 基础设施层
+    AuthConfigService,
     PasswordService,
     TokenService,
     PermissionService,
@@ -97,6 +103,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ApiKeyManagementService,
     
     // 基础设施层 - 可能被其他模块使用的技术服务
+    AuthConfigService,
     PermissionService,
     RateLimitService,
     TokenService,
