@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 
 export interface PaginationInfo {
@@ -17,9 +18,37 @@ export interface PaginationQuery {
 
 @Injectable()
 export class PaginationService {
-  private readonly DEFAULT_PAGE = 1;
-  private readonly DEFAULT_LIMIT = 10;
-  private readonly MAX_LIMIT = 100;
+  private readonly DEFAULT_PAGE: number;
+  private readonly DEFAULT_LIMIT: number;
+  private readonly MAX_LIMIT: number;
+
+  constructor(private readonly configService: ConfigService) {
+    // 从配置服务读取，提供默认值作为回退
+    this.DEFAULT_PAGE = this.configService.get<number>('PAGINATION_DEFAULT_PAGE', 1);
+    this.DEFAULT_LIMIT = this.configService.get<number>('PAGINATION_DEFAULT_LIMIT', 10);
+    this.MAX_LIMIT = this.configService.get<number>('PAGINATION_MAX_LIMIT', 100);
+  }
+
+  /**
+   * 获取默认页码
+   */
+  getDefaultPage(): number {
+    return this.DEFAULT_PAGE;
+  }
+
+  /**
+   * 获取默认每页条数
+   */
+  getDefaultLimit(): number {
+    return this.DEFAULT_LIMIT;
+  }
+
+  /**
+   * 获取最大每页条数
+   */
+  getMaxLimit(): number {
+    return this.MAX_LIMIT;
+  }
 
   /**
    * 计算跳过的记录数

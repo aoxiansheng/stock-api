@@ -34,6 +34,43 @@ import { HttpHeadersUtil } from "../../utils/http-headers.util";
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = createLogger(GlobalExceptionFilter.name);
 
+  // 预编译的敏感内容过滤模式，避免每次调用时重复编译
+  private static readonly SENSITIVE_PATTERNS = [
+    // XSS攻击模式
+    /<script[^>]*>.*?<\/script>/gi,
+    /<script[^>]*>/gi,
+    /<\/script>/gi,
+    /javascript:/gi,
+    /vbscript:/gi,
+    /on\w+\s*=/gi, // 匹配所有事件处理程序
+
+    // SQL注入模式
+    /union\s+select/gi,
+    /drop\s+table/gi,
+    /insert\s+into/gi,
+    /delete\s+from/gi,
+    /select\s+.*?\s+from/gi,
+
+    // LDAP注入和其他注入
+    /jndi:/gi,
+    /ldap:/gi,
+
+    // 路径遍历
+    /\.\.\//g,
+    /\.\.\\/g,
+
+    // 命令注入
+    /;\s*cat\s/gi,
+    /;\s*ls\s/gi,
+    /;\s*rm\s/gi,
+    /\|\s*cat\s/gi,
+
+    // 其他敏感内容
+    /passwd/gi,
+    /etc\/passwd/gi,
+    /proc\/self/gi,
+  ];
+
   constructor(private readonly eventBus: EventEmitter2) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
@@ -46,7 +83,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let errorType: string;
     let details: any;
 
-    // 处理不同类型的异常
+    // ======== 第一部分：异常类型识别和错误信息提取 ========
     if (exception instanceof HttpException) {
       // HTTP异常（包括NestJS内置异常）
       status = exception.getStatus();
@@ -192,7 +229,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       this.logger.error("未知异常类型", { exception });
     }
 
-    // 记录异常信息（业务异常使用warn，系统异常使用error）
+    // ======== 第二部分：日志记录和追踪处理 ========
     const logLevel = status >= 500 ? "error" : "warn";
     if (request) {
       this.logger[logLevel](`${request.method} ${request.url} - ${status}`, {
@@ -229,7 +266,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     }
 
-    // 构造标准化的错误响应 - 与ResponseInterceptor保持一致的格式
+    // ======== 第三部分：构造错误响应和事件发送 ========
     const errorResponse = {
       statusCode: status,
       message: this.translateMessage(message, errorType),
@@ -762,70 +799,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private sanitizePath(path: string): string {
     if (!path) return path;
 
-    // 定义需要过滤的敏感字符串模式
-    const sensitivePatterns = [
-      // XSS攻击模式
-      { pattern: /<script[^>]*>.*?<\/script>/gi, replacement: "[FILTERED]" },
-      { pattern: /<script[^>]*>/gi, replacement: "[FILTERED]" },
-      { pattern: /<\/script>/gi, replacement: "[FILTERED]" },
-      { pattern: /javascript:/gi, replacement: "[FILTERED]" },
-      { pattern: /vbscript:/gi, replacement: "[FILTERED]" },
-      { pattern: /on\w+\s*=/gi, replacement: "[FILTERED]" }, // 匹配所有事件处理程序
-
-      // SQL注入模式
-      { pattern: /union\s+select/gi, replacement: "[FILTERED]" },
-      { pattern: /drop\s+table/gi, replacement: "[FILTERED]" },
-      { pattern: /insert\s+into/gi, replacement: "[FILTERED]" },
-      { pattern: /delete\s+from/gi, replacement: "[FILTERED]" },
-      { pattern: /select\s+.*?\s+from/gi, replacement: "[FILTERED]" },
-
-      // LDAP注入和其他注入
-      { pattern: /jndi:/gi, replacement: "[FILTERED]" },
-      { pattern: /ldap:/gi, replacement: "[FILTERED]" },
-
-      // 路径遍历
-      { pattern: /\.\.\//g, replacement: "[FILTERED]" },
-      { pattern: /\.\.\\/g, replacement: "[FILTERED]" },
-
-      // 命令注入
-      { pattern: /;\s*cat\s/gi, replacement: "[FILTERED]" },
-      { pattern: /;\s*ls\s/gi, replacement: "[FILTERED]" },
-      { pattern: /;\s*rm\s/gi, replacement: "[FILTERED]" },
-      { pattern: /\|\s*cat\s/gi, replacement: "[FILTERED]" },
-
-      // 其他敏感内容
-      { pattern: /passwd/gi, replacement: "[FILTERED]" },
-      { pattern: /etc\/passwd/gi, replacement: "[FILTERED]" },
-      { pattern: /proc\/self/gi, replacement: "[FILTERED]" },
-    ];
-
-    // 使用简单的字符串替换方法，确保不会进行URL编码
-    if (path.includes("<script") || path.includes("UNION SELECT")) {
-      // 针对XSS和SQL注入的特殊处理
-      const urlParts = path.split("?");
-      if (urlParts.length > 1) {
-        // 如果有查询参数，只替换查询部分
-        const pathname = urlParts[0];
-        const query = urlParts[1];
-
-        // 对于XSS攻击
-        if (query.includes("<script")) {
-          return `${pathname}?param=[FILTERED]`;
-        }
-
-        // 对于SQL注入
-        if (query.includes("UNION SELECT")) {
-          return `${pathname}?id=1 [FILTERED]`;
-        }
-      }
-    }
-
-    // 通用处理
+    // 使用预编译的正则表达式，显著提升性能
     let sanitizedPath = path;
 
-    // 应用所有过滤模式
-    for (const { pattern, replacement } of sensitivePatterns) {
-      sanitizedPath = sanitizedPath.replace(pattern, replacement);
+    // 应用所有预编译的过滤模式
+    for (const pattern of GlobalExceptionFilter.SENSITIVE_PATTERNS) {
+      sanitizedPath = sanitizedPath.replace(pattern, "[FILTERED]");
     }
 
     // 如果路径过长，截断并添加提示

@@ -21,7 +21,10 @@
       "Bash(mkdir:*)",
       "mcp__context7__resolve-library-id",
       "WebFetch(domain:docs.nestjs.com)",
-      "mcp__serena__think_about_collected_information"
+      "mcp__serena__think_about_collected_information",
+      "Bash(DISABLE_AUTO_INIT=true npm test -- --testPathPattern=common)",
+      "Bash(git restore:*)",
+      "Bash(DISABLE_AUTO_INIT=true jest --config test/config/jest.unit.config.js test/jest/unit/cache)"
     ],
     "deny": [],
     "ask": []

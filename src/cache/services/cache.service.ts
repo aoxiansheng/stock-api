@@ -485,11 +485,10 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.cacheLimitsProvider.getBatchSizeLimit('cache');
     if (keys.length > maxBatchSize) {
-      this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
-        operation: CACHE_CORE_OPERATIONS.MGET,
-        batchSize: keys.length,
-        limit: maxBatchSize,
-      });
+      // 🔥 核心修复：直接拒绝，不再只是警告
+      throw new BadRequestException(
+        `批量操作超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`
+      );
     }
 
     const startTime = Date.now();
@@ -559,11 +558,10 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.cacheLimitsProvider.getBatchSizeLimit('cache');
     if (entries.size > maxBatchSize) {
-      this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
-        operation: CACHE_CORE_OPERATIONS.MSET,
-        batchSize: entries.size,
-        limit: maxBatchSize,
-      });
+      // 🔥 核心修复：直接拒绝
+      throw new BadRequestException(
+        `批量操作超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`
+      );
     }
 
     const startTime = Date.now();
@@ -626,20 +624,17 @@ export class CacheService {
   }
 
   /**
-   * 模式删除缓存
+   * 模式删除缓存 - 使用SCAN优化版本
    */
   async delByPattern(pattern: string): Promise<number> {
     try {
-      const keys = await this.redis.keys(pattern);
+      const keys = await this.scanKeys(pattern); // 🔥 核心修复：KEYS→SCAN
+      
       if (keys.length === 0) return 0;
-
       return await this.redis.del(...keys);
+      
     } catch (error) {
-      this.logger.error(
-        `${CACHE_MESSAGES.ERRORS.PATTERN_DELETE_FAILED} ${pattern}:`,
-        sanitizeLogData({ error }),
-      );
-      // 🎯 修正: 抛出标准异常
+      this.logger.error(`模式删除失败 ${pattern}:`, sanitizeLogData({ error }));
       throw new ServiceUnavailableException(
         `${CACHE_MESSAGES.ERRORS.PATTERN_DELETE_FAILED}: ${error.message}`,
       );
@@ -671,6 +666,25 @@ export class CacheService {
 
 
   // 私有辅助方法
+
+  /**
+   * 使用SCAN替代KEYS - 简洁版本
+   */
+  private async scanKeys(pattern: string): Promise<string[]> {
+    let cursor = '0';
+    const keys: string[] = [];
+    
+    do {
+      const [newCursor, scanKeys] = await this.redis.scan(
+        cursor, 'MATCH', pattern, 'COUNT', 100
+      );
+      keys.push(...scanKeys);
+      cursor = newCursor;
+    } while (cursor !== '0');
+    
+    return keys;
+  }
+
   private serialize<T>(
     value: T,
     serializerType: SerializerType = CACHE_DATA_FORMATS.SERIALIZATION.JSON,
@@ -822,6 +836,9 @@ export class CacheService {
     startTime?: number,
     additionalData?: Record<string, any>,
   ): void {
+    // 🔥 简单的采样：只发送10%的事件，减少90%的setImmediate调用
+    if (Math.random() > 0.1) return;
+
     setImmediate(() => {
       const eventData = {
         timestamp: new Date(),
@@ -832,6 +849,7 @@ export class CacheService {
         tags: {
           operation,
           key_pattern: this.extractKeyPattern(key),
+          sampled: true, // 标记为采样事件
           ...additionalData,
         },
       };
