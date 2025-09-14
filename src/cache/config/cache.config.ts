@@ -35,9 +35,6 @@ export class CacheConfigValidation {
   @Min(1)
   maxValueSizeMB: number = 10; // 最大值大小(MB)
 
-  @IsNumber()
-  @Min(1)
-  maxBatchSize: number = 100; // 最大批量操作大小
 
   @IsNumber()
   @Min(1)
@@ -59,13 +56,13 @@ export class CacheConfigValidation {
 export default registerAs('cache', (): CacheConfigValidation => {
   // 从环境变量读取配置
   const config = {
-    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300,
+    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300, // ⚠️ 已迁移至统一TTL配置: src/cache/config/cache-ttl.config.ts
     compressionThreshold: parseInt(process.env.CACHE_COMPRESSION_THRESHOLD, 10) || 1024,
     compressionEnabled: process.env.CACHE_COMPRESSION_ENABLED !== 'false',
     maxItems: parseInt(process.env.CACHE_MAX_ITEMS, 10) || 10000,
     maxKeyLength: parseInt(process.env.CACHE_MAX_KEY_LENGTH, 10) || 255,
     maxValueSizeMB: parseInt(process.env.CACHE_MAX_VALUE_SIZE_MB, 10) || 10,
-    maxBatchSize: parseInt(process.env.CACHE_MAX_BATCH_SIZE, 10) || 100,
+    // maxBatchSize 已迁移至统一配置: src/cache/config/cache-limits.config.ts
     slowOperationMs: parseInt(process.env.CACHE_SLOW_OPERATION_MS, 10) || 100,
     retryDelayMs: parseInt(process.env.CACHE_RETRY_DELAY_MS, 10) || 100,
     lockTtl: parseInt(process.env.CACHE_LOCK_TTL, 10) || 30,

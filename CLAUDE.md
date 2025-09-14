@@ -26,6 +26,12 @@ bun run format                   # Prettier formatting
 # Provider CLI Tool
 bun run cli                      # Provider management CLI tool
 
+# Constants and Code Quality Tools
+bun run check-constants          # Detect duplicate constants across codebase
+bun run detect-constants-duplicates    # Advanced duplicate constant detection
+bun run analyze:constants-usage  # Analyze constant usage patterns
+bun run remove:unused-constants  # Remove unused constants automatically
+
 # Testing - Single Test Execution
 npx jest path/to/test.spec.ts                           # Run specific test file
 npx jest path/to/test.spec.ts -t "test name"           # Run specific test case
@@ -128,6 +134,30 @@ The system implements three independent caching layers:
 
 // 3. Public Access
 @Public()
+```
+
+### Dual Rate Limiting System
+
+The system implements two independent rate limiting layers:
+
+1. **IP-Level Rate Limiting** (Global Protection)
+   - Default: 1000 requests/minute per IP
+   - Headers: `X-IP-RateLimit-*`
+   - Environment: `IP_RATE_LIMIT_MAX`, `IP_RATE_LIMIT_ENABLED`
+
+2. **API Key-Level Rate Limiting** (Personalized)
+   - Configurable per API key (default: 200 requests/minute)
+   - Headers: `X-API-RateLimit-*`
+   - Strategy: Fixed window or sliding window
+   - Environment: `API_RATE_LIMIT_DEFAULT_REQUESTS`
+
+**Guard Execution Order** (critical - do not change):
+```typescript
+1. ThrottlerGuard        // Global rate limiting
+2. ApiKeyAuthGuard       // API Key authentication
+3. JwtAuthGuard          // JWT authentication
+4. RateLimitGuard        // API Key rate limiting
+5. UnifiedPermissionsGuard // Permission validation
 ```
 
 ### Critical Patterns
@@ -285,15 +315,33 @@ The system includes these key modules beyond the 7-component core:
 
 - `src/main.ts` - Application bootstrap, interceptors, middleware, security setup
 - `src/app.module.ts` - Module imports, guard configuration, global settings
-- `src/core/restapi/receiver/` - Entry point for real-time data (strong timeliness)
-- `src/core/restapi/query/` - Entry point for batch queries (weak timeliness)
-- `src/core/public/smart-cache/` - Intelligent caching orchestrator with TTL strategies
-- `src/core/public/symbol-mapper/` - Symbol conversion engine with 3-layer LRU cache
-- `src/common/interceptors/response.interceptor.ts` - Standard response formatting
+- `src/core/01-entry/receiver/` - Entry point for real-time data (strong timeliness)
+- `src/core/01-entry/query/` - Entry point for batch queries (weak timeliness)
+- `src/core/05-caching/smart-cache/` - Intelligent caching orchestrator with TTL strategies
+- `src/core/00-prepare/symbol-mapper/` - Symbol conversion engine with 3-layer LRU cache
+- `src/common/core/interceptors/response.interceptor.ts` - Standard response formatting
 - `src/auth/` - Three-tier authentication system implementation
 - `src/providers/` - Data provider integrations with decorator system
+- `src/notification/` - Independent notification system with template engine
+- `src/database/database.module.ts` - Unified database module (MongoDB + Redis)
+- `scripts/tsc-single-file.js` - Single file TypeScript checking utility
 - `test/config/` - Jest configurations for different test types
 - `docs/完整的数据流场景实景说明.md` - Detailed data flow documentation
+
+## Path Aliases (tsconfig.json)
+
+The project uses TypeScript path aliases for cleaner imports:
+
+```typescript
+import { Logger } from '@appcore/config/logger.config';           // src/appcore/config/
+import { ResponseInterceptor } from '@common/core/interceptors';  // src/common/core/
+import { SymbolMapperService } from '@core/00-prepare/symbol-mapper/'; // src/core/
+import { LongportProvider } from '@providers/longport/';          // src/providers/
+import { AuthGuard } from '@auth/guards/';                       // src/auth/
+import { AlertService } from '@alert/services/';                 // src/alert/
+import { CacheService } from '@cache/services/';                 // src/cache/
+import { MonitoringService } from '@monitoring/services/';       // src/monitoring/
+```
 
 ## Performance Optimization
 
@@ -384,10 +432,10 @@ src/core/
 │   └── data-mapper/      # Field mapping rules engine (37 preset fields)
 ├── 01-entry/            # Receiver layer (entry points)
 │   ├── receiver/        # REST API entry (strong timeliness, 5s TTL)
+│   ├── query/           # Batch query entry (weak timeliness, 300s TTL)
 │   └── stream-receiver/ # WebSocket entry (real-time streaming)
 ├── 02-processing/       # Transformer layer  
-│   ├── transformer/     # Data standardization/normalization
-│   └── symbol-transformer/ # Symbol-specific transformations
+│   └── transformer/     # Data standardization/normalization
 ├── 03-fetching/         # Data fetcher layer
 │   ├── data-fetcher/    # REST API data fetching
 │   └── stream-data-fetcher/ # WebSocket data fetching + singleton issues
@@ -397,6 +445,7 @@ src/core/
 │   ├── smart-cache/     # Complete API response cache
 │   ├── common-cache/    # Shared caching service
 │   ├── symbol-mapper-cache/ # 3-layer LRU memory cache
+│   ├── data-mapper-cache/   # Data mapping cache
 │   └── stream-cache/    # WebSocket stream caching
 └── shared/              # Cross-component utilities
 ```
@@ -404,16 +453,50 @@ src/core/
 ### Module Integration Points
 ```
 src/
-├── alert/              # System alerting (5 notification channels)
-├── auth/              # 3-tier authentication (API Key, JWT, Public)
+├── alert/              # System alerting (recently cleaned up)
+├── notification/       # Independent notification system (5 channels: Email, Slack, Webhook, DingTalk, Log)
+├── auth/              # 3-tier authentication (API Key, JWT, Public) 
 ├── monitoring/        # Health checks, performance metrics
 ├── providers/         # Data provider integrations (@Provider decorator)
 ├── security/          # Security middleware, audit logging  
 ├── metrics/           # Prometheus metrics (89 total metrics)
 ├── cache/             # Fault-tolerant caching utilities
 ├── scripts/           # Auto-initialization scripts
+├── database/          # Unified database module (MongoDB + Redis)
+├── appcore/           # Application lifecycle and configuration
 └── common/            # Zero-dependency utilities
 ```
+
+**Recent Architecture Changes:**
+- **Notification Module**: Recently decoupled from Alert module, now completely independent
+  - Features: Dynamic template system with Handlebars engine
+  - Templates: MongoDB-persisted, supports versioning and caching
+  - 15 REST API endpoints for template management
+  - 5 notification channels: Email, Slack, Webhook, DingTalk, Log
+- **Database Module**: Unified module for MongoDB and Redis connections
+- **AppCore Module**: Added for application lifecycle management  
+- **Alert Module**: Cleaned up of legacy compatibility layers (~2,132 lines removed)
+
+## Notification Template System
+
+### Template Management
+```bash
+# Template endpoints (require developer/admin auth)
+POST   /api/v1/templates                 # Create template
+GET    /api/v1/templates                 # List templates
+GET    /api/v1/templates/:id             # Get template
+PUT    /api/v1/templates/:id             # Update template
+DELETE /api/v1/templates/:id             # Delete template
+POST   /api/v1/templates/render          # Render template with data
+POST   /api/v1/templates/validate        # Validate template syntax
+```
+
+### Template Engine Features
+- **Handlebars Engine**: Conditional rendering, loops, helpers
+- **Custom Helpers**: Date formatting, number formatting, string processing
+- **XSS Protection**: Automatic input sanitization
+- **Caching**: Compiled template caching for performance
+- **Versioning**: Template version control and usage statistics
 
 ## Provider Decorator System
 
@@ -515,4 +598,24 @@ L3: batch:{symbols-hash}
 - WebSocket server overrides (check initialization order)  
 - Provider registration loops (consolidation needed)
 - Auto-init 409 conflicts (normal, but monitor frequency)
-- 测试某个ts文件是否有编译错误,使用的命令是 DISABLE_AUTO_INIT=true npm run typecheck:file -- src/common/constants/application/index.ts
+## TypeScript File Checking
+
+To check a single TypeScript file for compilation errors (critical for development workflow):
+
+```bash
+# Standard single file type checking
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/path/to/file.ts
+
+# With trace resolution (for debugging import issues)  
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/path/to/file.ts --traceResolution
+
+# Examples
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/app.module.ts
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/alert/module/alert-enhanced.module.ts
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/notification/services/notification.service.ts
+```
+
+**Important Notes:**
+- Always use `DISABLE_AUTO_INIT=true` prefix to prevent initialization during type checking
+- Uses custom script `scripts/tsc-single-file.js` for optimized single-file checking
+- Much faster than running full `npx tsc --noEmit` on entire project

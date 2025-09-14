@@ -3,8 +3,7 @@ import {
   IsString,
   IsNumber,
 } from "class-validator";
-import { CacheStatistics } from "../shared/cache-statistics.interface";
-import { KeyPattern } from "../shared/key-pattern.interface";
+import { CacheStatistics, KeyPattern } from "../shared/cache-shared.interfaces";
 
 /**
  * 缓存键模式分析DTO

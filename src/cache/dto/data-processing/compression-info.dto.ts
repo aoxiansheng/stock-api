@@ -5,7 +5,7 @@ import {
   IsOptional,
   IsString,
 } from "class-validator";
-import { CompressionSizeInfo } from "../shared/size-fields.interface";
+import { CompressionSizeInfo } from "../shared/cache-shared.interfaces";
 
 /**
  * 缓存压缩信息DTO

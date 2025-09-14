@@ -16,6 +16,7 @@ import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
 import { CacheConfig } from "../config/cache.config";
+import { CacheLimitsProvider } from "../providers/cache-limits.provider";
 
 // Import modern structured constants directly
 import { CACHE_MESSAGES } from "../constants/messages/cache-messages.constants";
@@ -52,6 +53,7 @@ export class CacheService {
     @InjectRedis() private readonly redis: Redis,
     private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
     private readonly configService: ConfigService,
+    private readonly cacheLimitsProvider: CacheLimitsProvider, // 🎯 缓存限制Provider
   ) {
     this.cacheConfig = this.configService.get<CacheConfig>('cache');
     if (!this.cacheConfig) {
@@ -481,11 +483,12 @@ export class CacheService {
     if (keys.length === 0) return result;
 
     // 检查批量大小
-    if (keys.length > this.cacheConfig.maxBatchSize) {
+    const maxBatchSize = this.cacheLimitsProvider.getBatchSizeLimit('cache');
+    if (keys.length > maxBatchSize) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
         operation: CACHE_CORE_OPERATIONS.MGET,
         batchSize: keys.length,
-        limit: this.cacheConfig.maxBatchSize,
+        limit: maxBatchSize,
       });
     }
 
@@ -554,11 +557,12 @@ export class CacheService {
     if (entries.size === 0) return true;
 
     // 检查批量大小
-    if (entries.size > this.cacheConfig.maxBatchSize) {
+    const maxBatchSize = this.cacheLimitsProvider.getBatchSizeLimit('cache');
+    if (entries.size > maxBatchSize) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
         operation: CACHE_CORE_OPERATIONS.MSET,
         batchSize: entries.size,
-        limit: this.cacheConfig.maxBatchSize,
+        limit: maxBatchSize,
       });
     }
 

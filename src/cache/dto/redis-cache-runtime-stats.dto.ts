@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNumber } from "class-validator";
-import { CacheStatistics } from "./shared/cache-statistics.interface";
+import { CacheStatistics } from "./shared/cache-shared.interfaces";
 
 /**
  * Redis缓存运行时统计信息DTO

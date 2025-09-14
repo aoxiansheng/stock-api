@@ -7,7 +7,7 @@ import {
   IsString,
 } from "class-validator";
 import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/config/data-formats.constants";
-import { SizeFields } from "../shared/size-fields.interface";
+import { SizeFields } from "../shared/cache-shared.interfaces";
 
 /**
  * 缓存序列化信息DTO

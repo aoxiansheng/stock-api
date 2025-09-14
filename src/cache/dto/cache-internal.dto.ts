@@ -43,19 +43,16 @@ export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 // ============================================================================
 
 /**
- * 模块化迁移指南
+ * 模块化导入指南
  * 
- * @deprecated 推荐使用模块化导入方式，详见 docs/cache-dto-migration-guide.md
+ * 推荐使用模块化导入方式，详见统一接口配置
  * 
  * ```typescript
- * // 旧方式（仍然支持）
- * import { CacheConfigDto, CacheOperationResultDto } from './cache-internal.dto'
- * 
- * // 新方式（推荐）
+ * // 推荐方式：直接从具体模块导入
  * import { CacheConfigDto } from './config/cache-config.dto'
  * import { CacheOperationResultDto } from './operations/cache-operation-result.dto'
  * 
- * // 统一导入方式
- * import { CacheConfigDto, CacheOperationResultDto } from '@/cache/dto'
+ * // 统一接口：使用cache-shared.interfaces
+ * import { CacheStatistics, TTLFields } from './shared/cache-shared.interfaces'
  * ```
  */

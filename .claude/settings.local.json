@@ -16,7 +16,12 @@
       "Bash(chmod:*)",
       "Bash(DISABLE_AUTO_INIT=true bun run build)",
       "mcp__serena__find_referencing_symbols",
-      "mcp__serena__find_file"
+      "mcp__serena__find_file",
+      "mcp__context7__get-library-docs",
+      "Bash(mkdir:*)",
+      "mcp__context7__resolve-library-id",
+      "WebFetch(domain:docs.nestjs.com)",
+      "mcp__serena__think_about_collected_information"
     ],
     "deny": [],
     "ask": []

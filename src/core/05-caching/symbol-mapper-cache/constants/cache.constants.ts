@@ -56,6 +56,8 @@ export const CACHE_METRICS = {
 export const CACHE_CLEANUP = {
   RETENTION_RATIO: 0.25, // 内存压力时保留25%的缓存条目
   LRU_SORT_BATCH_SIZE: 1000, // 避免大数据集排序性能问题，单次最多处理1000条目
+  // ⚠️ LRU_SORT_BATCH_SIZE 已迁移至统一配置: src/cache/config/cache-limits.config.ts
+  // 这里保留是为了向后兼容，建议使用 CacheLimitsProvider.getBatchSizeLimit('lruSort')
   CLEANUP_STRATEGY: 'incremental' // 标识使用增量清理而非全清空
 } as const;
 

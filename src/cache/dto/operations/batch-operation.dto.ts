@@ -7,8 +7,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { CacheConfigDto } from "../config/cache-config.dto";
-import { BatchSizeInfo } from "../shared/size-fields.interface";
-import { RequiredTTL } from "../shared/ttl-fields.interface";
+import { BatchSizeInfo, RequiredTTL } from "../shared/cache-shared.interfaces";
 
 /**
  * 批量缓存操作DTO

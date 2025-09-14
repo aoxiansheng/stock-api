@@ -5,7 +5,7 @@ import {
   IsNumber,
   IsOptional,
 } from "class-validator";
-import { KeyPattern } from "../shared/key-pattern.interface";
+import { KeyPattern } from "../shared/cache-shared.interfaces";
 
 /**
  * 缓存指标更新DTO

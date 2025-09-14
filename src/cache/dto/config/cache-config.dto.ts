@@ -6,8 +6,7 @@ import {
   IsEnum,
 } from "class-validator";
 import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/cache.constants";
-import { CacheConfigSizeInfo } from "../shared/size-fields.interface";
-import { OptionalTTL } from "../shared/ttl-fields.interface";
+import { CacheConfigSizeInfo, OptionalTTL } from "../shared/cache-shared.interfaces";
 
 /**
  * 通用缓存配置DTO
