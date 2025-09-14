@@ -7,7 +7,7 @@
  * @date 2025-09-12
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 
 import { createLogger } from '@appcore/config/logger.config';
 
@@ -78,7 +78,7 @@ export class AlertToNotificationAdapter {
         error: error.message,
       });
       
-      throw new Error(`Failed to adapt alert event: ${error.message}`);
+      throw new BadRequestException(`Failed to adapt alert event: ${error.message}`);
     }
   }
 

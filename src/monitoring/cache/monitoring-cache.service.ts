@@ -28,6 +28,10 @@ export class MonitoringCacheService {
     startTime: Date.now(),
     operationTimes: [] as number[], // 操作时延记录
     fallbackCount: 0, // 回退次数统计
+    fallbackStats: {
+      lastFallbackTime: null as Date | null,
+      patterns: new Map<string, { count: number, lastTime: Date }>(), // 各模式的回退统计
+    },
   };
 
   constructor(
@@ -689,6 +693,14 @@ export class MonitoringCacheService {
   private async fallbackPatternDelete(pattern: string): Promise<void> {
     // 统计回退次数
     this.metrics.fallbackCount++;
+    this.metrics.fallbackStats.lastFallbackTime = new Date();
+    
+    // 记录各模式的回退统计
+    const currentTime = new Date();
+    const patternStats = this.metrics.fallbackStats.patterns.get(pattern) || { count: 0, lastTime: currentTime };
+    patternStats.count++;
+    patternStats.lastTime = currentTime;
+    this.metrics.fallbackStats.patterns.set(pattern, patternStats);
 
     // 检查回退频率是否过高
     if (this.metrics.fallbackCount > this.config.cache.fallbackThreshold) {
@@ -696,6 +708,7 @@ export class MonitoringCacheService {
         count: this.metrics.fallbackCount,
         threshold: this.config.cache.fallbackThreshold,
         pattern,
+        patternCount: patternStats.count,
         suggestion: "考虑检查Redis连接或索引系统是否工作正常",
       });
     }
@@ -743,7 +756,37 @@ export class MonitoringCacheService {
   resetFallbackCounter(): void {
     const oldCount = this.metrics.fallbackCount;
     this.metrics.fallbackCount = 0;
+    this.metrics.fallbackStats.patterns.clear();
+    this.metrics.fallbackStats.lastFallbackTime = null;
     this.logger.log("回退计数器已重置", { oldCount, newCount: 0 });
+  }
+
+  /**
+   * 获取回退统计信息
+   */
+  getFallbackStats(): {
+    totalFallbacks: number;
+    lastFallback: Date | null;
+    patternBreakdown: Record<string, { count: number; lastTime: Date }>;
+    uptime: number;
+    fallbackThreshold: number;
+  } {
+    const patternBreakdown: Record<string, { count: number; lastTime: Date }> = {};
+    
+    for (const [pattern, stats] of this.metrics.fallbackStats.patterns.entries()) {
+      patternBreakdown[pattern] = {
+        count: stats.count,
+        lastTime: stats.lastTime,
+      };
+    }
+
+    return {
+      totalFallbacks: this.metrics.fallbackCount,
+      lastFallback: this.metrics.fallbackStats.lastFallbackTime,
+      patternBreakdown,
+      uptime: Date.now() - this.metrics.startTime,
+      fallbackThreshold: this.config.cache.fallbackThreshold,
+    };
   }
 
   /**

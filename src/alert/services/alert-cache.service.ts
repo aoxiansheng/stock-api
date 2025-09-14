@@ -158,7 +158,7 @@ export class AlertCacheService implements OnModuleInit {
 
     try {
       const pattern = `${this.config.activeAlertPrefix}:*`;
-      const keys = await this.cacheService.getClient().keys(pattern);
+      const keys = await this.scanKeys(pattern);
       
       if (keys.length === 0) {
         this.logger.debug('缓存中无活跃告警', { operation });
@@ -547,7 +547,7 @@ export class AlertCacheService implements OnModuleInit {
 
     try {
       const pattern = `${this.config.timeseriesPrefix}:*`;
-      const keys = await this.cacheService.getClient().keys(pattern);
+      const keys = await this.scanKeys(pattern);
 
       const cleanupPromises = keys.map(async (key) => {
         try {
@@ -580,6 +580,23 @@ export class AlertCacheService implements OnModuleInit {
       });
       throw error;
     }
+  }
+
+  /**
+   * 使用SCAN替代keys()的简单方法
+   */
+  private async scanKeys(pattern: string): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = '0';
+    
+    do {
+      const [nextCursor, foundKeys] = await this.cacheService.getClient()
+        .scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = nextCursor;
+      keys.push(...foundKeys);
+    } while (cursor !== '0');
+    
+    return keys;
   }
 
   /**

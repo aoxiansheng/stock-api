@@ -132,10 +132,7 @@ export const NOTIFICATION_CONSTANTS = Object.freeze({
    * 重试相关常量
    */
   RETRY: {
-    maxRetries: 3,
-    initialDelay: 1000,
-    maxDelay: 30000,
-    backoffFactor: 2,
+    MAX_ATTEMPTS: 3,
     INITIAL_DELAY_MS: 1000,
     BACKOFF_MULTIPLIER: 2,
     MAX_DELAY_MS: 30000,

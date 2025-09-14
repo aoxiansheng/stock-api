@@ -504,7 +504,7 @@ export class CollectorService
           percentage: memUsage.rss / heapStats.heap_size_limit,
         },
         cpu: {
-          usage: cpus.length > 0 ? Math.random() * 0.1 : 0, // 简化CPU获取，实际应该计算
+          usage: cpus.length > 0 ? Math.min(os.loadavg()[0] / cpus.length, 1) : 0, // 使用真实系统负载
         },
         uptime: process.uptime(),
         timestamp: new Date(),
