@@ -9,7 +9,7 @@ import { Reflector } from "@nestjs/core";
 import { Response } from "express";
 import { AuthenticatedRequest } from "../interfaces/authenticated-request.interface";
 
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { CONSTANTS } from "@common/constants";
 import { RateLimitStrategy } from "@auth/constants";
 

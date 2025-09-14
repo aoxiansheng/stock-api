@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import bcrypt from "bcrypt";
 
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { securityConfig } from "@auth/config/security.config";
 
 /**

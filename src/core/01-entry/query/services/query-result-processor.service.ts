@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from "@appcore/config/logger.config";
+import { createLogger, sanitizeLogData } from "@common/logging";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 
 import { QUERY_OPERATIONS } from "../constants/query.constants";

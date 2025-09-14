@@ -2,7 +2,7 @@ import { InjectRedis } from "@nestjs-modules/ioredis";
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { Redis } from "ioredis";
 
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 
 import { securityConfig } from "@auth/config/security.config";
 import {

@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
 
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 

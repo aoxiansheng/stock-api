@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "fs/promises";
 import { join, dirname } from "path";
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { SmartPathResolver } from "./smart-path-resolver";
 import { ConventionViolation } from "../decorators/types/metadata.types";
 import { CAPABILITY_NAMES } from '../constants/capability-names.constants';

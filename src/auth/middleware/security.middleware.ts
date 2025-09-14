@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from "@nestjs/common";
 import { Request, Response, NextFunction } from "express";
 
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { CONSTANTS } from "@common/constants";
 import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 import { AuthConfigService } from "../services/infrastructure/auth-config.service";

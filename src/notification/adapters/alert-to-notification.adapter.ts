@@ -9,7 +9,7 @@
 
 import { Injectable, BadRequestException } from '@nestjs/common';
 
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 
 // 导入独立的DTO类型
 import {

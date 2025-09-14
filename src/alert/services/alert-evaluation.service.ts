@@ -11,7 +11,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 import { IAlertRule, IMetricData, IRuleEvaluationResult } from '../interfaces';
 import { AlertRuleService } from './alert-rule.service';
 import { AlertCacheService } from './alert-cache.service';

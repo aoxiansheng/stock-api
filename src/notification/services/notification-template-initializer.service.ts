@@ -9,7 +9,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 
 import { NotificationTemplateService } from './notification-template.service';
 import type { CreateTemplateDto } from './notification-template.service';

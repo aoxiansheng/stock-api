@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import express from "express";
 
-import { CustomLogger, getLogLevels } from "@appcore/config/logger.config";
+import { createLogger, getLogLevels } from "@common/logging";
 import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,
@@ -22,7 +22,7 @@ import { ApplicationService } from "./appcore/core/services/application.service"
 async function bootstrap() {
   const nodeEnv = process.env.NODE_ENV || "development";
   const envFilePath = `.env.${nodeEnv}`;
-  const logger = new CustomLogger("Bootstrap");
+  const logger = createLogger("Bootstrap");
 
   logger.log(`
   ================================================
@@ -37,15 +37,15 @@ async function bootstrap() {
     });
 
     // 使用自定义日志器
-    app.useLogger(new CustomLogger("NestApplication"));
+    app.useLogger(createLogger("NestApplication"));
 
     // 配置请求体大小限制，防止DoS攻击
     app.use("/api", express.json({ limit: "10mb" }));
     app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
 
-    // 全局安全中间件
-    const securityMiddleware = new SecurityMiddleware();
-    app.use(securityMiddleware.use.bind(securityMiddleware));
+    // 全局安全中间件 - 通过依赖注入获取实例
+    const securityMiddleware = app.get(SecurityMiddleware);
+    app.use((req, res, next) => securityMiddleware.use(req, res, next));
 
     // 全局前缀
     app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });

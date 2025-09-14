@@ -13,7 +13,7 @@ import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
 import { BadRequestException, Injectable } from "@nestjs/common";
 
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
 // 使用Notification模块的类型

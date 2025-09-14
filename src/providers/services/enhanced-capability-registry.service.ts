@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, Optional } from "@nestjs/common";
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 
 import { ICapability } from "../interfaces/capability.interface";
 import { ICapabilityRegistration } from "../interfaces/provider.interface";

@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { Subject, fromEvent } from "rxjs";
 import { takeUntil, debounceTime } from "rxjs/operators";
 import { StreamDataFetcherService } from "./stream-data-fetcher.service";

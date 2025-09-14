@@ -1,5 +1,5 @@
 import { Injectable, OnApplicationShutdown } from '@nestjs/common';
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 
 /**
  * LifecycleService - 应用生命周期管理服务

@@ -1,4 +1,4 @@
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { CONSTANTS } from "@common/constants";
 
 // Extract Market enum for backward compatibility

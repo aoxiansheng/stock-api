@@ -10,7 +10,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 import { IAlertRule } from '../interfaces';
 import {
   VALID_OPERATORS,

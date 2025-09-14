@@ -14,6 +14,7 @@ import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 import { RateLimitGuard } from "../guards/rate-limit.guard";
 
 import { UnifiedPermissionsGuard } from "../guards/unified-permissions.guard";
+import { SecurityMiddleware } from "../middleware/security.middleware";
 import { ApiKeyRepository } from "../repositories/apikey.repository";
 import { UserRepository } from "../repositories/user.repository";
 // 新架构服务导入
@@ -88,6 +89,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     // 过滤器
     RateLimitExceptionFilter,
     
+    // 中间件
+    SecurityMiddleware,
+    
     // 仓库
     ApiKeyRepository,
     UserRepository,
@@ -116,6 +120,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     
     // 过滤器 - 需要被AppModule使用
     RateLimitExceptionFilter,
+    
+    // 中间件 - 需要被main.ts使用
+    SecurityMiddleware,
     
     // 仓库 - 可能被其他模块使用
     ApiKeyRepository,

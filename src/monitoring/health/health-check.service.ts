@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 import * as mongoose from "mongoose";

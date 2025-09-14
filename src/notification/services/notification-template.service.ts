@@ -12,7 +12,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import Handlebars from 'handlebars';
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 

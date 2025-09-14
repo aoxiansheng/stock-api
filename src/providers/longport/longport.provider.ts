@@ -1,6 +1,6 @@
 import { ConfigService } from "@nestjs/config";
 
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 
 import { ICapability } from "../interfaces/capability.interface";
 import { IDataProvider } from "../interfaces/provider.interface";

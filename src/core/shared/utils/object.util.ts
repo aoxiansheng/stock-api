@@ -1,4 +1,4 @@
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 
 import { DATATRANSFORM_CONFIG } from "../../02-processing/transformer/constants/data-transformer.constants";
 

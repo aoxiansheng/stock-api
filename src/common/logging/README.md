@@ -112,7 +112,7 @@ src/common/logging/
 ### 基本使用
 
 ```typescript
-import { createLogger } from '@appcore/config/logger.config';
+import { createLogger } from "@common/logging";
 
 const logger = createLogger('YourService');
 

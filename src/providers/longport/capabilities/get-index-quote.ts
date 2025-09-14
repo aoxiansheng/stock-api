@@ -1,4 +1,4 @@
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 import { Market } from "../../../core/shared/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";

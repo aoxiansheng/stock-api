@@ -1,6 +1,6 @@
 import { join, dirname } from "path";
 import { existsSync, readFileSync } from "fs";
-import { createLogger } from "@appcore/config/logger.config";
+import { createLogger } from "@common/logging";
 
 /**
  * 智能路径解析器 - 解决不同环境下的路径问题
