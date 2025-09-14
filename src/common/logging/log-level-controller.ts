@@ -488,6 +488,10 @@ export class LogLevelController implements OnModuleInit {
   private loadFromConfigFile(): Partial<LogLevelConfig> | null {
     const configPaths = [
       process.env.LOG_CONFIG_PATH,
+      // 优先搜索日志组件内部配置目录
+      path.join(__dirname, 'config', 'log-levels.json'),
+      path.join(__dirname, 'config', `log-levels.${process.env.NODE_ENV || 'development'}.json`),
+      // 兼容旧的全局配置路径（向后兼容）
       path.join(process.cwd(), 'config', 'log-levels.json'),
       path.join(process.cwd(), 'log-levels.json'),
       path.join(process.cwd(), `log-levels.${process.env.NODE_ENV || 'development'}.json`),
