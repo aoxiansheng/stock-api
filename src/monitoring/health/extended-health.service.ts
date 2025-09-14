@@ -1,7 +1,7 @@
 import {
   Injectable,
 } from "@nestjs/common";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import Redis from "ioredis";
 import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";

@@ -2,7 +2,7 @@ import { InjectRedis } from "@nestjs-modules/ioredis";
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { Redis } from "ioredis";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 import { securityConfig } from "@auth/config/security.config";
 import {
@@ -12,7 +12,7 @@ import {
   RateLimitStrategy,
 } from "@auth/constants";
 import { RateLimitTemplateUtil } from "../../utils/rate-limit-template.util";
-import { RateLimitLuaScriptsService } from "../../../common/scripts/lua/rate-limit-lua-scripts.service";
+import { RateLimitLuaScriptsService } from "../../../common/modules/logging/rate-limit-lua-scripts.service";
 import { RateLimitResult } from "../../interfaces/rate-limit.interface";
 import { ApiKey } from "../../schemas/apikey.schema";
 

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
 import { FlexibleMappingRuleResponseDto } from "../dto/flexible-mapping-rule.dto";
 

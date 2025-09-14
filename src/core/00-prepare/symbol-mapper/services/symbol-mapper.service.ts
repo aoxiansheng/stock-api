@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 
-import { createLogger, sanitizeLogData } from "@common/logging";
+import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { FeatureFlags } from "@config/feature-flags.config";

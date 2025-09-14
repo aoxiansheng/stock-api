@@ -8,7 +8,7 @@ import {
   OnModuleDestroy,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 /**
  * DoS防护参数配置接口

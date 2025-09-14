@@ -1,6 +1,6 @@
 import { readdir, stat } from "fs/promises";
 import { join, extname, dirname, relative } from "path";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { SmartPathResolver } from "./smart-path-resolver";
 import {
   getProviderScanConfig,

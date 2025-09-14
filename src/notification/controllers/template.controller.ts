@@ -21,7 +21,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 import { NotificationTemplateService } from '../services/notification-template.service';
 import type { 

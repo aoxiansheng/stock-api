@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 import { CacheService } from "../../../cache/services/cache.service";
 import { securityConfig } from "@auth/config/security.config";

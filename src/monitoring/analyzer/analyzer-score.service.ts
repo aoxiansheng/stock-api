@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging";;
+import { createLogger } from "@common/logging/index";;
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";

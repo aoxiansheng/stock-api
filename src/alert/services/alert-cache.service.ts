@@ -10,7 +10,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { CacheService } from '../../cache/services/cache.service';
 import { IAlert } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';

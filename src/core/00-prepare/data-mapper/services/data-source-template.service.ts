@@ -1,6 +1,6 @@
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import {

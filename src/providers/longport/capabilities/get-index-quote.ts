@@ -1,4 +1,4 @@
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { Market } from "../../../core/shared/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";

@@ -9,7 +9,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { AlertHistoryRepository } from '../repositories/alert-history.repository';
 import { IAlert, IAlertQuery, IAlertStats } from '../interfaces';

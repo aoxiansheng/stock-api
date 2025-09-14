@@ -9,7 +9,7 @@ import {
 } from "@nestjs/common";
 import { Observable, throwError } from "rxjs";
 import { catchError } from "rxjs/operators";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 /**
  * 错误信息脱敏拦截器

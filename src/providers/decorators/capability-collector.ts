@@ -1,4 +1,4 @@
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import {
   CapabilityMetadata,
   ProviderMetadata,

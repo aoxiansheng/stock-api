@@ -9,7 +9,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { createLogger, sanitizeLogData } from "@common/logging";
+import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { IAlertRule, IMetricData, IRuleEvaluationResult } from '../interfaces';
 import {
   VALID_OPERATORS,

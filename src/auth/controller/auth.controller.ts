@@ -24,7 +24,7 @@ import {
 // HTTP状态码直接使用NestJS提供的HttpStatus枚举
 import { HttpStatus } from "@nestjs/common";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import {
   ApiSuccessResponse,
   ApiCreatedResponse,

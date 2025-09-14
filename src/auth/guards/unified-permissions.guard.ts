@@ -8,7 +8,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import { Request } from "express";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { ROLES_KEY } from "../decorators/roles.decorator";

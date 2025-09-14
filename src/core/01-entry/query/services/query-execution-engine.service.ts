@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
-import { createLogger, sanitizeLogData } from "@common/logging";
+import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";

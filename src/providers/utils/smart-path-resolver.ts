@@ -1,6 +1,6 @@
 import { join, dirname } from "path";
 import { existsSync, readFileSync } from "fs";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 /**
  * 智能路径解析器 - 解决不同环境下的路径问题

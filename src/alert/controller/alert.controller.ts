@@ -15,7 +15,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 import { 
   ALERT_MESSAGES 

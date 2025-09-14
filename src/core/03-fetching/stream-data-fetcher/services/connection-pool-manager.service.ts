@@ -1,5 +1,5 @@
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { StreamConfigService } from "../config/stream-config.service";
 
 /**

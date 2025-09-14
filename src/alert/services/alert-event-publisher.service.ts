@@ -11,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { IAlert, IAlertRule } from '../interfaces';
 import { Alert, AlertRule, AlertSeverity, AlertStatus } from '../types/alert.types';
 import { AlertContext } from '../events/alert.events';

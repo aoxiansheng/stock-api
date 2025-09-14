@@ -16,7 +16,7 @@ import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/sy
 import {
   createLogger,
   sanitizeLogData,
-} from "@common/logging";
+} from "@common/logging/index";
 import { BaseFetcherService } from "../../../shared/services/base-fetcher.service";
 import {
   IStreamDataFetcher,

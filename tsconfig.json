@@ -14,7 +14,7 @@
     "paths": {
       "@appcore/*": ["src/appcore/*"],
       "@config/*": ["src/appcore/config/*"],
-      "@logging/*": ["src/appcore/logging/*"],
+      "@common/logging/*": ["src/common/modules/logging/*"],
       "@common/*": ["src/common/*"],
       "@common-types/*": ["src/common/types/*"],
       "@common-utils/*": ["src/common/utils/*"],

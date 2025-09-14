@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
 } from "@nestjs/common";
-import { createLogger } from "@common/logging";;
+import { createLogger } from "@common/logging/index";;
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 import { CollectorService } from "./collector.service";

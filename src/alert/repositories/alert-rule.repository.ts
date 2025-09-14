@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../dto";
 import { IAlertRule } from "../interfaces/alert.interface";

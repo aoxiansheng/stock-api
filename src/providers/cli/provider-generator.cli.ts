@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { SmartErrorHandler } from "../utils/smart-error-handler";
 import { SmartPathResolver } from "../utils/smart-path-resolver";
 import { ConventionScanner } from "../utils/convention-scanner";

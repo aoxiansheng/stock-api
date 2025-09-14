@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 import { DataSourceAnalysisResponseDto } from "../dto/data-source-analysis.dto";
 

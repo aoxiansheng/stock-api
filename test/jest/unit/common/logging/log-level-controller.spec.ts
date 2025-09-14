@@ -3,8 +3,8 @@
  * 测试日志级别控制器的核心功能
  */
 
-import { LogLevelController } from '../../../../../src/common/logging/log-level-controller';
-import { LogLevel, LogLevelConfig } from '../../../../../src/common/logging/types';
+import { LogLevelController } from '../../../../../src/common/modules/logging/log-level-controller';
+import { LogLevel, LogLevelConfig } from '../../../../../src/common/modules/logging/types';
 import * as fs from 'fs';
 import * as path from 'path';
 

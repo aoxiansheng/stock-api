@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger, sanitizeLogData } from "@common/logging";
+import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import {

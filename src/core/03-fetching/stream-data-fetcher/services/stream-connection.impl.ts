@@ -1,6 +1,6 @@
 import { OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "@common/logging";
-import { sanitizeLogData } from "@common/logging";
+import { createLogger } from "@common/logging/index";
+import { sanitizeLogData } from "@common/logging/index";
 import {
   StreamConnection,
   StreamConnectionOptions,

@@ -1,4 +1,4 @@
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 
 // Extract Market enum for backward compatibility

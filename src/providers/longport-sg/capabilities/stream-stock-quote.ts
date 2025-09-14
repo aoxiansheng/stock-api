@@ -1,4 +1,4 @@
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 import { REFERENCE_DATA } from '@common/constants/domain';
 

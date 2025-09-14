@@ -17,7 +17,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 // 导入服务
 import { NotificationService } from '../services/notification.service';

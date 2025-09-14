@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "@common/logging";;
+import { createLogger } from "@common/logging/index";;
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import {
   ICollector,

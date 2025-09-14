@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
-import { createLogger, sanitizeLogData } from "@common/logging";
+import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
 import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";

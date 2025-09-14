@@ -1,6 +1,6 @@
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { PROVIDER_TIMEOUT, ConnectionStatus, IConnectionState, CONNECTION_CONFIG } from "../../constants";
 import { REFERENCE_DATA } from '@common/constants/domain';
 

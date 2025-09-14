@@ -13,7 +13,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { AlertRuleRepository } from '../repositories/alert-rule.repository';
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from '../dto';
 import { IAlertRule } from '../interfaces';

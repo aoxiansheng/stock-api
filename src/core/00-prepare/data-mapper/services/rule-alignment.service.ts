@@ -1,6 +1,6 @@
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import {
   Injectable,
   NotFoundException,

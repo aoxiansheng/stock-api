@@ -7,7 +7,7 @@ import {
 } from "@nestjs/common";
 import { Request, Response } from "express";
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
 /**

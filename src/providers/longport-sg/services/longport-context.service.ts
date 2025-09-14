@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { Config, QuoteContext } from "longport"; // REFERENCE_DATA.PROVIDER_IDS.LONGPORT
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 import { REFERENCE_DATA } from '@common/constants/domain';
 
 /**

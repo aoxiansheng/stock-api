@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import express from "express";
 
-import { createLogger, getLogLevels } from "@common/logging";
+import { createLogger, getLogLevels } from "@common/logging/index";
 import { GlobalExceptionFilter } from "@common/core/filters";
 import {
   ResponseInterceptor,

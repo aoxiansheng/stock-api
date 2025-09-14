@@ -10,7 +10,7 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 
-import { createLogger } from "@common/logging";
+import { createLogger } from "@common/logging/index";
 
 // 导入事件类型
 import {
