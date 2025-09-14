@@ -8,6 +8,7 @@
  */
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationQuery } from '@common/modules/pagination/services/pagination.service';
 import {
   IsString,
   IsNotEmpty,
@@ -219,7 +220,7 @@ export class NotificationHistoryDto {
 /**
  * 通知历史查询DTO
  */
-export class NotificationHistoryQueryDto {
+export class NotificationHistoryQueryDto implements PaginationQuery {
   @ApiPropertyOptional({ description: '警告ID' })
   @IsOptional()
   @IsString()
@@ -265,17 +266,8 @@ export class NotificationHistoryQueryDto {
   @IsDateString()
   endTime?: string;
 
-  @ApiPropertyOptional({ description: '页码', default: 1 })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
+  // 分页字段由PaginationQuery接口提供
   page?: number;
-
-  @ApiPropertyOptional({ description: '每页数量', default: 20 })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
   limit?: number;
 
   @ApiPropertyOptional({ description: '排序字段', default: 'sentAt' })

@@ -248,6 +248,7 @@ export interface NotificationQuery {
   recipient?: string;
   startTime?: Date;
   endTime?: Date;
+  // 分页字段由PaginationQuery接口提供
   page?: number;
   limit?: number;
   sortBy?: string;

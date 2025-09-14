@@ -11,6 +11,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
 
 import { createLogger } from '@appcore/config/logger.config';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 
 // 导入通知类型
 import {
@@ -50,6 +52,7 @@ export class NotificationHistoryService {
     private readonly notificationLogModel: Model<NotificationLogDocument>,
     @InjectModel(NotificationInstance.name)
     private readonly notificationModel: Model<NotificationDocument>,
+    private readonly paginationService: PaginationService,
   ) {
     this.logger.debug('NotificationHistoryService 已初始化');
   }
@@ -138,12 +141,7 @@ export class NotificationHistoryService {
    */
   async queryNotificationHistory(
     query: NotificationQuery
-  ): Promise<{
-    notifications: Notification[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  ): Promise<PaginatedDataDto<Notification>> {
     this.logger.debug('查询通知历史', {
       alertId: query.alertId,
       channelType: query.channelType,
@@ -182,11 +180,11 @@ export class NotificationHistoryService {
         }
       }
 
-      // 2. 执行数据库查询
-      const page = query.page || 1;
-      const limit = Math.min(query.limit || 20, 100); // 限制最大100条
-      const skip = (page - 1) * limit;
+      // 2. 使用通用分页器标准化分页参数
+      const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+      const skip = this.paginationService.calculateSkip(page, limit);
       
+      // 3. 执行数据库查询
       const [notifications, total] = await Promise.all([
         this.notificationModel
           .find(filter)
@@ -198,32 +196,27 @@ export class NotificationHistoryService {
         this.notificationModel.countDocuments(filter).exec(),
       ]);
       
-      // 3. 返回分页结果
-      const result = {
-        notifications: notifications.map(notification => ({
-          id: notification._id?.toString() || '',
-          alertId: notification.alertId?.toString() || '',
-          channelId: notification.channelId?.toString() || '',
-          channelType: notification.channelType,
-          title: notification.title,
-          content: notification.content,
-          status: notification.status,
-          priority: notification.priority,
-          recipient: notification.recipient,
-          sentAt: notification.sentAt,
-          deliveredAt: notification.deliveredAt,
-          failedAt: notification.failedAt,
-          errorMessage: notification.errorMessage,
-          retryCount: notification.retryCount,
-          duration: notification.duration,
-          metadata: notification.metadata,
-          createdAt: notification.createdAt,
-          updatedAt: notification.updatedAt,
-        })),
-        total,
-        page,
-        limit,
-      };
+      // 4. 转换数据格式
+      const transformedNotifications = notifications.map(notification => ({
+        id: notification._id?.toString() || '',
+        alertId: notification.alertId?.toString() || '',
+        channelId: notification.channelId?.toString() || '',
+        channelType: notification.channelType,
+        title: notification.title,
+        content: notification.content,
+        status: notification.status,
+        priority: notification.priority,
+        recipient: notification.recipient,
+        sentAt: notification.sentAt,
+        deliveredAt: notification.deliveredAt,
+        failedAt: notification.failedAt,
+        errorMessage: notification.errorMessage,
+        retryCount: notification.retryCount,
+        duration: notification.duration,
+        metadata: notification.metadata,
+        createdAt: notification.createdAt,
+        updatedAt: notification.updatedAt,
+      }));
       
       this.logger.debug('通知历史查询完成', {
         total,
@@ -232,7 +225,13 @@ export class NotificationHistoryService {
         filterCount: Object.keys(filter).length,
       });
       
-      return result;
+      // 5. 使用通用分页器创建标准分页响应
+      return this.paginationService.createPaginatedResponse(
+        transformedNotifications,
+        page,
+        limit,
+        total
+      );
       
     } catch (error) {
       this.logger.error('查询通知历史失败', {

@@ -1,5 +1,7 @@
 import { LoggerService, LogLevel } from "@nestjs/common";
 import pino, { Logger as PinoLogger } from "pino";
+import { SafeLogLevelController } from "../../common/logging/safe-log-level-controller";
+import { LogLevel as CustomLogLevel } from "../../common/logging/types";
 
 /**
  * 单例 Pino Logger 实例管理器
@@ -110,7 +112,7 @@ class PinoLoggerSingleton {
  * 统一管理日志格式、级别和输出方式，使用 Pino 高性能日志库
  */
 export class CustomLogger implements LoggerService {
-  private context?: string;
+  protected context?: string;
   private pinoLogger: PinoLogger;
   private seen?: Set<any>;
 
@@ -379,8 +381,36 @@ export function getLogLevels(): LogLevel[] {
 
 /**
  * 创建带上下文的日志实例
+ * 
+ * 根据ENHANCED_LOGGING_ENABLED环境变量决定使用增强版还是标准版Logger
  */
 export function createLogger(context: string): CustomLogger {
+  const enhancedLoggingEnabled = process.env.ENHANCED_LOGGING_ENABLED === 'true';
+  
+  if (enhancedLoggingEnabled) {
+    try {
+      return new EnhancedCustomLogger(context);
+    } catch (error) {
+      // 如果增强版创建失败，降级到标准版
+      console.warn('⚠️ Failed to create EnhancedCustomLogger, falling back to CustomLogger:', error);
+      return new CustomLogger(context);
+    }
+  }
+  
+  return new CustomLogger(context);
+}
+
+/**
+ * 创建增强版日志实例（强制使用增强功能）
+ */
+export function createEnhancedLogger(context: string): EnhancedCustomLogger {
+  return new EnhancedCustomLogger(context);
+}
+
+/**
+ * 创建标准版日志实例（强制使用标准功能）
+ */
+export function createStandardLogger(context: string): CustomLogger {
   return new CustomLogger(context);
 }
 
@@ -476,5 +506,131 @@ export class TestableLogger extends CustomLogger {
 
   public isVerboseEnabled(): boolean {
     return super.isVerboseEnabled();
+  }
+}
+
+/**
+ * 增强版自定义日志类
+ * 
+ * 核心功能：
+ * 1. 完全继承CustomLogger的所有功能，保持向后兼容
+ * 2. 集成LogLevelController进行级别控制
+ * 3. 支持功能开关，可以优雅降级到原始行为
+ * 4. 通过环境变量ENHANCED_LOGGING_ENABLED控制启用
+ */
+export class EnhancedCustomLogger extends CustomLogger {
+  private safeController: SafeLogLevelController | null = null;
+  private enhancedLoggingEnabled: boolean = false;
+
+  constructor(context?: string) {
+    super(context);
+    
+    // 检查增强日志功能是否启用
+    this.enhancedLoggingEnabled = process.env.ENHANCED_LOGGING_ENABLED === 'true';
+    
+    if (this.enhancedLoggingEnabled) {
+      try {
+        this.safeController = SafeLogLevelController.getInstance();
+      } catch (error) {
+        // 如果SafeLogLevelController初始化失败，降级到原始行为
+        console.warn('⚠️ SafeLogLevelController initialization failed, falling back to standard logging:', error);
+        this.enhancedLoggingEnabled = false;
+        this.safeController = null;
+      }
+    }
+  }
+
+  /**
+   * 检查是否应该记录指定级别的日志
+   */
+  private shouldLogWithController(level: CustomLogLevel): boolean {
+    if (!this.enhancedLoggingEnabled || !this.safeController) {
+      return true; // 降级模式：允许所有日志
+    }
+
+    const context = this.context || 'Application';
+    return this.safeController.shouldLog(context, level);
+  }
+
+  /**
+   * 记录普通日志（重写以集成级别控制）
+   */
+  log(message: any, ...optionalParams: any[]): void {
+    if (this.shouldLogWithController('info')) {
+      super.log(message, ...optionalParams);
+    }
+  }
+
+  /**
+   * 记录错误日志（重写以集成级别控制）
+   */
+  error(message: any, ...optionalParams: any[]): void {
+    if (this.shouldLogWithController('error')) {
+      super.error(message, ...optionalParams);
+    }
+  }
+
+  /**
+   * 记录警告日志（重写以集成级别控制）
+   */
+  warn(message: any, ...optionalParams: any[]): void {
+    if (this.shouldLogWithController('warn')) {
+      super.warn(message, ...optionalParams);
+    }
+  }
+
+  /**
+   * 记录调试日志（重写以集成级别控制）
+   */
+  debug(message: any, ...optionalParams: any[]): void {
+    if (this.shouldLogWithController('debug')) {
+      super.debug(message, ...optionalParams);
+    }
+  }
+
+  /**
+   * 记录详细日志（重写以集成级别控制）
+   */
+  verbose(message: any, ...optionalParams: any[]): void {
+    if (this.shouldLogWithController('trace')) {
+      super.verbose(message, ...optionalParams);
+    }
+  }
+
+  /**
+   * 重写isDebugEnabled以集成级别控制
+   */
+  protected isDebugEnabled(): boolean {
+    if (this.enhancedLoggingEnabled && this.safeController) {
+      return this.shouldLogWithController('debug');
+    }
+    return super.isDebugEnabled();
+  }
+
+  /**
+   * 重写isVerboseEnabled以集成级别控制
+   */
+  protected isVerboseEnabled(): boolean {
+    if (this.enhancedLoggingEnabled && this.safeController) {
+      return this.shouldLogWithController('trace');
+    }
+    return super.isVerboseEnabled();
+  }
+
+  /**
+   * 获取增强日志状态（用于诊断）
+   */
+  public getEnhancedLoggingStatus(): {
+    enabled: boolean;
+    controllerReady: boolean;
+    context: string;
+    safeControllerStatus?: any;
+  } {
+    return {
+      enabled: this.enhancedLoggingEnabled,
+      controllerReady: this.safeController !== null,
+      context: this.context || 'Application',
+      safeControllerStatus: this.safeController?.getStatus(),
+    };
   }
 }

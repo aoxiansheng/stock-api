@@ -101,13 +101,8 @@ export class TemplateController {
 
     return {
       message: '获取模板列表成功',
-      data: result.templates,
-      pagination: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      data: result.items,
+      pagination: result.pagination,
     };
   }
 
@@ -432,8 +427,8 @@ export class TemplateController {
 
     return {
       message: '搜索完成',
-      data: templates.templates,
-      total: templates.total,
+      data: templates.items,
+      total: templates.pagination.total,
     };
   }
 

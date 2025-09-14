@@ -13,6 +13,9 @@ import { HttpModule } from '@nestjs/axios';
 // 🗄️ 统一数据库模块 (提供NotificationLog Schema)
 import { DatabaseModule } from '../database/database.module';
 
+// 📄 通用分页器模块
+import { PaginationModule } from '../common/modules/pagination/modules/pagination.module';
+
 // Controllers
 import { NotificationController } from './controllers/notification.controller';
 import { TemplateController } from './controllers/template.controller';
@@ -47,6 +50,8 @@ import { LogSender } from './services/senders/log.sender';
     HttpModule,
     // 🗄️ 统一数据库模块 (包含NotificationLog Schema)
     DatabaseModule,
+    // 📄 通用分页器模块
+    PaginationModule,
     MongooseModule.forFeature([
       { name: NotificationInstance.name, schema: NotificationSchema },
       { name: NotificationChannel.name, schema: NotificationChannelSchema },

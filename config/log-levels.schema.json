@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "日志级别配置Schema",
+  "description": "New Stock API 日志级别配置文件验证规则",
+  "type": "object",
+  "required": ["version", "global"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema 引用"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "配置文件版本号"
+    },
+    "description": {
+      "type": "string",
+      "description": "配置文件描述"
+    },
+    "global": {
+      "type": "string",
+      "enum": ["silent", "fatal", "error", "warn", "info", "debug", "trace"],
+      "description": "全局日志级别"
+    },
+    "modules": {
+      "type": "object",
+      "description": "模块级别配置",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": ["silent", "fatal", "error", "warn", "info", "debug", "trace"]
+          },
+          {
+            "type": "string",
+            "pattern": "^//.*",
+            "description": "注释行"
+          },
+          {
+            "type": "string",
+            "enum": [""],
+            "description": "空字符串用于注释分隔"
+          }
+        ]
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "功能特性开关",
+      "properties": {
+        "enhancedLoggingEnabled": {
+          "type": "boolean",
+          "description": "是否启用增强日志功能"
+        },
+        "levelCacheEnabled": {
+          "type": "boolean",
+          "description": "是否启用级别检查缓存"
+        },
+        "structuredLogging": {
+          "type": "boolean",
+          "description": "是否启用结构化日志"
+        },
+        "performanceMode": {
+          "type": "boolean",
+          "description": "是否启用性能模式"
+        },
+        "dynamicUpdateEnabled": {
+          "type": "boolean",
+          "description": "是否允许动态更新配置"
+        }
+      },
+      "additionalProperties": false
+    },
+    "performance": {
+      "type": "object",
+      "description": "性能相关配置",
+      "properties": {
+        "cacheEnabled": {
+          "type": "boolean",
+          "description": "是否启用缓存"
+        },
+        "cacheExpiry": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "缓存过期时间（毫秒）"
+        },
+        "maxCacheSize": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000,
+          "description": "最大缓存条目数"
+        },
+        "performanceThreshold": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "性能警告阈值（毫秒）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "description": "输出格式配置",
+      "properties": {
+        "colorEnabled": {
+          "type": "boolean",
+          "description": "是否启用彩色输出"
+        },
+        "timestampEnabled": {
+          "type": "boolean",
+          "description": "是否包含时间戳"
+        },
+        "contextEnabled": {
+          "type": "boolean",
+          "description": "是否包含上下文信息"
+        },
+        "stackTraceEnabled": {
+          "type": "boolean",
+          "description": "是否包含堆栈追踪"
+        }
+      },
+      "additionalProperties": false
+    },
+    "namespaces": {
+      "type": "object",
+      "description": "命名空间通配符配置（第二阶段实现）",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["silent", "fatal", "error", "warn", "info", "debug", "trace"]
+      }
+    }
+  },
+  "additionalProperties": false
+}

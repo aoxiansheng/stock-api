@@ -1,0 +1,91 @@
+{
+  "$schema": "./log-levels.schema.json",
+  "version": "1.0.0",
+  "description": "New Stock API 日志级别配置 - 主配置文件",
+  
+  "global": "info",
+  
+  "modules": {
+    "// ========== 核心数据流组件 ==========": "",
+    "DataFetcherService": "info",
+    "TransformerService": "warn",
+    "StorageService": "warn",
+    "QueryService": "info",
+    "ReceiverService": "info",
+    "StreamReceiverGateway": "info",
+    
+    "// ========== 监控和缓存组件 ==========": "",
+    "MonitoringEventBridge": "info",
+    "MonitoringCacheService": "info",
+    "CollectorService": "warn",
+    "AnalyzerService": "info",
+    "PresenterService": "info",
+    "CacheService": "info",
+    "SmartCacheOrchestrator": "warn",
+    "SymbolMapperService": "warn",
+    "DataMapperService": "warn",
+    
+    "// ========== 认证和安全组件 ==========": "",
+    "AuthService": "warn",
+    "ApiKeyAuthGuard": "error",
+    "JwtAuthGuard": "error",
+    "RateLimitGuard": "warn",
+    "ThrottlerGuard": "warn",
+    "UnifiedPermissionsGuard": "error",
+    
+    "// ========== 提供商集成组件 ==========": "",
+    "LongportProvider": "warn",
+    "ProviderService": "info",
+    "EnhancedCapabilityRegistryService": "warn",
+    "CapabilityRegistryService": "warn",
+    
+    "// ========== 通知和告警组件 ==========": "",
+    "NotificationService": "info",
+    "AlertService": "info",
+    "AlertOrchestrator": "info",
+    "AlertLifecycleService": "info",
+    "TemplateService": "warn",
+    "EmailSender": "info",
+    "SlackSender": "info",
+    "WebhookSender": "info",
+    
+    "// ========== 数据库和连接组件 ==========": "",
+    "DatabaseService": "error",
+    "MongooseConnectionService": "error",
+    "RedisConnectionService": "warn",
+    "ConnectionPoolManager": "warn",
+    
+    "// ========== 流数据处理组件 ==========": "",
+    "StreamDataFetcherService": "info",
+    "StreamContextService": "info",
+    "StreamRecoveryWorkerService": "warn",
+    "StreamClientStateManager": "info",
+    
+    "// ========== 脚本和初始化组件 ==========": "",
+    "AutoInitService": "info",
+    "InitSymbolMappingsScript": "info",
+    "InitDataMappingRulesScript": "info"
+  },
+  
+  "features": {
+    "enhancedLoggingEnabled": false,
+    "levelCacheEnabled": true,
+    "structuredLogging": true,
+    "performanceMode": false,
+    "dynamicUpdateEnabled": false
+  },
+  
+  "performance": {
+    "cacheEnabled": true,
+    "cacheExpiry": 5000,
+    "maxCacheSize": 500,
+    "performanceThreshold": 5
+  },
+  
+  "output": {
+    "colorEnabled": false,
+    "timestampEnabled": true,
+    "contextEnabled": true,
+    "stackTraceEnabled": true
+  }
+}

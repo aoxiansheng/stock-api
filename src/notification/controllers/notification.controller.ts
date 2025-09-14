@@ -53,13 +53,8 @@ export class NotificationController {
 
     return {
       message: '获取通知历史成功',
-      data: result.notifications,
-      pagination: {
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: Math.ceil(result.total / result.limit),
-      },
+      data: result.items,
+      pagination: result.pagination,
     };
   }
 

@@ -13,6 +13,8 @@ import { Model, Types } from 'mongoose';
 
 import Handlebars from 'handlebars';
 import { createLogger } from '@appcore/config/logger.config';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
 
 import { 
   NotificationTemplate, 
@@ -116,6 +118,7 @@ export class NotificationTemplateService {
   constructor(
     @InjectModel(NotificationTemplate.name)
     private readonly templateModel: Model<NotificationTemplateDocument>,
+    private readonly paginationService: PaginationService,
   ) {
     this.registerHandlebarsHelpers();
   }
@@ -269,13 +272,8 @@ export class NotificationTemplateService {
   /**
    * 查询模板列表
    */
-  async queryTemplates(queryDto: TemplateQueryDto): Promise<{
-    templates: NotificationTemplateDocument[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
-    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc', ...filters } = queryDto;
+  async queryTemplates(queryDto: TemplateQueryDto): Promise<PaginatedDataDto<NotificationTemplateDocument>> {
+    const { sortBy = 'createdAt', sortOrder = 'desc', ...filters } = queryDto;
 
     // 构建查询条件
     const query: any = {};
@@ -308,23 +306,28 @@ export class NotificationTemplateService {
       ];
     }
 
+    // 使用通用分页器标准化分页参数
+    const { page, limit } = this.paginationService.normalizePaginationQuery(queryDto);
+    const skip = this.paginationService.calculateSkip(page, limit);
+
     // 执行查询
     const [templates, total] = await Promise.all([
       this.templateModel
         .find(query)
         .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
-        .skip((page - 1) * limit)
+        .skip(skip)
         .limit(limit)
         .exec(),
       this.templateModel.countDocuments(query)
     ]);
 
-    return {
+    // 使用通用分页器创建标准分页响应
+    return this.paginationService.createPaginatedResponse(
       templates,
-      total,
       page,
       limit,
-    };
+      total
+    );
   }
 
   /**
