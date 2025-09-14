@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "../../../../appcore/config/logger.config";
+import { createLogger } from "@common/logging";;
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";

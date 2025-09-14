@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "../../appcore/config/logger.config";
+import { createLogger } from "@common/logging";;
 
 /**
  * 收集器存储库

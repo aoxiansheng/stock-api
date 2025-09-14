@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Server } from "socket.io";
-import { createLogger } from "../../../../appcore/config/logger.config";
+import { createLogger } from "@common/logging";;
 
 /**
  * WebSocketServerProvider - 强类型WebSocket服务器提供者

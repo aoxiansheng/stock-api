@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "../../../../appcore/config/logger.config";
+import { createLogger } from "@common/logging";;
 import {
   IStreamCache,
   StreamDataPoint,

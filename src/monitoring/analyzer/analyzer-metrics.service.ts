@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "../../appcore/config/logger.config";
+import { createLogger } from "@common/logging";;
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import {
   PerformanceSummary,

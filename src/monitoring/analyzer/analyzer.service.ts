@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "../../appcore/config/logger.config";
+import { createLogger } from "@common/logging";;
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
