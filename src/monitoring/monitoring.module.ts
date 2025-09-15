@@ -10,7 +10,7 @@
  */
 
 import { Module } from "@nestjs/common";
-import { MonitoringCacheModule } from "./cache/monitoring-cache.module";
+import { CacheModule } from '@cache/module/cache.module';
 import { InfrastructureModule } from "./infrastructure/infrastructure.module";
 import { CollectorModule } from "./collector/collector.module";
 import { AnalyzerModule } from "./analyzer/analyzer.module";
@@ -19,7 +19,7 @@ import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
-    MonitoringCacheModule, // 导入独立缓存模块
+    CacheModule, // 导入通用缓存模块替代MonitoringCacheModule
     InfrastructureModule,
     CollectorModule,
     AnalyzerModule,
@@ -27,7 +27,7 @@ import { HealthModule } from "./health/health.module";
     HealthModule, // 扩展健康检查模块
   ],
   exports: [
-    MonitoringCacheModule, // 导出缓存模块供外部使用
+    CacheModule, // 导出通用缓存模块供外部使用
     InfrastructureModule,
     CollectorModule,
     AnalyzerModule,

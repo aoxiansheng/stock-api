@@ -24,7 +24,9 @@
       "mcp__serena__think_about_collected_information",
       "Bash(DISABLE_AUTO_INIT=true npm test -- --testPathPattern=common)",
       "Bash(git restore:*)",
-      "Bash(DISABLE_AUTO_INIT=true jest --config test/config/jest.unit.config.js test/jest/unit/cache)"
+      "Bash(DISABLE_AUTO_INIT=true jest --config test/config/jest.unit.config.js test/jest/unit/cache)",
+      "Bash(npm run:*)",
+      "Bash(DISABLE_AUTO_INIT=true bun run test:unit:monitoring)"
     ],
     "deny": [],
     "ask": []

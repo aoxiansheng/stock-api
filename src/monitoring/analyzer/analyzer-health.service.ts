@@ -5,7 +5,9 @@ import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { HealthReportDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
-import { MonitoringCacheService } from "../cache/monitoring-cache.service";
+import { CacheService } from '@cache/services/cache.service';
+import { MonitoringCacheKeys } from '../utils/monitoring-cache-keys';
+import { MONITORING_CACHE_TTL } from '../constants/cache-ttl.constants';
 import { MONITORING_HEALTH_STATUS,  } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
@@ -20,7 +22,7 @@ export class HealthAnalyzerService {
 
   constructor(
     private readonly healthScoreCalculator: AnalyzerHealthScoreCalculator,
-    private readonly monitoringCache: MonitoringCacheService, // 替换为MonitoringCacheService
+    private readonly cacheService: CacheService, // 替换为通用缓存服务
     private readonly eventBus: EventEmitter2,
   ) {
     this.logger.log("HealthAnalyzerService initialized - 健康分析服务已启动");
@@ -40,10 +42,10 @@ export class HealthAnalyzerService {
       });
 
       // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
-      const cacheKey = this.buildCacheKey("health_report", rawMetrics);
+      const cacheKey = MonitoringCacheKeys.health(this.buildCacheKey("report", rawMetrics));
 
       const healthReport =
-        await this.monitoringCache.getOrSetHealthData<HealthReportDto>(
+        await this.cacheService.safeGetOrSet<HealthReportDto>(
           cacheKey,
           async () => {
             // 缓存未命中，重新计算健康报告
@@ -194,6 +196,7 @@ export class HealthAnalyzerService {
             });
             return report;
           },
+          { ttl: MONITORING_CACHE_TTL.HEALTH }
         );
 
       // 发射缓存命中或回填完成事件
@@ -334,7 +337,7 @@ export class HealthAnalyzerService {
    */
   async invalidateHealthCache(): Promise<void> {
     try {
-      await this.monitoringCache.invalidateHealthCache();
+      await this.cacheService.delByPattern(MonitoringCacheKeys.health('*'));
       this.logger.debug('HealthAnalyzer: 健康相关缓存已失效', {
         component: 'HealthAnalyzerService',
         operation: 'invalidateHealthCache',
@@ -455,7 +458,7 @@ export class HealthAnalyzerService {
    */
   private buildCacheKey(type: string, rawMetrics: RawMetricsDto): string {
     const hash = this.generateMetricsHash(rawMetrics);
-    return `health_${type}_${hash}`;
+    return `${type}_${hash}`;
   }
 
   /**

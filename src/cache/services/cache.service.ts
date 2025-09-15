@@ -907,4 +907,70 @@ export class CacheService {
       throw new BadRequestException(errorMessage);
     }
   }
+
+  // ==================== 容错方法 (为监控组件重构添加) ====================
+
+  /**
+   * 安全的缓存读取方法 - 容错版本
+   * 缓存失败时返回null而不抛出异常，保证监控逻辑继续执行
+   * @param key 缓存键
+   * @returns 缓存值或null
+   */
+  async safeGet<T>(key: string): Promise<T | null> {
+    try {
+      return await this.get<T>(key);
+    } catch (error) {
+      this.logger.warn('缓存读取失败，优雅降级', { 
+        key, 
+        error: error.message,
+        operation: 'safeGet'
+      });
+      return null;
+    }
+  }
+
+  /**
+   * 安全的缓存写入方法 - 容错版本  
+   * 缓存失败时记录警告但不抛出异常，保证监控逻辑继续执行
+   * @param key 缓存键
+   * @param value 缓存值
+   * @param options 缓存选项
+   */
+  async safeSet(key: string, value: any, options?: CacheConfigDto): Promise<void> {
+    try {
+      await this.set(key, value, options);
+    } catch (error) {
+      this.logger.warn('缓存写入失败，忽略错误', { 
+        key, 
+        error: error.message,
+        operation: 'safeSet'
+      });
+      // 不抛出异常，保证监控逻辑继续执行
+    }
+  }
+
+  /**
+   * 安全的缓存获取或设置方法 - 容错版本
+   * 缓存操作失败时直接调用工厂方法，保证监控逻辑继续执行  
+   * @param key 缓存键
+   * @param factory 数据工厂方法
+   * @param options 缓存选项
+   * @returns 缓存值或工厂方法返回值
+   */
+  async safeGetOrSet<T>(
+    key: string, 
+    factory: () => Promise<T>, 
+    options?: CacheConfigDto
+  ): Promise<T> {
+    try {
+      return await this.getOrSet<T>(key, factory, options);
+    } catch (error) {
+      this.logger.warn('缓存操作失败，直接调用工厂方法', { 
+        key, 
+        error: error.message,
+        operation: 'safeGetOrSet'
+      });
+      return await factory();
+    }
+  }
 }

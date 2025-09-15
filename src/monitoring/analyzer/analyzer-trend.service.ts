@@ -5,7 +5,9 @@ import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { TrendsDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
-import { MonitoringCacheService } from "../cache/monitoring-cache.service";
+import { CacheService } from '@cache/services/cache.service';
+import { MonitoringCacheKeys } from '../utils/monitoring-cache-keys';
+import { MONITORING_CACHE_TTL } from '../constants/cache-ttl.constants';
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
@@ -23,7 +25,7 @@ export class TrendAnalyzerService {
 
   constructor(
     private readonly metricsCalculator: AnalyzerMetricsCalculator,
-    private readonly monitoringCache: MonitoringCacheService,
+    private readonly cacheService: CacheService,
     private readonly eventBus: EventEmitter2,
   ) {
     this.logger.log("TrendAnalyzerService initialized - 趋势分析服务已启动");
@@ -46,13 +48,13 @@ export class TrendAnalyzerService {
       });
 
       // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
-      const cacheKey = this.buildTrendsCacheKey(
+      const cacheKey = MonitoringCacheKeys.trend(this.buildTrendsCacheKey(
         "performance",
         period,
         currentMetrics,
-      );
+      ));
 
-      const trends = await this.monitoringCache.getOrSetTrendData<TrendsDto>(
+      const trends = await this.cacheService.safeGetOrSet<TrendsDto>(
         cacheKey,
         async () => {
           // 缓存未命中，重新计算趋势
@@ -99,6 +101,7 @@ export class TrendAnalyzerService {
           });
           return enhancedTrends;
         },
+        { ttl: MONITORING_CACHE_TTL.TREND }
       );
 
       // 发射缓存命中或回填完成事件
@@ -404,7 +407,7 @@ export class TrendAnalyzerService {
    */
   async invalidateTrendsCache(): Promise<void> {
     try {
-      await this.monitoringCache.invalidateTrendCache();
+      await this.cacheService.delByPattern(MonitoringCacheKeys.trend('*'));
       this.logger.debug('TrendAnalyzer: 趋势相关缓存已失效', {
         component: 'TrendAnalyzerService',
         operation: 'invalidateTrendsCache',
@@ -646,7 +649,7 @@ export class TrendAnalyzerService {
     metrics: RawMetricsDto,
   ): string {
     const hash = this.generateMetricsHash(metrics);
-    return `trends_${type}_${period}_${hash}`;
+    return `${type}_${period}_${hash}`;
   }
 
   /**
