@@ -122,6 +122,7 @@ The system implements three independent caching layers:
 3. **Common Cache (Redis)** - Shared caching service
    - Dynamic TTL calculation based on market status
    - Fault-tolerant methods for non-critical operations
+   - **Monitoring Cache**: Recently unified - monitoring components now use common CacheService with standardized key patterns and TTL management
 
 ### Three-Tier Authentication System
 
@@ -468,6 +469,11 @@ src/
 ```
 
 **Recent Architecture Changes:**
+- **Monitoring Cache Unification (Latest)**: Major refactoring completed - removed internal MonitoringCacheService (970 lines) and unified to use general CacheService
+  - Replaced with: `MonitoringCacheKeys` utility class and `MONITORING_CACHE_TTL` constants
+  - Added fault-tolerant cache methods: `safeGet`, `safeSet`, `safeGetOrSet` in CacheService
+  - 87% code reduction while maintaining full functionality and improving fault tolerance
+  - Cache key pattern: `monitoring:health:*`, `monitoring:trend:*`, `monitoring:performance:*`
 - **Notification Module**: Recently decoupled from Alert module, now completely independent
   - Features: Dynamic template system with Handlebars engine
   - Templates: MongoDB-persisted, supports versioning and caching
@@ -549,9 +555,38 @@ await cacheService.setMembers(key);      // Returns [] on failure
 // ❌ Standard methods (throw exceptions on failure) 
 await cacheService.get(key);             // Throws ServiceUnavailableException
 await cacheService.set(key, value);      // Throws ServiceUnavailableException
+
+// 🔧 Monitoring-specific safe methods (added in latest refactoring)
+await cacheService.safeGet<T>(key);      // Returns null on failure
+await cacheService.safeSet(key, value, options); // Silent failure, logs warning
+await cacheService.safeGetOrSet<T>(key, factory, options); // Calls factory on failure
 ```
 
 **Implementation Location**: `src/cache/services/cache.service.ts`
+
+### Unified Monitoring Cache Architecture
+The monitoring system now uses a unified cache approach instead of a dedicated MonitoringCacheService:
+
+```typescript
+// New unified pattern (post-refactoring)
+import { CacheService } from '@cache/services/cache.service';
+import { MonitoringCacheKeys } from '@monitoring/utils/monitoring-cache-keys';
+import { MONITORING_CACHE_TTL } from '@monitoring/constants/cache-ttl.constants';
+
+// Cache key generation
+const key = MonitoringCacheKeys.health('report_abc123');     // monitoring:health:report_abc123
+const trendKey = MonitoringCacheKeys.trend('performance_1h'); // monitoring:trend:performance_1h
+
+// Fault-tolerant operations
+await this.cacheService.safeGetOrSet<HealthReportDto>(
+  key,
+  async () => generateReport(),
+  { ttl: MONITORING_CACHE_TTL.HEALTH }
+);
+```
+
+**TTL Configuration**: `src/monitoring/constants/cache-ttl.constants.ts`
+**Key Management**: `src/monitoring/utils/monitoring-cache-keys.ts`
 
 ### Performance Monitoring Fault Tolerance
 Performance monitoring is treated as **non-critical functionality**:
@@ -581,6 +616,13 @@ query:by-symbols:AAPL,GOOGL:weak-timeliness
 L1: provider-rules:{provider}
 L2: symbol:{standardSymbol} 
 L3: batch:{symbols-hash}
+
+// Monitoring Cache Keys (unified pattern)
+monitoring:health:report_abc123
+monitoring:trend:performance_1h_def456
+monitoring:performance:optimization_suggestions
+monitoring:alert:critical_issues
+monitoring:cache_stats:hit_rate_metrics
 ```
 
 **Implementation**: `src/core/05-caching/smart-cache/services/smart-cache-orchestrator.service.ts`
