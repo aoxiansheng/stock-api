@@ -6,6 +6,9 @@ import { PassportModule } from "@nestjs/passport";
 import { CacheModule } from "../../cache/module/cache.module";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 统一数据库模块
 import authConfig from "../config/auth-configuration";
+// 🆕 新的分层配置系统
+import { authUnifiedConfig } from "../config/auth-unified.config";
+import { AuthConfigCompatibilityWrapper } from "../config/compatibility-wrapper";
 
 import { AuthController } from "../controller/auth.controller";
 import { RateLimitExceptionFilter } from "../filters/rate-limit.filter";
@@ -38,8 +41,10 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
 
-    // 配置模块
+    // 配置模块 - 现有配置和新分层配置并存
     ConfigModule.forFeature(authConfig),
+    // 🆕 分层配置系统 (与现有配置并存，确保平滑迁移)
+    ConfigModule.forFeature(authUnifiedConfig),
 
     CacheModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
@@ -76,6 +81,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     PermissionService,
     RateLimitService,
     
+    // 🆕 配置兼容包装器 - 确保现有代码无缝迁移
+    AuthConfigCompatibilityWrapper,
+    
     // Passport策略
     JwtStrategy,
     ApiKeyStrategy,
@@ -111,6 +119,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     PermissionService,
     RateLimitService,
     TokenService,
+    
+    // 🆕 配置兼容包装器 - 供其他模块使用新配置系统
+    AuthConfigCompatibilityWrapper,
     
     // 守卫 - 需要被AppModule使用
     JwtAuthGuard,

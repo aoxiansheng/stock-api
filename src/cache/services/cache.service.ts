@@ -17,8 +17,9 @@ import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
 import { CacheConfig } from "../config/cache.config";
-import type { CacheTtlConfig } from "../config/cache-ttl.config";
-import { CacheLimitsProvider } from "../providers/cache-limits.provider";
+// 统一配置类型已移除导入
+import type { CacheUnifiedConfig } from "../config/cache-unified.config";
+// CacheLimitsProvider 已移除，限制配置通过统一配置获取
 
 // Import modern structured constants directly
 import { CACHE_MESSAGES } from "../constants/messages/cache-messages.constants";
@@ -49,31 +50,44 @@ export type CacheStats = RedisCacheRuntimeStatsDto;
 export class CacheService {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(CacheService.name);
-  private readonly cacheConfig: CacheConfig;
+  private readonly cacheUnifiedConfig: CacheUnifiedConfig;
+  private readonly legacyCacheConfig: CacheConfig; // 保留用于向后兼容
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
     private readonly configService: ConfigService,
-    private readonly cacheLimitsProvider: CacheLimitsProvider, // 🎯 缓存限制Provider
-    @Inject('cacheTtl') private readonly ttlConfig: CacheTtlConfig, // 🎯 新增: TTL统一配置
+    // 🎯 所有配置现在通过统一配置获取，移除冗余的Provider依赖
+    @Inject('cacheTtl') private readonly ttlConfig: CacheUnifiedConfig, // 🎯 TTL统一配置（兼容）
   ) {
-    this.cacheConfig = this.configService.get<CacheConfig>('cache');
-    if (!this.cacheConfig) {
-      throw new Error('Cache configuration not found');
+    // 🎯 优先使用统一配置
+    this.cacheUnifiedConfig = this.configService.get<CacheUnifiedConfig>('cacheUnified');
+    if (!this.cacheUnifiedConfig) {
+      throw new Error('Cache unified configuration not found');
     }
 
-    // 🎯 运行时废弃警告：提醒开发者迁移到新的TTL配置
-    if (this.cacheConfig.defaultTtl) {
+    // 🎯 向后兼容：检查旧配置
+    this.legacyCacheConfig = this.configService.get<CacheConfig>('cache');
+    if (this.legacyCacheConfig) {
       this.logger.warn(
-        '⚠️  DEPRECATED: CacheConfig.defaultTtl 已废弃，请使用 CacheTtlConfig.defaultTtl，' +
-        '将在v2.0版本移除',
+        '⚠️  DEPRECATED: 检测到旧版cache配置，请迁移到cacheUnified配置',
         {
-          currentValue: this.cacheConfig.defaultTtl,
-          recommendedConfig: 'CacheTtlConfig.defaultTtl',
-          migrationGuide: 'https://docs.company.com/cache-migration'
+          migrationGuide: 'docs/cache-migration-guide.md',
+          newConfigNamespace: 'cacheUnified'
         }
       );
+
+      // 运行时废弃警告：提醒开发者迁移TTL配置
+      if (this.legacyCacheConfig.defaultTtl) {
+        this.logger.warn(
+          '⚠️  DEPRECATED: CacheConfig.defaultTtl 已废弃，现使用 CacheUnifiedConfig.defaultTtl',
+          {
+            oldValue: this.legacyCacheConfig.defaultTtl,
+            newValue: this.cacheUnifiedConfig.defaultTtl,
+            migrationNote: '已自动使用新配置值'
+          }
+        );
+      }
     }
   }
 
@@ -86,11 +100,38 @@ export class CacheService {
   }
 
   /**
-   * 🎯 兼容性fallback: 获取默认TTL
-   * 优先使用新的CacheTtlConfig.defaultTtl，向后兼容CacheConfig.defaultTtl
+   * 🎯 获取默认TTL - 使用统一配置
+   * 优先使用CacheUnifiedConfig，向后兼容旧配置
    */
   private getDefaultTtl(): number {
-    return this.ttlConfig?.defaultTtl ?? this.cacheConfig.defaultTtl;
+    return this.cacheUnifiedConfig.defaultTtl;
+  }
+
+  /**
+   * 根据时效性获取TTL
+   * 🎯 新增方法：提供基于业务场景的TTL获取
+   */
+  getTtlByTimeliness(timeliness: 'strong' | 'moderate' | 'weak' | 'long' | 'monitoring' | 'auth' | 'transformer' | 'suggestion'): number {
+    switch (timeliness) {
+      case 'strong':
+        return this.cacheUnifiedConfig.strongTimelinessTtl;
+      case 'moderate':
+        return this.cacheUnifiedConfig.realtimeTtl;
+      case 'weak':
+        return this.cacheUnifiedConfig.defaultTtl;
+      case 'long':
+        return this.cacheUnifiedConfig.longTermTtl;
+      case 'monitoring':
+        return this.cacheUnifiedConfig.monitoringTtl;
+      case 'auth':
+        return this.cacheUnifiedConfig.authTtl;
+      case 'transformer':
+        return this.cacheUnifiedConfig.transformerTtl;
+      case 'suggestion':
+        return this.cacheUnifiedConfig.suggestionTtl;
+      default:
+        return this.cacheUnifiedConfig.defaultTtl;
+    }
   }
 
   /**
@@ -109,7 +150,7 @@ export class CacheService {
       const serializedValue = this.serialize(value, options.serializer);
       const compressedValue = this.shouldCompress(
         serializedValue,
-        options.compressionThreshold ?? this.cacheConfig.compressionThreshold,
+        options.compressionThreshold ?? this.cacheUnifiedConfig.compressionThreshold,
       )
         ? await this.compress(serializedValue)
         : serializedValue;
@@ -124,12 +165,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > this.cacheConfig.slowOperationMs) {
+      if (duration > this.cacheUnifiedConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.SET,
           key,
           duration,
-          threshold: this.cacheConfig.slowOperationMs,
+          threshold: this.cacheUnifiedConfig.slowOperationMs,
         });
       }
 
@@ -178,12 +219,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > this.cacheConfig.slowOperationMs) {
+      if (duration > this.cacheUnifiedConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.GET,
           key,
           duration,
-          threshold: this.cacheConfig.slowOperationMs,
+          threshold: this.cacheUnifiedConfig.slowOperationMs,
         });
       }
 
@@ -219,7 +260,7 @@ export class CacheService {
     // 使用分布式锁防止缓存击穿
     const lockKey = `${CACHE_KEYS.PREFIXES.LOCK}${key}`;
     const lockValue = `${Date.now()}-${Math.random()}`;
-    const lockTtl = this.cacheConfig.lockTtl;
+    const lockTtl = this.cacheUnifiedConfig.lockTtl;
 
     try {
       // 尝试获取锁
@@ -244,8 +285,8 @@ export class CacheService {
       } else {
         // 未获得锁，等待一段时间后重试获取缓存
         await this.sleep(
-          this.cacheConfig.retryDelayMs / 2 +
-            Math.random() * (this.cacheConfig.retryDelayMs / 2),
+          this.cacheUnifiedConfig.retryDelayMs / 2 +
+            Math.random() * (this.cacheUnifiedConfig.retryDelayMs / 2),
         );
 
         const retryResult = await this.get<T>(key, options.serializer);
@@ -507,7 +548,7 @@ export class CacheService {
     if (keys.length === 0) return result;
 
     // 检查批量大小
-    const maxBatchSize = this.cacheLimitsProvider.getBatchSizeLimit('cache');
+    const maxBatchSize = this.cacheUnifiedConfig.maxBatchSize;
     if (keys.length > maxBatchSize) {
       // 🔥 核心修复：直接拒绝，不再只是警告
       throw new BadRequestException(
@@ -541,12 +582,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > this.cacheConfig.slowOperationMs) {
+      if (duration > this.cacheUnifiedConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.MGET,
           batchSize: keys.length,
           duration,
-          threshold: this.cacheConfig.slowOperationMs,
+          threshold: this.cacheUnifiedConfig.slowOperationMs,
         });
       }
     } catch (error) {
@@ -580,7 +621,7 @@ export class CacheService {
     if (entries.size === 0) return true;
 
     // 检查批量大小
-    const maxBatchSize = this.cacheLimitsProvider.getBatchSizeLimit('cache');
+    const maxBatchSize = this.cacheUnifiedConfig.maxBatchSize;
     if (entries.size > maxBatchSize) {
       // 🔥 核心修复：直接拒绝
       throw new BadRequestException(
@@ -603,12 +644,12 @@ export class CacheService {
 
       // 检查慢操作
       const duration = Date.now() - startTime;
-      if (duration > this.cacheConfig.slowOperationMs) {
+      if (duration > this.cacheUnifiedConfig.slowOperationMs) {
         this.logger.warn(CACHE_MESSAGES.WARNINGS.SLOW_OPERATION, {
           operation: CACHE_CORE_OPERATIONS.MSET,
           batchSize: entries.size,
           duration,
-          threshold: this.cacheConfig.slowOperationMs,
+          threshold: this.cacheUnifiedConfig.slowOperationMs,
         });
       }
 
@@ -734,7 +775,7 @@ export class CacheService {
     // 检查序列化后的大小
     const sizeInBytes = Buffer.byteLength(serialized, "utf8");
     const maxSizeBytes =
-      this.cacheConfig.maxValueSizeMB * 1024 * 1024;
+      this.cacheUnifiedConfig.maxValueSizeMB * 1024 * 1024;
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
@@ -770,7 +811,7 @@ export class CacheService {
 
   private shouldCompress(
     value: string,
-    threshold: number = this.cacheConfig.compressionThreshold,
+    threshold: number = this.cacheUnifiedConfig.compressionThreshold,
   ): boolean {
     if (!value) {
       return false;
@@ -917,16 +958,16 @@ export class CacheService {
    * 验证缓存键长度
    */
   private validateKeyLength(key: string): void {
-    if (key.length > this.cacheConfig.maxKeyLength) {
+    if (key.length > this.cacheUnifiedConfig.maxKeyLength) {
       const errorMessage = `${
         CACHE_MESSAGES.ERRORS.INVALID_KEY_LENGTH
       }: 键 '${key.substring(0, 50)}...' 的长度 ${key.length} 超过了最大限制 ${
-        this.cacheConfig.maxKeyLength
+        this.cacheUnifiedConfig.maxKeyLength
       }`;
       this.logger.error(errorMessage, {
         operation: "validateKeyLength",
         keyLength: key.length,
-        maxLength: this.cacheConfig.maxKeyLength,
+        maxLength: this.cacheUnifiedConfig.maxKeyLength,
       });
       throw new BadRequestException(errorMessage);
     }

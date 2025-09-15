@@ -10,8 +10,8 @@
  * - messages/ : 消息相关常量（错误、警告、成功）
  * 
  * ⚡ 新增统一配置：
- * - CacheLimitsProvider: 统一的缓存大小和批量限制管理
- * - CacheTtlProvider: 统一的TTL配置管理
+ * - 限制配置: 通过cache-unified.config.ts统一管理
+ * - TTL配置: 通过CacheService.getTtlByTimeliness()方法访问
  * - cache-shared.interfaces: 统一的DTO共享接口
  */
 
@@ -28,10 +28,10 @@ import { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES } from './config/data-format
 
 // 导出类型以供外部使用
 export type { SerializerType };
-// 旧的TTL配置导入已移除，使用简化版本
+// 配置相关常量导入
 import { CACHE_KEYS as MODULAR_CACHE_KEYS } from './config/cache-keys.constants';
 import { CACHE_STATUS } from './status/cache-status.constants';
-// 旧的健康状态导入已移除，使用统一的健康状态定义
+// 消息常量导入
 import { CACHE_MESSAGES } from './messages/cache-messages.constants';
 
 // ============================================================================
@@ -40,8 +40,9 @@ import { CACHE_MESSAGES } from './messages/cache-messages.constants';
 
 // 重新导出新版结构化常量，移除冗余的迁移映射
 
-// 重新导出TTL配置 - 使用简化版本消除多层引用
-export { SIMPLIFIED_TTL_CONFIG as CACHE_TTL_CONFIG, TTL_VALUES as CACHE_TTL } from './config/simplified-ttl-config.constants';
+// 🎯 TTL配置已迁移到统一配置文件
+// TTL值现在通过 ConfigService 和 cache-unified.config.ts 获取
+// 不再导出硬编码的TTL常量
 
 // 重新导出操作常量
 export { 
@@ -101,17 +102,19 @@ export { CACHE_MESSAGES };
  * ```typescript
  * // 注入Provider
  * constructor(
- *   private readonly cacheLimitsProvider: CacheLimitsProvider,
- *   private readonly cacheTtlProvider: CacheTtlProvider,
+ *   private readonly configService: ConfigService,
+ *   private readonly cacheService: CacheService,
  * ) {}
  * 
- * // 使用配置
- * const batchLimit = this.cacheLimitsProvider.getBatchSizeLimit('cache');
- * const ttl = this.cacheTtlProvider.getTtl('default');
+ * // 使用统一配置
+ * const cacheConfig = this.configService.get<CacheUnifiedConfig>('cacheUnified');
+ * const batchLimit = cacheConfig.maxBatchSize;
+ * const ttl = this.cacheService.getTtlByTimeliness('weak');
  * ```
  */
-export { type CacheLimitsConfig } from '../config/cache-limits.config';
-export { type CacheTtlConfig } from '../config/cache-ttl.config';
+// 替换：统一配置类型已迁移到 cache-unified.config.ts
+export type { CacheUnifiedConfig as CacheLimitsConfig } from '../config/cache-unified.config';
+export type { CacheUnifiedConfig as CacheTtlConfig } from '../config/cache-unified.config';
 
 /**
  * 统一DTO接口导出

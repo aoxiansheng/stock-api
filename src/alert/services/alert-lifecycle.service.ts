@@ -21,7 +21,7 @@ import { IAlert, IAlertRule, IRuleEvaluationResult } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';
 import { AlertEventPublisher } from './alert-event-publisher.service';
 import { AlertCacheService } from './alert-cache.service';
-import cacheLimitsConfig from '@cache/config/cache-limits.config';
+import cacheLimitsConfig from '@cache/config/cache-unified.config';
 
 @Injectable()
 export class AlertLifecycleService {

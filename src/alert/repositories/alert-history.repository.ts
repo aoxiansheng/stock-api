@@ -8,7 +8,7 @@ import { createLogger } from "@common/logging/index";
 import { IAlert, IAlertQuery } from "../interfaces";
 import { AlertHistory, AlertHistoryDocument } from "../schemas";
 import { AlertStatus } from "../types/alert.types";
-import cacheLimitsConfig from '../../cache/config/cache-limits.config';
+import cacheLimitsConfig from '../../cache/config/cache-unified.config';
 import alertConfig from '../config/alert.config';
 
 type AlertCreateData = Omit<IAlert, "id" | "startTime" | "status">;

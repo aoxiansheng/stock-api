@@ -9,9 +9,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
 
 import { CacheService } from '../../../../../src/cache/services/cache.service';
-import { CacheConfig } from '../../../../../src/cache/config/cache.config';
-import { CacheTtlConfig } from '../../../../../src/cache/config/cache-ttl.config';
-import { CacheLimitsProvider } from '../../../../../src/cache/providers/cache-limits.provider';
+import { CacheUnifiedConfig } from '../../../../../src/cache/config/cache-unified.config';
+import cacheUnifiedConfig from '../../../../../src/cache/config/cache-unified.config';
 
 describe('CacheService Configuration', () => {
   let service: CacheService;
@@ -19,19 +18,7 @@ describe('CacheService Configuration', () => {
   let redisClient: jest.Mocked<Redis>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
-  const mockCacheConfig: CacheConfig = {
-    defaultTtl: 300,
-    compressionThreshold: 1024,
-    compressionEnabled: true,
-    maxItems: 10000,
-    maxKeyLength: 255,
-    maxValueSizeMB: 10,
-    slowOperationMs: 100,
-    retryDelayMs: 100,
-    lockTtl: 30,
-  };
-
-  const mockCacheTtlConfig: CacheTtlConfig = {
+  const mockUnifiedConfig: CacheUnifiedConfig = {
     defaultTtl: 300,
     strongTimelinessTtl: 5,
     realtimeTtl: 30,
@@ -40,10 +27,24 @@ describe('CacheService Configuration', () => {
     transformerTtl: 300,
     suggestionTtl: 300,
     longTermTtl: 3600,
-  };
-
-  const mockCacheLimitsProvider = {
-    getBatchSizeLimit: jest.fn().mockReturnValue(100),
+    compressionThreshold: 1024,
+    compressionEnabled: true,
+    maxItems: 10000,
+    maxKeyLength: 255,
+    maxValueSizeMB: 10,
+    slowOperationMs: 100,
+    retryDelayMs: 100,
+    lockTtl: 30,
+    maxBatchSize: 100,
+    maxCacheSize: 10000,
+    lruSortBatchSize: 1000,
+    smartCacheMaxBatch: 50,
+    maxCacheSizeMB: 1024,
+    // Alert配置 (将迁移到Alert模块)
+    alertBatchSize: 100,
+    alertMaxBatchProcessing: 1000,
+    alertLargeBatchSize: 1000,
+    alertMaxActiveAlerts: 10000,
   };
 
   beforeEach(async () => {
@@ -69,7 +70,11 @@ describe('CacheService Configuration', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue(mockCacheConfig),
+            get: jest.fn().mockImplementation((key: string) => {
+              if (key === 'cacheUnified') return mockUnifiedConfig;
+              if (key === 'cache') return mockUnifiedConfig; // backward compatibility
+              return undefined;
+            }),
           },
         },
         {
@@ -82,11 +87,7 @@ describe('CacheService Configuration', () => {
         },
         {
           provide: 'cacheTtl',
-          useValue: mockCacheTtlConfig,
-        },
-        {
-          provide: CacheLimitsProvider,
-          useValue: mockCacheLimitsProvider,
+          useValue: mockUnifiedConfig,
         },
       ],
     }).compile();
@@ -101,7 +102,7 @@ describe('CacheService Configuration', () => {
 
   describe('Configuration Integration', () => {
     it('should initialize with cache configuration from ConfigService', () => {
-      expect(configService.get).toHaveBeenCalledWith('cache');
+      expect(configService.get).toHaveBeenCalledWith('cacheUnified');
       expect(service).toBeDefined();
     });
 
@@ -141,7 +142,7 @@ describe('CacheService Configuration', () => {
       
       expect(redisClient.setex).toHaveBeenCalledWith(
         'test-key',
-        mockCacheConfig.defaultTtl,
+        mockUnifiedConfig.defaultTtl,
         expect.any(String)
       );
     });
@@ -165,7 +166,7 @@ describe('CacheService Configuration', () => {
       redisClient.setex.mockResolvedValue('OK');
       
       // Create data larger than compression threshold
-      const largeData = 'x'.repeat(mockCacheConfig.compressionThreshold + 100);
+      const largeData = 'x'.repeat(mockUnifiedConfig.compressionThreshold + 100);
       
       await service.set('test-key', largeData);
       
@@ -192,7 +193,7 @@ describe('CacheService Configuration', () => {
 
   describe('Batch Size Configuration', () => {
     it('should enforce max batch size limit', async () => {
-      const largeKeyArray = Array.from({ length: 101 }, (_, i) => `key-${i}`); // 101 > 100 (mockCacheLimitsProvider batch limit)
+      const largeKeyArray = Array.from({ length: 101 }, (_, i) => `key-${i}`); // 101 > 100 (unified config batch limit)
       
       await expect(service.mget(largeKeyArray)).rejects.toThrow('批量操作超过最大限制');
     });
@@ -200,7 +201,7 @@ describe('CacheService Configuration', () => {
     it('should allow batch operations within limit', async () => {
       redisClient.mget.mockResolvedValue([]);
       
-      const keyArray = Array.from({ length: 99 }, (_, i) => `key-${i}`); // 99 < 100 (mockCacheLimitsProvider batch limit)
+      const keyArray = Array.from({ length: 99 }, (_, i) => `key-${i}`); // 99 < 100 (unified config batch limit)
       
       await expect(service.mget(keyArray)).resolves.not.toThrow();
       expect(redisClient.mget).toHaveBeenCalledWith(keyArray);
@@ -209,7 +210,7 @@ describe('CacheService Configuration', () => {
 
   describe('Key Length Validation', () => {
     it('should enforce max key length limit', async () => {
-      const longKey = 'x'.repeat(mockCacheConfig.maxKeyLength + 1);
+      const longKey = 'x'.repeat(mockUnifiedConfig.maxKeyLength + 1);
       
       await expect(service.set(longKey, 'value')).rejects.toThrow('缓存键长度超过最大限制');
     });
@@ -217,7 +218,7 @@ describe('CacheService Configuration', () => {
     it('should allow keys within length limit', async () => {
       redisClient.setex.mockResolvedValue('OK');
       
-      const validKey = 'x'.repeat(mockCacheConfig.maxKeyLength - 1);
+      const validKey = 'x'.repeat(mockUnifiedConfig.maxKeyLength - 1);
       
       await expect(service.set(validKey, 'value')).resolves.toBe(true);
     });
@@ -227,7 +228,7 @@ describe('CacheService Configuration', () => {
     it('should use unified lock TTL configuration', async () => {
       // This test would require more complex setup to test the lock mechanism
       // For now, we verify the configuration is available
-      expect(mockCacheConfig.lockTtl).toBe(30);
+      expect(mockUnifiedConfig.lockTtl).toBe(30);
     });
   });
 });

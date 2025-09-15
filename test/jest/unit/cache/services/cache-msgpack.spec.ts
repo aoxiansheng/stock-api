@@ -10,9 +10,8 @@ import Redis from 'ioredis';
 import * as msgpack from 'msgpack-lite';
 
 import { CacheService } from '../../../../../src/cache/services/cache.service';
-import { CacheConfig } from '../../../../../src/cache/config/cache.config';
-import { CacheTtlConfig } from '../../../../../src/cache/config/cache-ttl.config';
-import { CacheLimitsProvider } from '../../../../../src/cache/providers/cache-limits.provider';
+import { CacheUnifiedConfig } from '../../../../../src/cache/config/cache-unified.config';
+import cacheUnifiedConfig from '../../../../../src/cache/config/cache-unified.config';
 import { CACHE_DATA_FORMATS } from '../../../../../src/cache/constants/config/data-formats.constants';
 
 describe('CacheService msgpack Serialization', () => {
@@ -20,19 +19,7 @@ describe('CacheService msgpack Serialization', () => {
   let redisClient: jest.Mocked<Redis>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
-  const mockCacheConfig: CacheConfig = {
-    defaultTtl: 300,
-    compressionThreshold: 1024,
-    compressionEnabled: true,
-    maxItems: 10000,
-    maxKeyLength: 255,
-    maxValueSizeMB: 10,
-    slowOperationMs: 100,
-    retryDelayMs: 100,
-    lockTtl: 30,
-  };
-
-  const mockCacheTtlConfig: CacheTtlConfig = {
+  const mockUnifiedConfig: CacheUnifiedConfig = {
     defaultTtl: 300,
     strongTimelinessTtl: 5,
     realtimeTtl: 30,
@@ -41,10 +28,24 @@ describe('CacheService msgpack Serialization', () => {
     transformerTtl: 300,
     suggestionTtl: 300,
     longTermTtl: 3600,
-  };
-
-  const mockCacheLimitsProvider = {
-    getBatchSizeLimit: jest.fn().mockReturnValue(100),
+    compressionThreshold: 1024,
+    compressionEnabled: true,
+    maxItems: 10000,
+    maxKeyLength: 255,
+    maxValueSizeMB: 10,
+    slowOperationMs: 100,
+    retryDelayMs: 100,
+    lockTtl: 30,
+    maxBatchSize: 100,
+    maxCacheSize: 10000,
+    lruSortBatchSize: 1000,
+    smartCacheMaxBatch: 50,
+    maxCacheSizeMB: 1024,
+    // Alert配置 (将迁移到Alert模块)
+    alertBatchSize: 100,
+    alertMaxBatchProcessing: 1000,
+    alertLargeBatchSize: 1000,
+    alertMaxActiveAlerts: 10000,
   };
 
   beforeEach(async () => {
@@ -70,7 +71,11 @@ describe('CacheService msgpack Serialization', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue(mockCacheConfig),
+            get: jest.fn().mockImplementation((key: string) => {
+              if (key === 'cacheUnified') return mockUnifiedConfig;
+              if (key === 'cache') return mockUnifiedConfig; // backward compatibility
+              return undefined;
+            }),
           },
         },
         {
@@ -83,11 +88,7 @@ describe('CacheService msgpack Serialization', () => {
         },
         {
           provide: 'cacheTtl',
-          useValue: mockCacheTtlConfig,
-        },
-        {
-          provide: CacheLimitsProvider,
-          useValue: mockCacheLimitsProvider,
+          useValue: mockUnifiedConfig,
         },
       ],
     }).compile();

@@ -29,7 +29,8 @@
       "Bash(DISABLE_AUTO_INIT=true bun run test:unit:monitoring)",
       "Bash(find:*)",
       "Bash(DISABLE_AUTO_INIT=true jest --config test/config/jest.unit.config.js src/notification/config)",
-      "Bash(DISABLE_AUTO_INIT=true npm test -- --testPathPattern=notification/config)"
+      "Bash(DISABLE_AUTO_INIT=true npm test -- --testPathPattern=notification/config)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/auth/config/auth-config-deduplication-simple.spec.ts --testTimeout=30000)"
     ],
     "deny": [],
     "ask": []

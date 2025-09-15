@@ -81,7 +81,7 @@ export default registerAs('cache', (): CacheConfigValidation => {
     maxItems: parseInt(process.env.CACHE_MAX_ITEMS, 10) || 10000,
     maxKeyLength: parseInt(process.env.CACHE_MAX_KEY_LENGTH, 10) || 255,
     maxValueSizeMB: parseInt(process.env.CACHE_MAX_VALUE_SIZE_MB, 10) || 10,
-    // maxBatchSize 已迁移至统一配置: src/cache/config/cache-limits.config.ts
+    // maxBatchSize 已迁移至统一配置: src/cache/config/cache-unified.config.ts
     slowOperationMs: parseInt(process.env.CACHE_SLOW_OPERATION_MS, 10) || 100,
     retryDelayMs: parseInt(process.env.CACHE_RETRY_DELAY_MS, 10) || 100,
     lockTtl: parseInt(process.env.CACHE_LOCK_TTL, 10) || 30,

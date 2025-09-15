@@ -10,6 +10,8 @@ import { ApiKeyUtil } from "../../utils/apikey.utils";
 import { RolePermissions, Permission } from "../../enums/user-role.enum";
 import { CommonStatus } from "../../enums/common-status.enum";
 import { API_KEY_DEFAULTS, API_KEY_OPERATIONS, API_KEY_VALIDATION } from "../../constants/api-security.constants";
+// 🆕 引入新的统一配置系统 - 与现有常量并存
+import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
 import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-messages.constants";
 
 /**
@@ -24,7 +26,60 @@ export class ApiKeyManagementService {
   constructor(
     @InjectModel(ApiKey.name) private readonly apiKeyModel: Model<ApiKeyDocument>,
     private readonly userRepository: UserRepository,
+    // 🆕 可选注入新配置系统 - 如果可用则使用，否则回退到原常量
+    private readonly authConfig?: AuthConfigCompatibilityWrapper,
   ) {}
+
+  // 🆕 统一配置访问方法 - 优先使用新配置，回退到原常量
+  private get apiKeyDefaults() {
+    if (this.authConfig) {
+      const apiKeyOps = this.authConfig.API_KEY_OPERATIONS;
+      const validationLimits = this.authConfig.VALIDATION_LIMITS;
+      
+      const newDefaults = {
+        DEFAULT_RATE_LIMIT_REQUESTS: 200, // 从新配置计算得出
+        DEFAULT_RATE_LIMIT_WINDOW: '1m',
+        DEFAULT_EXPIRY_DAYS: 365,
+        ACTIVE_STATUS: true,
+        DEFAULT_PERMISSIONS: [],
+        NAME_PREFIX: 'API Key'
+      };
+
+      // 🔍 调试日志：记录使用新配置系统
+      this.logger.debug('ApiKeyManagementService: 使用新统一配置系统', {
+        configSource: 'AuthConfigCompatibilityWrapper',
+        maxKeysPerUser: apiKeyOps.MAX_KEYS_PER_USER,
+        cacheTtl: apiKeyOps.CACHE_TTL_SECONDS,
+        validatePerSecond: apiKeyOps.VALIDATE_PER_SECOND,
+        apiKeyLength: validationLimits.API_KEY_DEFAULT_LENGTH,
+      });
+      
+      return newDefaults;
+    }
+    
+    // 回退到原有常量
+    this.logger.debug('ApiKeyManagementService: 回退到原有常量系统', {
+      configSource: 'API_KEY_DEFAULTS',
+      defaultRateLimit: API_KEY_DEFAULTS.DEFAULT_RATE_LIMIT_REQUESTS,
+      defaultWindow: API_KEY_DEFAULTS.DEFAULT_RATE_LIMIT_WINDOW,
+    });
+    
+    return API_KEY_DEFAULTS;
+  }
+
+  private get apiKeyOperations() {
+    if (this.authConfig) {
+      return this.authConfig.API_KEY_OPERATIONS;
+    }
+    return API_KEY_OPERATIONS;
+  }
+
+  private get apiKeyValidation() {
+    if (this.authConfig) {
+      return this.authConfig.VALIDATION_LIMITS;
+    }
+    return API_KEY_VALIDATION;
+  }
 
   /**
    * 创建API密钥
@@ -46,8 +101,8 @@ export class ApiKeyManagementService {
       userId,
       permissions,
       rateLimit: rateLimit || { 
-        requestLimit: API_KEY_DEFAULTS.DEFAULT_RATE_LIMIT_REQUESTS, 
-        window: API_KEY_DEFAULTS.DEFAULT_RATE_LIMIT_WINDOW 
+        requestLimit: this.apiKeyDefaults.DEFAULT_RATE_LIMIT_REQUESTS, 
+        window: this.apiKeyDefaults.DEFAULT_RATE_LIMIT_WINDOW 
       },
       status: CommonStatus.ACTIVE,
       expiresAt,

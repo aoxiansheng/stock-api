@@ -15,7 +15,7 @@ import { createLogger } from "@common/logging/index";
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from '../dto';
 import { IAlert, IAlertRule, IAlertQuery, IAlertStats, IMetricData } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';
-import cacheLimitsConfig from '@cache/config/cache-limits.config';
+import cacheLimitsConfig from '@cache/config/cache-unified.config';
 
 // 新服务层导入
 import { AlertRuleService } from './alert-rule.service';

@@ -7,6 +7,7 @@ import { appConfig } from '../config/app.config';
 import { FeatureFlags } from '../config/feature-flags.config';
 import alertConfig from '../../alert/config/alert.config';
 import { securityConfig } from '../../auth/config/security.config';
+import authUnifiedConfig from '../../auth/config/auth-unified.config';
 import unifiedTtlConfig from '../../cache/config/unified-ttl.config';
 // notificationConfig已从旧文件迁移至notification-enhanced.config.ts
 // 由NotificationModule直接处理配置注册
@@ -31,6 +32,7 @@ import unifiedTtlConfig from '../../cache/config/unified-ttl.config';
         }),
         alertConfig, // 告警配置
         () => ({ security: securityConfig }), // 安全配置
+        authUnifiedConfig, // Auth统一配置
         unifiedTtlConfig, // 统一TTL配置
         // 通知配置由NotificationModule自行处理
       ],

@@ -15,7 +15,7 @@ import { PaginationService } from '@common/modules/pagination/services/paginatio
 import { AlertHistoryRepository } from '../repositories/alert-history.repository';
 import { IAlert, IAlertQuery, IAlertStats } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';
-import cacheLimitsConfig from '../../cache/config/cache-limits.config';
+import cacheLimitsConfig from '../../cache/config/cache-unified.config';
 import {
   AlertQueryResultDto,
   AlertStatisticsDto,
