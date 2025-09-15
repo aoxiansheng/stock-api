@@ -27,7 +27,9 @@
       "Bash(DISABLE_AUTO_INIT=true jest --config test/config/jest.unit.config.js test/jest/unit/cache)",
       "Bash(npm run:*)",
       "Bash(DISABLE_AUTO_INIT=true bun run test:unit:monitoring)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(DISABLE_AUTO_INIT=true jest --config test/config/jest.unit.config.js src/notification/config)",
+      "Bash(DISABLE_AUTO_INIT=true npm test -- --testPathPattern=notification/config)"
     ],
     "deny": [],
     "ask": []

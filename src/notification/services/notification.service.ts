@@ -7,6 +7,7 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@common/logging/index";
@@ -65,12 +66,16 @@ import {
 } from '../events/notification.events';
 
 // 导入配置类型
-import { NotificationEnhancedConfig } from '../config/notification-enhanced.config';
+import type { NotificationConfig } from '../types/notification-config.types';
 
 @Injectable()
 export class NotificationService {
   private readonly logger = createLogger('NotificationService');
   private readonly senders: Map<NotificationChannelType, any> = new Map();
+
+  private get notificationConfig(): NotificationConfig {
+    return this.configService.get<NotificationConfig>('notification');
+  }
 
   constructor(
     private readonly emailSender: EmailSender,
@@ -81,8 +86,7 @@ export class NotificationService {
     private readonly templateService: NotificationTemplateService,
     private readonly alertToNotificationAdapter: AlertToNotificationAdapter,
     private readonly eventEmitter: EventEmitter2,
-    @Inject('notificationEnhanced')
-    private readonly notificationConfig: NotificationEnhancedConfig,
+    private readonly configService: ConfigService,
   ) {
     // 初始化发送器映射
     this.senders.set(NotificationChannelType.EMAIL, this.emailSender);

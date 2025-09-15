@@ -280,7 +280,7 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
       },
     },
     from: "",
-    timeout: 30000, // 默认邮件超时 (原TIMEOUTS.EMAIL)
+    // timeout配置已迁移到NotificationEnhancedConfig
   },
   
   SMS: {
@@ -289,14 +289,14 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     accessKeySecret: "",
     signName: "",
     templateCode: "",
-    timeout: 5000, // 默认SMS超时 (原TIMEOUTS.SMS)
+    // timeout配置已迁移到NotificationEnhancedConfig
   },
   
   WEBHOOK: {
     url: "",
     method: "POST",
     headers: {},
-    timeout: 10000, // 默认Webhook超时 (原TIMEOUTS.WEBHOOK)
+    // timeout配置已迁移到NotificationEnhancedConfig
     verifySSL: true,
   },
   
@@ -305,12 +305,12 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     channel: "",
     username: "AlertBot",
     iconEmoji: ":warning:",
-    timeout: 15000, // 默认Slack超时 (原TIMEOUTS.SLACK)
+    // timeout配置已迁移到NotificationEnhancedConfig
   },
   
   DINGTALK: {
     webhook: "",
     secret: "",
-    timeout: 10000, // 默认钉钉超时 (原TIMEOUTS.DINGTALK)
+    // timeout配置已迁移到NotificationEnhancedConfig
   },
 });

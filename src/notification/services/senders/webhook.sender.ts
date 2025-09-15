@@ -10,12 +10,13 @@ import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
 import { BadRequestException, Injectable, Inject } from "@nestjs/common";
+import { ConfigService } from '@nestjs/config';
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
 // 使用本地通知配置替换外部依赖
-import { NotificationEnhancedConfig } from "../../config/notification-enhanced.config";
+import type { NotificationConfig } from "../../types/notification-config.types";
 
 // 使用Notification模块的类型
 import {
@@ -33,10 +34,13 @@ export class WebhookSender implements NotificationSender {
   type = NotificationChannelType.WEBHOOK;
   private readonly logger = createLogger(WebhookSender.name);
 
+  private get notificationConfig(): NotificationConfig {
+    return this.configService.get<NotificationConfig>('notification');
+  }
+
   constructor(
     private readonly httpService: HttpService,
-    @Inject('notificationEnhanced')
-    private readonly notificationConfig: NotificationEnhancedConfig,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
