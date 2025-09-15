@@ -17,7 +17,8 @@ import { DatabaseModule } from "../../database/database.module";
 import { AuthModule } from "../../auth/module/auth.module";
 import { CacheModule } from "../../cache/module/cache.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
-import { alertConfig } from "@alert/config/alert.config";
+import alertConfig from "@alert/config/alert.config";
+import cacheLimitsConfig from "../../cache/config/cache-limits.config";
 import { AlertConstantsValidator } from "../utils/constants-validator.util";
 import { OPERATION_LIMITS } from '@common/constants/domain';
 
@@ -59,6 +60,7 @@ import { RuleEvaluator } from "../evaluators/rule.evaluator";
 
     // 配置
     ConfigModule.forFeature(alertConfig),
+    ConfigModule.forFeature(cacheLimitsConfig),
 
     // HTTP 客户端
     HttpModule.register({

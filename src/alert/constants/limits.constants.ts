@@ -13,23 +13,15 @@
  * 规则相关的数量限制
  */
 export const RULE_LIMITS = {
-  // 规则内容限制
-  MAX_CONDITIONS_PER_RULE: 10,      // 10个 - 单规则最大条件数
+  // 固定规则内容限制（不可配置的业务常量）
   MAX_ACTIONS_PER_RULE: 5,          // 5个 - 单规则最大动作数
   MAX_TAGS_PER_ENTITY: 10,          // 10个 - 单实体最大标签数
   
-  // 用户限制
-  MAX_RULES_PER_USER: 100,          // 100个 - 单用户最大规则数
-  MAX_ACTIVE_ALERTS: 10000,         // 10000个 - 最大活跃告警数
-  
-  // 批处理大小
-  SMALL_BATCH_SIZE: 50,             // 50个 - 小批量操作
-  STANDARD_BATCH_SIZE: 100,         // 100个 - 标准批量操作
-  LARGE_BATCH_SIZE: 1000,           // 1000个 - 大批量操作
-  
-  // 分页设置
-  DEFAULT_PAGE_SIZE: 20,            // 20个 - 默认分页大小
-  MAX_QUERY_RESULTS: 100,           // 100个 - 单次查询最大结果数
+  // 注意：可配置参数已迁移到 alert.config.ts 的 AlertLimitsConfig:
+  // - MAX_CONDITIONS_PER_RULE → alert.config.ts:limits.maxConditionsPerRule
+  // - MAX_RULES_PER_USER → alert.config.ts:limits.maxRulesPerUser  
+  // - DEFAULT_PAGE_SIZE → alert.config.ts:limits.defaultPageSize
+  // - MAX_QUERY_RESULTS → alert.config.ts:limits.maxQueryResults
 } as const;
 
 /**
@@ -101,36 +93,13 @@ export const PERFORMANCE_LIMITS = {
 /**
  * 验证限制配置
  * DTO验证使用的限制值
+ * 
+ * ⚠️ 已迁移到 @common/constants/validation.constants.ts
+ * 请使用: import { VALIDATION_LIMITS } from '@common/constants/validation.constants';
  */
-export const VALIDATION_LIMITS = {
-  // 字符串长度验证
-  NAME_MAX_LENGTH: 100,             // 100 - 名称最大长度
-  DESCRIPTION_MAX_LENGTH: 500,      // 500 - 描述最大长度
-  TAG_MAX_LENGTH: 50,               // 50 - 标签最大长度
-  
-  // 规则容量验证
-  CONDITIONS_PER_RULE: 10,          // 10个 - 单规则最大条件数
-  ACTIONS_PER_RULE: 5,              // 5个 - 单规则最大动作数
-  RULES_PER_USER: 100,              // 100个 - 单用户最大规则数
-  
-  // 时间范围验证（秒）
-  DURATION_MIN: 30,                 // 30秒 - 最小持续时间
-  DURATION_MAX: 600,                // 600秒 - 最大持续时间
-  COOLDOWN_MIN: 300,                // 300秒 - 最小冷却时间
-  COOLDOWN_MAX: 3000,               // 3000秒 - 最大冷却时间
-  
-  // 超时验证（毫秒）
-  TIMEOUT_MIN: 1000,                // 1000ms - 最小超时时间
-  TIMEOUT_MAX: 60000,               // 60000ms - 最大超时时间
-  
-  // 重试验证
-  RETRIES_MIN: 1,                   // 1次 - 最小重试次数
-  RETRIES_MAX: 10,                  // 10次 - 最大重试次数
-} as const;
 
 // 类型定义
 export type RuleLimits = typeof RULE_LIMITS;
 export type StringLimits = typeof STRING_LIMITS;
 export type RetryLimits = typeof RETRY_LIMITS;
 export type PerformanceLimits = typeof PERFORMANCE_LIMITS;
-export type ValidationLimitsType = typeof VALIDATION_LIMITS;

@@ -12,32 +12,28 @@ import { AlertSeverity } from './enums';
 
 /**
  * 告警规则默认值
- * 创建新规则时使用的默认配置
+ * 固定业务默认值（不可配置的业务常量）
  */
 export const ALERT_DEFAULTS = {
-  // 规则基础默认值
+  // 固定业务默认值
   operator: '>',                      // 默认操作符
   duration: 60,                       // 60秒 - 默认持续时间
   severity: AlertSeverity.MEDIUM,     // 'medium' - 默认严重程度
   enabled: true,                      // true - 默认启用
-  cooldown: 300,                      // 300秒 - 默认冷却期
   
-  // 容量默认值
+  // 固定容量默认值
   MAX_CONDITIONS: 10,                 // 10 - 最大条件数
   MAX_ACTIONS: 5,                     // 5 - 最大动作数
-  BATCH_SIZE: 100,                    // 100 - 批量操作大小
   
-  // 字符串长度默认值
+  // 固定字符串长度默认值
   NAME_MAX_LENGTH: 100,               // 100 - 名称最大长度
   DESCRIPTION_MAX_LENGTH: 500,        // 500 - 描述最大长度
   
-  // 超时默认值
-  TIMEOUT_DEFAULT: 5000,              // 5000ms - 默认超时
-  EVALUATION_INTERVAL: 60,            // 60秒 - 评估间隔
-  COOLDOWN_PERIOD: 300,               // 300秒 - 冷却期
-  
-  // 重试默认值
-  RETRY_COUNT: 3,                     // 3 - 默认重试次数
+  // 注意：可配置默认值已迁移：
+  // - 超时配置 → alert.config.ts (evaluationTimeout, evaluationInterval)
+  // - 重试配置 → alert.config.ts (maxRetries)
+  // - 批处理配置 → cache-limits.config.ts (alertBatchSize)
+  // - 冷却配置 → unified-ttl.config.ts (alertCooldownTtl)
 } as const;
 
 /**
@@ -52,7 +48,7 @@ export const ALERT_CONFIG_PRESETS = {
     // 快速规则配置
     QUICK: {
       duration: 30,                     // 30秒
-      cooldown: 300,                    // 300秒
+      // cooldown: 迁移到统一TTL配置的 alertCooldownTtl
       maxConditions: 3,                 // 3个
       maxActions: 2,                    // 2个
     },
@@ -60,7 +56,7 @@ export const ALERT_CONFIG_PRESETS = {
     // 标准规则配置
     STANDARD: {
       duration: 60,                     // 60秒
-      cooldown: 300,                    // 300秒
+      // cooldown: 迁移到统一TTL配置的 alertCooldownTtl
       maxConditions: 10,                // 10个
       maxActions: 5,                    // 5个
     },
@@ -68,6 +64,7 @@ export const ALERT_CONFIG_PRESETS = {
     // 复杂规则配置
     COMPLEX: {
       duration: 120,                    // 120秒
+      // cooldown: 600 (业务不同值，保留)
       cooldown: 600,                    // 600秒
       maxConditions: 10,                // 10个
       maxActions: 5,                    // 5个

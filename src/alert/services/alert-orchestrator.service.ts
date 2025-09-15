@@ -7,12 +7,15 @@
  * @date 2025-09-10
  */
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 
 import { createLogger } from "@common/logging/index";
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from '../dto';
 import { IAlert, IAlertRule, IAlertQuery, IAlertStats, IMetricData } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';
+import cacheLimitsConfig from '@cache/config/cache-limits.config';
 
 // 新服务层导入
 import { AlertRuleService } from './alert-rule.service';
@@ -39,6 +42,9 @@ export class AlertOrchestratorService implements OnModuleInit {
     private readonly queryService: AlertQueryService,
     private readonly cacheService: AlertCacheService,
     private readonly eventPublisher: AlertEventPublisher,
+    private readonly configService: ConfigService,
+    @Inject(cacheLimitsConfig.KEY)
+    private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
   ) {}
 
   async onModuleInit() {
@@ -205,6 +211,11 @@ export class AlertOrchestratorService implements OnModuleInit {
     status: AlertStatus,
     updatedBy: string
   ): Promise<{ successCount: number; failedCount: number; errors: string[] }> {
+    // 检查批量操作限制
+    if (alertIds.length > this.cacheLimits.alertBatchSize) {
+      throw new Error(`批量操作数量超出限制，最大允许${this.cacheLimits.alertBatchSize}个`);
+    }
+    
     return await this.lifecycleService.batchUpdateAlertStatus(alertIds, status, updatedBy);
   }
 

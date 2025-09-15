@@ -140,3 +140,8 @@ export default registerAs('cacheTtl', (): CacheTtlValidation => {
 
   return validatedConfig;
 });
+
+/**
+ * 导出配置验证类类型
+ */
+export type CacheTtlConfigType = CacheTtlValidation;

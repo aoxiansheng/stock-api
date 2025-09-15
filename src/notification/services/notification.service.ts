@@ -6,7 +6,7 @@
  * @see docs/代码审查文档/常量枚举值审查说明/NotificationAlert组件拆分计划.md
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@common/logging/index";
@@ -64,6 +64,9 @@ import {
   BatchNotificationCompletedEvent,
 } from '../events/notification.events';
 
+// 导入配置类型
+import { NotificationEnhancedConfig } from '../config/notification-enhanced.config';
+
 @Injectable()
 export class NotificationService {
   private readonly logger = createLogger('NotificationService');
@@ -78,6 +81,8 @@ export class NotificationService {
     private readonly templateService: NotificationTemplateService,
     private readonly alertToNotificationAdapter: AlertToNotificationAdapter,
     private readonly eventEmitter: EventEmitter2,
+    @Inject('notificationEnhanced')
+    private readonly notificationConfig: NotificationEnhancedConfig,
   ) {
     // 初始化发送器映射
     this.senders.set(NotificationChannelType.EMAIL, this.emailSender);
@@ -304,11 +309,14 @@ export class NotificationService {
     
     this.logger.debug('开始处理批量DTO通知请求', {
       requestCount: batchRequest.requests.length,
-      concurrency: batchRequest.concurrency || 10,
+      concurrency: batchRequest.concurrency || this.notificationConfig.defaultBatchSize,
       batchId,
     });
 
-    const concurrency = Math.min(batchRequest.concurrency || 10, 50);
+    const concurrency = Math.min(
+      batchRequest.concurrency || this.notificationConfig.defaultBatchSize, 
+      this.notificationConfig.maxConcurrency
+    );
     const results: NotificationRequestResultDto[] = [];
 
     // 发布批量处理开始事件
@@ -1476,8 +1484,8 @@ export class NotificationService {
 
       // 构建发送配置
       const channelConfig = {
-        retryCount: 3,
-        timeout: 30000,
+        retryCount: this.notificationConfig.maxRetryAttempts,
+        timeout: this.notificationConfig.getChannelTimeout(channelType),
         ...this.getChannelSpecificConfig(channelType, request),
       };
 

@@ -9,6 +9,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UnifiedTtlConfig } from '../../cache/config/unified-ttl.config';
 
 import { createLogger } from "@common/logging/index";
 import { IAlertRule } from '../interfaces';
@@ -221,8 +222,8 @@ export class AlertRuleValidator {
     
     return {
       operator: '>',
-      duration: alertConfig?.validation?.duration?.min || 300,
-      cooldown: alertConfig?.validation?.cooldown?.min || 300,
+      duration: alertConfig?.validation?.duration?.min || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
+      cooldown: alertConfig?.validation?.cooldown?.min || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
       severity: 'warning',
       enabled: true,
       tags: {},
@@ -243,8 +244,8 @@ export class AlertRuleValidator {
     return {
       supportedOperators: this.getSupportedOperators(),
       validSeverities: ['info', 'warning', 'critical'],
-      defaultDuration: defaultConfig.duration || 300,
-      defaultCooldown: defaultConfig.cooldown || 300,
+      defaultDuration: defaultConfig.duration || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
+      defaultCooldown: defaultConfig.cooldown || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
     };
   }
 }

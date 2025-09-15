@@ -21,7 +21,6 @@ import {
   STRING_LIMITS,
   RETRY_LIMITS,
   PERFORMANCE_LIMITS,
-  VALIDATION_LIMITS,
 } from './limits.constants';
 import {
   ALERT_DEFAULTS,
@@ -51,14 +50,12 @@ export {
   STRING_LIMITS,
   RETRY_LIMITS,
   PERFORMANCE_LIMITS,
-  VALIDATION_LIMITS,
 } from './limits.constants';
 export type {
   RuleLimits,
   StringLimits,
   RetryLimits,
   PerformanceLimits,
-  ValidationLimitsType,
 } from './limits.constants';
 
 // 默认值和预设配置
@@ -143,7 +140,6 @@ export default {
   STRING_LIMITS,
   RETRY_LIMITS,
   PERFORMANCE_LIMITS,
-  VALIDATION_LIMITS,
   ALERT_DEFAULTS,
   ALERT_CONFIG_PRESETS,
   ALERT_ENV_CONFIG,

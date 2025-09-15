@@ -9,11 +9,13 @@
 import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, Inject } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
-import { OPERATION_LIMITS } from '@common/constants/domain';
+
+// 使用本地通知配置替换外部依赖
+import { NotificationEnhancedConfig } from "../../config/notification-enhanced.config";
 
 // 使用Notification模块的类型
 import {
@@ -31,7 +33,11 @@ export class WebhookSender implements NotificationSender {
   type = NotificationChannelType.WEBHOOK;
   private readonly logger = createLogger(WebhookSender.name);
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    @Inject('notificationEnhanced')
+    private readonly notificationConfig: NotificationEnhancedConfig,
+  ) {}
 
   /**
    * 发送Webhook通知
@@ -155,7 +161,7 @@ export class WebhookSender implements NotificationSender {
             'User-Agent': 'NotificationService/1.0 (Test)',
             ...config.headers || {},
           },
-          timeout: OPERATION_LIMITS.TIMEOUTS_MS.MONITORING_REQUEST,
+          timeout: this.notificationConfig.getChannelTimeout('webhook'),
         }),
       );
 

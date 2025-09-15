@@ -62,6 +62,36 @@ export interface AppConfig {
     };
   };
 
+  // 通知配置
+  notification: {
+    enabled: boolean;
+    batchProcessing: boolean;
+    retryMechanism: boolean;
+    priorityQueue: boolean;
+    metricsCollection: boolean;
+    defaultChannels: string[];
+    timeouts: {
+      email: number;
+      sms: number;
+      webhook: number;
+      slack: number;
+      dingtalk: number;
+      default: number;
+    };
+    retry: {
+      maxAttempts: number;
+      initialDelay: number;
+      backoffMultiplier: number;
+      maxDelay: number;
+    };
+    batch: {
+      defaultSize: number;
+      maxSize: number;
+      maxConcurrency: number;
+      timeout: number;
+    };
+  };
+
   // 监控配置
   monitoring: {
     enabled: boolean;
@@ -124,6 +154,36 @@ export const createAppConfig = (): Partial<AppConfig> => ({
         process.env.ALERT_NOTIFICATION_RATE_LIMIT || "10",
         10,
       ),
+    },
+  },
+
+  // 通知系统全局配置
+  notification: {
+    enabled: process.env.NOTIFICATION_ENABLED !== "false",
+    batchProcessing: process.env.NOTIFICATION_ENABLE_BATCH_PROCESSING !== "false",
+    retryMechanism: process.env.NOTIFICATION_ENABLE_RETRY_MECHANISM !== "false",
+    priorityQueue: process.env.NOTIFICATION_ENABLE_PRIORITY_QUEUE !== "false",
+    metricsCollection: process.env.NOTIFICATION_ENABLE_METRICS_COLLECTION !== "false",
+    defaultChannels: process.env.NOTIFICATION_DEFAULT_CHANNELS?.split(",") || ["email", "log"],
+    timeouts: {
+      email: parseInt(process.env.NOTIFICATION_EMAIL_TIMEOUT || "30000", 10),
+      sms: parseInt(process.env.NOTIFICATION_SMS_TIMEOUT || "5000", 10),
+      webhook: parseInt(process.env.NOTIFICATION_WEBHOOK_TIMEOUT || "10000", 10),
+      slack: parseInt(process.env.NOTIFICATION_SLACK_TIMEOUT || "15000", 10),
+      dingtalk: parseInt(process.env.NOTIFICATION_DINGTALK_TIMEOUT || "10000", 10),
+      default: parseInt(process.env.NOTIFICATION_DEFAULT_TIMEOUT || "15000", 10),
+    },
+    retry: {
+      maxAttempts: parseInt(process.env.NOTIFICATION_MAX_RETRY_ATTEMPTS || "3", 10),
+      initialDelay: parseInt(process.env.NOTIFICATION_INITIAL_RETRY_DELAY || "1000", 10),
+      backoffMultiplier: parseFloat(process.env.NOTIFICATION_RETRY_BACKOFF_MULTIPLIER || "2"),
+      maxDelay: parseInt(process.env.NOTIFICATION_MAX_RETRY_DELAY || "30000", 10),
+    },
+    batch: {
+      defaultSize: parseInt(process.env.NOTIFICATION_DEFAULT_BATCH_SIZE || "10", 10),
+      maxSize: parseInt(process.env.NOTIFICATION_MAX_BATCH_SIZE || "100", 10),
+      maxConcurrency: parseInt(process.env.NOTIFICATION_MAX_CONCURRENCY || "5", 10),
+      timeout: parseInt(process.env.NOTIFICATION_BATCH_TIMEOUT || "60000", 10),
     },
   },
 

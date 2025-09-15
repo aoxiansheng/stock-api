@@ -5,7 +5,7 @@ import * as Joi from 'joi';
 // 导入所有配置
 import { appConfig } from '../config/app.config';
 import { FeatureFlags } from '../config/feature-flags.config';
-import { alertConfig } from '../../alert/config/alert.config';
+import alertConfig from '../../alert/config/alert.config';
 import { securityConfig } from '../../auth/config/security.config';
 import { notificationConfig } from '../../notification/config/notification.config';
 

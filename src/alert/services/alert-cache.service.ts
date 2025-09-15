@@ -9,6 +9,7 @@
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UnifiedTtlConfig } from '../../cache/config/unified-ttl.config';
 
 import { createLogger } from "@common/logging/index";
 import { CacheService } from '../../cache/services/cache.service';
@@ -20,12 +21,11 @@ export class AlertCacheService implements OnModuleInit {
   private readonly logger = createLogger('AlertCacheService');
   private readonly config: {
     activeAlertPrefix: string;
-    activeAlertTtlSeconds: number;
     cooldownPrefix: string;
     timeseriesPrefix: string;
-    timeseriesTtlSeconds: number;
     maxTimeseriesLength: number;
   };
+  private readonly ttlConfig: UnifiedTtlConfig;
 
   constructor(
     private readonly cacheService: CacheService,
@@ -33,12 +33,12 @@ export class AlertCacheService implements OnModuleInit {
   ) {
     this.config = {
       activeAlertPrefix: 'alert:active',
-      activeAlertTtlSeconds: 86400, // 24小时
       cooldownPrefix: 'alert:cooldown',
       timeseriesPrefix: 'alert:timeseries',
-      timeseriesTtlSeconds: 86400, // 24小时
       maxTimeseriesLength: 1000,
     };
+    // 获取统一TTL配置
+    this.ttlConfig = this.configService.get<UnifiedTtlConfig>('unifiedTtl');
   }
 
   async onModuleInit() {
@@ -62,7 +62,7 @@ export class AlertCacheService implements OnModuleInit {
       const cacheKey = this.getActiveAlertKey(ruleId);
       
       await this.cacheService.set(cacheKey, alert, {
-        ttl: this.config.activeAlertTtlSeconds,
+        ttl: this.ttlConfig.alertActiveDataTtl,
       });
 
       // 同时缓存到时序数据
@@ -379,7 +379,7 @@ export class AlertCacheService implements OnModuleInit {
       await this.cacheService.listTrim(timeseriesKey, 0, this.config.maxTimeseriesLength - 1);
       
       // 设置TTL
-      await this.cacheService.expire(timeseriesKey, this.config.timeseriesTtlSeconds);
+      await this.cacheService.expire(timeseriesKey, this.ttlConfig.alertHistoricalDataTtl);
 
       this.logger.debug('时序数据添加成功', {
         operation,
@@ -501,7 +501,7 @@ export class AlertCacheService implements OnModuleInit {
         // 重新推入更新的数据
         if (updatedData.length > 0) {
           await this.cacheService.listPush(timeseriesKey, updatedData.reverse());
-          await this.cacheService.expire(timeseriesKey, this.config.timeseriesTtlSeconds);
+          await this.cacheService.expire(timeseriesKey, this.ttlConfig.alertHistoricalDataTtl);
         }
 
         this.logger.debug('时序数据状态更新成功', {
@@ -555,7 +555,7 @@ export class AlertCacheService implements OnModuleInit {
           const ttl = await this.cacheService.getClient().ttl(key);
           if (ttl === -1) {
             // TTL为-1表示没有过期时间，重新设置TTL
-            await this.cacheService.expire(key, this.config.timeseriesTtlSeconds);
+            await this.cacheService.expire(key, this.ttlConfig.alertHistoricalDataTtl);
           }
           cleanedKeys++;
         } catch (error) {

@@ -6,10 +6,22 @@
  * @author Alert常量重构任务
  * @created 2025-01-10
  * @refactored 2025-01-10
+ * 
+ * ⚠️ 重要迁移说明：
+ * TTL配置已迁移至统一TTL配置管理：
+ * - 冷却期TTL → unified-ttl.config.ts (alertCooldownTtl)
+ * - 活跃数据TTL → unified-ttl.config.ts (alertActiveDataTtl)
+ * - 配置缓存TTL → unified-ttl.config.ts (alertConfigCacheTtl)
+ * - 统计缓存TTL → unified-ttl.config.ts (alertStatsCacheTtl)
+ * - 历史数据TTL → unified-ttl.config.ts (alertHistoricalDataTtl)
+ * - 归档数据TTL → unified-ttl.config.ts (alertArchivedDataTtl)
+ * 
+ * 本文件仅保留固定业务时间常量（不可配置的业务规则）
  */
 
 /**
  * 告警响应超时配置
+ * 固定业务时间常量（不可配置的业务规则）
  * 业务场景的直接时间定义，单位：秒
  */
 export const ALERT_TIMEOUTS = {
@@ -17,14 +29,6 @@ export const ALERT_TIMEOUTS = {
   CRITICAL_RESPONSE: 5,         // 5秒 - 严重告警响应时间
   NORMAL_RESPONSE: 30,          // 30秒 - 普通告警响应时间
   EVALUATION_CYCLE: 60,         // 60秒 - 规则评估周期
-  COOLDOWN_PERIOD: 300,         // 300秒 - 告警冷却期
-  
-  // 缓存TTL
-  CONFIG_CACHE_TTL: 1800,       // 30分钟 - 配置缓存时间
-  STATS_CACHE_TTL: 3600,        // 1小时 - 统计缓存时间
-  ACTIVE_DATA_TTL: 300,         // 5分钟 - 活跃数据缓存
-  HISTORICAL_DATA_TTL: 43200,   // 12小时 - 历史数据缓存
-  ARCHIVED_DATA_TTL: 86400,     // 24小时 - 归档数据缓存
   
   // 会话和认证
   JWT_LIFETIME: 3600,           // 1小时 - JWT令牌生命周期
@@ -36,6 +40,7 @@ export const ALERT_TIMEOUTS = {
 
 /**
  * 操作超时配置
+ * 固定业务操作时间常量（不可配置的业务规则）
  * 各类操作的超时时间，单位：毫秒
  */
 export const OPERATION_TIMEOUTS = {
@@ -61,6 +66,7 @@ export const OPERATION_TIMEOUTS = {
 
 /**
  * 数据保留配置
+ * 固定业务数据保留规则（不可配置的业务规则）
  * 各类数据的保留时间，单位：天数
  */
 export const DATA_RETENTION = {

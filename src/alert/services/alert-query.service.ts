@@ -7,14 +7,15 @@
  * @date 2025-09-10
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
 
 import { createLogger } from "@common/logging/index";
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { AlertHistoryRepository } from '../repositories/alert-history.repository';
 import { IAlert, IAlertQuery, IAlertStats } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';
-import { ALERT_DEFAULTS } from '../constants';
+import cacheLimitsConfig from '../../cache/config/cache-limits.config';
 import {
   AlertQueryResultDto,
   AlertStatisticsDto,
@@ -27,6 +28,8 @@ export class AlertQueryService {
   constructor(
     private readonly alertHistoryRepository: AlertHistoryRepository,
     private readonly paginationService: PaginationService,
+    @Inject(cacheLimitsConfig.KEY)
+    private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
   ) {}
 
   /**
@@ -95,7 +98,7 @@ export class AlertQueryService {
       
       const { page, limit } = this.paginationService.normalizePaginationQuery({
         page: query.page || 1,
-        limit: query.limit || ALERT_DEFAULTS.BATCH_SIZE,
+        limit: query.limit || this.cacheLimits.alertBatchSize,
       });
 
       const pagination = this.paginationService.createPagination(page, limit, total);

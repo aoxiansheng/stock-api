@@ -11,6 +11,8 @@ import * as msgpack from 'msgpack-lite';
 
 import { CacheService } from '../../../../../src/cache/services/cache.service';
 import { CacheConfig } from '../../../../../src/cache/config/cache.config';
+import { CacheTtlConfig } from '../../../../../src/cache/config/cache-ttl.config';
+import { CacheLimitsProvider } from '../../../../../src/cache/providers/cache-limits.provider';
 import { CACHE_DATA_FORMATS } from '../../../../../src/cache/constants/config/data-formats.constants';
 
 describe('CacheService msgpack Serialization', () => {
@@ -25,10 +27,24 @@ describe('CacheService msgpack Serialization', () => {
     maxItems: 10000,
     maxKeyLength: 255,
     maxValueSizeMB: 10,
-    maxBatchSize: 100,
     slowOperationMs: 100,
     retryDelayMs: 100,
     lockTtl: 30,
+  };
+
+  const mockCacheTtlConfig: CacheTtlConfig = {
+    defaultTtl: 300,
+    strongTimelinessTtl: 5,
+    realtimeTtl: 30,
+    monitoringTtl: 300,
+    authTtl: 300,
+    transformerTtl: 300,
+    suggestionTtl: 300,
+    longTermTtl: 3600,
+  };
+
+  const mockCacheLimitsProvider = {
+    getBatchSizeLimit: jest.fn().mockReturnValue(100),
   };
 
   beforeEach(async () => {
@@ -64,6 +80,14 @@ describe('CacheService msgpack Serialization', () => {
         {
           provide: EventEmitter2,
           useValue: eventEmitter,
+        },
+        {
+          provide: 'cacheTtl',
+          useValue: mockCacheTtlConfig,
+        },
+        {
+          provide: CacheLimitsProvider,
+          useValue: mockCacheLimitsProvider,
         },
       ],
     }).compile();

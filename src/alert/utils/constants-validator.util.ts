@@ -45,9 +45,8 @@ export class AlertConstantsValidator {
       }
 
       // 3. 验证关键数值合理性
-      if (ALERT_DEFAULTS.RETRY_COUNT > 10) {
-        warnings.push('重试次数过高，可能影响性能');
-      }
+      // RETRY_COUNT已迁移到alert.config.ts的maxRetries配置
+      // 此处不再需要验证已迁移的配置项
 
     } catch (error) {
       errors.push(`验证异常: ${error.message}`);

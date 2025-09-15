@@ -1,5 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import type { ConfigType } from '@nestjs/config';
 import { Model } from "mongoose";
 
 import { createLogger } from "@common/logging/index";
@@ -7,7 +8,8 @@ import { createLogger } from "@common/logging/index";
 import { IAlert, IAlertQuery } from "../interfaces";
 import { AlertHistory, AlertHistoryDocument } from "../schemas";
 import { AlertStatus } from "../types/alert.types";
-import { ALERT_DEFAULTS } from "../constants";
+import cacheLimitsConfig from '../../cache/config/cache-limits.config';
+import alertConfig from '../config/alert.config';
 
 type AlertCreateData = Omit<IAlert, "id" | "startTime" | "status">;
 type AlertUpdateData = Partial<Omit<IAlert, "id">>;
@@ -19,6 +21,10 @@ export class AlertHistoryRepository {
   constructor(
     @InjectModel(AlertHistory.name)
     private readonly alertHistoryModel: Model<AlertHistoryDocument>,
+    @Inject(cacheLimitsConfig.KEY)
+    private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
+    @Inject(alertConfig.KEY)
+    private readonly alertConfigData: ConfigType<typeof alertConfig>,
   ) {}
 
   async create(
@@ -64,7 +70,7 @@ export class AlertHistoryRepository {
     }
 
     const page = query.page || 1;
-    const limit = query.limit || ALERT_DEFAULTS.BATCH_SIZE;
+    const limit = query.limit || this.cacheLimits.alertBatchSize;
     const skip = (page - 1) * limit;
 
     const sortField = query.sortBy || "startTime";
@@ -125,7 +131,7 @@ export class AlertHistoryRepository {
               status: AlertStatus.RESOLVED,
               resolvedAt: { $exists: true },
               startTime: {
-                $gte: new Date(Date.now() - ALERT_DEFAULTS.EVALUATION_INTERVAL * 1000 * 48), // 约7天
+                $gte: new Date(Date.now() - this.alertConfigData.evaluationInterval * 1000 * 48), // 约7天
               },
             },
           },

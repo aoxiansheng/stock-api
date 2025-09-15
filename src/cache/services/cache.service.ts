@@ -7,6 +7,7 @@ import {
   Injectable,
   ServiceUnavailableException,
   BadRequestException,
+  Inject,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 // 🎯 复用 common 模块的日志配置
@@ -16,6 +17,7 @@ import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
 import { CacheConfig } from "../config/cache.config";
+import type { CacheTtlConfig } from "../config/cache-ttl.config";
 import { CacheLimitsProvider } from "../providers/cache-limits.provider";
 
 // Import modern structured constants directly
@@ -54,10 +56,24 @@ export class CacheService {
     private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
     private readonly configService: ConfigService,
     private readonly cacheLimitsProvider: CacheLimitsProvider, // 🎯 缓存限制Provider
+    @Inject('cacheTtl') private readonly ttlConfig: CacheTtlConfig, // 🎯 新增: TTL统一配置
   ) {
     this.cacheConfig = this.configService.get<CacheConfig>('cache');
     if (!this.cacheConfig) {
       throw new Error('Cache configuration not found');
+    }
+
+    // 🎯 运行时废弃警告：提醒开发者迁移到新的TTL配置
+    if (this.cacheConfig.defaultTtl) {
+      this.logger.warn(
+        '⚠️  DEPRECATED: CacheConfig.defaultTtl 已废弃，请使用 CacheTtlConfig.defaultTtl，' +
+        '将在v2.0版本移除',
+        {
+          currentValue: this.cacheConfig.defaultTtl,
+          recommendedConfig: 'CacheTtlConfig.defaultTtl',
+          migrationGuide: 'https://docs.company.com/cache-migration'
+        }
+      );
     }
   }
 
@@ -70,12 +86,20 @@ export class CacheService {
   }
 
   /**
+   * 🎯 兼容性fallback: 获取默认TTL
+   * 优先使用新的CacheTtlConfig.defaultTtl，向后兼容CacheConfig.defaultTtl
+   */
+  private getDefaultTtl(): number {
+    return this.ttlConfig?.defaultTtl ?? this.cacheConfig.defaultTtl;
+  }
+
+  /**
    * 智能缓存设置
    */
   async set<T = any>(
     key: string,
     value: T,
-    options: CacheConfigDto = { ttl: this.cacheConfig.defaultTtl },
+    options: CacheConfigDto = { ttl: this.getDefaultTtl() },
   ): Promise<boolean> {
     // 检查键长度
     this.validateKeyLength(key);
@@ -184,7 +208,7 @@ export class CacheService {
   async getOrSet<T>(
     key: string,
     callback: () => Promise<T>,
-    options: CacheConfigDto = { ttl: this.cacheConfig.defaultTtl },
+    options: CacheConfigDto = { ttl: this.getDefaultTtl() },
   ): Promise<T> {
     // 先尝试从缓存获取
     const cached = await this.get<T>(key, options.serializer);
@@ -551,7 +575,7 @@ export class CacheService {
    */
   async mset<T>(
     entries: Map<string, T>,
-    ttl: number = this.cacheConfig.defaultTtl,
+    ttl: number = this.getDefaultTtl(),
   ): Promise<boolean> {
     if (entries.size === 0) return true;
 
@@ -646,7 +670,7 @@ export class CacheService {
    */
   async warmup<T>(
     warmupData: Map<string, T>,
-    options: CacheConfigDto = { ttl: this.cacheConfig.defaultTtl },
+    options: CacheConfigDto = { ttl: this.getDefaultTtl() },
   ): Promise<void> {
     this.logger.log(
       `${CACHE_MESSAGES.SUCCESS.WARMUP_STARTED}，共 ${warmupData.size} 个项目...`,

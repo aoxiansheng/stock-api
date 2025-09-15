@@ -10,6 +10,8 @@ import Redis from 'ioredis';
 
 import { CacheService } from '../../../../../src/cache/services/cache.service';
 import { CacheConfig } from '../../../../../src/cache/config/cache.config';
+import { CacheTtlConfig } from '../../../../../src/cache/config/cache-ttl.config';
+import { CacheLimitsProvider } from '../../../../../src/cache/providers/cache-limits.provider';
 
 describe('CacheService Configuration', () => {
   let service: CacheService;
@@ -24,10 +26,24 @@ describe('CacheService Configuration', () => {
     maxItems: 10000,
     maxKeyLength: 255,
     maxValueSizeMB: 10,
-    maxBatchSize: 100,
     slowOperationMs: 100,
     retryDelayMs: 100,
     lockTtl: 30,
+  };
+
+  const mockCacheTtlConfig: CacheTtlConfig = {
+    defaultTtl: 300,
+    strongTimelinessTtl: 5,
+    realtimeTtl: 30,
+    monitoringTtl: 300,
+    authTtl: 300,
+    transformerTtl: 300,
+    suggestionTtl: 300,
+    longTermTtl: 3600,
+  };
+
+  const mockCacheLimitsProvider = {
+    getBatchSizeLimit: jest.fn().mockReturnValue(100),
   };
 
   beforeEach(async () => {
@@ -63,6 +79,14 @@ describe('CacheService Configuration', () => {
         {
           provide: EventEmitter2,
           useValue: eventEmitter,
+        },
+        {
+          provide: 'cacheTtl',
+          useValue: mockCacheTtlConfig,
+        },
+        {
+          provide: CacheLimitsProvider,
+          useValue: mockCacheLimitsProvider,
         },
       ],
     }).compile();
@@ -168,7 +192,7 @@ describe('CacheService Configuration', () => {
 
   describe('Batch Size Configuration', () => {
     it('should enforce max batch size limit', async () => {
-      const largeKeyArray = Array.from({ length: mockCacheConfig.maxBatchSize + 1 }, (_, i) => `key-${i}`);
+      const largeKeyArray = Array.from({ length: 101 }, (_, i) => `key-${i}`); // 101 > 100 (mockCacheLimitsProvider batch limit)
       
       await expect(service.mget(largeKeyArray)).rejects.toThrow('批量操作超过最大限制');
     });
@@ -176,7 +200,7 @@ describe('CacheService Configuration', () => {
     it('should allow batch operations within limit', async () => {
       redisClient.mget.mockResolvedValue([]);
       
-      const keyArray = Array.from({ length: mockCacheConfig.maxBatchSize - 1 }, (_, i) => `key-${i}`);
+      const keyArray = Array.from({ length: 99 }, (_, i) => `key-${i}`); // 99 < 100 (mockCacheLimitsProvider batch limit)
       
       await expect(service.mget(keyArray)).resolves.not.toThrow();
       expect(redisClient.mget).toHaveBeenCalledWith(keyArray);

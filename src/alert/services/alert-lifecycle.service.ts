@@ -10,7 +10,10 @@
 import {
   Injectable,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { ConfigType } from '@nestjs/config';
 
 import { createLogger } from "@common/logging/index";
 import { AlertHistoryRepository } from '../repositories/alert-history.repository';
@@ -18,16 +21,28 @@ import { IAlert, IAlertRule, IRuleEvaluationResult } from '../interfaces';
 import { AlertStatus } from '../types/alert.types';
 import { AlertEventPublisher } from './alert-event-publisher.service';
 import { AlertCacheService } from './alert-cache.service';
+import cacheLimitsConfig from '@cache/config/cache-limits.config';
 
 @Injectable()
 export class AlertLifecycleService {
   private readonly logger = createLogger('AlertLifecycleService');
+  private readonly alertConfig: {
+    defaultCooldown: number;
+  };
 
   constructor(
     private readonly alertHistoryRepository: AlertHistoryRepository,
     private readonly alertEventPublisher: AlertEventPublisher,
     private readonly alertCacheService: AlertCacheService,
-  ) {}
+    private readonly configService: ConfigService,
+    @Inject(cacheLimitsConfig.KEY)
+    private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
+  ) {
+    // 获取alert业务配置（保留defaultCooldown，这是业务配置而非缓存配置）
+    this.alertConfig = this.configService.get('alert', {
+      defaultCooldown: 300,
+    });
+  }
 
   /**
    * 创建新告警
@@ -73,7 +88,7 @@ export class AlertLifecycleService {
         tags: rule.tags,
         triggerCondition: {
           operator: rule.operator || '>',
-          duration: rule.duration || 300,
+          duration: rule.duration || this.alertConfig.defaultCooldown,
         },
       });
 
@@ -400,8 +415,8 @@ export class AlertLifecycleService {
   }> {
     const operation = 'BATCH_UPDATE_STATUS';
     
-    if (alertIds.length > 1000) {
-      throw new Error('批量操作数量超出限制，最大允许1000个');
+    if (alertIds.length > this.cacheLimits.alertBatchSize) {
+      throw new Error(`批量操作数量超出限制，最大允许${this.cacheLimits.alertBatchSize}个`);
     }
 
     this.logger.log('批量更新告警状态', {

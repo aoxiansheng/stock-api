@@ -10,6 +10,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 
 import { createLogger } from "@common/logging/index";
 import { IAlertRule, IMetricData, IRuleEvaluationResult } from '../interfaces';
@@ -21,6 +22,12 @@ import { RuleEvaluator } from '../evaluators/rule.evaluator';
 @Injectable()
 export class AlertEvaluationService implements OnModuleInit {
   private readonly logger = createLogger('AlertEvaluationService');
+  private readonly alertConfig: {
+    evaluationInterval: number;
+    evaluationTimeout: number;
+    maxRetries: number;
+  };
+  private lastEvaluationTime: Date | null = null;
 
   constructor(
     private readonly alertRuleService: AlertRuleService,
@@ -28,10 +35,22 @@ export class AlertEvaluationService implements OnModuleInit {
     private readonly alertLifecycleService: AlertLifecycleService,
     private readonly ruleEvaluator: RuleEvaluator,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    // 获取alert配置
+    this.alertConfig = this.configService.get('alert', {
+      evaluationInterval: 60,
+      evaluationTimeout: 5000,
+      maxRetries: 3,
+    });
+  }
 
   async onModuleInit() {
-    this.logger.log('告警评估服务初始化完成');
+    this.logger.log('告警评估服务初始化完成', {
+      evaluationInterval: this.alertConfig.evaluationInterval,
+      evaluationTimeout: this.alertConfig.evaluationTimeout,
+      maxRetries: this.alertConfig.maxRetries,
+    });
   }
 
   /**
@@ -204,13 +223,32 @@ export class AlertEvaluationService implements OnModuleInit {
   }
 
   /**
-   * 定时评估规则 - 每分钟执行
+   * 定时评估规则 - 基于配置的间隔执行
+   * 注意：@Cron装饰器不支持动态表达式，这里保持每分钟执行
+   * 但在实际执行时会检查配置的间隔时间
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async scheduleRuleEvaluation(): Promise<void> {
     const operation = 'SCHEDULED_EVALUATION';
     
-    this.logger.debug('开始定时规则评估', { operation });
+    // 检查是否应该基于配置的间隔执行
+    const now = new Date();
+    if (this.lastEvaluationTime) {
+      const timeSinceLastEvaluation = (now.getTime() - this.lastEvaluationTime.getTime()) / 1000;
+      if (timeSinceLastEvaluation < this.alertConfig.evaluationInterval) {
+        this.logger.debug('跳过评估，未到配置的间隔时间', {
+          operation,
+          timeSinceLastEvaluation,
+          requiredInterval: this.alertConfig.evaluationInterval,
+        });
+        return;
+      }
+    }
+    
+    this.logger.debug('开始定时规则评估', { 
+      operation,
+      evaluationInterval: this.alertConfig.evaluationInterval,
+    });
 
     try {
       // 在实际实现中，这里应该从监控数据源获取最新指标
@@ -218,9 +256,13 @@ export class AlertEvaluationService implements OnModuleInit {
       
       await this.processMetrics(recentMetrics);
       
+      // 更新最后评估时间
+      this.lastEvaluationTime = now;
+      
       this.logger.debug('定时规则评估完成', {
         operation,
         metricCount: recentMetrics.length,
+        evaluationTime: now,
       });
       
     } catch (error) {
@@ -359,13 +401,19 @@ export class AlertEvaluationService implements OnModuleInit {
     totalEvaluations: number;
     successfulEvaluations: number;
     failedEvaluations: number;
+    evaluationInterval: number;
+    evaluationTimeout: number;
+    maxRetries: number;
   } {
-    // TODO: 实现评估统计追踪
+    // TODO: 实现完整的评估统计追踪
     return {
-      lastEvaluationTime: null,
+      lastEvaluationTime: this.lastEvaluationTime,
       totalEvaluations: 0,
       successfulEvaluations: 0,
       failedEvaluations: 0,
+      evaluationInterval: this.alertConfig.evaluationInterval,
+      evaluationTimeout: this.alertConfig.evaluationTimeout,
+      maxRetries: this.alertConfig.maxRetries,
     };
   }
 }

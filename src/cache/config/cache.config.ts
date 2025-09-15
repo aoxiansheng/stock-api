@@ -9,9 +9,28 @@ import { IsNumber, IsBoolean, Min, validateSync } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 
 /**
+ * @deprecated 装饰器用于标记废弃字段
+ */
+function Deprecated(message: string) {
+  return function (target: any, propertyKey: string) {
+    // 在开发环境下输出废弃警告
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`⚠️  DEPRECATED: ${target.constructor.name}.${propertyKey} - ${message}`);
+    }
+  };
+}
+
+/**
  * 缓存配置验证类
  */
 export class CacheConfigValidation {
+  /**
+   * @deprecated 使用 CacheTtlConfig.defaultTtl 替代，将在v2.0版本移除
+   * @see CacheTtlConfig.defaultTtl
+   * @since v1.0.0
+   * @removal v2.0.0
+   */
+  @Deprecated('使用 CacheTtlConfig.defaultTtl 替代，将在v2.0版本移除')
   @IsNumber()
   @Min(1)
   defaultTtl: number = 300; // 默认TTL: 5分钟

@@ -15,7 +15,8 @@ import {
 } from "class-validator";
 
 import { AlertSeverity } from "../types/alert.types";
-import { VALID_OPERATORS, type Operator, VALIDATION_LIMITS, ALERT_DEFAULTS } from "../constants";
+import { VALID_OPERATORS, type Operator, ALERT_DEFAULTS } from "../constants";
+import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
 
 /**
  * Alert模块的通知渠道类型枚举
@@ -141,12 +142,11 @@ export class CreateAlertRuleDto {
   channels: AlertNotificationChannelDto[];
 
   @ApiProperty({ 
-    description: "冷却时间（秒）", 
-    default: ALERT_DEFAULTS.cooldown 
+    description: "冷却时间（秒）"
   })
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COOLDOWN_MIN)
-  @Max(VALIDATION_LIMITS.COOLDOWN_MAX)
+  @Min(60)   // 最小1分钟冷却时间
+  @Max(7200) // 最大2小时冷却时间
   cooldown: number;
 
   @ApiPropertyOptional({
@@ -220,8 +220,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "冷却时间（秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(VALIDATION_LIMITS.COOLDOWN_MIN)
-  @Max(VALIDATION_LIMITS.COOLDOWN_MAX)
+  @Min(60)   // 最小1分钟冷却时间
+  @Max(7200) // 最大2小时冷却时间
   cooldown?: number;
 
   @ApiPropertyOptional({

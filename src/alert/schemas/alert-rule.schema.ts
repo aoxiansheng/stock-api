@@ -53,8 +53,14 @@ export class AlertRule implements IAlertRule {
   @Prop({ type: [Object], default: [] })
   channels: NotificationChannel[];
 
-  @Prop({ default: ALERT_DEFAULTS.cooldown })
-  cooldown: number; // 冷却时间（秒）
+  @Prop({ 
+    default: () => {
+      // TODO: 在实际应用中，应该从配置服务获取默认值
+      // 当前硬编码保持数据库兼容性，实际TTL管理在alert.config.ts
+      return 300;
+    }
+  })
+  cooldown: number; // 冷却时间（秒）- 默认从alert.config.ts的defaultCooldown获取
 
   @Prop({ type: Object, default: {} })
   tags?: Record<string, string>;

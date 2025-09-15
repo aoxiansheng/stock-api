@@ -18,22 +18,40 @@
 /**
  * Redis缓存命中率阈值 (单位: 小数格式 0.0-1.0)
  * 🎯 Redis缓存命中率是最重要的缓存性能指标
+ * 
+ * 📌 固定常量理由：
+ * 这些阈值基于Redis内存缓存的行业标准和性能特征，具有固定的算法意义：
+ * - 95%优秀：Redis内存访问的理论最优表现，考虑到数据淘汰和过期的必然性
+ * - 85%良好：生产环境中可接受的高性能水准，平衡了内存使用和命中率
+ * - 70%警告：低于此值表明缓存策略需要调整，是性能问题的明确指标
+ * - 50%较差：缓存效果显著下降，需要立即优化的技术边界
+ * - 30%严重：缓存基本失效，低于此值失去缓存存在的意义
+ * 这些数值来源于Redis官方建议和大量生产实践，不应根据业务需求调整
  */
-export const REDIS_CACHE_HIT_RATE_EXCELLENT_THRESHOLD = 0.95;    // 95%以上 - 优秀缓存命中率
-export const REDIS_CACHE_HIT_RATE_GOOD_THRESHOLD = 0.85;        // 85%以上 - 良好缓存命中率
-export const REDIS_CACHE_HIT_RATE_WARNING_THRESHOLD = 0.70;     // 70%以上 - 警告缓存命中率，需优化
-export const REDIS_CACHE_HIT_RATE_POOR_THRESHOLD = 0.50;        // 50%以上 - 较低缓存命中率，急需优化
-export const REDIS_CACHE_HIT_RATE_CRITICAL_THRESHOLD = 0.30;    // 30%以下 - 严重缓存问题，失去缓存意义
+export const REDIS_CACHE_HIT_RATE_EXCELLENT_THRESHOLD = 0.95;    // 95%以上 - 优秀缓存命中率（固定算法常量）
+export const REDIS_CACHE_HIT_RATE_GOOD_THRESHOLD = 0.85;        // 85%以上 - 良好缓存命中率（固定算法常量）
+export const REDIS_CACHE_HIT_RATE_WARNING_THRESHOLD = 0.70;     // 70%以上 - 警告缓存命中率，需优化（固定算法常量）
+export const REDIS_CACHE_HIT_RATE_POOR_THRESHOLD = 0.50;        // 50%以上 - 较低缓存命中率，急需优化（固定算法常量）
+export const REDIS_CACHE_HIT_RATE_CRITICAL_THRESHOLD = 0.30;    // 30%以下 - 严重缓存问题，失去缓存意义（固定算法常量）
 
 /**
  * Redis缓存响应时间阈值 (单位: 毫秒)
  * ⚡ Redis作为内存缓存，响应时间应该非常快
+ * 
+ * 📌 固定常量理由：
+ * 这些阈值基于Redis内存数据库的物理性能特征，具有固定的技术边界：
+ * - 5ms优秀：本地网络Redis的理论最优响应时间，接近内存访问速度
+ * - 20ms良好：包含序列化/反序列化开销的可接受响应时间
+ * - 50ms警告：开始出现网络延迟或Redis负载问题的技术指标
+ * - 100ms较差：明显的性能问题，可能涉及网络或Redis实例问题
+ * - 500ms严重：严重延迟，Redis几乎失去内存缓存的性能优势
+ * 这些数值基于Redis的硬件特性和网络物理限制，不应受业务逻辑影响
  */
-export const REDIS_RESPONSE_TIME_EXCELLENT_MS = 5;              // 5ms以下 - 优秀Redis响应
-export const REDIS_RESPONSE_TIME_GOOD_MS = 20;                  // 20ms以下 - 良好Redis响应
-export const REDIS_RESPONSE_TIME_WARNING_MS = 50;               // 50ms以下 - 警告Redis响应
-export const REDIS_RESPONSE_TIME_POOR_MS = 100;                 // 100ms以下 - 较慢Redis响应
-export const REDIS_RESPONSE_TIME_CRITICAL_MS = 500;             // 500ms以上 - 严重Redis延迟
+export const REDIS_RESPONSE_TIME_EXCELLENT_MS = 5;              // 5ms以下 - 优秀Redis响应（固定算法常量）
+export const REDIS_RESPONSE_TIME_GOOD_MS = 20;                  // 20ms以下 - 良好Redis响应（固定算法常量）
+export const REDIS_RESPONSE_TIME_WARNING_MS = 50;               // 50ms以下 - 警告Redis响应（固定算法常量）
+export const REDIS_RESPONSE_TIME_POOR_MS = 100;                 // 100ms以下 - 较慢Redis响应（固定算法常量）
+export const REDIS_RESPONSE_TIME_CRITICAL_MS = 500;             // 500ms以上 - 严重Redis延迟（固定算法常量）
 
 /**
  * Redis连接性能阈值
@@ -50,12 +68,21 @@ export const REDIS_CONNECTION_TIME_CRITICAL_MS = 5000;          // 5000ms以上 
 /**
  * 应用层缓存命中率阈值 (单位: 小数格式 0.0-1.0)
  * 🚀 应用层缓存（如Smart Cache）的命中率监控
+ * 
+ * 📌 固定常量理由：
+ * 这些阈值基于应用层缓存的算法特性，考虑业务逻辑复杂度的固定标准：
+ * - 90%优秀：应用层缓存的理想状态，考虑到业务数据的变化性
+ * - 75%良好：平衡了缓存效果与业务数据更新频率的实用阈值
+ * - 60%警告：应用缓存开始失效的技术边界
+ * - 40%较差：缓存策略需要重新设计的明确指标
+ * - 20%严重：应用缓存基本无效，低于此值失去缓存意义
+ * 这些数值基于应用缓存的通用算法原理，不应根据具体业务调整
  */
-export const APP_CACHE_HIT_RATE_EXCELLENT_THRESHOLD = 0.90;     // 90%以上 - 优秀应用缓存命中率
-export const APP_CACHE_HIT_RATE_GOOD_THRESHOLD = 0.75;         // 75%以上 - 良好应用缓存命中率
-export const APP_CACHE_HIT_RATE_WARNING_THRESHOLD = 0.60;      // 60%以上 - 警告应用缓存命中率
-export const APP_CACHE_HIT_RATE_POOR_THRESHOLD = 0.40;         // 40%以上 - 较低应用缓存命中率
-export const APP_CACHE_HIT_RATE_CRITICAL_THRESHOLD = 0.20;     // 20%以下 - 严重应用缓存问题
+export const APP_CACHE_HIT_RATE_EXCELLENT_THRESHOLD = 0.90;     // 90%以上 - 优秀应用缓存命中率（固定算法常量）
+export const APP_CACHE_HIT_RATE_GOOD_THRESHOLD = 0.75;         // 75%以上 - 良好应用缓存命中率（固定算法常量）
+export const APP_CACHE_HIT_RATE_WARNING_THRESHOLD = 0.60;      // 60%以上 - 警告应用缓存命中率（固定算法常量）
+export const APP_CACHE_HIT_RATE_POOR_THRESHOLD = 0.40;         // 40%以上 - 较低应用缓存命中率（固定算法常量）
+export const APP_CACHE_HIT_RATE_CRITICAL_THRESHOLD = 0.20;     // 20%以下 - 严重应用缓存问题（固定算法常量）
 
 /**
  * 内存缓存命中率阈值 (单位: 小数格式 0.0-1.0)

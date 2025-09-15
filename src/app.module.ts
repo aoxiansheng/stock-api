@@ -47,6 +47,9 @@ import { RateLimitGuard } from "./auth/guards/rate-limit.guard";
 
 import authConfig from "./auth/config/auth-configuration";
 
+// 脚本模块
+import { ScriptsModule } from "./scripts/scripts.module";
+
 @Global() // ✅ 添加全局装饰器，使RedisModule全局可用
 @Module({
   imports: [
@@ -122,6 +125,7 @@ import authConfig from "./auth/config/auth-configuration";
     NotificationModule, // 🔔 通知模块 (从Alert模块拆分)
     ProvidersModule,
     PermissionValidationModule,
+    ScriptsModule, // 🛠️ 脚本模块 (缓存迁移等维护脚本)
     
     // ========================================
     // 安全防护层 (Security Layer)

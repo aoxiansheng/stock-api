@@ -9,6 +9,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
+import { ConfigModule } from '@nestjs/config';
 
 // 🗄️ 统一数据库模块 (提供NotificationLog Schema)
 import { DatabaseModule } from '../database/database.module';
@@ -45,6 +46,9 @@ import { SlackSender } from './services/senders/slack.sender';
 import { DingTalkSender } from './services/senders/dingtalk.sender';
 import { LogSender } from './services/senders/log.sender';
 
+// Configuration
+import notificationEnhancedConfig from './config/notification-enhanced.config';
+
 @Module({
   imports: [
     HttpModule,
@@ -52,6 +56,8 @@ import { LogSender } from './services/senders/log.sender';
     DatabaseModule,
     // 📄 通用分页器模块
     PaginationModule,
+    // ⚙️ 配置模块 (注册增强型通知配置)
+    ConfigModule.forFeature(notificationEnhancedConfig),
     MongooseModule.forFeature([
       { name: NotificationInstance.name, schema: NotificationSchema },
       { name: NotificationChannel.name, schema: NotificationChannelSchema },

@@ -112,65 +112,40 @@ export const NOTIFICATION_CONSTANTS = Object.freeze({
   
   /**
    * 验证相关常量
+   * 🔒 仅保留基于标准协议的正则表达式模式
    */
   VALIDATION: {
+    // 变量名格式验证（基于编程语言标准）
     VARIABLE_NAME_PATTERN_SOURCE: "^[a-zA-Z_][a-zA-Z0-9_]*$",
     VARIABLE_NAME_PATTERN_FLAGS: "i",
-    VARIABLE_NAME_MIN_LENGTH: 1,
-    VARIABLE_NAME_MAX_LENGTH: 50,
-    MIN_TEMPLATE_LENGTH: 1,
-    MAX_TEMPLATE_LENGTH: 10000,
+    
+    // 邮箱格式验证（基于RFC 5322标准）
     EMAIL_PATTERN_SOURCE: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
     EMAIL_PATTERN_FLAGS: "i",
+    
+    // URL格式验证（基于RFC 3986标准）
     URL_PATTERN_SOURCE: "^https?:\\/\\/[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-\\.,@?^=%&:\\/~\\+#]*[\\w\\-\\@?^=%&\\/~\\+#])?$",
     URL_PATTERN_FLAGS: "i",
+    
+    // 电话号码格式验证（基于E.164标准）
     PHONE_PATTERN_SOURCE: "^\\+?[1-9]\\d{1,14}$",
     PHONE_PATTERN_FLAGS: "",
+    
+    // ❌ 数值限制配置已迁移到 notification-enhanced.config.ts
+    // 原限制配置: VARIABLE_NAME_MIN_LENGTH, VARIABLE_NAME_MAX_LENGTH, MIN_TEMPLATE_LENGTH, MAX_TEMPLATE_LENGTH
   },
   
-  /**
-   * 重试相关常量
-   */
-  RETRY: {
-    MAX_ATTEMPTS: 3,
-    INITIAL_DELAY_MS: 1000,
-    BACKOFF_MULTIPLIER: 2,
-    MAX_DELAY_MS: 30000,
-    JITTER_FACTOR: 0.1,
-  },
+  // ❌ 重试配置已迁移到 notification-enhanced.config.ts
+  // 原RETRY配置: MAX_ATTEMPTS, INITIAL_DELAY_MS, BACKOFF_MULTIPLIER, MAX_DELAY_MS, JITTER_FACTOR
   
-  /**
-   * 超时配置
-   */
-  TIMEOUTS: {
-    EMAIL: 30000,      // 30秒
-    SMS: 5000,         // 5秒
-    WEBHOOK: 10000,    // 10秒
-    SLACK: 15000,      // 15秒
-    DINGTALK: 10000,   // 10秒
-    DEFAULT: 15000,    // 默认15秒
-  },
+  // ❌ 超时配置已迁移到 notification-enhanced.config.ts  
+  // 原TIMEOUTS配置: EMAIL, SMS, WEBHOOK, SLACK, DINGTALK, DEFAULT
   
-  /**
-   * 批量处理配置
-   */
-  BATCH: {
-    DEFAULT_SIZE: 10,
-    MAX_SIZE: 100,
-    CONCURRENCY: 5,
-    TIMEOUT: 60000,    // 1分钟
-  },
+  // ❌ 批量处理配置已迁移到 notification-enhanced.config.ts
+  // 原BATCH配置: DEFAULT_SIZE, MAX_SIZE, CONCURRENCY, TIMEOUT
   
-  /**
-   * 优先级权重
-   */
-  PRIORITY_WEIGHTS: {
-    CRITICAL: 100,
-    URGENT: 80,
-    HIGH: 60,
-    NORMAL: 40,
-    LOW: 20,
-  },
+  // ❌ 优先级权重配置已迁移到 notification-enhanced.config.ts
+  // 原PRIORITY_WEIGHTS配置: CRITICAL, URGENT, HIGH, NORMAL, LOW
 });
 
 /**
@@ -305,7 +280,7 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
       },
     },
     from: "",
-    timeout: NOTIFICATION_CONSTANTS.TIMEOUTS.EMAIL,
+    timeout: 30000, // 默认邮件超时 (原TIMEOUTS.EMAIL)
   },
   
   SMS: {
@@ -314,14 +289,14 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     accessKeySecret: "",
     signName: "",
     templateCode: "",
-    timeout: NOTIFICATION_CONSTANTS.TIMEOUTS.SMS,
+    timeout: 5000, // 默认SMS超时 (原TIMEOUTS.SMS)
   },
   
   WEBHOOK: {
     url: "",
     method: "POST",
     headers: {},
-    timeout: NOTIFICATION_CONSTANTS.TIMEOUTS.WEBHOOK,
+    timeout: 10000, // 默认Webhook超时 (原TIMEOUTS.WEBHOOK)
     verifySSL: true,
   },
   
@@ -330,12 +305,12 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     channel: "",
     username: "AlertBot",
     iconEmoji: ":warning:",
-    timeout: NOTIFICATION_CONSTANTS.TIMEOUTS.SLACK,
+    timeout: 15000, // 默认Slack超时 (原TIMEOUTS.SLACK)
   },
   
   DINGTALK: {
     webhook: "",
     secret: "",
-    timeout: NOTIFICATION_CONSTANTS.TIMEOUTS.DINGTALK,
+    timeout: 10000, // 默认钉钉超时 (原TIMEOUTS.DINGTALK)
   },
 });

@@ -1,9 +1,9 @@
 /**
- * 通知渠道DTO
- * 🎯 提供通知渠道相关的数据传输对象
+ * Notification Channel Enhanced DTO
+ * 🎯 使用本地配置的增强型通知渠道DTO
  * 
- * @description 从Alert模块迁移的通知渠道DTO，更新为使用Notification类型
- * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
+ * @description 移除对@common/constants的依赖，使用通知配置系统的本地验证限制
+ * @see docs/代码审查文档/配置文件标准/四层配置体系标准规则与开发指南.md
  */
 
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
@@ -27,11 +27,36 @@ import {
   NotificationStatus,
 } from "../types/notification.types";
 
-// 使用本地验证限制常量，移除对@common/constants的依赖
-import { LOCAL_NOTIFICATION_VALIDATION_LIMITS } from "./notification-channel-enhanced.dto";
-
 // 导入各类型通知配置DTO
 export * from "./channels";
+
+// ==================== 本地验证限制常量 ====================
+
+/**
+ * 通知验证限制 - 来自本地配置而非外部依赖
+ * 🔒 这些限制值对应NotificationEnhancedConfig中的配置
+ */
+export const LOCAL_NOTIFICATION_VALIDATION_LIMITS = {
+  // 重试次数限制
+  SEND_RETRIES_MIN: 1,
+  SEND_RETRIES_MAX: 10,
+  
+  // 超时时间限制（毫秒）
+  SEND_TIMEOUT_MIN: 1000,
+  SEND_TIMEOUT_MAX: 120000,
+  
+  // 变量名长度限制 
+  VARIABLE_NAME_MIN_LENGTH: 1,
+  VARIABLE_NAME_MAX_LENGTH: 100,
+  
+  // 模板长度限制
+  MIN_TEMPLATE_LENGTH: 1,
+  MAX_TEMPLATE_LENGTH: 20000,
+  
+  // 标题和内容长度限制
+  TITLE_MAX_LENGTH: 500,
+  CONTENT_MAX_LENGTH: 5000,
+} as const;
 
 // ==================== 核心通知渠道DTO ====================
 
@@ -39,7 +64,7 @@ export * from "./channels";
  * 基础通知渠道DTO
  * 用于告警规则中的嵌套使用
  */
-export class NotificationChannelDto {
+export class NotificationChannelEnhancedDto {
   @ApiPropertyOptional({ description: "通知渠道ID" })
   @IsOptional()
   @IsString()
@@ -94,9 +119,9 @@ export class NotificationChannelDto {
 }
 
 /**
- * 创建通知渠道DTO
+ * 创建通知渠道DTO - 增强版本
  */
-export class CreateNotificationChannelDto {
+export class CreateNotificationChannelEnhancedDto {
   @ApiProperty({ description: "通知渠道名称" })
   @IsString()
   name: string;
@@ -155,9 +180,9 @@ export class CreateNotificationChannelDto {
 }
 
 /**
- * 更新通知渠道DTO
+ * 更新通知渠道DTO - 增强版本
  */
-export class UpdateNotificationChannelDto {
+export class UpdateNotificationChannelEnhancedDto {
   @ApiPropertyOptional({ description: "通知渠道名称" })
   @IsOptional()
   @IsString()
@@ -224,9 +249,9 @@ export class UpdateNotificationChannelDto {
 }
 
 /**
- * 测试通知渠道DTO
+ * 测试通知渠道DTO - 增强版本
  */
-export class TestNotificationChannelDto {
+export class TestNotificationChannelEnhancedDto {
   @ApiProperty({ description: "测试消息" })
   @IsString()
   message: string;
@@ -242,9 +267,9 @@ export class TestNotificationChannelDto {
 }
 
 /**
- * 通知渠道响应DTO
+ * 通知渠道响应DTO - 增强版本
  */
-export class NotificationChannelResponseDto {
+export class NotificationChannelResponseEnhancedDto {
   @ApiProperty({ description: "渠道ID" })
   id: string;
 
@@ -290,12 +315,12 @@ export class NotificationChannelResponseDto {
   updatedAt: Date;
 }
 
-// ==================== 通知实例相关DTO ====================
+// ==================== 通知实例相关DTO - 增强版本 ====================
 
 /**
- * 创建通知DTO
+ * 创建通知DTO - 增强版本
  */
-export class CreateNotificationDto {
+export class CreateNotificationEnhancedDto {
   @ApiProperty({ description: "关联的警告ID" })
   @IsString()
   alertId: string;
@@ -335,9 +360,9 @@ export class CreateNotificationDto {
 }
 
 /**
- * 通知查询DTO
+ * 通知查询DTO - 增强版本
  */
-export class NotificationQueryDto {
+export class NotificationQueryEnhancedDto {
   @ApiPropertyOptional({ description: "警告ID" })
   @IsOptional()
   @IsString()
@@ -403,9 +428,9 @@ export class NotificationQueryDto {
 }
 
 /**
- * 通知响应DTO
+ * 通知响应DTO - 增强版本
  */
-export class NotificationResponseDto {
+export class NotificationResponseEnhancedDto {
   @ApiProperty({ description: "通知ID" })
   id: string;
 
@@ -464,3 +489,15 @@ export class NotificationResponseDto {
   @ApiProperty({ description: "更新时间" })
   updatedAt: Date;
 }
+
+// ==================== 兼容性导出 ====================
+
+// 兼容性别名，便于逐步迁移
+export { NotificationChannelEnhancedDto as NotificationChannelDto };
+export { CreateNotificationChannelEnhancedDto as CreateNotificationChannelDto };
+export { UpdateNotificationChannelEnhancedDto as UpdateNotificationChannelDto };
+export { TestNotificationChannelEnhancedDto as TestNotificationChannelDto };
+export { NotificationChannelResponseEnhancedDto as NotificationChannelResponseDto };
+export { CreateNotificationEnhancedDto as CreateNotificationDto };
+export { NotificationQueryEnhancedDto as NotificationQueryDto };
+export { NotificationResponseEnhancedDto as NotificationResponseDto };

@@ -8,8 +8,10 @@
  */
 
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
+import { UnifiedTtlConfig } from '../../cache/config/unified-ttl.config';
 
 import { createLogger } from "@common/logging/index";
 import { IAlert, IAlertRule } from '../interfaces';
@@ -31,10 +33,19 @@ import {
 @Injectable()
 export class AlertEventPublisher {
   private readonly logger = createLogger('AlertEventPublisher');
+  private readonly alertConfig: {
+    defaultCooldown: number;
+  };
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    // 获取alert配置
+    this.alertConfig = this.configService.get('alert', {
+      defaultCooldown: 300,
+    });
+  }
 
   /**
    * 发布告警触发事件
@@ -301,7 +312,7 @@ export class AlertEventPublisher {
       tags: context.tags || {},
       triggerCondition: context.triggerCondition || {
         operator: '>',
-        duration: 300,
+        duration: this.alertConfig.defaultCooldown,
       },
     };
   }
@@ -385,8 +396,8 @@ export class AlertEventPublisher {
       metric: alert.metric || 'unknown',
       operator: 'gt',
       threshold: alert.threshold || 0,
-      duration: 60,
-      cooldown: 300,
+      duration: this.alertConfig.defaultCooldown,
+      cooldown: this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
       enabled: true,
       channels: [],
       tags: alert.tags,
@@ -400,7 +411,7 @@ export class AlertEventPublisher {
     return {
       metricValue: context.metricValue || 0,
       threshold: context.threshold || 0,
-      duration: context.triggerCondition?.duration || 60,
+      duration: context.triggerCondition?.duration || this.alertConfig.defaultCooldown,
       operator: context.triggerCondition?.operator || 'gt',
       evaluatedAt: context.triggeredAt || new Date(),
       dataPoints: context.historicalData?.map(point => ({

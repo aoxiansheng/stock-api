@@ -11,6 +11,11 @@ export interface CacheLimitsConfig {
   lruSortBatchSize: number;
   smartCacheMaxBatch: number;
   maxCacheSizeMB: number;
+  // Alert批处理配置
+  alertBatchSize: number;
+  alertMaxBatchProcessing: number;
+  alertLargeBatchSize: number;
+  alertMaxActiveAlerts: number;
 }
 
 /**
@@ -68,6 +73,50 @@ export class CacheLimitsValidation {
   @Min(64)
   @Max(8192)
   maxCacheSizeMB: number = 1024;
+
+  // ========================================
+  // Alert组件批处理配置
+  // 🎯 解决Alert模块中8+处批处理重复定义问题
+  // ========================================
+
+  /**
+   * Alert标准批处理大小
+   * 替换位置:
+   * - alert/constants/defaults.constants.ts:28 BATCH_SIZE: 100
+   * - alert/constants/limits.constants.ts:27 STANDARD_BATCH_SIZE: 100
+   * - alert/config/alert.config.ts 中相关批处理配置
+   */
+  @IsNumber()
+  @Min(10)
+  @Max(1000)
+  alertBatchSize: number = 100;
+
+  /**
+   * Alert最大批量处理数量
+   * 替换: alert/constants/limits.constants.ts:29 LARGE_BATCH_SIZE: 1000
+   */
+  @IsNumber()
+  @Min(100)
+  @Max(10000)
+  alertMaxBatchProcessing: number = 1000;
+
+  /**
+   * Alert大批量操作大小
+   * 替换: alert/constants/limits.constants.ts:28 LARGE_BATCH_SIZE: 1000
+   */
+  @IsNumber()
+  @Min(500)
+  @Max(5000)
+  alertLargeBatchSize: number = 1000;
+
+  /**
+   * Alert最大活跃告警数量
+   * 替换: alert/constants/limits.constants.ts:23 MAX_ACTIVE_ALERTS: 10000
+   */
+  @IsNumber()
+  @Min(1000)
+  @Max(100000)
+  alertMaxActiveAlerts: number = 10000;
 }
 
 /**
@@ -81,6 +130,12 @@ export default registerAs('cacheLimits', (): CacheLimitsConfig => {
     lruSortBatchSize: parseInt(process.env.CACHE_LRU_SORT_BATCH_SIZE, 10) || 1000,
     smartCacheMaxBatch: parseInt(process.env.SMART_CACHE_MAX_BATCH, 10) || 50,
     maxCacheSizeMB: parseInt(process.env.CACHE_MAX_SIZE_MB, 10) || 1024,
+    
+    // Alert批处理配置 - 从环境变量读取，提供默认值
+    alertBatchSize: parseInt(process.env.ALERT_BATCH_SIZE, 10) || 100,
+    alertMaxBatchProcessing: parseInt(process.env.ALERT_MAX_BATCH_PROCESSING, 10) || 1000,
+    alertLargeBatchSize: parseInt(process.env.ALERT_LARGE_BATCH_SIZE, 10) || 1000,
+    alertMaxActiveAlerts: parseInt(process.env.ALERT_MAX_ACTIVE_ALERTS, 10) || 10000,
   };
   
   // 转换为验证类实例
