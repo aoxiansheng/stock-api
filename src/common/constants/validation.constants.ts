@@ -8,17 +8,14 @@
  */
 
 /**
- * 基础时间常量（秒）
+ * ❌ 基础时间常量已迁移到统一TTL配置
+ * 🎯 这些是可调节的时间参数，不应作为常量
+ * 
+ * @deprecated 使用 @appcore/config/unified-ttl.config.ts 替代
+ * - COOLDOWN_PERIOD: 300 → unifiedTtl.defaultTtl
+ * - BATCH_OPERATION: 3600 → unifiedTtl.transformerResultTtl
  */
-const BASE_TIME_SECONDS = {
-  MINIMAL: 1,                    // 1秒
-  QUICK_RESPONSE: 5,            // 5秒
-  NORMAL_RESPONSE: 30,          // 30秒
-  EVALUATION_CYCLE: 60,         // 60秒（1分钟）
-  COOLDOWN_PERIOD: 300,         // 300秒（5分钟）
-  BATCH_OPERATION: 3600,        // 3600秒（1小时）
-  DAILY_PERIOD: 86400,          // 86400秒（24小时）
-} as const;
+// 时间常量已迁移到配置文件
 
 /**
  * 基础数量限制
@@ -44,25 +41,20 @@ const BASE_STRING_LENGTHS = {
 } as const;
 
 /**
- * 超时时间常量（毫秒）
+ * ❌ 超时常量已迁移到通用配置
+ * 🎯 这些是可调节的性能参数，不应作为常量
+ * 
+ * @deprecated 使用 @common/config/common-constants.config.ts 替代
  */
-const BASE_TIMEOUT_MS = {
-  QUICK_VALIDATION: 1000,       // 1秒
-  NORMAL_OPERATION: 5000,       // 5秒
-  SLOW_OPERATION: 15000,        // 15秒
-  BATCH_OPERATION: 60000,       // 1分钟
-  EXTERNAL_API: 30000,          // 30秒
-} as const;
+// 超时常量已迁移到配置文件
 
 /**
- * 重试次数限制
+ * ❌ 重试限制已迁移到通用配置
+ * 🎯 这些是可调节的网络参数，不应作为常量
+ * 
+ * @deprecated 使用 @common/config/common-constants.config.ts 替代
  */
-const BASE_RETRY_LIMITS = {
-  MINIMAL: 1,
-  NORMAL: 3,
-  AGGRESSIVE: 5,
-  MAX_ALLOWED: 10,
-} as const;
+// 重试限制已迁移到配置文件
 
 /**
  * 通用验证限制常量
@@ -83,22 +75,21 @@ export const VALIDATION_LIMITS = Object.freeze({
   RULES_PER_USER: BASE_QUANTITIES.LARGE_BATCH,                     // 100
   CHANNELS_PER_RULE: BASE_QUANTITIES.SMALL_BATCH,                  // 10
   
-  // 时间限制（秒）
-  DURATION_MIN: BASE_TIME_SECONDS.NORMAL_RESPONSE,                 // 30秒
-  DURATION_MAX: BASE_TIME_SECONDS.EVALUATION_CYCLE * 10,           // 600秒
-  COOLDOWN_MIN: BASE_TIME_SECONDS.COOLDOWN_PERIOD,                 // 300秒 (5分钟)
-  COOLDOWN_MAX: BASE_TIME_SECONDS.COOLDOWN_PERIOD * 10,            // 3000秒 (50分钟)
+  // ⚠️ 临时保留：向后兼容（TODO: 迁移引用后删除）
+  DURATION_MIN: 30,                                                    // 30秒 - 最小持续时间
+  DURATION_MAX: 600,                                                   // 600秒 - 最大持续时间
+  COOLDOWN_MIN: 60,                                                    // 60秒 - 最小冷却时间
+  COOLDOWN_MAX: 3000,                                                  // 3000秒 - 最大冷却时间
   
-  // 超时限制（毫秒）
-  TIMEOUT_MIN: BASE_TIMEOUT_MS.QUICK_VALIDATION,                   // 1000ms
-  TIMEOUT_MAX: BASE_TIMEOUT_MS.BATCH_OPERATION,                    // 60000ms
-  HTTP_TIMEOUT_MIN: BASE_TIMEOUT_MS.NORMAL_OPERATION,              // 5000ms
-  HTTP_TIMEOUT_MAX: BASE_TIMEOUT_MS.EXTERNAL_API,                  // 30000ms
+  // ❌ 其他时间、超时、重试限制已迁移到配置文件
+  // 🎯 这些参数现在从配置服务获取，不再作为常量定义
   
-  // 重试限制
-  RETRIES_MIN: BASE_RETRY_LIMITS.MINIMAL,                          // 1次
-  RETRIES_MAX: BASE_RETRY_LIMITS.MAX_ALLOWED,                      // 10次
-  RETRIES_DEFAULT: BASE_RETRY_LIMITS.NORMAL,                       // 3次
+  /**
+   * @deprecated 超时限制已迁移到 @common/config/common-constants.config.ts
+   * @deprecated 重试限制已迁移到 @common/config/common-constants.config.ts
+   */
+  // TIMEOUT_MIN, TIMEOUT_MAX, HTTP_TIMEOUT_MIN, HTTP_TIMEOUT_MAX → 通用配置
+  // RETRIES_MIN, RETRIES_MAX, RETRIES_DEFAULT → 通用配置
 });
 
 /**
@@ -115,23 +106,21 @@ export const NOTIFICATION_VALIDATION_LIMITS = Object.freeze({
   WEBHOOK_URL_MAX_LENGTH: BASE_STRING_LENGTHS.URL_MAX,             // 2083
   EMAIL_SUBJECT_MAX_LENGTH: BASE_STRING_LENGTHS.NAME_MAX,          // 100
   
-  // 批量通知限制
-  BATCH_SIZE_MIN: BASE_QUANTITIES.MINIMAL,                        // 1
-  BATCH_SIZE_MAX: BASE_QUANTITIES.MEDIUM_BATCH,                   // 50
+  // ❌ 批量、超时、重试配置已迁移到通知组件配置
   
-  // 超时配置
-  SEND_TIMEOUT_MIN: BASE_TIMEOUT_MS.NORMAL_OPERATION,              // 5000ms
-  SEND_TIMEOUT_MAX: BASE_TIMEOUT_MS.EXTERNAL_API,                  // 30000ms
-  SEND_TIMEOUT_DEFAULT: BASE_TIMEOUT_MS.SLOW_OPERATION,            // 15000ms
-  
-  // 重试配置
-  SEND_RETRIES_MIN: BASE_RETRY_LIMITS.MINIMAL,                     // 1
-  SEND_RETRIES_MAX: BASE_RETRY_LIMITS.NORMAL * 2,                  // 6
-  SEND_RETRIES_DEFAULT: BASE_RETRY_LIMITS.NORMAL,                  // 3
+  /**
+   * @deprecated 批量配置已迁移到 @notification/config/notification.config.ts
+   * @deprecated 超时配置已迁移到 @notification/config/notification.config.ts
+   * @deprecated 重试配置已迁移到 @notification/config/notification.config.ts
+   */
+  // BATCH_SIZE_MIN, BATCH_SIZE_MAX → 通知配置
+  // SEND_TIMEOUT_MIN, SEND_TIMEOUT_MAX, SEND_TIMEOUT_DEFAULT → 通知配置
+  // SEND_RETRIES_MIN, SEND_RETRIES_MAX, SEND_RETRIES_DEFAULT → 通知配置
 });
 
 /**
  * 验证工具类
+ * ✅ 保留 - 这是真正的通用工具类，不依赖可配置参数
  */
 export class ValidationLimitsUtil {
   /**

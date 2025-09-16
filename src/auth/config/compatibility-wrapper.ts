@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { AuthUnifiedConfigInterface } from './auth-unified.config';
+import authUnifiedConfig, { type AuthUnifiedConfigInterface } from './auth-unified.config';
 
 /**
  * Auth配置兼容包装器

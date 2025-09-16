@@ -18,14 +18,14 @@ import {
 } from './timeouts.constants';
 import {
   RULE_LIMITS,
-  STRING_LIMITS,
   RETRY_LIMITS,
-  PERFORMANCE_LIMITS,
+  // STRING_LIMITS - 已删除，迁移到@common/constants/validation.constants.ts
+  // PERFORMANCE_LIMITS - 已删除，迁移到alert-performance.config.ts
 } from './limits.constants';
 import {
   ALERT_DEFAULTS,
-  ALERT_CONFIG_PRESETS,
-  ALERT_ENV_CONFIG,
+  // ALERT_CONFIG_PRESETS - 已删除，迁移到alert-presets.config.ts
+  // ALERT_ENV_CONFIG - 已删除，迁移到环境变量
 } from './defaults.constants';
 
 // ================================
@@ -47,27 +47,27 @@ export type {
 // 容量和限制配置
 export {
   RULE_LIMITS,
-  STRING_LIMITS,
   RETRY_LIMITS,
-  PERFORMANCE_LIMITS,
+  // STRING_LIMITS - 已删除，使用@common/constants/validation.constants.ts
+  // PERFORMANCE_LIMITS - 已删除，使用alert-performance.config.ts
 } from './limits.constants';
 export type {
   RuleLimits,
-  StringLimits,
   RetryLimits,
-  PerformanceLimits,
+  // StringLimits - 已删除
+  // PerformanceLimits - 已删除
 } from './limits.constants';
 
-// 默认值和预设配置
+// 默认值配置
 export {
   ALERT_DEFAULTS,
-  ALERT_CONFIG_PRESETS,
-  ALERT_ENV_CONFIG,
+  // ALERT_CONFIG_PRESETS - 已删除，迁移到alert-presets.config.ts
+  // ALERT_ENV_CONFIG - 已删除，迁移到环境变量
 } from './defaults.constants';
 export type {
   AlertDefaults,
-  AlertConfigPresets,
-  AlertEnvConfig,
+  // AlertConfigPresets - 已删除
+  // AlertEnvConfig - 已删除
 } from './defaults.constants';
 
 // ================================
@@ -109,23 +109,11 @@ export type Operator = typeof VALID_OPERATORS[number];
 // 工具函数
 // ================================
 
-/**
- * 根据环境获取配置
- */
-export function getAlertConfigForEnvironment(env: 'development' | 'test' | 'production') {
-  return ALERT_ENV_CONFIG[env.toUpperCase() as keyof typeof ALERT_ENV_CONFIG];
-}
-
-/**
- * 获取预设配置
- */
-export function getAlertPresetConfig(
-  type: 'RULE' | 'NOTIFICATION' | 'PERFORMANCE',
-  preset: string
-) {
-  const presets = ALERT_CONFIG_PRESETS[`${type}_PRESETS` as keyof typeof ALERT_CONFIG_PRESETS];
-  return (presets as any)[preset] || null;
-}
+// ===================================
+// 工具函数已迁移到配置文件中
+// ===================================
+// getAlertConfigForEnvironment - 已迁移到环境变量配置
+// getAlertPresetConfig - 已迁移到alert-presets.config.ts
 
 // ================================
 // 默认导出（简化架构）
@@ -137,15 +125,12 @@ export default {
   OPERATION_TIMEOUTS,
   DATA_RETENTION,
   RULE_LIMITS,
-  STRING_LIMITS,
   RETRY_LIMITS,
-  PERFORMANCE_LIMITS,
   ALERT_DEFAULTS,
-  ALERT_CONFIG_PRESETS,
-  ALERT_ENV_CONFIG,
+  // STRING_LIMITS - 已删除，使用@common/constants/validation.constants.ts
+  // PERFORMANCE_LIMITS - 已删除，使用alert-performance.config.ts
+  // ALERT_CONFIG_PRESETS - 已删除，迁移到alert-presets.config.ts
+  // ALERT_ENV_CONFIG - 已删除，迁移到环境变量
   
-  
-  // 工具函数
-  getAlertConfigForEnvironment,
-  getAlertPresetConfig,
+  // 工具函数已迁移到配置文件中
 };

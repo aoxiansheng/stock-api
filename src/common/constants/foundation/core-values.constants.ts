@@ -33,53 +33,32 @@ export const CORE_VALUES = Object.freeze({
   },
 
   /**
-   * 时间相关基础值 (毫秒)
+   * ❌ 时间常量已迁移到统一TTL配置
+   * 🎯 使用 @appcore/config/unified-ttl.config.ts 替代
+   * 
+   * @deprecated 这些时间值现在是可配置参数，不应作为常量
+   * @see src/appcore/config/unified-ttl.config.ts
    */
-  TIME_MS: {
-    ONE_SECOND: 1000,
-    FIVE_SECONDS: 5000,
-    TEN_SECONDS: 10000,
-    FIFTEEN_SECONDS: 15000,   // 🆕 为circuit-breaker添加
-    THIRTY_SECONDS: 30000,
-    ONE_MINUTE: 60000,        // 🎯 解决60*1000重复定义
-    TWO_MINUTES: 120000,      // 🆕 为circuit-breaker添加
-    THREE_MINUTES: 180000,    // 🆕 为circuit-breaker添加
-    FIVE_MINUTES: 300000,
-    TEN_MINUTES: 600000,
-    ONE_HOUR: 3600000,
+  // TIME_MS: {...} - 已迁移到配置文件
+  // TIME_SECONDS: {...} - 已迁移到配置文件
+
+  /**
+   * 协议标准长度限制 (保留固定标准)
+   */
+  PROTOCOL_LIMITS: {
+    URL_MAX: 2048,     // RFC标准URL最大长度
+    EMAIL_MAX: 320,    // RFC 5321标准邮箱最大长度  
+    FILENAME_MAX: 255, // 文件系统标准文件名最大长度
   },
 
   /**
-   * 时间相关基础值 (秒)
+   * ❌ 可调节大小限制已迁移到配置文件
+   * 🎯 使用 @common/config/common-constants.config.ts 替代
+   * 
+   * @deprecated SIZES.TINY, SMALL, MEDIUM, LARGE, HUGE, MASSIVE 现在是可配置参数
+   * @see src/common/config/common-constants.config.ts
    */
-  TIME_SECONDS: {
-    ONE_SECOND: 1,
-    FIVE_SECONDS: 5,
-    THIRTY_SECONDS: 30,
-    ONE_MINUTE: 60,
-    FIVE_MINUTES: 300,
-    TEN_MINUTES: 600,
-    THIRTY_MINUTES: 1800,
-    ONE_HOUR: 3600,
-    ONE_DAY: 86400,
-    THIRTY_DAYS: 2628000,
-    NINETY_DAYS: 7884000,
-  },
-
-  /**
-   * 大小和限制基础值
-   */
-  SIZES: {
-    TINY: 6,           // 用于短ID、随机数等
-    SMALL: 50,         // 用于标签、名称等  
-    MEDIUM: 100,       // 用于规则名等
-    LARGE: 500,        // 用于描述等
-    HUGE: 1000,        // 用于消息内容等 🎯 标准化批量大小
-    MASSIVE: 10000,    // 用于大批量处理等 🎯 标准化大批量
-    URL_MAX: 2048,     // URL最大长度
-    EMAIL_MAX: 320,    // 邮箱最大长度  
-    FILENAME_MAX: 255, // 文件名最大长度
-  },
+  // SIZES: {...} - 已迁移到配置文件
 
   /**
    * 百分比基础值
@@ -115,105 +94,37 @@ export const CORE_VALUES = Object.freeze({
   },
 
   /**
-   * 网络相关基础值
+   * ❌ 网络、性能、超时、重试、批量、内存、连接池、监控配置已迁移
+   * 🎯 这些都是可调节的性能参数，不应作为常量定义
+   * 
+   * @deprecated 以下配置已迁移到相应的配置文件:
+   * - NETWORK: 迁移至 @common/config/common-constants.config.ts
+   * - PERFORMANCE_MS: 迁移至 @common/config/common-constants.config.ts
+   * - TIMEOUT_MS: 迁移至 @common/config/common-constants.config.ts
+   * - RETRY: 迁移至 @common/config/common-constants.config.ts
+   * - BATCH_LIMITS: 迁移至 @common/config/common-constants.config.ts
+   * - MEMORY_MB: 迁移至 @common/config/common-constants.config.ts
+   * - CONNECTION_POOL: 迁移至 @common/config/common-constants.config.ts
+   * - MONITORING: 迁移至 @monitoring/config/monitoring.config.ts
    */
-  NETWORK: {
-    DEFAULT_RETRIES: 3,
-  },
-
-  /**
-   * 性能阈值基础值 (毫秒)
-   * 性能阈值相关定义
-   */
-  PERFORMANCE_MS: {
-    VERY_FAST: 50,      // 非常快的操作 - 缓存操作阈值
-    FAST: 100,          // 快速操作 - 符号映射阈值
-    NORMAL: 500,        // 正常操作 - 普通请求阈值
-    SLOW: 1000,         // 🎯 统一慢操作阈值 - 查询/存储阈值
-    VERY_SLOW: 5000,    // 非常慢的操作 - 数据转换/认证超时
-    CRITICAL: 10000,    // 关键慢操作阈值 - 最大重试延迟
-    SLOW_REQUEST: 1000, // 慢请求阈值
-    SLOW_STORAGE: 1000, // 存储操作慢阈值
-    SLOW_TRANSFORMATION: 5000, // 数据转换慢阈值
-    DATA_FETCHER_SLOW: 2000,   // 数据获取慢阈值
-  },
-
-  /**
-   * 超时配置基础值 (毫秒)
-   * 超时配置相关定义
-   */
-  TIMEOUT_MS: {
-    QUICK: 5000,        // 快速操作超时：5秒
-    DEFAULT: 30000,     // 默认超时时间：30秒
-    LONG: 60000,        // 长时间操作超时：60秒
-    CONNECTION: 5000,   // 连接超时：5秒
-  },
-
-  /**
-   * 重试配置基础值
-   * 重试配置相关定义
-   */
-  RETRY: {
-    MAX_ATTEMPTS: 3,    // 最大重试次数
-    BACKOFF_BASE: 2,    // 指数退避基数
-    MAX_DELAY_MS: 10000, // 最大重试延迟：10秒
-    CRITICAL_MAX_ATTEMPTS: 5, // 关键操作最大重试次数
-  },
-
-  /**
-   * 批量处理限制基础值
-   * 批量处理限制相关定义
-   */
-  BATCH_LIMITS: {
-    MAX_BATCH_SIZE: 1000,    // 最大批量处理大小
-    DEFAULT_PAGE_SIZE: 10,   // 默认分页大小
-    MAX_PAGE_SIZE: 100,      // 最大分页大小
-    MAX_CONCURRENT: 10,      // 最大并发操作数
-  },
-
-  /**
-   * 内存使用阈值基础值 (MB)
-   * 内存使用阈值相关定义
-   */
-  MEMORY_MB: {
-    LOW_USAGE: 50,       // 低内存使用阈值
-    NORMAL_USAGE: 100,   // 正常内存使用阈值
-    HIGH_USAGE: 200,     // 高内存使用阈值
-    CRITICAL_USAGE: 500, // 严重内存使用阈值
-    MAX_OBJECT_SIZE: 10, // 最大对象大小
-    MAX_REQUEST_SIZE: 50, // 最大请求大小
-  },
-
-  /**
-   * 连接池配置基础值
-   * 连接池配置相关定义
-   */
-  CONNECTION_POOL: {
-    MIN_SIZE: 5,         // 最小连接池大小
-    MAX_SIZE: 20,        // 最大连接池大小
-  },
-
-  /**
-   * 监控和采样配置基础值
-   * 监控和采样配置相关定义
-   */
-  MONITORING: {
-    HEALTH_CHECK_INTERVAL_MS: 30000, // 健康检查间隔：30秒
-  },
+  // 所有可调节参数已迁移到配置文件
 });;
 
 /**
- * 类型定义
+ * 类型定义 (仅保留固定常量的类型)
  */
 export type CoreValues = typeof CORE_VALUES;
-export type TimeMS = typeof CORE_VALUES.TIME_MS;
-export type TimeSeconds = typeof CORE_VALUES.TIME_SECONDS;
-export type Sizes = typeof CORE_VALUES.SIZES;
 export type Quantities = typeof CORE_VALUES.QUANTITIES;
-export type PerformanceMS = typeof CORE_VALUES.PERFORMANCE_MS;
-export type TimeoutMS = typeof CORE_VALUES.TIMEOUT_MS;
-export type RetryConfig = typeof CORE_VALUES.RETRY;
-export type BatchLimits = typeof CORE_VALUES.BATCH_LIMITS;
-export type MemoryMB = typeof CORE_VALUES.MEMORY_MB;
-export type ConnectionPool = typeof CORE_VALUES.CONNECTION_POOL;
-export type MonitoringConfig = typeof CORE_VALUES.MONITORING;
+export type Percentages = typeof CORE_VALUES.PERCENTAGES;
+export type ProtocolLimits = typeof CORE_VALUES.PROTOCOL_LIMITS;
+export type MathConstants = typeof CORE_VALUES.MATH;
+export type RadixConstants = typeof CORE_VALUES.RADIX;
+export type FileSizeConstants = typeof CORE_VALUES.FILE_SIZE_BYTES;
+
+/**
+ * 已迁移类型 - 现在使用配置文件
+ * @deprecated 请使用对应的配置类型
+ */
+// TimeMS, TimeSeconds, Sizes, PerformanceMS, TimeoutMS, 
+// RetryConfig, BatchLimits, MemoryMB, ConnectionPool, MonitoringConfig
+// 这些类型现在位于相应的配置文件中

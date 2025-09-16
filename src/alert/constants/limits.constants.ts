@@ -24,30 +24,8 @@ export const RULE_LIMITS = {
   // - MAX_QUERY_RESULTS → alert.config.ts:limits.maxQueryResults
 } as const;
 
-/**
- * 字符串长度限制
- * 各类字符串的最大长度限制
- */
-export const STRING_LIMITS = {
-  // 标识符长度
-  TAG_MAX_LENGTH: 50,               // 50 - 标签最大长度
-  NAME_MAX_LENGTH: 100,             // 100 - 名称最大长度
-  IDENTIFIER_MAX_LENGTH: 50,        // 50 - 标识符最大长度
-  
-  // 内容长度
-  DESCRIPTION_MAX_LENGTH: 500,      // 500 - 描述最大长度
-  MESSAGE_MAX_LENGTH: 1000,         // 1000 - 消息最大长度
-  COMMENT_MAX_LENGTH: 1000,         // 1000 - 评论最大长度
-  
-  // 模板和配置
-  TEMPLATE_MAX_LENGTH: 10000,       // 10000 - 模板最大长度
-  CONFIG_MAX_LENGTH: 10000,         // 10000 - 配置最大长度
-  
-  // 网络相关
-  URL_MAX_LENGTH: 2048,             // 2048 - URL最大长度
-  EMAIL_MAX_LENGTH: 320,            // 320 - 邮箱最大长度
-  FILENAME_MAX_LENGTH: 255,         // 255 - 文件名最大长度
-} as const;
+// ❌ 删除：字符串长度限制（已在@common/constants/validation.constants.ts）
+// export const STRING_LIMITS = { ... };  // 删除整个对象
 
 /**
  * 重试配置
@@ -67,28 +45,8 @@ export const RETRY_LIMITS = {
   VALIDATION_RETRIES: 1,            // 1次 - 验证操作重试
 } as const;
 
-/**
- * 性能限制配置
- * 并发和性能相关的限制
- */
-export const PERFORMANCE_LIMITS = {
-  // 并发控制
-  DEFAULT_CONCURRENCY: 5,           // 5个 - 默认并发数
-  MAX_CONCURRENCY: 20,              // 20个 - 最大并发数
-  QUEUE_SIZE_LIMIT: 100,            // 100个 - 队列大小限制
-  
-  // 连接池配置
-  CONNECTION_POOL_SIZE: 10,         // 10个 - 连接池大小
-  MAX_CONNECTION_POOL_SIZE: 20,     // 20个 - 最大连接池大小
-  
-  // 速率限制
-  RATE_LIMIT_PER_MINUTE: 100,       // 100个 - 每分钟请求限制
-  BURST_LIMIT: 20,                  // 20个 - 突发请求限制
-  
-  // 资源限制
-  MAX_MEMORY_USAGE_MB: 1000,        // 1000MB - 最大内存使用
-  MAX_CPU_USAGE_PERCENT: 100,       // 100% - 最大CPU使用率
-} as const;
+// ❌ 删除：性能限制（已迁移到alert-performance.config.ts）
+// export const PERFORMANCE_LIMITS = { ... };  // 删除整个对象
 
 /**
  * 验证限制配置
@@ -100,6 +58,6 @@ export const PERFORMANCE_LIMITS = {
 
 // 类型定义
 export type RuleLimits = typeof RULE_LIMITS;
-export type StringLimits = typeof STRING_LIMITS;
 export type RetryLimits = typeof RETRY_LIMITS;
-export type PerformanceLimits = typeof PERFORMANCE_LIMITS;
+// StringLimits - 已删除，使用 @common/constants/validation.constants.ts
+// PerformanceLimits - 已删除，使用 alert-performance.config.ts

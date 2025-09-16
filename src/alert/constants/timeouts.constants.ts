@@ -30,12 +30,12 @@ export const ALERT_TIMEOUTS = {
   NORMAL_RESPONSE: 30,          // 30秒 - 普通告警响应时间
   EVALUATION_CYCLE: 60,         // 60秒 - 规则评估周期
   
-  // 会话和认证
-  JWT_LIFETIME: 3600,           // 1小时 - JWT令牌生命周期
-  SESSION_LIFETIME: 86400,      // 24小时 - 会话生命周期
-  IDLE_SESSION_TIMEOUT: 1800,   // 30分钟 - 空闲会话超时
-  RATE_LIMIT_WINDOW: 60,        // 60秒 - 速率限制窗口
-  ACCOUNT_LOCKOUT: 1800,        // 30分钟 - 账户锁定时长
+  // ❌ 删除以下（应在系统配置层）：
+  // JWT_LIFETIME: 3600,           → 移动到 appcore/config/app.config.ts
+  // SESSION_LIFETIME: 86400,      → 移动到 appcore/config/app.config.ts  
+  // IDLE_SESSION_TIMEOUT: 1800,   → 移动到 appcore/config/app.config.ts
+  // RATE_LIMIT_WINDOW: 60,        → 移动到 appcore/config/app.config.ts
+  // ACCOUNT_LOCKOUT: 1800,        → 移动到 appcore/config/app.config.ts
 } as const;
 
 /**

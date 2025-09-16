@@ -15,149 +15,26 @@ import { AlertSeverity } from './enums';
  * 固定业务默认值（不可配置的业务常量）
  */
 export const ALERT_DEFAULTS = {
-  // 固定业务默认值
-  operator: '>',                      // 默认操作符
-  duration: 60,                       // 60秒 - 默认持续时间
-  severity: AlertSeverity.MEDIUM,     // 'medium' - 默认严重程度
-  enabled: true,                      // true - 默认启用
+  // ✅ 保留：固定业务默认值
+  operator: '>',                      // 默认操作符（业务标准）
+  severity: AlertSeverity.MEDIUM,     // 默认严重程度（业务标准）
+  enabled: true,                      // 默认启用状态（业务标准）
   
-  // 固定容量默认值
-  MAX_CONDITIONS: 10,                 // 10 - 最大条件数
-  MAX_ACTIONS: 5,                     // 5 - 最大动作数
+  // ⚠️ 临时保留：向后兼容（TODO: 迁移引用后删除）
+  duration: 60,                       // 60秒 - 默认持续时间（临时保留）
+  NAME_MAX_LENGTH: 100,               // 100 - 名称最大长度（临时保留）
   
-  // 固定字符串长度默认值
-  NAME_MAX_LENGTH: 100,               // 100 - 名称最大长度
-  DESCRIPTION_MAX_LENGTH: 500,        // 500 - 描述最大长度
-  
-  // 注意：可配置默认值已迁移：
-  // - 超时配置 → alert.config.ts (evaluationTimeout, evaluationInterval)
-  // - 重试配置 → alert.config.ts (maxRetries)
-  // - 批处理配置 → cache-limits.config.ts (alertBatchSize)
-  // - 冷却配置 → unified-ttl.config.ts (alertCooldownTtl)
+  // ❌ 删除：重复定义（已在其他地方定义）
+  // MAX_CONDITIONS: 10,              // 删除 - 已在alert.config.ts
+  // MAX_ACTIONS: 5,                  // 删除 - 已在limits.constants.ts
+  // DESCRIPTION_MAX_LENGTH: 500,     // 删除 - 已在validation.constants.ts
 } as const;
 
-/**
- * 配置预设组合
- * 常见业务场景的配置组合
- */
-export const ALERT_CONFIG_PRESETS = {
-  /**
-   * 规则配置预设
-   */
-  RULE_PRESETS: {
-    // 快速规则配置
-    QUICK: {
-      duration: 30,                     // 30秒
-      // cooldown: 迁移到统一TTL配置的 alertCooldownTtl
-      maxConditions: 3,                 // 3个
-      maxActions: 2,                    // 2个
-    },
-    
-    // 标准规则配置
-    STANDARD: {
-      duration: 60,                     // 60秒
-      // cooldown: 迁移到统一TTL配置的 alertCooldownTtl
-      maxConditions: 10,                // 10个
-      maxActions: 5,                    // 5个
-    },
-    
-    // 复杂规则配置
-    COMPLEX: {
-      duration: 120,                    // 120秒
-      // cooldown: 600 (业务不同值，保留)
-      cooldown: 600,                    // 600秒
-      maxConditions: 10,                // 10个
-      maxActions: 5,                    // 5个
-    },
-  },
+// ❌ 删除整个对象（已迁移到alert-presets.config.ts）
+// export const ALERT_CONFIG_PRESETS = { ... };  // 删除整个对象
 
-  /**
-   * 通知配置预设
-   */
-  NOTIFICATION_PRESETS: {
-    // 即时通知
-    INSTANT: {
-      timeout: 5000,                    // 5000ms
-      retries: 5,                       // 5次
-      channels: ['sms', 'webhook'],
-    },
-    
-    // 标准通知
-    STANDARD: {
-      timeout: 30000,                   // 30000ms
-      retries: 3,                       // 3次
-      channels: ['email', 'in_app'],
-    },
-    
-    // 批量通知
-    BATCH: {
-      timeout: 60000,                   // 60000ms
-      retries: 1,                       // 1次
-      batchSize: 50,                    // 50个
-    },
-  },
-
-  /**
-   * 性能配置预设
-   */
-  PERFORMANCE_PRESETS: {
-    // 高性能配置
-    HIGH_PERFORMANCE: {
-      concurrency: 20,                  // 20个 - 最大并发
-      batchSize: 1000,                  // 1000个
-      timeout: 1000,                    // 1000ms
-    },
-    
-    // 平衡配置
-    BALANCED: {
-      concurrency: 5,                   // 5个 - 默认并发
-      batchSize: 100,                   // 100个
-      timeout: 5000,                    // 5000ms
-    },
-    
-    // 资源节约配置
-    CONSERVATIVE: {
-      concurrency: 3,                   // 3个
-      batchSize: 50,                    // 50个
-      timeout: 30000,                   // 30000ms
-    },
-  },
-} as const;
-
-/**
- * 环境特定配置
- * 不同环境的配置调整
- */
-export const ALERT_ENV_CONFIG = {
-  // 开发环境配置
-  DEVELOPMENT: {
-    cacheEnabled: false,                // false - 不启用缓存
-    batchSize: 20,                      // 20个
-    timeout: 1000,                      // 1000ms
-    retentionDays: 7,                   // 7天
-    logLevel: 'debug',
-  },
-  
-  // 测试环境配置
-  TEST: {
-    cacheEnabled: false,                // false - 不启用缓存
-    batchSize: 5,                       // 5个
-    timeout: 1000,                      // 1000ms
-    retentionDays: 1,                   // 1天
-    logLevel: 'info',
-  },
-  
-  // 生产环境配置
-  PRODUCTION: {
-    cacheEnabled: true,                 // true - 启用缓存
-    batchSize: 1000,                    // 1000个
-    timeout: 60000,                     // 60000ms
-    retentionDays: 90,                  // 90天
-    logLevel: 'warn',
-  },
-} as const;
+// ❌ 删除环境配置（已迁移到环境变量）
+// export const ALERT_ENV_CONFIG = { ... };  // 删除整个对象
 
 // 类型定义
 export type AlertDefaults = typeof ALERT_DEFAULTS;
-export type AlertConfigPresets = typeof ALERT_CONFIG_PRESETS;
-export type AlertEnvConfig = typeof ALERT_ENV_CONFIG;

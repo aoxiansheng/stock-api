@@ -43,6 +43,15 @@ export interface AppConfig {
       origin: string | string[];
       credentials: boolean;
     };
+    // 新增：从Alert模块迁移的认证超时配置
+    session: {
+      lifetime: number;
+      idleTimeout: number;
+      lockoutDuration: number;
+    };
+    rateLimit: {
+      window: number;
+    };
   };
 
   // 缓存配置
@@ -138,6 +147,15 @@ export const createAppConfig = (): Partial<AppConfig> => ({
     cors: {
       origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3000"],
       credentials: true,
+    },
+    // 新增：从Alert模块迁移的认证超时配置
+    session: {
+      lifetime: parseInt(process.env.SESSION_LIFETIME, 10) || 86400,
+      idleTimeout: parseInt(process.env.IDLE_SESSION_TIMEOUT, 10) || 1800,
+      lockoutDuration: parseInt(process.env.ACCOUNT_LOCKOUT_DURATION, 10) || 1800,
+    },
+    rateLimit: {
+      window: parseInt(process.env.RATE_LIMIT_WINDOW, 10) || 60,
     },
   },
 
