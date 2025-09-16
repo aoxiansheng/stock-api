@@ -104,7 +104,7 @@ async function runAllTypeChecks() {
     const envContent = fs.readFileSync(envExamplePath, 'utf8');
     const requiredVars = [
       'CACHE_DEFAULT_TTL',
-      'DEFAULT_BATCH_SIZE',
+      'COMMON_DEFAULT_BATCH_SIZE',
       'ENV_DEBUG_LOGS',
       'NODE_ENV'
     ];

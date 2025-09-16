@@ -918,3 +918,82 @@ bun run test:unit:auth
 - `test/auth/config/` - Comprehensive test suite
 
 This unified configuration system represents a **major architectural improvement** that eliminates configuration chaos while maintaining perfect backward compatibility.
+
+## Critical Troubleshooting Guide
+
+### Common Startup Issues and Fixes
+
+#### 1. Notification Configuration Validation Errors
+**Error**: `Notification configuration validation failed: undefined: an unknown value was passed to the validate function`
+
+**Root Cause**: Class instances passed to `plainToClass` in config validation instead of plain objects.
+
+**Fix**: 
+```typescript
+// ❌ Wrong - Creates class instances
+channelTemplates: new NotificationChannelTemplatesConfig(),
+channelDefaults: new NotificationChannelDefaultsConfig(),
+
+// ✅ Correct - Use plain objects
+channelTemplates: {},
+channelDefaults: {},
+```
+
+**Location**: `src/notification/config/notification-unified.config.ts`
+
+#### 2. CacheService Dependency Injection Errors
+**Error**: `Nest can't resolve dependencies of the CacheService (..., ?, "cacheTtl")`
+
+**Root Cause**: Missing provider registration for `'cacheTtl'` token in CacheModule.
+
+**Fix**: Add missing provider in `src/cache/module/cache.module.ts`:
+```typescript
+{
+  provide: 'cacheTtl',
+  useFactory: (configService: ConfigService) => {
+    return configService.get('cacheUnified');
+  },
+  inject: [ConfigService],
+}
+```
+
+#### 3. Configuration Validation Best Practices
+- Avoid `@IsObject()` decorators on complex nested objects - use plain TypeScript types instead
+- Remove `@ValidateNested()` if causing validation issues - rely on TypeScript type checking
+- Always test config validation with `DISABLE_AUTO_INIT=true` during development
+- Use plain objects `{}` instead of class instances in config factory functions
+
+#### 4. Testing Configuration Changes
+```bash
+# Test notification config specifically
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/notification/config/notification-unified.config.ts
+
+# Test cache module dependencies
+DISABLE_AUTO_INIT=true npm run typecheck:file -- src/cache/module/cache.module.ts
+
+# Quick startup test without full initialization
+DISABLE_AUTO_INIT=true bun run start
+```
+
+### Module Dependency Issues
+
+If encountering circular dependencies or module resolution issues:
+
+1. **Check import paths**: Ensure path aliases match `tsconfig.json` configuration
+2. **Verify provider exports**: All injected dependencies must be exported from their modules
+3. **Module loading order**: Some modules depend on others being loaded first (Database → Cache → Application modules)
+
+### Performance Monitoring
+
+The application includes extensive performance monitoring. Key metrics to watch during development:
+
+```bash
+# Check application startup performance
+grep "startup" logs/*.log | tail -20
+
+# Monitor cache hit rates (should be >90% for Smart Cache, >70% for Symbol Cache)
+curl http://localhost:3000/api/v1/monitoring/cache-stats
+
+# Check singleton pattern compliance
+grep "非单例" logs/*.log
+```

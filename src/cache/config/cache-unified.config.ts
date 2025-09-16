@@ -221,109 +221,9 @@ export class CacheUnifiedConfigValidation {
   // ========================================
 
   // ========================================
-  // Alert模块配置（已迁移到Alert模块）
-  // ⚠️ 以下配置已迁移到 src/alert/config/alert-cache.config.ts
-  // 此处保留用于过渡期兼容，将在v3.0移除
+  // Alert模块配置已完全移除 - 已迁移到Alert模块独立配置
+  // 使用: src/alert/config/alert-cache.config.ts
   // ========================================
-
-  /**
-   * @deprecated Alert活跃数据TTL已迁移到Alert模块
-   * 使用: AlertCacheConfig.activeDataTtl
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(60)
-  @Max(7200)
-  alertActiveDataTtl: number = 300;
-
-  /**
-   * @deprecated Alert历史数据TTL已迁移到Alert模块
-   * 使用: AlertCacheConfig.historicalDataTtl
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(300)
-  @Max(86400)
-  alertHistoricalDataTtl: number = 3600;
-
-  /**
-   * @deprecated Alert冷却期TTL已迁移到Alert模块
-   * 使用: AlertCacheConfig.cooldownTtl
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(60)
-  @Max(7200)
-  alertCooldownTtl: number = 300;
-
-  /**
-   * @deprecated Alert配置缓存TTL已迁移到Alert模块
-   * 使用: AlertCacheConfig.configCacheTtl
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(300)
-  @Max(3600)
-  alertConfigCacheTtl: number = 600;
-
-  /**
-   * @deprecated Alert统计缓存TTL已迁移到Alert模块
-   * 使用: AlertCacheConfig.statsCacheTtl
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(60)
-  @Max(1800)
-  alertStatsCacheTtl: number = 300;
-
-  @IsNumber()
-  @Min(3600)
-  @Max(86400)
-  alertArchivedDataTtl: number = 86400;
-
-  // ========================================
-  // Alert组件限制配置（暂时保留，待迁移到Alert模块）
-  // ========================================
-
-  /**
-   * @deprecated Alert标准批处理大小已迁移到Alert模块
-   * 使用: AlertCacheConfig.batchSize
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(10)
-  @Max(1000)
-  alertBatchSize: number = 100;
-
-  /**
-   * @deprecated Alert最大批量处理数量已迁移到Alert模块
-   * 使用: AlertCacheConfig.maxBatchProcessing
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(100)
-  @Max(10000)
-  alertMaxBatchProcessing: number = 1000;
-
-  /**
-   * @deprecated Alert大批量操作大小已迁移到Alert模块
-   * 使用: AlertCacheConfig.largeBatchSize
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(500)
-  @Max(5000)
-  alertLargeBatchSize: number = 1000;
-
-  /**
-   * @deprecated Alert最大活跃告警数量已迁移到Alert模块
-   * 使用: AlertCacheConfig.maxActiveAlerts
-   * 迁移至: src/alert/config/alert-cache.config.ts
-   */
-  @IsNumber()
-  @Min(1000)
-  @Max(100000)
-  alertMaxActiveAlerts: number = 10000;
 }
 
 /**
@@ -361,20 +261,8 @@ export default registerAs('cacheUnified', (): CacheUnifiedConfigValidation => {
     smartCacheMaxBatch: parseInt(process.env.SMART_CACHE_MAX_BATCH, 10) || 50,
     maxCacheSizeMB: parseInt(process.env.CACHE_MAX_SIZE_MB, 10) || 1024,
 
-    // ⚠️ Alert配置（已迁移到Alert模块，此处保留兼容性）
-    // 推荐使用: src/alert/config/alert-cache.config.ts
-    alertActiveDataTtl: parseInt(process.env.CACHE_ALERT_ACTIVE_TTL, 10) || 300,
-    alertHistoricalDataTtl: parseInt(process.env.CACHE_ALERT_HISTORICAL_TTL, 10) || 3600,
-    alertCooldownTtl: parseInt(process.env.CACHE_ALERT_COOLDOWN_TTL, 10) || 300,
-    alertConfigCacheTtl: parseInt(process.env.CACHE_ALERT_CONFIG_TTL, 10) || 600,
-    alertStatsCacheTtl: parseInt(process.env.CACHE_ALERT_STATS_TTL, 10) || 300,
-    alertArchivedDataTtl: parseInt(process.env.CACHE_ALERT_ARCHIVED_TTL, 10) || 86400,
-
-    // Alert批处理配置（兼容性保留）
-    alertBatchSize: parseInt(process.env.ALERT_BATCH_SIZE, 10) || 100,
-    alertMaxBatchProcessing: parseInt(process.env.ALERT_MAX_BATCH_PROCESSING, 10) || 1000,
-    alertLargeBatchSize: parseInt(process.env.ALERT_LARGE_BATCH_SIZE, 10) || 1000,
-    alertMaxActiveAlerts: parseInt(process.env.ALERT_MAX_ACTIVE_ALERTS, 10) || 10000,
+    // Alert配置已完全迁移到Alert模块独立配置
+    // 使用: src/alert/config/alert-cache.config.ts
   };
 
   // 转换为验证类实例

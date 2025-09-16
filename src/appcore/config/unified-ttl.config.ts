@@ -33,7 +33,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '默认TTL必须是有效数字' })
   @Min(1, { message: '默认TTL不能少于1秒' })
   @Max(86400, { message: '默认TTL不能超过86400秒(24小时)' })
-  defaultTtl: number = parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300;
+  defaultTtl: number = parseInt(process.env.APP_DEFAULT_TTL, 10) || 300;
 
   /**
    * 强时效性TTL - Receiver组件使用
@@ -43,7 +43,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '强时效TTL必须是有效数字' })
   @Min(1, { message: '强时效TTL不能少于1秒' })
   @Max(3600, { message: '强时效TTL不能超过3600秒(1小时)' })
-  strongTimelinessTtl: number = parseInt(process.env.CACHE_STRONG_TTL, 10) || 5;
+  strongTimelinessTtl: number = parseInt(process.env.APP_STRONG_TTL, 10) || 5;
 
   /**
    * 认证相关TTL - Auth模块使用
@@ -54,7 +54,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '认证TTL必须是有效数字' })
   @Min(60, { message: '认证TTL不能少于60秒' })
   @Max(7200, { message: '认证TTL不能超过7200秒(2小时)' })
-  authTtl: number = parseInt(process.env.CACHE_AUTH_TTL, 10) || 300;
+  authTtl: number = parseInt(process.env.APP_AUTH_TTL, 10) || 300;
 
   /**
    * 监控相关TTL - Monitoring模块使用
@@ -65,7 +65,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '监控TTL必须是有效数字' })
   @Min(30, { message: '监控TTL不能少于30秒' })
   @Max(1800, { message: '监控TTL不能超过1800秒(30分钟)' })
-  monitoringTtl: number = parseInt(process.env.CACHE_MONITORING_TTL, 10) || 300;
+  monitoringTtl: number = parseInt(process.env.APP_MONITORING_TTL, 10) || 300;
 
   /**
    * 数据转换结果TTL - Transformer模块使用
@@ -76,7 +76,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '转换结果TTL必须是有效数字' })
   @Min(60, { message: '转换结果TTL不能少于60秒' })
   @Max(3600, { message: '转换结果TTL不能超过3600秒(1小时)' })
-  transformerResultTtl: number = parseInt(process.env.CACHE_TRANSFORMER_TTL, 10) || 300;
+  transformerResultTtl: number = parseInt(process.env.APP_TRANSFORMER_TTL, 10) || 300;
 
   /**
    * 提供商选择TTL - Provider模块使用
@@ -86,7 +86,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '提供商选择TTL必须是有效数字' })
   @Min(60, { message: '提供商选择TTL不能少于60秒' })
   @Max(1800, { message: '提供商选择TTL不能超过1800秒(30分钟)' })
-  providerSelectionTtl: number = parseInt(process.env.CACHE_PROVIDER_SELECTION_TTL, 10) || 300;
+  providerSelectionTtl: number = parseInt(process.env.APP_PROVIDER_SELECTION_TTL, 10) || 300;
 
   /**
    * 流缓存Warm Cache TTL - Stream Cache模块使用
@@ -97,7 +97,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '流缓存TTL必须是有效数字' })
   @Min(30, { message: '流缓存TTL不能少于30秒' })
   @Max(3600, { message: '流缓存TTL不能超过3600秒(1小时)' })
-  streamWarmCacheTtl: number = parseInt(process.env.CACHE_STREAM_WARM_TTL, 10) || 300;
+  streamWarmCacheTtl: number = parseInt(process.env.APP_STREAM_WARM_TTL, 10) || 300;
 
   /**
    * 市场开市时TTL - Common Cache模块使用
@@ -107,7 +107,7 @@ export class UnifiedTtlConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '市场开市TTL必须是有效数字' })
   @Min(60, { message: '市场开市TTL不能少于60秒' })
   @Max(1800, { message: '市场开市TTL不能超过1800秒(30分钟)' })
-  marketOpenTtl: number = parseInt(process.env.CACHE_MARKET_OPEN_TTL, 10) || 300;
+  marketOpenTtl: number = parseInt(process.env.APP_MARKET_OPEN_TTL, 10) || 300;
 }
 
 /**
@@ -116,14 +116,14 @@ export class UnifiedTtlConfigValidation {
  */
 export default registerAs('unifiedTtl', (): UnifiedTtlConfigValidation => {
   const rawConfig = {
-    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300,
-    strongTimelinessTtl: parseInt(process.env.CACHE_STRONG_TTL, 10) || 5,
-    authTtl: parseInt(process.env.CACHE_AUTH_TTL, 10) || 300,
-    monitoringTtl: parseInt(process.env.CACHE_MONITORING_TTL, 10) || 300,
-    transformerResultTtl: parseInt(process.env.CACHE_TRANSFORMER_TTL, 10) || 300,
-    providerSelectionTtl: parseInt(process.env.CACHE_PROVIDER_SELECTION_TTL, 10) || 300,
-    streamWarmCacheTtl: parseInt(process.env.CACHE_STREAM_WARM_TTL, 10) || 300,
-    marketOpenTtl: parseInt(process.env.CACHE_MARKET_OPEN_TTL, 10) || 300,
+    defaultTtl: parseInt(process.env.APP_DEFAULT_TTL, 10) || 300,
+    strongTimelinessTtl: parseInt(process.env.APP_STRONG_TTL, 10) || 5,
+    authTtl: parseInt(process.env.APP_AUTH_TTL, 10) || 300,
+    monitoringTtl: parseInt(process.env.APP_MONITORING_TTL, 10) || 300,
+    transformerResultTtl: parseInt(process.env.APP_TRANSFORMER_TTL, 10) || 300,
+    providerSelectionTtl: parseInt(process.env.APP_PROVIDER_SELECTION_TTL, 10) || 300,
+    streamWarmCacheTtl: parseInt(process.env.APP_STREAM_WARM_TTL, 10) || 300,
+    marketOpenTtl: parseInt(process.env.APP_MARKET_OPEN_TTL, 10) || 300,
   };
 
   const config = plainToClass(UnifiedTtlConfigValidation, rawConfig);
@@ -239,14 +239,14 @@ export class UnifiedTtlHelper {
  * 
  * @environment
  * ```bash
- * # .env文件配置
- * CACHE_DEFAULT_TTL=300              # 默认TTL（秒）
- * CACHE_STRONG_TTL=5                 # 强时效TTL（秒）
- * CACHE_AUTH_TTL=300                 # 认证TTL（秒）
- * CACHE_MONITORING_TTL=300           # 监控TTL（秒）
- * CACHE_TRANSFORMER_TTL=300          # 转换结果TTL（秒）
- * CACHE_PROVIDER_SELECTION_TTL=300   # 提供商选择TTL（秒）
- * CACHE_STREAM_WARM_TTL=300          # 流缓存TTL（秒）
- * CACHE_MARKET_OPEN_TTL=300          # 市场开市TTL（秒）
+ * # .env文件配置 - AppCore模块统一使用APP_前缀
+ * APP_DEFAULT_TTL=300              # 默认TTL（秒）
+ * APP_STRONG_TTL=5                 # 强时效TTL（秒）
+ * APP_AUTH_TTL=300                 # 认证TTL（秒）
+ * APP_MONITORING_TTL=300           # 监控TTL（秒）
+ * APP_TRANSFORMER_TTL=300          # 转换结果TTL（秒）
+ * APP_PROVIDER_SELECTION_TTL=300   # 提供商选择TTL（秒）
+ * APP_STREAM_WARM_TTL=300          # 流缓存TTL（秒）
+ * APP_MARKET_OPEN_TTL=300          # 市场开市TTL（秒）
  * ```
  */

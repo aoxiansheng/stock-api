@@ -27,27 +27,27 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '默认批量大小必须是有效数字' })
   @Min(1, { message: '默认批量大小不能少于1' })
   @Max(10000, { message: '默认批量大小不能超过10000' })
-  defaultBatchSize: number = parseInt(process.env.DEFAULT_BATCH_SIZE, 10) || 100;
+  defaultBatchSize: number = parseInt(process.env.COMMON_DEFAULT_BATCH_SIZE, 10) || 100;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大批量大小必须是有效数字' })
   @Min(100, { message: '最大批量大小不能少于100' })
   @Max(50000, { message: '最大批量大小不能超过50000' })
-  maxBatchSize: number = parseInt(process.env.MAX_BATCH_SIZE, 10) || 1000;
+  maxBatchSize: number = parseInt(process.env.COMMON_MAX_BATCH_SIZE, 10) || 1000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '默认分页大小必须是有效数字' })
   @Min(1, { message: '默认分页大小不能少于1' })
   @Max(1000, { message: '默认分页大小不能超过1000' })
-  defaultPageSize: number = parseInt(process.env.DEFAULT_PAGE_SIZE, 10) || 10;
+  defaultPageSize: number = parseInt(process.env.COMMON_DEFAULT_PAGE_SIZE, 10) || 10;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大分页大小必须是有效数字' })
   @Min(10, { message: '最大分页大小不能少于10' })
   @Max(5000, { message: '最大分页大小不能超过5000' })
-  maxPageSize: number = parseInt(process.env.MAX_PAGE_SIZE, 10) || 100;
+  maxPageSize: number = parseInt(process.env.COMMON_MAX_PAGE_SIZE, 10) || 100;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大并发数必须是有效数字' })
   @Min(1, { message: '最大并发数不能少于1' })
   @Max(100, { message: '最大并发数不能超过100' })
-  maxConcurrent: number = parseInt(process.env.MAX_CONCURRENT, 10) || 10;
+  maxConcurrent: number = parseInt(process.env.COMMON_MAX_CONCURRENT, 10) || 10;
 
   /**
    * 超时配置
@@ -56,22 +56,22 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '快速超时必须是有效数字' })
   @Min(1000, { message: '快速超时不能少于1000毫秒' })
   @Max(30000, { message: '快速超时不能超过30000毫秒' })
-  quickTimeoutMs: number = parseInt(process.env.QUICK_TIMEOUT_MS, 10) || 5000;
+  quickTimeoutMs: number = parseInt(process.env.COMMON_QUICK_TIMEOUT_MS, 10) || 5000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '默认超时必须是有效数字' })
   @Min(5000, { message: '默认超时不能少于5000毫秒' })
   @Max(300000, { message: '默认超时不能超过300000毫秒' })
-  defaultTimeoutMs: number = parseInt(process.env.DEFAULT_TIMEOUT_MS, 10) || 30000;
+  defaultTimeoutMs: number = parseInt(process.env.COMMON_DEFAULT_TIMEOUT_MS, 10) || 30000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '长超时必须是有效数字' })
   @Min(30000, { message: '长超时不能少于30000毫秒' })
   @Max(600000, { message: '长超时不能超过600000毫秒' })
-  longTimeoutMs: number = parseInt(process.env.LONG_TIMEOUT_MS, 10) || 60000;
+  longTimeoutMs: number = parseInt(process.env.COMMON_LONG_TIMEOUT_MS, 10) || 60000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '连接超时必须是有效数字' })
   @Min(1000, { message: '连接超时不能少于1000毫秒' })
   @Max(60000, { message: '连接超时不能超过60000毫秒' })
-  connectionTimeoutMs: number = parseInt(process.env.CONNECTION_TIMEOUT_MS, 10) || 5000;
+  connectionTimeoutMs: number = parseInt(process.env.COMMON_CONNECTION_TIMEOUT_MS, 10) || 5000;
 
   /**
    * 重试配置
@@ -80,22 +80,22 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大重试次数必须是有效数字' })
   @Min(1, { message: '最大重试次数不能少于1' })
   @Max(20, { message: '最大重试次数不能超过20' })
-  maxRetryAttempts: number = parseInt(process.env.MAX_RETRY_ATTEMPTS, 10) || 3;
+  maxRetryAttempts: number = parseInt(process.env.COMMON_MAX_RETRY_ATTEMPTS, 10) || 3;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '退避基数必须是有效数字' })
   @Min(1, { message: '退避基数不能少于1' })
   @Max(10, { message: '退避基数不能超过10' })
-  backoffBase: number = parseInt(process.env.BACKOFF_BASE, 10) || 2;
+  backoffBase: number = parseInt(process.env.COMMON_BACKOFF_BASE, 10) || 2;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大重试延迟必须是有效数字' })
   @Min(1000, { message: '最大重试延迟不能少于1000毫秒' })
   @Max(300000, { message: '最大重试延迟不能超过300000毫秒' })
-  maxRetryDelayMs: number = parseInt(process.env.MAX_RETRY_DELAY_MS, 10) || 10000;
+  maxRetryDelayMs: number = parseInt(process.env.COMMON_MAX_RETRY_DELAY_MS, 10) || 10000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '关键操作最大重试次数必须是有效数字' })
   @Min(1, { message: '关键操作最大重试次数不能少于1' })
   @Max(10, { message: '关键操作最大重试次数不能超过10' })
-  criticalMaxAttempts: number = parseInt(process.env.CRITICAL_MAX_ATTEMPTS, 10) || 5;
+  criticalMaxAttempts: number = parseInt(process.env.COMMON_CRITICAL_MAX_ATTEMPTS, 10) || 5;
 
   /**
    * 性能阈值配置
@@ -104,27 +104,27 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '快速操作阈值必须是有效数字' })
   @Min(10, { message: '快速操作阈值不能少于10毫秒' })
   @Max(1000, { message: '快速操作阈值不能超过1000毫秒' })
-  fastOperationThresholdMs: number = parseInt(process.env.FAST_OPERATION_THRESHOLD_MS, 10) || 100;
+  fastOperationThresholdMs: number = parseInt(process.env.COMMON_FAST_OPERATION_THRESHOLD_MS, 10) || 100;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '正常操作阈值必须是有效数字' })
   @Min(100, { message: '正常操作阈值不能少于100毫秒' })
   @Max(5000, { message: '正常操作阈值不能超过5000毫秒' })
-  normalOperationThresholdMs: number = parseInt(process.env.NORMAL_OPERATION_THRESHOLD_MS, 10) || 500;
+  normalOperationThresholdMs: number = parseInt(process.env.COMMON_NORMAL_OPERATION_THRESHOLD_MS, 10) || 500;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '慢操作阈值必须是有效数字' })
   @Min(500, { message: '慢操作阈值不能少于500毫秒' })
   @Max(30000, { message: '慢操作阈值不能超过30000毫秒' })
-  slowOperationThresholdMs: number = parseInt(process.env.SLOW_OPERATION_THRESHOLD_MS, 10) || 1000;
+  slowOperationThresholdMs: number = parseInt(process.env.COMMON_SLOW_OPERATION_THRESHOLD_MS, 10) || 1000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '非常慢操作阈值必须是有效数字' })
   @Min(1000, { message: '非常慢操作阈值不能少于1000毫秒' })
   @Max(60000, { message: '非常慢操作阈值不能超过60000毫秒' })
-  verySlowOperationThresholdMs: number = parseInt(process.env.VERY_SLOW_OPERATION_THRESHOLD_MS, 10) || 5000;
+  verySlowOperationThresholdMs: number = parseInt(process.env.COMMON_VERY_SLOW_OPERATION_THRESHOLD_MS, 10) || 5000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '关键操作阈值必须是有效数字' })
   @Min(5000, { message: '关键操作阈值不能少于5000毫秒' })
   @Max(300000, { message: '关键操作阈值不能超过300000毫秒' })
-  criticalOperationThresholdMs: number = parseInt(process.env.CRITICAL_OPERATION_THRESHOLD_MS, 10) || 10000;
+  criticalOperationThresholdMs: number = parseInt(process.env.COMMON_CRITICAL_OPERATION_THRESHOLD_MS, 10) || 10000;
 
   /**
    * 内存使用阈值配置
@@ -133,32 +133,32 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '低内存阈值必须是有效数字' })
   @Min(10, { message: '低内存阈值不能少于10MB' })
   @Max(1000, { message: '低内存阈值不能超过1000MB' })
-  lowMemoryThresholdMb: number = parseInt(process.env.LOW_MEMORY_THRESHOLD_MB, 10) || 50;
+  lowMemoryThresholdMb: number = parseInt(process.env.COMMON_LOW_MEMORY_THRESHOLD_MB, 10) || 50;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '正常内存阈值必须是有效数字' })
   @Min(50, { message: '正常内存阈值不能少于50MB' })
   @Max(2000, { message: '正常内存阈值不能超过2000MB' })
-  normalMemoryThresholdMb: number = parseInt(process.env.NORMAL_MEMORY_THRESHOLD_MB, 10) || 100;
+  normalMemoryThresholdMb: number = parseInt(process.env.COMMON_NORMAL_MEMORY_THRESHOLD_MB, 10) || 100;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '高内存阈值必须是有效数字' })
   @Min(100, { message: '高内存阈值不能少于100MB' })
   @Max(8000, { message: '高内存阈值不能超过8000MB' })
-  highMemoryThresholdMb: number = parseInt(process.env.HIGH_MEMORY_THRESHOLD_MB, 10) || 200;
+  highMemoryThresholdMb: number = parseInt(process.env.COMMON_HIGH_MEMORY_THRESHOLD_MB, 10) || 200;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '严重内存阈值必须是有效数字' })
   @Min(200, { message: '严重内存阈值不能少于200MB' })
   @Max(16000, { message: '严重内存阈值不能超过16000MB' })
-  criticalMemoryThresholdMb: number = parseInt(process.env.CRITICAL_MEMORY_THRESHOLD_MB, 10) || 500;
+  criticalMemoryThresholdMb: number = parseInt(process.env.COMMON_CRITICAL_MEMORY_THRESHOLD_MB, 10) || 500;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大对象大小必须是有效数字' })
   @Min(1, { message: '最大对象大小不能少于1MB' })
   @Max(100, { message: '最大对象大小不能超过100MB' })
-  maxObjectSizeMb: number = parseInt(process.env.MAX_OBJECT_SIZE_MB, 10) || 10;
+  maxObjectSizeMb: number = parseInt(process.env.COMMON_MAX_OBJECT_SIZE_MB, 10) || 10;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大请求大小必须是有效数字' })
   @Min(1, { message: '最大请求大小不能少于1MB' })
   @Max(500, { message: '最大请求大小不能超过500MB' })
-  maxRequestSizeMb: number = parseInt(process.env.MAX_REQUEST_SIZE_MB, 10) || 50;
+  maxRequestSizeMb: number = parseInt(process.env.COMMON_MAX_REQUEST_SIZE_MB, 10) || 50;
 
   /**
    * 连接池配置
@@ -167,12 +167,12 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最小连接池大小必须是有效数字' })
   @Min(1, { message: '最小连接池大小不能少于1' })
   @Max(50, { message: '最小连接池大小不能超过50' })
-  minConnectionPoolSize: number = parseInt(process.env.MIN_CONNECTION_POOL_SIZE, 10) || 5;
+  minConnectionPoolSize: number = parseInt(process.env.COMMON_MIN_CONNECTION_POOL_SIZE, 10) || 5;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '最大连接池大小必须是有效数字' })
   @Min(5, { message: '最大连接池大小不能少于5' })
   @Max(500, { message: '最大连接池大小不能超过500' })
-  maxConnectionPoolSize: number = parseInt(process.env.MAX_CONNECTION_POOL_SIZE, 10) || 20;
+  maxConnectionPoolSize: number = parseInt(process.env.COMMON_MAX_CONNECTION_POOL_SIZE, 10) || 20;
 
   /**
    * 大小限制配置
@@ -181,27 +181,27 @@ export class CommonConstantsConfigValidation {
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '小尺寸限制必须是有效数字' })
   @Min(10, { message: '小尺寸限制不能少于10' })
   @Max(200, { message: '小尺寸限制不能超过200' })
-  smallSizeLimit: number = parseInt(process.env.SMALL_SIZE_LIMIT, 10) || 50;
+  smallSizeLimit: number = parseInt(process.env.COMMON_SMALL_SIZE_LIMIT, 10) || 50;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '中等尺寸限制必须是有效数字' })
   @Min(50, { message: '中等尺寸限制不能少于50' })
   @Max(1000, { message: '中等尺寸限制不能超过1000' })
-  mediumSizeLimit: number = parseInt(process.env.MEDIUM_SIZE_LIMIT, 10) || 100;
+  mediumSizeLimit: number = parseInt(process.env.COMMON_MEDIUM_SIZE_LIMIT, 10) || 100;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '大尺寸限制必须是有效数字' })
   @Min(100, { message: '大尺寸限制不能少于100' })
   @Max(5000, { message: '大尺寸限制不能超过5000' })
-  largeSizeLimit: number = parseInt(process.env.LARGE_SIZE_LIMIT, 10) || 500;
+  largeSizeLimit: number = parseInt(process.env.COMMON_LARGE_SIZE_LIMIT, 10) || 500;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '巨大尺寸限制必须是有效数字' })
   @Min(500, { message: '巨大尺寸限制不能少于500' })
   @Max(50000, { message: '巨大尺寸限制不能超过50000' })
-  hugeSizeLimit: number = parseInt(process.env.HUGE_SIZE_LIMIT, 10) || 1000;
+  hugeSizeLimit: number = parseInt(process.env.COMMON_HUGE_SIZE_LIMIT, 10) || 1000;
 
   @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '海量尺寸限制必须是有效数字' })
   @Min(1000, { message: '海量尺寸限制不能少于1000' })
   @Max(500000, { message: '海量尺寸限制不能超过500000' })
-  massiveSizeLimit: number = parseInt(process.env.MASSIVE_SIZE_LIMIT, 10) || 10000;
+  massiveSizeLimit: number = parseInt(process.env.COMMON_MASSIVE_SIZE_LIMIT, 10) || 10000;
 }
 
 /**
@@ -211,49 +211,49 @@ export class CommonConstantsConfigValidation {
 export default registerAs('commonConstants', (): CommonConstantsConfigValidation => {
   const rawConfig = {
     // 批量处理配置
-    defaultBatchSize: parseInt(process.env.DEFAULT_BATCH_SIZE, 10) || 100,
-    maxBatchSize: parseInt(process.env.MAX_BATCH_SIZE, 10) || 1000,
-    defaultPageSize: parseInt(process.env.DEFAULT_PAGE_SIZE, 10) || 10,
-    maxPageSize: parseInt(process.env.MAX_PAGE_SIZE, 10) || 100,
-    maxConcurrent: parseInt(process.env.MAX_CONCURRENT, 10) || 10,
+    defaultBatchSize: parseInt(process.env.COMMON_DEFAULT_BATCH_SIZE, 10) || 100,
+    maxBatchSize: parseInt(process.env.COMMON_MAX_BATCH_SIZE, 10) || 1000,
+    defaultPageSize: parseInt(process.env.COMMON_DEFAULT_PAGE_SIZE, 10) || 10,
+    maxPageSize: parseInt(process.env.COMMON_MAX_PAGE_SIZE, 10) || 100,
+    maxConcurrent: parseInt(process.env.COMMON_MAX_CONCURRENT, 10) || 10,
 
     // 超时配置
-    quickTimeoutMs: parseInt(process.env.QUICK_TIMEOUT_MS, 10) || 5000,
-    defaultTimeoutMs: parseInt(process.env.DEFAULT_TIMEOUT_MS, 10) || 30000,
-    longTimeoutMs: parseInt(process.env.LONG_TIMEOUT_MS, 10) || 60000,
-    connectionTimeoutMs: parseInt(process.env.CONNECTION_TIMEOUT_MS, 10) || 5000,
+    quickTimeoutMs: parseInt(process.env.COMMON_QUICK_TIMEOUT_MS, 10) || 5000,
+    defaultTimeoutMs: parseInt(process.env.COMMON_DEFAULT_TIMEOUT_MS, 10) || 30000,
+    longTimeoutMs: parseInt(process.env.COMMON_LONG_TIMEOUT_MS, 10) || 60000,
+    connectionTimeoutMs: parseInt(process.env.COMMON_CONNECTION_TIMEOUT_MS, 10) || 5000,
 
     // 重试配置
-    maxRetryAttempts: parseInt(process.env.MAX_RETRY_ATTEMPTS, 10) || 3,
-    backoffBase: parseInt(process.env.BACKOFF_BASE, 10) || 2,
-    maxRetryDelayMs: parseInt(process.env.MAX_RETRY_DELAY_MS, 10) || 10000,
-    criticalMaxAttempts: parseInt(process.env.CRITICAL_MAX_ATTEMPTS, 10) || 5,
+    maxRetryAttempts: parseInt(process.env.COMMON_MAX_RETRY_ATTEMPTS, 10) || 3,
+    backoffBase: parseInt(process.env.COMMON_BACKOFF_BASE, 10) || 2,
+    maxRetryDelayMs: parseInt(process.env.COMMON_MAX_RETRY_DELAY_MS, 10) || 10000,
+    criticalMaxAttempts: parseInt(process.env.COMMON_CRITICAL_MAX_ATTEMPTS, 10) || 5,
 
     // 性能阈值配置
-    fastOperationThresholdMs: parseInt(process.env.FAST_OPERATION_THRESHOLD_MS, 10) || 100,
-    normalOperationThresholdMs: parseInt(process.env.NORMAL_OPERATION_THRESHOLD_MS, 10) || 500,
-    slowOperationThresholdMs: parseInt(process.env.SLOW_OPERATION_THRESHOLD_MS, 10) || 1000,
-    verySlowOperationThresholdMs: parseInt(process.env.VERY_SLOW_OPERATION_THRESHOLD_MS, 10) || 5000,
-    criticalOperationThresholdMs: parseInt(process.env.CRITICAL_OPERATION_THRESHOLD_MS, 10) || 10000,
+    fastOperationThresholdMs: parseInt(process.env.COMMON_FAST_OPERATION_THRESHOLD_MS, 10) || 100,
+    normalOperationThresholdMs: parseInt(process.env.COMMON_NORMAL_OPERATION_THRESHOLD_MS, 10) || 500,
+    slowOperationThresholdMs: parseInt(process.env.COMMON_SLOW_OPERATION_THRESHOLD_MS, 10) || 1000,
+    verySlowOperationThresholdMs: parseInt(process.env.COMMON_VERY_SLOW_OPERATION_THRESHOLD_MS, 10) || 5000,
+    criticalOperationThresholdMs: parseInt(process.env.COMMON_CRITICAL_OPERATION_THRESHOLD_MS, 10) || 10000,
 
     // 内存阈值配置
-    lowMemoryThresholdMb: parseInt(process.env.LOW_MEMORY_THRESHOLD_MB, 10) || 50,
-    normalMemoryThresholdMb: parseInt(process.env.NORMAL_MEMORY_THRESHOLD_MB, 10) || 100,
-    highMemoryThresholdMb: parseInt(process.env.HIGH_MEMORY_THRESHOLD_MB, 10) || 200,
-    criticalMemoryThresholdMb: parseInt(process.env.CRITICAL_MEMORY_THRESHOLD_MB, 10) || 500,
-    maxObjectSizeMb: parseInt(process.env.MAX_OBJECT_SIZE_MB, 10) || 10,
-    maxRequestSizeMb: parseInt(process.env.MAX_REQUEST_SIZE_MB, 10) || 50,
+    lowMemoryThresholdMb: parseInt(process.env.COMMON_LOW_MEMORY_THRESHOLD_MB, 10) || 50,
+    normalMemoryThresholdMb: parseInt(process.env.COMMON_NORMAL_MEMORY_THRESHOLD_MB, 10) || 100,
+    highMemoryThresholdMb: parseInt(process.env.COMMON_HIGH_MEMORY_THRESHOLD_MB, 10) || 200,
+    criticalMemoryThresholdMb: parseInt(process.env.COMMON_CRITICAL_MEMORY_THRESHOLD_MB, 10) || 500,
+    maxObjectSizeMb: parseInt(process.env.COMMON_MAX_OBJECT_SIZE_MB, 10) || 10,
+    maxRequestSizeMb: parseInt(process.env.COMMON_MAX_REQUEST_SIZE_MB, 10) || 50,
 
     // 连接池配置
-    minConnectionPoolSize: parseInt(process.env.MIN_CONNECTION_POOL_SIZE, 10) || 5,
-    maxConnectionPoolSize: parseInt(process.env.MAX_CONNECTION_POOL_SIZE, 10) || 20,
+    minConnectionPoolSize: parseInt(process.env.COMMON_MIN_CONNECTION_POOL_SIZE, 10) || 5,
+    maxConnectionPoolSize: parseInt(process.env.COMMON_MAX_CONNECTION_POOL_SIZE, 10) || 20,
 
     // 大小限制配置
-    smallSizeLimit: parseInt(process.env.SMALL_SIZE_LIMIT, 10) || 50,
-    mediumSizeLimit: parseInt(process.env.MEDIUM_SIZE_LIMIT, 10) || 100,
-    largeSizeLimit: parseInt(process.env.LARGE_SIZE_LIMIT, 10) || 500,
-    hugeSizeLimit: parseInt(process.env.HUGE_SIZE_LIMIT, 10) || 1000,
-    massiveSizeLimit: parseInt(process.env.MASSIVE_SIZE_LIMIT, 10) || 10000,
+    smallSizeLimit: parseInt(process.env.COMMON_SMALL_SIZE_LIMIT, 10) || 50,
+    mediumSizeLimit: parseInt(process.env.COMMON_MEDIUM_SIZE_LIMIT, 10) || 100,
+    largeSizeLimit: parseInt(process.env.COMMON_LARGE_SIZE_LIMIT, 10) || 500,
+    hugeSizeLimit: parseInt(process.env.COMMON_HUGE_SIZE_LIMIT, 10) || 1000,
+    massiveSizeLimit: parseInt(process.env.COMMON_MASSIVE_SIZE_LIMIT, 10) || 10000,
   };
 
   const config = plainToClass(CommonConstantsConfigValidation, rawConfig);
@@ -410,13 +410,13 @@ export class CommonConfigHelper {
  * 
  * @environment
  * ```bash
- * # .env文件配置
- * DEFAULT_BATCH_SIZE=100                    # 默认批量大小
- * MAX_BATCH_SIZE=1000                      # 最大批量大小
- * DEFAULT_TIMEOUT_MS=30000                 # 默认超时(毫秒)
- * MAX_RETRY_ATTEMPTS=3                     # 最大重试次数
- * SLOW_OPERATION_THRESHOLD_MS=1000         # 慢操作阈值(毫秒)
- * HIGH_MEMORY_THRESHOLD_MB=200             # 高内存阈值(MB)
- * MAX_CONNECTION_POOL_SIZE=20              # 最大连接池大小
+ * # .env文件配置 - Common模块统一使用COMMON_前缀
+ * COMMON_DEFAULT_BATCH_SIZE=100                    # 默认批量大小
+ * COMMON_MAX_BATCH_SIZE=1000                      # 最大批量大小
+ * COMMON_DEFAULT_TIMEOUT_MS=30000                 # 默认超时(毫秒)
+ * COMMON_MAX_RETRY_ATTEMPTS=3                     # 最大重试次数
+ * COMMON_SLOW_OPERATION_THRESHOLD_MS=1000         # 慢操作阈值(毫秒)
+ * COMMON_HIGH_MEMORY_THRESHOLD_MB=200             # 高内存阈值(MB)
+ * COMMON_MAX_CONNECTION_POOL_SIZE=20              # 最大连接池大小
  * ```
  */

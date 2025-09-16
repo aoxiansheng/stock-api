@@ -107,12 +107,12 @@ export class StreamRecoveryConfigService {
           longport: {
             maxQPS: parseInt(process.env.RECOVERY_LONGPORT_QPS || "200"),
             burstSize: parseInt(process.env.RECOVERY_LONGPORT_BURST || "250"),
-            window: parseInt(process.env.AUTH_RATE_LIMIT_TTL || "60000"),
+            window: parseInt(process.env.STREAM_RATE_WINDOW || "60000"),
           },
           itick: {
             maxQPS: parseInt(process.env.RECOVERY_ITICK_QPS || "50"),
             burstSize: parseInt(process.env.RECOVERY_ITICK_BURST || "75"),
-            window: parseInt(process.env.AUTH_RATE_LIMIT_TTL || "60000"),
+            window: parseInt(process.env.STREAM_RATE_WINDOW || "60000"),
           },
         },
       },

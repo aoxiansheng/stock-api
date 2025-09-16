@@ -150,17 +150,12 @@ export class AlertCacheConfigValidation {
  */
 export default registerAs('alertCache', (): AlertCacheConfigValidation => {
   const rawConfig = {
-    // TTL配置 - 从原Cache配置环境变量迁移
-    activeDataTtl: parseInt(process.env.ALERT_CACHE_ACTIVE_TTL, 10) || 
-                   parseInt(process.env.CACHE_ALERT_ACTIVE_TTL, 10) || 300,
-    historicalDataTtl: parseInt(process.env.ALERT_CACHE_HISTORICAL_TTL, 10) || 
-                       parseInt(process.env.CACHE_ALERT_HISTORICAL_TTL, 10) || 3600,
-    cooldownTtl: parseInt(process.env.ALERT_CACHE_COOLDOWN_TTL, 10) || 
-                 parseInt(process.env.CACHE_ALERT_COOLDOWN_TTL, 10) || 300,
-    configCacheTtl: parseInt(process.env.ALERT_CACHE_CONFIG_TTL, 10) || 
-                    parseInt(process.env.CACHE_ALERT_CONFIG_TTL, 10) || 600,
-    statsCacheTtl: parseInt(process.env.ALERT_CACHE_STATS_TTL, 10) || 
-                   parseInt(process.env.CACHE_ALERT_STATS_TTL, 10) || 300,
+    // TTL配置 - Alert模块统一使用ALERT_前缀
+    activeDataTtl: parseInt(process.env.ALERT_CACHE_ACTIVE_TTL, 10) || 300,
+    historicalDataTtl: parseInt(process.env.ALERT_CACHE_HISTORICAL_TTL, 10) || 3600,
+    cooldownTtl: parseInt(process.env.ALERT_CACHE_COOLDOWN_TTL, 10) || 300,
+    configCacheTtl: parseInt(process.env.ALERT_CACHE_CONFIG_TTL, 10) || 600,
+    statsCacheTtl: parseInt(process.env.ALERT_CACHE_STATS_TTL, 10) || 300,
     
     // 批处理配置 - 从原Cache配置环境变量迁移
     batchSize: parseInt(process.env.ALERT_BATCH_SIZE, 10) || 100,
@@ -250,7 +245,7 @@ export const ALERT_CACHE_MIGRATION_GUIDE = {
   },
   environmentVariables: {
     newFormat: 'ALERT_CACHE_*',
-    oldFormat: 'CACHE_ALERT_* (保持兼容)',
+    oldFormat: 'CACHE_ALERT_* (已移除，使用ALERT_前缀)',
     examples: [
       'ALERT_CACHE_ACTIVE_TTL=300',
       'ALERT_CACHE_HISTORICAL_TTL=3600',
