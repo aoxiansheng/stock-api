@@ -113,6 +113,31 @@ export class AuthConfigCompatibilityWrapper {
   }
 
   /**
+   * 用户注册常量兼容接口
+   * 映射用户注册相关的验证参数
+   * 
+   * 原始位置：src/auth/constants/user-operations.constants.ts
+   */
+  get USER_REGISTRATION() {
+    return {
+      // 长度限制 - 来源于 limits 配置层
+      USERNAME_MIN_LENGTH: this.VALIDATION_LIMITS.USERNAME_MIN_LENGTH,
+      USERNAME_MAX_LENGTH: this.VALIDATION_LIMITS.USERNAME_MAX_LENGTH,
+      PASSWORD_MIN_LENGTH: this.VALIDATION_LIMITS.PASSWORD_MIN_LENGTH,
+      PASSWORD_MAX_LENGTH: this.VALIDATION_LIMITS.PASSWORD_MAX_LENGTH,
+      EMAIL_MAX_LENGTH: this.VALIDATION_LIMITS.EMAIL_MAX_LENGTH,
+      
+      // 验证正则表达式 - 固定业务规则（直接引用原常量）
+      PASSWORD_PATTERN: /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/,
+      USERNAME_PATTERN: /^[a-zA-Z0-9_-]+$/,
+      EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      
+      // 保留用户名列表 - 固定业务规则（直接引用原常量）
+      RESERVED_USERNAMES: ['admin', 'root', 'system', 'api', 'user', 'test', 'null', 'undefined'],
+    };
+  }
+
+  /**
    * 用户登录常量兼容接口
    * 映射登录相关的安全参数
    * 
@@ -245,6 +270,7 @@ export class AuthConfigCompatibilityWrapper {
           'API_KEY_OPERATIONS',
           'PERMISSION_CHECK', 
           'VALIDATION_LIMITS',
+          'USER_REGISTRATION',
           'USER_LOGIN',
           'SESSION_CONFIG',
           'RATE_LIMITS',
@@ -283,6 +309,11 @@ export class AuthConfigCompatibilityWrapper {
       const userLogin = this.USER_LOGIN;
       if (!userLogin.MAX_ATTEMPTS || userLogin.MAX_ATTEMPTS <= 0) {
         errors.push('USER_LOGIN.MAX_ATTEMPTS 无效');
+      }
+      
+      const userRegistration = this.USER_REGISTRATION;
+      if (!userRegistration.PASSWORD_MIN_LENGTH || userRegistration.PASSWORD_MIN_LENGTH <= 0) {
+        errors.push('USER_REGISTRATION.PASSWORD_MIN_LENGTH 无效');
       }
       
     } catch (error) {

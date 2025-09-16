@@ -37,6 +37,10 @@ export const API_KEY_VALIDATION = {
   // 固定的验证正则表达式 - 业务规则标准
   NAME_PATTERN: /^[a-zA-Z0-9\s\-_\.]+$/,           // 名称格式
   RATE_LIMIT_WINDOW_PATTERN: /^(\d+)([smhd])$/,     // 频率限制窗口格式
+  
+  // 名称长度限制 - 固定业务规则
+  MIN_NAME_LENGTH: 1,
+  MAX_NAME_LENGTH: 100,
 } as const;
 
 export const JWT_TOKEN_CONFIG = {

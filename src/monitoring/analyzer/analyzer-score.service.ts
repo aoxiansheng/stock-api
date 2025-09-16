@@ -5,6 +5,7 @@ import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
+// TODO Phase 2: 当统一配置系统完全实现后，替换硬编码阈值为 MonitoringEnhancedConfig
 
 /**
  * 健康分计算器
@@ -200,6 +201,7 @@ export class AnalyzerHealthScoreCalculator {
 
   /**
    * 获取健康分等级
+   * TODO Phase 2: 当统一配置完全实现后，替换硬编码阈值为 config.performanceThresholds.*
    */
   getHealthGrade(
     score: number,

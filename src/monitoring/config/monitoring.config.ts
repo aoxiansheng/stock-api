@@ -1,6 +1,22 @@
 /**
  * 监控组件配置接口和默认值
  * 
+ * ⚠️ 配置系统重构通知：
+ * ==========================================
+ * 本配置文件正在迁移到统一配置系统：
+ * 
+ * 🔄 已迁移的配置：
+ * - TTL配置 → MonitoringUnifiedTtlConfig
+ * - 批量处理配置 → MonitoringUnifiedLimitsConfig
+ * 
+ * 📋 推荐使用方式：
+ * ```typescript
+ * import { 
+ *   monitoringUnifiedTtlConfig, 
+ *   monitoringUnifiedLimitsConfig 
+ * } from './unified';
+ * ```
+ * 
  * 职责边界：
  * - 专门负责监控数据的缓存管理（区别于缓存统计替换功能）
  * - 监控事件处理和性能指标阈值配置
@@ -10,9 +26,15 @@
 import { registerAs } from '@nestjs/config';
 import { IsNumber, IsBoolean, IsString, Min, Max, validateSync } from 'class-validator';
 import { plainToClass, Transform, Type } from 'class-transformer';
+import { 
+  MonitoringUnifiedTtlConfig, 
+  MonitoringUnifiedLimitsConfig,
+  MONITORING_UNIFIED_TTL_CONSTANTS 
+} from './unified';
 
 /**
- * 监控配置TTL部分的验证类
+ * @deprecated 使用 MonitoringUnifiedTtlConfig 替代
+ * 监控配置TTL部分的验证类 - 兼容性支持
  */
 export class MonitoringTtlConfig {
   /** 健康检查数据缓存生存时间（秒）
@@ -293,68 +315,79 @@ export interface MonitoringConfig {
  * - 所有环境变量均有合理的默认值，确保在无环境变量时也能正常工作
  * - 环境变量命名遵循 MONITORING_功能_属性 的规范
  */
+// Phase 4: Environment Variable Optimization - 使用8个核心环境变量
+// 核心环境变量获取和计算
+const getCoreEnvValues = () => {
+  const defaultTtl = parseInt(process.env.MONITORING_DEFAULT_TTL) || 300;
+  const defaultBatchSize = parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
+  const apiResponseGood = parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
+  const cacheHitThreshold = parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
+  const errorRateThreshold = parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
+  const autoAnalysis = process.env.MONITORING_AUTO_ANALYSIS !== "false";
+  const eventRetry = parseInt(process.env.MONITORING_EVENT_RETRY) || 3;
+  const namespace = process.env.MONITORING_NAMESPACE || "monitoring";
+
+  return {
+    defaultTtl,
+    defaultBatchSize,
+    apiResponseGood,
+    cacheHitThreshold,
+    errorRateThreshold,
+    autoAnalysis,
+    eventRetry,
+    namespace,
+  };
+};
+
+const coreEnv = getCoreEnvValues();
+
 export const DEFAULT_MONITORING_CONFIG: MonitoringConfig = {
   cache: {
-    // 监控数据Redis命名空间 - 默认"monitoring"，可通过MONITORING_CACHE_NAMESPACE环境变量覆盖
-    namespace: process.env.MONITORING_CACHE_NAMESPACE || "monitoring",
+    // 使用核心环境变量 MONITORING_NAMESPACE 替代 MONITORING_CACHE_NAMESPACE
+    namespace: coreEnv.namespace,
     
-    // 监控数据索引键前缀 - 默认"monitoring:index"，可通过MONITORING_KEY_INDEX_PREFIX环境变量覆盖
-    keyIndexPrefix:
-      process.env.MONITORING_KEY_INDEX_PREFIX || "monitoring:index",
+    // 基于核心命名空间生成索引前缀
+    keyIndexPrefix: `${coreEnv.namespace}:index`,
     
-    // 数据压缩阈值 - 默认1024字节，超过此大小的数据将被压缩，可通过MONITORING_COMPRESSION_THRESHOLD环境变量覆盖
-    compressionThreshold:
-      parseInt(process.env.MONITORING_COMPRESSION_THRESHOLD) || 1024,
+    // 数据压缩阈值 - 保持固定值，不需要环境变量控制
+    compressionThreshold: 1024,
     
-    // 回退告警阈值 - 默认连续10次回退后告警，可通过MONITORING_FALLBACK_THRESHOLD环境变量覆盖
-    fallbackThreshold:
-      parseInt(process.env.MONITORING_FALLBACK_THRESHOLD) || 10,
+    // 回退告警阈值 - 保持固定值，不需要环境变量控制
+    fallbackThreshold: 10,
     
     ttl: {
-      // 健康检查数据TTL - 默认300秒（5分钟），适中的缓存时间平衡实时性和性能
-      health: parseInt(process.env.MONITORING_TTL_HEALTH) || 300,
-      
-      // 趋势分析数据TTL - 默认600秒（10分钟），趋势数据变化较慢可适当延长缓存
-      trend: parseInt(process.env.MONITORING_TTL_TREND) || 600,
-      
-      // 性能指标数据TTL - 默认180秒（3分钟），性能数据需要相对实时的反馈
-      performance: parseInt(process.env.MONITORING_TTL_PERFORMANCE) || 180,
-      
-      // 告警数据TTL - 默认60秒（1分钟），告警数据需要快速更新确保及时响应
-      alert: parseInt(process.env.MONITORING_TTL_ALERT) || 60,
-      
-      // 缓存统计数据TTL - 默认120秒（2分钟），统计数据更新频率适中
-      cacheStats: parseInt(process.env.MONITORING_TTL_CACHE_STATS) || 120,
+      // 基于核心环境变量 MONITORING_DEFAULT_TTL 的倍数计算
+      health: coreEnv.defaultTtl,                                    // 1.0x
+      trend: Math.floor(coreEnv.defaultTtl * 2.0),                  // 2.0x
+      performance: Math.floor(coreEnv.defaultTtl * 0.6),            // 0.6x
+      alert: Math.floor(coreEnv.defaultTtl * 0.2),                  // 0.2x
+      cacheStats: Math.floor(coreEnv.defaultTtl * 0.4),             // 0.4x
     },
     
-    // 监控数据批处理大小 - 默认10个，平衡处理效率和内存占用
-    batchSize: parseInt(process.env.MONITORING_BATCH_SIZE) || 10,
+    // 使用核心环境变量 MONITORING_DEFAULT_BATCH_SIZE
+    batchSize: coreEnv.defaultBatchSize,
   },
   
   events: {
-    // 自动分析功能 - 默认启用，设置为"false"时禁用
-    enableAutoAnalysis: process.env.MONITORING_AUTO_ANALYSIS !== "false",
+    // 使用核心环境变量 MONITORING_AUTO_ANALYSIS
+    enableAutoAnalysis: coreEnv.autoAnalysis,
     
-    // 事件处理重试次数 - 默认3次，平衡可靠性和性能
-    retryAttempts: parseInt(process.env.MONITORING_EVENT_RETRY) || 3,
+    // 使用核心环境变量 MONITORING_EVENT_RETRY
+    retryAttempts: coreEnv.eventRetry,
   },
   
   performance: {
     latencyThresholds: {
-      // P95延迟警告阈值 - 默认200ms，适合大多数API的性能要求
-      p95Warning: parseInt(process.env.MONITORING_P95_WARNING) || 200,
-      
-      // P99延迟严重阈值 - 默认500ms，超过此值表明存在严重性能问题
-      p99Critical: parseInt(process.env.MONITORING_P99_CRITICAL) || 500,
+      // 基于核心环境变量 MONITORING_API_RESPONSE_GOOD 的倍数计算
+      p95Warning: coreEnv.apiResponseGood,                           // 1.0x
+      p99Critical: Math.floor(coreEnv.apiResponseGood * 2.5),        // 2.5x
     },
     
-    // 缓存命中率阈值 - 默认0.8（80%），低于此值说明缓存效果不佳
-    hitRateThreshold:
-      parseFloat(process.env.MONITORING_HIT_RATE_THRESHOLD) || 0.8,
+    // 使用核心环境变量 MONITORING_CACHE_HIT_THRESHOLD
+    hitRateThreshold: coreEnv.cacheHitThreshold,
     
-    // 错误率阈值 - 默认0.1（10%），超过此值说明系统存在稳定性问题
-    errorRateThreshold:
-      parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1,
+    // 使用核心环境变量 MONITORING_ERROR_RATE_THRESHOLD
+    errorRateThreshold: coreEnv.errorRateThreshold,
   },
 };
 

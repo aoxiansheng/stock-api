@@ -4,11 +4,9 @@
  */
 import { v4 as uuidv4 } from "uuid";
 import {
-  API_KEY_DEFAULTS,
   API_KEY_FORMAT,
   API_KEY_VALIDATION,
-  API_KEY_TIMING,
-} from "../constants/api-security.constants";
+} from "../constants/auth-semantic.constants";
 
 /**
  * API Key 工具函数类
@@ -91,7 +89,7 @@ export class ApiKeyUtil {
    */
   static isNearExpiry(
     expiresAt: Date | null,
-    warningDays: number = API_KEY_TIMING.EXPIRY_WARNING_DAYS,
+    warningDays: number = 7, // Default warning period: 7 days
   ): boolean {
     if (!expiresAt) return false;
     const warningDate = new Date();
@@ -116,7 +114,7 @@ export class ApiKeyUtil {
    * @returns 默认名称
    */
   static generateDefaultName(index: number = 1): string {
-    return `${API_KEY_DEFAULTS.NAME_PREFIX} ${index}`;
+    return `API Key ${index}`; // Default name prefix
   }
 
   /**

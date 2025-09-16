@@ -19,7 +19,7 @@ export class AuthCacheConfigValidation {
   @IsNumber()
   @Min(60, { message: '权限缓存TTL不能少于60秒' })
   @Max(3600, { message: '权限缓存TTL不能超过3600秒' })
-  permissionCacheTtl: number = parseInt(process.env.AUTH_CACHE_TTL || '300');
+  permissionCacheTtl: number = parseInt(process.env.AUTH_PERMISSION_CACHE_TTL || '300');
   
   /**
    * API Key验证缓存TTL（秒）
@@ -28,7 +28,7 @@ export class AuthCacheConfigValidation {
   @IsNumber()
   @Min(60, { message: 'API Key缓存TTL不能少于60秒' })
   @Max(7200, { message: 'API Key缓存TTL不能超过7200秒' })
-  apiKeyCacheTtl: number = parseInt(process.env.AUTH_CACHE_TTL || '300');
+  apiKeyCacheTtl: number = parseInt(process.env.AUTH_API_KEY_CACHE_TTL || '300');
   
   /**
    * 频率限制缓存TTL（秒）

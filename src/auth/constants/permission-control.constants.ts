@@ -20,13 +20,6 @@
  * 现在都支持环境变量配置
  */
 
-// 临时导出以避免编译错误 - 应该从使用方移除这些导入
-export const PERMISSION_CHECK = {
-  // 已迁移到统一配置系统，这里提供空对象避免编译错误
-  // 实际值应通过 AuthConfigCompatibilityWrapper.PERMISSION_CHECK 访问
-  CACHE_TTL_SECONDS: 300, // 临时值
-} as const;
-
 // ✅ 保留：权限级别定义 - 权限等级数值（固定业务标准）
 export const PERMISSION_LEVELS = {
   NONE: 0,        // 无权限

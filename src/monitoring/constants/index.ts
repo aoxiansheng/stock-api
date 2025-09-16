@@ -7,9 +7,7 @@
  * - response-performance.constants.ts: 响应时间、吞吐量阈值  
  * - error-tracking.constants.ts: 错误率、成功率阈值
  * - database-performance.constants.ts: 数据库查询性能阈值
- * - cache-performance.constants.ts: 缓存性能阈值
- * - alert-control.constants.ts: 告警频率、冷却时间
- * - data-lifecycle.constants.ts: 数据收集、保留时间
+ * - monitoring-algorithmic.constants.ts: 固定算法和技术标准常量
  * - business.ts: 业务常量（零抽象架构）
  * - config/: 系统配置
  * - status/: 状态常量
@@ -26,23 +24,11 @@
 // 系统资源监控常量
 export * from './system-resources.constants';
 
-// 响应性能监控常量
-export * from './response-performance.constants';
-
 // 错误跟踪监控常量
 export * from './error-tracking.constants';
 
-// 数据库性能监控常量
-export * from './database-performance.constants';
-
-// 缓存性能监控常量
-export * from './cache-performance.constants';
-
-// 告警控制监控常量
-export * from './alert-control.constants';
-
-// 数据生命周期监控常量
-export * from './data-lifecycle.constants';
+// 算法和技术标准常量（固定值）
+export * from './monitoring-algorithmic.constants';
 
 // 零抽象架构类型导出
 export type {
@@ -50,13 +36,6 @@ export type {
   SystemResourceType,
   SystemResourceLevel
 } from './system-resources.constants';
-
-export type {
-  ResponsePerformanceThresholds,
-  PerformanceMetricType as NewPerformanceMetricType,
-  PerformanceLevel as NewPerformanceLevel,
-  LoadTestStage
-} from './response-performance.constants';
 
 export type {
   ErrorTrackingThresholds,
@@ -67,36 +46,13 @@ export type {
 } from './error-tracking.constants';
 
 export type {
-  DatabasePerformanceThresholds,
-  DatabaseType,
-  QueryType,
-  DatabaseOperation,
-  DatabaseLevel
-} from './database-performance.constants';
-
-export type {
-  CachePerformanceThresholds,
-  CacheType,
-  CacheOperation,
-  CacheMetric,
-  CacheLevel
-} from './cache-performance.constants';
-
-export type {
+  PerformanceLevel,
+  HealthLevel,
   AlertSeverity,
-  AlertChannel,
-  AlertState,
-  AlertCategory,
-  BatchSize
-} from './alert-control.constants';
-
-export type {
-  DataCollectionFrequency,
-  DataRetentionCategory,
-  DataCompressionLevel,
-  DataQualityLevel,
-  StorageType
-} from './data-lifecycle.constants';
+  CacheOperation,
+  DatabaseOperation,
+  AlgorithmicThresholds
+} from './monitoring-algorithmic.constants';
 
 // ========================= 零抽象纯粹的业务常量 =========================
 // 已重构为零抽象架构，所有数值直观可见
@@ -104,14 +60,8 @@ export * from './business';
 export { 
   MONITORING_BUSINESS, 
   MonitoringBusinessUtil,
-  type ErrorRateLevel,
-  type ChangeLevel,
-  type PerformanceLevel,
-  type HealthLevel,
   type DataVolume,
-  type AlertLevel,
-  type CollectionPriority,
-  type DataType,
+  type SamplingConfig,
   type MonitoringBusinessConstants
 } from './business';
 
@@ -209,9 +159,7 @@ export type {
  *    - 响应性能 → response-performance.constants.ts
  *    - 错误跟踪 → error-tracking.constants.ts
  *    - 数据库性能 → database-performance.constants.ts
- *    - 缓存性能 → cache-performance.constants.ts
- *    - 告警控制 → alert-control.constants.ts
- *    - 数据生命周期 → data-lifecycle.constants.ts
+ *    - 算法和技术标准 → monitoring-algorithmic.constants.ts
  *    - 业务常量 → business.ts
  * 
  * 🚀 使用方式：

@@ -22,9 +22,8 @@ import {
 } from '../../../src/auth/config/auth-unified.config';
 import { AuthConfigCompatibilityWrapper } from '../../../src/auth/config/compatibility-wrapper';
 
-// 导入原有常量进行对比验证
-import { PERMISSION_CHECK } from '../../../src/auth/constants/permission-control.constants';
-import { API_KEY_OPERATIONS } from '../../../src/auth/constants/api-security.constants';
+// 导入原有常量进行对比验证 - 注意：大部分常量已迁移到统一配置系统
+// PERMISSION_CHECK 和 API_KEY_OPERATIONS 现在都通过 AuthConfigCompatibilityWrapper 访问
 
 describe('Auth Configuration Migration Verification', () => {
   let wrapper: AuthConfigCompatibilityWrapper;

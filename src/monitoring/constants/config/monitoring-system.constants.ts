@@ -1,11 +1,24 @@
 /**
  * 监控系统限制常量
+ * 
+ * ⚠️ 部分配置已迁移到统一配置系统
+ * ==========================================
+ * 已迁移的配置：
+ * - 批处理配置 → MonitoringUnifiedLimitsConfig.systemLimits
+ * - 队列大小限制 → MonitoringUnifiedLimitsConfig.systemLimits
+ * - 缓冲区大小限制 → MonitoringUnifiedLimitsConfig.systemLimits
+ * 
+ * 🔄 迁移路径：
+ * - 原配置：monitoring-system.constants.ts
+ * - 新配置：monitoring-unified-limits.config.ts
+ * 
  * @description 定义系统性能阈值和限制值，替换散布在代码中的魔法数字
  * @version 1.0.0
  * @since 2025-09-05
  * @author Claude Code
  */
-// 零抽象架构：移除对抽象层的依赖
+
+import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from '../../config/unified/monitoring-unified-limits.config';
 
 export const MONITORING_SYSTEM_LIMITS = {
   // ========================= HTTP状态码阈值 =========================
@@ -47,15 +60,15 @@ export const MONITORING_SYSTEM_LIMITS = {
   API_RESPONSE_TIME_MS: 100, // 100ms - API优秀响应时间阈值
   
   
-  // ========================= 系统限制 =========================
+  // ========================= 系统限制（已迁移到统一配置） =========================
   /**
+   * @deprecated 使用 limitsConfig.systemLimits.maxBufferSize 替代
    * 最大缓冲区大小
-   * @description 事件收集器最大缓冲区大小
    */
-  MAX_BUFFER_SIZE: 1000 as const,
+  MAX_BUFFER_SIZE: MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE,
   
   /**
-   * 最大批量大小
+   * 最大批量大小 - 保留用于向后兼容
    * @description 批处理操作的最大数量
    */
   MAX_BATCH_SIZE: 100 as const,
@@ -67,10 +80,10 @@ export const MONITORING_SYSTEM_LIMITS = {
   MAX_KEY_LENGTH: 100 as const,
   
   /**
+   * @deprecated 使用 limitsConfig.systemLimits.maxQueueSize 替代
    * 最大队列大小
-   * @description 事件队列最大大小
    */
-  MAX_QUEUE_SIZE: 10000 as const,
+  MAX_QUEUE_SIZE: MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_QUEUE_SIZE,
   
   /**
    * 操作时间记录最大数量
@@ -123,18 +136,18 @@ export const MONITORING_SYSTEM_LIMITS = {
    */
   FULL_SCORE: 100 as const,
   
-  // ========================= 批处理配置 =========================
+  // ========================= 批处理配置（部分已迁移） =========================
   /**
    * 默认刷新间隔
    * @description 事件批处理默认刷新间隔（毫秒）
    */
-  DEFAULT_FLUSH_INTERVAL_MS: 100 as const,
+  DEFAULT_FLUSH_INTERVAL_MS: MONITORING_UNIFIED_LIMITS_CONSTANTS.BATCH_INTERVALS.FAST,
   
   /**
+   * @deprecated 使用 limitsConfig.dataProcessingBatch.standard 替代
    * 默认批处理大小
-   * @description 事件批处理默认批次大小
    */
-  DEFAULT_BATCH_SIZE: 100 as const,
+  DEFAULT_BATCH_SIZE: MONITORING_UNIFIED_LIMITS_CONSTANTS.DATA_BATCH.STANDARD,
   
   /**
    * 事件计数器阈值
