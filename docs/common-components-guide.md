@@ -32,13 +32,11 @@ src/common/
 
 **位置**: `src/common/core/interceptors/response.interceptor.ts`
 
-**功能**: 统一 API 响应格式，提供标准化的响应结构和性能监控
+**功能**: 统一 API 响应格式，提供标准化的响应结构
 
 #### 功能特性
 - 🎯 标准化响应格式
-- 📊 性能监控和指标收集
 - 🔒 敏感URL参数清理
-- ⚡ 事件驱动的异步性能收集
 - 🛡️ 安全性增强
 
 #### 使用方法
@@ -74,11 +72,6 @@ export class UsersController {}
 }
 ```
 
-#### 性能监控
-- 自动收集请求响应时间
-- 发送性能指标到事件系统
-- 支持错误率统计
-- 安全URL清理防止敏感信息泄露
 
 ### 2. 请求追踪拦截器 (RequestTrackingInterceptor)
 
@@ -137,7 +130,6 @@ x-request-timestamp: 2025-01-15T10:30:00.000Z
 - 🛡️ 全面的异常处理覆盖
 - 🌐 多语言错误消息支持
 - 🔒 敏感信息过滤
-- 📊 异常监控和指标收集
 - 🎯 智能异常类型识别
 
 #### 支持的异常类型
@@ -349,13 +341,11 @@ export class AdminController {
 
 **位置**: `src/common/modules/logging/`
 
-**功能**: 提供分级日志控制系统，支持动态配置和性能优化
+**功能**: 提供分级日志控制系统
 
 #### 功能特性
 - 🎯 模块级别日志控制
-- ⚡ 高性能缓存机制
 - 🔧 动态配置更新
-- 📊 详细统计信息
 - 🎨 彩色输出支持
 
 #### 使用方法
@@ -554,26 +544,15 @@ export class GetUsersDto extends BaseQueryDto {
 
 **架构**: 四层架构常量系统
 
-```
-Foundation 层 (基础层) - 纯数值定义，零依赖
-    ↓
-Semantic 层 (语义层) - 业务无关的语义分类
-    ↓  
-Domain 层 (领域层) - 业务领域专用常量
-    ↓
-Application 层 (应用层) - 集成和应用级配置
-```
-
 ### 使用方法
 
 ```typescript
 import { CONSTANTS } from '@common/constants';
 
 // 访问不同层级的常量
-const batchSize = CONSTANTS.SEMANTIC.BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE; // 50
-const timeout = CONSTANTS.FOUNDATION.CORE_TIMEOUTS.DEFAULT_TIMEOUT; // 5000
+const batchSize = CONSTANTS.SEMANTIC.BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE;
+const timeout = CONSTANTS.FOUNDATION.CORE_TIMEOUTS.DEFAULT_TIMEOUT;
 const errorMsg = CONSTANTS.SEMANTIC.ERROR_MESSAGES.VALIDATION_FAILED;
-const dbConfig = CONSTANTS.DOMAIN.API_OPERATIONS.DEFAULT_BATCH_SIZE; // 100
 ```
 
 ---
@@ -706,45 +685,6 @@ export class OrderService {
 
 ---
 
-## 🚀 性能优化建议
-
-### 1. 缓存策略
-- 分页服务使用内置缓存机制
-- 日志模块启用级别检查缓存
-- 常量系统采用单例模式
-
-### 2. 异步处理
-- 响应拦截器使用 `setImmediate` 异步发送指标
-- 异常过滤器异步记录错误日志
-- 避免阻塞主要业务流程
-
-### 3. 内存管理
-- 工具类使用静态方法减少实例创建
-- 常量预编译避免运行时计算
-- 合理配置日志缓存大小
-
----
-
-## 🔍 常见问题解决
-
-### 1. 响应格式不统一
-**问题**: 部分端点返回格式不一致
-**解决**: 确保 `ResponseInterceptor` 在全局注册，避免手动包装响应
-
-### 2. 分页参数验证失败
-**问题**: 分页参数验证错误
-**解决**: 继承 `BaseQueryDto` 并使用 `PaginationService` 标准化参数
-
-### 3. 日志级别不生效
-**问题**: 模块级别日志配置无效
-**解决**: 检查 `log-levels.json` 配置文件，确保模块名称匹配
-
-### 4. 异常信息泄露
-**问题**: 生产环境暴露敏感错误信息
-**解决**: `GlobalExceptionFilter` 已内置环境检查，生产环境自动过滤
-
----
-
 ## 📖 相关文档
 
 - [NestJS 官方文档](https://docs.nestjs.com/)
@@ -752,27 +692,6 @@ export class OrderService {
 - [API 文档](/docs/api.md)
 - [部署指南](/docs/deployment.md)
 
----
-
-## 🤝 贡献指南
-
-### 新增组件开发规范
-
-1. **位置选择**: 根据功能归属选择合适目录
-2. **命名规范**: 使用清晰的描述性名称
-3. **依赖管理**: 最小化外部依赖
-4. **测试覆盖**: 确保充分的单元测试
-5. **文档更新**: 及时更新本文档
-
-### 代码审查要点
-
-- [ ] 是否遵循单一职责原则
-- [ ] 是否有充分的错误处理
-- [ ] 是否有性能优化考虑
-- [ ] 是否包含充分的注释
-- [ ] 是否有相关的单元测试
-
----
 
 *最后更新时间: 2025年1月15日*
 *文档版本: v2.0*
