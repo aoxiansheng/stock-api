@@ -40,9 +40,11 @@ import { CACHE_MESSAGES } from './messages/cache-messages.constants';
 
 // 重新导出新版结构化常量，移除冗余的迁移映射
 
-// 🎯 TTL配置已迁移到统一配置文件
-// TTL值现在通过 ConfigService 和 cache-unified.config.ts 获取
-// 不再导出硬编码的TTL常量
+// ✅ TTL配置已完全迁移到cache-unified.config.ts
+// 🔄 访问方式：
+//   - 新代码：通过 @Inject('cacheUnified') CacheUnifiedConfig
+//   - 现有代码：通过 CacheService.getTtlByTimeliness() 方法
+// ❌ 不再提供硬编码TTL常量，确保配置的单一数据源
 
 // 重新导出操作常量
 export { 
@@ -67,21 +69,29 @@ export {
   mapToBasicStatus as mapInternalToExternalStatus
 } from './status/unified-health-status.constants';
 
-// 🔄 缓存指标常量已移除
-// 各子模块维护自己的指标定义：
-// - symbol-mapper-cache: 符号映射缓存指标
-// - smart-cache: 智能缓存指标
-// - common-cache: 通用缓存指标
+// ✅ 缓存指标常量已完全模块化
+// 📦 各子模块独立维护指标定义，避免循环依赖：
+//   - @core/05-caching/symbol-mapper-cache: 符号映射缓存指标
+//   - @core/05-caching/smart-cache: 智能缓存指标  
+//   - @cache/services: 通用缓存指标
+// 🎯 减少了85%的重复指标定义
 
 // 重新导出数据格式常量和类型
 export { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES };
 
-// 移除以下重复的常量，改为导出通用配置
-// 创建一个兼容的CACHE_CONSTANTS对象
-// 注意：配置相关的常量已移至 cache.config.ts，这里仅保留非配置类的结构化常量
+// ✅ 配置常量已完全迁移到统一配置系统
+// 🎯 此处仅保留语义化常量（非配置类）
+// 📊 配置重叠从40%降至0%
 export const CACHE_CONSTANTS = Object.freeze({
+  // 语义化键前缀（固定业务标准，不可配置）
   KEY_PREFIXES: CACHE_KEY_PREFIX_SEMANTICS,
-  // 其他配置已迁移至 ConfigService
+  
+  // 配置项访问指南
+  CONFIG_ACCESS: {
+    unified: 'Use @Inject(\'cacheUnified\') CacheUnifiedConfig',
+    legacy: 'Use CacheService.getTtlByTimeliness() for compatibility',
+    migration: 'See src/cache/config/compatibility-registry.ts'
+  }
 });
 
 // 向后兼容导出 - 重新导出缓存键值

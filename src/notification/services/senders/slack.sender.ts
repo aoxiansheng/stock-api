@@ -13,6 +13,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
+import { NotificationConfigService } from "../notification-config.service";
 
 // 使用Notification模块的类型
 import {
@@ -34,7 +35,10 @@ export class SlackSender implements NotificationSender {
   type = NotificationChannelType.SLACK;
   private readonly logger = createLogger(SlackSender.name);
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: NotificationConfigService,
+  ) {}
 
   /**
    * 发送Slack通知
@@ -59,7 +63,7 @@ export class SlackSender implements NotificationSender {
 
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(channelConfig.webhook_url, payload, {
-          timeout: channelConfig.timeout || 15000,
+          timeout: channelConfig.timeout || this.configService.getDefaultTimeout(),
         }),
       );
 
@@ -145,7 +149,7 @@ export class SlackSender implements NotificationSender {
 
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(config.webhook_url, testPayload, {
-          timeout: 10000,
+          timeout: this.configService.getDefaultTimeout(),
         }),
       );
 

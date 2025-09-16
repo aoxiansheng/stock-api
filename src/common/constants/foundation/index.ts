@@ -15,9 +15,7 @@ export {
   PROCESSING_ERROR_HANDLING,
   PROCESSING_PERFORMANCE_SETTINGS} from './processing-base.constants';
 // 导出类型定义
-export type { 
-  Sizes 
-} from './core-values.constants';
+// Sizes类型已移除，使用CORE_VALUES.QUANTITIES替代
 export type { 
   CoreTimeouts 
 } from './core-timeouts.constants';

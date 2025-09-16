@@ -501,42 +501,42 @@ export type ProcessingType = 'alert' | 'data' | 'cleanup' | 'analysis';
  * 常量导出（兼容性支持）
  * 📦 为需要常量形式的代码提供兼容性支持
  */
-export const MONITORING_UNIFIED_LIMITS_CONSTANTS = {
+export const MONITORING_UNIFIED_LIMITS_CONSTANTS = Object.freeze({
   /** 告警批量大小 */
-  ALERT_BATCH: {
+  ALERT_BATCH: Object.freeze({
     SMALL: 5,
     MEDIUM: 10,
     LARGE: 20,
     MAX: 50,
-  },
+  }),
   
   /** 数据处理批量大小 */
-  DATA_BATCH: {
+  DATA_BATCH: Object.freeze({
     STANDARD: 10,
     HIGH_FREQUENCY: 50,
     ANALYSIS: 100,
-  },
+  }),
   
   /** 数据清理批量大小 */
-  CLEANUP_BATCH: {
+  CLEANUP_BATCH: Object.freeze({
     SMALL: 100,
     STANDARD: 1000,
     LARGE: 10000,
-  },
+  }),
   
   /** 系统限制 */
-  SYSTEM_LIMITS: {
+  SYSTEM_LIMITS: Object.freeze({
     MAX_QUEUE_SIZE: 10000,
     MAX_BUFFER_SIZE: 1000,
     MAX_RETRY_ATTEMPTS: 3,
     MAX_CONCURRENT_PROCESSING: 10,
-  },
+  }),
   
   /** 批量处理间隔（毫秒） */
-  BATCH_INTERVALS: {
+  BATCH_INTERVALS: Object.freeze({
     FAST: 100,
     NORMAL: 200,
     SLOW: 500,
     VERY_SLOW: 1000,
-  }
-} as const;
+  })
+});

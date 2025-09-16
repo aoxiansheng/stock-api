@@ -1,39 +1,29 @@
 /**
- * 缓存模块统一配置
- * 🎯 使用 NestJS ConfigModule 的 registerAs 模式
- * ✅ 支持环境变量覆盖和配置验证
+ * 缓存模块遗留配置
+ * 🚨 已废弃：此文件已被cache-unified.config.ts完全替代
+ * 
+ * @deprecated 将在v3.0.0版本中移除
+ * @migration 使用cache-unified.config.ts替代
+ * @compatibility 通过CacheModule自动提供向后兼容
+ * 
+ * 迁移指南：
+ * - 新服务：直接使用@Inject('cacheUnified') CacheUnifiedConfig
+ * - 现有服务：继续使用当前接口，自动映射到统一配置
+ * - 所有配置项已迁移到cache-unified.config.ts，包括TTL、限制、性能配置
  */
 
 import { registerAs } from '@nestjs/config';
 import { IsNumber, IsBoolean, Min, validateSync } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 
-/**
- * @deprecated 装饰器用于标记废弃字段
- */
-function Deprecated(message: string) {
-  return function (target: any, propertyKey: string) {
-    // 在开发环境下输出废弃警告
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`⚠️  DEPRECATED: ${target.constructor.name}.${propertyKey} - ${message}`);
-    }
-  };
-}
+// Deprecated装饰器已移除，不再有废弃字段
 
 /**
  * 缓存配置验证类
  */
 export class CacheConfigValidation {
-  /**
-   * @deprecated 使用 CacheTtlConfig.defaultTtl 替代，将在v2.0版本移除
-   * @see CacheTtlConfig.defaultTtl
-   * @since v1.0.0
-   * @removal v2.0.0
-   */
-  @Deprecated('使用 CacheTtlConfig.defaultTtl 替代，将在v2.0版本移除')
-  @IsNumber()
-  @Min(1)
-  defaultTtl: number = 300; // 默认TTL: 5分钟
+  // defaultTtl已迁移到cache-unified.config.ts
+  // 通过CacheUnifiedConfig.defaultTtl访问
 
   @IsNumber()
   @Min(0)
@@ -75,7 +65,7 @@ export class CacheConfigValidation {
 export default registerAs('cache', (): CacheConfigValidation => {
   // 从环境变量读取配置
   const config = {
-    defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300, // ⚠️ 已迁移至统一TTL配置: src/cache/config/cache-ttl.config.ts
+    // defaultTtl已迁移到cache-unified.config.ts，通过统一配置访问
     compressionThreshold: parseInt(process.env.CACHE_COMPRESSION_THRESHOLD, 10) || 1024,
     compressionEnabled: process.env.CACHE_COMPRESSION_ENABLED !== 'false',
     maxItems: parseInt(process.env.CACHE_MAX_ITEMS, 10) || 10000,
@@ -108,5 +98,12 @@ export default registerAs('cache', (): CacheConfigValidation => {
 
 /**
  * 导出配置类型供其他模块使用
+ * @deprecated 推荐使用 CacheUnifiedConfig，此类型保留用于向后兼容
  */
 export type CacheConfig = CacheConfigValidation;
+
+// 重新导出兼容性接口，确保现有代码继续工作
+export type { 
+  LegacyCacheConfig,
+  CacheConfigCompatibilityWrapper 
+} from './cache-config-compatibility';

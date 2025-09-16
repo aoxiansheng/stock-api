@@ -2,29 +2,83 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 
 import { CacheService } from "../services/cache.service";
-// CacheLimitsProvider 已移除，限制配置通过统一配置获取
-// CacheTtlProvider 已移除，功能整合到 CacheService 和统一配置
-import cacheConfig from "../config/cache.config";
+// 导入统一配置和兼容性模块
+import { CacheConfigCompatibilityModule } from "../config/compatibility-registry";
 import cacheUnifiedConfig from "../config/cache-unified.config";
+// 兼容性配置（保留向后兼容）
+import cacheConfig from "../config/cache-legacy.config";
 
 @Module({
   imports: [
-    // 🎯 统一配置（主配置）
+    // 🆕 统一配置（主配置 - 推荐用于新代码）
     ConfigModule.forFeature(cacheUnifiedConfig),
-    // 🎯 向后兼容：保留旧配置，用于渐进迁移
+    
+    // 🔄 兼容性配置（保留向后兼容 - 现有代码继续工作）
     ConfigModule.forFeature(cacheConfig),
+    
+    // 🎯 兼容性注册模块
+    CacheConfigCompatibilityModule,
   ],
   providers: [
     CacheService,
-    // 提供配置值（向后兼容）
+    
+    // 🎯 统一配置提供者（主要）
     {
-      provide: 'cacheTtl',
+      provide: 'CACHE_UNIFIED_CONFIG',
       useFactory: (configService: ConfigService) => configService.get('cacheUnified'),
       inject: [ConfigService],
     },
-    // CacheLimitsProvider 和 CacheTtlProvider 已移除
-    // 所有配置通过统一配置文件和 ConfigService 访问
+    
+    // 🔄 向后兼容配置提供者
+    {
+      provide: 'CACHE_TTL_CONFIG',
+      useFactory: (configService: ConfigService) => {
+        const unifiedConfig = configService.get('cacheUnified');
+        // 映射TTL配置到兼容接口
+        return {
+          defaultTtl: unifiedConfig.defaultTtl,
+          strongTimelinessTtl: unifiedConfig.strongTimelinessTtl,
+          authTtl: unifiedConfig.authTtl,
+          monitoringTtl: unifiedConfig.monitoringTtl,
+          transformerTtl: unifiedConfig.transformerTtl,
+          suggestionTtl: unifiedConfig.suggestionTtl,
+          longTermTtl: unifiedConfig.longTermTtl,
+        };
+      },
+      inject: [ConfigService],
+    },
+    
+    {
+      provide: 'CACHE_LIMITS_CONFIG',
+      useFactory: (configService: ConfigService) => {
+        const unifiedConfig = configService.get('cacheUnified');
+        // 映射限制配置到兼容接口
+        return {
+          maxBatchSize: unifiedConfig.maxBatchSize,
+          maxCacheSize: unifiedConfig.maxCacheSize,
+          lruSortBatchSize: unifiedConfig.lruSortBatchSize,
+          smartCacheMaxBatch: unifiedConfig.smartCacheMaxBatch,
+          maxCacheSizeMB: unifiedConfig.maxCacheSizeMB,
+        };
+      },
+      inject: [ConfigService],
+    },
+    
+    // Fix: Add cacheTtl provider that CacheService expects
+    {
+      provide: 'cacheTtl',
+      useFactory: (configService: ConfigService) => {
+        return configService.get('cacheUnified');
+      },
+      inject: [ConfigService],
+    },
   ],
-  exports: [CacheService],
+  exports: [
+    CacheService,
+    'CACHE_UNIFIED_CONFIG',
+    'CACHE_TTL_CONFIG',
+    'CACHE_LIMITS_CONFIG',
+    CacheConfigCompatibilityModule,
+  ],
 })
 export class CacheModule {}

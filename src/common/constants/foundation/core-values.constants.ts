@@ -33,14 +33,17 @@ export const CORE_VALUES = Object.freeze({
   },
 
   /**
-   * ❌ 时间常量已迁移到统一TTL配置
-   * 🎯 使用 @appcore/config/unified-ttl.config.ts 替代
+   * 时间转换常量 - 数学固定值（保留）
+   * 🎯 这些是数学常量，不是可配置的TTL/超时值
    * 
-   * @deprecated 这些时间值现在是可配置参数，不应作为常量
-   * @see src/appcore/config/unified-ttl.config.ts
+   * 注意：TTL/超时配置值已迁移到配置文件
+   * @see src/appcore/config/unified-ttl.config.ts (TTL配置)
    */
-  // TIME_MS: {...} - 已迁移到配置文件
-  // TIME_SECONDS: {...} - 已迁移到配置文件
+  TIME_MS: {
+    ONE_SECOND: 1000,         // 1秒 = 1000毫秒（数学常量）
+    ONE_MINUTE: 60 * 1000,    // 1分钟 = 60000毫秒（数学常量）
+    ONE_HOUR: 60 * 60 * 1000, // 1小时 = 3600000毫秒（数学常量）
+  },
 
   /**
    * 协议标准长度限制 (保留固定标准)
@@ -115,6 +118,7 @@ export const CORE_VALUES = Object.freeze({
  */
 export type CoreValues = typeof CORE_VALUES;
 export type Quantities = typeof CORE_VALUES.QUANTITIES;
+export type TimeMS = typeof CORE_VALUES.TIME_MS;
 export type Percentages = typeof CORE_VALUES.PERCENTAGES;
 export type ProtocolLimits = typeof CORE_VALUES.PROTOCOL_LIMITS;
 export type MathConstants = typeof CORE_VALUES.MATH;

@@ -44,9 +44,9 @@ export class EventBatcher {
   private readonly highWaterMark: number;
 
   constructor(
-    private readonly flushIntervalMs = 100,
-    private readonly maxBatchSize = MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE,
-    private readonly maxQueueSize = 10000,
+    private readonly flushIntervalMs: number = 100,
+    private readonly maxBatchSize: number = MONITORING_SYSTEM_LIMITS.MAX_BATCH_SIZE,
+    private readonly maxQueueSize: number = 10000,
   ) {
     this.maxTotalEvents = maxQueueSize;
     this.highWaterMark = Math.floor(maxQueueSize * 0.8); // 80% 为高水位

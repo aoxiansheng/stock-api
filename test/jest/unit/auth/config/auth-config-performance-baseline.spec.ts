@@ -132,7 +132,7 @@ describe('Auth Configuration System Performance Baseline', () => {
       // 测试原始常量访问性能
       for (let i = 0; i < iterations; i++) {
         const start = performance.now();
-        const value = API_KEY_OPERATIONS.CACHE_TTL_SECONDS;
+        const value = wrapper.API_KEY_OPERATIONS.CACHE_TTL_SECONDS;
         const end = performance.now();
         expect(value).toBeDefined();
         accessResults.constants.times.push(end - start);

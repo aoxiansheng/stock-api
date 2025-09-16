@@ -24,6 +24,7 @@
       "@alert/*": ["src/alert/*"],
       "@cache/*": ["src/cache/*"],
       "@monitoring/*": ["src/monitoring/*"],
+      "@notification/*": ["src/notification/*"],
       "@scripts/*": ["src/scripts/*"],
       "@test/*": ["test/*"],
       "@test-config/*": ["test/config/*"]

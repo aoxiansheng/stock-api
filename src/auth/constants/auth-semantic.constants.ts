@@ -107,6 +107,10 @@ export const RATE_LIMIT_VALIDATION = {
   // 固定的验证正则表达式 - 业务规则标准
   WINDOW_PATTERN: /^(\d+)([smhdwM])$/,     // 时间窗口格式验证
   APP_KEY_PATTERN: /^[a-zA-Z0-9_-]+$/,     // 应用键格式验证
+  
+  // App Key长度限制 - 与API_KEY_FORMAT保持一致
+  MIN_APP_KEY_LENGTH: 32,                  // 最小长度
+  MAX_APP_KEY_LENGTH: 64,                  // 最大长度
 } as const;
 
 // ================================

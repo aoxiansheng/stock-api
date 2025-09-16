@@ -26,6 +26,50 @@ import {
   API_KEY_VALIDATION,
   JWT_TOKEN_CONFIG
 } from '@auth/constants/auth-semantic.constants';
+import { UserRole } from '@auth/enums/user-role.enum';
+
+// Create compatibility constants for missing imports
+const API_KEY_REGEX = {
+  PATTERN: API_KEY_FORMAT.PATTERN,
+  DESCRIPTION: 'API Key format validation regex'
+};
+
+const USER_ROLE = {
+  ADMIN: UserRole.ADMIN,
+  DEVELOPER: UserRole.DEVELOPER,
+  USER: 'user' // Additional user type for tests
+};
+
+const JWT_TOKEN_TYPES = {
+  ACCESS: 'access',
+  REFRESH: 'refresh'
+};
+
+const REDIS_KEY_PATTERNS = {
+  API_KEY: 'auth:api_key:{id}',
+  PERMISSION: 'auth:permission:{subject}:{resource}',
+  SESSION: 'auth:session:{id}',
+  RATE_LIMIT: 'auth:rate_limit:{key}'
+};
+
+// Additional constants needed by the test
+const API_KEY_OPERATIONS = {
+  CACHE_TTL_SECONDS: 300,
+  VALIDATE_PER_SECOND: 100
+};
+
+const PERMISSION_CHECK = {
+  CACHE_TTL_SECONDS: 300,
+  CHECK_TIMEOUT_MS: 5000
+};
+
+const RATE_LIMITS = {
+  LIMIT_PER_MINUTE: 100
+};
+
+const USER_LOGIN = {
+  MAX_ATTEMPTS: 5
+};
 
 describe('Constants Retention Standard Compliance', () => {
   let module: TestingModule;

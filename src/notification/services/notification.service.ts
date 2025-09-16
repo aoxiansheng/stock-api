@@ -7,7 +7,6 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { createLogger } from "@common/logging/index";
@@ -65,17 +64,14 @@ import {
   BatchNotificationCompletedEvent,
 } from '../events/notification.events';
 
-// 导入配置类型
-import type { NotificationConfig } from '../types/notification-config.types';
+// 导入配置服务
+import { NotificationConfigService } from './notification-config.service';
 
 @Injectable()
 export class NotificationService {
   private readonly logger = createLogger('NotificationService');
   private readonly senders: Map<NotificationChannelType, any> = new Map();
 
-  private get notificationConfig(): NotificationConfig {
-    return this.configService.get<NotificationConfig>('notification');
-  }
 
   constructor(
     private readonly emailSender: EmailSender,
@@ -86,7 +82,7 @@ export class NotificationService {
     private readonly templateService: NotificationTemplateService,
     private readonly alertToNotificationAdapter: AlertToNotificationAdapter,
     private readonly eventEmitter: EventEmitter2,
-    private readonly configService: ConfigService,
+    private readonly configService: NotificationConfigService,
   ) {
     // 初始化发送器映射
     this.senders.set(NotificationChannelType.EMAIL, this.emailSender);
@@ -313,13 +309,13 @@ export class NotificationService {
     
     this.logger.debug('开始处理批量DTO通知请求', {
       requestCount: batchRequest.requests.length,
-      concurrency: batchRequest.concurrency || this.notificationConfig.defaultBatchSize,
+      concurrency: batchRequest.concurrency || this.configService.getDefaultBatchSize(),
       batchId,
     });
 
     const concurrency = Math.min(
-      batchRequest.concurrency || this.notificationConfig.defaultBatchSize, 
-      this.notificationConfig.maxConcurrency
+      batchRequest.concurrency || this.configService.getDefaultBatchSize(), 
+      this.configService.getMaxConcurrency()
     );
     const results: NotificationRequestResultDto[] = [];
 
@@ -1488,8 +1484,8 @@ export class NotificationService {
 
       // 构建发送配置
       const channelConfig = {
-        retryCount: this.notificationConfig.maxRetryAttempts,
-        timeout: this.notificationConfig.getChannelTimeout(channelType),
+        retryCount: this.configService.getMaxRetryAttempts(),
+        timeout: this.configService.getChannelTimeout(channelType),
         ...this.getChannelSpecificConfig(channelType, request),
       };
 

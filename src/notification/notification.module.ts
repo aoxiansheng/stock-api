@@ -26,6 +26,7 @@ import { NotificationService } from './services/notification.service';
 import { NotificationHistoryService } from './services/notification-history.service';
 import { NotificationTemplateService } from './services/notification-template.service';
 import { NotificationTemplateInitializerService } from './services/notification-template-initializer.service';
+import { NotificationConfigService } from './services/notification-config.service';
 
 // Event Listeners and Handlers
 import { NotificationEventHandler } from './handlers/notification-event.handler';
@@ -47,7 +48,7 @@ import { DingTalkSender } from './services/senders/dingtalk.sender';
 import { LogSender } from './services/senders/log.sender';
 
 // Configuration
-import notificationEnhancedConfig from './config/notification-enhanced.config';
+import { notificationUnifiedConfig } from './config';
 
 @Module({
   imports: [
@@ -56,8 +57,8 @@ import notificationEnhancedConfig from './config/notification-enhanced.config';
     DatabaseModule,
     // 📄 通用分页器模块
     PaginationModule,
-    // ⚙️ 配置模块 (注册增强型通知配置)
-    ConfigModule.forFeature(notificationEnhancedConfig),
+    // ⚙️ 配置模块 (使用新的统一配置)
+    ConfigModule.forFeature(notificationUnifiedConfig),
     MongooseModule.forFeature([
       { name: NotificationInstance.name, schema: NotificationSchema },
       { name: NotificationChannel.name, schema: NotificationChannelSchema },
@@ -75,6 +76,7 @@ import notificationEnhancedConfig from './config/notification-enhanced.config';
     NotificationHistoryService,
     NotificationTemplateService,
     NotificationTemplateInitializerService,
+    NotificationConfigService,
     
     // Adapters
     AlertToNotificationAdapter,
@@ -94,6 +96,7 @@ import notificationEnhancedConfig from './config/notification-enhanced.config';
     NotificationHistoryService,
     NotificationTemplateService,         // 模板服务
     NotificationTemplateInitializerService, // 模板初始化服务
+    NotificationConfigService,           // 配置服务
   ],
 })
 export class NotificationModule {}

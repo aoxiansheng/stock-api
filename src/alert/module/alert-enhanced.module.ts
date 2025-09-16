@@ -19,6 +19,7 @@ import { CacheModule } from "../../cache/module/cache.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import alertConfig from "@alert/config/alert.config";
 import alertPerformanceConfig from "@alert/config/alert-performance.config";
+import alertCacheConfig from "@alert/config/alert-cache.config";
 import cacheLimitsConfig from "../../cache/config/cache-unified.config";
 import { AlertConstantsValidator } from "../utils/constants-validator.util";
 import { OPERATION_LIMITS } from '@common/constants/domain';
@@ -62,6 +63,7 @@ import { RuleEvaluator } from "../evaluators/rule.evaluator";
     // 配置
     ConfigModule.forFeature(alertConfig),              // 现有组件配置
     ConfigModule.forFeature(alertPerformanceConfig),   // 新增性能配置
+    ConfigModule.forFeature(alertCacheConfig),         // Alert缓存配置
     ConfigModule.forFeature(cacheLimitsConfig),
     // unifiedTtlConfig 在全局已注册
 

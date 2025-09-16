@@ -16,7 +16,7 @@ import Redis from "ioredis";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
-import { CacheConfig } from "../config/cache.config";
+import { CacheConfig } from "../config/cache-legacy.config";
 // 统一配置类型已移除导入
 import type { CacheUnifiedConfig } from "../config/cache-unified.config";
 // CacheLimitsProvider 已移除，限制配置通过统一配置获取
@@ -77,17 +77,15 @@ export class CacheService {
         }
       );
 
-      // 运行时废弃警告：提醒开发者迁移TTL配置
-      if (this.legacyCacheConfig.defaultTtl) {
-        this.logger.warn(
-          '⚠️  DEPRECATED: CacheConfig.defaultTtl 已废弃，现使用 CacheUnifiedConfig.defaultTtl',
-          {
-            oldValue: this.legacyCacheConfig.defaultTtl,
-            newValue: this.cacheUnifiedConfig.defaultTtl,
-            migrationNote: '已自动使用新配置值'
-          }
-        );
-      }
+      // 运行时废弃警告：提醒开发者迁移到统一配置
+      this.logger.warn(
+        '⚠️  DEPRECATED: CacheConfig 已废弃，请迁移到 CacheUnifiedConfig',
+        {
+          currentValue: this.cacheUnifiedConfig.defaultTtl,
+          migrationGuide: 'Use @Inject(\'cacheUnified\') CacheUnifiedConfig',
+          migrationNote: '当前已自动使用统一配置'
+        }
+      );
     }
   }
 

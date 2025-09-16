@@ -44,14 +44,14 @@ export const MONITORING_BUSINESS = Object.freeze({
    * - MIN_DATA_POINTS: 统计学中有效样本的最小要求
    * - SAMPLE_SIZE_*: 基于中央极限定理和处理效率的算法优化
    */
-  SAMPLING_CONFIG: {
+  SAMPLING_CONFIG: Object.freeze({
     RECENT_METRICS_COUNT: 5,       // 最近数据点数量 - slice(-5) 算法需求
     MIN_DATA_POINTS: 5,            // 最小数据要求 - 统计有效性门槛
     SAMPLE_SIZE_SMALL: 10,         // 小样本大小 - 算法处理优化
     SAMPLE_SIZE_MEDIUM: 50,        // 中等样本大小 - 平衡精度与性能
     SAMPLE_SIZE_LARGE: 100,        // 大样本大小 - 高精度分析
     MAX_SAMPLE_SIZE: 1000,         // 最大样本大小 - 内存限制保护
-  },
+  }),
 } as const);
 
 /**

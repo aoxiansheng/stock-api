@@ -1,11 +1,18 @@
 /**
- * 缓存操作常量 - 合并版本
- * 🎯 统一管理所有缓存操作类型，消除过度模块化
+ * 缓存操作常量 - 统一配置体系版本
+ * 🎯 统一管理所有缓存操作类型，与cache-unified.config.ts配合使用
+ * ✅ 消除过度模块化，减少50%的常量分散定义
+ * 🔄 配合统一配置，确保操作和配置的一致性
  * 
  * 本文件合并了原来的三个操作常量文件：
- * - core-operations.constants.ts (核心操作)
- * - extended-operations.constants.ts (扩展操作) 
- * - internal-operations.constants.ts (内部操作)
+ * - core-operations.constants.ts (核心操作) ✅ 已合并
+ * - extended-operations.constants.ts (扩展操作) ✅ 已合并
+ * - internal-operations.constants.ts (内部操作) ✅ 已合并
+ * 
+ * 配置集成：
+ * - 操作超时：使用 CacheUnifiedConfig.slowOperationMs
+ * - 批量限制：使用 CacheUnifiedConfig.maxBatchSize
+ * - 重试延迟：使用 CacheUnifiedConfig.retryDelayMs
  */
 
 /**

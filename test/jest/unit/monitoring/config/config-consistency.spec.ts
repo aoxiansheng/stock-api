@@ -51,22 +51,16 @@ import {
   MONITORING_UNIFIED_LIMITS_CONSTANTS
 } from '../../../../../src/monitoring/config/unified/monitoring-unified-limits.config';
 
-import type { BatchSizeType, ProcessingType } from '../../../../../src/monitoring/config/unified/monitoring-unified-limits.config';
-
 import {
   MonitoringCoreEnvConfig,
   monitoringCoreEnvConfig,
   MONITORING_CORE_ENV_CONSTANTS
 } from '../../../../../src/monitoring/config/unified/monitoring-core-env.config';
 
-import type { MonitoringCoreEnvType } from '../../../../../src/monitoring/config/unified/monitoring-core-env.config';
-
 import {
   MonitoringConfigValidator,
   validateMonitoringConfiguration
 } from '../../../../../src/monitoring/config/monitoring-config.validator';
-
-import type { ConfigValidationResult, EnvironmentValidationResult } from '../../../../../src/monitoring/config/monitoring-config.validator';
 
 describe('监控组件配置一致性测试', () => {
   // 保存原始环境变量
@@ -94,8 +88,8 @@ describe('监控组件配置一致性测试', () => {
         
         ttlFields.forEach(field => {
           expect(ttlConfig).toHaveProperty(field);
-          expect(typeof ttlConfig[field as keyof MonitoringUnifiedTtlConfig]).toBe('number');
-          expect(ttlConfig[field as keyof MonitoringUnifiedTtlConfig]).toBeGreaterThan(0);
+          expect(typeof ttlConfig[field]).toBe('number');
+          expect(ttlConfig[field]).toBeGreaterThan(0);
         });
 
         // 验证配置实例的唯一性
@@ -115,7 +109,7 @@ describe('监控组件配置一致性测试', () => {
         expect(MONITORING_UNIFIED_TTL_CONSTANTS.TEST).toBeDefined();
 
         // 验证所有TTL类型都有对应的常量定义
-        const expectedTtlTypes: TtlDataType[] = ['health', 'trend', 'performance', 'alert', 'cacheStats'];
+        const expectedTtlTypes = ['health', 'trend', 'performance', 'alert', 'cacheStats'];
         
         expectedTtlTypes.forEach(type => {
           expect(MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS).toHaveProperty(type.toUpperCase());
@@ -238,7 +232,7 @@ describe('监控组件配置一致性测试', () => {
       });
 
       it('应该验证环境特定的TTL推荐值', () => {
-        const environments: EnvironmentType[] = ['development', 'test', 'production'];
+        const environments = ['development', 'test', 'production'];
 
         environments.forEach(env => {
           const originalEnv = process.env.NODE_ENV;

@@ -81,6 +81,12 @@ export const VALIDATION_LIMITS = Object.freeze({
   COOLDOWN_MIN: 60,                                                    // 60秒 - 最小冷却时间
   COOLDOWN_MAX: 3000,                                                  // 3000秒 - 最大冷却时间
   
+  // ⚠️ Alert DTO所需的重试和超时验证常量（临时保留）
+  RETRIES_MIN: 0,                                                      // 0次 - 最小重试次数
+  RETRIES_MAX: 10,                                                     // 10次 - 最大重试次数
+  TIMEOUT_MIN: 1000,                                                   // 1000毫秒 - 最小超时时间
+  TIMEOUT_MAX: 60000,                                                  // 60000毫秒 - 最大超时时间
+  
   // ❌ 其他时间、超时、重试限制已迁移到配置文件
   // 🎯 这些参数现在从配置服务获取，不再作为常量定义
   
@@ -88,8 +94,8 @@ export const VALIDATION_LIMITS = Object.freeze({
    * @deprecated 超时限制已迁移到 @common/config/common-constants.config.ts
    * @deprecated 重试限制已迁移到 @common/config/common-constants.config.ts
    */
-  // TIMEOUT_MIN, TIMEOUT_MAX, HTTP_TIMEOUT_MIN, HTTP_TIMEOUT_MAX → 通用配置
-  // RETRIES_MIN, RETRIES_MAX, RETRIES_DEFAULT → 通用配置
+  // HTTP_TIMEOUT_MIN, HTTP_TIMEOUT_MAX → 通用配置
+  // RETRIES_DEFAULT → 通用配置
 });
 
 /**

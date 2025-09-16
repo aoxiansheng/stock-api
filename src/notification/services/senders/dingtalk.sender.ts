@@ -15,6 +15,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
+import { NotificationConfigService } from "../notification-config.service";
 
 // 使用Notification模块的类型
 import {
@@ -30,7 +31,10 @@ export class DingTalkSender implements NotificationSender {
   type = NotificationChannelType.DINGTALK;
   private readonly logger = createLogger(DingTalkSender.name);
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: NotificationConfigService,
+  ) {}
 
   /**
    * 发送钉钉通知
@@ -61,7 +65,7 @@ export class DingTalkSender implements NotificationSender {
 
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(url, payload, {
-          timeout: channelConfig.timeout || 10000,
+          timeout: channelConfig.timeout || this.configService.getDefaultTimeout(),
         }),
       );
 
@@ -142,7 +146,7 @@ export class DingTalkSender implements NotificationSender {
 
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(url, testPayload, {
-          timeout: 10000,
+          timeout: this.configService.getDefaultTimeout(),
         }),
       );
 

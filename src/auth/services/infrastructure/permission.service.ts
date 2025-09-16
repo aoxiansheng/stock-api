@@ -7,8 +7,6 @@ import { securityConfig } from "@auth/config/security.config";
 // 🆕 引入新的统一配置系统 - 与现有配置并存
 import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
 // 更新导入路径，从utils导入PermissionTemplateUtil
-// 使用新的权限常量
-import { PERMISSION_CHECK } from "../../constants/permission-control.constants";
 import { CONSTANTS } from "@common/constants";
 
 // 简化的权限操作和消息常量

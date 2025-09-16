@@ -10,13 +10,12 @@ import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
 import { BadRequestException, Injectable, Inject } from "@nestjs/common";
-import { ConfigService } from '@nestjs/config';
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 
-// 使用本地通知配置替换外部依赖
-import type { NotificationConfig } from "../../types/notification-config.types";
+// 使用通知配置服务
+import { NotificationConfigService } from "../notification-config.service";
 
 // 使用Notification模块的类型
 import {
@@ -34,13 +33,9 @@ export class WebhookSender implements NotificationSender {
   type = NotificationChannelType.WEBHOOK;
   private readonly logger = createLogger(WebhookSender.name);
 
-  private get notificationConfig(): NotificationConfig {
-    return this.configService.get<NotificationConfig>('notification');
-  }
-
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
+    private readonly configService: NotificationConfigService,
   ) {}
 
   /**
@@ -69,7 +64,7 @@ export class WebhookSender implements NotificationSender {
             'User-Agent': 'NotificationService/1.0',
             ...channelConfig.headers || {},
           },
-          timeout: channelConfig.timeout || 30000,
+          timeout: channelConfig.timeout || this.configService.getWebhookTimeout(),
         }),
       );
 
@@ -165,7 +160,7 @@ export class WebhookSender implements NotificationSender {
             'User-Agent': 'NotificationService/1.0 (Test)',
             ...config.headers || {},
           },
-          timeout: this.notificationConfig.getChannelTimeout('webhook'),
+          timeout: this.configService.getWebhookTimeout(),
         }),
       );
 
