@@ -2,18 +2,21 @@
  * 监控常量统一导出入口 - 零抽象纯粹架构
  * 🎯 提供监控模块所有常量的集中式导出，简化导入路径
  *
+ * ⚠️  DEPRECATION NOTICE:
+ * Some legacy constant files are deprecated since v1.1.0:
+ * - cache-ttl.constants.ts (removed in v1.2.0) → Use monitoring-unified-ttl.config.ts
+ * - Any direct imports from deprecated files will show warnings
+ * 
  * ✅ 零抽象纯粹架构：
  * - system-resources.constants.ts: CPU、内存、磁盘监控阈值
- * - response-performance.constants.ts: 响应时间、吞吐量阈值
  * - error-tracking.constants.ts: 错误率、成功率阈值
- * - database-performance.constants.ts: 数据库查询性能阈值
  * - monitoring-algorithmic.constants.ts: 固定算法和技术标准常量
  * - business.ts: 业务常量（零抽象架构）
  * - config/: 系统配置
  * - status/: 状态常量
  * - messages/: 消息常量
  *
- * @version 3.0.0 - 零抽象纯粹架构（移除兼容层）
+ * @version 3.1.0 - Added deprecation notices for compatibility layer removal
  * @since 2025-09-10
  * @author Claude Code
  */

@@ -10,6 +10,7 @@ import {
   MONITORING_SYSTEM_LIMITS,
   MonitoringSystemLimitUtils,
 } from "../../constants/config/monitoring-system.constants";
+import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
 
 /**
  * 🎯 监控事件桥接层服务
@@ -25,10 +26,10 @@ export class MonitoringEventBridgeService
   private eventCounter = 0;
   private lastFlush = Date.now();
   private readonly batcher = new EventBatcher(
-    MONITORING_SYSTEM_LIMITS.DEFAULT_FLUSH_INTERVAL_MS,
-    MONITORING_SYSTEM_LIMITS.DEFAULT_BATCH_SIZE,
-    MONITORING_SYSTEM_LIMITS.MAX_QUEUE_SIZE,
-  ); // 使用系统配置的批处理参数
+    MONITORING_UNIFIED_LIMITS_CONSTANTS.BATCH_INTERVALS.FAST,
+    MONITORING_UNIFIED_LIMITS_CONSTANTS.DATA_BATCH.STANDARD,
+    MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_QUEUE_SIZE,
+  ); // 使用统一配置系统的批处理参数
 
   constructor(
     private readonly eventBus: EventEmitter2,

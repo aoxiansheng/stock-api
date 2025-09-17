@@ -18,6 +18,7 @@ import {
 import { MONITORING_HEALTH_STATUS } from "../../constants";
 import type { ExtendedHealthStatus } from "../../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
+import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
 
 @Injectable()
 export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
@@ -188,7 +189,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
         100,
         250,
         500,
-        MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE,
+        MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE,
         2500,
       ],
       registers: [this.registry],

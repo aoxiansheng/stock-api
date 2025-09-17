@@ -390,28 +390,3 @@ export class NotificationStatsDto {
   byStatus: Record<NotificationStatus, number>;
 }
 
-/**
- * 批量重试结果DTO
- */
-export class BatchRetryResultDto {
-  @ApiProperty({ description: "总数" })
-  total: number;
-
-  @ApiProperty({ description: "重试成功数" })
-  retried: number;
-
-  @ApiProperty({ description: "重试失败数" })
-  failed: number;
-
-  @ApiProperty({
-    description: "失败详情",
-    type: [Object],
-  })
-  failures: Array<{
-    notificationId: string;
-    error: string;
-  }>;
-
-  @ApiProperty({ description: "处理时间" })
-  processedAt: Date;
-}

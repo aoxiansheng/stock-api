@@ -170,5 +170,64 @@ export default defineConfig([
         },
       ],
     },
+  },
+  {
+    name: "monitoring-deprecation-detection",
+    files: ["src/**/*.{ts,js}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { 
+              name: "./monitoring/constants/cache-ttl.constants", 
+              message: "⚠️ DEPRECATED since v1.1.0, removed in v1.2.0. Use MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts. See docs/monitoring-deprecation-migration-guide.md" 
+            },
+            { 
+              name: "../monitoring/constants/cache-ttl.constants", 
+              message: "⚠️ DEPRECATED since v1.1.0, removed in v1.2.0. Use MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts. See docs/monitoring-deprecation-migration-guide.md" 
+            },
+            { 
+              name: "src/monitoring/constants/cache-ttl.constants", 
+              message: "⚠️ DEPRECATED since v1.1.0, removed in v1.2.0. Use MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts. See docs/monitoring-deprecation-migration-guide.md" 
+            },
+          ],
+          patterns: [
+            { 
+              group: ["**/monitoring/constants/cache-ttl.constants*"], 
+              message: "⚠️ DEPRECATED since v1.1.0, removed in v1.2.0. Use MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts. See docs/monitoring-deprecation-migration-guide.md" 
+            },
+            { 
+              group: ["**/monitoring/constants/alert-control.constants*"], 
+              message: "⚠️ DEPRECATED since v1.0.0, removed in v1.2.0. Use monitoring-system.constants.ts. See docs/monitoring-deprecation-migration-guide.md" 
+            },
+            { 
+              group: ["**/monitoring/constants/data-lifecycle.constants*"], 
+              message: "⚠️ DEPRECATED since v1.0.0, removed in v1.2.0. Use monitoring-system.constants.ts. See docs/monitoring-deprecation-migration-guide.md" 
+            },
+          ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.object.name='presenterService'][callee.property.name='getEndpointMetricsLegacy']",
+          message: "⚠️ DEPRECATED since v1.1.0, removed in v2.0.0. Use getEndpointMetrics(query: EndpointMetricsQueryDto) instead. See docs/monitoring-deprecation-migration-guide.md"
+        },
+        {
+          selector: "MemberExpression[object.name='MONITORING_CACHE_TTL']",
+          message: "⚠️ DEPRECATED since v1.1.0, removed in v1.2.0. Use MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts. See docs/monitoring-deprecation-migration-guide.md"
+        }
+      ],
+      "@typescript-eslint/no-unused-imports": ["error"],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { 
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_"
+        }
+      ],
+    },
   }
 ]);

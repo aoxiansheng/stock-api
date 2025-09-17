@@ -9,9 +9,11 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 
 import { createLogger } from "@common/logging/index";
+import { AuthLoggingUtil } from "../utils/auth-logging.util";
 
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { ROLES_KEY } from "../decorators/roles.decorator";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 import { Permission, UserRole } from "../enums/user-role.enum";
 import { AuthSubjectType } from "../interfaces/auth-subject.interface";
 import { PermissionService } from "../services/infrastructure/permission.service";
@@ -46,7 +48,7 @@ import { MESSAGE_SEMANTICS } from "@common/constants/semantic/message-semantics.
  */
 @Injectable()
 export class UnifiedPermissionsGuard implements CanActivate {
-  private readonly logger = createLogger(UnifiedPermissionsGuard.name);
+  private readonly logger = AuthLoggingUtil.createOptimizedLogger(UnifiedPermissionsGuard.name);
 
   constructor(
     @Optional() private readonly permissionService: PermissionService,
@@ -54,6 +56,17 @@ export class UnifiedPermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 检查是否为公开端点，如果是则直接放行
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      this.logger.highFrequency("跳过权限检查 - 公开端点");
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
 
     try {
@@ -63,7 +76,7 @@ export class UnifiedPermissionsGuard implements CanActivate {
 
       // 如果没有权限要求，直接放行
       if (requiredRoles.length === 0 && requiredPermissions.length === 0) {
-        this.logger.debug("跳过权限检查 - 无权限要求");
+        this.logger.highFrequency("跳过权限检查 - 无权限要求");
         return true;
       }
 

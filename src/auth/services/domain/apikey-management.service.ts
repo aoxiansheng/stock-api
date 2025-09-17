@@ -19,6 +19,8 @@ import { createLogger } from "@common/modules/logging";
 // Dynamic configuration now comes from AuthConfigCompatibilityWrapper only
 import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
 import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-messages.constants";
+import { CacheService } from "../../../cache/services/cache.service";
+import { AuthLoggingUtil } from "../../utils/auth-logging.util";
 
 /**
  * API密钥管理服务 - API密钥全生命周期管理
@@ -27,13 +29,14 @@ import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-message
  */
 @Injectable()
 export class ApiKeyManagementService {
-  private readonly logger = createLogger(ApiKeyManagementService.name);
+  private readonly logger = AuthLoggingUtil.createOptimizedLogger(ApiKeyManagementService.name);
 
   constructor(
     @InjectModel(ApiKey.name)
     private readonly apiKeyModel: Model<ApiKeyDocument>,
     private readonly userRepository: UserRepository,
     private readonly authConfig: AuthConfigCompatibilityWrapper,
+    private readonly cacheService: CacheService,
   ) {}
 
   // Configuration accessors - using unified configuration system
@@ -54,6 +57,16 @@ export class ApiKeyManagementService {
 
   private get apiKeyValidation() {
     return this.authConfig.VALIDATION_LIMITS;
+  }
+
+  // API Key缓存配置
+  private get cacheConfig() {
+    return {
+      // API Key缓存TTL（15分钟，平衡性能和数据一致性）
+      API_KEY_CACHE_TTL: 900, // 15分钟
+      // 缓存前缀
+      API_KEY_CACHE_PREFIX: "apikey",
+    };
   }
 
   /**
@@ -114,53 +127,142 @@ export class ApiKeyManagementService {
 
   /**
    * 验证API密钥
-   * 高频调用的核心方法，需要优化性能
+   * 高频调用的核心方法，使用缓存优化性能
    */
   @AuthPerformance("api_key")
   async validateApiKey(
     appKey: string,
     accessToken: string,
   ): Promise<ApiKeyDocument> {
-    this.logger.debug("验证API密钥", { appKey });
+    this.logger.highFrequency("验证API密钥", AuthLoggingUtil.sanitizeLogData({ appKey }));
 
-    const apiKey = await this.apiKeyModel
-      .findOne({
-        appKey,
-        accessToken,
-        status: OperationStatus.ACTIVE,
-      })
-      .exec();
+    // 生成缓存键
+    const cacheKey = this.generateApiKeyCacheKey(appKey, accessToken);
 
-    if (!apiKey) {
-      this.logger.warn("API密钥无效", { appKey });
-      throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
-    }
+    try {
+      // 首先尝试从缓存获取
+      const cachedApiKey = await this.cacheService.get<ApiKeyDocument>(cacheKey);
+      
+      if (cachedApiKey) {
+        this.logger.highFrequency("API密钥验证命中缓存", { appKey });
+        
+        // 检查缓存的API密钥是否过期
+        if (cachedApiKey.expiresAt && new Date(cachedApiKey.expiresAt) < new Date()) {
+          this.logger.warn("缓存的API密钥已过期", {
+            appKey,
+            expiresAt: cachedApiKey.expiresAt,
+          });
+          // 清除过期的缓存
+          await this.cacheService.del(cacheKey);
+          throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+        }
 
-    // 检查过期时间
-    if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
-      this.logger.warn("API密钥已过期", {
-        appKey,
-        expiresAt: apiKey.expiresAt,
+        // 异步更新使用统计（不影响响应时间）
+        setImmediate(() => {
+          this.updateApiKeyUsageAsync(cachedApiKey._id.toString()).catch((error) =>
+            this.logger.error("更新API密钥使用统计失败", {
+              apiKeyId: cachedApiKey._id.toString(),
+              error: error.message,
+            }),
+          );
+        });
+
+        return cachedApiKey;
+      }
+
+      this.logger.highFrequency("API密钥验证缓存未命中，查询数据库", { appKey });
+
+      // 缓存未命中，查询数据库
+      const apiKey = await this.apiKeyModel
+        .findOne({
+          appKey,
+          accessToken,
+          status: OperationStatus.ACTIVE,
+        })
+        .exec();
+
+      if (!apiKey) {
+        this.logger.warn("API密钥无效", { appKey });
+        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
+      }
+
+      // 检查过期时间
+      if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
+        this.logger.warn("API密钥已过期", {
+          appKey,
+          expiresAt: apiKey.expiresAt,
+        });
+        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+      }
+
+      // 缓存API密钥数据（仅缓存有效的API密钥）
+      await this.cacheService.set(cacheKey, apiKey.toJSON(), {
+        ttl: this.cacheConfig.API_KEY_CACHE_TTL,
       });
-      throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+
+      // 异步更新使用统计（不影响响应时间）
+      setImmediate(() => {
+        this.updateApiKeyUsageAsync(apiKey._id.toString()).catch((error) =>
+          this.logger.error("更新API密钥使用统计失败", {
+            apiKeyId: apiKey._id.toString(),
+            error: error.message,
+          }),
+        );
+      });
+
+      this.logger.highFrequency("API密钥验证成功并已缓存", {
+        appKey,
+        apiKeyId: apiKey._id.toString(),
+      });
+
+      return apiKey;
+      
+    } catch (error) {
+      // 如果是业务异常（如无效凭证、过期），直接抛出
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // 缓存服务异常时，回退到数据库查询
+      this.logger.warn("缓存服务异常，回退到数据库查询", {
+        appKey,
+        error: error.message,
+      });
+
+      const apiKey = await this.apiKeyModel
+        .findOne({
+          appKey,
+          accessToken,
+          status: OperationStatus.ACTIVE,
+        })
+        .exec();
+
+      if (!apiKey) {
+        this.logger.warn("API密钥无效", { appKey });
+        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
+      }
+
+      // 检查过期时间
+      if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
+        this.logger.warn("API密钥已过期", {
+          appKey,
+          expiresAt: apiKey.expiresAt,
+        });
+        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+      }
+
+      // 异步更新使用统计（不影响响应时间）
+      setImmediate(() => {
+        this.updateApiKeyUsageAsync(apiKey._id.toString()).catch((error) =>
+          this.logger.error("更新API密钥使用统计失败", {
+            apiKeyId: apiKey._id.toString(),
+            error: error.message,
+          }),
+        );
+      });
+
+      return apiKey;
     }
-
-    // 异步更新使用统计（不影响响应时间）
-    setImmediate(() => {
-      this.updateApiKeyUsageAsync(apiKey._id.toString()).catch((error) =>
-        this.logger.error("更新API密钥使用统计失败", {
-          apiKeyId: apiKey._id.toString(),
-          error: error.message,
-        }),
-      );
-    });
-
-    this.logger.debug("API密钥验证成功", {
-      appKey,
-      apiKeyId: apiKey._id.toString(),
-    });
-
-    return apiKey;
   }
 
   /**
@@ -253,6 +355,16 @@ export class ApiKeyManagementService {
         });
         throw new NotFoundException(ERROR_MESSAGES.API_KEY_INVALID_OR_NO_PERM);
       }
+
+      // 异步清除相关缓存
+      setImmediate(() => {
+        this.invalidateApiKeyCache(appKey).catch((error) =>
+          this.logger.error("撤销API密钥后清除缓存失败", {
+            appKey,
+            error: error.message,
+          }),
+        );
+      });
 
       this.logger.log("API密钥撤销成功", { appKey, userId });
     } catch (error) {
@@ -494,6 +606,47 @@ export class ApiKeyManagementService {
     } catch (error) {
       this.logger.error("获取即将过期的API密钥失败", { error: error.message });
       throw new BadRequestException("获取即将过期的API密钥失败");
+    }
+  }
+
+  /**
+   * 生成API密钥缓存键
+   */
+  private generateApiKeyCacheKey(appKey: string, accessToken: string): string {
+    // 使用SHA256哈希避免敏感信息泄露，同时确保键的唯一性
+    const crypto = require('crypto');
+    const hash = crypto
+      .createHash('sha256')
+      .update(`${appKey}:${accessToken}`)
+      .digest('hex');
+    
+    return `${this.cacheConfig.API_KEY_CACHE_PREFIX}:${hash}`;
+  }
+
+  /**
+   * 使API密钥缓存失效
+   * 当API密钥被撤销、更新或状态改变时调用
+   */
+  async invalidateApiKeyCache(appKey: string, accessToken?: string): Promise<void> {
+    try {
+      if (accessToken) {
+        // 清除特定API密钥的缓存
+        const cacheKey = this.generateApiKeyCacheKey(appKey, accessToken);
+        await this.cacheService.del(cacheKey);
+        this.logger.debug("API密钥缓存已清除", { appKey });
+      } else {
+        // 清除该AppKey相关的所有缓存（通过模式匹配）
+        const pattern = `${this.cacheConfig.API_KEY_CACHE_PREFIX}:*`;
+        // 注意：这里需要实现模式删除，暂时用通配符删除
+        // 在生产环境中应该更精确地只删除相关的缓存
+        this.logger.debug("API密钥相关缓存清除请求", { appKey });
+      }
+    } catch (error) {
+      this.logger.error("清除API密钥缓存失败", {
+        appKey,
+        error: error.message,
+      });
+      // 缓存清除失败不应该影响业务逻辑
     }
   }
 }

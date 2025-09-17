@@ -350,21 +350,58 @@ class MonitoringConfigValidator {
 
     // 检查弃用的环境变量
     const deprecatedVars = [
-      "MONITORING_TTL_HEALTH",
-      "MONITORING_TTL_TREND",
-      "MONITORING_TTL_PERFORMANCE",
-      "MONITORING_TTL_ALERT",
-      "MONITORING_TTL_CACHE_STATS",
-      "MONITORING_ALERT_BATCH_SMALL",
-      "MONITORING_ALERT_BATCH_MEDIUM",
-      "MONITORING_ALERT_BATCH_LARGE",
-      "MONITORING_DATA_BATCH_STANDARD",
-      "MONITORING_CLEANUP_BATCH_STANDARD",
+      {
+        old: "MONITORING_TTL_HEALTH",
+        new: "MONITORING_DEFAULT_TTL + MONITORING_HEALTH_TTL_OVERRIDE"
+      },
+      {
+        old: "MONITORING_TTL_TREND",
+        new: "MONITORING_DEFAULT_TTL + MONITORING_TREND_TTL_OVERRIDE"
+      },
+      {
+        old: "MONITORING_TTL_PERFORMANCE",
+        new: "MONITORING_DEFAULT_TTL + MONITORING_PERFORMANCE_TTL_OVERRIDE"
+      },
+      {
+        old: "MONITORING_TTL_ALERT",
+        new: "MONITORING_DEFAULT_TTL + MONITORING_ALERT_TTL_OVERRIDE"
+      },
+      {
+        old: "MONITORING_TTL_CACHE_STATS",
+        new: "MONITORING_DEFAULT_TTL + MONITORING_CACHE_STATS_TTL_OVERRIDE"
+      },
+      {
+        old: "MONITORING_ALERT_BATCH_SMALL",
+        new: "MONITORING_DEFAULT_BATCH_SIZE"
+      },
+      {
+        old: "MONITORING_ALERT_BATCH_MEDIUM",
+        new: "MONITORING_ALERT_BATCH_SIZE"
+      },
+      {
+        old: "MONITORING_ALERT_BATCH_LARGE",
+        new: "MONITORING_ALERT_BATCH_SIZE"
+      },
+      {
+        old: "MONITORING_DATA_BATCH_STANDARD",
+        new: "MONITORING_DATA_PROCESSING_BATCH_SIZE"
+      },
+      {
+        old: "MONITORING_CLEANUP_BATCH_STANDARD",
+        new: "MONITORING_CLEANUP_BATCH_SIZE"
+      },
     ];
 
     for (const deprecatedVar of deprecatedVars) {
-      if (process.env[deprecatedVar]) {
-        deprecated.push(deprecatedVar);
+      if (process.env[deprecatedVar.old]) {
+        deprecated.push(deprecatedVar.old);
+        
+        // Issue deprecation warning with migration guidance
+        console.warn(
+          `⚠️  DEPRECATION WARNING: Environment variable '${deprecatedVar.old}' is deprecated since v1.1.0 and will be removed in v1.2.0.\n` +
+          `Please migrate to: ${deprecatedVar.new}\n` +
+          `See docs/monitoring-deprecation-migration-guide.md for detailed migration instructions.`
+        );
       }
     }
 

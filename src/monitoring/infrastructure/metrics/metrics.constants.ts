@@ -2,7 +2,7 @@
  * 🎯 基础设施指标常量定义
  */
 
-import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
+import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
 
 // Prometheus 指标名称前缀
 export const METRICS_PREFIX = "newstock_";
@@ -38,7 +38,7 @@ export const HISTOGRAM_BUCKETS = {
     100,
     200,
     500,
-    MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS,
+    1000, // SLOW_REQUEST_THRESHOLD_MS from MONITORING_SYSTEM_LIMITS (keeping this threshold as it's performance related, not config duplication)
     2000,
   ],
   LATENCY_SECONDS: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
@@ -51,7 +51,7 @@ export const HISTOGRAM_BUCKETS = {
     100,
     250,
     500,
-    MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE,
+    MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE,
     2500,
   ],
   DURATION_SECONDS: [0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5],

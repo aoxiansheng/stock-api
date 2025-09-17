@@ -60,27 +60,3 @@ export interface IRuleEngine {
   validateRule(rule: IAlertRule): { valid: boolean; errors: string[] };
 }
 
-/**
- * 告警触发条件接口
- */
-export interface IAlertTriggerCondition {
-  operator: Operator;
-  threshold: number;
-  duration: number;
-  aggregation?: "avg" | "sum" | "min" | "max" | "count";
-}
-
-/**
- * 告警抑制规则接口
- */
-export interface IAlertSuppressionRule {
-  id: string;
-  name: string;
-  conditions: {
-    metric?: string;
-    severity?: string;
-    tags?: Record<string, string>;
-  };
-  duration: number; // 抑制时间（秒）
-  enabled: boolean;
-}

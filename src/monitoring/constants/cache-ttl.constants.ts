@@ -37,24 +37,32 @@
 
 import { MONITORING_UNIFIED_TTL_CONSTANTS } from "../config/unified/monitoring-unified-ttl.config";
 
+// Issue deprecation warning when this module is imported
+console.warn(
+  '⚠️  DEPRECATION WARNING: cache-ttl.constants.ts is deprecated since v1.1.0 and will be removed in v1.2.0.\n' +
+  'Please migrate to MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts\n' +
+  'See docs/monitoring-deprecation-migration-guide.md for migration instructions.'
+);
+
 /**
- * @deprecated 使用 MonitoringUnifiedTtlConfig 替代
+ * @deprecated Since v1.1.0. Use MonitoringUnifiedTtlConfig instead.
+ * This export will be removed in v1.2.0.
  * 兼容性支持，将逐步移除
  */
 export const MONITORING_CACHE_TTL = {
-  /** @deprecated 使用 ttlConfig.health 替代 */
+  /** @deprecated Since v1.1.0. Use ttlConfig.health instead */
   HEALTH: MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS.HEALTH,
 
-  /** @deprecated 使用 ttlConfig.trend 替代 */
+  /** @deprecated Since v1.1.0. Use ttlConfig.trend instead */
   TREND: MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS.TREND,
 
-  /** @deprecated 使用 ttlConfig.performance 替代 */
+  /** @deprecated Since v1.1.0. Use ttlConfig.performance instead */
   PERFORMANCE: MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS.PERFORMANCE,
 
-  /** @deprecated 使用 ttlConfig.alert 替代 */
+  /** @deprecated Since v1.1.0. Use ttlConfig.alert instead */
   ALERT: MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS.ALERT,
 
-  /** @deprecated 使用 ttlConfig.cacheStats 替代 */
+  /** @deprecated Since v1.1.0. Use ttlConfig.cacheStats instead */
   CACHE_STATS: MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS.CACHE_STATS,
 } as const;
 

@@ -8,6 +8,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import type { Response } from "express";
 import { AuthenticatedRequest } from "../interfaces/authenticated-request.interface";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 
 import { createLogger } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
@@ -47,6 +48,16 @@ export class RateLimitGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // 检查是否为公开端点，如果是则跳过频率限制检查
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
 

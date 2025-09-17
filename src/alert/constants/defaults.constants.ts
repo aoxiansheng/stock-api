@@ -8,7 +8,7 @@
  * @refactored 2025-01-10
  */
 
-import { AlertSeverity } from "./enums";
+import { AlertSeverity } from "../types/alert.types";
 
 /**
  * 告警规则默认值
@@ -17,12 +17,11 @@ import { AlertSeverity } from "./enums";
 export const ALERT_DEFAULTS = {
   // ✅ 保留：固定业务默认值
   operator: ">", // 默认操作符（业务标准）
-  severity: AlertSeverity.MEDIUM, // 默认严重程度（业务标准）
+  severity: AlertSeverity.WARNING, // 默认严重程度（业务标准）
   enabled: true, // 默认启用状态（业务标准）
 
   // ⚠️ 临时保留：向后兼容（TODO: 迁移引用后删除）
   duration: 60, // 60秒 - 默认持续时间（临时保留）
-  NAME_MAX_LENGTH: 100, // 100 - 名称最大长度（临时保留）
 
   // ❌ 删除：重复定义（已在其他地方定义）
   // MAX_CONDITIONS: 10,              // 删除 - 已在alert.config.ts

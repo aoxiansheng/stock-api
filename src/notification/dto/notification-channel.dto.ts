@@ -27,11 +27,14 @@ import {
   NotificationStatus,
 } from "../types/notification.types";
 
-// 使用本地验证限制常量，移除对@common/constants的依赖
-import { LOCAL_NOTIFICATION_VALIDATION_LIMITS } from "./notification-channel-enhanced.dto";
+// 使用独立的验证限制常量
+import { NOTIFICATION_VALIDATION_LIMITS } from "../constants/validation-limits.constants";
 
 // 导入各类型通知配置DTO
 export * from "./channels";
+
+// 导入独立的查询DTO
+export { NotificationQueryDto } from "./notification-query.dto";
 
 // ==================== 核心通知渠道DTO ====================
 
@@ -72,15 +75,15 @@ export class NotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
-  @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
+  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
+  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（毫秒）", default: 30000 })
   @IsOptional()
   @IsNumber()
-  @Min(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
-  @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
+  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
+  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
   @ApiPropertyOptional({
@@ -119,15 +122,15 @@ export class CreateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
-  @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
+  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
+  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（毫秒）", default: 30000 })
   @IsOptional()
   @IsNumber()
-  @Min(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
-  @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
+  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
+  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
   @ApiPropertyOptional({
@@ -189,15 +192,15 @@ export class UpdateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数" })
   @IsOptional()
   @IsNumber()
-  @Min(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
-  @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
+  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
+  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（毫秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
-  @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
+  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
+  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
   @ApiPropertyOptional({
@@ -334,80 +337,6 @@ export class CreateNotificationDto {
   metadata?: Record<string, any>;
 }
 
-/**
- * 通知查询DTO
- */
-export class NotificationQueryDto {
-  @ApiPropertyOptional({ description: "警告ID" })
-  @IsOptional()
-  @IsString()
-  alertId?: string;
-
-  @ApiPropertyOptional({ description: "渠道ID" })
-  @IsOptional()
-  @IsString()
-  channelId?: string;
-
-  @ApiPropertyOptional({
-    description: "渠道类型",
-    enum: NotificationChannelType,
-  })
-  @IsOptional()
-  @IsEnum(NotificationChannelType)
-  channelType?: NotificationChannelType;
-
-  @ApiPropertyOptional({ description: "通知状态", enum: NotificationStatus })
-  @IsOptional()
-  @IsEnum(NotificationStatus)
-  status?: NotificationStatus;
-
-  @ApiPropertyOptional({ description: "优先级", enum: NotificationPriority })
-  @IsOptional()
-  @IsEnum(NotificationPriority)
-  priority?: NotificationPriority;
-
-  @ApiPropertyOptional({ description: "接收者" })
-  @IsOptional()
-  @IsString()
-  recipient?: string;
-
-  @ApiPropertyOptional({ description: "开始时间" })
-  @IsOptional()
-  @IsDateString()
-  startTime?: string;
-
-  @ApiPropertyOptional({ description: "结束时间" })
-  @IsOptional()
-  @IsDateString()
-  endTime?: string;
-
-  @ApiPropertyOptional({ description: "页码", default: 1 })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  page?: number;
-
-  @ApiPropertyOptional({ description: "每页数量", default: 20 })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  limit?: number;
-
-  @ApiPropertyOptional({ description: "排序字段", default: "createdAt" })
-  @IsOptional()
-  @IsString()
-  sortBy?: string;
-
-  @ApiPropertyOptional({
-    description: "排序方向",
-    enum: ["asc", "desc"],
-    default: "desc",
-  })
-  @IsOptional()
-  @IsEnum(["asc", "desc"])
-  sortOrder?: "asc" | "desc";
-}
 
 /**
  * 通知响应DTO

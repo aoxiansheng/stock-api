@@ -1,19 +1,23 @@
 /**
  * 监控系统限制常量
  *
- * ⚠️ 部分配置已迁移到统一配置系统
+ * ✅ 去重完成！重复配置已移除
  * ==========================================
- * 已迁移的配置：
- * - 批处理配置 → MonitoringUnifiedLimitsConfig.systemLimits
- * - 队列大小限制 → MonitoringUnifiedLimitsConfig.systemLimits
- * - 缓冲区大小限制 → MonitoringUnifiedLimitsConfig.systemLimits
+ * 已移除的重复配置：
+ * ❌ MAX_BUFFER_SIZE → 使用 MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE
+ * ❌ MAX_QUEUE_SIZE → 使用 MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_QUEUE_SIZE  
+ * ❌ DEFAULT_BATCH_SIZE → 使用 MONITORING_UNIFIED_LIMITS_CONSTANTS.DATA_BATCH.STANDARD
+ * ❌ DEFAULT_FLUSH_INTERVAL_MS → 使用 MONITORING_UNIFIED_LIMITS_CONSTANTS.BATCH_INTERVALS.FAST
  *
- * 🔄 迁移路径：
- * - 原配置：monitoring-system.constants.ts
- * - 新配置：monitoring-unified-limits.config.ts
+ * 保留的配置：
+ * ✅ 性能阈值常量 (SLOW_REQUEST_THRESHOLD_MS, API_RESPONSE_TIME_MS等)
+ * ✅ 时间常量 (DAY_IN_MS, HOUR_IN_MS等)
+ * ✅ 计算精度常量 (PERCENTAGE_MULTIPLIER等)
+ * ✅ HTTP状态码阈值
+ * ✅ 非重复的业务配置
  *
- * @description 定义系统性能阈值和限制值，替换散布在代码中的魔法数字
- * @version 1.0.0
+ * @description 定义系统性能阈值和限制值，已清理重复配置
+ * @version 2.0.0 - 去重重构版本
  * @since 2025-09-05
  * @author Claude Code
  */
@@ -59,14 +63,7 @@ export const MONITORING_SYSTEM_LIMITS = {
    */
   API_RESPONSE_TIME_MS: 100, // 100ms - API优秀响应时间阈值
 
-  // ========================= 系统限制（已迁移到统一配置） =========================
-  /**
-   * @deprecated 使用 limitsConfig.systemLimits.maxBufferSize 替代
-   * 最大缓冲区大小
-   */
-  MAX_BUFFER_SIZE:
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE,
-
+  // ========================= 系统限制（非重复配置） =========================
   /**
    * 最大批量大小 - 保留用于向后兼容
    * @description 批处理操作的最大数量
@@ -78,13 +75,6 @@ export const MONITORING_SYSTEM_LIMITS = {
    * @description 缓存键名最大长度限制
    */
   MAX_KEY_LENGTH: 100 as const,
-
-  /**
-   * @deprecated 使用 limitsConfig.systemLimits.maxQueueSize 替代
-   * 最大队列大小
-   */
-  MAX_QUEUE_SIZE:
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_QUEUE_SIZE,
 
   /**
    * 操作时间记录最大数量
@@ -137,20 +127,7 @@ export const MONITORING_SYSTEM_LIMITS = {
    */
   FULL_SCORE: 100 as const,
 
-  // ========================= 批处理配置（部分已迁移） =========================
-  /**
-   * 默认刷新间隔
-   * @description 事件批处理默认刷新间隔（毫秒）
-   */
-  DEFAULT_FLUSH_INTERVAL_MS:
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.BATCH_INTERVALS.FAST,
-
-  /**
-   * @deprecated 使用 limitsConfig.dataProcessingBatch.standard 替代
-   * 默认批处理大小
-   */
-  DEFAULT_BATCH_SIZE: MONITORING_UNIFIED_LIMITS_CONSTANTS.DATA_BATCH.STANDARD,
-
+  // ========================= 批处理配置（非重复配置） =========================
   /**
    * 事件计数器阈值
    * @description 触发刷新的事件计数阈值

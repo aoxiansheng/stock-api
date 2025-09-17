@@ -38,6 +38,7 @@ import { TokenService } from "../services/infrastructure/token.service";
 import { PermissionService } from "../services/infrastructure/permission.service";
 import { RateLimitService } from "../services/infrastructure/rate-limit.service";
 import { AuthConfigService } from "../services/infrastructure/auth-config.service";
+import { AuthPerformanceService } from "../services/infrastructure/auth-performance.service";
 import { ApiKeyStrategy } from "../strategies/apikey.strategy";
 import { JwtStrategy } from "../strategies/jwt.strategy";
 
@@ -89,6 +90,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     TokenService,
     PermissionService,
     RateLimitService,
+    AuthPerformanceService,
 
     // 🆕 配置系统提供者
     {
@@ -142,6 +144,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     PermissionService,
     RateLimitService,
     TokenService,
+    AuthPerformanceService,
 
     // 🆕 配置兼容包装器 - 供其他模块使用新配置系统
     AuthConfigCompatibilityWrapper,

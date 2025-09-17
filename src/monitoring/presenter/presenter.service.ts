@@ -4,6 +4,7 @@ import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
 import { GetEndpointMetricsDto } from "../contracts/dto/queries/get-endpoint-metrics.dto";
 import { AnalyzerService } from "../analyzer/analyzer.service";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
+import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../config/unified/monitoring-unified-limits.config";
 import { createLogger } from "@common/logging/index";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
@@ -123,11 +124,20 @@ export class PresenterService {
 
   /**
    * 获取端点指标 (Legacy兼容方法)
-   * @deprecated 使用getEndpointMetrics(query)替代
+   * @deprecated Since v1.1.0. Use getEndpointMetrics(query) instead. 
+   * This method will be removed in v2.0.0. 
+   * See migration guide: docs/monitoring-deprecation-migration-guide.md
    * @param limit 返回结果数量限制
    * @returns 端点指标数组 (非分页格式，向后兼容)
    */
   async getEndpointMetricsLegacy(limit?: string) {
+    // Issue deprecation warning
+    console.warn(
+      '⚠️  DEPRECATION WARNING: getEndpointMetricsLegacy() is deprecated since v1.1.0 and will be removed in v2.0.0. ' +
+      'Please migrate to getEndpointMetrics(query) for better type safety and pagination support. ' +
+      'See docs/monitoring-deprecation-migration-guide.md for migration instructions.'
+    );
+
     let limitNum: number | undefined;
 
     if (limit) {
@@ -148,6 +158,7 @@ export class PresenterService {
     this.logger.debug("端点指标获取成功(Legacy)", {
       count: metrics.length,
       limit: limitNum,
+      deprecationWarning: 'Method deprecated, migrate to getEndpointMetrics(query)'
     });
 
     return metrics;
@@ -459,7 +470,7 @@ export class PresenterService {
         tasksCleared: Math.floor(Math.random() * 10),
         avgExecutionTime: Math.random() * 500 + 200,
         totalTasks:
-          Math.floor(Math.random() * MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE) +
+          Math.floor(Math.random() * MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE) +
           500,
         dynamicMaxConcurrency: Math.floor(Math.random() * 8) + 4,
         originalMaxConcurrency: 10,

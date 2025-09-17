@@ -74,10 +74,8 @@ export type {
 // 业务枚举和消息导出（保留原有）
 // ================================
 
-// 枚举定义
+// 枚举定义（AlertSeverity和AlertStatus已迁移到alert.types.ts）
 export {
-  AlertSeverity,
-  AlertStatus,
   AlertType,
   NotificationChannel,
 } from "./enums";
