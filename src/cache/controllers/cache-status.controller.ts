@@ -7,13 +7,14 @@ import { PaginationService } from "@common/modules/pagination/services/paginatio
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { 
   ApiSuccessResponse,
-  ApiStandardResponses 
+  ApiStandardResponses,
+  ApiHealthResponse 
 } from "@common/core/decorators/swagger-responses.decorator";
 import { 
-  ApiCacheHealthResponse,
-  ApiCacheStatsResponse,
-  ApiCacheConfigResponse 
-} from "../decorators/cache-swagger-responses.decorator";
+  CacheHealthResponse,
+  CacheStatsResponse,
+  CacheConfigResponse 
+} from "../dto/responses/cache-api-responses.dto";
 import { CACHE_STATUS } from "../constants/status/cache-status.constants";
 import { 
   CacheKeyPatternAnalysisQueryDto,
@@ -24,7 +25,8 @@ import {
 
 /**
  * Cache状态控制器
- * 🎯 Phase 5: DTO标准化验证 - 提供Cache模块状态查询端点
+ * 🎯 Phase 1.5: Swagger装饰器重构完成 - 移除重复的@ApiStandardResponses
+ * ✅ Cache特有装饰器内部已包含@ApiStandardResponses，不需重复使用
  * ✅ 用于验证ResponseInterceptor和Swagger装饰器的统一性
  * 🔄 遵循项目标准的响应格式规范
  * 🆕 新增分页查询端点验证PaginatedDataDto标准化
@@ -48,7 +50,7 @@ export class CacheStatusController {
     summary: "获取缓存健康状态",
     description: "检查Redis连接状态和基本健康指标"
   })
-  @ApiCacheHealthResponse()
+  @ApiHealthResponse()
   @ApiStandardResponses()
   async getHealth() {
     const startTime = Date.now();
@@ -92,7 +94,10 @@ export class CacheStatusController {
     summary: "获取缓存统计信息",
     description: "获取缓存性能指标和使用统计"
   })
-  @ApiCacheStatsResponse()
+  @ApiSuccessResponse({
+    description: "缓存统计信息获取成功",
+    type: CacheStatsResponse,
+  })
   @ApiStandardResponses()
   async getStats() {
     // 简化的统计信息实现
@@ -131,7 +136,10 @@ export class CacheStatusController {
     summary: "获取缓存配置信息",
     description: "获取当前缓存配置参数"
   })
-  @ApiCacheConfigResponse()
+  @ApiSuccessResponse({
+    description: "缓存配置获取成功",
+    type: CacheConfigResponse,
+  })
   @ApiStandardResponses()
   async getConfig() {
     // 返回简化的配置信息
@@ -159,7 +167,6 @@ export class CacheStatusController {
     description: "分页查询缓存键模式分析数据成功",
     type: PaginatedDataDto<CacheKeyPatternAnalysisDto>,
   })
-  @ApiStandardResponses()
   async getKeyPatterns(
     @Query() query: CacheKeyPatternAnalysisQueryDto,
   ): Promise<PaginatedDataDto<CacheKeyPatternAnalysisDto>> {
@@ -237,7 +244,6 @@ export class CacheStatusController {
     description: "分页查询缓存性能监控数据成功",
     type: PaginatedDataDto<CachePerformanceMonitoringDto>,
   })
-  @ApiStandardResponses()
   async getPerformanceData(
     @Query() query: CachePerformanceMonitoringQueryDto,
   ): Promise<PaginatedDataDto<CachePerformanceMonitoringDto>> {

@@ -16,7 +16,7 @@ import {
   CacheUnifiedConfigValidation,
 } from "../../../../../src/cache/config/cache-unified.config";
 import cacheUnifiedConfig from "../../../../../src/cache/config/cache-unified.config";
-// 使用统一配置替代已删除的cache.config
+import cacheLegacyConfig from "../../../../../src/cache/config/cache-legacy.config";
 
 describe("Cache Configuration Consistency", () => {
   let configService: ConfigService;
@@ -31,7 +31,7 @@ describe("Cache Configuration Consistency", () => {
     moduleRef = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
-          load: [cacheUnifiedConfig, cacheConfig],
+          load: [cacheUnifiedConfig, cacheLegacyConfig],
           isGlobal: false,
         }),
       ],

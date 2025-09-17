@@ -12,6 +12,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
 import { isCacheException } from "../../../cache/exceptions";
+import { isSecurityException } from "../../../auth/exceptions/security.exceptions";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import { CONSTANTS } from "@common/constants";
 
@@ -173,6 +174,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         type: exception.constructor.name,
         message: cacheError.message,
         status,
+      });
+    } else if (isSecurityException(exception)) {
+      // 🔧 新增: 安全异常处理 - Auth模块增强异常
+      const securityError = exception as HttpException;
+      status = securityError.getStatus();
+      message = securityError.message;
+      errorType = "SecurityError";
+
+      // 记录安全异常详情（使用warn级别，安全异常通常不是系统错误）
+      this.logger.warn("安全异常", {
+        type: exception.constructor.name,
+        message: securityError.message,
+        status,
+        securityType: (exception as any).securityType,
       });
     } else if (this.isJWTError(exception)) {
       // JWT异常
@@ -350,6 +365,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           return "CACHE_SERIALIZATION_ERROR";
         default:
           return "CACHE_ERROR";
+      }
+    }
+
+    // 🔧 新增: 安全异常相关错误码
+    if (isSecurityException(exception)) {
+      // 安全异常有自己的getErrorCode方法，直接使用
+      const securityException = exception as any;
+      if (typeof securityException.getErrorCode === 'function') {
+        return securityException.getErrorCode();
+      }
+      
+      // 备用：根据构造器名称返回错误码
+      switch (securityException.constructor.name) {
+        case "EnhancedPayloadTooLargeException":
+          return "PAYLOAD_TOO_LARGE";
+        case "EnhancedUnsupportedMediaTypeException":
+          return "UNSUPPORTED_MEDIA_TYPE";
+        case "InputSecurityViolationException":
+          return "INPUT_SECURITY_VIOLATION";
+        case "SecurityMiddlewareException":
+          return "SECURITY_MIDDLEWARE_ERROR";
+        case "EnhancedRateLimitException":
+          return "RATE_LIMIT_EXCEEDED";
+        default:
+          return "SECURITY_ERROR";
       }
     }
 

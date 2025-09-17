@@ -67,7 +67,7 @@ export const CACHE_TYPE_SEMANTICS = Object.freeze({
     TEMP: "temp", // 临时缓存
     BACKUP: "backup", // 备份缓存
     SYNC: "sync", // 同步缓存
-  },
+  }),
 } as const);
 
 /**

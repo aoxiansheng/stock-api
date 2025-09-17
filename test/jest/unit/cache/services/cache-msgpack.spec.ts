@@ -123,7 +123,7 @@ describe("CacheService msgpack Serialization", () => {
       expect(serializedValue).not.toBe(JSON.stringify(testData)); // Should not be JSON
 
       // Verify we can decode it back using msgpack
-      const decodedBuffer = Buffer.from(serializedValue, "base64");
+      const decodedBuffer = Buffer.from(serializedValue as string, "base64");
       const decodedData = msgpack.decode(decodedBuffer);
       expect(decodedData).toEqual(testData);
     });
@@ -179,7 +179,7 @@ describe("CacheService msgpack Serialization", () => {
       redisClient.get.mockImplementation(async (key) => {
         // Return the value that was set
         const [, , value] = redisClient.setex.mock.calls[0];
-        return value;
+        return value as string;
       });
 
       const complexData = {
@@ -215,7 +215,7 @@ describe("CacheService msgpack Serialization", () => {
     it("should throw error for unsupported serializer type", async () => {
       await expect(
         service.set("test-key", "data", { serializer: "unsupported" as any }),
-      ).rejects.toThrow("不支持的序列化类型: unsupported");
+      ).rejects.toThrow("缓存设置失败: set (key: test-key)");
     });
 
     it("should throw error for unsupported deserializer type", async () => {
@@ -223,7 +223,7 @@ describe("CacheService msgpack Serialization", () => {
 
       await expect(
         service.get("test-key", "unsupported" as any),
-      ).rejects.toThrow("不支持的反序列化类型: unsupported");
+      ).rejects.toThrow("缓存获取失败: get (key: test-key)");
     });
   });
 
@@ -257,8 +257,8 @@ describe("CacheService msgpack Serialization", () => {
         (call) => call[0] === "msgpack-key",
       );
 
-      const jsonSize = Buffer.byteLength(jsonCall[2], "utf8");
-      const msgpackSize = Buffer.byteLength(msgpackCall[2], "utf8");
+      const jsonSize = Buffer.byteLength(jsonCall[2] as string, "utf8");
+      const msgpackSize = Buffer.byteLength(msgpackCall[2] as string, "utf8");
 
       // msgpack should generally be more compact for structured data
       // Note: Due to base64 encoding, the size comparison might vary

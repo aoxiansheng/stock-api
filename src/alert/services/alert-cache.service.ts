@@ -16,14 +16,12 @@ import { CacheService } from "../../cache/services/cache.service";
 import { AlertHistoryRepository } from "../repositories/alert-history.repository";
 import { IAlert } from "../interfaces";
 import { AlertStatus } from "../types/alert.types";
+import { alertCacheKeys } from "../utils/alert-cache-keys.util";
 
 @Injectable()
 export class AlertCacheService implements OnModuleInit {
   private readonly logger = createLogger("AlertCacheService");
   private readonly config: {
-    activeAlertPrefix: string;
-    cooldownPrefix: string;
-    timeseriesPrefix: string;
     maxTimeseriesLength: number;
   };
   private readonly ttlConfig: UnifiedTtlConfig;
@@ -34,9 +32,6 @@ export class AlertCacheService implements OnModuleInit {
     private readonly alertHistoryRepository: AlertHistoryRepository,
   ) {
     this.config = {
-      activeAlertPrefix: "alert:active",
-      cooldownPrefix: "alert:cooldown",
-      timeseriesPrefix: "alert:timeseries",
       maxTimeseriesLength: 1000,
     };
     // 获取统一TTL配置
@@ -61,9 +56,9 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const cacheKey = this.getActiveAlertKey(ruleId);
+      const cacheKey = alertCacheKeys.activeAlert(ruleId);
 
-      await this.cacheService.set(cacheKey, alert, {
+      await this.cacheService.safeSet(cacheKey, alert, {
         ttl: this.ttlConfig.alertActiveDataTtl,
       });
 
@@ -99,8 +94,8 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const cacheKey = this.getActiveAlertKey(ruleId);
-      const alert = await this.cacheService.get<IAlert>(cacheKey);
+      const cacheKey = alertCacheKeys.activeAlert(ruleId);
+      const alert = await this.cacheService.safeGet<IAlert>(cacheKey);
 
       this.logger.debug("获取活跃告警缓存完成", {
         operation,
@@ -132,7 +127,7 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const cacheKey = this.getActiveAlertKey(ruleId);
+      const cacheKey = alertCacheKeys.activeAlert(ruleId);
       await this.cacheService.del(cacheKey);
 
       this.logger.debug("活跃告警缓存清除成功", {
@@ -159,8 +154,8 @@ export class AlertCacheService implements OnModuleInit {
     this.logger.debug("获取所有活跃告警", { operation });
 
     try {
-      const pattern = `${this.config.activeAlertPrefix}:*`;
-      const keys = await this.scanKeys(pattern);
+      const pattern = alertCacheKeys.activeAlertPattern();
+      const keys = await this.getKeysByPattern(pattern);
 
       if (keys.length === 0) {
         this.logger.debug("缓存中无活跃告警", { operation });
@@ -169,16 +164,7 @@ export class AlertCacheService implements OnModuleInit {
 
       const alerts = await Promise.all(
         keys.map(async (key) => {
-          try {
-            return await this.cacheService.get<IAlert>(key);
-          } catch (error) {
-            this.logger.warn("获取单个活跃告警失败", {
-              operation,
-              key,
-              error: error.message,
-            });
-            return null;
-          }
+          return await this.cacheService.safeGet<IAlert>(key);
         }),
       );
 
@@ -222,9 +208,9 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const cacheKey = this.getCooldownKey(ruleId);
+      const cacheKey = alertCacheKeys.cooldown(ruleId);
 
-      await this.cacheService.set(cacheKey, true, {
+      await this.cacheService.safeSet(cacheKey, true, {
         ttl: cooldownSeconds,
       });
 
@@ -257,8 +243,8 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const cacheKey = this.getCooldownKey(ruleId);
-      const inCooldown = await this.cacheService.get<boolean>(cacheKey);
+      const cacheKey = alertCacheKeys.cooldown(ruleId);
+      const inCooldown = await this.cacheService.safeGet<boolean>(cacheKey);
 
       this.logger.debug("规则冷却状态检查完成", {
         operation,
@@ -290,7 +276,7 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const cacheKey = this.getCooldownKey(ruleId);
+      const cacheKey = alertCacheKeys.cooldown(ruleId);
       await this.cacheService.del(cacheKey);
 
       this.logger.log("规则冷却清除成功", {
@@ -361,7 +347,7 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const timeseriesKey = this.getTimeseriesKey(alert.ruleId);
+      const timeseriesKey = alertCacheKeys.timeseries(alert.ruleId);
       const alertData = JSON.stringify({
         id: alert.id,
         ruleId: alert.ruleId,
@@ -422,7 +408,7 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const timeseriesKey = this.getTimeseriesKey(ruleId);
+      const timeseriesKey = alertCacheKeys.timeseries(ruleId);
       const cachedData = await this.cacheService.listRange(
         timeseriesKey,
         0,
@@ -481,7 +467,7 @@ export class AlertCacheService implements OnModuleInit {
     });
 
     try {
-      const timeseriesKey = this.getTimeseriesKey(updatedAlert.ruleId);
+      const timeseriesKey = alertCacheKeys.timeseries(updatedAlert.ruleId);
       const cachedData = await this.cacheService.listRange(
         timeseriesKey,
         0,
@@ -573,8 +559,8 @@ export class AlertCacheService implements OnModuleInit {
     const errors: string[] = [];
 
     try {
-      const pattern = `${this.config.timeseriesPrefix}:*`;
-      const keys = await this.scanKeys(pattern);
+      const pattern = alertCacheKeys.timeseriesPattern();
+      const keys = await this.getKeysByPattern(pattern);
 
       const cleanupPromises = keys.map(async (key) => {
         try {
@@ -613,21 +599,51 @@ export class AlertCacheService implements OnModuleInit {
   }
 
   /**
-   * 使用SCAN替代keys()的简单方法
+   * 获取匹配模式的键列表（容错处理）
    */
-  private async scanKeys(pattern: string): Promise<string[]> {
-    const keys: string[] = [];
-    let cursor = "0";
+  private async getKeysByPattern(pattern: string): Promise<string[]> {
+    try {
+      const keys: string[] = [];
+      let cursor = "0";
+      let attempts = 0;
+      const maxAttempts = 100; // 防止无限循环
 
-    do {
-      const [nextCursor, foundKeys] = await this.cacheService
-        .getClient()
-        .scan(cursor, "MATCH", pattern, "COUNT", 100);
-      cursor = nextCursor;
-      keys.push(...foundKeys);
-    } while (cursor !== "0");
+      do {
+        if (attempts >= maxAttempts) {
+          this.logger.warn("扫描达到最大尝试次数", {
+            pattern,
+            attempts,
+            keysFound: keys.length
+          });
+          break;
+        }
+        
+        try {
+          const [nextCursor, foundKeys] = await this.cacheService
+            .getClient()
+            .scan(cursor, "MATCH", pattern, "COUNT", 100);
+          cursor = nextCursor;
+          keys.push(...foundKeys);
+          attempts++;
+        } catch (scanError) {
+          this.logger.warn("单次扫描失败", {
+            pattern,
+            cursor,
+            attempts,
+            error: scanError.message
+          });
+          break;
+        }
+      } while (cursor !== "0");
 
-    return keys;
+      return keys;
+    } catch (error) {
+      this.logger.error("获取键列表失败", {
+        pattern,
+        error: error.message
+      });
+      return [];
+    }
   }
 
   /**
@@ -685,26 +701,6 @@ export class AlertCacheService implements OnModuleInit {
     }
   }
 
-  /**
-   * 生成活跃告警缓存键
-   */
-  private getActiveAlertKey(ruleId: string): string {
-    return `${this.config.activeAlertPrefix}:${ruleId}`;
-  }
-
-  /**
-   * 生成冷却缓存键
-   */
-  private getCooldownKey(ruleId: string): string {
-    return `${this.config.cooldownPrefix}:${ruleId}`;
-  }
-
-  /**
-   * 生成时序数据缓存键
-   */
-  private getTimeseriesKey(ruleId: string): string {
-    return `${this.config.timeseriesPrefix}:${ruleId}`;
-  }
 
   /**
    * 获取缓存服务统计
@@ -724,9 +720,9 @@ export class AlertCacheService implements OnModuleInit {
       // 使用Promise.allSettled以防单个统计获取失败
       const [activeAlertsResult, cooldownRulesResult, timeseriesKeysResult] =
         await Promise.allSettled([
-          this.countKeysByPattern(`${this.config.activeAlertPrefix}:*`),
-          this.countKeysByPattern(`${this.config.cooldownPrefix}:*`),
-          this.countKeysByPattern(`${this.config.timeseriesPrefix}:*`),
+          this.countKeysByPattern(alertCacheKeys.activeAlertPattern()),
+          this.countKeysByPattern(alertCacheKeys.cooldownPattern()),
+          this.countKeysByPattern(alertCacheKeys.timeseriesPattern()),
         ]);
 
       const stats = {
@@ -770,11 +766,11 @@ export class AlertCacheService implements OnModuleInit {
   }
 
   /**
-   * 按模式统计键数量
+   * 按模式统计键数量（容错处理）
    */
   private async countKeysByPattern(pattern: string): Promise<number> {
     try {
-      const keys = await this.scanKeys(pattern);
+      const keys = await this.getKeysByPattern(pattern);
       return keys.length;
     } catch (error) {
       this.logger.warn("按模式统计键失败", {

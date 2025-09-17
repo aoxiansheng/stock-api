@@ -14,8 +14,9 @@ import {
   ValidationOptions,
   ValidationArguments,
 } from "class-validator";
-import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
-// 通用验证器现在由使用方直接导入，不在此文件中使用
+import { CACHE_VALIDATION_LIMITS } from "@common/constants/validation.constants";
+import { REDIS_KEY_CONSTRAINTS } from "@common/constants/domain/redis-specific.constants";
+// 🎯 Phase 2.5: 更新使用新的常量引用，从通用常量系统导入
 
 /**
  * 验证Cache键格式和Redis兼容性
@@ -29,7 +30,7 @@ export function IsValidCacheKey(validationOptions?: ValidationOptions) {
       target: object.constructor,
       propertyName: propertyName,
       options: {
-        message: `缓存键必须符合Redis键规范：长度1-${CACHE_KEY_MAX_LENGTH}字符，不含空格和特殊字符`,
+        message: `缓存键必须符合Redis键规范：长度1-${REDIS_KEY_CONSTRAINTS.MAX_KEY_LENGTH}字符，不含空格和特殊字符`,
         ...validationOptions,
       },
       validator: {
@@ -39,13 +40,12 @@ export function IsValidCacheKey(validationOptions?: ValidationOptions) {
           }
 
           // 长度检查
-          if (value.length === 0 || value.length > CACHE_KEY_MAX_LENGTH) {
+          if (value.length === 0 || value.length > REDIS_KEY_CONSTRAINTS.MAX_KEY_LENGTH) {
             return false;
           }
 
-          // Redis键格式检查：不包含空格和一些特殊字符
-          const invalidChars = /[\s\r\n\t]/;
-          if (invalidChars.test(value)) {
+          // Redis键格式检查：使用通用Redis常量
+          if (REDIS_KEY_CONSTRAINTS.INVALID_CHARS_PATTERN.test(value)) {
             return false;
           }
 
@@ -71,7 +71,7 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
       target: object.constructor,
       propertyName: propertyName,
       options: {
-        message: `缓存TTL必须在 ${TTL_MIN_SECONDS} 到 ${TTL_MAX_SECONDS} 秒之间`,
+        message: `缓存TTL必须在 ${CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS} 到 ${CACHE_VALIDATION_LIMITS.TTL_MAX_SECONDS} 秒之间`,
         ...validationOptions,
       },
       validator: {
@@ -80,8 +80,8 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
             return false;
           }
 
-          // 基本范围检查
-          if (value < TTL_MIN_SECONDS || value > TTL_MAX_SECONDS) {
+          // 基本范围检查：使用通用缓存常量
+          if (value < CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS || value > CACHE_VALIDATION_LIMITS.TTL_MAX_SECONDS) {
             return false;
           }
 
@@ -101,17 +101,19 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
 // 使用通用验证器：@IsNumberInRange
 // 使用明确命名：@IsValidCacheTTL
 
-// Cache专用验证常量
-// 复用Common组件限制，但为Cache模块特化
-const CACHE_KEY_MAX_LENGTH = 250; // Redis键最大长度限制
-const TTL_MIN_SECONDS = 1; // 最小1秒TTL
-const TTL_MAX_SECONDS = 7 * 24 * 3600; // 最大7天TTL
-const BATCH_MAX_SIZE = 1000; // 最大批量操作大小
+// 🎯 Phase 2.5: Cache专用验证常量已迁移到通用常量系统
+// ✅ CACHE_VALIDATION_LIMITS 现在从 @common/constants/validation.constants 导入
+// ✅ REDIS_KEY_CONSTRAINTS 现在从 @common/constants/domain/redis-specific.constants 导入
+// ✅ 消除了常量重复定义，复用通用组件库
 
-// 导出常量供其他模块使用
-export const CACHE_VALIDATION_LIMITS = Object.freeze({
-  CACHE_KEY_MAX_LENGTH,
-  TTL_MIN_SECONDS,
-  TTL_MAX_SECONDS,
-  BATCH_MAX_SIZE,
-});
+/**
+ * 导出常量供其他模块使用（向后兼容）
+ * @deprecated 请直接从 @common/constants/validation.constants 导入 CACHE_VALIDATION_LIMITS
+ */
+export { CACHE_VALIDATION_LIMITS } from "@common/constants/validation.constants";
+
+/**
+ * 导出Redis特定常量供其他模块使用（向后兼容）
+ * @deprecated 请直接从 @common/constants/domain/redis-specific.constants 导入 REDIS_KEY_CONSTRAINTS
+ */
+export { REDIS_KEY_CONSTRAINTS } from "@common/constants/domain/redis-specific.constants";

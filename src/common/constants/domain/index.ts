@@ -16,6 +16,24 @@ export type {
 
 export { REFERENCE_DATA, ReferenceDataUtil } from "./reference-data.constants";
 export { API_OPERATIONS, ApiOperationsUtil } from "./api-operations.constants";
+
+// 🎯 Phase 2.4: Redis特定常量导出
+export {
+  REDIS_KEY_CONSTRAINTS,
+  REDIS_DATA_CONSTRAINTS,
+  REDIS_CONNECTION_CONSTRAINTS,
+  REDIS_COMMAND_CATEGORIES,
+  RedisValidationUtil,
+} from "./redis-specific.constants";
+export type {
+  RedisKeyConstraints,
+  RedisDataConstraints,
+  RedisConnectionConstraints,
+  RedisCommandCategories,
+  RedisPrefixType,
+  RedisDataType,
+  RedisMemoryStatus,
+} from "./redis-specific.constants";
 export type {
   ApiDataType,
   ApiMarketType,
@@ -33,6 +51,11 @@ import { REFERENCE_DATA, ReferenceDataUtil } from "./reference-data.constants";
 
 import { API_OPERATIONS, ApiOperationsUtil } from "./api-operations.constants";
 
+import {
+  REDIS_KEY_CONSTRAINTS,
+  REDIS_DATA_CONSTRAINTS,
+} from "./redis-specific.constants";
+
 // Domain层统一常量对象
 export const DOMAIN_CONSTANTS = Object.freeze({
   // 操作限制
@@ -49,6 +72,12 @@ export const DOMAIN_CONSTANTS = Object.freeze({
   // API操作
   API: {
     BUSINESS_SCENARIOS: API_OPERATIONS.BUSINESS_SCENARIOS,
+  },
+
+  // 🎯 Phase 2.4: Redis技术常量
+  REDIS: {
+    KEY_CONSTRAINTS: REDIS_KEY_CONSTRAINTS,
+    DATA_CONSTRAINTS: REDIS_DATA_CONSTRAINTS,
   },
 } as const);
 

@@ -7,6 +7,7 @@ import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 import { AuthConfigService } from "../services/infrastructure/auth-config.service";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import { HttpStatus } from "@nestjs/common";
+import { SecurityExceptionFactory } from "../exceptions/security.exceptions";
 
 import xss from "xss";
 
@@ -25,52 +26,42 @@ export class SecurityMiddleware implements NestMiddleware {
     try {
       // 检查请求体大小（在解析之前进行初步检查）
       if (this.isRequestTooLarge(req)) {
+        const contentLength = HttpHeadersUtil.getContentLength(req);
+        const maxAllowed = this.authConfigService.getMaxPayloadSizeString();
+        
         this.logger.warn(`请求体过大被拒绝: ${req.method} ${req.url}`, {
-          contentLength: HttpHeadersUtil.getContentLength(req),
-          maxAllowed: this.authConfigService.getMaxPayloadSizeString(),
+          contentLength,
+          maxAllowed,
         });
 
-        // 使用标准化错误响应格式（与GlobalExceptionFilter保持一致）
-        res.status(HttpStatus.PAYLOAD_TOO_LARGE).json({
-          statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
-          message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.PAYLOAD_TOO_LARGE || `请求体过大，最大允许${this.authConfigService.getMaxPayloadSizeString()}`,
-          data: null,
-          timestamp: new Date().toISOString(),
-          error: {
-            code: "PAYLOAD_TOO_LARGE",
-            details: {
-              type: "PayloadSizeError",
-              maxAllowed: this.authConfigService.getMaxPayloadSizeString(),
-              actual: HttpHeadersUtil.getContentLength(req),
-            },
-          },
-        });
-        return;
+        // 使用异常增强模式替代直接响应构造
+        const actualSize = parseInt(contentLength || "0", 10);
+        const maxSizeBytes = this.authConfigService.getMaxPayloadSizeBytes();
+        
+        throw SecurityExceptionFactory.createPayloadTooLargeException(
+          actualSize,
+          maxSizeBytes,
+          maxAllowed,
+          req
+        );
       }
 
       // 内容类型安全检查
       const contentTypeResult = this.validateContentTypeSecurity(req);
       if (!contentTypeResult.isValid) {
+        const contentType = HttpHeadersUtil.getContentType(req);
+        
         this.logger.warn(`不安全的内容类型被拒绝: ${req.method} ${req.url}`, {
-          contentType: HttpHeadersUtil.getContentType(req),
+          contentType,
           reason: contentTypeResult.reason,
         });
 
-        res.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).json({
-          statusCode: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-          message: "不支持的媒体类型", // Use direct message as HTTP_ERROR_MESSAGES doesn't have UNSUPPORTED_MEDIA_TYPE
-          data: null,
-          timestamp: new Date().toISOString(),
-          error: {
-            code: "UNSUPPORTED_MEDIA_TYPE",
-            details: {
-              type: "ContentTypeSecurityViolation",
-              reason: contentTypeResult.reason,
-              contentType: HttpHeadersUtil.getContentType(req),
-            },
-          },
-        });
-        return;
+        // 使用异常增强模式替代直接响应构造
+        throw SecurityExceptionFactory.createUnsupportedMediaTypeException(
+          contentType || "unknown",
+          contentTypeResult.reason || "Content type security violation",
+          req
+        );
       }
 
       // 增强的输入验证检查
@@ -81,21 +72,12 @@ export class SecurityMiddleware implements NestMiddleware {
           details: validationResult.details,
         });
 
-        res.status(HttpStatus.BAD_REQUEST).json({
-          statusCode: HttpStatus.BAD_REQUEST,
-          message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.BAD_REQUEST || "请求包含不安全的内容",
-          data: null,
-          timestamp: new Date().toISOString(),
-          error: {
-            code: "BAD_REQUEST",
-            details: {
-              type: "InputSecurityViolation",
-              reason: validationResult.reason,
-              ...validationResult.details,
-            },
-          },
-        });
-        return;
+        // 使用异常增强模式替代直接响应构造
+        throw SecurityExceptionFactory.createInputSecurityViolationException(
+          validationResult.reason || "Input security violation",
+          validationResult.details || {},
+          req
+        );
       }
 
       // 记录安全相关的请求信息
@@ -115,19 +97,13 @@ export class SecurityMiddleware implements NestMiddleware {
         error: error.stack,
       });
 
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: CONSTANTS.SEMANTIC.SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR || "内部服务器错误",
-        data: null,
-        timestamp: new Date().toISOString(),
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          details: {
-            type: "SecurityMiddlewareError",
-            component: "security-middleware",
-          },
-        },
-      });
+      // 使用异常增强模式替代直接响应构造
+      throw SecurityExceptionFactory.createSecurityMiddlewareException(
+        "security-middleware",
+        `安全中间件处理失败: ${error.message}`,
+        req,
+        error
+      );
     }
   }
 

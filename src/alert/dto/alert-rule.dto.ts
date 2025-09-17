@@ -179,9 +179,9 @@ export class CreateAlertRuleDto {
   })
   @IsNumber({}, { message: "冷却时间必须是数字" })
   @IsNumberInRange({
-    min: 60,
-    max: 7200,
-    message: "冷却时间必须在60-7200秒之间（1分钟-2小时）",
+    min: VALIDATION_LIMITS.COOLDOWN_MIN,
+    max: VALIDATION_LIMITS.COOLDOWN_MAX,
+    message: `冷却时间必须在${VALIDATION_LIMITS.COOLDOWN_MIN}-${VALIDATION_LIMITS.COOLDOWN_MAX}秒之间`,
   })
   cooldown: number;
 
@@ -278,9 +278,9 @@ export class UpdateAlertRuleDto {
   @IsOptional()
   @IsNumber({}, { message: "冷却时间必须是数字" })
   @IsNumberInRange({
-    min: 60,
-    max: 7200,
-    message: "冷却时间必须在60-7200秒之间（1分钟-2小时）",
+    min: VALIDATION_LIMITS.COOLDOWN_MIN,
+    max: VALIDATION_LIMITS.COOLDOWN_MAX,
+    message: `冷却时间必须在${VALIDATION_LIMITS.COOLDOWN_MIN}-${VALIDATION_LIMITS.COOLDOWN_MAX}秒之间`,
   })
   cooldown?: number;
 

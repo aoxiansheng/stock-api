@@ -10,12 +10,6 @@ import {
   ValidateNested,
 } from "class-validator";
 import { plainToClass, Type } from "class-transformer";
-import {
-  AlertValidationRules,
-  AlertCacheConfig,
-  AlertLimitsConfig,
-  CompleteAlertValidation,
-} from "./alert-validation.config";
 
 /**
  * 导出配置接口以供其他模块使用
@@ -106,29 +100,83 @@ export class AlertConfigValidation {
   maxRetries: number = 3;
 
   /**
-   * 验证配置
-   * 使用嵌套验证类确保完整的配置验证覆盖
+   * 最小持续时间（秒）
+   * 用于告警规则duration字段的最小值验证
    */
-  @ValidateNested()
-  @Type(() => AlertValidationRules)
-  validation: AlertValidationRules = new AlertValidationRules();
+  @IsNumber()
+  @Min(30)
+  @Max(600)
+  validationDurationMin: number = 30;
 
   /**
-   * 缓存配置
-   * 使用嵌套验证类确保完整的配置验证覆盖
-   * 注意：TTL配置已迁移到unified-ttl.config.ts
+   * 最大持续时间（秒）
+   * 用于告警规则duration字段的最大值验证
    */
-  @ValidateNested()
-  @Type(() => AlertCacheConfig)
-  cache: AlertCacheConfig = new AlertCacheConfig();
+  @IsNumber()
+  @Min(30)
+  @Max(600)
+  validationDurationMax: number = 600;
 
   /**
-   * 限制配置
-   * 从limits.constants.ts迁移的可配置参数
+   * 最大冷却期（秒）
+   * 用于告警规则cooldown字段的最大值验证
    */
-  @ValidateNested()
-  @Type(() => AlertLimitsConfig)
-  limits: AlertLimitsConfig = new AlertLimitsConfig();
+  @IsNumber()
+  @Min(60)
+  @Max(3000)
+  validationCooldownMax: number = 3000;
+
+  /**
+   * 冷却期缓存键前缀
+   * 用于Redis缓存键命名
+   */
+  @IsString()
+  @Length(1, 100)
+  cacheCooldownPrefix: string = "alert:cooldown:";
+
+  /**
+   * 活跃告警缓存键前缀
+   * 用于Redis缓存键命名
+   */
+  @IsString()
+  @Length(1, 100)
+  cacheActiveAlertPrefix: string = "alert:active";
+
+  /**
+   * 单规则最大条件数
+   * 从limits.constants.ts的MAX_CONDITIONS_PER_RULE迁移
+   */
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  limitsMaxConditionsPerRule: number = 10;
+
+  /**
+   * 单用户最大规则数
+   * 从limits.constants.ts的MAX_RULES_PER_USER迁移
+   */
+  @IsNumber()
+  @Min(10)
+  @Max(1000)
+  limitsMaxRulesPerUser: number = 100;
+
+  /**
+   * 默认分页大小
+   * 从limits.constants.ts的DEFAULT_PAGE_SIZE迁移
+   */
+  @IsNumber()
+  @Min(5)
+  @Max(100)
+  limitsDefaultPageSize: number = 20;
+
+  /**
+   * 单次查询最大结果数
+   * 从limits.constants.ts的MAX_QUERY_RESULTS迁移
+   */
+  @IsNumber()
+  @Min(10)
+  @Max(1000)
+  limitsMaxQueryResults: number = 100;
 }
 
 /**
@@ -145,36 +193,30 @@ export default registerAs("alert", (): AlertConfig => {
     evaluationTimeout:
       parseInt(process.env.ALERT_EVALUATION_TIMEOUT, 10) || 5000,
     maxRetries: parseInt(process.env.ALERT_MAX_RETRIES, 10) || 3,
-    validation: {
-      durationMin:
-        parseInt(process.env.ALERT_VALIDATION_DURATION_MIN, 10) || 30,
-      durationMax:
-        parseInt(process.env.ALERT_VALIDATION_DURATION_MAX, 10) || 600,
-      cooldownMax:
-        parseInt(process.env.ALERT_VALIDATION_COOLDOWN_MAX, 10) || 3000,
-    },
-    cache: {
-      cooldownPrefix:
-        process.env.ALERT_CACHE_COOLDOWN_PREFIX || "alert:cooldown:",
-      activeAlertPrefix:
-        process.env.ALERT_CACHE_ACTIVE_PREFIX || "alert:active",
-    },
-    limits: {
-      maxConditionsPerRule:
-        parseInt(process.env.ALERT_LIMITS_MAX_CONDITIONS, 10) || 10,
-      maxRulesPerUser:
-        parseInt(process.env.ALERT_LIMITS_MAX_RULES_PER_USER, 10) || 100,
-      defaultPageSize:
-        parseInt(process.env.ALERT_LIMITS_DEFAULT_PAGE_SIZE, 10) || 20,
-      maxQueryResults:
-        parseInt(process.env.ALERT_LIMITS_MAX_QUERY_RESULTS, 10) || 100,
-    },
+    validationDurationMin:
+      parseInt(process.env.ALERT_VALIDATION_DURATION_MIN, 10) || 30,
+    validationDurationMax:
+      parseInt(process.env.ALERT_VALIDATION_DURATION_MAX, 10) || 600,
+    validationCooldownMax:
+      parseInt(process.env.ALERT_VALIDATION_COOLDOWN_MAX, 10) || 3000,
+    cacheCooldownPrefix:
+      process.env.ALERT_CACHE_COOLDOWN_PREFIX || "alert:cooldown:",
+    cacheActiveAlertPrefix:
+      process.env.ALERT_CACHE_ACTIVE_PREFIX || "alert:active",
+    limitsMaxConditionsPerRule:
+      parseInt(process.env.ALERT_LIMITS_MAX_CONDITIONS, 10) || 10,
+    limitsMaxRulesPerUser:
+      parseInt(process.env.ALERT_LIMITS_MAX_RULES_PER_USER, 10) || 100,
+    limitsDefaultPageSize:
+      parseInt(process.env.ALERT_LIMITS_DEFAULT_PAGE_SIZE, 10) || 20,
+    limitsMaxQueryResults:
+      parseInt(process.env.ALERT_LIMITS_MAX_QUERY_RESULTS, 10) || 100,
   };
 
-  // 转换为完整验证类实例进行嵌套验证
+  // 转换为验证类实例进行验证
   const validatedConfig = plainToClass(AlertConfigValidation, fullConfig);
 
-  // 使用 class-validator 验证配置（包括嵌套对象）
+  // 使用 class-validator 验证配置
   const errors = validateSync(validatedConfig);
   if (errors.length > 0) {
     const errorMessages = errors
@@ -182,16 +224,7 @@ export default registerAs("alert", (): AlertConfig => {
         const constraints = error.constraints
           ? Object.values(error.constraints).join(", ")
           : "";
-        const childErrors =
-          error.children?.length > 0
-            ? error.children
-                .map(
-                  (child) =>
-                    `${error.property}.${child.property}: ${Object.values(child.constraints || {}).join(", ")}`,
-                )
-                .join("; ")
-            : "";
-        return `${error.property}: ${constraints}${childErrors ? "; " + childErrors : ""}`;
+        return `${error.property}: ${constraints}`;
       })
       .join(" | ");
 
@@ -207,16 +240,16 @@ export default registerAs("alert", (): AlertConfig => {
     maxRetries: validatedConfig.maxRetries,
     validation: {
       duration: {
-        min: validatedConfig.validation.durationMin,
-        max: validatedConfig.validation.durationMax,
+        min: validatedConfig.validationDurationMin,
+        max: validatedConfig.validationDurationMax,
       },
       cooldown: {
-        max: validatedConfig.validation.cooldownMax,
+        max: validatedConfig.validationCooldownMax,
       },
     },
     cache: {
-      cooldownPrefix: validatedConfig.cache.cooldownPrefix,
-      activeAlertPrefix: validatedConfig.cache.activeAlertPrefix,
+      cooldownPrefix: validatedConfig.cacheCooldownPrefix,
+      activeAlertPrefix: validatedConfig.cacheActiveAlertPrefix,
     },
   };
 });
