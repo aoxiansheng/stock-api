@@ -9,6 +9,7 @@ import { Request, Response } from "express";
 
 import { createLogger } from "@common/logging/index";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
+import { CONSTANTS } from "@common/constants";
 
 /**
  * 频率限制异常过滤器
@@ -40,26 +41,44 @@ export class RateLimitExceptionFilter implements ExceptionFilter {
       details: exceptionResponse.details,
     });
 
-    // 构造标准化的错误响应
+    // 使用标准化的错误响应格式（与GlobalExceptionFilter保持一致）
+    const correlationId = request?.headers?.["x-correlation-id"] || (request as any)?.correlationId;
+    const requestId = request?.headers?.["x-request-id"] || (request as any)?.requestId;
+    
     const errorResponse = {
       statusCode: status,
-      message: exceptionResponse.message || "请求频率超出限制",
-      error: "Too Many Requests",
+      message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.HTTP_TOO_MANY_REQUESTS,
+      data: null, // 与ResponseInterceptor保持一致，错误时data为null
       timestamp: new Date().toISOString(),
-      path: request.url,
-      details: {
-        limit: exceptionResponse.details?.limit,
-        current: exceptionResponse.details?.current,
-        remaining: exceptionResponse.details?.remaining,
-        resetTime: exceptionResponse.details?.resetTime,
-        retryAfter: exceptionResponse.details?.retryAfter,
-        suggestion: "请降低请求频率或联系管理员升级您的API配额",
+      error: {
+        code: "RATE_LIMIT_EXCEEDED",
+        details: {
+          type: "RateLimitError",
+          path: request.url,
+          limit: exceptionResponse.details?.limit,
+          current: exceptionResponse.details?.current,
+          remaining: exceptionResponse.details?.remaining,
+          resetTime: exceptionResponse.details?.resetTime,
+          retryAfter: exceptionResponse.details?.retryAfter,
+          suggestion: "请降低请求频率或联系管理员升级您的API配额",
+          ...(correlationId && { correlationId }),
+          ...(requestId && { requestId }),
+        },
       },
     };
 
-    // 设置额外的响应头
+    // 设置额外的响应头和标准化追踪头
     if (exceptionResponse.details?.retryAfter) {
       response.setHeader("Retry-After", exceptionResponse.details.retryAfter);
+    }
+    
+    // 确保错误响应也包含追踪头（与GlobalExceptionFilter保持一致）
+    if (requestId && response) {
+      try {
+        response.setHeader("x-request-id", requestId);
+      } catch {
+        // 忽略设置头部失败的错误
+      }
     }
 
     response.status(status).json(errorResponse);

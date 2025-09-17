@@ -56,13 +56,40 @@ describe("监控组件向后兼容性测试（修复版）", () => {
             getEndpointMetrics: jest
               .fn()
               .mockResolvedValue(mockLegacyEndpointData),
+            getEndpointMetricsWithPagination: jest.fn().mockImplementation((page, limit) => {
+              const start = (page - 1) * limit;
+              const end = start + limit;
+              const items = mockLegacyEndpointData.slice(start, end);
+              return Promise.resolve({
+                items,
+                total: mockLegacyEndpointData.length,
+              });
+            }),
+            getEndpointMetricsLegacy: jest
+              .fn()
+              .mockResolvedValue(mockLegacyEndpointData),
           },
         },
         {
           provide: PaginationService,
           useValue: {
+            createPaginatedResponse: jest.fn().mockImplementation((items, page, limit, total) => ({
+              items,
+              pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page < Math.ceil(total / limit),
+                hasPrev: page > 1,
+              },
+            })),
             createPaginatedResponseFromQuery: jest.fn(),
-            validatePaginationParams: jest.fn(),
+            validatePaginationParams: jest.fn().mockReturnValue({ isValid: true }),
+            normalizePaginationQuery: jest.fn().mockImplementation((query) => ({
+              page: query.page || 1,
+              limit: query.limit || 10,
+            })),
           },
         },
       ],
@@ -121,7 +148,6 @@ describe("监控组件向后兼容性测试（修复版）", () => {
 
       // 验证是原始数组，不是包装的对象
       expect(Array.isArray(result)).toBe(true);
-      expect(typeof result).not.toBe("object");
       expect(result).not.toHaveProperty("statusCode");
       expect(result).not.toHaveProperty("message");
       expect(result).not.toHaveProperty("data");

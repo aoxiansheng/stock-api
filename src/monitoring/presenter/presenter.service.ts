@@ -1,6 +1,7 @@
 import { Injectable, Inject, BadRequestException } from "@nestjs/common";
 
 import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
+import { GetEndpointMetricsDto } from "../contracts/dto/queries/get-endpoint-metrics.dto";
 import { AnalyzerService } from "../analyzer/analyzer.service";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 import { createLogger } from "@common/logging/index";
@@ -92,7 +93,7 @@ export class PresenterService {
    * @param query 查询参数，包含page和limit
    * @returns 分页格式的端点指标数据
    */
-  async getEndpointMetrics(query: { page?: number; limit?: number }) {
+  async getEndpointMetrics(query: GetEndpointMetricsDto) {
     // 使用PaginationService标准化分页参数
     const { page, limit } =
       this.paginationService.normalizePaginationQuery(query);
@@ -131,14 +132,13 @@ export class PresenterService {
 
     if (limit) {
       limitNum = parseInt(limit, 10);
+      // 如果解析失败或超出范围，则忽略limit参数，保持向后兼容
       if (
         isNaN(limitNum) ||
         limitNum < 1 ||
         limitNum > MONITORING_SYSTEM_LIMITS.MAX_QUERY_LIMIT
       ) {
-        throw new BadRequestException(
-          `limit必须在1-${MONITORING_SYSTEM_LIMITS.MAX_QUERY_LIMIT}之间`,
-        );
+        limitNum = undefined;
       }
     }
 

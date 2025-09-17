@@ -38,10 +38,23 @@ describe("监控组件分页功能单元测试（修复版）", () => {
         {
           provide: PaginationService,
           useValue: {
-            createPaginatedResponse: jest.fn(),
+            createPaginatedResponse: jest.fn().mockImplementation((items, page, limit, total) => ({
+              items,
+              pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page < Math.ceil(total / limit),
+                hasPrev: page > 1,
+              },
+            })),
             createPaginatedResponseFromQuery: jest.fn(),
-            validatePaginationParams: jest.fn(),
-            normalizePaginationQuery: jest.fn(),
+            validatePaginationParams: jest.fn().mockReturnValue({ isValid: true }),
+            normalizePaginationQuery: jest.fn().mockImplementation((query) => ({
+              page: query.page || 1,
+              limit: query.limit || 10,
+            })),
             createPagination: jest.fn(),
           },
         },
@@ -51,6 +64,23 @@ describe("监控组件分页功能单元测试（修复版）", () => {
             getEndpointMetrics: jest
               .fn()
               .mockResolvedValue(mockRawEndpointData),
+            getEndpointMetricsWithPagination: jest.fn().mockImplementation((page, limit) => {
+              // 检查是否有特殊的数据集用于测试
+              if ((global as any).__testEmptyData) {
+                return Promise.resolve({
+                  items: [],
+                  total: 0,
+                });
+              }
+              
+              const start = (page - 1) * limit;
+              const end = start + limit;
+              const items = mockRawEndpointData.slice(start, end);
+              return Promise.resolve({
+                items,
+                total: mockRawEndpointData.length,
+              });
+            }),
           },
         },
       ],
@@ -252,27 +282,17 @@ describe("监控组件分页功能单元测试（修复版）", () => {
         limit: 10,
       };
 
-      // 模拟空数据
-      jest.spyOn(analyzerService, "getEndpointMetrics").mockResolvedValue([]);
-      jest
-        .spyOn(paginationService, "createPaginatedResponseFromQuery")
-        .mockReturnValue({
-          items: [],
-          pagination: {
-            page: 1,
-            limit: 10,
-            total: 0,
-            totalPages: 0,
-            hasNext: false,
-            hasPrev: false,
-          },
-        });
-
+      // 设置全局标志以触发空数据集处理
+      (global as any).__testEmptyData = true;
+      
       const result = await presenterService.getEndpointMetrics(dto);
 
       expect(result.items).toHaveLength(0);
       expect(result.pagination.total).toBe(0);
       expect(result.pagination.totalPages).toBe(0);
+      
+      // 清除全局标志
+      (global as any).__testEmptyData = false;
     });
   });
 
@@ -287,18 +307,12 @@ describe("监控组件分页功能单元测试（修复版）", () => {
       ];
 
       for (const testCase of testCases) {
+        // 直接模拟 getEndpointMetricsWithPagination 的返回值
         jest
-          .spyOn(paginationService, "createPaginatedResponseFromQuery")
-          .mockReturnValue({
+          .spyOn(analyzerService, "getEndpointMetricsWithPagination")
+          .mockResolvedValueOnce({
             items: [],
-            pagination: {
-              page: 1,
-              limit: testCase.limit,
-              total: testCase.total,
-              totalPages: testCase.expectedPages,
-              hasNext: false,
-              hasPrev: false,
-            },
+            total: testCase.total,
           });
 
         const dto: GetEndpointMetricsDto = { page: 1, limit: testCase.limit };
@@ -395,44 +409,21 @@ describe("监控组件分页功能单元测试（修复版）", () => {
 
   describe("服务集成测试", () => {
     it("应该正确调用PaginationService的方法", async () => {
-      const dto: GetEndpointMetricsDto = {
-        page: 1,
-        limit: 10,
-      };
+      const dto: GetEndpointMetricsDto = { page: 1, limit: 10 };
 
-      const mockPaginatedResponse = {
-        items: mockRawEndpointData.slice(0, 10),
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: 25,
-          totalPages: 3,
-          hasNext: true,
-          hasPrev: false,
-        },
-      };
-
-      jest
-        .spyOn(paginationService, "createPaginatedResponseFromQuery")
-        .mockReturnValue(mockPaginatedResponse);
+      // 重置模拟调用历史
+      jest.clearAllMocks();
 
       await presenterService.getEndpointMetrics(dto);
 
-      expect(
-        paginationService.createPaginatedResponseFromQuery,
-      ).toHaveBeenCalledWith(
-        mockRawEndpointData,
+      expect(paginationService.normalizePaginationQuery).toHaveBeenCalledWith(
         dto,
-        mockRawEndpointData.length,
       );
+      // 验证是否调用了createPaginatedResponse方法
+      expect(paginationService.createPaginatedResponse).toHaveBeenCalled();
     });
 
     it("应该正确传递AnalyzerService的数据给PaginationService", async () => {
-      const dto: GetEndpointMetricsDto = {
-        page: 1,
-        limit: 10,
-      };
-
       const customMockData = [
         {
           endpoint: "/test/endpoint",
@@ -444,28 +435,28 @@ describe("监控组件分页功能单元测试（修复版）", () => {
         },
       ];
 
+      const dto: GetEndpointMetricsDto = { page: 1, limit: 10 };
+
+      // 模拟AnalyzerService返回自定义数据
       jest
-        .spyOn(analyzerService, "getEndpointMetrics")
-        .mockResolvedValue(customMockData);
-      jest
-        .spyOn(paginationService, "createPaginatedResponseFromQuery")
-        .mockReturnValue({
+        .spyOn(analyzerService, "getEndpointMetricsWithPagination")
+        .mockResolvedValue({
           items: customMockData,
-          pagination: {
-            page: 1,
-            limit: 10,
-            total: 1,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
-          },
+          total: customMockData.length,
         });
+
+      // 重置模拟调用历史
+      jest.clearAllMocks();
 
       await presenterService.getEndpointMetrics(dto);
 
-      expect(
-        paginationService.createPaginatedResponseFromQuery,
-      ).toHaveBeenCalledWith(customMockData, dto, customMockData.length);
+      // 验证是否调用了createPaginatedResponse方法并传递了正确的参数
+      expect(paginationService.createPaginatedResponse).toHaveBeenCalledWith(
+        customMockData,
+        1,
+        10,
+        customMockData.length
+      );
     });
   });
 });

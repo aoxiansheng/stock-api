@@ -2,9 +2,12 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
+import { EventEmitterModule } from "@nestjs/event-emitter";
 
 import { CacheModule } from "../../cache/module/cache.module";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 统一数据库模块
+import { GlobalExceptionFilter } from "@common/core/filters/global-exception.filter";
+import { ResponseInterceptor } from "@common/core/interceptors/response.interceptor";
 import authConfig from "../config/auth-configuration";
 // 🆕 新的分层配置系统
 import { authUnifiedConfig } from "../config/auth-unified.config";
@@ -47,6 +50,8 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ConfigModule.forFeature(authUnifiedConfig),
 
     CacheModule,
+    // 🆕 事件模块 - 支持GlobalExceptionFilter和ResponseInterceptor
+    EventEmitterModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
     // ❌ 删除 RedisModule - 使用全局注入的 RedisService
     JwtModule.registerAsync({
@@ -103,8 +108,12 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     UnifiedPermissionsGuard,
     RateLimitGuard,
 
-    // 过滤器
+    // 过滤器 - 🆕 添加通用GlobalExceptionFilter
+    GlobalExceptionFilter,
     RateLimitExceptionFilter,
+
+    // 拦截器 - 🆕 添加通用ResponseInterceptor
+    ResponseInterceptor,
 
     // 中间件
     SecurityMiddleware,
@@ -139,7 +148,11 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     RateLimitGuard,
 
     // 过滤器 - 需要被AppModule使用
+    GlobalExceptionFilter,
     RateLimitExceptionFilter,
+
+    // 拦截器 - 需要被AppModule使用
+    ResponseInterceptor,
 
     // 中间件 - 需要被main.ts使用
     SecurityMiddleware,

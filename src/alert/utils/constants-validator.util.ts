@@ -3,7 +3,7 @@
  * 🎯 启动时验证关键常量配置，确保应用能正常运行
  */
 
-import { Logger } from "@nestjs/common";
+import { createLogger } from "@common/logging/index";
 import { ALERT_DEFAULTS } from "../constants";
 
 /**
@@ -22,7 +22,7 @@ export interface ValidationResult {
  * Alert常量基础验证函数
  */
 export class AlertConstantsValidator {
-  private static readonly logger = new Logger(AlertConstantsValidator.name);
+  private static readonly logger = createLogger(AlertConstantsValidator.name);
 
   /**
    * 验证关键配置项

@@ -11,6 +11,7 @@
 
 import { Module } from "@nestjs/common";
 import { CacheModule } from "@cache/module/cache.module";
+import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { InfrastructureModule } from "./infrastructure/infrastructure.module";
 import { CollectorModule } from "./collector/collector.module";
 import { AnalyzerModule } from "./analyzer/analyzer.module";
@@ -20,6 +21,7 @@ import { HealthModule } from "./health/health.module";
 @Module({
   imports: [
     CacheModule, // 导入通用缓存模块替代MonitoringCacheModule
+    PaginationModule, // 🆕 导入通用分页模块
     InfrastructureModule,
     CollectorModule,
     AnalyzerModule,
@@ -28,6 +30,7 @@ import { HealthModule } from "./health/health.module";
   ],
   exports: [
     CacheModule, // 导出通用缓存模块供外部使用
+    PaginationModule, // 🆕 导出通用分页模块
     InfrastructureModule,
     CollectorModule,
     AnalyzerModule,

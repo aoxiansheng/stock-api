@@ -1,13 +1,14 @@
-import {
-  IsString,
-  IsEmail,
-  MinLength,
-  MaxLength,
-  Matches,
-} from "class-validator";
+import { IsString } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { USER_REGISTRATION } from "../constants/user-operations.constants";
 import { BaseQueryDto } from "@common/dto/base-query.dto";
+// 🆕 使用Auth模块的通用验证装饰器
+import {
+  IsValidUsername,
+  IsStrongPassword,
+  IsValidEmail,
+  AUTH_VALIDATION_CONSTANTS,
+} from "../decorators/validation.decorator";
 
 /**
  * 基础认证DTO类
@@ -18,15 +19,11 @@ export abstract class BaseAuthDto extends BaseQueryDto {
   @ApiProperty({
     description: "用户名",
     example: "admin",
-    minLength: USER_REGISTRATION.USERNAME_MIN_LENGTH,
-    maxLength: USER_REGISTRATION.USERNAME_MAX_LENGTH,
+    minLength: AUTH_VALIDATION_CONSTANTS.USERNAME_MIN_LENGTH,
+    maxLength: AUTH_VALIDATION_CONSTANTS.USERNAME_MAX_LENGTH,
   })
   @IsString()
-  @MinLength(USER_REGISTRATION.USERNAME_MIN_LENGTH)
-  @MaxLength(USER_REGISTRATION.USERNAME_MAX_LENGTH)
-  @Matches(USER_REGISTRATION.USERNAME_PATTERN, {
-    message: "用户名只能包含字母、数字、下划线和连字符",
-  })
+  @IsValidUsername() // 🆕 使用统一的用户名验证装饰器
   username: string;
 }
 
@@ -37,17 +34,12 @@ export abstract class BaseAuthDto extends BaseQueryDto {
 export abstract class BasePasswordDto extends BaseAuthDto {
   @ApiProperty({
     description: "密码",
-    example: "password123",
-    minLength: USER_REGISTRATION.PASSWORD_MIN_LENGTH,
+    example: "Password123!",
+    minLength: AUTH_VALIDATION_CONSTANTS.PASSWORD_MIN_LENGTH,
+    maxLength: AUTH_VALIDATION_CONSTANTS.PASSWORD_MAX_LENGTH,
   })
   @IsString()
-  @MinLength(USER_REGISTRATION.PASSWORD_MIN_LENGTH, {
-    message: `密码长度不能少于 ${USER_REGISTRATION.PASSWORD_MIN_LENGTH} 位`,
-  })
-  @MaxLength(USER_REGISTRATION.PASSWORD_MAX_LENGTH)
-  @Matches(USER_REGISTRATION.PASSWORD_PATTERN, {
-    message: "密码必须包含至少一个字母和一个数字",
-  })
+  @IsStrongPassword() // 🆕 使用统一的强密码验证装饰器
   password: string;
 }
 
@@ -60,9 +52,6 @@ export abstract class BaseUserDto extends BasePasswordDto {
     description: "邮箱地址",
     example: "admin@example.com",
   })
-  @IsEmail()
-  @Matches(USER_REGISTRATION.EMAIL_PATTERN, {
-    message: "邮箱格式不正确",
-  })
+  @IsValidEmail() // 🆕 使用统一的邮箱验证装饰器
   email: string;
 }

@@ -9,6 +9,7 @@
  */
 
 import { Module } from "@nestjs/common";
+import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { AnalyzerModule } from "../analyzer/analyzer.module";
 import { HealthModule } from "../health/health.module";
 import { PresenterController } from "./presenter.controller";
@@ -16,6 +17,7 @@ import { PresenterService } from "./presenter.service";
 
 @Module({
   imports: [
+    PaginationModule, // 🆕 导入通用分页模块
     AnalyzerModule,
     HealthModule, // 添加 HealthModule 以获取 ExtendedHealthService
   ],

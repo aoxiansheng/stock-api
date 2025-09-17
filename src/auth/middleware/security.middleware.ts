@@ -30,11 +30,20 @@ export class SecurityMiddleware implements NestMiddleware {
           maxAllowed: this.authConfigService.getMaxPayloadSizeString(),
         });
 
+        // 使用标准化错误响应格式（与GlobalExceptionFilter保持一致）
         res.status(HttpStatus.PAYLOAD_TOO_LARGE).json({
           statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
-          message: `请求体过大，最大允许${this.authConfigService.getMaxPayloadSizeString()}`,
-          error: "Payload Too Large",
+          message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.PAYLOAD_TOO_LARGE || `请求体过大，最大允许${this.authConfigService.getMaxPayloadSizeString()}`,
+          data: null,
           timestamp: new Date().toISOString(),
+          error: {
+            code: "PAYLOAD_TOO_LARGE",
+            details: {
+              type: "PayloadSizeError",
+              maxAllowed: this.authConfigService.getMaxPayloadSizeString(),
+              actual: HttpHeadersUtil.getContentLength(req),
+            },
+          },
         });
         return;
       }
@@ -49,13 +58,17 @@ export class SecurityMiddleware implements NestMiddleware {
 
         res.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).json({
           statusCode: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-          message: "不支持的媒体类型",
-          error: "Unsupported Media Type",
-          details: {
-            type: "CONTENT_TYPE_SECURITY_VIOLATION",
-            reason: contentTypeResult.reason,
-          },
+          message: "不支持的媒体类型", // Use direct message as HTTP_ERROR_MESSAGES doesn't have UNSUPPORTED_MEDIA_TYPE
+          data: null,
           timestamp: new Date().toISOString(),
+          error: {
+            code: "UNSUPPORTED_MEDIA_TYPE",
+            details: {
+              type: "ContentTypeSecurityViolation",
+              reason: contentTypeResult.reason,
+              contentType: HttpHeadersUtil.getContentType(req),
+            },
+          },
         });
         return;
       }
@@ -70,13 +83,17 @@ export class SecurityMiddleware implements NestMiddleware {
 
         res.status(HttpStatus.BAD_REQUEST).json({
           statusCode: HttpStatus.BAD_REQUEST,
-          message: "请求包含不安全的内容",
-          error: "Bad Request",
-          details: {
-            type: "INPUT_SECURITY_VIOLATION",
-            reason: validationResult.reason,
-          },
+          message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.BAD_REQUEST || "请求包含不安全的内容",
+          data: null,
           timestamp: new Date().toISOString(),
+          error: {
+            code: "BAD_REQUEST",
+            details: {
+              type: "InputSecurityViolation",
+              reason: validationResult.reason,
+              ...validationResult.details,
+            },
+          },
         });
         return;
       }
@@ -100,8 +117,16 @@ export class SecurityMiddleware implements NestMiddleware {
 
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: "内部服务器错误",
+        message: CONSTANTS.SEMANTIC.SYSTEM_ERROR_MESSAGES.INTERNAL_SERVER_ERROR || "内部服务器错误",
+        data: null,
         timestamp: new Date().toISOString(),
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          details: {
+            type: "SecurityMiddlewareError",
+            component: "security-middleware",
+          },
+        },
       });
     }
   }
@@ -729,8 +754,16 @@ export class CSRFMiddleware implements NestMiddleware {
 
         res.status(HttpStatus.FORBIDDEN).json({
           statusCode: HttpStatus.FORBIDDEN,
-          message: "请求被拒绝: CSRF保护",
+          message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.FORBIDDEN || "请求被拒绝: CSRF保护",
+          data: null,
           timestamp: new Date().toISOString(),
+          error: {
+            code: "FORBIDDEN",
+            details: {
+              type: "CSRFProtectionViolation",
+              reason: "Invalid or missing CSRF protection headers",
+            },
+          },
         });
         return;
       }
@@ -859,17 +892,20 @@ export class RateLimitByIPMiddleware implements NestMiddleware {
 
       res.status(429).json({
         statusCode: 429,
-        message: "请求过于频繁，请稍后重试",
-        error: "Too Many Requests",
-        details: {
-          type: "IP_RATE_LIMIT",
-          limit: this.maxRequestsPerMinute,
-          current: clientRecord.count,
-          remaining: 0,
-          resetTime: clientRecord.resetTime,
-          retryAfter: Math.ceil((clientRecord.resetTime - now) / 1000),
-        },
+        message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.HTTP_TOO_MANY_REQUESTS || "请求过于频繁，请稍后重试",
+        data: null,
         timestamp: new Date().toISOString(),
+        error: {
+          code: "RATE_LIMIT_EXCEEDED",
+          details: {
+            type: "IPRateLimit",
+            limit: this.maxRequestsPerMinute,
+            current: clientRecord.count,
+            remaining: 0,
+            resetTime: clientRecord.resetTime,
+            retryAfter: Math.ceil((clientRecord.resetTime - now) / 1000),
+          },
+        },
       });
       return;
     }

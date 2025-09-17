@@ -13,6 +13,7 @@ import { NoPerformanceMonitoring } from "../infrastructure/decorators/infrastruc
 import {
   ApiStandardResponses,
   ApiSuccessResponse,
+  ApiPaginatedResponse,
   JwtAuthResponses,
   ApiHealthResponse,
 } from "../../common/core/decorators/swagger-responses.decorator";
@@ -144,41 +145,9 @@ export class PresenterController {
   @Get("endpoints")
   @ApiOperation({
     summary: "获取端点性能指标",
-    description: "获取API端点的性能指标数据，支持分页查询",
+    description: "获取API端点的性能指标数据，支持标准分页",
   })
-  @ApiSuccessResponse({
-    description: "端点指标获取成功",
-    schema: {
-      type: "object",
-      properties: {
-        items: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              endpoint: { type: "string" },
-              method: { type: "string" },
-              totalOperations: { type: "number" },
-              responseTimeMs: { type: "number" },
-              errorRate: { type: "number" },
-              lastUsed: { type: "string", format: "date-time" },
-            },
-          },
-        },
-        pagination: {
-          type: "object",
-          properties: {
-            page: { type: "number" },
-            limit: { type: "number" },
-            total: { type: "number" },
-            totalPages: { type: "number" },
-            hasNext: { type: "boolean" },
-            hasPrev: { type: "boolean" },
-          },
-        },
-      },
-    },
-  })
+  @ApiPaginatedResponse() // 🆕 使用通用分页响应装饰器
   @ApiStandardResponses()
   @JwtAuthResponses()
   async getEndpointMetrics(@Query() query: GetEndpointMetricsDto) {

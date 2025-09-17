@@ -8,10 +8,15 @@
  */
 
 import { HttpModule } from "@nestjs/axios";
-import { Module, OnModuleInit, Logger } from "@nestjs/common";
+import { Module, OnModuleInit } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ScheduleModule } from "@nestjs/schedule";
+
+// 通用组件导入
+import { GlobalExceptionFilter } from "@common/core/filters/global-exception.filter";
+import { ResponseInterceptor, RequestTrackingInterceptor } from "@common/core/interceptors";
+import { createLogger } from "@common/logging/index";
 
 import { DatabaseModule } from "../../database/database.module";
 import { AuthModule } from "../../auth/module/auth.module";
@@ -96,6 +101,11 @@ import { RuleEvaluator } from "../evaluators/rule.evaluator";
     // ========== 数据访问层 ==========
     AlertRuleRepository,
     AlertHistoryRepository,
+
+    // ========== 🚀 通用组件 ==========
+    GlobalExceptionFilter,
+    ResponseInterceptor,
+    RequestTrackingInterceptor,
   ],
 
   exports: [
@@ -116,7 +126,7 @@ import { RuleEvaluator } from "../evaluators/rule.evaluator";
   ],
 })
 export class AlertEnhancedModule implements OnModuleInit {
-  private readonly logger = new Logger("AlertEnhancedModule");
+  private readonly logger = createLogger("AlertEnhancedModule");
   private architectureVersion = "v2.0";
 
   async onModuleInit(): Promise<void> {
