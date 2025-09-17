@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
@@ -23,10 +23,13 @@ import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
 import { HealthAnalyzerService } from "./analyzer-health.service";
 import { TrendAnalyzerService } from "./analyzer-trend.service";
-import { CacheService } from '@cache/services/cache.service';
-import { MonitoringCacheKeys } from '../utils/monitoring-cache-keys';
-import { MONITORING_CACHE_TTL } from '../constants/cache-ttl.constants';
-import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
+import { CacheService } from "@cache/services/cache.service";
+import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
+import { MONITORING_CACHE_TTL } from "../constants/cache-ttl.constants";
+import {
+  MONITORING_SYSTEM_LIMITS,
+  MonitoringSystemLimitUtils,
+} from "../constants/config/monitoring-system.constants";
 import { v4 as uuidv4 } from "uuid";
 
 /**
@@ -104,12 +107,12 @@ export class AnalyzerService
       this.dataRequestPromises.delete(requestId);
       pendingRequest.resolve(data);
 
-      this.logger.debug('Analyzer: 数据响应处理完成', {
-        component: 'AnalyzerService',
-        operation: 'handleDataResponse',
+      this.logger.debug("Analyzer: 数据响应处理完成", {
+        component: "AnalyzerService",
+        operation: "handleDataResponse",
         requestId,
         dataSize: responseEvent.dataSize,
-        success: true
+        success: true,
       });
     } else {
       this.logger.warn("收到未知请求ID的数据响应", { requestId });
@@ -129,11 +132,11 @@ export class AnalyzerService
       this.dataRequestPromises.delete(requestId);
       pendingRequest.reject(new Error(metadata?.error || "数据不可用"));
 
-      this.logger.debug('Analyzer: 数据不可用事件处理完成', {
-        component: 'AnalyzerService',
-        operation: 'handleDataNotAvailable',
+      this.logger.debug("Analyzer: 数据不可用事件处理完成", {
+        component: "AnalyzerService",
+        operation: "handleDataNotAvailable",
         requestId,
-        success: false
+        success: false,
       });
     }
   }
@@ -177,12 +180,12 @@ export class AnalyzerService
 
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.DATA_REQUEST, requestEvent);
 
-      this.logger.debug('Analyzer: 已发送数据请求', {
-        component: 'AnalyzerService',
-        operation: 'requestRawMetrics',
+      this.logger.debug("Analyzer: 已发送数据请求", {
+        component: "AnalyzerService",
+        operation: "requestRawMetrics",
         requestId,
         requestType: "raw_metrics",
-        success: true
+        success: true,
       });
     });
   }
@@ -194,11 +197,11 @@ export class AnalyzerService
     options?: AnalysisOptions,
   ): Promise<PerformanceAnalysisDto> {
     try {
-      this.logger.debug('Analyzer: 开始性能分析', {
-        component: 'AnalyzerService',
-        operation: 'getPerformanceAnalysis',
+      this.logger.debug("Analyzer: 开始性能分析", {
+        component: "AnalyzerService",
+        operation: "getPerformanceAnalysis",
         options,
-        success: true
+        success: true,
       });
 
       // 获取原始指标数据
@@ -259,14 +262,14 @@ export class AnalyzerService
         },
       });
 
-      this.logger.debug('Analyzer: 性能分析完成', {
-        component: 'AnalyzerService',
-        operation: 'getPerformanceAnalysis',
+      this.logger.debug("Analyzer: 性能分析完成", {
+        component: "AnalyzerService",
+        operation: "getPerformanceAnalysis",
         healthScore,
         totalOperations: summary.totalOperations,
         responseTimeMs,
         errorRate,
-        success: true
+        success: true,
       });
 
       return analysis;
@@ -315,7 +318,7 @@ export class AnalyzerService
 
           return healthScore;
         },
-        { ttl: MONITORING_CACHE_TTL.HEALTH }
+        { ttl: MONITORING_CACHE_TTL.HEALTH },
       );
     } catch (error) {
       this.logger.error("健康分获取失败", error.stack);
@@ -364,7 +367,7 @@ export class AnalyzerService
             period,
           );
         },
-        { ttl: MONITORING_CACHE_TTL.TREND }
+        { ttl: MONITORING_CACHE_TTL.TREND },
       );
     } catch (error) {
       this.logger.error("趋势分析失败", error.stack);
@@ -385,6 +388,40 @@ export class AnalyzerService
     } catch (error) {
       this.logger.error("端点指标获取失败", error.stack);
       return [];
+    }
+  }
+
+  /**
+   * 获取端点指标 (支持分页)
+   * @param page 页码
+   * @param limit 每页条数
+   * @returns 包含items和total的分页数据
+   */
+  async getEndpointMetricsWithPagination(
+    page: number,
+    limit: number,
+  ): Promise<{ items: EndpointMetricsDto[]; total: number }> {
+    try {
+      const rawMetrics = await this.requestRawMetrics();
+      const allEndpointMetrics =
+        this.metricsCalculator.calculateEndpointMetrics(rawMetrics);
+
+      const total = allEndpointMetrics.length;
+      const skip = (page - 1) * limit;
+      const items = allEndpointMetrics.slice(skip, skip + limit);
+
+      this.logger.debug("端点指标分页获取成功", {
+        page,
+        limit,
+        skip,
+        total,
+        itemsCount: items.length,
+      });
+
+      return { items, total };
+    } catch (error) {
+      this.logger.error("端点指标分页获取失败", error.stack);
+      return { items: [], total: 0 };
     }
   }
 
@@ -431,17 +468,17 @@ export class AnalyzerService
    */
   async getOptimizationSuggestions(): Promise<SuggestionDto[]> {
     try {
-      this.logger.debug('Analyzer: 生成优化建议', {
-        component: 'AnalyzerService',
-        operation: 'getOptimizationSuggestions',
-        success: true
+      this.logger.debug("Analyzer: 生成优化建议", {
+        component: "AnalyzerService",
+        operation: "getOptimizationSuggestions",
+        success: true,
       });
 
       // 检查缓存
       const cacheKey = "optimization_suggestions";
-      const cachedSuggestions = await this.cacheService.safeGet<SuggestionDto[]>(
-        MonitoringCacheKeys.performance(cacheKey)
-      );
+      const cachedSuggestions = await this.cacheService.safeGet<
+        SuggestionDto[]
+      >(MonitoringCacheKeys.performance(cacheKey));
 
       if (cachedSuggestions) {
         return cachedSuggestions;
@@ -480,16 +517,16 @@ export class AnalyzerService
 
       // 缓存结果
       await this.cacheService.safeSet(
-        MonitoringCacheKeys.performance(cacheKey), 
+        MonitoringCacheKeys.performance(cacheKey),
         suggestions,
-        { ttl: MONITORING_CACHE_TTL.PERFORMANCE }
+        { ttl: MONITORING_CACHE_TTL.PERFORMANCE },
       );
 
-      this.logger.debug('Analyzer: 优化建议生成完成', {
-        component: 'AnalyzerService',
-        operation: 'getOptimizationSuggestions',
+      this.logger.debug("Analyzer: 优化建议生成完成", {
+        component: "AnalyzerService",
+        operation: "getOptimizationSuggestions",
         suggestionsCount: suggestions.length,
-        success: true
+        success: true,
       });
       return suggestions;
     } catch (error) {
@@ -531,11 +568,11 @@ export class AnalyzerService
         metadata: { pattern: pattern || "all", reason: "manual_invalidation" },
       });
 
-      this.logger.debug('Analyzer: 缓存失效完成', {
-        component: 'AnalyzerService',
-        operation: 'invalidateCache',
+      this.logger.debug("Analyzer: 缓存失效完成", {
+        component: "AnalyzerService",
+        operation: "invalidateCache",
         pattern: pattern || "all",
-        success: true
+        success: true,
       });
     } catch (error) {
       this.logger.error("缓存失效失败", error.stack);
@@ -555,27 +592,34 @@ export class AnalyzerService
       // 使用通用缓存服务进行健康检查（简化实现）
       const testKey = MonitoringCacheKeys.health("test");
       const testValue = { timestamp: Date.now() };
-      
+
       // 测试缓存读写
       await this.cacheService.safeSet(testKey, testValue, { ttl: 10 });
       const retrieved = await this.cacheService.safeGet(testKey);
-      
+
       const healthCheck = {
-        status: retrieved ? "healthy" : "degraded" as const,
+        status: retrieved ? "healthy" : ("degraded" as const),
         metrics: {
           hitRate: 0.9, // 简化指标
           errorRate: 0.1,
           totalOperations: 100,
           uptime: Date.now() - this.startTime,
-          latency: { p50: 10, p95: 50, p99: 100, avg: 20 }
-        }
+          latency: { p50: 10, p95: 50, p99: 100, avg: 20 },
+        },
       };
-      
+
       const stats = {
-        operations: { total: 100, hits: 90, misses: 10, errors: 1, hitRate: 0.9, errorRate: 0.01 },
+        operations: {
+          total: 100,
+          hits: 90,
+          misses: 10,
+          errors: 1,
+          hitRate: 0.9,
+          errorRate: 0.01,
+        },
         latency: { p50: 10, p95: 50, p99: 100, avg: 20 },
         uptime: Date.now() - this.startTime,
-        status: "healthy" as const
+        status: "healthy" as const,
       };
 
       // 从实际统计中获取命中率
@@ -585,7 +629,10 @@ export class AnalyzerService
       const hitRate = totalRequests > 0 ? totalHits / totalRequests : 0;
 
       return {
-        hitRate: Math.round(hitRate * MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR) / MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
+        hitRate:
+          Math.round(
+            hitRate * MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
+          ) / MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
         totalOperations: totalRequests,
         totalHits,
         totalMisses,
@@ -607,11 +654,11 @@ export class AnalyzerService
   private setupEventListeners(): void {
     // 监听数据收集完成事件
     const collectionCompletedHandler = async (data) => {
-      this.logger.debug('Analyzer: 数据收集完成，触发分析流程', {
-        component: 'AnalyzerService',
-        operation: 'setupEventListeners',
-        dataType: data?.type || 'unknown',
-        success: true
+      this.logger.debug("Analyzer: 数据收集完成，触发分析流程", {
+        component: "AnalyzerService",
+        operation: "setupEventListeners",
+        dataType: data?.type || "unknown",
+        success: true,
       });
 
       // 可以在这里触发自动分析
@@ -815,7 +862,8 @@ export class AnalyzerService
       }
 
       // 错误率建议
-      if (errorRate > 0.05) { // 5% 错误率阈值
+      if (errorRate > 0.05) {
+        // 5% 错误率阈值
         suggestions.push({
           category: "performance",
           priority: "high",

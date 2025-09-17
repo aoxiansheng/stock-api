@@ -1,7 +1,7 @@
 /**
  * Notification Channel Enhanced DTO
  * 🎯 使用本地配置的增强型通知渠道DTO
- * 
+ *
  * @description 移除对@common/constants的依赖，使用通知配置系统的本地验证限制
  * @see docs/代码审查文档/配置文件标准/四层配置体系标准规则与开发指南.md
  */
@@ -21,8 +21,8 @@ import {
 } from "class-validator";
 
 // 使用Notification模块的类型
-import { 
-  NotificationChannelType, 
+import {
+  NotificationChannelType,
   NotificationPriority,
   NotificationStatus,
 } from "../types/notification.types";
@@ -40,19 +40,19 @@ export const LOCAL_NOTIFICATION_VALIDATION_LIMITS = {
   // 重试次数限制
   SEND_RETRIES_MIN: 1,
   SEND_RETRIES_MAX: 10,
-  
+
   // 超时时间限制（毫秒）
   SEND_TIMEOUT_MIN: 1000,
   SEND_TIMEOUT_MAX: 120000,
-  
-  // 变量名长度限制 
+
+  // 变量名长度限制
   VARIABLE_NAME_MIN_LENGTH: 1,
   VARIABLE_NAME_MAX_LENGTH: 100,
-  
+
   // 模板长度限制
   MIN_TEMPLATE_LENGTH: 1,
   MAX_TEMPLATE_LENGTH: 20000,
-  
+
   // 标题和内容长度限制
   TITLE_MAX_LENGTH: 500,
   CONTENT_MAX_LENGTH: 5000,
@@ -108,8 +108,8 @@ export class NotificationChannelEnhancedDto {
   @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
-  @ApiPropertyOptional({ 
-    description: "优先级", 
+  @ApiPropertyOptional({
+    description: "优先级",
     enum: NotificationPriority,
     default: NotificationPriority.NORMAL,
   })
@@ -155,8 +155,8 @@ export class CreateNotificationChannelEnhancedDto {
   @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
-  @ApiPropertyOptional({ 
-    description: "优先级", 
+  @ApiPropertyOptional({
+    description: "优先级",
     enum: NotificationPriority,
     default: NotificationPriority.NORMAL,
   })
@@ -169,7 +169,7 @@ export class CreateNotificationChannelEnhancedDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "标签",
     type: "object",
     additionalProperties: true,
@@ -225,8 +225,8 @@ export class UpdateNotificationChannelEnhancedDto {
   @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
-  @ApiPropertyOptional({ 
-    description: "优先级", 
+  @ApiPropertyOptional({
+    description: "优先级",
     enum: NotificationPriority,
   })
   @IsOptional()
@@ -238,7 +238,7 @@ export class UpdateNotificationChannelEnhancedDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "标签",
     type: "object",
     additionalProperties: true,
@@ -301,7 +301,7 @@ export class NotificationChannelResponseEnhancedDto {
   @ApiPropertyOptional({ description: "描述信息" })
   description?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "标签",
     type: "object",
     additionalProperties: true,
@@ -337,8 +337,8 @@ export class CreateNotificationEnhancedDto {
   @IsString()
   content: string;
 
-  @ApiProperty({ 
-    description: "优先级", 
+  @ApiProperty({
+    description: "优先级",
     enum: NotificationPriority,
     default: NotificationPriority.NORMAL,
   })
@@ -349,7 +349,7 @@ export class CreateNotificationEnhancedDto {
   @IsString()
   recipient: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "扩展元数据",
     type: "object",
     additionalProperties: true,
@@ -373,7 +373,10 @@ export class NotificationQueryEnhancedDto {
   @IsString()
   channelId?: string;
 
-  @ApiPropertyOptional({ description: "渠道类型", enum: NotificationChannelType })
+  @ApiPropertyOptional({
+    description: "渠道类型",
+    enum: NotificationChannelType,
+  })
   @IsOptional()
   @IsEnum(NotificationChannelType)
   channelType?: NotificationChannelType;
@@ -421,7 +424,11 @@ export class NotificationQueryEnhancedDto {
   @IsString()
   sortBy?: string;
 
-  @ApiPropertyOptional({ description: "排序方向", enum: ["asc", "desc"], default: "desc" })
+  @ApiPropertyOptional({
+    description: "排序方向",
+    enum: ["asc", "desc"],
+    default: "desc",
+  })
   @IsOptional()
   @IsEnum(["asc", "desc"])
   sortOrder?: "asc" | "desc";
@@ -476,7 +483,7 @@ export class NotificationResponseEnhancedDto {
   @ApiPropertyOptional({ description: "发送耗时(ms)" })
   duration?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "扩展元数据",
     type: "object",
     additionalProperties: true,

@@ -3,14 +3,23 @@
  * 🎯 从常量迁移而来的可配置渠道设置
  */
 
-import { IsString, IsNumber, IsBoolean, IsObject, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsObject,
+  Min,
+  Max,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class EmailChannelDefaultConfig {
   @IsString()
   defaultHost: string = "";
 
-  @IsNumber() @Min(1) @Max(65535)
+  @IsNumber()
+  @Min(1)
+  @Max(65535)
   defaultPort: number = 587;
 
   @IsBoolean()

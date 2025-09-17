@@ -1,4 +1,4 @@
-import { API_OPERATIONS } from '@common/constants/domain';
+import { API_OPERATIONS } from "@common/constants/domain";
 /**
  * 字段命名重构相关的类型定义
  * 用于统一管理和映射不同组件间的字段关系
@@ -6,7 +6,7 @@ import { API_OPERATIONS } from '@common/constants/domain';
 
 // Receiver 组件的能力类型
 export type ReceiverType =
-  | "get-stock-quote"  // API_OPERATIONS.STOCK_DATA.GET_QUOTE
+  | "get-stock-quote" // API_OPERATIONS.STOCK_DATA.GET_QUOTE
   | "get-stock-basic-info"
   | "get-index-quote"
   | "get-market-status"
@@ -29,7 +29,11 @@ export { StorageClassification };
  * Query 组件的过滤类型
  * 支持直接使用 StorageClassification 或 ReceiverType，以及特殊值
  */
-export type QueryTypeFilter = StorageClassification | ReceiverType | 'all' | 'none';
+export type QueryTypeFilter =
+  | StorageClassification
+  | ReceiverType
+  | "all"
+  | "none";
 
 /**
  * 字段映射关系配置
@@ -37,7 +41,7 @@ export type QueryTypeFilter = StorageClassification | ReceiverType | 'all' | 'no
 export const FIELD_MAPPING_CONFIG = {
   // Receiver 能力类型到 Storage 数据分类的映射
   CAPABILITY_TO_CLASSIFICATION: {
-    "get-stock-quote": StorageClassification.STOCK_QUOTE,  // API_OPERATIONS.STOCK_DATA.GET_QUOTE
+    "get-stock-quote": StorageClassification.STOCK_QUOTE, // API_OPERATIONS.STOCK_DATA.GET_QUOTE
     "get-stock-basic-info": StorageClassification.STOCK_BASIC_INFO,
     "get-index-quote": StorageClassification.INDEX_QUOTE,
     "get-market-status": StorageClassification.MARKET_STATUS,

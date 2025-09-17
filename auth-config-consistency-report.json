@@ -1,0 +1,233 @@
+{
+  "timestamp": "2025-09-17T01:42:01.196Z",
+  "summary": {
+    "totalIssues": 23,
+    "totalWarnings": 8,
+    "totalSuggestions": 0,
+    "severityBreakdown": {
+      "high": 12,
+      "medium": 11,
+      "low": 0
+    }
+  },
+  "issues": [
+    {
+      "type": "config_overlap",
+      "description": "TTL配置重叠检查: 模式 \"CACHE_TTL\" 在 3 个文件中出现，超过允许的 2 个。文件: auth-cache.config.ts, compatibility-wrapper.ts, permission-control.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "TTL配置重叠检查: 模式 \"CACHE_TTL\" 出现在未授权的文件中: permission-control.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "TTL配置重叠检查: 模式 \"TTL_SECONDS\" 在 3 个文件中出现，超过允许的 2 个。文件: auth-cache.config.ts, compatibility-wrapper.ts, permission-control.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "TTL配置重叠检查: 模式 \"TTL_SECONDS\" 出现在未授权的文件中: permission-control.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "TTL配置重叠检查: 模式 \"cacheTtl\" 在 3 个文件中出现，超过允许的 2 个。文件: auth-cache.config.ts, compatibility-wrapper.ts, security.config.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "TTL配置重叠检查: 模式 \"cacheTtl\" 出现在未授权的文件中: security.config.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "TTL配置重叠检查: 模式 \"_TTL\" 在 4 个文件中出现，超过允许的 2 个。文件: auth-cache.config.ts, compatibility-wrapper.ts, auth-configuration.ts, permission-control.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "TTL配置重叠检查: 模式 \"_TTL\" 出现在未授权的文件中: auth-configuration.ts, permission-control.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "频率限制配置重叠检查: 模式 \"RATE_LIMIT\" 在 6 个文件中出现，超过允许的 3 个。文件: auth-cache.config.ts, auth-limits.config.ts, compatibility-wrapper.ts, auth-configuration.ts, rate-limiting.constants.ts, auth-semantic.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "频率限制配置重叠检查: 模式 \"RATE_LIMIT\" 出现在未授权的文件中: auth-cache.config.ts, auth-configuration.ts, auth-semantic.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "频率限制配置重叠检查: 模式 \"rateLimit\" 在 4 个文件中出现，超过允许的 3 个。文件: auth-cache.config.ts, compatibility-wrapper.ts, auth-configuration.ts, security.config.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "频率限制配置重叠检查: 模式 \"rateLimit\" 出现在未授权的文件中: auth-cache.config.ts, auth-configuration.ts, security.config.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "字符串长度限制重叠检查: 模式 \"MAX_STRING_LENGTH\" 出现在未授权的文件中: auth-configuration.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "字符串长度限制重叠检查: 模式 \"MAX_.*_LENGTH\" 在 4 个文件中出现，超过允许的 2 个。文件: compatibility-wrapper.ts, auth-configuration.ts, permission-control.constants.ts, auth-semantic.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "字符串长度限制重叠检查: 模式 \"MAX_.*_LENGTH\" 出现在未授权的文件中: auth-configuration.ts, permission-control.constants.ts, auth-semantic.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "字符串长度限制重叠检查: 模式 \"maxStringLength\" 在 4 个文件中出现，超过允许的 2 个。文件: auth-unified.config.ts, auth-limits.config.ts, compatibility-wrapper.ts, auth-configuration.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "字符串长度限制重叠检查: 模式 \"maxStringLength\" 出现在未授权的文件中: auth-unified.config.ts, auth-configuration.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "超时配置重叠检查: 模式 \"TIMEOUT\" 在 4 个文件中出现，超过允许的 2 个。文件: auth-limits.config.ts, compatibility-wrapper.ts, auth-configuration.ts, permission-control.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "超时配置重叠检查: 模式 \"TIMEOUT\" 出现在未授权的文件中: auth-configuration.ts, permission-control.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "超时配置重叠检查: 模式 \"timeout\" 在 3 个文件中出现，超过允许的 2 个。文件: auth-unified.config.ts, auth-limits.config.ts, compatibility-wrapper.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "超时配置重叠检查: 模式 \"timeout\" 出现在未授权的文件中: auth-unified.config.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "config_overlap",
+      "description": "超时配置重叠检查: 模式 \"_TIMEOUT_\" 在 3 个文件中出现，超过允许的 2 个。文件: auth-limits.config.ts, compatibility-wrapper.ts, permission-control.constants.ts",
+      "severity": "medium",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    },
+    {
+      "type": "unauthorized_config",
+      "description": "超时配置重叠检查: 模式 \"_TIMEOUT_\" 出现在未授权的文件中: permission-control.constants.ts",
+      "severity": "high",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.200Z"
+    }
+  ],
+  "warnings": [
+    {
+      "description": "关键词 \"API\" 跨越多个配置类别: cache, limits, validation",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"KEY\" 跨越多个配置类别: cache, limits, validation",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"RATE\" 跨越多个配置类别: cache, limits, validation",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"LIMIT\" 跨越多个配置类别: cache, limits, validation",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"TIMEOUT\" 跨越多个配置类别: limits, redis",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"LENGTH\" 跨越多个配置类别: limits, validation",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"MAX\" 跨越多个配置类别: limits, validation, complexity",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    },
+    {
+      "description": "关键词 \"LOGIN\" 跨越多个配置类别: limits, validation",
+      "file": null,
+      "timestamp": "2025-09-17T01:41:57.199Z"
+    }
+  ],
+  "suggestions": [],
+  "recommendations": [
+    {
+      "priority": "high",
+      "action": "消除配置重叠",
+      "description": "将重复的配置定义合并到统一配置系统中",
+      "estimatedEffort": "2-4小时"
+    },
+    {
+      "priority": "medium",
+      "action": "解决配置警告",
+      "description": "审查并解决配置相关的警告",
+      "estimatedEffort": "2-3小时"
+    }
+  ]
+}

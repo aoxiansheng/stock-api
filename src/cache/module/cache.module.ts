@@ -7,33 +7,36 @@ import { CacheConfigCompatibilityModule } from "../config/compatibility-registry
 import cacheUnifiedConfig from "../config/cache-unified.config";
 // 兼容性配置（保留向后兼容）
 import cacheConfig from "../config/cache-legacy.config";
+// 🎯 Phase 1.2: 移除CacheLoggingUtil依赖，使用通用日志组件
 
 @Module({
   imports: [
     // 🆕 统一配置（主配置 - 推荐用于新代码）
     ConfigModule.forFeature(cacheUnifiedConfig),
-    
+
     // 🔄 兼容性配置（保留向后兼容 - 现有代码继续工作）
     ConfigModule.forFeature(cacheConfig),
-    
+
     // 🎯 兼容性注册模块
     CacheConfigCompatibilityModule,
   ],
   providers: [
     CacheService,
-    
+    // 🎯 Phase 1.2: 移除CacheLoggingUtil，使用通用日志组件
+
     // 🎯 统一配置提供者（主要）
     {
-      provide: 'CACHE_UNIFIED_CONFIG',
-      useFactory: (configService: ConfigService) => configService.get('cacheUnified'),
+      provide: "CACHE_UNIFIED_CONFIG",
+      useFactory: (configService: ConfigService) =>
+        configService.get("cacheUnified"),
       inject: [ConfigService],
     },
-    
+
     // 🔄 向后兼容配置提供者
     {
-      provide: 'CACHE_TTL_CONFIG',
+      provide: "CACHE_TTL_CONFIG",
       useFactory: (configService: ConfigService) => {
-        const unifiedConfig = configService.get('cacheUnified');
+        const unifiedConfig = configService.get("cacheUnified");
         // 映射TTL配置到兼容接口
         return {
           defaultTtl: unifiedConfig.defaultTtl,
@@ -47,11 +50,11 @@ import cacheConfig from "../config/cache-legacy.config";
       },
       inject: [ConfigService],
     },
-    
+
     {
-      provide: 'CACHE_LIMITS_CONFIG',
+      provide: "CACHE_LIMITS_CONFIG",
       useFactory: (configService: ConfigService) => {
-        const unifiedConfig = configService.get('cacheUnified');
+        const unifiedConfig = configService.get("cacheUnified");
         // 映射限制配置到兼容接口
         return {
           maxBatchSize: unifiedConfig.maxBatchSize,
@@ -63,21 +66,22 @@ import cacheConfig from "../config/cache-legacy.config";
       },
       inject: [ConfigService],
     },
-    
+
     // Fix: Add cacheTtl provider that CacheService expects
     {
-      provide: 'cacheTtl',
+      provide: "cacheTtl",
       useFactory: (configService: ConfigService) => {
-        return configService.get('cacheUnified');
+        return configService.get("cacheUnified");
       },
       inject: [ConfigService],
     },
   ],
   exports: [
     CacheService,
-    'CACHE_UNIFIED_CONFIG',
-    'CACHE_TTL_CONFIG',
-    'CACHE_LIMITS_CONFIG',
+    // 🎯 Phase 1.2: 移除CacheLoggingUtil导出，使用通用日志组件
+    "CACHE_UNIFIED_CONFIG",
+    "CACHE_TTL_CONFIG",
+    "CACHE_LIMITS_CONFIG",
     CacheConfigCompatibilityModule,
   ],
 })

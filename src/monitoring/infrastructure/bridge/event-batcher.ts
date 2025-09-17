@@ -5,7 +5,7 @@
  * 设计理念：非阻塞、内存安全、可监控
  */
 
-import { MONITORING_SYSTEM_LIMITS } from '../../constants/config/monitoring-system.constants';
+import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 
 interface BatchedEvent {
   type: string;
@@ -154,7 +154,9 @@ export class EventBatcher {
       droppedEvents: this.droppedEvents,
       batchCount: this.batches.size,
       isShuttingDown: this.isShuttingDown,
-      queueUtilization: (this.totalEventCount / this.maxTotalEvents) * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
+      queueUtilization:
+        (this.totalEventCount / this.maxTotalEvents) *
+        MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
     };
   }
 

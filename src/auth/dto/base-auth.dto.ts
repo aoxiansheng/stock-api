@@ -1,15 +1,23 @@
-import { IsString, IsEmail, MinLength, MaxLength, Matches } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-import { USER_REGISTRATION } from '../constants/user-operations.constants';
+import {
+  IsString,
+  IsEmail,
+  MinLength,
+  MaxLength,
+  Matches,
+} from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
+import { USER_REGISTRATION } from "../constants/user-operations.constants";
+import { BaseQueryDto } from "@common/dto/base-query.dto";
 
 /**
  * 基础认证DTO类
- * 包含通用的用户名验证规则
+ * 继承BaseQueryDto获得分页支持，并包含通用的用户名验证规则
+ * 🎯 重构说明：现在支持分页查询，适用于用户列表等场景
  */
-export abstract class BaseAuthDto {
+export abstract class BaseAuthDto extends BaseQueryDto {
   @ApiProperty({
-    description: '用户名',
-    example: 'admin',
+    description: "用户名",
+    example: "admin",
     minLength: USER_REGISTRATION.USERNAME_MIN_LENGTH,
     maxLength: USER_REGISTRATION.USERNAME_MAX_LENGTH,
   })
@@ -17,7 +25,7 @@ export abstract class BaseAuthDto {
   @MinLength(USER_REGISTRATION.USERNAME_MIN_LENGTH)
   @MaxLength(USER_REGISTRATION.USERNAME_MAX_LENGTH)
   @Matches(USER_REGISTRATION.USERNAME_PATTERN, {
-    message: '用户名只能包含字母、数字、下划线和连字符',
+    message: "用户名只能包含字母、数字、下划线和连字符",
   })
   username: string;
 }
@@ -28,8 +36,8 @@ export abstract class BaseAuthDto {
  */
 export abstract class BasePasswordDto extends BaseAuthDto {
   @ApiProperty({
-    description: '密码',
-    example: 'password123',
+    description: "密码",
+    example: "password123",
     minLength: USER_REGISTRATION.PASSWORD_MIN_LENGTH,
   })
   @IsString()
@@ -38,7 +46,7 @@ export abstract class BasePasswordDto extends BaseAuthDto {
   })
   @MaxLength(USER_REGISTRATION.PASSWORD_MAX_LENGTH)
   @Matches(USER_REGISTRATION.PASSWORD_PATTERN, {
-    message: '密码必须包含至少一个字母和一个数字',
+    message: "密码必须包含至少一个字母和一个数字",
   })
   password: string;
 }
@@ -49,12 +57,12 @@ export abstract class BasePasswordDto extends BaseAuthDto {
  */
 export abstract class BaseUserDto extends BasePasswordDto {
   @ApiProperty({
-    description: '邮箱地址',
-    example: 'admin@example.com',
+    description: "邮箱地址",
+    example: "admin@example.com",
   })
   @IsEmail()
   @Matches(USER_REGISTRATION.EMAIL_PATTERN, {
-    message: '邮箱格式不正确',
+    message: "邮箱格式不正确",
   })
   email: string;
 }

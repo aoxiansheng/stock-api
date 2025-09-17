@@ -2,17 +2,17 @@
  * 缓存键迁移脚本
  * 🎯 协助从旧TTL配置迁移到统一TTL配置
  * 📊 处理既有缓存键的TTL更新和数据保护
- * 
+ *
  * @description 安全地迁移Alert组件相关的缓存键到新的统一TTL配置
  * @author Alert配置合规优化任务
  * @created 2025-09-15
  * @usage: bun run script:cache-migration
  */
 
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { CacheService } from '../cache/services/cache.service';
-import { UnifiedTtlConfig } from '../cache/config/unified-ttl.config';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { CacheService } from "../cache/services/cache.service";
+import { UnifiedTtlConfig } from "../cache/config/unified-ttl.config";
 
 interface CacheKeyMigrationResult {
   totalKeysScanned: number;
@@ -31,7 +31,7 @@ interface CacheKeyPattern {
 
 @Injectable()
 export class CacheKeyMigrationScript {
-  private readonly logger = new Logger('CacheKeyMigrationScript');
+  private readonly logger = new Logger("CacheKeyMigrationScript");
   private readonly ttlConfig: UnifiedTtlConfig;
 
   /**
@@ -40,39 +40,39 @@ export class CacheKeyMigrationScript {
    */
   private readonly migrationPatterns: CacheKeyPattern[] = [
     {
-      pattern: 'alert:active:*',
-      description: 'Alert活跃数据缓存',
-      newTtlProperty: 'alertActiveDataTtl',
+      pattern: "alert:active:*",
+      description: "Alert活跃数据缓存",
+      newTtlProperty: "alertActiveDataTtl",
       legacyTtl: 86400, // 旧配置：24小时
     },
     {
-      pattern: 'alert:cooldown:*',
-      description: 'Alert冷却期缓存',
-      newTtlProperty: 'alertCooldownTtl',
+      pattern: "alert:cooldown:*",
+      description: "Alert冷却期缓存",
+      newTtlProperty: "alertCooldownTtl",
       legacyTtl: 300, // 旧配置：5分钟
     },
     {
-      pattern: 'alert:timeseries:*',
-      description: 'Alert时序数据缓存',
-      newTtlProperty: 'alertHistoricalDataTtl',
+      pattern: "alert:timeseries:*",
+      description: "Alert时序数据缓存",
+      newTtlProperty: "alertHistoricalDataTtl",
       legacyTtl: 86400, // 旧配置：24小时
     },
     {
-      pattern: 'alert:config:*',
-      description: 'Alert配置缓存',
-      newTtlProperty: 'alertConfigCacheTtl',
+      pattern: "alert:config:*",
+      description: "Alert配置缓存",
+      newTtlProperty: "alertConfigCacheTtl",
       legacyTtl: 1800, // 旧配置：30分钟
     },
     {
-      pattern: 'alert:stats:*',
-      description: 'Alert统计缓存',
-      newTtlProperty: 'alertStatsCacheTtl',
+      pattern: "alert:stats:*",
+      description: "Alert统计缓存",
+      newTtlProperty: "alertStatsCacheTtl",
       legacyTtl: 3600, // 旧配置：1小时
     },
     {
-      pattern: 'alert:archived:*',
-      description: 'Alert归档数据缓存',
-      newTtlProperty: 'alertArchivedDataTtl',
+      pattern: "alert:archived:*",
+      description: "Alert归档数据缓存",
+      newTtlProperty: "alertArchivedDataTtl",
       legacyTtl: 86400, // 旧配置：24小时
     },
   ];
@@ -82,9 +82,11 @@ export class CacheKeyMigrationScript {
     private readonly configService: ConfigService,
   ) {
     // 获取统一TTL配置
-    this.ttlConfig = this.configService.get<UnifiedTtlConfig>('unifiedTtl');
+    this.ttlConfig = this.configService.get<UnifiedTtlConfig>("unifiedTtl");
     if (!this.ttlConfig) {
-      throw new Error('统一TTL配置未找到，请确保unified-ttl.config.ts已正确注册');
+      throw new Error(
+        "统一TTL配置未找到，请确保unified-ttl.config.ts已正确注册",
+      );
     }
   }
 
@@ -92,11 +94,15 @@ export class CacheKeyMigrationScript {
    * 执行缓存键迁移
    * 🎯 主要迁移入口点
    */
-  async executeMigration(dryRun: boolean = true): Promise<CacheKeyMigrationResult> {
+  async executeMigration(
+    dryRun: boolean = true,
+  ): Promise<CacheKeyMigrationResult> {
     const startTime = Date.now();
-    
-    this.logger.log(`开始缓存键迁移${dryRun ? ' (模拟模式)' : ''}`);
-    this.logger.log(`统一TTL配置值: ${JSON.stringify(this.ttlConfig, null, 2)}`);
+
+    this.logger.log(`开始缓存键迁移${dryRun ? " (模拟模式)" : ""}`);
+    this.logger.log(
+      `统一TTL配置值: ${JSON.stringify(this.ttlConfig, null, 2)}`,
+    );
 
     const result: CacheKeyMigrationResult = {
       totalKeysScanned: 0,
@@ -109,26 +115,32 @@ export class CacheKeyMigrationScript {
     try {
       // 遍历每个缓存键模式
       for (const pattern of this.migrationPatterns) {
-        this.logger.log(`处理模式: ${pattern.pattern} - ${pattern.description}`);
-        
+        this.logger.log(
+          `处理模式: ${pattern.pattern} - ${pattern.description}`,
+        );
+
         const patternResult = await this.migratePattern(pattern, dryRun);
-        
+
         result.totalKeysScanned += patternResult.scannedCount;
         result.migratedKeys += patternResult.migratedCount;
         result.skippedKeys += patternResult.skippedCount;
         result.errors.push(...patternResult.errors);
 
-        this.logger.log(`模式 ${pattern.pattern} 处理完成: 扫描=${patternResult.scannedCount}, 迁移=${patternResult.migratedCount}, 跳过=${patternResult.skippedCount}`);
+        this.logger.log(
+          `模式 ${pattern.pattern} 处理完成: 扫描=${patternResult.scannedCount}, 迁移=${patternResult.migratedCount}, 跳过=${patternResult.skippedCount}`,
+        );
       }
 
       result.elapsedTime = Date.now() - startTime;
 
-      this.logger.log(`缓存键迁移完成${dryRun ? ' (模拟模式)' : ''}`);
-      this.logger.log(`总结: 扫描=${result.totalKeysScanned}, 迁移=${result.migratedKeys}, 跳过=${result.skippedKeys}, 错误=${result.errors.length}, 耗时=${result.elapsedTime}ms`);
+      this.logger.log(`缓存键迁移完成${dryRun ? " (模拟模式)" : ""}`);
+      this.logger.log(
+        `总结: 扫描=${result.totalKeysScanned}, 迁移=${result.migratedKeys}, 跳过=${result.skippedKeys}, 错误=${result.errors.length}, 耗时=${result.elapsedTime}ms`,
+      );
 
       return result;
     } catch (error) {
-      this.logger.error('缓存键迁移失败', error);
+      this.logger.error("缓存键迁移失败", error);
       result.errors.push(`迁移失败: ${error.message}`);
       result.elapsedTime = Date.now() - startTime;
       throw error;
@@ -140,7 +152,7 @@ export class CacheKeyMigrationScript {
    */
   private async migratePattern(
     pattern: CacheKeyPattern,
-    dryRun: boolean
+    dryRun: boolean,
   ): Promise<{
     scannedCount: number;
     migratedCount: number;
@@ -166,8 +178,10 @@ export class CacheKeyMigrationScript {
 
       // 获取新的TTL值
       const newTtl = this.ttlConfig[pattern.newTtlProperty];
-      if (typeof newTtl !== 'number' || newTtl <= 0) {
-        result.errors.push(`无效的TTL值: ${pattern.newTtlProperty} = ${newTtl}`);
+      if (typeof newTtl !== "number" || newTtl <= 0) {
+        result.errors.push(
+          `无效的TTL值: ${pattern.newTtlProperty} = ${newTtl}`,
+        );
         return result;
       }
 
@@ -175,21 +189,25 @@ export class CacheKeyMigrationScript {
       const batchSize = 100; // 批处理大小
       for (let i = 0; i < keys.length; i += batchSize) {
         const batch = keys.slice(i, i + batchSize);
-        
+
         const batchResults = await Promise.allSettled(
-          batch.map(key => this.migrateSingleKey(key, newTtl, pattern, dryRun))
+          batch.map((key) =>
+            this.migrateSingleKey(key, newTtl, pattern, dryRun),
+          ),
         );
 
         // 处理批次结果
         batchResults.forEach((batchResult, index) => {
-          if (batchResult.status === 'fulfilled') {
+          if (batchResult.status === "fulfilled") {
             if (batchResult.value.migrated) {
               result.migratedCount++;
             } else {
               result.skippedCount++;
             }
           } else {
-            result.errors.push(`键 ${batch[index]} 迁移失败: ${batchResult.reason}`);
+            result.errors.push(
+              `键 ${batch[index]} 迁移失败: ${batchResult.reason}`,
+            );
           }
         });
       }
@@ -208,33 +226,40 @@ export class CacheKeyMigrationScript {
     key: string,
     newTtl: number,
     pattern: CacheKeyPattern,
-    dryRun: boolean
+    dryRun: boolean,
   ): Promise<{ migrated: boolean; reason?: string }> {
     try {
       // 检查键的当前TTL
       const currentTtl = await this.cacheService.getClient().ttl(key);
-      
+
       // TTL检查逻辑
       if (currentTtl === -1) {
         // 键没有过期时间，需要设置
         if (!dryRun) {
           await this.cacheService.expire(key, newTtl);
         }
-        this.logger.debug(`${dryRun ? '[模拟] ' : ''}键 ${key} TTL设置为 ${newTtl}秒 (之前无TTL)`);
+        this.logger.debug(
+          `${dryRun ? "[模拟] " : ""}键 ${key} TTL设置为 ${newTtl}秒 (之前无TTL)`,
+        );
         return { migrated: true };
       } else if (currentTtl === -2) {
         // 键不存在，跳过
-        return { migrated: false, reason: '键不存在' };
+        return { migrated: false, reason: "键不存在" };
       } else if (Math.abs(currentTtl - newTtl) > 60) {
         // TTL差异超过60秒，需要更新
         if (!dryRun) {
           await this.cacheService.expire(key, newTtl);
         }
-        this.logger.debug(`${dryRun ? '[模拟] ' : ''}键 ${key} TTL从 ${currentTtl}秒 更新为 ${newTtl}秒`);
+        this.logger.debug(
+          `${dryRun ? "[模拟] " : ""}键 ${key} TTL从 ${currentTtl}秒 更新为 ${newTtl}秒`,
+        );
         return { migrated: true };
       } else {
         // TTL差异较小，跳过
-        return { migrated: false, reason: `TTL差异较小 (${currentTtl}秒 vs ${newTtl}秒)` };
+        return {
+          migrated: false,
+          reason: `TTL差异较小 (${currentTtl}秒 vs ${newTtl}秒)`,
+        };
       }
     } catch (error) {
       throw new Error(`迁移键 ${key} 失败: ${error.message}`);
@@ -247,20 +272,21 @@ export class CacheKeyMigrationScript {
    */
   private async scanKeys(pattern: string): Promise<string[]> {
     const keys: string[] = [];
-    let cursor = '0';
-    
+    let cursor = "0";
+
     do {
       try {
-        const [nextCursor, foundKeys] = await this.cacheService.getClient()
-          .scan(cursor, 'MATCH', pattern, 'COUNT', 1000);
+        const [nextCursor, foundKeys] = await this.cacheService
+          .getClient()
+          .scan(cursor, "MATCH", pattern, "COUNT", 1000);
         cursor = nextCursor;
         keys.push(...foundKeys);
       } catch (error) {
         this.logger.error(`扫描键模式 ${pattern} 失败`, error);
         break;
       }
-    } while (cursor !== '0');
-    
+    } while (cursor !== "0");
+
     return keys;
   }
 
@@ -271,20 +297,32 @@ export class CacheKeyMigrationScript {
   async validateMigration(): Promise<{
     isValid: boolean;
     issues: string[];
-    summary: { [pattern: string]: { total: number; correctTtl: number; incorrectTtl: number } };
+    summary: {
+      [pattern: string]: {
+        total: number;
+        correctTtl: number;
+        incorrectTtl: number;
+      };
+    };
   }> {
-    this.logger.log('开始验证缓存键迁移结果');
+    this.logger.log("开始验证缓存键迁移结果");
 
     const result = {
       isValid: true,
       issues: [],
-      summary: {} as { [pattern: string]: { total: number; correctTtl: number; incorrectTtl: number } },
+      summary: {} as {
+        [pattern: string]: {
+          total: number;
+          correctTtl: number;
+          incorrectTtl: number;
+        };
+      },
     };
 
     for (const pattern of this.migrationPatterns) {
       const keys = await this.scanKeys(pattern.pattern);
       const expectedTtl = Number(this.ttlConfig[pattern.newTtlProperty]);
-      
+
       const summary = {
         total: keys.length,
         correctTtl: 0,
@@ -294,15 +332,17 @@ export class CacheKeyMigrationScript {
       for (const key of keys) {
         try {
           const ttl = await this.cacheService.getClient().ttl(key);
-          
+
           if (ttl === -2) {
             // 键不存在，跳过
             continue;
           }
-          
+
           if (ttl === -1 || (ttl > 0 && Math.abs(ttl - expectedTtl) > 60)) {
             summary.incorrectTtl++;
-            result.issues.push(`键 ${key} TTL不正确: 期望=${expectedTtl}秒, 实际=${ttl}秒`);
+            result.issues.push(
+              `键 ${key} TTL不正确: 期望=${expectedTtl}秒, 实际=${ttl}秒`,
+            );
             result.isValid = false;
           } else {
             summary.correctTtl++;
@@ -314,12 +354,16 @@ export class CacheKeyMigrationScript {
       }
 
       result.summary[pattern.pattern] = summary;
-      
-      this.logger.log(`模式 ${pattern.pattern} 验证结果: 总计=${summary.total}, 正确=${summary.correctTtl}, 错误=${summary.incorrectTtl}`);
+
+      this.logger.log(
+        `模式 ${pattern.pattern} 验证结果: 总计=${summary.total}, 正确=${summary.correctTtl}, 错误=${summary.incorrectTtl}`,
+      );
     }
 
-    this.logger.log(`迁移验证完成: ${result.isValid ? '✅ 通过' : '❌ 发现问题'}, 问题数=${result.issues.length}`);
-    
+    this.logger.log(
+      `迁移验证完成: ${result.isValid ? "✅ 通过" : "❌ 发现问题"}, 问题数=${result.issues.length}`,
+    );
+
     return result;
   }
 
@@ -327,7 +371,11 @@ export class CacheKeyMigrationScript {
    * 创建迁移备份
    * 🔄 在迁移前备份关键缓存数据
    */
-  async createMigrationBackup(): Promise<{ backupId: string; keyCount: number; backupSize: string }> {
+  async createMigrationBackup(): Promise<{
+    backupId: string;
+    keyCount: number;
+    backupSize: string;
+  }> {
     const backupId = `cache_migration_backup_${Date.now()}`;
     const backupKey = `backup:${backupId}`;
     let keyCount = 0;
@@ -336,12 +384,12 @@ export class CacheKeyMigrationScript {
     this.logger.log(`创建迁移备份: ${backupId}`);
 
     try {
-      const allPatterns = this.migrationPatterns.map(p => p.pattern);
+      const allPatterns = this.migrationPatterns.map((p) => p.pattern);
       const backupData: { [key: string]: { value: any; ttl: number } } = {};
 
       for (const pattern of allPatterns) {
         const keys = await this.scanKeys(pattern);
-        
+
         for (const key of keys) {
           try {
             const [value, ttl] = await Promise.all([
@@ -364,12 +412,14 @@ export class CacheKeyMigrationScript {
       await this.cacheService.set(backupKey, backupData, { ttl: 86400 * 7 }); // 保存7天
 
       const backupSize = `${(totalSize / 1024 / 1024).toFixed(2)} MB`;
-      
-      this.logger.log(`迁移备份创建完成: ID=${backupId}, 键数=${keyCount}, 大小=${backupSize}`);
-      
+
+      this.logger.log(
+        `迁移备份创建完成: ID=${backupId}, 键数=${keyCount}, 大小=${backupSize}`,
+      );
+
       return { backupId, keyCount, backupSize };
     } catch (error) {
-      this.logger.error('创建迁移备份失败', error);
+      this.logger.error("创建迁移备份失败", error);
       throw error;
     }
   }
@@ -378,14 +428,18 @@ export class CacheKeyMigrationScript {
    * 恢复迁移备份
    * 🔄 从备份恢复缓存数据
    */
-  async restoreMigrationBackup(backupId: string): Promise<{ restoredKeys: number; errors: string[] }> {
+  async restoreMigrationBackup(
+    backupId: string,
+  ): Promise<{ restoredKeys: number; errors: string[] }> {
     const backupKey = `backup:${backupId}`;
-    
+
     this.logger.log(`开始恢复迁移备份: ${backupId}`);
 
     try {
-      const backupData = await this.cacheService.get<{ [key: string]: { value: any; ttl: number } }>(backupKey);
-      
+      const backupData = await this.cacheService.get<{
+        [key: string]: { value: any; ttl: number };
+      }>(backupKey);
+
       if (!backupData) {
         throw new Error(`备份数据未找到: ${backupId}`);
       }
@@ -395,8 +449,8 @@ export class CacheKeyMigrationScript {
 
       for (const [key, data] of Object.entries(backupData)) {
         try {
-          await this.cacheService.set(key, data.value, { 
-            ttl: data.ttl > 0 ? data.ttl : undefined 
+          await this.cacheService.set(key, data.value, {
+            ttl: data.ttl > 0 ? data.ttl : undefined,
           });
           restoredKeys++;
         } catch (error) {
@@ -404,11 +458,13 @@ export class CacheKeyMigrationScript {
         }
       }
 
-      this.logger.log(`迁移备份恢复完成: 恢复键数=${restoredKeys}, 错误数=${errors.length}`);
-      
+      this.logger.log(
+        `迁移备份恢复完成: 恢复键数=${restoredKeys}, 错误数=${errors.length}`,
+      );
+
       return { restoredKeys, errors };
     } catch (error) {
-      this.logger.error('恢复迁移备份失败', error);
+      this.logger.error("恢复迁移备份失败", error);
       throw error;
     }
   }
@@ -417,7 +473,12 @@ export class CacheKeyMigrationScript {
    * 获取迁移统计信息
    */
   async getMigrationStats(): Promise<{
-    patterns: { pattern: string; description: string; keyCount: number; avgTtl: number }[];
+    patterns: {
+      pattern: string;
+      description: string;
+      keyCount: number;
+      avgTtl: number;
+    }[];
     totalKeys: number;
     totalMemoryUsage: string;
   }> {
@@ -429,19 +490,22 @@ export class CacheKeyMigrationScript {
       const keys = await this.scanKeys(pattern.pattern);
       let totalTtl = 0;
       let validTtlCount = 0;
-      
+
       for (const key of keys) {
         try {
           const [ttl, memory] = await Promise.all([
             this.cacheService.getClient().ttl(key),
-            this.cacheService.getClient().memory('USAGE', key).catch(() => 0),
+            this.cacheService
+              .getClient()
+              .memory("USAGE", key)
+              .catch(() => 0),
           ]);
-          
+
           if (ttl > 0) {
             totalTtl += ttl;
             validTtlCount++;
           }
-          
+
           totalMemoryBytes += Number(memory) || 0;
         } catch (error) {
           // 忽略单个键的错误

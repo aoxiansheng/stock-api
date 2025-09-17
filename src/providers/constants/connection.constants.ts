@@ -3,19 +3,19 @@
  * 职责：统一管理连接状态、健康检查和重连策略
  */
 
-import { PROVIDER_TIMEOUT } from './timeout.constants';
+import { PROVIDER_TIMEOUT } from "./timeout.constants";
 
 /**
  * 统一的连接状态枚举
  */
 export enum ConnectionStatus {
-  NOT_STARTED = 'not_started',
-  INITIALIZING = 'initializing', 
-  CONNECTED = 'connected',
-  RECONNECTING = 'reconnecting',
-  DISCONNECTED = 'disconnected',
-  FAILED = 'failed',
-  TERMINATED = 'terminated',
+  NOT_STARTED = "not_started",
+  INITIALIZING = "initializing",
+  CONNECTED = "connected",
+  RECONNECTING = "reconnecting",
+  DISCONNECTED = "disconnected",
+  FAILED = "failed",
+  TERMINATED = "terminated",
 }
 
 /**
@@ -24,14 +24,13 @@ export enum ConnectionStatus {
 export const CONNECTION_CONFIG = {
   // 健康状态
   HEALTH_STATUS: {
-    HEALTHY: 'healthy',
-    DEGRADED: 'degraded', 
-    FAILED: 'health_failed',
+    HEALTHY: "healthy",
+    DEGRADED: "degraded",
+    FAILED: "health_failed",
   } as const,
-  
+
   // 重连配置
-  RECONNECT: {
-  } as const,
+  RECONNECT: {} as const,
 
   // 连接池配置
   POOL: {
@@ -48,7 +47,7 @@ export interface IConnectionState {
   lastConnectionTime: number | null;
   subscriptionCount: number;
   connectionId: string | null;
-  healthStatus: typeof CONNECTION_CONFIG.HEALTH_STATUS[keyof typeof CONNECTION_CONFIG.HEALTH_STATUS];
+  healthStatus: (typeof CONNECTION_CONFIG.HEALTH_STATUS)[keyof typeof CONNECTION_CONFIG.HEALTH_STATUS];
   reconnectAttempts?: number;
   lastError?: string;
 }
@@ -56,18 +55,20 @@ export interface IConnectionState {
 /**
  * 获取连接状态的可读描述
  */
-export function getConnectionStatusDescription(status: ConnectionStatus): string {
+export function getConnectionStatusDescription(
+  status: ConnectionStatus,
+): string {
   const descriptions = {
-    [ConnectionStatus.NOT_STARTED]: '未开始',
-    [ConnectionStatus.INITIALIZING]: '初始化中',
-    [ConnectionStatus.CONNECTED]: '已连接',
-    [ConnectionStatus.RECONNECTING]: '重连中',
-    [ConnectionStatus.DISCONNECTED]: '已断开',
-    [ConnectionStatus.FAILED]: '连接失败',
-    [ConnectionStatus.TERMINATED]: '已终止',
+    [ConnectionStatus.NOT_STARTED]: "未开始",
+    [ConnectionStatus.INITIALIZING]: "初始化中",
+    [ConnectionStatus.CONNECTED]: "已连接",
+    [ConnectionStatus.RECONNECTING]: "重连中",
+    [ConnectionStatus.DISCONNECTED]: "已断开",
+    [ConnectionStatus.FAILED]: "连接失败",
+    [ConnectionStatus.TERMINATED]: "已终止",
   };
-  
-  return descriptions[status] || '未知状态';
+
+  return descriptions[status] || "未知状态";
 }
 
 /**

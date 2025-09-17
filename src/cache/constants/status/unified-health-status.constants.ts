@@ -4,13 +4,14 @@
  * 提供单一的健康状态结构，支持基础和扩展用法
  */
 
-import { CACHE_STATUS } from './cache-status.constants';
+import { CACHE_STATUS } from "./cache-status.constants";
 
 /**
  * 统一健康状态类型
  * 支持基础状态（对外API）和扩展状态（内部使用）
  */
-export type CacheHealthStatus = typeof CACHE_STATUS[keyof typeof CACHE_STATUS];
+export type CacheHealthStatus =
+  (typeof CACHE_STATUS)[keyof typeof CACHE_STATUS];
 
 /**
  * 基础健康状态子集
@@ -18,8 +19,8 @@ export type CacheHealthStatus = typeof CACHE_STATUS[keyof typeof CACHE_STATUS];
  */
 export const BASIC_HEALTH_STATUSES = Object.freeze([
   CACHE_STATUS.HEALTHY,
-  CACHE_STATUS.WARNING, 
-  CACHE_STATUS.UNHEALTHY
+  CACHE_STATUS.WARNING,
+  CACHE_STATUS.UNHEALTHY,
 ] as const);
 
 /**
@@ -57,7 +58,9 @@ const STATUS_MAPPING = Object.freeze({
  * 状态映射函数
  * 将扩展健康状态映射到基础健康状态
  */
-export function mapToBasicStatus(status: CacheExtendedHealthStatus): BasicHealthStatus {
+export function mapToBasicStatus(
+  status: CacheExtendedHealthStatus,
+): BasicHealthStatus {
   return STATUS_MAPPING[status] ?? CACHE_STATUS.UNHEALTHY;
 }
 

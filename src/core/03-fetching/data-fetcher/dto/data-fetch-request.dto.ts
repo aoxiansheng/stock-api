@@ -1,13 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   IsString,
   IsArray,
   IsOptional,
   IsObject,
   IsEnum,
-  ArrayNotEmpty
+  ArrayNotEmpty,
 } from "class-validator";
 import { API_TYPE_VALUES } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 import type { ApiType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";

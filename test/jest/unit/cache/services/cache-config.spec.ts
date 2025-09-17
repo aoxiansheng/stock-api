@@ -3,16 +3,16 @@
  * 验证 CacheService 正确使用 ConfigService 获取配置
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import Redis from 'ioredis';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import Redis from "ioredis";
 
-import { CacheService } from '../../../../../src/cache/services/cache.service';
-import { CacheUnifiedConfig } from '../../../../../src/cache/config/cache-unified.config';
-import cacheUnifiedConfig from '../../../../../src/cache/config/cache-unified.config';
+import { CacheService } from "../../../../../src/cache/services/cache.service";
+import { CacheUnifiedConfig } from "../../../../../src/cache/config/cache-unified.config";
+import cacheUnifiedConfig from "../../../../../src/cache/config/cache-unified.config";
 
-describe('CacheService Configuration', () => {
+describe("CacheService Configuration", () => {
   let service: CacheService;
   let configService: ConfigService;
   let redisClient: jest.Mocked<Redis>;
@@ -71,14 +71,14 @@ describe('CacheService Configuration', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn().mockImplementation((key: string) => {
-              if (key === 'cacheUnified') return mockUnifiedConfig;
-              if (key === 'cache') return mockUnifiedConfig; // backward compatibility
+              if (key === "cacheUnified") return mockUnifiedConfig;
+              if (key === "cache") return mockUnifiedConfig; // backward compatibility
               return undefined;
             }),
           },
         },
         {
-          provide: 'default_IORedisModuleConnectionToken',
+          provide: "default_IORedisModuleConnectionToken",
           useValue: redisClient,
         },
         {
@@ -86,7 +86,7 @@ describe('CacheService Configuration', () => {
           useValue: eventEmitter,
         },
         {
-          provide: 'cacheTtl',
+          provide: "cacheTtl",
           useValue: mockUnifiedConfig,
         },
       ],
@@ -100,13 +100,13 @@ describe('CacheService Configuration', () => {
     jest.clearAllMocks();
   });
 
-  describe('Configuration Integration', () => {
-    it('should initialize with cache configuration from ConfigService', () => {
-      expect(configService.get).toHaveBeenCalledWith('cacheUnified');
+  describe("Configuration Integration", () => {
+    it("should initialize with cache configuration from ConfigService", () => {
+      expect(configService.get).toHaveBeenCalledWith("cacheUnified");
       expect(service).toBeDefined();
     });
 
-    it('should throw error if cache configuration not found', async () => {
+    it("should throw error if cache configuration not found", async () => {
       // Mock ConfigService to return undefined
       const configServiceMock = {
         get: jest.fn().mockReturnValue(undefined),
@@ -121,7 +121,7 @@ describe('CacheService Configuration', () => {
               useValue: configServiceMock,
             },
             {
-              provide: 'default_IORedisModuleConnectionToken',
+              provide: "default_IORedisModuleConnectionToken",
               useValue: redisClient,
             },
             {
@@ -129,103 +129,109 @@ describe('CacheService Configuration', () => {
               useValue: eventEmitter,
             },
           ],
-        }).compile()
-      ).rejects.toThrow('Cache configuration not found');
+        }).compile(),
+      ).rejects.toThrow("Cache configuration not found");
     });
   });
 
-  describe('TTL Configuration', () => {
-    it('should use unified configuration for default TTL', async () => {
-      redisClient.setex.mockResolvedValue('OK');
-      
-      await service.set('test-key', 'test-value');
-      
+  describe("TTL Configuration", () => {
+    it("should use unified configuration for default TTL", async () => {
+      redisClient.setex.mockResolvedValue("OK");
+
+      await service.set("test-key", "test-value");
+
       expect(redisClient.setex).toHaveBeenCalledWith(
-        'test-key',
+        "test-key",
         mockUnifiedConfig.defaultTtl,
-        expect.any(String)
+        expect.any(String),
       );
     });
 
-    it('should respect custom TTL when provided', async () => {
-      redisClient.setex.mockResolvedValue('OK');
+    it("should respect custom TTL when provided", async () => {
+      redisClient.setex.mockResolvedValue("OK");
       const customTtl = 600;
-      
-      await service.set('test-key', 'test-value', { ttl: customTtl });
-      
+
+      await service.set("test-key", "test-value", { ttl: customTtl });
+
       expect(redisClient.setex).toHaveBeenCalledWith(
-        'test-key',
+        "test-key",
         customTtl,
-        expect.any(String)
+        expect.any(String),
       );
     });
   });
 
-  describe('Compression Configuration', () => {
-    it('should use unified compression threshold', async () => {
-      redisClient.setex.mockResolvedValue('OK');
-      
+  describe("Compression Configuration", () => {
+    it("should use unified compression threshold", async () => {
+      redisClient.setex.mockResolvedValue("OK");
+
       // Create data larger than compression threshold
-      const largeData = 'x'.repeat(mockUnifiedConfig.compressionThreshold + 100);
-      
-      await service.set('test-key', largeData);
-      
+      const largeData = "x".repeat(
+        mockUnifiedConfig.compressionThreshold + 100,
+      );
+
+      await service.set("test-key", largeData);
+
       // Should compress the data and use setex with compressed value
       expect(redisClient.setex).toHaveBeenCalled();
       const [, , compressedValue] = redisClient.setex.mock.calls[0];
-      expect(compressedValue).toContain('COMPRESSED::');
+      expect(compressedValue).toContain("COMPRESSED::");
     });
 
-    it('should not compress small values', async () => {
-      redisClient.setex.mockResolvedValue('OK');
-      
+    it("should not compress small values", async () => {
+      redisClient.setex.mockResolvedValue("OK");
+
       // Create data smaller than compression threshold
-      const smallData = 'small data';
-      
-      await service.set('test-key', smallData);
-      
+      const smallData = "small data";
+
+      await service.set("test-key", smallData);
+
       // Should not compress the data
       expect(redisClient.setex).toHaveBeenCalled();
       const [, , value] = redisClient.setex.mock.calls[0];
-      expect(value).not.toContain('COMPRESSED::');
+      expect(value).not.toContain("COMPRESSED::");
     });
   });
 
-  describe('Batch Size Configuration', () => {
-    it('should enforce max batch size limit', async () => {
+  describe("Batch Size Configuration", () => {
+    it("should enforce max batch size limit", async () => {
       const largeKeyArray = Array.from({ length: 101 }, (_, i) => `key-${i}`); // 101 > 100 (unified config batch limit)
-      
-      await expect(service.mget(largeKeyArray)).rejects.toThrow('批量操作超过最大限制');
+
+      await expect(service.mget(largeKeyArray)).rejects.toThrow(
+        "批量操作超过最大限制",
+      );
     });
 
-    it('should allow batch operations within limit', async () => {
+    it("should allow batch operations within limit", async () => {
       redisClient.mget.mockResolvedValue([]);
-      
+
       const keyArray = Array.from({ length: 99 }, (_, i) => `key-${i}`); // 99 < 100 (unified config batch limit)
-      
+
       await expect(service.mget(keyArray)).resolves.not.toThrow();
       expect(redisClient.mget).toHaveBeenCalledWith(keyArray);
     });
   });
 
-  describe('Key Length Validation', () => {
-    it('should enforce max key length limit', async () => {
-      const longKey = 'x'.repeat(mockUnifiedConfig.maxKeyLength + 1);
-      
-      await expect(service.set(longKey, 'value')).rejects.toThrow('缓存键长度超过最大限制');
+  describe("Key Length Validation", () => {
+    it("should enforce max key length limit", async () => {
+      const longKey = "x".repeat(mockUnifiedConfig.maxKeyLength + 1);
+
+      await expect(service.set(longKey, "value")).rejects.toThrow(
+        "缓存键长度超过最大限制",
+      );
     });
 
-    it('should allow keys within length limit', async () => {
-      redisClient.setex.mockResolvedValue('OK');
-      
-      const validKey = 'x'.repeat(mockUnifiedConfig.maxKeyLength - 1);
-      
-      await expect(service.set(validKey, 'value')).resolves.toBe(true);
+    it("should allow keys within length limit", async () => {
+      redisClient.setex.mockResolvedValue("OK");
+
+      const validKey = "x".repeat(mockUnifiedConfig.maxKeyLength - 1);
+
+      await expect(service.set(validKey, "value")).resolves.toBe(true);
     });
   });
 
-  describe('Lock TTL Configuration', () => {
-    it('should use unified lock TTL configuration', async () => {
+  describe("Lock TTL Configuration", () => {
+    it("should use unified lock TTL configuration", async () => {
       // This test would require more complex setup to test the lock mechanism
       // For now, we verify the configuration is available
       expect(mockUnifiedConfig.lockTtl).toBe(30);

@@ -14,12 +14,8 @@ import { ProvidersController } from "../controller/providers-controller";
 @Module({
   imports: [AuthModule, LongportModule, LongportSgModule],
   controllers: [ProvidersController],
-  providers: [
-    EnhancedCapabilityRegistryService,
-  ],
-  exports: [
-    EnhancedCapabilityRegistryService,
-  ],
+  providers: [EnhancedCapabilityRegistryService],
+  exports: [EnhancedCapabilityRegistryService],
 })
 export class ProvidersModule implements OnModuleInit {
   private initialized = false;

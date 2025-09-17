@@ -1,5 +1,5 @@
-import { IsOptional, IsBoolean, IsNumber } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsBoolean, IsNumber } from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 export class BaseRequestOptionsDto {
   @ApiPropertyOptional({

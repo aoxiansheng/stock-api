@@ -8,9 +8,9 @@
  */
 export enum MappingDirection {
   /** 从原始符号转换为标准符号 */
-  TO_STANDARD = 'to_standard',
+  TO_STANDARD = "to_standard",
   /** 从标准符号转换为原始符号 */
-  FROM_STANDARD = 'from_standard'
+  FROM_STANDARD = "from_standard",
 }
 
 /**
@@ -58,7 +58,7 @@ export const CACHE_CLEANUP = {
   LRU_SORT_BATCH_SIZE: 1000, // 避免大数据集排序性能问题，单次最多处理1000条目
   // ⚠️ LRU_SORT_BATCH_SIZE 已迁移至统一配置: src/cache/config/cache-unified.config.ts
   // 这里保留是为了向后兼容，建议使用 CacheLimitsProvider.getBatchSizeLimit('lruSort')
-  CLEANUP_STRATEGY: 'incremental' // 标识使用增量清理而非全清空
+  CLEANUP_STRATEGY: "incremental", // 标识使用增量清理而非全清空
 } as const;
 
 /**

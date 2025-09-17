@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { GatewayBroadcastError } from "../exceptions/gateway-broadcast.exception";
 
 /**

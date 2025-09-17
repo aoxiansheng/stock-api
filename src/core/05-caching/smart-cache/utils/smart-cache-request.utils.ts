@@ -176,7 +176,9 @@ export function extractMarketFromSymbols(symbols: string[]): string {
  * @param symbol 股票符号
  * @returns 推断的市场枚举
  */
-export function inferMarketFromSymbol(symbol: string): typeof Market[keyof typeof Market] {
+export function inferMarketFromSymbol(
+  symbol: string,
+): (typeof Market)[keyof typeof Market] {
   const upperSymbol = symbol.toUpperCase().trim();
 
   // 香港市场: .HK 后缀或5位数字

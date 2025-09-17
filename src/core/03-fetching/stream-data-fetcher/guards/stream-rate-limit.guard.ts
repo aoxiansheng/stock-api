@@ -1,5 +1,4 @@
-
-import { OPERATION_LIMITS } from '@common/constants/domain';
+import { OPERATION_LIMITS } from "@common/constants/domain";
 import {
   Injectable,
   CanActivate,
@@ -235,7 +234,10 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   /**
    * 检查突发请求限制
    */
-  private checkBurstLimit(clientIP: string, config: ApiRateLimitConfig): boolean {
+  private checkBurstLimit(
+    clientIP: string,
+    config: ApiRateLimitConfig,
+  ): boolean {
     if (!config.burst || this.isDestroyed) return true;
 
     const now = Date.now();

@@ -5,11 +5,12 @@
  */
 
 /**
- * 消息状态描述 - 临时占位符  
+ * 消息状态描述 - 临时占位符
  * 注：健康状态描述请使用 monitoring-health.constants.ts 中的 MONITORING_STATUS_DESCRIPTIONS
  */
-export const MONITORING_MESSAGE_STATUS_DESCRIPTIONS = Object.freeze({
-} as const);
+export const MONITORING_MESSAGE_STATUS_DESCRIPTIONS = Object.freeze(
+  {} as const,
+);
 
 /**
  * 消息格式化器 - 临时占位符
@@ -36,12 +37,12 @@ export const MONITORING_METRIC_STATUS_DESCRIPTIONS = Object.freeze({
  * 用于消息分类和处理
  */
 export const MONITORING_MESSAGE_TYPES = Object.freeze({
-  OPERATION: 'operation',
-  ERROR: 'error',
-  LOG: 'log',
-  NOTIFICATION: 'notification',
-  STATUS: 'status',
-  ACTION: 'action'
+  OPERATION: "operation",
+  ERROR: "error",
+  LOG: "log",
+  NOTIFICATION: "notification",
+  STATUS: "status",
+  ACTION: "action",
 } as const);
 
 /**
@@ -56,7 +57,9 @@ export const MONITORING_MESSAGE_SEVERITY = Object.freeze({
 /**
  * 消息模板类型定义
  */
-export type MonitoringMessageType = typeof MONITORING_MESSAGE_TYPES[keyof typeof MONITORING_MESSAGE_TYPES];
-export type MonitoringMessageSeverity = typeof MONITORING_MESSAGE_SEVERITY[keyof typeof MONITORING_MESSAGE_SEVERITY];
-export type MonitoringMetricStatusDescriptions = typeof MONITORING_METRIC_STATUS_DESCRIPTIONS;
-
+export type MonitoringMessageType =
+  (typeof MONITORING_MESSAGE_TYPES)[keyof typeof MONITORING_MESSAGE_TYPES];
+export type MonitoringMessageSeverity =
+  (typeof MONITORING_MESSAGE_SEVERITY)[keyof typeof MONITORING_MESSAGE_SEVERITY];
+export type MonitoringMetricStatusDescriptions =
+  typeof MONITORING_METRIC_STATUS_DESCRIPTIONS;

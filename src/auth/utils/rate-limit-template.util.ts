@@ -8,7 +8,10 @@ export class RateLimitTemplateUtil {
   /**
    * 替换错误消息模板中的占位符
    */
-  static replaceErrorTemplate(template: string, params: Record<string, any>): string {
+  static replaceErrorTemplate(
+    template: string,
+    params: Record<string, any>,
+  ): string {
     return template.replace(/\{(\w+)\}/g, (match, key) => {
       const value = params[key];
       return value !== undefined ? String(value) : match;
@@ -55,15 +58,20 @@ export class RateLimitTemplateUtil {
   /**
    * 生成错误消息（简化版本，支持基本占位符替换）
    */
-  static generateErrorMessage(templateKey: string, params: Record<string, any>): string {
+  static generateErrorMessage(
+    templateKey: string,
+    params: Record<string, any>,
+  ): string {
     // 简化的错误消息模板
     const templates: Record<string, string> = {
-      'UNSUPPORTED_STRATEGY': "不支持的频率限制策略: {strategy}",
-      'INVALID_WINDOW_FORMAT': "无效的时间窗口格式: {window}，期望格式如: 1s, 5m, 1h, 1d",
-      'RATE_LIMIT_EXCEEDED': "API Key {appKey} 超过频率限制: {current}/{limit} 请求",
-      'INVALID_LIMIT_VALUE': "无效的限制值: {limit}，必须是正整数"
+      UNSUPPORTED_STRATEGY: "不支持的频率限制策略: {strategy}",
+      INVALID_WINDOW_FORMAT:
+        "无效的时间窗口格式: {window}，期望格式如: 1s, 5m, 1h, 1d",
+      RATE_LIMIT_EXCEEDED:
+        "API Key {appKey} 超过频率限制: {current}/{limit} 请求",
+      INVALID_LIMIT_VALUE: "无效的限制值: {limit}，必须是正整数",
     };
-    
+
     const template = templates[templateKey] || templateKey;
     return this.replaceErrorTemplate(template, params);
   }

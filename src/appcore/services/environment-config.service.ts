@@ -1,18 +1,22 @@
 /**
  * 环境配置服务
  * 🏛️ AppCore层 - 应用级环境配置管理服务
- * 
- * @description 
+ *
+ * @description
  * 从src/common/constants/application/environment-config.constants.ts中的
  * EnvironmentConfigManager迁移而来，现在使用NestJS依赖注入模式
- * 
+ *
  * @author Claude Code Assistant
  * @date 2025-01-16
  */
 
-import { Injectable, Inject } from '@nestjs/common';
-import { ConfigType } from '@nestjs/config';
-import environmentConfig, { Environment, LogLevel, EnvironmentHelper } from '../config/environment.config';
+import { Injectable, Inject } from "@nestjs/common";
+import { ConfigType } from "@nestjs/config";
+import environmentConfig, {
+  Environment,
+  LogLevel,
+  EnvironmentHelper,
+} from "../config/environment.config";
 
 /**
  * 环境配置服务
@@ -143,7 +147,7 @@ export class EnvironmentConfigService {
   getBooleanEnvVariable(key: string, defaultValue: boolean = false): boolean {
     const value = this.getEnvVariable(key);
     if (!value) return defaultValue;
-    return ['true', '1', 'yes', 'on'].includes(value.toLowerCase());
+    return ["true", "1", "yes", "on"].includes(value.toLowerCase());
   }
 
   /**
@@ -206,8 +210,8 @@ export class EnvironmentConfigService {
    */
   getEnvironmentStats(): any {
     const totalVars = this.envVariables.size;
-    const appVars = Array.from(this.envVariables.keys()).filter(key => 
-      key.startsWith('APP_') || key.startsWith('ENV_')
+    const appVars = Array.from(this.envVariables.keys()).filter(
+      (key) => key.startsWith("APP_") || key.startsWith("ENV_"),
     ).length;
     const systemVars = totalVars - appVars;
 
@@ -241,24 +245,33 @@ export class EnvironmentConfigService {
     const currentEnv = this.envConfig.environment;
     const advice: string[] = [];
 
-    if (currentEnv === Environment.DEVELOPMENT && targetEnv === Environment.PRODUCTION) {
-      advice.push('禁用所有调试功能');
-      advice.push('启用安全功能（CORS、CSRF等）');
-      advice.push('增加资源限制配置');
-      advice.push('禁用开发工具端点');
-      advice.push('设置适当的日志级别');
+    if (
+      currentEnv === Environment.DEVELOPMENT &&
+      targetEnv === Environment.PRODUCTION
+    ) {
+      advice.push("禁用所有调试功能");
+      advice.push("启用安全功能（CORS、CSRF等）");
+      advice.push("增加资源限制配置");
+      advice.push("禁用开发工具端点");
+      advice.push("设置适当的日志级别");
     }
 
-    if (currentEnv === Environment.TEST && targetEnv === Environment.PRODUCTION) {
-      advice.push('确保认证功能正常启用');
-      advice.push('调整并发和资源限制');
-      advice.push('禁用测试相关的特殊配置');
+    if (
+      currentEnv === Environment.TEST &&
+      targetEnv === Environment.PRODUCTION
+    ) {
+      advice.push("确保认证功能正常启用");
+      advice.push("调整并发和资源限制");
+      advice.push("禁用测试相关的特殊配置");
     }
 
-    if (currentEnv === Environment.STAGING && targetEnv === Environment.PRODUCTION) {
-      advice.push('最终安全检查');
-      advice.push('禁用API文档端点');
-      advice.push('确认监控和告警配置');
+    if (
+      currentEnv === Environment.STAGING &&
+      targetEnv === Environment.PRODUCTION
+    ) {
+      advice.push("最终安全检查");
+      advice.push("禁用API文档端点");
+      advice.push("确认监控和告警配置");
     }
 
     return advice;
@@ -276,14 +289,14 @@ export class EnvironmentConfigService {
 
     // 环境特定建议
     if (this.isDevelopment()) {
-      recommendations.push('开发环境：建议启用热重载和详细日志');
-      recommendations.push('开发环境：可以使用宽松的安全配置');
+      recommendations.push("开发环境：建议启用热重载和详细日志");
+      recommendations.push("开发环境：可以使用宽松的安全配置");
     }
 
     if (this.isProduction()) {
-      recommendations.push('生产环境：确保所有调试功能已关闭');
-      recommendations.push('生产环境：使用严格的安全配置');
-      recommendations.push('生产环境：配置适当的资源限制');
+      recommendations.push("生产环境：确保所有调试功能已关闭");
+      recommendations.push("生产环境：使用严格的安全配置");
+      recommendations.push("生产环境：配置适当的资源限制");
     }
 
     return recommendations;
@@ -301,7 +314,7 @@ export const EnvironmentConfigServiceProvider = {
 
 /**
  * 使用说明
- * 
+ *
  * @example
  * ```typescript
  * // 在模块中注册
@@ -311,19 +324,19 @@ export const EnvironmentConfigServiceProvider = {
  *   exports: [EnvironmentConfigService],
  * })
  * export class AppCoreModule {}
- * 
+ *
  * // 在服务中使用
  * @Injectable()
  * export class MyService {
  *   constructor(
  *     private readonly envConfigService: EnvironmentConfigService,
  *   ) {}
- * 
+ *
  *   async doSomething() {
  *     if (this.envConfigService.isProduction()) {
  *       // 生产环境逻辑
  *     }
- *     
+ *
  *     const features = this.envConfigService.getEnvironmentFeatures();
  *     if (features.debug.enableDebugLogs) {
  *       // 调试日志

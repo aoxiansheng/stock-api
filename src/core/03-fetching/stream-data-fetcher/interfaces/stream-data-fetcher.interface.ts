@@ -1,4 +1,4 @@
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 /**
  * 流数据获取器接口定义
  * 专门处理WebSocket流式数据的获取和连接管理

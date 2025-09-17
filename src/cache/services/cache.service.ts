@@ -8,7 +8,9 @@ import {
   ServiceUnavailableException,
   BadRequestException,
   Inject,
+  HttpStatus,
 } from "@nestjs/common";
+import { CacheExceptionFactory } from "../exceptions";
 import { ConfigService } from "@nestjs/config";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
@@ -24,12 +26,16 @@ import type { CacheUnifiedConfig } from "../config/cache-unified.config";
 // Import modern structured constants directly
 import { CACHE_MESSAGES } from "../constants/messages/cache-messages.constants";
 import { CACHE_KEYS } from "../constants/config/cache-keys.constants";
-import { 
+import {
   CACHE_CORE_OPERATIONS,
-  CACHE_EXTENDED_OPERATIONS, 
-  CACHE_INTERNAL_OPERATIONS 
+  CACHE_EXTENDED_OPERATIONS,
+  CACHE_INTERNAL_OPERATIONS,
 } from "../constants/operations/cache-operations.constants";
-import { CACHE_DATA_FORMATS, SerializerType, SERIALIZER_TYPE_VALUES } from "../constants/config/data-formats.constants";
+import {
+  CACHE_DATA_FORMATS,
+  SerializerType,
+  SERIALIZER_TYPE_VALUES,
+} from "../constants/config/data-formats.constants";
 
 // 🎯 Gzip 压缩/解压缩
 const gzip = promisify(zlib.gzip);
@@ -58,33 +64,34 @@ export class CacheService {
     private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
     private readonly configService: ConfigService,
     // 🎯 所有配置现在通过统一配置获取，移除冗余的Provider依赖
-    @Inject('cacheTtl') private readonly ttlConfig: CacheUnifiedConfig, // 🎯 TTL统一配置（兼容）
+    @Inject("cacheTtl") private readonly ttlConfig: CacheUnifiedConfig, // 🎯 TTL统一配置（兼容）
   ) {
     // 🎯 优先使用统一配置
-    this.cacheUnifiedConfig = this.configService.get<CacheUnifiedConfig>('cacheUnified');
+    this.cacheUnifiedConfig =
+      this.configService.get<CacheUnifiedConfig>("cacheUnified");
     if (!this.cacheUnifiedConfig) {
-      throw new Error('Cache unified configuration not found');
+      throw new Error("Cache unified configuration not found");
     }
 
     // 🎯 向后兼容：检查旧配置
-    this.legacyCacheConfig = this.configService.get<CacheConfig>('cache');
+    this.legacyCacheConfig = this.configService.get<CacheConfig>("cache");
     if (this.legacyCacheConfig) {
       this.logger.warn(
-        '⚠️  DEPRECATED: 检测到旧版cache配置，请迁移到cacheUnified配置',
+        "⚠️  DEPRECATED: 检测到旧版cache配置，请迁移到cacheUnified配置",
         {
-          migrationGuide: 'docs/cache-migration-guide.md',
-          newConfigNamespace: 'cacheUnified'
-        }
+          migrationGuide: "docs/cache-migration-guide.md",
+          newConfigNamespace: "cacheUnified",
+        },
       );
 
       // 运行时废弃警告：提醒开发者迁移到统一配置
       this.logger.warn(
-        '⚠️  DEPRECATED: CacheConfig 已废弃，请迁移到 CacheUnifiedConfig',
+        "⚠️  DEPRECATED: CacheConfig 已废弃，请迁移到 CacheUnifiedConfig",
         {
           currentValue: this.cacheUnifiedConfig.defaultTtl,
-          migrationGuide: 'Use @Inject(\'cacheUnified\') CacheUnifiedConfig',
-          migrationNote: '当前已自动使用统一配置'
-        }
+          migrationGuide: "Use @Inject('cacheUnified') CacheUnifiedConfig",
+          migrationNote: "当前已自动使用统一配置",
+        },
       );
     }
   }
@@ -109,23 +116,33 @@ export class CacheService {
    * 根据时效性获取TTL
    * 🎯 新增方法：提供基于业务场景的TTL获取
    */
-  getTtlByTimeliness(timeliness: 'strong' | 'moderate' | 'weak' | 'long' | 'monitoring' | 'auth' | 'transformer' | 'suggestion'): number {
+  getTtlByTimeliness(
+    timeliness:
+      | "strong"
+      | "moderate"
+      | "weak"
+      | "long"
+      | "monitoring"
+      | "auth"
+      | "transformer"
+      | "suggestion",
+  ): number {
     switch (timeliness) {
-      case 'strong':
+      case "strong":
         return this.cacheUnifiedConfig.strongTimelinessTtl;
-      case 'moderate':
+      case "moderate":
         return this.cacheUnifiedConfig.realtimeTtl;
-      case 'weak':
+      case "weak":
         return this.cacheUnifiedConfig.defaultTtl;
-      case 'long':
+      case "long":
         return this.cacheUnifiedConfig.longTermTtl;
-      case 'monitoring':
+      case "monitoring":
         return this.cacheUnifiedConfig.monitoringTtl;
-      case 'auth':
+      case "auth":
         return this.cacheUnifiedConfig.authTtl;
-      case 'transformer':
+      case "transformer":
         return this.cacheUnifiedConfig.transformerTtl;
-      case 'suggestion':
+      case "suggestion":
         return this.cacheUnifiedConfig.suggestionTtl;
       default:
         return this.cacheUnifiedConfig.defaultTtl;
@@ -140,15 +157,15 @@ export class CacheService {
     value: T,
     options: CacheConfigDto = { ttl: this.getDefaultTtl() },
   ): Promise<boolean> {
-    // 检查键长度
-    this.validateKeyLength(key);
+    // 🎯 重构: 键长度验证已移至DTO层面，使用@IsValidCacheKey装饰器
 
     const startTime = Date.now();
     try {
       const serializedValue = this.serialize(value, options.serializer);
       const compressedValue = this.shouldCompress(
         serializedValue,
-        options.compressionThreshold ?? this.cacheUnifiedConfig.compressionThreshold,
+        options.compressionThreshold ??
+          this.cacheUnifiedConfig.compressionThreshold,
       )
         ? await this.compress(serializedValue)
         : serializedValue;
@@ -174,13 +191,11 @@ export class CacheService {
 
       return result === "OK";
     } catch (error) {
-      this.logger.error(
-        `${CACHE_MESSAGES.ERRORS.SET_FAILED} ${key}:`,
-        sanitizeLogData({ error }),
-      );
-      // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.SET_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError(
+        CACHE_CORE_OPERATIONS.SET,
+        error,
+        key,
       );
     }
   }
@@ -188,12 +203,8 @@ export class CacheService {
   /**
    * 智能缓存获取
    */
-  async get<T>(
-    key: string,
-    deserializer?: SerializerType,
-  ): Promise<T | null> {
-    // 检查键长度
-    this.validateKeyLength(key);
+  async get<T>(key: string, deserializer?: SerializerType): Promise<T | null> {
+    // 🎯 重构: 键长度验证已移至DTO层面，使用@IsValidCacheKey装饰器
 
     const startTime = Date.now();
     try {
@@ -228,15 +239,13 @@ export class CacheService {
 
       return this.deserialize(decompressedValue, deserializer);
     } catch (error) {
-      this.logger.error(
-        `${CACHE_MESSAGES.ERRORS.GET_FAILED} ${key}:`,
-        sanitizeLogData({ error }),
-      );
       // 🎯 事件驱动监控 - 错误导致未命中
       this.emitCacheEvent("get_miss", key, startTime, { error: error.message });
-      // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.GET_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError(
+        CACHE_CORE_OPERATIONS.GET,
+        error,
+        key,
       );
     }
   }
@@ -297,13 +306,11 @@ export class CacheService {
         return await callback();
       }
     } catch (error) {
-      this.logger.error(
-        `${CACHE_MESSAGES.ERRORS.GET_OR_SET_FAILED} ${key}:`,
-        sanitizeLogData({ error }),
-      );
-      // 🎯 修正: 抛出标准异常，而不是回退到直接调用 callback
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.GET_OR_SET_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError(
+        CACHE_EXTENDED_OPERATIONS.GET_OR_SET,
+        error,
+        key,
       );
     }
   }
@@ -317,17 +324,8 @@ export class CacheService {
         ...(Array.isArray(values) ? values : [values]),
       );
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.SET_FAILED,
-        sanitizeLogData({
-          operation: "listPush",
-          key,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(
-        `List push failed: ${error.message}`,
-      );
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("listPush", error, key);
     }
   }
 
@@ -335,19 +333,8 @@ export class CacheService {
     try {
       return await this.redis.ltrim(key, start, stop);
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.DELETE_FAILED,
-        sanitizeLogData({
-          operation: "listTrim",
-          key,
-          start,
-          stop,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(
-        `List trim failed: ${error.message}`,
-      );
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("listTrim", error, key);
     }
   }
 
@@ -381,15 +368,8 @@ export class CacheService {
         ...(Array.isArray(members) ? members : [members]),
       );
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.SET_FAILED,
-        sanitizeLogData({
-          operation: "setAdd",
-          key,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(`Set add failed: ${error.message}`);
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("setAdd", error, key);
     }
   }
 
@@ -439,17 +419,8 @@ export class CacheService {
         ...(Array.isArray(members) ? members : [members]),
       );
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.DELETE_FAILED,
-        sanitizeLogData({
-          operation: "setRemove",
-          key,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(
-        `Set remove failed: ${error.message}`,
-      );
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("setRemove", error, key);
     }
   }
 
@@ -463,18 +434,8 @@ export class CacheService {
     try {
       return await this.redis.hincrby(key, field, value);
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.SET_FAILED,
-        sanitizeLogData({
-          operation: "hashIncrement",
-          key,
-          field,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(
-        `Hash increment failed: ${error.message}`,
-      );
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("hashIncrementBy", error, key);
     }
   }
 
@@ -482,18 +443,8 @@ export class CacheService {
     try {
       return await this.redis.hset(key, field, value);
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.SET_FAILED,
-        sanitizeLogData({
-          operation: "hashSet",
-          key,
-          field,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(
-        `Hash set failed: ${error.message}`,
-      );
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("hashSet", error, key);
     }
   }
 
@@ -522,18 +473,8 @@ export class CacheService {
     try {
       return (await this.redis.expire(key, seconds)) === 1;
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.SET_FAILED,
-        sanitizeLogData({
-          operation: "expire",
-          key,
-          seconds,
-          error: error.message,
-        }),
-      );
-      throw new ServiceUnavailableException(
-        `Expire set failed: ${error.message}`,
-      );
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError("expire", error, key);
     }
   }
 
@@ -548,9 +489,13 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.cacheUnifiedConfig.maxBatchSize;
     if (keys.length > maxBatchSize) {
-      // 🔥 核心修复：直接拒绝，不再只是警告
-      throw new BadRequestException(
-        `批量操作超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`
+      // 🔧 重构: 使用 Cache 专用异常
+      throw CacheExceptionFactory.batch(
+        CACHE_CORE_OPERATIONS.MGET,
+        keys.length,
+        `批量操作超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`,
+        HttpStatus.BAD_REQUEST,
+        maxBatchSize,
       );
     }
 
@@ -589,10 +534,6 @@ export class CacheService {
         });
       }
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.BATCH_GET_FAILED,
-        sanitizeLogData({ error }),
-      );
       // 🎯 事件驱动监控 - mget 错误导致未命中
       keys.forEach((key) =>
         this.emitCacheEvent("get_miss", key, startTime, {
@@ -600,9 +541,14 @@ export class CacheService {
           batch: true,
         }),
       );
-      // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.BATCH_GET_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.batch(
+        CACHE_CORE_OPERATIONS.MGET,
+        keys.length,
+        `批量获取操作失败: ${error.message}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        undefined,
+        error,
       );
     }
 
@@ -621,9 +567,13 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.cacheUnifiedConfig.maxBatchSize;
     if (entries.size > maxBatchSize) {
-      // 🔥 核心修复：直接拒绝
-      throw new BadRequestException(
-        `批量操作超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`
+      // 🔧 重构: 使用 Cache 专用异常
+      throw CacheExceptionFactory.batch(
+        CACHE_CORE_OPERATIONS.MSET,
+        entries.size,
+        `批量操作超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`,
+        HttpStatus.BAD_REQUEST,
+        maxBatchSize,
       );
     }
 
@@ -653,13 +603,14 @@ export class CacheService {
 
       return results.every((result) => result[1] === "OK");
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.BATCH_SET_FAILED,
-        sanitizeLogData({ error }),
-      );
-      // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.BATCH_SET_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.batch(
+        CACHE_CORE_OPERATIONS.MSET,
+        entries.size,
+        `批量设置操作失败: ${error.message}`,
+        HttpStatus.SERVICE_UNAVAILABLE,
+        undefined,
+        error,
       );
     }
   }
@@ -675,13 +626,12 @@ export class CacheService {
         return await this.redis.del(key);
       }
     } catch (error) {
-      this.logger.error(
-        CACHE_MESSAGES.ERRORS.DELETE_FAILED,
-        sanitizeLogData({ error }),
-      );
-      // 🎯 修正: 抛出标准异常
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.DELETE_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      const cacheKey = Array.isArray(key) ? key.join(",") : key;
+      throw CacheExceptionFactory.fromError(
+        CACHE_CORE_OPERATIONS.DELETE,
+        error,
+        cacheKey,
       );
     }
   }
@@ -692,14 +642,15 @@ export class CacheService {
   async delByPattern(pattern: string): Promise<number> {
     try {
       const keys = await this.scanKeys(pattern); // 🔥 核心修复：KEYS→SCAN
-      
+
       if (keys.length === 0) return 0;
       return await this.redis.del(...keys);
-      
     } catch (error) {
-      this.logger.error(`模式删除失败 ${pattern}:`, sanitizeLogData({ error }));
-      throw new ServiceUnavailableException(
-        `${CACHE_MESSAGES.ERRORS.PATTERN_DELETE_FAILED}: ${error.message}`,
+      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      throw CacheExceptionFactory.fromError(
+        CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
+        error,
+        pattern,
       );
     }
   }
@@ -727,24 +678,27 @@ export class CacheService {
     }
   }
 
-
   // 私有辅助方法
 
   /**
    * 使用SCAN替代KEYS - 简洁版本
    */
   private async scanKeys(pattern: string): Promise<string[]> {
-    let cursor = '0';
+    let cursor = "0";
     const keys: string[] = [];
-    
+
     do {
       const [newCursor, scanKeys] = await this.redis.scan(
-        cursor, 'MATCH', pattern, 'COUNT', 100
+        cursor,
+        "MATCH",
+        pattern,
+        "COUNT",
+        100,
       );
       keys.push(...scanKeys);
       cursor = newCursor;
-    } while (cursor !== '0');
-    
+    } while (cursor !== "0");
+
     return keys;
   }
 
@@ -756,24 +710,28 @@ export class CacheService {
       // JSON.stringify(undefined) returns undefined, which cannot be stored in Redis
       return "null";
     }
-    
+
     let serialized: string;
     switch (serializerType) {
-      case 'json':
+      case "json":
         serialized = JSON.stringify(value);
         break;
-      case 'msgpack':
+      case "msgpack":
         // msgpack序列化并转为base64字符串存储
-        serialized = msgpack.encode(value).toString('base64');
+        serialized = msgpack.encode(value).toString("base64");
         break;
       default:
-        throw new BadRequestException(`不支持的序列化类型: ${serializerType}`);
+        throw CacheExceptionFactory.serialization(
+          CACHE_INTERNAL_OPERATIONS.SERIALIZE,
+          serializerType,
+          undefined,
+          new Error(`不支持的序列化类型: ${serializerType}`),
+        );
     }
 
     // 检查序列化后的大小
     const sizeInBytes = Buffer.byteLength(serialized, "utf8");
-    const maxSizeBytes =
-      this.cacheUnifiedConfig.maxValueSizeMB * 1024 * 1024;
+    const maxSizeBytes = this.cacheUnifiedConfig.maxValueSizeMB * 1024 * 1024;
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
@@ -794,16 +752,21 @@ export class CacheService {
     if (value === null) {
       return null;
     }
-    
+
     switch (deserializerType) {
-      case 'json':
+      case "json":
         return JSON.parse(value);
-      case 'msgpack':
+      case "msgpack":
         // 从base64字符串解码并反序列化
-        const buffer = Buffer.from(value, 'base64');
+        const buffer = Buffer.from(value, "base64");
         return msgpack.decode(buffer);
       default:
-        throw new BadRequestException(`不支持的反序列化类型: ${deserializerType}`);
+        throw CacheExceptionFactory.serialization(
+          CACHE_INTERNAL_OPERATIONS.DESERIALIZE,
+          deserializerType,
+          undefined,
+          new Error(`不支持的反序列化类型: ${deserializerType}`),
+        );
     }
   }
 
@@ -821,7 +784,10 @@ export class CacheService {
     try {
       const compressedBuffer = await gzip(value);
       // 🎯 添加前缀以标识压缩数据
-      return CACHE_DATA_FORMATS.COMPRESSION_PREFIX + compressedBuffer.toString("base64");
+      return (
+        CACHE_DATA_FORMATS.COMPRESSION_PREFIX +
+        compressedBuffer.toString("base64")
+      );
     } catch (error) {
       this.logger.error(
         CACHE_MESSAGES.ERRORS.COMPRESSION_FAILED,
@@ -835,7 +801,9 @@ export class CacheService {
   private async decompress(value: string): Promise<string> {
     try {
       // 🎯 移除前缀并解压
-      const compressedData = value.substring(CACHE_DATA_FORMATS.COMPRESSION_PREFIX.length);
+      const compressedData = value.substring(
+        CACHE_DATA_FORMATS.COMPRESSION_PREFIX.length,
+      );
       const buffer = Buffer.from(compressedData, "base64");
       const decompressedBuffer = await gunzip(buffer);
       return decompressedBuffer.toString("utf8");
@@ -955,21 +923,8 @@ export class CacheService {
   /**
    * 验证缓存键长度
    */
-  private validateKeyLength(key: string): void {
-    if (key.length > this.cacheUnifiedConfig.maxKeyLength) {
-      const errorMessage = `${
-        CACHE_MESSAGES.ERRORS.INVALID_KEY_LENGTH
-      }: 键 '${key.substring(0, 50)}...' 的长度 ${key.length} 超过了最大限制 ${
-        this.cacheUnifiedConfig.maxKeyLength
-      }`;
-      this.logger.error(errorMessage, {
-        operation: "validateKeyLength",
-        keyLength: key.length,
-        maxLength: this.cacheUnifiedConfig.maxKeyLength,
-      });
-      throw new BadRequestException(errorMessage);
-    }
-  }
+  // 🗑️ 已移除: validateKeyLength方法已被@IsValidCacheKey装饰器替代
+  // 键长度验证现在在DTO层面进行，符合NestJS最佳实践
 
   // ==================== 容错方法 (为监控组件重构添加) ====================
 
@@ -983,30 +938,34 @@ export class CacheService {
     try {
       return await this.get<T>(key);
     } catch (error) {
-      this.logger.warn('缓存读取失败，优雅降级', { 
-        key, 
+      this.logger.warn("缓存读取失败，优雅降级", {
+        key,
         error: error.message,
-        operation: 'safeGet'
+        operation: "safeGet",
       });
       return null;
     }
   }
 
   /**
-   * 安全的缓存写入方法 - 容错版本  
+   * 安全的缓存写入方法 - 容错版本
    * 缓存失败时记录警告但不抛出异常，保证监控逻辑继续执行
    * @param key 缓存键
    * @param value 缓存值
    * @param options 缓存选项
    */
-  async safeSet(key: string, value: any, options?: CacheConfigDto): Promise<void> {
+  async safeSet(
+    key: string,
+    value: any,
+    options?: CacheConfigDto,
+  ): Promise<void> {
     try {
       await this.set(key, value, options);
     } catch (error) {
-      this.logger.warn('缓存写入失败，忽略错误', { 
-        key, 
+      this.logger.warn("缓存写入失败，忽略错误", {
+        key,
         error: error.message,
-        operation: 'safeSet'
+        operation: "safeSet",
       });
       // 不抛出异常，保证监控逻辑继续执行
     }
@@ -1014,26 +973,102 @@ export class CacheService {
 
   /**
    * 安全的缓存获取或设置方法 - 容错版本
-   * 缓存操作失败时直接调用工厂方法，保证监控逻辑继续执行  
+   * 缓存操作失败时直接调用工厂方法，保证监控逻辑继续执行
    * @param key 缓存键
    * @param factory 数据工厂方法
    * @param options 缓存选项
    * @returns 缓存值或工厂方法返回值
    */
   async safeGetOrSet<T>(
-    key: string, 
-    factory: () => Promise<T>, 
-    options?: CacheConfigDto
+    key: string,
+    factory: () => Promise<T>,
+    options?: CacheConfigDto,
   ): Promise<T> {
     try {
       return await this.getOrSet<T>(key, factory, options);
     } catch (error) {
-      this.logger.warn('缓存操作失败，直接调用工厂方法', { 
-        key, 
+      this.logger.warn("缓存操作失败，直接调用工厂方法", {
+        key,
         error: error.message,
-        operation: 'safeGetOrSet'
+        operation: "safeGetOrSet",
       });
       return await factory();
+    }
+  }
+
+  // ==================== Rate Limiting Support Methods ====================
+
+  /**
+   * 创建Redis pipeline - 用于原子性批量操作
+   * 主要为限流服务提供支持
+   */
+  multi() {
+    return this.redis.pipeline();
+  }
+
+  /**
+   * 执行Lua脚本 - 用于复杂的原子性操作
+   * 主要为限流服务的滑动窗口算法提供支持
+   */
+  async eval(script: string, numKeys: number, ...args: string[]): Promise<any> {
+    try {
+      return await this.redis.eval(script, numKeys, ...args);
+    } catch (error) {
+      throw CacheExceptionFactory.fromError(
+        "eval",
+        error,
+        args[0] || "lua_script",
+      );
+    }
+  }
+
+  /**
+   * 获取有序集合的元素数量
+   * 主要为限流服务的滑动窗口统计提供支持
+   */
+  async zcard(key: string): Promise<number> {
+    try {
+      return await this.redis.zcard(key);
+    } catch (error) {
+      this.logger.error("获取有序集合大小失败", {
+        operation: "zcard",
+        key,
+        error: error.message,
+      });
+      // 限流相关的非关键功能，返回0而不是抛异常
+      return 0;
+    }
+  }
+
+  /**
+   * 获取有序集合指定范围的元素
+   * 主要为限流服务的滑动窗口统计提供支持
+   */
+  async zrange(key: string, start: number, stop: number): Promise<string[]> {
+    try {
+      return await this.redis.zrange(key, start, stop);
+    } catch (error) {
+      this.logger.error("获取有序集合范围失败", {
+        operation: "zrange",
+        key,
+        start,
+        stop,
+        error: error.message,
+      });
+      // 限流相关的非关键功能，返回空数组而不是抛异常
+      return [];
+    }
+  }
+
+  /**
+   * 原子性地增加计数器值
+   * 主要为限流服务的固定窗口算法提供支持
+   */
+  async incr(key: string): Promise<number> {
+    try {
+      return await this.redis.incr(key);
+    } catch (error) {
+      throw CacheExceptionFactory.fromError("incr", error, key);
     }
   }
 }

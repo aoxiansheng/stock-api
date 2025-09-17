@@ -1,19 +1,12 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsArray,
-  IsDate,
-} from "class-validator";
+import { IsEnum, IsOptional, IsString, IsArray, IsDate } from "class-validator";
 
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
 import { StorageType } from "../enums/storage-type.enum";
 import { BaseQueryDto } from "@common/dto/base-query.dto";
 
 export class StorageQueryDto extends BaseQueryDto {
-
   @ApiPropertyOptional({
     description: "按键名搜索",
   })

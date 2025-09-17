@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   IsNotEmpty,
   IsString,

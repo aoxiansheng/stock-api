@@ -1,7 +1,7 @@
 /**
  * Slack通知发送器
  * 🎯 负责Slack通知的发送和验证
- * 
+ *
  * @description 从Alert模块迁移的Slack发送器，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -50,7 +50,9 @@ export class SlackSender implements NotificationSender {
     const startTime = Date.now();
 
     // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
-    const urlValidation = URLSecurityValidator.validateURL(channelConfig.webhook_url);
+    const urlValidation = URLSecurityValidator.validateURL(
+      channelConfig.webhook_url,
+    );
     if (!urlValidation.valid) {
       throw new BadRequestException(
         `Slack Webhook URL安全检查失败: ${urlValidation.error}`,
@@ -63,7 +65,8 @@ export class SlackSender implements NotificationSender {
 
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(channelConfig.webhook_url, payload, {
-          timeout: channelConfig.timeout || this.configService.getDefaultTimeout(),
+          timeout:
+            channelConfig.timeout || this.configService.getDefaultTimeout(),
         }),
       );
 
@@ -153,7 +156,7 @@ export class SlackSender implements NotificationSender {
         }),
       );
 
-      this.logger.log('Slack配置测试完成', {
+      this.logger.log("Slack配置测试完成", {
         channel: config.channel,
         status: response.status,
       });
@@ -209,7 +212,10 @@ export class SlackSender implements NotificationSender {
       errors.push("图标表情必须是字符串");
     }
 
-    if (config.timeout && (typeof config.timeout !== "number" || config.timeout <= 0)) {
+    if (
+      config.timeout &&
+      (typeof config.timeout !== "number" || config.timeout <= 0)
+    ) {
       errors.push("超时时间必须是正数");
     }
 
@@ -265,7 +271,7 @@ export class SlackSender implements NotificationSender {
    */
   private buildSlackPayload(
     notification: Notification,
-    config: Record<string, any>
+    config: Record<string, any>,
   ): Record<string, any> {
     const basePayload = {
       channel: config.channel,
@@ -282,8 +288,16 @@ export class SlackSender implements NotificationSender {
         fields: [
           { title: "通知ID", value: notification.id, short: true },
           { title: "警告ID", value: notification.alertId, short: true },
-          { title: "优先级", value: notification.priority.toUpperCase(), short: true },
-          { title: "状态", value: notification.status.toUpperCase(), short: true },
+          {
+            title: "优先级",
+            value: notification.priority.toUpperCase(),
+            short: true,
+          },
+          {
+            title: "状态",
+            value: notification.status.toUpperCase(),
+            short: true,
+          },
           { title: "接收者", value: notification.recipient, short: true },
         ],
         footer: "NotificationService",
@@ -300,7 +314,7 @@ export class SlackSender implements NotificationSender {
           value: String(value),
           short: true,
         }));
-      
+
       attachments[0].fields.push(...metadataFields);
     }
 
@@ -317,7 +331,7 @@ export class SlackSender implements NotificationSender {
   private getPriorityColor(priority: NotificationPriority): string {
     const colors = {
       [NotificationPriority.CRITICAL]: "danger",
-      [NotificationPriority.URGENT]: "danger", 
+      [NotificationPriority.URGENT]: "danger",
       [NotificationPriority.HIGH]: "warning",
       [NotificationPriority.NORMAL]: "good",
       [NotificationPriority.LOW]: "good",

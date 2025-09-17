@@ -3,6 +3,7 @@
  * 提供权限相关的模板处理和格式化工具
  */
 import { PERMISSION_CONFIG } from "../constants/permission-control.constants";
+import { PermissionValidationUtil } from "../../common/utils/permission-validation.util";
 
 // 简化的权限模板常量
 const PERMISSION_DETAIL_TEMPLATES = {
@@ -11,22 +12,15 @@ const PERMISSION_DETAIL_TEMPLATES = {
   MISSING_PERMISSIONS: "缺失权限: [{permissions}]",
   REQUIRED_ROLES: "要求角色之一: [{requiredRoles}], 当前角色: {currentRole}",
   SUBJECT_INFO: "主体信息: {subjectType}#{subjectId}",
-  PERMISSION_SUMMARY: "权限摘要: 需要{requiredCount}个权限，拥有{grantedCount}个权限",
+  PERMISSION_SUMMARY:
+    "权限摘要: 需要{requiredCount}个权限，拥有{grantedCount}个权限",
   ROLE_SUMMARY: "角色摘要: 需要角色[{requiredRoles}]，当前角色{currentRole}",
   DURATION_INFO: "检查耗时: {duration}ms",
-  CACHE_INFO: "缓存状态: {cacheStatus}"
+  CACHE_INFO: "缓存状态: {cacheStatus}",
 };
 
-const PERMISSION_UTILS = {
-  TEMPLATE_PLACEHOLDER_PATTERN_SOURCE: "\\{(\\w+)\\}",
-  TEMPLATE_PLACEHOLDER_PATTERN_FLAGS: "g",
-  CACHE_KEY_SANITIZE_PATTERN_SOURCE: "[^a-zA-Z0-9_:-]",
-  CACHE_KEY_SANITIZE_PATTERN_FLAGS: "g",
-  PERMISSION_NAME_NORMALIZE_PATTERN_SOURCE: "[^a-zA-Z0-9_:.-]",
-  PERMISSION_NAME_NORMALIZE_PATTERN_FLAGS: "g",
-  ROLE_NAME_NORMALIZE_PATTERN_SOURCE: "[^a-zA-Z0-9_-]",
-  ROLE_NAME_NORMALIZE_PATTERN_FLAGS: "g"
-};
+// Note: Pattern utilities have been migrated to PermissionValidationUtil
+// This maintains backward compatibility while using common utilities
 
 /**
  * 权限模板工具函数类
@@ -43,18 +37,7 @@ export class PermissionTemplateUtil {
     template: string,
     params: Record<string, any>,
   ): string {
-    const placeholderPattern = new RegExp(
-      PERMISSION_UTILS.TEMPLATE_PLACEHOLDER_PATTERN_SOURCE,
-      PERMISSION_UTILS.TEMPLATE_PLACEHOLDER_PATTERN_FLAGS,
-    );
-
-    return template.replace(placeholderPattern, (match, key) => {
-      const value = params[key];
-      if (Array.isArray(value)) {
-        return value.join(PERMISSION_CONFIG.PERMISSION_LIST_SEPARATOR + " ");
-      }
-      return value !== undefined ? String(value) : match;
-    });
+    return PermissionValidationUtil.replaceTemplate(template, params);
   }
 
   /**
@@ -77,12 +60,7 @@ export class PermissionTemplateUtil {
    * @returns 清理后的键
    */
   static sanitizeCacheKey(key: string): string {
-    const sanitizePattern = new RegExp(
-      PERMISSION_UTILS.CACHE_KEY_SANITIZE_PATTERN_SOURCE,
-      PERMISSION_UTILS.CACHE_KEY_SANITIZE_PATTERN_FLAGS,
-    );
-
-    return key.replace(sanitizePattern, "_");
+    return PermissionValidationUtil.sanitizeCacheKey(key, "_");
   }
 
   /**
@@ -91,12 +69,7 @@ export class PermissionTemplateUtil {
    * @returns 标准化后的权限名称
    */
   static normalizePermissionName(permission: string): string {
-    const normalizePattern = new RegExp(
-      PERMISSION_UTILS.PERMISSION_NAME_NORMALIZE_PATTERN_SOURCE,
-      PERMISSION_UTILS.PERMISSION_NAME_NORMALIZE_PATTERN_FLAGS,
-    );
-
-    return permission.replace(normalizePattern, "_");
+    return PermissionValidationUtil.normalizePermissionName(permission, "_");
   }
 
   /**
@@ -105,11 +78,6 @@ export class PermissionTemplateUtil {
    * @returns 标准化后的角色名称
    */
   static normalizeRoleName(role: string): string {
-    const normalizePattern = new RegExp(
-      PERMISSION_UTILS.ROLE_NAME_NORMALIZE_PATTERN_SOURCE,
-      PERMISSION_UTILS.ROLE_NAME_NORMALIZE_PATTERN_FLAGS,
-    );
-
-    return role.replace(normalizePattern, "_");
+    return PermissionValidationUtil.normalizeRoleName(role, "_");
   }
 }

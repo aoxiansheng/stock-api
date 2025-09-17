@@ -1,15 +1,16 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import type { ConfigType } from '@nestjs/config';
+import type { ConfigType } from "@nestjs/config";
 import { Model } from "mongoose";
 
 import { createLogger } from "@common/logging/index";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
 import { IAlert, IAlertQuery } from "../interfaces";
 import { AlertHistory, AlertHistoryDocument } from "../schemas";
 import { AlertStatus } from "../types/alert.types";
-import cacheLimitsConfig from '../../cache/config/cache-unified.config';
-import alertConfig from '../config/alert.config';
+import cacheLimitsConfig from "../../cache/config/cache-unified.config";
+import alertConfig from "../config/alert.config";
 
 type AlertCreateData = Omit<IAlert, "id" | "startTime" | "status">;
 type AlertUpdateData = Partial<Omit<IAlert, "id">>;
@@ -25,6 +26,7 @@ export class AlertHistoryRepository {
     private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
     @Inject(alertConfig.KEY)
     private readonly alertConfigData: ConfigType<typeof alertConfig>,
+    private readonly paginationService: PaginationService,
   ) {}
 
   async create(
@@ -69,9 +71,14 @@ export class AlertHistoryRepository {
       });
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || this.cacheLimits.alertBatchSize;
-    const skip = (page - 1) * limit;
+    // ✅ 使用通用PaginationService替代手动分页计算
+    const normalizedPagination =
+      this.paginationService.normalizePaginationQuery({
+        page: query.page,
+        limit: query.limit || this.cacheLimits.maxBatchSize,
+      });
+    const { page, limit } = normalizedPagination;
+    const skip = this.paginationService.calculateSkip(page, limit);
 
     const sortField = query.sortBy || "startTime";
     const sortOrder = query.sortOrder === "asc" ? 1 : -1;
@@ -131,7 +138,10 @@ export class AlertHistoryRepository {
               status: AlertStatus.RESOLVED,
               resolvedAt: { $exists: true },
               startTime: {
-                $gte: new Date(Date.now() - this.alertConfigData.evaluationInterval * 1000 * 48), // 约7天
+                $gte: new Date(
+                  Date.now() -
+                    this.alertConfigData.evaluationInterval * 1000 * 48,
+                ), // 约7天
               },
             },
           },
@@ -155,13 +165,13 @@ export class AlertHistoryRepository {
       {
         $group: {
           _id: "$status",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const result: Record<string, number> = {};
-    statusCounts.forEach(item => {
+    statusCounts.forEach((item) => {
       result[item._id] = item.count;
     });
 
@@ -176,13 +186,13 @@ export class AlertHistoryRepository {
       {
         $group: {
           _id: "$severity",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const result: Record<string, number> = {};
-    severityCounts.forEach(item => {
+    severityCounts.forEach((item) => {
       result[item._id] = item.count;
     });
 
@@ -195,36 +205,36 @@ export class AlertHistoryRepository {
   async getAlertTrend(
     startDate: Date,
     endDate: Date,
-    interval: 'hour' | 'day' | 'week' = 'day'
+    interval: "hour" | "day" | "week" = "day",
   ): Promise<Array<{ time: string; count: number; resolved: number }>> {
     // 根据间隔类型确定分组格式
     let dateFormat: string;
     switch (interval) {
-      case 'hour':
-        dateFormat = '%Y-%m-%d %H:00';
+      case "hour":
+        dateFormat = "%Y-%m-%d %H:00";
         break;
-      case 'week':
-        dateFormat = '%Y-%U';  // 年-周
+      case "week":
+        dateFormat = "%Y-%U"; // 年-周
         break;
       default:
-        dateFormat = '%Y-%m-%d';
+        dateFormat = "%Y-%m-%d";
         break;
     }
 
     const trendData = await this.alertHistoryModel.aggregate([
       {
         $match: {
-          startTime: { $gte: startDate, $lte: endDate }
-        }
+          startTime: { $gte: startDate, $lte: endDate },
+        },
       },
       {
         $group: {
           _id: {
             time: { $dateToString: { format: dateFormat, date: "$startTime" } },
-            status: "$status"
+            status: "$status",
           },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
       {
         $group: {
@@ -232,20 +242,24 @@ export class AlertHistoryRepository {
           total: { $sum: "$count" },
           resolved: {
             $sum: {
-              $cond: [{ $eq: ["$_id.status", AlertStatus.RESOLVED] }, "$count", 0]
-            }
-          }
-        }
+              $cond: [
+                { $eq: ["$_id.status", AlertStatus.RESOLVED] },
+                "$count",
+                0,
+              ],
+            },
+          },
+        },
       },
       {
         $project: {
           time: "$_id",
           count: "$total",
           resolved: "$resolved",
-          _id: 0
-        }
+          _id: 0,
+        },
       },
-      { $sort: { time: 1 } }
+      { $sort: { time: 1 } },
     ]);
 
     return trendData;
@@ -253,6 +267,66 @@ export class AlertHistoryRepository {
 
   async findById(alertId: string): Promise<IAlert | null> {
     return this.alertHistoryModel.findOne({ id: alertId }).lean().exec();
+  }
+
+  /**
+   * 基于关键词搜索告警
+   */
+  async searchByKeyword(
+    keyword: string,
+    query: IAlertQuery,
+  ): Promise<{ alerts: IAlert[]; total: number }> {
+    const filter: any = {};
+
+    // 添加基础查询条件
+    if (query.ruleId) filter.ruleId = query.ruleId;
+    if (query.severity) filter.severity = query.severity;
+    if (query.status) filter.status = query.status;
+
+    if (query.startTime || query.endTime) {
+      filter.startTime = {};
+      if (query.startTime) filter.startTime.$gte = new Date(query.startTime);
+      if (query.endTime) filter.startTime.$lte = new Date(query.endTime);
+    }
+
+    // 添加关键词搜索条件
+    // 使用 $or 操作符在多个字段中搜索
+    const keywordRegex = new RegExp(
+      keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "i",
+    );
+    filter.$or = [
+      { message: keywordRegex },
+      { ruleName: keywordRegex },
+      { metric: keywordRegex },
+    ];
+
+    // 分页设置
+    const normalizedPagination =
+      this.paginationService.normalizePaginationQuery({
+        page: query.page,
+        limit: query.limit || this.cacheLimits.maxBatchSize,
+      });
+    const { page, limit } = normalizedPagination;
+    const skip = this.paginationService.calculateSkip(page, limit);
+
+    // 排序设置
+    const sortField = query.sortBy || "startTime";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    const sort: Record<string, 1 | -1> = { [sortField]: sortOrder };
+
+    const [alerts, total] = await Promise.all([
+      this.alertHistoryModel
+        .find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.alertHistoryModel.countDocuments(filter).exec(),
+    ]);
+
+    return { alerts, total };
   }
 
   async cleanup(daysToKeep: number): Promise<number> {

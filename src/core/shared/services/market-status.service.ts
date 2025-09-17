@@ -8,14 +8,14 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
-// Import from the new Market Domain layer 
-import { 
+// Import from the new Market Domain layer
+import {
   Market,
   MarketStatus,
   MarketTradingHours,
   MARKET_TRADING_HOURS,
   CACHE_TTL_BY_MARKET_STATUS,
-  type TradingSession
+  type TradingSession,
 } from "../constants/market.constants";
 
 /**

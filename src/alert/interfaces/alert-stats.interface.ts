@@ -51,19 +51,24 @@ export class AlertStatsUtil {
    */
   static validateStats(stats: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
-    if (!stats || typeof stats !== 'object') {
-      errors.push('统计数据必须是对象类型');
+
+    if (!stats || typeof stats !== "object") {
+      errors.push("统计数据必须是对象类型");
       return { isValid: false, errors };
     }
 
     const requiredFields = [
-      'activeAlerts', 'criticalAlerts', 'warningAlerts', 'infoAlerts',
-      'totalAlertsToday', 'resolvedAlertsToday', 'averageResolutionTime'
+      "activeAlerts",
+      "criticalAlerts",
+      "warningAlerts",
+      "infoAlerts",
+      "totalAlertsToday",
+      "resolvedAlertsToday",
+      "averageResolutionTime",
     ];
 
     for (const field of requiredFields) {
-      if (typeof stats[field] !== 'number') {
+      if (typeof stats[field] !== "number") {
         errors.push(`字段 ${field} 必须是数字类型`);
       }
       if (stats[field] < 0) {
@@ -80,12 +85,14 @@ export class AlertStatsUtil {
    * @returns 是否为空
    */
   static isEmpty(stats: BaseAlertStats): boolean {
-    return stats.activeAlerts === 0 &&
-           stats.criticalAlerts === 0 &&
-           stats.warningAlerts === 0 &&
-           stats.infoAlerts === 0 &&
-           stats.totalAlertsToday === 0 &&
-           stats.resolvedAlertsToday === 0 &&
-           stats.averageResolutionTime === 0;
+    return (
+      stats.activeAlerts === 0 &&
+      stats.criticalAlerts === 0 &&
+      stats.warningAlerts === 0 &&
+      stats.infoAlerts === 0 &&
+      stats.totalAlertsToday === 0 &&
+      stats.resolvedAlertsToday === 0 &&
+      stats.averageResolutionTime === 0
+    );
   }
 }

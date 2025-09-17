@@ -4,6 +4,7 @@ import {
   AuthSubjectType,
 } from "../interfaces/auth-subject.interface";
 import { User } from "../schemas/user.schema";
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
 
 /**
  * JWT用户权限主体
@@ -28,7 +29,20 @@ export class JwtUserSubject implements AuthSubject {
   public readonly metadata: Record<string, any>;
 
   constructor(user: User | any) {
-    this.id = user.id || user._id?.toString();
+    // 提取并验证用户ID
+    const rawId = user.id || user._id?.toString();
+    if (!rawId) {
+      throw new Error("JWT用户主体缺少必要的ID字段");
+    }
+
+    // 验证ID格式
+    try {
+      DatabaseValidationUtils.validateObjectId(rawId, "用户ID");
+      this.id = rawId;
+    } catch (error) {
+      throw new Error(`JWT用户主体ID格式无效: ${error.message}`);
+    }
+
     this.role = user.role;
     this.permissions = RolePermissions[user.role] || [];
     this.metadata = {
@@ -39,9 +53,6 @@ export class JwtUserSubject implements AuthSubject {
     };
 
     // 验证必要字段
-    if (!this.id) {
-      throw new Error("JWT用户主体缺少必要的ID字段");
-    }
     if (!this.role) {
       throw new Error("JWT用户主体缺少必要的角色字段");
     }

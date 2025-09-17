@@ -5,7 +5,7 @@
  * 🆕 从Unified层迁移，解决消息模板重复定义问题
  */
 
-import { NUMERIC_CONSTANTS } from '../core';
+import { NUMERIC_CONSTANTS } from "../core";
 
 /**
  * 基础消息语义模板
@@ -18,59 +18,62 @@ export const MESSAGE_SEMANTICS = Object.freeze({
     INSUFFICIENT: "权限不足",
     ACCESS_DENIED: "访问被拒绝",
     UNAUTHORIZED_ACCESS: "未授权访问",
-    
+
     // 角色权限消息
     ROLE_INSUFFICIENT: "角色权限不足",
     DENIED: "权限被拒绝",
-    
+
     // API Key权限消息
     API_KEY_INSUFFICIENT: "API Key权限不足",
-    
+
     // 数据库访问权限消息
     DB_ACCESS_DENIED: "数据库访问权限不足",
-    
+
     // 资源权限消息
-    
+
     // 功能权限消息
   },
 
   // 资源相关基础消息语义
   RESOURCE: {
     NOT_FOUND: "资源未找到",
-    ALREADY_EXISTS: "资源已存在"},
+    ALREADY_EXISTS: "资源已存在",
+  },
 
   // 操作相关基础消息语义
   OPERATION: {
     SUCCESS: "操作成功",
     FAILED: "操作失败",
     PROCESSING: "操作处理中",
-    TIMEOUT: "操作超时"},
+    TIMEOUT: "操作超时",
+  },
 
   // 服务相关基础消息语义
   SERVICE: {
     ERROR: "服务错误",
-    TIMEOUT: "服务超时"},
+    TIMEOUT: "服务超时",
+  },
 
   // 网络相关基础消息语义
-  NETWORK: {
-  },
+  NETWORK: {},
 
   // 数据相关基础消息语义
-  DATA: {
-  },
+  DATA: {},
 
   // 验证相关基础消息语义
   VALIDATION: {
     FAILED: "验证失败",
-    INVALID_FORMAT: "格式无效"},
+    INVALID_FORMAT: "格式无效",
+  },
 
   // 时间相关基础消息语义
   TIME: {
-    TIMEOUT: "超时"},
+    TIMEOUT: "超时",
+  },
 
   // 配置相关基础消息语义
-  CONFIG: {
-  }});
+  CONFIG: {},
+});
 
 /**
  * 消息模板参数化工具
@@ -88,46 +91,51 @@ export const MESSAGE_TEMPLATE_SEMANTICS = Object.freeze({
     SERVICE_TIMEOUT: "{service}服务响应超时({timeout}ms)",
     DATA_SIZE_EXCEEDED: "数据大小({actualSize})超出限制({maxSize})",
     INVALID_PARAMETER: "参数'{parameter}'无效: {expected}",
-    QUOTA_EXCEEDED: "{resource}配额已满({current}/{limit})"},
+    QUOTA_EXCEEDED: "{resource}配额已满({current}/{limit})",
+  },
 
   // 快速消息(无参数)
   QUICK: {
     // 成功消息
     SUCCESS: "成功",
-    CREATED: "创建成功", 
+    CREATED: "创建成功",
     UPDATED: "更新成功",
     DELETED: "删除成功",
     SAVED: "保存成功",
-    
+
     // 失败消息
     FAILED: "失败",
     ERROR: "错误",
     TIMEOUT: "超时",
     CANCELLED: "已取消",
     ABORTED: "已中止",
-    
+
     // 状态消息
     LOADING: "加载中...",
     PROCESSING: "处理中...",
     PENDING: "待处理",
     COMPLETED: "已完成",
-    IN_PROGRESS: "进行中"},
+    IN_PROGRESS: "进行中",
+  },
 
   // 消息优先级语义
   PRIORITIES: {
     LOW: 1,
-    NORMAL: 2, 
+    NORMAL: 2,
     HIGH: 3,
     CRITICAL: 4,
-    EMERGENCY: 5},
+    EMERGENCY: 5,
+  },
 
   // 消息类型语义
   TYPES: {
     INFO: "info",
     SUCCESS: "success",
-    WARNING: "warning", 
+    WARNING: "warning",
     ERROR: "error",
-    DEBUG: "debug"}});
+    DEBUG: "debug",
+  },
+});
 
 /**
  * 消息格式化语义
@@ -135,21 +143,21 @@ export const MESSAGE_TEMPLATE_SEMANTICS = Object.freeze({
  */
 export const MESSAGE_FORMAT_SEMANTICS = Object.freeze({
   // 日志格式语义
-  LOG_FORMATS: {
-  },
+  LOG_FORMATS: {},
 
   // 消息长度限制语义 - 基于Foundation层
   LENGTH_LIMITS: {
-    MEDIUM_MESSAGE: NUMERIC_CONSTANTS.N_500, // 500字符 - 中等消息  
-    DESCRIPTION: NUMERIC_CONSTANTS.N_2000,              // 2000字符 - 描述信息
+    MEDIUM_MESSAGE: NUMERIC_CONSTANTS.N_500, // 500字符 - 中等消息
+    DESCRIPTION: NUMERIC_CONSTANTS.N_2000, // 2000字符 - 描述信息
   },
 
   // 消息分隔符语义
   SEPARATORS: {
-    FIELD: " | ",           // 字段分隔
-    LIST: ", ",             // 列表分隔
-    NAMESPACE: "::",        // 命名空间分隔
-  }});
+    FIELD: " | ", // 字段分隔
+    LIST: ", ", // 列表分隔
+    NAMESPACE: "::", // 命名空间分隔
+  },
+});
 
 /**
  * 消息语义工具函数类
@@ -191,14 +199,17 @@ export class MessageSemanticsUtil {
    * 生成资源相关消息
    */
   static generateResourceMessage(
-    resource: string, 
-    operation: 'not_found' | 'already_exists' | 'access_denied'
+    resource: string,
+    operation: "not_found" | "already_exists" | "access_denied",
   ): string {
     const templates = {
       not_found: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.RESOURCE_NOT_FOUND,
-      already_exists: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.RESOURCE_ALREADY_EXISTS,
-      access_denied: MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.PERMISSION_DENIED_RESOURCE};
-    
+      already_exists:
+        MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.RESOURCE_ALREADY_EXISTS,
+      access_denied:
+        MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.PERMISSION_DENIED_RESOURCE,
+    };
+
     return this.formatTemplate(templates[operation], { resource });
   }
 
@@ -208,7 +219,7 @@ export class MessageSemanticsUtil {
   static generateValidationMessage(field: string, message: string): string {
     return this.formatTemplate(
       MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.VALIDATION_ERROR_FIELD,
-      { field, message }
+      { field, message },
     );
   }
 
@@ -218,16 +229,19 @@ export class MessageSemanticsUtil {
   static generateRateLimitMessage(endpoint: string, waitTime: number): string {
     return this.formatTemplate(
       MESSAGE_TEMPLATE_SEMANTICS.TEMPLATES.RATE_LIMIT_EXCEEDED,
-      { endpoint, waitTime }
+      { endpoint, waitTime },
     );
   }
 
   /**
    * 截断长消息
    */
-  static truncateMessage(message: string, maxLength: number = MESSAGE_FORMAT_SEMANTICS.LENGTH_LIMITS.MEDIUM_MESSAGE): string {
+  static truncateMessage(
+    message: string,
+    maxLength: number = MESSAGE_FORMAT_SEMANTICS.LENGTH_LIMITS.MEDIUM_MESSAGE,
+  ): string {
     if (message.length <= maxLength) return message;
-    return message.substring(0, maxLength - 3) + '...';
+    return message.substring(0, maxLength - 3) + "...";
   }
 
   /**
@@ -237,14 +251,16 @@ export class MessageSemanticsUtil {
     const priorities = MESSAGE_TEMPLATE_SEMANTICS.PRIORITIES;
     const entries = Object.entries(priorities);
     const found = entries.find(([, value]) => value === priority);
-    return found ? found[0].toLowerCase() : 'unknown';
+    return found ? found[0].toLowerCase() : "unknown";
   }
 
   /**
    * 验证消息类型
    */
   static isValidMessageType(type: string): boolean {
-    return Object.values(MESSAGE_TEMPLATE_SEMANTICS.TYPES).includes(type as any);
+    return Object.values(MESSAGE_TEMPLATE_SEMANTICS.TYPES).includes(
+      type as any,
+    );
   }
 
   /**
@@ -252,23 +268,23 @@ export class MessageSemanticsUtil {
    */
   static buildLogMessage(
     level: string,
-    message: string, 
+    message: string,
     context?: Record<string, any>,
-    timestamp: Date = new Date()
+    timestamp: Date = new Date(),
   ): string {
     const parts = [
       timestamp.toISOString(),
       `[${level.toUpperCase()}]`,
-      message
+      message,
     ];
-    
+
     if (context && Object.keys(context).length > 0) {
       const contextStr = Object.entries(context)
         .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
         .join(MESSAGE_FORMAT_SEMANTICS.SEPARATORS.LIST);
       parts.push(`(${contextStr})`);
     }
-    
+
     return parts.join(MESSAGE_FORMAT_SEMANTICS.SEPARATORS.FIELD);
   }
 }
@@ -292,7 +308,8 @@ export const RESOURCE_TYPE_SEMANTICS = Object.freeze({
   PROVIDER: "提供商",
   MARKET: "市场",
   STOCK: "股票",
-  QUOTE: "报价"});
+  QUOTE: "报价",
+});
 
 /**
  * 从Unified层迁移：操作类型常量
@@ -303,7 +320,8 @@ export const OPERATION_TYPE_SEMANTICS = Object.freeze({
   UPDATE: "更新",
   DELETE: "删除",
   QUERY: "查询",
-  PROCESS: "处理"});
+  PROCESS: "处理",
+});
 
 /**
  * 从Unified层迁移：消息模板函数集合
@@ -311,11 +329,16 @@ export const OPERATION_TYPE_SEMANTICS = Object.freeze({
  */
 export const MESSAGE_TEMPLATE_FUNCTIONS = Object.freeze({
   // 资源相关模板函数
-  NOT_FOUND: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) => `${resource}不存在`,
-  ALREADY_EXISTS: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) => `${resource}已存在`,
-  RESOURCE_LOCKED: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) => `${resource}被锁定`,
-  RESOURCE_EXPIRED: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) => `${resource}已过期`,
-  RESOURCE_EXISTS: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) => `${resource}已存在`,
+  NOT_FOUND: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) =>
+    `${resource}不存在`,
+  ALREADY_EXISTS: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) =>
+    `${resource}已存在`,
+  RESOURCE_LOCKED: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) =>
+    `${resource}被锁定`,
+  RESOURCE_EXPIRED: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) =>
+    `${resource}已过期`,
+  RESOURCE_EXISTS: (resource: string = RESOURCE_TYPE_SEMANTICS.RESOURCE) =>
+    `${resource}已存在`,
 
   // 操作相关模板函数
   OPERATION_SUCCESS: (operation: string = "操作") => `${operation}成功`,
@@ -323,7 +346,8 @@ export const MESSAGE_TEMPLATE_FUNCTIONS = Object.freeze({
   OPERATION_TIMEOUT: (operation: string = "操作") => `${operation}超时`,
 
   // 权限相关模板函数 - 引用基础语义定义避免重复
-  INSUFFICIENT_PERMISSION: (action: string = "执行此操作") => `${MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT}，无法${action}`,
+  INSUFFICIENT_PERMISSION: (action: string = "执行此操作") =>
+    `${MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT}，无法${action}`,
   AUTHORIZATION_FAILED: (resource: string = "操作") => `${resource}授权失败`,
 
   // 连接和超时模板函数
@@ -338,7 +362,8 @@ export const MESSAGE_TEMPLATE_FUNCTIONS = Object.freeze({
 
   // 验证相关模板函数
   VALIDATION_FAILED: (field: string = "数据") => `${field}验证失败`,
-  INVALID_VALUE: (field: string = "值") => `无效的${field}`});
+  INVALID_VALUE: (field: string = "值") => `无效的${field}`,
+});
 
 /**
  * 从Unified层迁移：常用消息快捷方式
@@ -346,22 +371,32 @@ export const MESSAGE_TEMPLATE_FUNCTIONS = Object.freeze({
  */
 export const QUICK_MESSAGE_SEMANTICS = Object.freeze({
   // 常见资源不存在消息
-  DATA_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(RESOURCE_TYPE_SEMANTICS.DATA),
-  RESOURCE_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(RESOURCE_TYPE_SEMANTICS.RESOURCE),
-  API_KEY_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(RESOURCE_TYPE_SEMANTICS.API_KEY),
+  DATA_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(
+    RESOURCE_TYPE_SEMANTICS.DATA,
+  ),
+  RESOURCE_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(
+    RESOURCE_TYPE_SEMANTICS.RESOURCE,
+  ),
+  API_KEY_NOT_FOUND: MESSAGE_TEMPLATE_FUNCTIONS.NOT_FOUND(
+    RESOURCE_TYPE_SEMANTICS.API_KEY,
+  ),
 
   // 常见操作成功消息
 
   // 常见操作失败消息
-  DELETE_FAILED: MESSAGE_TEMPLATE_FUNCTIONS.OPERATION_FAILED(OPERATION_TYPE_SEMANTICS.DELETE),
+  DELETE_FAILED: MESSAGE_TEMPLATE_FUNCTIONS.OPERATION_FAILED(
+    OPERATION_TYPE_SEMANTICS.DELETE,
+  ),
 
   // 常见权限消息
 
   // 常见超时消息
 
   // 常见服务不可用消息
-  DATABASE_UNAVAILABLE: MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("数据库"),
-  API_SERVICE_UNAVAILABLE: MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("API服务"),
+  DATABASE_UNAVAILABLE:
+    MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("数据库"),
+  API_SERVICE_UNAVAILABLE:
+    MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("API服务"),
   SERVICE_UNAVAILABLE: MESSAGE_TEMPLATE_FUNCTIONS.SERVICE_UNAVAILABLE("服务"),
 
   // 常见失败消息
@@ -383,10 +418,10 @@ export class MessageTemplateSemanticsUtil {
    */
   static resource(
     template: keyof typeof MESSAGE_TEMPLATE_FUNCTIONS,
-    resource: string
+    resource: string,
   ): string {
     const templateFunc = MESSAGE_TEMPLATE_FUNCTIONS[template];
-    return typeof templateFunc === 'function' ? templateFunc(resource) : '';
+    return typeof templateFunc === "function" ? templateFunc(resource) : "";
   }
 
   /**
@@ -396,10 +431,10 @@ export class MessageTemplateSemanticsUtil {
    */
   static operation(
     template: keyof typeof MESSAGE_TEMPLATE_FUNCTIONS,
-    operation: string
+    operation: string,
   ): string {
     const templateFunc = MESSAGE_TEMPLATE_FUNCTIONS[template];
-    return typeof templateFunc === 'function' ? templateFunc(operation) : '';
+    return typeof templateFunc === "function" ? templateFunc(operation) : "";
   }
 
   /**
@@ -417,9 +452,6 @@ export class MessageTemplateSemanticsUtil {
     return Object.keys(MESSAGE_TEMPLATE_FUNCTIONS);
   }
 }
-
-
-
 
 /**
  * 类型定义

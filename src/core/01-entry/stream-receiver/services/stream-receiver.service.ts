@@ -1,8 +1,7 @@
 // 定义采样配置常量
 const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS
-} from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   Injectable,
   OnModuleDestroy,
@@ -11,7 +10,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
@@ -31,12 +30,8 @@ import {
   StreamConnectionParams,
 } from "../../../03-fetching/stream-data-fetcher/interfaces";
 import { Subject } from "rxjs";
-import { 
-  STREAM_RECEIVER_TIMEOUTS 
-} from '../constants/stream-receiver-timeouts.constants';
-import { 
-  STREAM_RECEIVER_METRICS 
-} from '../constants/stream-receiver-metrics.constants';
+import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
+import { STREAM_RECEIVER_METRICS } from "../constants/stream-receiver-metrics.constants";
 import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
@@ -688,7 +683,9 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 每秒更新一次负载统计
     if (timeDiff >= STREAM_RECEIVER_METRICS.THROUGHPUT_CALCULATION_WINDOW_MS) {
       const batchesPerSecond =
-        (this.dynamicBatchingMetrics.batchCountInWindow * STREAM_RECEIVER_METRICS.BATCH_RATE_CALCULATION_UNIT_MS) / timeDiff;
+        (this.dynamicBatchingMetrics.batchCountInWindow *
+          STREAM_RECEIVER_METRICS.BATCH_RATE_CALCULATION_UNIT_MS) /
+        timeDiff;
 
       // 添加到负载采样
       this.dynamicBatchingState.loadSamples.push(batchesPerSecond);
@@ -749,7 +746,8 @@ export class StreamReceiverService implements OnModuleDestroy {
       loadState: {
         isHighLoad: this.dynamicBatchingState.isHighLoad,
         isLowLoad: this.dynamicBatchingState.isLowLoad,
-        recentLoadSamples: this.dynamicBatchingState.loadSamples.slice(-RECENT_METRICS_COUNT),
+        recentLoadSamples:
+          this.dynamicBatchingState.loadSamples.slice(-RECENT_METRICS_COUNT),
       },
       metrics: {
         totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,
@@ -1391,7 +1389,9 @@ export class StreamReceiverService implements OnModuleDestroy {
     reason: string,
   ): Promise<void> {
     const now = Date.now();
-    const lastReceiveTimestamp = clientInfo.lastActiveTime || now - STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_TIMEOUT_MS;
+    const lastReceiveTimestamp =
+      clientInfo.lastActiveTime ||
+      now - STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_TIMEOUT_MS;
 
     const recoveryJob: RecoveryJob = {
       clientId: clientInfo.clientId,
@@ -2008,13 +2008,31 @@ export class StreamReceiverService implements OnModuleDestroy {
       { pattern: /futures|forward/, transDataRuleListType: "futures_fields" },
       { pattern: /forex|currency|fx/, transDataRuleListType: "forex_fields" },
       { pattern: /crypto|digital/, transDataRuleListType: "crypto_fields" },
-      { pattern: /info|detail|basic/, transDataRuleListType: "basic_info_fields" },
-      { pattern: /company|profile/, transDataRuleListType: "company_info_fields" },
-      { pattern: /market|exchange/, transDataRuleListType: "market_info_fields" },
-      { pattern: /historical|history/, transDataRuleListType: "historical_data_fields" },
+      {
+        pattern: /info|detail|basic/,
+        transDataRuleListType: "basic_info_fields",
+      },
+      {
+        pattern: /company|profile/,
+        transDataRuleListType: "company_info_fields",
+      },
+      {
+        pattern: /market|exchange/,
+        transDataRuleListType: "market_info_fields",
+      },
+      {
+        pattern: /historical|history/,
+        transDataRuleListType: "historical_data_fields",
+      },
       { pattern: /news|article/, transDataRuleListType: "news_fields" },
-      { pattern: /announcement|notice/, transDataRuleListType: "announcement_fields" },
-      { pattern: /trading|trade/, transDataRuleListType: "trading_data_fields" },
+      {
+        pattern: /announcement|notice/,
+        transDataRuleListType: "announcement_fields",
+      },
+      {
+        pattern: /trading|trade/,
+        transDataRuleListType: "trading_data_fields",
+      },
     ];
 
     for (const { pattern, transDataRuleListType } of semanticPatterns) {
@@ -2143,7 +2161,8 @@ export class StreamReceiverService implements OnModuleDestroy {
       quotesCount: metrics.quotesCount,
       symbolsCount: metrics.symbolsCount,
       quotesPerSecond: Math.round(
-        (metrics.quotesCount / metrics.durations.total) * STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS,
+        (metrics.quotesCount / metrics.durations.total) *
+          STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS,
       ),
       symbolsPerSecond: Math.round(
         (metrics.symbolsCount / metrics.durations.total) * 1000,
@@ -2363,7 +2382,9 @@ export class StreamReceiverService implements OnModuleDestroy {
       UNKNOWN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 未知市场默认LongPort
     };
 
-    return marketProviderPriority[market] || REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+    return (
+      marketProviderPriority[market] || REFERENCE_DATA.PROVIDER_IDS.LONGPORT
+    );
   }
 
   /**
@@ -2452,7 +2473,9 @@ export class StreamReceiverService implements OnModuleDestroy {
         UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
       };
 
-      const candidateProviders = marketProviderMap[market] || [REFERENCE_DATA.PROVIDER_IDS.LONGPORT];
+      const candidateProviders = marketProviderMap[market] || [
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      ];
 
       // 返回第一个候选提供商 (优先级最高)
       return candidateProviders[0] || null;
@@ -2859,7 +2882,10 @@ export class StreamReceiverService implements OnModuleDestroy {
     this.circuitBreakerState.successes++;
 
     // 重置计数器防止溢出
-    if (this.circuitBreakerState.successes > STREAM_RECEIVER_METRICS.CIRCUIT_BREAKER_RESET_THRESHOLD) {
+    if (
+      this.circuitBreakerState.successes >
+      STREAM_RECEIVER_METRICS.CIRCUIT_BREAKER_RESET_THRESHOLD
+    ) {
       this.circuitBreakerState.successes = Math.floor(
         this.circuitBreakerState.successes / 2,
       );
@@ -3076,7 +3102,13 @@ export class StreamReceiverService implements OnModuleDestroy {
         provider,
         avgTimePerQuote: batchSize > 0 ? processingTime / batchSize : 0,
         quotesPerSecond:
-          batchSize > 0 ? Math.round((batchSize * STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS) / processingTime) : 0,
+          batchSize > 0
+            ? Math.round(
+                (batchSize *
+                  STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS) /
+                  processingTime,
+              )
+            : 0,
       });
     } catch (error) {
       this.logger.warn(`批处理监控事件发送失败: ${error.message}`, {

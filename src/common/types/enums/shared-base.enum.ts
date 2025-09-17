@@ -46,6 +46,13 @@ export enum OperationStatus {
   COMPLETED = "completed",
   ACTIVE = "active",
   INACTIVE = "inactive",
+  // Auth-specific statuses
+  SUSPENDED = "suspended",
+  DELETED = "deleted",
+  EXPIRED = "expired",
+  REVOKED = "revoked",
+  LOCKED = "locked",
+  PENDING_VERIFICATION = "pending_verification",
 }
 
 /**
@@ -135,4 +142,43 @@ export function getAllOperationStatuses(): OperationStatus[] {
  */
 export function getAllAuthenticationTypes(): AuthenticationType[] {
   return Object.values(AuthenticationType);
+}
+
+/**
+ * 工具函数：检查状态是否为可用状态
+ */
+export function isActiveOperationStatus(status: OperationStatus): boolean {
+  return status === OperationStatus.ACTIVE;
+}
+
+/**
+ * 工具函数：检查状态是否为不可用状态
+ */
+export function isInactiveOperationStatus(status: OperationStatus): boolean {
+  return [
+    OperationStatus.INACTIVE,
+    OperationStatus.SUSPENDED,
+    OperationStatus.DELETED,
+    OperationStatus.EXPIRED,
+    OperationStatus.REVOKED,
+    OperationStatus.LOCKED,
+  ].includes(status);
+}
+
+/**
+ * 工具函数：检查状态是否为临时状态
+ */
+export function isTemporaryOperationStatus(status: OperationStatus): boolean {
+  return [
+    OperationStatus.PENDING,
+    OperationStatus.PENDING_VERIFICATION,
+    OperationStatus.PROCESSING,
+  ].includes(status);
+}
+
+/**
+ * 工具函数：检查状态是否为终态
+ */
+export function isFinalOperationStatus(status: OperationStatus): boolean {
+  return [OperationStatus.DELETED, OperationStatus.REVOKED].includes(status);
 }

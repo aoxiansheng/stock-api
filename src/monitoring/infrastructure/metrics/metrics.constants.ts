@@ -29,8 +29,30 @@ export const DEFAULT_LABELS = {
 
 // Histogram 桶配置
 export const HISTOGRAM_BUCKETS = {
-  LATENCY_MS: [1, 5, 10, 20, 50, 100, 200, 500, MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS, 2000],
+  LATENCY_MS: [
+    1,
+    5,
+    10,
+    20,
+    50,
+    100,
+    200,
+    500,
+    MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS,
+    2000,
+  ],
   LATENCY_SECONDS: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
-  BATCH_SIZE: [1, 5, 10, 25, 50, 100, 250, 500, MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE, 2500],
+  BATCH_SIZE: [
+    1,
+    5,
+    10,
+    25,
+    50,
+    100,
+    250,
+    500,
+    MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE,
+    2500,
+  ],
   DURATION_SECONDS: [0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5],
 } as const;

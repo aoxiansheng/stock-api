@@ -1,15 +1,22 @@
 /**
  * Alert嵌套配置验证类
  * 🎯 解决嵌套对象验证缺失问题，提供完整的配置验证覆盖
- * 
+ *
  * @description 使用class-validator对Alert配置的嵌套对象进行验证
- * @author Claude Code Assistant  
+ * @author Claude Code Assistant
  * @date 2025-09-15
  */
 
-import { IsNumber, IsString, Min, Max, MaxLength, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { VALIDATION_LIMITS } from '@common/constants/validation.constants';
+import {
+  IsNumber,
+  IsString,
+  Min,
+  Max,
+  MaxLength,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
 
 /**
  * Alert验证规则配置类
@@ -24,7 +31,7 @@ export class AlertValidationRules {
   @Min(VALIDATION_LIMITS.DURATION_MIN)
   @Max(VALIDATION_LIMITS.DURATION_MAX)
   durationMin: number = 30;
-  
+
   /**
    * 最大持续时间（秒）
    * 用于告警规则duration字段的最大值验证
@@ -33,7 +40,7 @@ export class AlertValidationRules {
   @Min(VALIDATION_LIMITS.DURATION_MIN)
   @Max(VALIDATION_LIMITS.DURATION_MAX)
   durationMax: number = 600;
-  
+
   /**
    * 最大冷却期（秒）
    * 用于告警规则cooldown字段的最大值验证
@@ -55,15 +62,15 @@ export class AlertCacheConfig {
    */
   @IsString()
   @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH)
-  cooldownPrefix: string = 'alert:cooldown:';
-  
+  cooldownPrefix: string = "alert:cooldown:";
+
   /**
    * 活跃告警缓存键前缀
    * 用于Redis缓存键命名
    */
   @IsString()
   @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH)
-  activeAlertPrefix: string = 'alert:active';
+  activeAlertPrefix: string = "alert:active";
 }
 
 /**
@@ -79,7 +86,7 @@ export class AlertLimitsConfig {
   @Min(1)
   @Max(50)
   maxConditionsPerRule: number = 10;
-  
+
   /**
    * 单用户最大规则数
    * 从limits.constants.ts的MAX_RULES_PER_USER迁移
@@ -88,7 +95,7 @@ export class AlertLimitsConfig {
   @Min(10)
   @Max(1000)
   maxRulesPerUser: number = 100;
-  
+
   /**
    * 默认分页大小
    * 从limits.constants.ts的DEFAULT_PAGE_SIZE迁移
@@ -97,7 +104,7 @@ export class AlertLimitsConfig {
   @Min(5)
   @Max(100)
   defaultPageSize: number = 20;
-  
+
   /**
    * 单次查询最大结果数
    * 从limits.constants.ts的MAX_QUERY_RESULTS迁移
@@ -119,14 +126,14 @@ export class CompleteAlertValidation {
   @ValidateNested()
   @Type(() => AlertValidationRules)
   validation: AlertValidationRules = new AlertValidationRules();
-  
+
   /**
    * 缓存配置
    */
   @ValidateNested()
   @Type(() => AlertCacheConfig)
   cache: AlertCacheConfig = new AlertCacheConfig();
-  
+
   /**
    * 限制配置
    */

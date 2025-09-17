@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { ConfigurationModule } from '../configuration/config.module';
-import { ApplicationService } from './services/application.service';
-import { LifecycleService } from './services/lifecycle.service';
+import { Module } from "@nestjs/common";
+import { ConfigurationModule } from "../configuration/config.module";
+import { ApplicationService } from "./services/application.service";
+import { LifecycleService } from "./services/lifecycle.service";
 
 /**
  * ApplicationModule - 应用核心模块
- * 
+ *
  * 负责协调应用的核心功能：
  * - 应用生命周期管理
  * - 配置管理整合
@@ -14,12 +14,9 @@ import { LifecycleService } from './services/lifecycle.service';
  */
 @Module({
   imports: [
-    ConfigurationModule,    // 配置管理
+    ConfigurationModule, // 配置管理
   ],
-  providers: [
-    ApplicationService,
-    LifecycleService,
-  ],
+  providers: [ApplicationService, LifecycleService],
   exports: [
     ApplicationService,
     LifecycleService,

@@ -11,7 +11,7 @@ import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getStockQuote } from "./capabilities/get-stock-quote";
 import { LongportContextService } from "./services/longport-context.service";
 import { LongportStreamContextService } from "./services/longport-stream-context.service";
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 @Provider({
   name: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,

@@ -6,7 +6,7 @@
  */
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { FeatureFlags } from "@appcore/config/feature-flags.config";
 import {
   Counter,
@@ -181,7 +181,16 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       name: "newstock_stream_recovery_batch_size",
       help: "Distribution of recovery batch sizes",
       labelNames: ["provider"],
-      buckets: [10, 25, 50, 100, 250, 500, MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE, 2500],
+      buckets: [
+        10,
+        25,
+        50,
+        100,
+        250,
+        500,
+        MONITORING_SYSTEM_LIMITS.MAX_BUFFER_SIZE,
+        2500,
+      ],
       registers: [this.registry],
     });
 
@@ -303,7 +312,18 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
       name: "newstock_stream_push_latency_ms",
       help: "End-to-end latency for stream data push operations in milliseconds",
       labelNames: ["symbol", "provider", "latency_category"],
-      buckets: [1, 5, 10, 20, 50, 100, 200, 500, MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS, 2000], // 延迟分桶：1ms 到 2秒
+      buckets: [
+        1,
+        5,
+        10,
+        20,
+        50,
+        100,
+        200,
+        500,
+        MONITORING_SYSTEM_LIMITS.SLOW_REQUEST_THRESHOLD_MS,
+        2000,
+      ], // 延迟分桶：1ms 到 2秒
       registers: [this.registry],
     });
 

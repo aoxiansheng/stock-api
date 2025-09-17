@@ -94,10 +94,8 @@ export class FieldMappingService {
   classificationToFilter(
     classification: StorageClassification,
   ): QueryTypeFilter {
-    return (
-      FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY[classification] ||
-      classification
-    ) as QueryTypeFilter;
+    return (FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY[classification] ||
+      classification) as QueryTypeFilter;
   }
 
   /**

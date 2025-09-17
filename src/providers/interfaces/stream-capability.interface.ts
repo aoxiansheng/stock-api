@@ -1,5 +1,5 @@
-import { ConnectionStatus } from '../constants/connection.constants';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { ConnectionStatus } from "../constants/connection.constants";
+import { API_OPERATIONS } from "@common/constants/domain";
 
 /**
  * WebSocket 流数据能力接口

@@ -18,9 +18,20 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
 
   // 敏感参数列表，用于URL清理
   private readonly sensitiveParams = [
-    'password', 'token', 'key', 'secret', 'auth', 'apikey', 
-    'api_key', 'access_token', 'refresh_token', 'jwt', 
-    'authorization', 'credentials', 'passwd', 'pwd'
+    "password",
+    "token",
+    "key",
+    "secret",
+    "auth",
+    "apikey",
+    "api_key",
+    "access_token",
+    "refresh_token",
+    "jwt",
+    "authorization",
+    "credentials",
+    "passwd",
+    "pwd",
   ];
 
   constructor(private readonly eventBus: EventEmitter2) {}
@@ -92,20 +103,20 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
    */
   private sanitizeUrl(url: string): string {
     try {
-      const urlObj = new URL(url, 'http://localhost');
-      
+      const urlObj = new URL(url, "http://localhost");
+
       // 检查并替换敏感参数
       for (const param of this.sensitiveParams) {
         if (urlObj.searchParams.has(param)) {
-          urlObj.searchParams.set(param, '[REDACTED]');
+          urlObj.searchParams.set(param, "[REDACTED]");
         }
       }
-      
+
       return urlObj.pathname + urlObj.search;
     } catch {
       // 如果URL解析失败，简单处理：保留路径，隐藏查询参数
-      const pathOnly = url.split('?')[0];
-      return url.includes('?') ? pathOnly + '?[REDACTED]' : pathOnly;
+      const pathOnly = url.split("?")[0];
+      return url.includes("?") ? pathOnly + "?[REDACTED]" : pathOnly;
     }
   }
 

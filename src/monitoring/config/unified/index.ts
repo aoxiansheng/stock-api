@@ -1,27 +1,27 @@
 /**
  * 监控组件统一配置系统导出
- * 
+ *
  * 📋 统一配置系统简介：
  * ==========================================
  * 本模块提供监控组件的统一配置管理，消除配置重复，提供：
- * 
+ *
  * ✅ 统一TTL配置：
  * - 健康检查、趋势分析、性能指标、告警、缓存统计的TTL设置
  * - 环境变量支持和环境特定默认值
  * - 类型安全验证
- * 
+ *
  * ✅ 统一限制配置：
  * - 告警批量处理、数据处理批量、数据清理批量配置
  * - 系统限制（队列大小、缓冲区大小、重试次数等）
  * - 动态环境调整
- * 
+ *
  * 🔄 替换的原配置文件：
  * - cache-ttl.constants.ts → MonitoringUnifiedTtlConfig
  * - alert-control.constants.ts（批量部分） → MonitoringUnifiedLimitsConfig.alertBatch
  * - data-lifecycle.constants.ts（批量部分） → MonitoringUnifiedLimitsConfig.dataCleanupBatch
  * - business.ts（批量部分） → MonitoringUnifiedLimitsConfig.dataProcessingBatch
  * - monitoring-system.constants.ts（系统限制部分） → MonitoringUnifiedLimitsConfig.systemLimits
- * 
+ *
  * @version 1.0.0
  * @since 2025-09-16
  * @author Claude Code
@@ -33,7 +33,7 @@ import {
   MONITORING_UNIFIED_TTL_CONSTANTS,
   type TtlDataType,
   type EnvironmentType,
-} from './monitoring-unified-ttl.config';
+} from "./monitoring-unified-ttl.config";
 
 export {
   MonitoringUnifiedTtlConfig,
@@ -43,13 +43,13 @@ export {
   type MonitoringUnifiedTtlType,
   type TtlDataType,
   type EnvironmentType,
-} from './monitoring-unified-ttl.config';
+} from "./monitoring-unified-ttl.config";
 
 // 统一限制配置
 import {
   MonitoringUnifiedLimitsConfig,
   MONITORING_UNIFIED_LIMITS_CONSTANTS,
-} from './monitoring-unified-limits.config';
+} from "./monitoring-unified-limits.config";
 
 export {
   MonitoringUnifiedLimitsConfig,
@@ -63,7 +63,7 @@ export {
   type MonitoringUnifiedLimitsType,
   type BatchSizeType,
   type ProcessingType,
-} from './monitoring-unified-limits.config';
+} from "./monitoring-unified-limits.config";
 
 // Phase 4: 核心环境变量配置
 export {
@@ -72,19 +72,19 @@ export {
   MonitoringCoreEnvUtils,
   MONITORING_CORE_ENV_CONSTANTS,
   type MonitoringCoreEnvType,
-} from './monitoring-core-env.config';
+} from "./monitoring-core-env.config";
 
 /**
  * 统一配置使用指南
- * 
+ *
  * 📋 基本使用方式：
  * ```typescript
  * import { ConfigModule } from '@nestjs/config';
- * import { 
- *   monitoringUnifiedTtlConfig, 
- *   monitoringUnifiedLimitsConfig 
+ * import {
+ *   monitoringUnifiedTtlConfig,
+ *   monitoringUnifiedLimitsConfig
  * } from './config/unified';
- * 
+ *
  * @Module({
  *   imports: [
  *     ConfigModule.forFeature(monitoringUnifiedTtlConfig),
@@ -93,33 +93,33 @@ export {
  * })
  * export class MonitoringModule {}
  * ```
- * 
+ *
  * 📋 服务中注入使用：
  * ```typescript
- * import { 
- *   MonitoringUnifiedTtlConfig, 
- *   MonitoringUnifiedLimitsConfig 
+ * import {
+ *   MonitoringUnifiedTtlConfig,
+ *   MonitoringUnifiedLimitsConfig
  * } from './config/unified';
- * 
+ *
  * @Injectable()
  * export class MonitoringService {
  *   constructor(
- *     @Inject('monitoringUnifiedTtl') 
+ *     @Inject('monitoringUnifiedTtl')
  *     private readonly ttlConfig: MonitoringUnifiedTtlConfig,
- *     @Inject('monitoringUnifiedLimits') 
+ *     @Inject('monitoringUnifiedLimits')
  *     private readonly limitsConfig: MonitoringUnifiedLimitsConfig
  *   ) {}
- * 
+ *
  *   getHealthTtl(): number {
  *     return this.ttlConfig.health;
  *   }
- * 
+ *
  *   getAlertBatchSize(): number {
  *     return this.limitsConfig.alertBatch.medium;
  *   }
  * }
  * ```
- * 
+ *
  * 📋 环境变量配置：
  * ```bash
  * # TTL配置
@@ -128,7 +128,7 @@ export {
  * MONITORING_TTL_PERFORMANCE=180
  * MONITORING_TTL_ALERT=60
  * MONITORING_TTL_CACHE_STATS=120
- * 
+ *
  * # 批量限制配置
  * MONITORING_ALERT_BATCH_SMALL=5
  * MONITORING_ALERT_BATCH_MEDIUM=10
@@ -162,17 +162,17 @@ export class MonitoringUnifiedConfigUtils {
    */
   static validateTtlValue(value: number, type: TtlDataType): boolean {
     const limits = MONITORING_UNIFIED_TTL_CONSTANTS.LIMITS;
-    
+
     switch (type) {
-      case 'health':
+      case "health":
         return value >= limits.MIN_TTL && value <= limits.MAX_HEALTH_TTL;
-      case 'trend':
+      case "trend":
         return value >= limits.MIN_TTL && value <= limits.MAX_TREND_TTL;
-      case 'performance':
+      case "performance":
         return value >= limits.MIN_TTL && value <= limits.MAX_PERFORMANCE_TTL;
-      case 'alert':
+      case "alert":
         return value >= limits.MIN_TTL && value <= limits.MAX_ALERT_TTL;
-      case 'cacheStats':
+      case "cacheStats":
         return value >= limits.MIN_TTL && value <= limits.MAX_CACHE_STATS_TTL;
       default:
         return false;
@@ -183,34 +183,34 @@ export class MonitoringUnifiedConfigUtils {
    * 根据环境获取推荐的配置
    */
   static getEnvironmentRecommendedConfig(
-    environment: EnvironmentType = 'development'
+    environment: EnvironmentType = "development",
   ): {
     ttl: Partial<MonitoringUnifiedTtlConfig>;
     limits: Partial<MonitoringUnifiedLimitsConfig>;
   } {
     const ttlConfig = new MonitoringUnifiedTtlConfig();
     const limitsConfig = new MonitoringUnifiedLimitsConfig();
-    
+
     // 临时设置环境
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = environment;
-    
+
     // 获取环境特定配置
     ttlConfig.health = ttlConfig.getDefaultHealthTtl();
     ttlConfig.trend = ttlConfig.getDefaultTrendTtl();
     ttlConfig.performance = ttlConfig.getDefaultPerformanceTtl();
     ttlConfig.alert = ttlConfig.getDefaultAlertTtl();
     ttlConfig.cacheStats = ttlConfig.getDefaultCacheStatsTtl();
-    
+
     limitsConfig.adjustForEnvironment();
-    
+
     // 恢复原环境
     if (originalEnv) {
       process.env.NODE_ENV = originalEnv;
     } else {
       delete process.env.NODE_ENV;
     }
-    
+
     return {
       ttl: {
         health: ttlConfig.health,
@@ -224,7 +224,7 @@ export class MonitoringUnifiedConfigUtils {
         dataProcessingBatch: limitsConfig.dataProcessingBatch,
         dataCleanupBatch: limitsConfig.dataCleanupBatch,
         systemLimits: limitsConfig.systemLimits,
-      }
+      },
     };
   }
 }

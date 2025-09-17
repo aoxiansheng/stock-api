@@ -1,15 +1,15 @@
 /**
  * 核心数值常量 - 扁平化结构
- * 
+ *
  * 设计原则：
  * 1. 所有数值直接定义，不使用内部引用
  * 2. 按数值大小分组，方便查找和维护
  * 3. 命名采用 N_{数值} 格式，清晰明确
  * 4. 这是整个系统中数值的唯一真实来源
- * 
+ *
  * 基于分析结果，重点解决以下高频重复数值：
  * - 数值 2: 18次重复 → N_2
- * - 数值 100: 18次重复 → N_100  
+ * - 数值 100: 18次重复 → N_100
  * - 数值 1000: 18次重复 → N_1000
  * - 数值 5: 15次重复 → N_5
  * - 数值 10: 14次重复 → N_10
@@ -20,84 +20,84 @@ export const NUMERIC_CONSTANTS = Object.freeze({
   // ===== 基础数值 (0-100) =====
   N_0: 0,
   N_1: 1,
-  N_2: 2,                    // 🎯 18次重复统一
-  N_3: 3,                    // 10次重复
-  N_4: 4,                    // 3次重复
-  N_5: 5,                    // 🎯 15次重复统一
-  N_6: 6,                    // 2次重复
-  N_8: 8,                    // 2次重复
-  N_10: 10,                  // 🎯 14次重复统一
-  N_20: 20,                  // 6次重复
-  N_25: 25,                  // 3次重复
-  N_30: 30,                  // 4次重复
-  N_36: 36,                  // Base-36 for radix
-  N_50: 50,                  // 12次重复
-  N_60: 60,                  // 3次重复
-  N_64: 64,                  // 2次重复
-  N_75: 75,                  // 百分比相关
-  N_90: 90,                  // 2次重复
-  N_HALF: 50,                // 一半值
-  N_THREE_QUARTERS: 75,      // 四分之三值
-  N_100: 100,                // 🎯 18次重复统一
+  N_2: 2, // 🎯 18次重复统一
+  N_3: 3, // 10次重复
+  N_4: 4, // 3次重复
+  N_5: 5, // 🎯 15次重复统一
+  N_6: 6, // 2次重复
+  N_8: 8, // 2次重复
+  N_10: 10, // 🎯 14次重复统一
+  N_20: 20, // 6次重复
+  N_25: 25, // 3次重复
+  N_30: 30, // 4次重复
+  N_36: 36, // Base-36 for radix
+  N_50: 50, // 12次重复
+  N_60: 60, // 3次重复
+  N_64: 64, // 2次重复
+  N_75: 75, // 百分比相关
+  N_90: 90, // 2次重复
+  N_HALF: 50, // 一半值
+  N_THREE_QUARTERS: 75, // 四分之三值
+  N_100: 100, // 🎯 18次重复统一
 
   // ===== 数百级数值 (100-1000) =====
-  N_200: 200,                // 6次重复
-  N_201: 201,                // HTTP状态码
-  N_204: 204,                // HTTP状态码
-  N_300: 300,                // 4次重复
-  N_301: 301,                // HTTP状态码
-  N_302: 302,                // HTTP状态码
-  N_304: 304,                // HTTP状态码
-  N_255: 255,                // 文件名长度
-  N_320: 320,                // 邮箱最大长度
-  N_400: 400,                // HTTP状态码
-  N_401: 401,                // HTTP状态码
-  N_403: 403,                // HTTP状态码
-  N_404: 404,                // HTTP状态码
-  N_405: 405,                // HTTP状态码
-  N_409: 409,                // HTTP状态码
-  N_413: 413,                // HTTP状态码
-  N_422: 422,                // HTTP状态码
-  N_429: 429,                // HTTP状态码
-  N_500: 500,                // 9次重复 + HTTP状态码
-  N_501: 501,                // HTTP状态码
-  N_502: 502,                // HTTP状态码
-  N_503: 503,                // HTTP状态码
-  N_504: 504,                // HTTP状态码
-  N_600: 600,                // 10分钟秒数
-  N_1000: 1000,              // 🎯 18次重复统一
+  N_200: 200, // 6次重复
+  N_201: 201, // HTTP状态码
+  N_204: 204, // HTTP状态码
+  N_300: 300, // 4次重复
+  N_301: 301, // HTTP状态码
+  N_302: 302, // HTTP状态码
+  N_304: 304, // HTTP状态码
+  N_255: 255, // 文件名长度
+  N_320: 320, // 邮箱最大长度
+  N_400: 400, // HTTP状态码
+  N_401: 401, // HTTP状态码
+  N_403: 403, // HTTP状态码
+  N_404: 404, // HTTP状态码
+  N_405: 405, // HTTP状态码
+  N_409: 409, // HTTP状态码
+  N_413: 413, // HTTP状态码
+  N_422: 422, // HTTP状态码
+  N_429: 429, // HTTP状态码
+  N_500: 500, // 9次重复 + HTTP状态码
+  N_501: 501, // HTTP状态码
+  N_502: 502, // HTTP状态码
+  N_503: 503, // HTTP状态码
+  N_504: 504, // HTTP状态码
+  N_600: 600, // 10分钟秒数
+  N_1000: 1000, // 🎯 18次重复统一
 
   // ===== 数千级数值 (1000-10000) =====
-  N_1024: 1024,              // 内存相关，2次重复
-  N_1800: 1800,              // 时间相关，2次重复
-  N_2000: 2000,              // 4次重复
-  N_2048: 2048,              // URL长度等，3次重复
-  N_3000: 3000,              // 3秒毫秒
-  N_3600: 3600,              // 小时秒数，3次重复
-  N_5000: 5000,              // 11次重复
-  N_10000: 10000,            // 🎯 14次重复统一
+  N_1024: 1024, // 内存相关，2次重复
+  N_1800: 1800, // 时间相关，2次重复
+  N_2000: 2000, // 4次重复
+  N_2048: 2048, // URL长度等，3次重复
+  N_3000: 3000, // 3秒毫秒
+  N_3600: 3600, // 小时秒数，3次重复
+  N_5000: 5000, // 11次重复
+  N_10000: 10000, // 🎯 14次重复统一
 
   // ===== 万级数值 (10000+) =====
-  N_15000: 15000,            // 15秒毫秒
-  N_30000: 30000,            // 9次重复
-  N_60000: 60000,            // 分钟毫秒数，4次重复
-  N_86400: 86400,            // 一天秒数，4次重复
-  N_100000: 100000,          // 4次重复
-  N_120000: 120000,          // 2分钟毫秒
-  N_180000: 180000,          // 3分钟毫秒
-  N_300000: 300000,          // 5分钟毫秒
-  N_600000: 600000,          // 10分钟毫秒
+  N_15000: 15000, // 15秒毫秒
+  N_30000: 30000, // 9次重复
+  N_60000: 60000, // 分钟毫秒数，4次重复
+  N_86400: 86400, // 一天秒数，4次重复
+  N_100000: 100000, // 4次重复
+  N_120000: 120000, // 2分钟毫秒
+  N_180000: 180000, // 3分钟毫秒
+  N_300000: 300000, // 5分钟毫秒
+  N_600000: 600000, // 10分钟毫秒
 
   // ===== 特殊大数值 =====
-  N_1000000: 1000000,        // 百万
-  N_2592000: 2592000,        // 30天秒数 (30*24*60*60)
-  N_2628000: 2628000,        // 30天秒数 (旧值)
-  N_3600000: 3600000,        // 1小时毫秒
-  N_7776000: 7776000,        // 90天秒数 (90*24*60*60)
-  N_7884000: 7884000,        // 90天秒数 (旧值)
-  N_10000000: 10000000,      // 千万
-  N_100000000: 100000000,    // 亿
-  N_1000000000: 1000000000,  // 十亿
+  N_1000000: 1000000, // 百万
+  N_2592000: 2592000, // 30天秒数 (30*24*60*60)
+  N_2628000: 2628000, // 30天秒数 (旧值)
+  N_3600000: 3600000, // 1小时毫秒
+  N_7776000: 7776000, // 90天秒数 (90*24*60*60)
+  N_7884000: 7884000, // 90天秒数 (旧值)
+  N_10000000: 10000000, // 千万
+  N_100000000: 100000000, // 亿
+  N_1000000000: 1000000000, // 十亿
   N_MAX_SAFE_INTEGER: Number.MAX_SAFE_INTEGER,
 } as const);
 
@@ -106,46 +106,46 @@ export type NumericConstantsType = typeof NUMERIC_CONSTANTS;
 
 /**
  * 快速数值映射表 - 用于迁移期间的对照
- * 
+ *
  * 按语义分组，引用NUMERIC_CONSTANTS中的值
  */
 export const NUMERIC_VALUE_MAP = Object.freeze({
   // === 基础数值语义 ===
   ZERO: NUMERIC_CONSTANTS.N_0,
   ONE: NUMERIC_CONSTANTS.N_1,
-  TWO: NUMERIC_CONSTANTS.N_2,             // 🎯 统一入口
+  TWO: NUMERIC_CONSTANTS.N_2, // 🎯 统一入口
   THREE: NUMERIC_CONSTANTS.N_3,
   FOUR: NUMERIC_CONSTANTS.N_4,
-  FIVE: NUMERIC_CONSTANTS.N_5,            // 🎯 统一入口
+  FIVE: NUMERIC_CONSTANTS.N_5, // 🎯 统一入口
   EIGHT: NUMERIC_CONSTANTS.N_8,
-  TEN: NUMERIC_CONSTANTS.N_10,            // 🎯 统一入口
+  TEN: NUMERIC_CONSTANTS.N_10, // 🎯 统一入口
   TWENTY: NUMERIC_CONSTANTS.N_20,
   TWENTY_FIVE: NUMERIC_CONSTANTS.N_25,
   THIRTY: NUMERIC_CONSTANTS.N_30,
   FIFTY: NUMERIC_CONSTANTS.N_50,
   SIXTY: NUMERIC_CONSTANTS.N_60,
   NINETY: NUMERIC_CONSTANTS.N_90,
-  HUNDRED: NUMERIC_CONSTANTS.N_100,       // 🎯 统一入口
+  HUNDRED: NUMERIC_CONSTANTS.N_100, // 🎯 统一入口
   TWO_HUNDRED: NUMERIC_CONSTANTS.N_200,
   THREE_HUNDRED: NUMERIC_CONSTANTS.N_300,
   FIVE_HUNDRED: NUMERIC_CONSTANTS.N_500,
-  THOUSAND: NUMERIC_CONSTANTS.N_1000,     // 🎯 统一入口
+  THOUSAND: NUMERIC_CONSTANTS.N_1000, // 🎯 统一入口
   TWO_THOUSAND: NUMERIC_CONSTANTS.N_2000,
   FIVE_THOUSAND: NUMERIC_CONSTANTS.N_5000,
   TEN_THOUSAND: NUMERIC_CONSTANTS.N_10000, // 🎯 统一入口
   ONE_HUNDRED_THOUSAND: NUMERIC_CONSTANTS.N_100000,
 
   // === 时间相关（毫秒）===
-  ONE_SECOND_MS: NUMERIC_CONSTANTS.N_1000,        // 🎯 统一入口
+  ONE_SECOND_MS: NUMERIC_CONSTANTS.N_1000, // 🎯 统一入口
   FIVE_SECONDS_MS: NUMERIC_CONSTANTS.N_5000,
-  TEN_SECONDS_MS: NUMERIC_CONSTANTS.N_10000,      // 🎯 统一入口  
+  TEN_SECONDS_MS: NUMERIC_CONSTANTS.N_10000, // 🎯 统一入口
   FIFTEEN_SECONDS_MS: NUMERIC_CONSTANTS.N_15000,
   THIRTY_SECONDS_MS: NUMERIC_CONSTANTS.N_30000,
   ONE_MINUTE_MS: NUMERIC_CONSTANTS.N_60000,
 
   // === 时间相关（秒）===
   ONE_SECOND_SEC: NUMERIC_CONSTANTS.N_1,
-  FIVE_SECONDS_SEC: NUMERIC_CONSTANTS.N_5,        // 🎯 统一入口
+  FIVE_SECONDS_SEC: NUMERIC_CONSTANTS.N_5, // 🎯 统一入口
   THIRTY_SECONDS_SEC: NUMERIC_CONSTANTS.N_30,
   ONE_MINUTE_SEC: NUMERIC_CONSTANTS.N_60,
   FIVE_MINUTES_SEC: NUMERIC_CONSTANTS.N_300,
@@ -154,35 +154,35 @@ export const NUMERIC_VALUE_MAP = Object.freeze({
   ONE_DAY_SEC: NUMERIC_CONSTANTS.N_86400,
 
   // === 大小相关 ===
-  TINY_SIZE: NUMERIC_CONSTANTS.N_5,               // 🎯 统一入口
+  TINY_SIZE: NUMERIC_CONSTANTS.N_5, // 🎯 统一入口
   SMALL_SIZE: NUMERIC_CONSTANTS.N_50,
-  MEDIUM_SIZE: NUMERIC_CONSTANTS.N_100,           // 🎯 统一入口
+  MEDIUM_SIZE: NUMERIC_CONSTANTS.N_100, // 🎯 统一入口
   LARGE_SIZE: NUMERIC_CONSTANTS.N_500,
-  HUGE_SIZE: NUMERIC_CONSTANTS.N_1000,            // 🎯 统一入口
-  MASSIVE_SIZE: NUMERIC_CONSTANTS.N_10000,        // 🎯 统一入口
+  HUGE_SIZE: NUMERIC_CONSTANTS.N_1000, // 🎯 统一入口
+  MASSIVE_SIZE: NUMERIC_CONSTANTS.N_10000, // 🎯 统一入口
 
   // === 批量处理相关 ===
-  MICRO_BATCH: NUMERIC_CONSTANTS.N_10,            // 🎯 统一入口
-  SMALL_BATCH: NUMERIC_CONSTANTS.N_100,           // 🎯 统一入口
-  MEDIUM_BATCH: NUMERIC_CONSTANTS.N_1000,         // 🎯 统一入口
-  LARGE_BATCH: NUMERIC_CONSTANTS.N_10000,         // 🎯 统一入口
+  MICRO_BATCH: NUMERIC_CONSTANTS.N_10, // 🎯 统一入口
+  SMALL_BATCH: NUMERIC_CONSTANTS.N_100, // 🎯 统一入口
+  MEDIUM_BATCH: NUMERIC_CONSTANTS.N_1000, // 🎯 统一入口
+  LARGE_BATCH: NUMERIC_CONSTANTS.N_10000, // 🎯 统一入口
   HUGE_BATCH: NUMERIC_CONSTANTS.N_100000,
 
   // === 性能阈值相关 ===
   VERY_FAST_MS: NUMERIC_CONSTANTS.N_50,
-  FAST_MS: NUMERIC_CONSTANTS.N_100,               // 🎯 统一入口
+  FAST_MS: NUMERIC_CONSTANTS.N_100, // 🎯 统一入口
   NORMAL_MS: NUMERIC_CONSTANTS.N_500,
-  SLOW_MS: NUMERIC_CONSTANTS.N_1000,              // 🎯 统一入口
+  SLOW_MS: NUMERIC_CONSTANTS.N_1000, // 🎯 统一入口
   VERY_SLOW_MS: NUMERIC_CONSTANTS.N_5000,
-  CRITICAL_MS: NUMERIC_CONSTANTS.N_10000,         // 🎯 统一入口
+  CRITICAL_MS: NUMERIC_CONSTANTS.N_10000, // 🎯 统一入口
 
   // === 限制条件相关 ===
   DEFAULT_RETRIES: NUMERIC_CONSTANTS.N_3,
-  MAX_RETRIES: NUMERIC_CONSTANTS.N_5,             // 🎯 统一入口
-  DEFAULT_PAGE_SIZE: NUMERIC_CONSTANTS.N_10,      // 🎯 统一入口
-  MAX_PAGE_SIZE: NUMERIC_CONSTANTS.N_100,         // 🎯 统一入口
+  MAX_RETRIES: NUMERIC_CONSTANTS.N_5, // 🎯 统一入口
+  DEFAULT_PAGE_SIZE: NUMERIC_CONSTANTS.N_10, // 🎯 统一入口
+  MAX_PAGE_SIZE: NUMERIC_CONSTANTS.N_100, // 🎯 统一入口
   MAX_CONCURRENT: NUMERIC_CONSTANTS.N_20,
-  
+
   // === HTTP状态码 ===
   HTTP_OK: NUMERIC_CONSTANTS.N_200,
   HTTP_CREATED: NUMERIC_CONSTANTS.N_201,
@@ -209,10 +209,10 @@ export const NUMERIC_VALUE_MAP = Object.freeze({
   KILOBYTE: NUMERIC_CONSTANTS.N_1024,
   URL_MAX_LENGTH: NUMERIC_CONSTANTS.N_2048,
   MEGABYTE: NUMERIC_CONSTANTS.N_1000000,
-  
+
   // === 百分比相关 ===
   MIN_PERCENT: NUMERIC_CONSTANTS.N_0,
   QUARTER_PERCENT: NUMERIC_CONSTANTS.N_25,
   HALF_PERCENT: NUMERIC_CONSTANTS.N_50,
-  MAX_PERCENT: NUMERIC_CONSTANTS.N_100,           // 🎯 统一入口
+  MAX_PERCENT: NUMERIC_CONSTANTS.N_100, // 🎯 统一入口
 } as const);

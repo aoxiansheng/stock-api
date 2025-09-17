@@ -330,10 +330,10 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
     // 添加更详细的错误处理
     try {
       await app.listen(port);
-      
+
       // 应用启动完成后的回调
       await applicationService.onApplicationBootstrap();
-      
+
       logger.log(`
   ================================================
   🚀 智能股票数据系统启动成功

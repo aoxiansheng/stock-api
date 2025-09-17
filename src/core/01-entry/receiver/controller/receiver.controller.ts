@@ -1,11 +1,11 @@
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   Controller,
   Post,
   Body,
   ValidationPipe,
-  HttpCode
+  HttpCode,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 

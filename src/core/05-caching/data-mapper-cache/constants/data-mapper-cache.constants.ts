@@ -30,18 +30,18 @@ export const DATA_MAPPER_CACHE_CONSTANTS = {
 
   // ⏱️ 操作超时配置
   OPERATION_TIMEOUTS: {
-    DEFAULT_SCAN_MS: 5000,        // scanKeysWithTimeout 默认超时
+    DEFAULT_SCAN_MS: 5000, // scanKeysWithTimeout 默认超时
     PROVIDER_INVALIDATE_MS: 3000, // 提供商缓存失效扫描超时
-    STATS_SCAN_MS: 2000,          // 统计信息扫描超时
-    CLEAR_ALL_MS: 5000,           // 清理所有缓存超时
+    STATS_SCAN_MS: 2000, // 统计信息扫描超时
+    CLEAR_ALL_MS: 5000, // 清理所有缓存超时
   },
 
   // 🔄 批处理操作配置
   BATCH_OPERATIONS: {
-    REDIS_SCAN_COUNT: 100,        // Redis SCAN命令的COUNT参数
-    DELETE_BATCH_SIZE: 100,       // 批量删除的批次大小
-    MAX_KEYS_PREVENTION: 10000,   // 防止内存过度使用的键数限制
-    INTER_BATCH_DELAY_MS: 10,     // 批次间延迟毫秒数，降低Redis负载
+    REDIS_SCAN_COUNT: 100, // Redis SCAN命令的COUNT参数
+    DELETE_BATCH_SIZE: 100, // 批量删除的批次大小
+    MAX_KEYS_PREVENTION: 10000, // 防止内存过度使用的键数限制
+    INTER_BATCH_DELAY_MS: 10, // 批次间延迟毫秒数，降低Redis负载
   },
 
   // 📏 大小限制

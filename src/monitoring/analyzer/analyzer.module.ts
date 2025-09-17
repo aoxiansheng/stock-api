@@ -10,7 +10,7 @@
 
 import { Module } from "@nestjs/common";
 import { CollectorModule } from "../collector/collector.module";
-import { CacheModule } from '@cache/module/cache.module';
+import { CacheModule } from "@cache/module/cache.module";
 import { AnalyzerService } from "./analyzer.service";
 import { HealthAnalyzerService } from "./analyzer-health.service";
 import { TrendAnalyzerService } from "./analyzer-trend.service";

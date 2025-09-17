@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { CAPABILITY_NAMES } from '../../../../providers/constants/capability-names.constants';
+import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
 
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   IsString,
   IsOptional,
@@ -159,7 +159,6 @@ export class QueryRequestDto extends BaseQueryDto {
   @IsNumber()
   @Min(1)
   maxAge?: number;
-
 
   @ApiPropertyOptional({
     description: "数据类型过滤器（用于过滤特定类型的数据）",

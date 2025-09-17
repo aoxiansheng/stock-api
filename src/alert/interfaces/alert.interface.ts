@@ -1,7 +1,4 @@
-import {
-  AlertSeverity,
-  AlertStatus,
-} from "../types/alert.types";
+import { AlertSeverity, AlertStatus } from "../types/alert.types";
 import type { NotificationChannel } from "../types/alert.types";
 import type { Operator } from "../constants";
 
@@ -49,7 +46,7 @@ export interface IAlert {
   context?: Record<string, any>;
 }
 
-import { BaseAlertStats } from './alert-stats.interface';
+import { BaseAlertStats } from "./alert-stats.interface";
 
 /**
  * 告警统计接口

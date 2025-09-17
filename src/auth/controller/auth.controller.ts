@@ -1,5 +1,4 @@
-
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 import {
   Controller,
@@ -365,7 +364,10 @@ export class AuthController {
       `重置API Key频率限制: ${appKey}, 用户: ${req.user.username}`,
     );
 
-    const result = await this.authFacade.resetApiKeyRateLimit(appKey, req.user.id);
+    const result = await this.authFacade.resetApiKeyRateLimit(
+      appKey,
+      req.user.id,
+    );
     // 遵循控制器编写规范：让拦截器自动处理响应格式化
     return result;
   }

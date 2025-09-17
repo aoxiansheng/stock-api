@@ -1,5 +1,4 @@
-import { OPERATION_LIMITS } from '@common/constants/domain';
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   Controller,
   Get,
@@ -11,27 +10,21 @@ import {
   Query,
   BadRequestException,
   NotFoundException,
-  Req
+  Req,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
 import { createLogger } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
-import { 
-  ALERT_MESSAGES 
-} from "../../alert/constants";
+import { HttpHeadersUtil } from "@common/utils/http-headers.util";
+import {
+  BUSINESS_ERROR_MESSAGES,
+  HTTP_ERROR_MESSAGES,
+} from "@common/constants/semantic/error-messages.constants";
 
-// Extract alert constants for rate limiting configuration
-const ALERT_RATE_LIMIT = {
-  TRIGGER_EVALUATION: {
-    MAX_REQUESTS_PER_MINUTE: 5,
-    WINDOW_MS: 60000,
-  }
-};
-// 修复ALERT_RATE_LIMIT_MESSAGES引用，使用正确的路径
-const ALERT_RATE_LIMIT_MESSAGES = {
-  TRIGGER_RATE_EXCEEDED: "手动触发告警评估频率超出限制，请稍后再试"
-};
+// 使用通用错误消息常量 - 移除自定义频率限制配置
+// 现在使用 @Throttle 装饰器和全局 ThrottlerGuard
 
 import {
   ApiSuccessResponse,
@@ -66,15 +59,6 @@ import { AlertOrchestratorService } from "../services/alert-orchestrator.service
 @Controller("alerts")
 export class AlertController {
   private readonly logger = createLogger(AlertController.name);
-  // 简单的内存频率限制（生产环境应使用Redis）
-  private readonly triggerRateLimit = new Map<
-    string,
-    { count: number; lastReset: number }
-  >();
-  private readonly TRIGGER_RATE_LIMIT =
-    ALERT_RATE_LIMIT.TRIGGER_EVALUATION.MAX_REQUESTS_PER_MINUTE;
-  private readonly RATE_LIMIT_WINDOW =
-    ALERT_RATE_LIMIT.TRIGGER_EVALUATION.WINDOW_MS;
 
   constructor(
     // 🆕 New service architecture - single orchestrator service
@@ -117,23 +101,8 @@ export class AlertController {
     `,
   })
   @ApiCreatedResponse({
-    schema: {
-      example: {
-        statusCode: 201,
-        message: "告警规则创建成功",
-        data: {
-          id: "rule_123456",
-          name: "CPU使用率过高告警",
-          metric: "cpu_usage",
-          condition: ">",
-          threshold: 80,
-          severity: "warning",
-          enabled: true,
-          createdAt: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
-        },
-        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
-      },
-    },
+    description: "告警规则创建成功",
+    type: CreateAlertRuleDto,
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -163,26 +132,8 @@ export class AlertController {
     `,
   })
   @ApiSuccessResponse({
-    schema: {
-      example: {
-        statusCode: 200,
-        message: "获取告警规则成功",
-        data: [
-          {
-            id: "rule_123456",
-            name: "CPU使用率过高告警",
-            metric: "cpu_usage",
-            condition: ">",
-            threshold: 80,
-            severity: "warning",
-            enabled: true,
-            lastTriggered: "2024-01-01T11:30:00.000Z",
-            triggerCount: 5,
-          },
-        ],
-        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
-      },
-    },
+    description: "获取告警规则成功",
+    type: [CreateAlertRuleDto],
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -195,7 +146,11 @@ export class AlertController {
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "根据ID获取告警规则" })
   @ApiParam({ name: "ruleId", description: "告警规则ID" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({
+    description: "获取告警规则成功",
+    type: CreateAlertRuleDto,
+  })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async getRuleById(
     @Param("ruleId") ruleId: string,
@@ -208,7 +163,11 @@ export class AlertController {
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "更新告警规则" })
   @ApiParam({ name: "ruleId", description: "告警规则ID" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({
+    description: "更新告警规则成功",
+    type: CreateAlertRuleDto,
+  })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async updateRule(
     @Param("ruleId") ruleId: string,
@@ -222,10 +181,12 @@ export class AlertController {
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "删除告警规则" })
   @ApiParam({ name: "ruleId", description: "告警规则ID" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({ description: "删除告警规则成功" })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async deleteRule(@Param("ruleId") ruleId: string): Promise<void> {
     // 🆕 Use new orchestrator service for rule deletion (includes cache cleanup)
+    // Exception handling moved to service layer
     await this.alertOrchestrator.deleteRule(ruleId);
   }
 
@@ -233,7 +194,11 @@ export class AlertController {
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "启用/禁用告警规则" })
   @ApiParam({ name: "ruleId", description: "告警规则ID" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({
+    description: "切换告警规则状态成功",
+    type: CreateAlertRuleDto,
+  })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async toggleRule(
     @Param("ruleId") ruleId: string,
@@ -269,28 +234,8 @@ export class AlertController {
     `,
   })
   @ApiSuccessResponse({
+    description: "获取活跃告警成功",
     type: [AlertResponseDto],
-    schema: {
-      example: {
-        statusCode: 200,
-        message: "获取活跃告警成功",
-        data: [
-          {
-            id: "alert_789",
-            ruleId: "rule_123456",
-            metric: "cpu_usage",
-            severity: "warning",
-            value: 85.2,
-            threshold: 80,
-            status: "active",
-            startTime: "2024-01-01T11:45:00.000Z",
-            duration: 900,
-            acknowledged: false,
-          },
-        ],
-        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
-      },
-    },
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -311,9 +256,9 @@ export class AlertController {
   async getAlertHistory(
     @Query() query: AlertQueryDto,
   ): Promise<PaginatedDataDto<AlertResponseDto>> {
-    // 🆕 Use new query service for alert history with built-in pagination
-    const page = query.page || 1;
-    const limit = query.limit || 20;
+    // 🆕 Use pagination service for normalized pagination parameters
+    const paginationQuery =
+      this.paginationService.normalizePaginationQuery(query);
 
     // Convert string dates to Date objects
     const convertedQuery = {
@@ -326,8 +271,8 @@ export class AlertController {
 
     return this.paginationService.createPaginatedResponse(
       result.alerts.map(AlertResponseDto.fromEntity),
-      page,
-      limit,
+      paginationQuery.page,
+      paginationQuery.limit,
       result.total,
     );
   }
@@ -367,8 +312,12 @@ export class AlertController {
     @Body() body: AcknowledgeAlertDto,
   ): Promise<AlertResponseDto> {
     // 🆕 Use orchestrator service for acknowledging alerts
-    const alert = await this.alertOrchestrator.acknowledgeAlert(alertId, body.acknowledgedBy, body.note);
-    
+    const alert = await this.alertOrchestrator.acknowledgeAlert(
+      alertId,
+      body.acknowledgedBy,
+      body.note,
+    );
+
     return AlertResponseDto.fromEntity(alert);
   }
 
@@ -376,26 +325,28 @@ export class AlertController {
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "解决告警" })
   @ApiParam({ name: "alertId", description: "告警ID" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({ description: "解决告警成功" })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async resolveAlert(
     @Param("alertId") alertId: string,
     @Body() body: ResolveAlertDto,
   ): Promise<void> {
     // 🆕 Use orchestrator service for resolving alerts
+    // Exception handling moved to service layer
     const alert = await this.alertOrchestrator.getAlertById(alertId);
-    
-    if (!alert) {
-      throw new NotFoundException(`未找到ID为 ${alertId} 的告警`);
-    }
-
-    await this.alertOrchestrator.resolveAlert(alertId, body.resolvedBy, alert.ruleId, body.solution);
+    await this.alertOrchestrator.resolveAlert(
+      alertId,
+      body.resolvedBy,
+      alert.ruleId,
+      body.solution,
+    );
   }
 
   // ==================== 通知渠道测试 ====================
   // NOTE: Notification channel testing has been moved to the NotificationController
   // Use POST /notifications/test with { channelType, config } body instead
-  
+
   // @Post("channels/test")
   // @Auth([UserRole.ADMIN])
   // @ApiOperation({ summary: "测试通知渠道 - 已迁移到NotificationController" })
@@ -417,6 +368,7 @@ export class AlertController {
 
   @Post("trigger")
   @Auth([UserRole.ADMIN])
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 每分钟最多5次触发
   @ApiOperation({
     summary: "⚡ 手动触发告警评估",
     description: `
@@ -460,37 +412,16 @@ export class AlertController {
     @Body() triggerDto?: TriggerAlertDto,
     @Req() req?: any,
   ): Promise<{ message: string }> {
-    // 频率限制检查
-    const clientKey = req.user?.id || "anonymous";
-    const now = Date.now();
-    const rateData = this.triggerRateLimit.get(clientKey);
+    // 频率限制现在由 @Throttle 装饰器和 ThrottlerGuard 处理
 
-    if (rateData) {
-      // 重置窗口检查
-      if (now - rateData.lastReset > this.RATE_LIMIT_WINDOW) {
-        rateData.count = 0;
-        rateData.lastReset = now;
-      }
-
-      // 检查是否超过限制
-      if (rateData.count >= this.TRIGGER_RATE_LIMIT) {
-        throw new BadRequestException(
-          ALERT_RATE_LIMIT_MESSAGES.TRIGGER_RATE_EXCEEDED,
-        );
-      }
-
-      rateData.count++;
-    } else {
-      this.triggerRateLimit.set(clientKey, { count: 1, lastReset: now });
-    }
+    // 🆕 Enhanced security: Get secure client identifier for audit logging
+    const clientIdentifier = req ? HttpHeadersUtil.getSecureClientIdentifier(req) : 'unknown';
+    this.logger.log(`告警评估触发请求来自客户端: ${clientIdentifier}`);
 
     // 🆕 Use new orchestrator service for evaluation
     if (triggerDto?.ruleId) {
-      // Validate rule exists
-      const rule = await this.alertOrchestrator.getRuleById(triggerDto.ruleId);
-      if (!rule) {
-        throw new BadRequestException("指定的告警规则不存在");
-      }
+      // Validate rule exists - exception handling moved to service layer
+      await this.alertOrchestrator.getRuleById(triggerDto.ruleId);
     }
 
     // Prepare metric data
@@ -520,7 +451,17 @@ export class AlertController {
   @Post("batch/acknowledge")
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "批量确认告警" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({
+    description: "批量确认告警成功",
+    schema: {
+      type: "object",
+      properties: {
+        succeeded: { type: "array", items: { type: "string" } },
+        failed: { type: "array", items: { type: "string" } },
+      },
+    },
+  })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async batchAcknowledgeAlerts(
     @Body() body: { alertIds: string[]; acknowledgedBy: string },
@@ -532,7 +473,10 @@ export class AlertController {
     await Promise.all(
       body.alertIds.map(async (alertId) => {
         try {
-          await this.alertOrchestrator.acknowledgeAlert(alertId, body.acknowledgedBy);
+          await this.alertOrchestrator.acknowledgeAlert(
+            alertId,
+            body.acknowledgedBy,
+          );
           succeeded.push(alertId);
         } catch (error) {
           this.logger.error(`批量确认告警失败: ${alertId}`, error.stack);
@@ -547,7 +491,17 @@ export class AlertController {
   @Post("batch/resolve")
   @Auth([UserRole.ADMIN])
   @ApiOperation({ summary: "批量解决告警" })
-  @ApiSuccessResponse()
+  @ApiSuccessResponse({
+    description: "批量解决告警成功",
+    schema: {
+      type: "object",
+      properties: {
+        succeeded: { type: "array", items: { type: "string" } },
+        failed: { type: "array", items: { type: "string" } },
+      },
+    },
+  })
+  @ApiStandardResponses()
   @JwtAuthResponses()
   async batchResolveAlerts(
     @Body() body: { alertIds: string[]; resolvedBy: string },
@@ -570,7 +524,11 @@ export class AlertController {
         }
 
         try {
-          await this.alertOrchestrator.resolveAlert(alertId, body.resolvedBy, alert.ruleId);
+          await this.alertOrchestrator.resolveAlert(
+            alertId,
+            body.resolvedBy,
+            alert.ruleId,
+          );
           succeeded.push(alertId);
         } catch (error) {
           this.logger.error(`批量解决告警失败: ${alertId}`, error.stack);

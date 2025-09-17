@@ -1,22 +1,27 @@
 /**
- * Alert事件发布服务  
+ * Alert事件发布服务
  * 🎯 专门负责告警事件的发布和通用事件转换
- * 
+ *
  * @description 单一职责：专业化的告警事件发布服务
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { v4 as uuidv4 } from 'uuid';
-import { UnifiedTtlConfig } from '../../cache/config/unified-ttl.config';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { v4 as uuidv4 } from "uuid";
+import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
 
 import { createLogger } from "@common/logging/index";
-import { IAlert, IAlertRule } from '../interfaces';
-import { Alert, AlertRule, AlertSeverity, AlertStatus } from '../types/alert.types';
-import { AlertContext } from '../events/alert.events';
+import { IAlert, IAlertRule } from "../interfaces";
+import {
+  Alert,
+  AlertRule,
+  AlertSeverity,
+  AlertStatus,
+} from "../types/alert.types";
+import { AlertContext } from "../events/alert.events";
 
 // 导入通用事件接口
 import {
@@ -28,13 +33,23 @@ import {
   GenericAlertRule,
   GenericAlertContext,
   GENERIC_EVENT_TYPES,
-} from '@common/events';
+} from "@common/events";
 
 @Injectable()
 export class AlertEventPublisher {
-  private readonly logger = createLogger('AlertEventPublisher');
+  private readonly logger = createLogger("AlertEventPublisher");
   private readonly alertConfig: {
     defaultCooldown: number;
+  };
+
+  // 事件发布统计追踪
+  private publisherStats = {
+    totalEventsPublished: 0,
+    eventTypeBreakdown: {} as Record<string, number>,
+    failedPublications: 0,
+    lastPublishedAt: null as Date | null,
+    avgPublishingTime: 0,
+    totalPublishingTime: 0,
   };
 
   constructor(
@@ -42,7 +57,7 @@ export class AlertEventPublisher {
     private readonly configService: ConfigService,
   ) {
     // 获取alert配置
-    this.alertConfig = this.configService.get('alert', {
+    this.alertConfig = this.configService.get("alert", {
       defaultCooldown: 300,
     });
   }
@@ -53,11 +68,11 @@ export class AlertEventPublisher {
   async publishAlertFiredEvent(
     alert: IAlert,
     rule: IAlertRule,
-    context: any
+    context: any,
   ): Promise<void> {
-    const operation = 'PUBLISH_ALERT_FIRED';
-    
-    this.logger.debug('发布告警触发事件', {
+    const operation = "PUBLISH_ALERT_FIRED";
+
+    this.logger.debug("发布告警触发事件", {
       operation,
       alertId: alert.id,
       ruleId: rule.id,
@@ -71,15 +86,20 @@ export class AlertEventPublisher {
       const contextForEvent = this.convertToAlertContext(context);
 
       // 只发布通用事件（解耦后）
-      await this.emitGenericEvent(alertForEvent, ruleForEvent, contextForEvent, GenericAlertEventType.FIRED);
+      await this.emitGenericEvent(
+        alertForEvent,
+        ruleForEvent,
+        contextForEvent,
+        GenericAlertEventType.FIRED,
+      );
 
-      this.logger.debug('告警触发事件发布成功', {
+      this.logger.debug("告警触发事件发布成功", {
         operation,
         alertId: alert.id,
         ruleId: rule.id,
       });
     } catch (error) {
-      this.logger.error('发布告警触发事件失败', {
+      this.logger.error("发布告警触发事件失败", {
         operation,
         alertId: alert.id,
         ruleId: rule.id,
@@ -97,11 +117,11 @@ export class AlertEventPublisher {
     alert: IAlert,
     resolvedAt: Date,
     resolvedBy?: string,
-    comment?: string
+    comment?: string,
   ): Promise<void> {
-    const operation = 'PUBLISH_ALERT_RESOLVED';
-    
-    this.logger.debug('发布告警解决事件', {
+    const operation = "PUBLISH_ALERT_RESOLVED";
+
+    this.logger.debug("发布告警解决事件", {
       operation,
       alertId: alert.id,
       resolvedBy,
@@ -112,15 +132,21 @@ export class AlertEventPublisher {
       const eventData = { resolvedAt, resolvedBy, resolutionComment: comment };
 
       // 只发布通用事件（解耦后）
-      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.RESOLVED, eventData);
+      await this.emitGenericEvent(
+        alertForEvent,
+        null,
+        eventData,
+        GenericAlertEventType.RESOLVED,
+        eventData,
+      );
 
-      this.logger.debug('告警解决事件发布成功', {
+      this.logger.debug("告警解决事件发布成功", {
         operation,
         alertId: alert.id,
         resolvedBy,
       });
     } catch (error) {
-      this.logger.error('发布告警解决事件失败', {
+      this.logger.error("发布告警解决事件失败", {
         operation,
         alertId: alert.id,
         error: error.message,
@@ -136,11 +162,11 @@ export class AlertEventPublisher {
     alert: IAlert,
     acknowledgedBy: string,
     acknowledgedAt: Date,
-    comment?: string
+    comment?: string,
   ): Promise<void> {
-    const operation = 'PUBLISH_ALERT_ACKNOWLEDGED';
-    
-    this.logger.debug('发布告警确认事件', {
+    const operation = "PUBLISH_ALERT_ACKNOWLEDGED";
+
+    this.logger.debug("发布告警确认事件", {
       operation,
       alertId: alert.id,
       acknowledgedBy,
@@ -148,18 +174,28 @@ export class AlertEventPublisher {
 
     try {
       const alertForEvent = this.convertToAlertType(alert);
-      const eventData = { acknowledgedBy, acknowledgedAt, acknowledgmentComment: comment };
+      const eventData = {
+        acknowledgedBy,
+        acknowledgedAt,
+        acknowledgmentComment: comment,
+      };
 
       // 只发布通用事件（解耦后）
-      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ACKNOWLEDGED, eventData);
+      await this.emitGenericEvent(
+        alertForEvent,
+        null,
+        eventData,
+        GenericAlertEventType.ACKNOWLEDGED,
+        eventData,
+      );
 
-      this.logger.debug('告警确认事件发布成功', {
+      this.logger.debug("告警确认事件发布成功", {
         operation,
         alertId: alert.id,
         acknowledgedBy,
       });
     } catch (error) {
-      this.logger.error('发布告警确认事件失败', {
+      this.logger.error("发布告警确认事件失败", {
         operation,
         alertId: alert.id,
         error: error.message,
@@ -176,11 +212,11 @@ export class AlertEventPublisher {
     suppressedBy: string,
     suppressedAt: Date,
     suppressionDuration: number,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
-    const operation = 'PUBLISH_ALERT_SUPPRESSED';
-    
-    this.logger.debug('发布告警抑制事件', {
+    const operation = "PUBLISH_ALERT_SUPPRESSED";
+
+    this.logger.debug("发布告警抑制事件", {
       operation,
       alertId: alert.id,
       suppressedBy,
@@ -189,18 +225,29 @@ export class AlertEventPublisher {
 
     try {
       const alertForEvent = this.convertToAlertType(alert);
-      const eventData = { suppressedBy, suppressedAt, suppressionDuration, suppressionReason: reason };
+      const eventData = {
+        suppressedBy,
+        suppressedAt,
+        suppressionDuration,
+        suppressionReason: reason,
+      };
 
       // 只发布通用事件（解耦后）
-      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.SUPPRESSED, eventData);
+      await this.emitGenericEvent(
+        alertForEvent,
+        null,
+        eventData,
+        GenericAlertEventType.SUPPRESSED,
+        eventData,
+      );
 
-      this.logger.debug('告警抑制事件发布成功', {
+      this.logger.debug("告警抑制事件发布成功", {
         operation,
         alertId: alert.id,
         suppressedBy,
       });
     } catch (error) {
-      this.logger.error('发布告警抑制事件失败', {
+      this.logger.error("发布告警抑制事件失败", {
         operation,
         alertId: alert.id,
         error: error.message,
@@ -217,11 +264,11 @@ export class AlertEventPublisher {
     previousSeverity: string,
     newSeverity: string,
     escalatedAt: Date,
-    escalationReason?: string
+    escalationReason?: string,
   ): Promise<void> {
-    const operation = 'PUBLISH_ALERT_ESCALATED';
-    
-    this.logger.debug('发布告警升级事件', {
+    const operation = "PUBLISH_ALERT_ESCALATED";
+
+    this.logger.debug("发布告警升级事件", {
       operation,
       alertId: alert.id,
       previousSeverity,
@@ -238,16 +285,22 @@ export class AlertEventPublisher {
       };
 
       // 只发布通用事件（解耦后）
-      await this.emitGenericEvent(alertForEvent, null, eventData, GenericAlertEventType.ESCALATED, eventData);
+      await this.emitGenericEvent(
+        alertForEvent,
+        null,
+        eventData,
+        GenericAlertEventType.ESCALATED,
+        eventData,
+      );
 
-      this.logger.debug('告警升级事件发布成功', {
+      this.logger.debug("告警升级事件发布成功", {
         operation,
         alertId: alert.id,
         previousSeverity,
         newSeverity,
       });
     } catch (error) {
-      this.logger.error('发布告警升级事件失败', {
+      this.logger.error("发布告警升级事件失败", {
         operation,
         alertId: alert.id,
         error: error.message,
@@ -255,7 +308,6 @@ export class AlertEventPublisher {
       });
     }
   }
-
 
   /**
    * 发出通用事件
@@ -265,18 +317,59 @@ export class AlertEventPublisher {
     rule: AlertRule | null,
     context: any,
     eventType: GenericAlertEventType,
-    eventData?: Record<string, any>
+    eventData?: Record<string, any>,
   ): Promise<void> {
-    const genericEvent = this.convertToGenericEvent(
-      alert,
-      rule,
-      context,
-      eventType,
-      eventData
-    );
+    const startTime = Date.now();
 
-    const eventName = GENERIC_EVENT_TYPES.GENERIC_ALERT[eventType];
-    this.eventEmitter.emit(eventName, genericEvent);
+    try {
+      const genericEvent = this.convertToGenericEvent(
+        alert,
+        rule,
+        context,
+        eventType,
+        eventData,
+      );
+
+      const eventName = GENERIC_EVENT_TYPES.GENERIC_ALERT[eventType];
+      this.eventEmitter.emit(eventName, genericEvent);
+
+      // 记录成功发布的统计
+      this.updatePublishingStats(eventType, startTime, true);
+    } catch (error) {
+      // 记录失败的统计
+      this.updatePublishingStats(eventType, startTime, false);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新发布统计
+   */
+  private updatePublishingStats(
+    eventType: GenericAlertEventType,
+    startTime: number,
+    success: boolean,
+  ): void {
+    const publishingTime = Date.now() - startTime;
+
+    if (success) {
+      this.publisherStats.totalEventsPublished++;
+      this.publisherStats.lastPublishedAt = new Date();
+
+      // 更新事件类型统计
+      if (!this.publisherStats.eventTypeBreakdown[eventType]) {
+        this.publisherStats.eventTypeBreakdown[eventType] = 0;
+      }
+      this.publisherStats.eventTypeBreakdown[eventType]++;
+
+      // 更新平均发布时间
+      this.publisherStats.totalPublishingTime += publishingTime;
+      this.publisherStats.avgPublishingTime =
+        this.publisherStats.totalPublishingTime /
+        this.publisherStats.totalEventsPublished;
+    } else {
+      this.publisherStats.failedPublications++;
+    }
   }
 
   /**
@@ -311,7 +404,7 @@ export class AlertEventPublisher {
       triggeredAt: context.triggeredAt || new Date(),
       tags: context.tags || {},
       triggerCondition: context.triggerCondition || {
-        operator: '>',
+        operator: ">",
         duration: this.alertConfig.defaultCooldown,
       },
     };
@@ -325,7 +418,7 @@ export class AlertEventPublisher {
     rule: AlertRule | null,
     context: any,
     eventType: GenericAlertEventType,
-    eventData?: Record<string, any>
+    eventData?: Record<string, any>,
   ): GenericAlertEvent {
     const correlationId = uuidv4();
 
@@ -348,7 +441,7 @@ export class AlertEventPublisher {
       id: alert.id,
       severity: this.mapSeverityToGeneric(alert.severity),
       status: this.mapStatusToGeneric(alert.status),
-      metric: alert.metric || 'unknown',
+      metric: alert.metric || "unknown",
       description: alert.message || `Alert ${alert.id}`,
       value: alert.value,
       threshold: alert.threshold,
@@ -372,8 +465,8 @@ export class AlertEventPublisher {
       duration: rule.duration,
       cooldown: rule.cooldown,
       enabled: rule.enabled,
-      channels: (rule.channels || []).map(channel => ({
-        id: channel.id || '',
+      channels: (rule.channels || []).map((channel) => ({
+        id: channel.id || "",
         type: channel.type,
         name: channel.name || channel.type,
         enabled: channel.enabled !== false,
@@ -392,12 +485,13 @@ export class AlertEventPublisher {
     return {
       id: `default-rule-${alert.id}`,
       name: `Default rule for alert ${alert.id}`,
-      description: 'Auto-generated default rule',
-      metric: alert.metric || 'unknown',
-      operator: 'gt',
+      description: "Auto-generated default rule",
+      metric: alert.metric || "unknown",
+      operator: "gt",
       threshold: alert.threshold || 0,
       duration: this.alertConfig.defaultCooldown,
-      cooldown: this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
+      cooldown:
+        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
       enabled: true,
       channels: [],
       tags: alert.tags,
@@ -411,13 +505,15 @@ export class AlertEventPublisher {
     return {
       metricValue: context.metricValue || 0,
       threshold: context.threshold || 0,
-      duration: context.triggerCondition?.duration || this.alertConfig.defaultCooldown,
-      operator: context.triggerCondition?.operator || 'gt',
+      duration:
+        context.triggerCondition?.duration || this.alertConfig.defaultCooldown,
+      operator: context.triggerCondition?.operator || "gt",
       evaluatedAt: context.triggeredAt || new Date(),
-      dataPoints: context.historicalData?.map(point => ({
-        timestamp: point.timestamp,
-        value: point.value,
-      })) || [],
+      dataPoints:
+        context.historicalData?.map((point) => ({
+          timestamp: point.timestamp,
+          value: point.value,
+        })) || [],
       metadata: {
         tags: context.tags || {},
         consecutiveFailures: context.triggerCondition?.consecutiveFailures,
@@ -431,12 +527,12 @@ export class AlertEventPublisher {
    */
   private mapSeverityToGeneric(severity: string): GenericAlertSeverity {
     const severityMap = {
-      'info': GenericAlertSeverity.LOW,
-      'warning': GenericAlertSeverity.MEDIUM,
-      'critical': GenericAlertSeverity.CRITICAL,
-      'high': GenericAlertSeverity.HIGH,
-      'medium': GenericAlertSeverity.MEDIUM,
-      'low': GenericAlertSeverity.LOW,
+      info: GenericAlertSeverity.LOW,
+      warning: GenericAlertSeverity.MEDIUM,
+      critical: GenericAlertSeverity.CRITICAL,
+      high: GenericAlertSeverity.HIGH,
+      medium: GenericAlertSeverity.MEDIUM,
+      low: GenericAlertSeverity.LOW,
     };
 
     return severityMap[severity.toLowerCase()] || GenericAlertSeverity.LOW;
@@ -464,13 +560,42 @@ export class AlertEventPublisher {
     eventTypeBreakdown: Record<string, number>;
     failedPublications: number;
     lastPublishedAt: Date | null;
+    avgPublishingTime: number;
+    successRate: number;
   } {
-    // TODO: 实现事件发布统计追踪
+    const totalEvents =
+      this.publisherStats.totalEventsPublished +
+      this.publisherStats.failedPublications;
+    const successRate =
+      totalEvents > 0
+        ? Math.round(
+            (this.publisherStats.totalEventsPublished / totalEvents) * 100,
+          )
+        : 0;
+
     return {
+      totalEventsPublished: this.publisherStats.totalEventsPublished,
+      eventTypeBreakdown: { ...this.publisherStats.eventTypeBreakdown },
+      failedPublications: this.publisherStats.failedPublications,
+      lastPublishedAt: this.publisherStats.lastPublishedAt,
+      avgPublishingTime:
+        Math.round(this.publisherStats.avgPublishingTime * 100) / 100,
+      successRate: successRate,
+    };
+  }
+
+  /**
+   * 重置发布统计数据
+   */
+  resetPublisherStats(): void {
+    this.publisherStats = {
       totalEventsPublished: 0,
       eventTypeBreakdown: {},
       failedPublications: 0,
       lastPublishedAt: null,
+      avgPublishingTime: 0,
+      totalPublishingTime: 0,
     };
+    this.logger.log("事件发布统计数据已重置");
   }
 }

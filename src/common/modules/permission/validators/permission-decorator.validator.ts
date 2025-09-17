@@ -216,7 +216,9 @@ export class PermissionDecoratorValidator {
   private hasRequirePermissions(route: {
     handler: (...args: any[]) => any;
   }): boolean {
-    return this.permissionValidationService.hasPermissionRequirements(route.handler);
+    return this.permissionValidationService.hasPermissionRequirements(
+      route.handler,
+    );
   }
 
   /**
@@ -225,7 +227,9 @@ export class PermissionDecoratorValidator {
   private getRequiredPermissions(route: {
     handler: (...args: any[]) => any;
   }): string[] {
-    return this.permissionValidationService.getRequiredPermissions(route.handler);
+    return this.permissionValidationService.getRequiredPermissions(
+      route.handler,
+    );
   }
 
   /**
@@ -235,8 +239,9 @@ export class PermissionDecoratorValidator {
     permissions: string[],
     route: { path: string; method: string },
   ): PermissionViolation | null {
-    const validation = this.permissionValidationService.validatePermissionLevel(permissions);
-    
+    const validation =
+      this.permissionValidationService.validatePermissionLevel(permissions);
+
     if (validation.isValid) {
       return null;
     }
@@ -245,7 +250,7 @@ export class PermissionDecoratorValidator {
       type: "permission_level_inconsistency",
       route: route.path,
       method: route.method,
-      message: validation.issues.join('; '),
+      message: validation.issues.join("; "),
       severity: "medium",
       recommendation: "使用单一权限级别或建立权限继承关系",
     };
@@ -258,22 +263,27 @@ export class PermissionDecoratorValidator {
     permissions: string[],
     route: { path: string; method: string },
   ): PermissionViolation | null {
-    const validation = this.permissionValidationService.validatePermissionCombination(permissions);
-    
+    const validation =
+      this.permissionValidationService.validatePermissionCombination(
+        permissions,
+      );
+
     if (validation.isValid) {
       return null;
     }
 
     // 根据问题类型确定严重程度
-    const severity = validation.issues.some(issue => 
-      issue.includes("冲突") || issue.includes("管理员")
-    ) ? "medium" : "low";
+    const severity = validation.issues.some(
+      (issue) => issue.includes("冲突") || issue.includes("管理员"),
+    )
+      ? "medium"
+      : "low";
 
     return {
       type: "invalid_permission_combination",
       route: route.path,
       method: route.method,
-      message: validation.issues.join('; '),
+      message: validation.issues.join("; "),
       severity,
       recommendation: "简化权限组合，使用最高级别的必要权限",
     };

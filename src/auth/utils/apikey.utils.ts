@@ -7,6 +7,7 @@ import {
   API_KEY_FORMAT,
   API_KEY_VALIDATION,
 } from "../constants/auth-semantic.constants";
+import { StringValidationUtil } from "../../common/utils/string-validation.util";
 
 /**
  * API Key 工具函数类
@@ -30,12 +31,10 @@ export class ApiKeyUtil {
   static generateAccessToken(
     length: number = API_KEY_FORMAT.DEFAULT_LENGTH,
   ): string {
-    const charset = API_KEY_FORMAT.CHARSET;
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-    return result;
+    return StringValidationUtil.generateRandomString({
+      length,
+      charset: API_KEY_FORMAT.CHARSET,
+    });
   }
 
   /**
@@ -44,7 +43,10 @@ export class ApiKeyUtil {
    * @returns 是否有效
    */
   static isValidAppKey(appKey: string): boolean {
-    return API_KEY_FORMAT.APP_KEY_PATTERN.test(appKey);
+    return StringValidationUtil.matchesPattern(
+      appKey,
+      API_KEY_FORMAT.APP_KEY_PATTERN,
+    );
   }
 
   /**
@@ -53,7 +55,10 @@ export class ApiKeyUtil {
    * @returns 是否有效
    */
   static isValidAccessToken(accessToken: string): boolean {
-    return API_KEY_FORMAT.ACCESS_TOKEN_PATTERN.test(accessToken);
+    return StringValidationUtil.matchesPattern(
+      accessToken,
+      API_KEY_FORMAT.ACCESS_TOKEN_PATTERN,
+    );
   }
 
   /**
@@ -62,13 +67,13 @@ export class ApiKeyUtil {
    * @returns 是否有效
    */
   static isValidName(name: string): boolean {
-    return (
-      name !== null &&
-      name !== undefined &&
-      API_KEY_VALIDATION.NAME_PATTERN.test(name) &&
-      name.length >= API_KEY_VALIDATION.MIN_NAME_LENGTH &&
-      name.length <= API_KEY_VALIDATION.MAX_NAME_LENGTH
-    );
+    return StringValidationUtil.isValidName(name, {
+      minLength: API_KEY_VALIDATION.MIN_NAME_LENGTH,
+      maxLength: API_KEY_VALIDATION.MAX_NAME_LENGTH,
+      pattern: API_KEY_VALIDATION.NAME_PATTERN,
+      allowEmpty: false,
+      allowNullish: false,
+    });
   }
 
   /**
@@ -123,7 +128,6 @@ export class ApiKeyUtil {
    * @returns 清理后的令牌
    */
   static sanitizeAccessToken(accessToken: string): string {
-    if (accessToken.length <= 8) return "***";
-    return `${accessToken.substring(0, 4)}***${accessToken.substring(accessToken.length - 4)}`;
+    return StringValidationUtil.sanitizeString(accessToken, 4, 4, "*");
   }
 }

@@ -71,7 +71,6 @@ export interface RecoveryMetrics {
   qps: number;
 }
 
-
 @Injectable()
 export class StreamRecoveryWorkerService
   implements OnModuleInit, OnModuleDestroy

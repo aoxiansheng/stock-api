@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "@common/logging/index";
+import { createLogger } from "@common/modules/logging";
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
 
 import { CacheService } from "../../../cache/services/cache.service";
 import { securityConfig } from "@auth/config/security.config";
@@ -12,7 +13,7 @@ import { CONSTANTS } from "@common/constants";
 // 简化的权限操作和消息常量
 const PERMISSION_OPERATIONS = {
   CHECK_PERMISSIONS: "checkPermissions",
-  INVALIDATE_CACHE: "invalidateCacheFor"
+  INVALIDATE_CACHE: "invalidateCacheFor",
 };
 
 const PERMISSION_EXTENDED_MESSAGES = {
@@ -23,7 +24,7 @@ const PERMISSION_EXTENDED_MESSAGES = {
   CHECK_PASSED: "权限检查通过",
   CACHE_INVALIDATED: "权限缓存已失效",
   NO_CACHE_TO_INVALIDATE: "未找到需要失效的权限缓存",
-  CACHE_INVALIDATION_FAILED: "权限缓存失效失败"
+  CACHE_INVALIDATION_FAILED: "权限缓存失效失败",
 };
 
 // 从工具文件导入PermissionTemplateUtil
@@ -75,24 +76,24 @@ export class PermissionService {
         cacheTtlSeconds: this.authConfig.PERMISSION_CHECK.CACHE_TTL_SECONDS,
         cachePrefix: "perm", // 保持与原配置一致
       };
-      
+
       // 🔍 调试日志：记录使用新配置系统
-      this.logger.debug('PermissionService: 使用新统一配置系统', {
-        configSource: 'AuthConfigCompatibilityWrapper',
+      this.logger.debug("PermissionService: 使用新统一配置系统", {
+        configSource: "AuthConfigCompatibilityWrapper",
         cacheTtlSeconds: newConfig.cacheTtlSeconds,
         cachePrefix: newConfig.cachePrefix,
       });
-      
+
       return newConfig;
     }
-    
+
     // 回退到原有配置
-    this.logger.debug('PermissionService: 回退到原有配置系统', {
-      configSource: 'securityConfig.permission',
+    this.logger.debug("PermissionService: 回退到原有配置系统", {
+      configSource: "securityConfig.permission",
       cacheTtlSeconds: this.legacyConfig.cacheTtlSeconds,
       cachePrefix: this.legacyConfig.cachePrefix,
     });
-    
+
     return this.legacyConfig;
   }
 
@@ -106,6 +107,24 @@ export class PermissionService {
   ): Promise<PermissionCheckResult> {
     const operation = PERMISSION_OPERATIONS.CHECK_PERMISSIONS;
     const startTime = Date.now();
+
+    // 验证主体ID格式
+    if (!DatabaseValidationUtils.isValidObjectId(subject.id)) {
+      this.logger.warn("权限检查失败 - 主体ID格式无效", {
+        operation,
+        subjectType: subject.type,
+        subjectId: subject.id,
+        error: "INVALID_SUBJECT_ID",
+      });
+
+      return {
+        allowed: false,
+        missingPermissions: requiredPermissions,
+        missingRoles: requiredRoles,
+        duration: Date.now() - startTime,
+        details: "权限主体ID格式无效，无法执行权限验证",
+      };
+    }
 
     this.logger.debug(PERMISSION_EXTENDED_MESSAGES.PERMISSION_CHECK_STARTED, {
       operation,
@@ -271,6 +290,18 @@ export class PermissionService {
    */
   async invalidateCacheFor(subject: AuthSubject): Promise<void> {
     const operation = PERMISSION_OPERATIONS.INVALIDATE_CACHE;
+
+    // 验证主体ID格式
+    if (!DatabaseValidationUtils.isValidObjectId(subject.id)) {
+      this.logger.warn("缓存失效失败 - 主体ID格式无效", {
+        operation,
+        subjectType: subject.type,
+        subjectId: subject.id,
+        error: "INVALID_SUBJECT_ID",
+      });
+      throw new Error(`权限主体ID格式无效: ${subject.id}`);
+    }
+
     const pattern = `${this.config.cachePrefix}:${subject.type}:${subject.id}:*`;
 
     try {
@@ -292,12 +323,15 @@ export class PermissionService {
         });
       }
     } catch (error) {
-      this.logger.error(PERMISSION_EXTENDED_MESSAGES.CACHE_INVALIDATION_FAILED, {
-        operation,
-        subject: subject.getDisplayName(),
-        pattern,
-        error: error.stack,
-      });
+      this.logger.error(
+        PERMISSION_EXTENDED_MESSAGES.CACHE_INVALIDATION_FAILED,
+        {
+          operation,
+          subject: subject.getDisplayName(),
+          pattern,
+          error: error.stack,
+        },
+      );
       throw error;
     }
   }

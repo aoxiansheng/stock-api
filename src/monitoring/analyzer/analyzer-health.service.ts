@@ -1,14 +1,14 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { HealthReportDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
-import { CacheService } from '@cache/services/cache.service';
-import { MonitoringCacheKeys } from '../utils/monitoring-cache-keys';
-import { MONITORING_CACHE_TTL } from '../constants/cache-ttl.constants';
-import { MONITORING_HEALTH_STATUS,  } from "../constants";
+import { CacheService } from "@cache/services/cache.service";
+import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
+import { MONITORING_CACHE_TTL } from "../constants/cache-ttl.constants";
+import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 
@@ -35,25 +35,27 @@ export class HealthAnalyzerService {
     rawMetrics: RawMetricsDto,
   ): Promise<HealthReportDto> {
     try {
-      this.logger.debug('HealthAnalyzer: 开始生成健康报告', {
-        component: 'HealthAnalyzerService',
-        operation: 'generateHealthReport',
-        success: true
+      this.logger.debug("HealthAnalyzer: 开始生成健康报告", {
+        component: "HealthAnalyzerService",
+        operation: "generateHealthReport",
+        success: true,
       });
 
       // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
-      const cacheKey = MonitoringCacheKeys.health(this.buildCacheKey("report", rawMetrics));
+      const cacheKey = MonitoringCacheKeys.health(
+        this.buildCacheKey("report", rawMetrics),
+      );
 
       const healthReport =
         await this.cacheService.safeGetOrSet<HealthReportDto>(
           cacheKey,
           async () => {
             // 缓存未命中，重新计算健康报告
-            this.logger.debug('HealthAnalyzer: 健康报告缓存未命中，重新生成', {
-              component: 'HealthAnalyzerService',
-              operation: 'generateHealthReport',
+            this.logger.debug("HealthAnalyzer: 健康报告缓存未命中，重新生成", {
+              component: "HealthAnalyzerService",
+              operation: "generateHealthReport",
               cacheKey,
-              success: true
+              success: true,
             });
 
             // 计算健康分
@@ -100,18 +102,24 @@ export class HealthAnalyzerService {
             // 计算详细组件指标
             const avgResponseTime =
               requests.length > 0
-                ? requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
-                  requests.length
+                ? requests.reduce(
+                    (sum, r) => sum + (r.responseTimeMs || 0),
+                    0,
+                  ) / requests.length
                 : 0;
             const errorRate =
               requests.length > 0
-                ? requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length /
-                  requests.length
+                ? requests.filter(
+                    (r) =>
+                      r.statusCode >=
+                      MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+                  ).length / requests.length
                 : 0;
 
             const avgQueryTime =
               dbOps.length > 0
-                ? dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0) / dbOps.length
+                ? dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0) /
+                  dbOps.length
                 : 0;
             const dbFailureRate =
               dbOps.length > 0
@@ -186,17 +194,17 @@ export class HealthAnalyzerService {
               });
             }
 
-            this.logger.debug('HealthAnalyzer: 健康报告生成完成', {
-              component: 'HealthAnalyzerService',
-              operation: 'generateHealthReport',
+            this.logger.debug("HealthAnalyzer: 健康报告生成完成", {
+              component: "HealthAnalyzerService",
+              operation: "generateHealthReport",
               healthScore,
               healthStatus,
               recommendationsCount: report.recommendations?.length || 0,
-              success: true
+              success: true,
             });
             return report;
           },
-          { ttl: MONITORING_CACHE_TTL.HEALTH }
+          { ttl: MONITORING_CACHE_TTL.HEALTH },
         );
 
       // 发射缓存命中或回填完成事件
@@ -318,7 +326,10 @@ export class HealthAnalyzerService {
       return {
         currentScore,
         trend,
-        changePercentage: Math.round(changePercentage * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER) / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
+        changePercentage:
+          Math.round(
+            changePercentage * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
+          ) / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER,
         periodComparison: `相比过去${historicalMetrics.length}个周期`,
       };
     } catch (error) {
@@ -337,11 +348,11 @@ export class HealthAnalyzerService {
    */
   async invalidateHealthCache(): Promise<void> {
     try {
-      await this.cacheService.delByPattern(MonitoringCacheKeys.health('*'));
-      this.logger.debug('HealthAnalyzer: 健康相关缓存已失效', {
-        component: 'HealthAnalyzerService',
-        operation: 'invalidateHealthCache',
-        success: true
+      await this.cacheService.delByPattern(MonitoringCacheKeys.health("*"));
+      this.logger.debug("HealthAnalyzer: 健康相关缓存已失效", {
+        component: "HealthAnalyzerService",
+        operation: "invalidateHealthCache",
+        success: true,
       });
 
       // 发射缓存失效事件
@@ -376,9 +387,14 @@ export class HealthAnalyzerService {
       const requests = rawMetrics.requests || [];
       if (requests.length > 0) {
         const errorRate =
-          requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length / requests.length;
+          requests.filter(
+            (r) =>
+              r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+          ).length / requests.length;
         if (errorRate > 0.1) {
-          criticalIssues.push(`API错误率过高: ${Math.round(errorRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER)}%`);
+          criticalIssues.push(
+            `API错误率过高: ${Math.round(errorRate * MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER)}%`,
+          );
         }
 
         const avgResponseTime =

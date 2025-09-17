@@ -4,12 +4,12 @@
  */
 
 export const StorageMode = {
-  NONE: 'none',           // 不存储数据
-  SHORT_TTL: 'short_ttl', // 仅短期缓存存储
-  BOTH: 'both',           // 缓存和持久化存储
+  NONE: "none", // 不存储数据
+  SHORT_TTL: "short_ttl", // 仅短期缓存存储
+  BOTH: "both", // 缓存和持久化存储
 } as const;
 
-export type StorageMode = typeof StorageMode[keyof typeof StorageMode];
+export type StorageMode = (typeof StorageMode)[keyof typeof StorageMode];
 
 /**
  * 存储模式工具类
@@ -32,9 +32,9 @@ export class StorageModeUtils {
    */
   static getDescription(mode: StorageMode): string {
     const descriptions = {
-      [StorageMode.NONE]: '不进行数据存储',
-      [StorageMode.SHORT_TTL]: '仅短期缓存存储',
-      [StorageMode.BOTH]: '缓存和持久化存储',
+      [StorageMode.NONE]: "不进行数据存储",
+      [StorageMode.SHORT_TTL]: "仅短期缓存存储",
+      [StorageMode.BOTH]: "缓存和持久化存储",
     };
     return descriptions[mode];
   }
@@ -48,8 +48,8 @@ export class StorageModeUtils {
     // 引用receiver缓存配置中的TTL值
     const ttlMap = {
       [StorageMode.NONE]: 0,
-      [StorageMode.SHORT_TTL]: 5,    // 强时效性：5秒
-      [StorageMode.BOTH]: 300,       // 弱时效性：5分钟
+      [StorageMode.SHORT_TTL]: 5, // 强时效性：5秒
+      [StorageMode.BOTH]: 300, // 弱时效性：5分钟
     };
     return ttlMap[mode];
   }

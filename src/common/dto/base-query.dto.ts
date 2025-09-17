@@ -15,7 +15,7 @@ export class BaseQueryDto {
     example: 1,
     minimum: 1,
     default: 1,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Type(() => Number)
@@ -29,7 +29,7 @@ export class BaseQueryDto {
     minimum: 1,
     maximum: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,
     default: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Type(() => Number)

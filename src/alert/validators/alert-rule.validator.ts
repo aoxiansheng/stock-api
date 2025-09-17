@@ -1,68 +1,76 @@
 /**
  * Alert规则验证器
  * 🎯 专门负责告警规则的验证逻辑
- * 
+ *
  * @description 专业化的规则验证器，确保告警规则配置的正确性和安全性
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { UnifiedTtlConfig } from '../../cache/config/unified-ttl.config';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
 
 import { createLogger } from "@common/logging/index";
-import { IAlertRule } from '../interfaces';
-import {
-  VALID_OPERATORS,
-  type Operator,
-  AlertRuleUtil,
-} from '../constants';
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
+import { IAlertRule } from "../interfaces";
+import { VALID_OPERATORS, type Operator, AlertRuleUtil } from "../constants";
 
 @Injectable()
 export class AlertRuleValidator {
-  private readonly logger = createLogger('AlertRuleValidator');
+  private readonly logger = createLogger("AlertRuleValidator");
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   /**
    * 验证规则配置
    */
   validateRule(rule: IAlertRule): { valid: boolean; errors: string[] } {
-    const operation = 'VALIDATE_RULE';
+    const operation = "VALIDATE_RULE";
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    this.logger.debug('开始验证规则配置', {
+    this.logger.debug("开始验证规则配置", {
       operation,
       ruleId: rule.id,
       ruleName: rule.name,
     });
 
-    // 验证规则名称
-    if (!AlertRuleUtil.isValidRuleName(rule.name)) {
-      errors.push('规则名称格式无效或为空');
+    // ✅ ID格式验证 - 使用通用组件库的DatabaseValidationUtils
+    if (rule.id) {
+      try {
+        DatabaseValidationUtils.validateObjectId(rule.id, "告警规则ID");
+      } catch (error) {
+        errors.push(error.message);
+      }
     }
 
-    // 验证指标名称
-    if (!AlertRuleUtil.isValidMetricName(rule.metric)) {
-      errors.push('监控指标名称格式无效或为空');
-    }
+    // ✅ 基础验证 - 利用 AlertRuleUtil 中的通用逻辑
+    const baseValidations = [
+      {
+        check: AlertRuleUtil.isValidRuleName(rule.name),
+        message: `无效的规则名称格式: ${rule.name || "(空)"}`,
+      },
+      {
+        check: AlertRuleUtil.isValidMetricName(rule.metric),
+        message: `无效的监控指标名称格式: ${rule.metric || "(空)"}`,
+      },
+      {
+        check: VALID_OPERATORS.includes(rule.operator as Operator),
+        message: `无效的比较操作符: ${rule.operator}`,
+      },
+      {
+        check: AlertRuleUtil.isValidThreshold(rule.threshold),
+        message: `无效的阈值: ${rule.threshold}，必须是有效数字`,
+      },
+    ];
 
-    // 验证操作符
-    if (!VALID_OPERATORS.includes(rule.operator as Operator)) {
-      errors.push(`无效的比较操作符: ${rule.operator}`);
-    }
-
-    // 验证阈值
-    if (!AlertRuleUtil.isValidThreshold(rule.threshold)) {
-      errors.push('阈值必须是有效数字');
-    }
+    baseValidations.forEach(({ check, message }) => {
+      if (!check) errors.push(message);
+    });
 
     // 验证持续时间和冷却时间
-    const alertConfig = this.configService.get('alert');
+    const alertConfig = this.configService.get("alert");
     if (alertConfig && alertConfig.validation) {
       const { duration, cooldown } = alertConfig.validation;
 
@@ -73,9 +81,9 @@ export class AlertRuleValidator {
       ) {
         errors.push(
           AlertRuleUtil.formatAlertMessage(
-            '持续时间必须在{min}-{max}秒之间',
-            { min: duration.min, max: duration.max }
-          )
+            "无效的持续时间: {value}，必须在{min}-{max}秒之间",
+            { value: rule.duration, min: duration.min, max: duration.max },
+          ),
         );
       }
 
@@ -86,21 +94,21 @@ export class AlertRuleValidator {
       ) {
         errors.push(
           AlertRuleUtil.formatAlertMessage(
-            '冷却时间必须在{min}-{max}秒之间',
-            { min: cooldown.min, max: cooldown.max }
-          )
+            "无效的冷却时间: {value}，必须在{min}-{max}秒之间",
+            { value: rule.cooldown, min: cooldown.min, max: cooldown.max },
+          ),
         );
       }
     }
 
     // 验证通知渠道
     if (!rule.channels || rule.channels.length === 0) {
-      errors.push('至少需要配置一个通知渠道');
+      errors.push("无效的通知渠道配置: 至少需要配置一个通知渠道");
     } else {
       // 验证每个渠道的配置
       rule.channels.forEach((channel, index) => {
         if (!channel.type) {
-          errors.push(`通知渠道 ${index + 1}: 必须指定渠道类型`);
+          errors.push(`无效的通知渠道配置 ${index + 1}: 必须指定渠道类型`);
         }
         if (channel.enabled !== false && !channel.config) {
           warnings.push(`通知渠道 ${index + 1}: 启用的渠道建议配置详细信息`);
@@ -111,18 +119,20 @@ export class AlertRuleValidator {
     // 业务逻辑警告检查
     if (rule.cooldown && rule.cooldown > 90 * 86400) {
       warnings.push(
-        `冷却时间超过${90 * 86400 / 3600}小时，可能会延迟重要告警`
+        `冷却时间超过${(90 * 86400) / 3600}小时，可能会延迟重要告警`,
       );
     }
 
-    if (rule.threshold === 0 && ['eq', 'ne'].includes(rule.operator)) {
-      warnings.push('使用0作为阈值时请确认业务逻辑正确');
+    if (rule.threshold === 0 && ["eq", "ne"].includes(rule.operator)) {
+      warnings.push("使用0作为阈值时请确认业务逻辑正确");
     }
 
     // 验证严重程度
-    const validSeverities = ['info', 'warning', 'critical'];
+    const validSeverities = ["info", "warning", "critical"];
     if (!validSeverities.includes(rule.severity)) {
-      errors.push(`无效的严重程度: ${rule.severity}，必须是: ${validSeverities.join(', ')}`);
+      errors.push(
+        `无效的严重程度: ${rule.severity}，必须是: ${validSeverities.join(", ")}`,
+      );
     }
 
     const result = {
@@ -131,7 +141,7 @@ export class AlertRuleValidator {
       warnings, // 可选：返回警告信息
     };
 
-    this.logger.debug('规则验证完成', {
+    this.logger.debug("规则验证完成", {
       operation,
       ruleId: rule.id,
       valid: result.valid,
@@ -142,33 +152,8 @@ export class AlertRuleValidator {
     return result;
   }
 
-  /**
-   * 验证规则名称格式
-   */
-  validateRuleName(name: string): boolean {
-    return AlertRuleUtil.isValidRuleName(name);
-  }
-
-  /**
-   * 验证指标名称格式
-   */
-  validateMetricName(metric: string): boolean {
-    return AlertRuleUtil.isValidMetricName(metric);
-  }
-
-  /**
-   * 验证阈值
-   */
-  validateThreshold(threshold: number): boolean {
-    return AlertRuleUtil.isValidThreshold(threshold);
-  }
-
-  /**
-   * 验证操作符
-   */
-  validateOperator(operator: string): boolean {
-    return VALID_OPERATORS.includes(operator as Operator);
-  }
+  // ✅ 简化方法 - 直接使用 AlertRuleUtil 和常量
+  // 避免重复的验证方法，DTOs 中已有完整的 class-validator 装饰器
 
   /**
    * 批量验证规则
@@ -178,14 +163,14 @@ export class AlertRuleValidator {
     valid: boolean;
     errors: string[];
   }> {
-    const operation = 'BATCH_VALIDATE_RULES';
-    
-    this.logger.debug('开始批量验证规则', {
+    const operation = "BATCH_VALIDATE_RULES";
+
+    this.logger.debug("开始批量验证规则", {
       operation,
       ruleCount: rules.length,
     });
 
-    const results = rules.map(rule => {
+    const results = rules.map((rule) => {
       const validation = this.validateRule(rule);
       return {
         ruleId: rule.id,
@@ -194,10 +179,10 @@ export class AlertRuleValidator {
       };
     });
 
-    const validCount = results.filter(r => r.valid).length;
+    const validCount = results.filter((r) => r.valid).length;
     const invalidCount = results.length - validCount;
 
-    this.logger.debug('批量验证规则完成', {
+    this.logger.debug("批量验证规则完成", {
       operation,
       totalRules: rules.length,
       validRules: validCount,
@@ -218,13 +203,17 @@ export class AlertRuleValidator {
    * 获取默认规则配置
    */
   getDefaultRuleConfig(): Partial<IAlertRule> {
-    const alertConfig = this.configService.get('alert');
-    
+    const alertConfig = this.configService.get("alert");
+
     return {
-      operator: '>',
-      duration: alertConfig?.validation?.duration?.min || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
-      cooldown: alertConfig?.validation?.cooldown?.min || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
-      severity: 'warning',
+      operator: ">",
+      duration:
+        alertConfig?.validation?.duration?.min ||
+        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+      cooldown:
+        alertConfig?.validation?.cooldown?.min ||
+        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+      severity: "warning",
       enabled: true,
       tags: {},
     };
@@ -240,12 +229,16 @@ export class AlertRuleValidator {
     defaultCooldown: number;
   } {
     const defaultConfig = this.getDefaultRuleConfig();
-    
+
     return {
       supportedOperators: this.getSupportedOperators(),
-      validSeverities: ['info', 'warning', 'critical'],
-      defaultDuration: defaultConfig.duration || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
-      defaultCooldown: defaultConfig.cooldown || this.configService.get<UnifiedTtlConfig>('unifiedTtl').alertCooldownTtl,
+      validSeverities: ["info", "warning", "critical"],
+      defaultDuration:
+        defaultConfig.duration ||
+        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+      defaultCooldown:
+        defaultConfig.cooldown ||
+        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
     };
   }
 }

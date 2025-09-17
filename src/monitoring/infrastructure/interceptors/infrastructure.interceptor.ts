@@ -14,7 +14,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Observable, tap } from "rxjs";
 import { Request, Response } from "express";
 
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
 import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 // 完全事件驱动架构，移除CollectorService直接依赖
@@ -59,7 +59,9 @@ export class InfrastructureInterceptor implements NestInterceptor {
             route,
             method,
             duration,
-            statusCode: response.statusCode || MONITORING_SYSTEM_LIMITS.HTTP_SERVER_ERROR_THRESHOLD,
+            statusCode:
+              response.statusCode ||
+              MONITORING_SYSTEM_LIMITS.HTTP_SERVER_ERROR_THRESHOLD,
             success: false,
             handler: handler.name,
             controller: controller.name,

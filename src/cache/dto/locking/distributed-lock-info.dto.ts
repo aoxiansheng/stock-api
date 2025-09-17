@@ -1,10 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsString,
-  IsNumber,
-  IsBoolean,
-  IsOptional,
-} from "class-validator";
+import { IsString, IsNumber, IsBoolean, IsOptional } from "class-validator";
 
 /**
  * 分布式锁信息DTO

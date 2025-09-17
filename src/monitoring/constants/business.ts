@@ -1,14 +1,14 @@
 /**
  * Monitoring 业务算法常量 - Phase 3 清理后版本
  * 🎯 仅保留真正的算法常量和工具类，90%已迁移到统一配置系统
- * 
+ *
  * ✅ Phase 3 Constants File Cleanup 完成：
- * 
+ *
  * 📌 保留内容（10% 真正常量）：
  * - ✅ 核心采样算法常量：数据处理的固定算法参数
  * - ✅ 工具类方法：基于算法逻辑的业务判断函数
  * - ✅ 语义类型定义：算法分类的类型定义
- * 
+ *
  * 📌 已迁移内容（90% 业务参数）：
  * - 🔄 错误率阈值 → config.performanceThresholds.errorRates.*
  * - 🔄 变化检测阈值 → config.performanceThresholds.changeDetection.*
@@ -18,13 +18,13 @@
  * - 🔄 趋势分析配置 → config.events.trendAnalysis.*
  * - 🔄 数据收集配置 → config.events.eventCollection.* + config.ttl.*
  * - 🔄 系统资源阈值 → config.performanceThresholds.systemResources.*
- * 
+ *
  * 🎯 迁移路径：import { MonitoringEnhancedConfig } from '../config/unified'
- * 
+ *
  * ✅ 算法原则：只保留固定的算法参数，不依赖业务配置
  * ✅ 语义原则：只保留算法分类和判断逻辑
  * ✅ 工具原则：只保留基于算法的计算方法
- * 
+ *
  * @version 3.0.0 - Phase 3 Constants File Cleanup
  * @since 2025-09-16 (Phase 3: Constants File Cleanup)
  * @author Claude Code
@@ -38,19 +38,19 @@ export const MONITORING_BUSINESS = Object.freeze({
   /**
    * 采样和数据处理配置 - 算法固定常量
    * 🔥 基于统计学和算法的固定参数，不可配置
-   * 
+   *
    * 🧮 算法依据：
    * - RECENT_METRICS_COUNT: 基于时间序列分析，5个点是短期趋势的最小样本
    * - MIN_DATA_POINTS: 统计学中有效样本的最小要求
    * - SAMPLE_SIZE_*: 基于中央极限定理和处理效率的算法优化
    */
   SAMPLING_CONFIG: Object.freeze({
-    RECENT_METRICS_COUNT: 5,       // 最近数据点数量 - slice(-5) 算法需求
-    MIN_DATA_POINTS: 5,            // 最小数据要求 - 统计有效性门槛
-    SAMPLE_SIZE_SMALL: 10,         // 小样本大小 - 算法处理优化
-    SAMPLE_SIZE_MEDIUM: 50,        // 中等样本大小 - 平衡精度与性能
-    SAMPLE_SIZE_LARGE: 100,        // 大样本大小 - 高精度分析
-    MAX_SAMPLE_SIZE: 1000,         // 最大样本大小 - 内存限制保护
+    RECENT_METRICS_COUNT: 5, // 最近数据点数量 - slice(-5) 算法需求
+    MIN_DATA_POINTS: 5, // 最小数据要求 - 统计有效性门槛
+    SAMPLE_SIZE_SMALL: 10, // 小样本大小 - 算法处理优化
+    SAMPLE_SIZE_MEDIUM: 50, // 中等样本大小 - 平衡精度与性能
+    SAMPLE_SIZE_LARGE: 100, // 大样本大小 - 高精度分析
+    MAX_SAMPLE_SIZE: 1000, // 最大样本大小 - 内存限制保护
   }),
 } as const);
 
@@ -64,19 +64,27 @@ export class MonitoringBusinessUtil {
    * 🧮 基于统计学最小样本要求的算法判断
    */
   static needsMoreData(currentDataPoints: number): boolean {
-    return currentDataPoints < MONITORING_BUSINESS.SAMPLING_CONFIG.MIN_DATA_POINTS;
+    return (
+      currentDataPoints < MONITORING_BUSINESS.SAMPLING_CONFIG.MIN_DATA_POINTS
+    );
   }
-  
+
   /**
    * 获取推荐的采样大小
    * 🧮 基于数据量和算法效率的优化选择
    */
-  static getRecommendedSampleSize(dataVolume: 'small' | 'medium' | 'large'): number {
+  static getRecommendedSampleSize(
+    dataVolume: "small" | "medium" | "large",
+  ): number {
     switch (dataVolume) {
-      case 'small': return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_SMALL;
-      case 'medium': return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_MEDIUM;
-      case 'large': return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_LARGE;
-      default: return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_MEDIUM;
+      case "small":
+        return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_SMALL;
+      case "medium":
+        return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_MEDIUM;
+      case "large":
+        return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_LARGE;
+      default:
+        return MONITORING_BUSINESS.SAMPLING_CONFIG.SAMPLE_SIZE_MEDIUM;
     }
   }
 
@@ -93,8 +101,10 @@ export class MonitoringBusinessUtil {
    * 🧮 基于内存限制和算法效率的边界检查
    */
   static isValidSampleSize(sampleSize: number): boolean {
-    return sampleSize >= MONITORING_BUSINESS.SAMPLING_CONFIG.MIN_DATA_POINTS && 
-           sampleSize <= MONITORING_BUSINESS.SAMPLING_CONFIG.MAX_SAMPLE_SIZE;
+    return (
+      sampleSize >= MONITORING_BUSINESS.SAMPLING_CONFIG.MIN_DATA_POINTS &&
+      sampleSize <= MONITORING_BUSINESS.SAMPLING_CONFIG.MAX_SAMPLE_SIZE
+    );
   }
 
   /**
@@ -103,8 +113,11 @@ export class MonitoringBusinessUtil {
    */
   static getSafeSampleSize(requestedSize: number): number {
     return Math.min(
-      Math.max(requestedSize, MONITORING_BUSINESS.SAMPLING_CONFIG.MIN_DATA_POINTS),
-      MONITORING_BUSINESS.SAMPLING_CONFIG.MAX_SAMPLE_SIZE
+      Math.max(
+        requestedSize,
+        MONITORING_BUSINESS.SAMPLING_CONFIG.MIN_DATA_POINTS,
+      ),
+      MONITORING_BUSINESS.SAMPLING_CONFIG.MAX_SAMPLE_SIZE,
     );
   }
 }
@@ -113,6 +126,6 @@ export class MonitoringBusinessUtil {
  * 类型定义 - Phase 3 精简版本
  * 🏷️ 仅保留算法相关的类型定义
  */
-export type DataVolume = 'small' | 'medium' | 'large';
+export type DataVolume = "small" | "medium" | "large";
 export type SamplingConfig = typeof MONITORING_BUSINESS.SAMPLING_CONFIG;
 export type MonitoringBusinessConstants = typeof MONITORING_BUSINESS;

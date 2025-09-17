@@ -1,6 +1,6 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
-import { NotificationChannelType } from '../types/notification.types';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document, Types } from "mongoose";
+import { NotificationChannelType } from "../types/notification.types";
 
 /**
  * 通知日志文档类型
@@ -12,7 +12,7 @@ export type NotificationLogDocument = NotificationLog & Document;
  * 用于记录通知发送的详细日志信息
  */
 @Schema({
-  collection: 'notification_logs',
+  collection: "notification_logs",
   timestamps: true,
   versionKey: false,
 })
@@ -113,7 +113,8 @@ export class NotificationLog {
 /**
  * NotificationLog Schema工厂
  */
-export const NotificationLogSchema = SchemaFactory.createForClass(NotificationLog);
+export const NotificationLogSchema =
+  SchemaFactory.createForClass(NotificationLog);
 
 // 创建复合索引以优化查询性能
 NotificationLogSchema.index({ alertId: 1, sentAt: -1 }); // 按警告ID和时间查询
@@ -121,12 +122,14 @@ NotificationLogSchema.index({ notificationId: 1, channelType: 1 }); // 按通知
 NotificationLogSchema.index({ success: 1, sentAt: -1 }); // 按成功状态和时间查询
 
 // 虚拟字段 - 将_id转换为字符串id
-NotificationLogSchema.virtual('id').get(function (this: NotificationLogDocument) {
+NotificationLogSchema.virtual("id").get(function (
+  this: NotificationLogDocument,
+) {
   return this._id?.toHexString();
 });
 
 // 确保虚拟字段在JSON序列化时包含
-NotificationLogSchema.set('toJSON', {
+NotificationLogSchema.set("toJSON", {
   virtuals: true,
   transform: function (doc, ret) {
     delete ret._id;

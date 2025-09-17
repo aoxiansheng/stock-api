@@ -1,16 +1,16 @@
 /**
  * 规则评估器
  * 🎯 专门负责规则评估的核心逻辑
- * 
+ *
  * @description 专业化的规则评估引擎
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { IAlertRule, IMetricData, IRuleEvaluationResult } from '../interfaces';
+import { IAlertRule, IMetricData, IRuleEvaluationResult } from "../interfaces";
 import {
   VALID_OPERATORS,
   type Operator,
@@ -19,18 +19,18 @@ import {
   ALERT_METRICS,
   OPERATOR_SYMBOLS,
   AlertRuleUtil,
-} from '../constants';
+} from "../constants";
 
 @Injectable()
 export class RuleEvaluator {
-  private readonly logger = createLogger('RuleEvaluator');
+  private readonly logger = createLogger("RuleEvaluator");
 
   /**
    * 评估单个规则
    */
   evaluateRule(
     rule: IAlertRule,
-    metricData: IMetricData[]
+    metricData: IMetricData[],
   ): IRuleEvaluationResult {
     const operation = ALERT_OPERATIONS.RULES.EVALUATE_RULES_SCHEDULED;
 
@@ -41,13 +41,13 @@ export class RuleEvaluator {
           data &&
           data.metric === rule.metric &&
           data.timestamp &&
-          data.value != null
+          data.value != null,
       );
 
       if (relevantData.length === 0) {
         const message = AlertRuleUtil.formatAlertMessage(
-          '没有找到指标 {metric} 的数据',
-          { metric: rule.metric }
+          "没有找到指标 {metric} 的数据",
+          { metric: rule.metric },
         );
 
         return {
@@ -62,27 +62,27 @@ export class RuleEvaluator {
 
       // 获取最新的指标值
       const latestData = relevantData.sort(
-        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+        (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
       )[0];
 
       // 评估规则条件
       const triggered = this.evaluateCondition(
         latestData.value,
         rule.operator as Operator,
-        rule.threshold
+        rule.threshold,
       );
 
       const message = triggered
         ? AlertRuleUtil.formatAlertMessage(
-            '告警触发: {metric} {operator} {threshold}, 当前值: {value}',
+            "告警触发: {metric} {operator} {threshold}, 当前值: {value}",
             {
               metric: rule.metric,
               operator: this.getOperatorSymbol(rule.operator as Operator),
               threshold: rule.threshold,
               value: latestData.value,
-            }
+            },
           )
-        : AlertRuleUtil.formatAlertMessage('正常: {metric} = {value}', {
+        : AlertRuleUtil.formatAlertMessage("正常: {metric} = {value}", {
             metric: rule.metric,
             value: latestData.value,
           });
@@ -109,7 +109,7 @@ export class RuleEvaluator {
           metric: rule.metric,
           error: error.message,
           stack: error.stack,
-        })
+        }),
       );
       throw error;
     }
@@ -120,7 +120,7 @@ export class RuleEvaluator {
    */
   evaluateRules(
     rules: IAlertRule[],
-    metricData: IMetricData[]
+    metricData: IMetricData[],
   ): IRuleEvaluationResult[] {
     const operation = ALERT_OPERATIONS.RULES.EVALUATE_RULES_SCHEDULED;
     const executionStart = Date.now();
@@ -132,7 +132,7 @@ export class RuleEvaluator {
         rulesCount: rules.length,
         enabledRulesCount: rules.filter((rule) => rule.enabled).length,
         metricDataCount: metricData.length,
-      })
+      }),
     );
 
     try {
@@ -149,7 +149,7 @@ export class RuleEvaluator {
                 ruleId: rule.id,
                 ruleName: rule.name,
                 error: error.message,
-              })
+              }),
             );
             // 返回错误的评估结果，而不是停止整个批量处理
             return {
@@ -158,8 +158,8 @@ export class RuleEvaluator {
               value: 0,
               threshold: rule.threshold,
               message: AlertRuleUtil.formatAlertMessage(
-                '规则评估失败: {error}',
-                { error: error.message }
+                "规则评估失败: {error}",
+                { error: error.message },
               ),
               evaluatedAt: new Date(),
               context: {
@@ -185,7 +185,7 @@ export class RuleEvaluator {
           [ALERT_METRICS.RULES.RULE_EVALUATION_COUNT]: results.length,
           [ALERT_METRICS.RULES.AVERAGE_RULE_EVALUATION_TIME]:
             results.length > 0 ? executionTime / results.length : 0,
-        })
+        }),
       );
 
       return results;
@@ -198,7 +198,7 @@ export class RuleEvaluator {
           rulesCount: rules.length,
           error: error.message,
           executionTime,
-        })
+        }),
       );
       throw error;
     }
@@ -210,30 +210,30 @@ export class RuleEvaluator {
   private evaluateCondition(
     value: number,
     operator: Operator,
-    threshold: number
+    threshold: number,
   ): boolean {
     switch (operator) {
-      case '>':
+      case ">":
         return value > threshold;
-      case '>=':
+      case ">=":
         return value >= threshold;
-      case '<':
+      case "<":
         return value < threshold;
-      case '<=':
+      case "<=":
         return value <= threshold;
-      case '==':
+      case "==":
         return value === threshold;
-      case '!=':
+      case "!=":
         return value !== threshold;
       default:
         this.logger.warn(
-          '遇到未知的操作符',
+          "遇到未知的操作符",
           sanitizeLogData({
-            operation: 'evaluateCondition',
+            operation: "evaluateCondition",
             value,
             operator,
             threshold,
-          })
+          }),
         );
         return false;
     }
@@ -251,16 +251,16 @@ export class RuleEvaluator {
    */
   evaluateRulePerformance(
     rule: IAlertRule,
-    historicalResults: IRuleEvaluationResult[]
+    historicalResults: IRuleEvaluationResult[],
   ): {
     accuracy: number;
     triggerRate: number;
     averageResponseTime: number;
     falsePositiveRate: number;
   } {
-    const operation = 'EVALUATE_RULE_PERFORMANCE';
-    
-    this.logger.debug('评估规则历史表现', {
+    const operation = "EVALUATE_RULE_PERFORMANCE";
+
+    this.logger.debug("评估规则历史表现", {
       operation,
       ruleId: rule.id,
       resultsCount: historicalResults.length,
@@ -275,19 +275,21 @@ export class RuleEvaluator {
       };
     }
 
-    const triggeredResults = historicalResults.filter(r => r.triggered);
+    const triggeredResults = historicalResults.filter((r) => r.triggered);
     const totalResults = historicalResults.length;
-    
+
     const triggerRate = (triggeredResults.length / totalResults) * 100;
-    
+
     // 计算平均响应时间（评估时间差）
     let totalResponseTime = 0;
     for (let i = 1; i < historicalResults.length; i++) {
-      const timeDiff = historicalResults[i].evaluatedAt.getTime() - 
-                      historicalResults[i - 1].evaluatedAt.getTime();
+      const timeDiff =
+        historicalResults[i].evaluatedAt.getTime() -
+        historicalResults[i - 1].evaluatedAt.getTime();
       totalResponseTime += timeDiff;
     }
-    const averageResponseTime = totalResults > 1 ? totalResponseTime / (totalResults - 1) : 0;
+    const averageResponseTime =
+      totalResults > 1 ? totalResponseTime / (totalResults - 1) : 0;
 
     // TODO: 实现准确率和误报率计算（需要实际告警反馈数据）
     const accuracy = 85; // 默认值，需要实际计算
@@ -300,7 +302,7 @@ export class RuleEvaluator {
       falsePositiveRate,
     };
 
-    this.logger.debug('规则历史表现评估完成', {
+    this.logger.debug("规则历史表现评估完成", {
       operation,
       ruleId: rule.id,
       performance,
@@ -314,7 +316,7 @@ export class RuleEvaluator {
    */
   simulateEvaluation(
     rule: IAlertRule,
-    testMetrics: IMetricData[]
+    testMetrics: IMetricData[],
   ): {
     results: IRuleEvaluationResult[];
     summary: {
@@ -324,29 +326,30 @@ export class RuleEvaluator {
       averageValue: number;
     };
   } {
-    const operation = 'SIMULATE_EVALUATION';
-    
-    this.logger.debug('模拟规则评估', {
+    const operation = "SIMULATE_EVALUATION";
+
+    this.logger.debug("模拟规则评估", {
       operation,
       ruleId: rule.id,
       testMetricsCount: testMetrics.length,
     });
 
-    const results = testMetrics.map(metric => 
-      this.evaluateRule(rule, [metric])
+    const results = testMetrics.map((metric) =>
+      this.evaluateRule(rule, [metric]),
     );
 
-    const triggeredCount = results.filter(r => r.triggered).length;
+    const triggeredCount = results.filter((r) => r.triggered).length;
     const totalValues = results.reduce((sum, r) => sum + r.value, 0);
-    
+
     const summary = {
       totalEvaluations: results.length,
       triggeredCount,
-      triggerRate: results.length > 0 ? (triggeredCount / results.length) * 100 : 0,
+      triggerRate:
+        results.length > 0 ? (triggeredCount / results.length) * 100 : 0,
       averageValue: results.length > 0 ? totalValues / results.length : 0,
     };
 
-    this.logger.debug('规则评估模拟完成', {
+    this.logger.debug("规则评估模拟完成", {
       operation,
       ruleId: rule.id,
       summary,

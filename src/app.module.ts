@@ -58,7 +58,7 @@ import { ScriptsModule } from "./scripts/scripts.module";
     // ========================================
     // 配置模块
     ConfigModule.forFeature(authConfig),
-    
+
     // 统一数据库模块 (替换原有MongooseModule.forRoot)
     DatabaseModule,
 
@@ -68,11 +68,17 @@ import { ScriptsModule } from "./scripts/scripts.module";
       url: `redis://${process.env.REDIS_HOST || "localhost"}:${parseInt(process.env.REDIS_PORT) || 6379}`,
       options: {
         enableReadyCheck: false,
-        maxRetriesPerRequest: parseInt(process.env.AUTH_REDIS_MAX_RETRIES || '3'),
+        maxRetriesPerRequest: parseInt(
+          process.env.AUTH_REDIS_MAX_RETRIES || "3",
+        ),
         lazyConnect: true,
         keepAlive: 30000,
-        connectTimeout: parseInt(process.env.AUTH_REDIS_CONNECTION_TIMEOUT || '5000'),
-        commandTimeout: parseInt(process.env.AUTH_REDIS_COMMAND_TIMEOUT || '5000'),
+        connectTimeout: parseInt(
+          process.env.AUTH_REDIS_CONNECTION_TIMEOUT || "5000",
+        ),
+        commandTimeout: parseInt(
+          process.env.AUTH_REDIS_COMMAND_TIMEOUT || "5000",
+        ),
         family: 4,
       },
     }),
@@ -97,7 +103,7 @@ import { ScriptsModule } from "./scripts/scripts.module";
     // ========================================
     // 核心业务层 (Core Business Layer)
     // ========================================
-    
+
     // 准备阶段模块
     SymbolMapperModule,
     DataMapperModule,
@@ -126,15 +132,15 @@ import { ScriptsModule } from "./scripts/scripts.module";
     ProvidersModule,
     PermissionValidationModule,
     ScriptsModule, // 🛠️ 脚本模块 (缓存迁移等维护脚本)
-    
+
     // ========================================
     // 安全防护层 (Security Layer)
     // ========================================
     // 速率限制模块
     ThrottlerModule.forRoot([
       {
-        ttl: parseInt(process.env.AUTH_RATE_LIMIT_TTL || '60000'), // 60秒
-        limit: parseInt(process.env.AUTH_RATE_LIMIT_LIMIT || '100'), // 100次
+        ttl: parseInt(process.env.AUTH_RATE_LIMIT_TTL || "60000"), // 60秒
+        limit: parseInt(process.env.AUTH_RATE_LIMIT_LIMIT || "100"), // 100次
       },
     ]),
   ],

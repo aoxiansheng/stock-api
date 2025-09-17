@@ -65,7 +65,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
   providers: [
     // 门面层
     AuthFacadeService,
-    
+
     // 领域层
     UserAuthenticationService,
     SessionManagementService,
@@ -73,33 +73,42 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     SecurityPolicyService,
     AuditService,
     AuthEventNotificationService,
-    
+
     // 基础设施层
     AuthConfigService,
     PasswordService,
     TokenService,
     PermissionService,
     RateLimitService,
-    
+
+    // 🆕 配置系统提供者
+    {
+      provide: "authUnified",
+      useFactory: (configService: ConfigService) => {
+        return configService.get("authUnified");
+      },
+      inject: [ConfigService],
+    },
+
     // 🆕 配置兼容包装器 - 确保现有代码无缝迁移
     AuthConfigCompatibilityWrapper,
-    
+
     // Passport策略
     JwtStrategy,
     ApiKeyStrategy,
-    
+
     // 守卫
     JwtAuthGuard,
     ApiKeyAuthGuard,
     UnifiedPermissionsGuard,
     RateLimitGuard,
-    
+
     // 过滤器
     RateLimitExceptionFilter,
-    
+
     // 中间件
     SecurityMiddleware,
-    
+
     // 仓库
     ApiKeyRepository,
     UserRepository,
@@ -108,33 +117,33 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
   exports: [
     // 门面层 - 主要对外接口
     AuthFacadeService,
-    
+
     // 领域层 - 可能被其他模块使用的核心服务
     UserAuthenticationService,
     SessionManagementService,
     ApiKeyManagementService,
-    
+
     // 基础设施层 - 可能被其他模块使用的技术服务
     AuthConfigService,
     PermissionService,
     RateLimitService,
     TokenService,
-    
+
     // 🆕 配置兼容包装器 - 供其他模块使用新配置系统
     AuthConfigCompatibilityWrapper,
-    
+
     // 守卫 - 需要被AppModule使用
     JwtAuthGuard,
     ApiKeyAuthGuard,
     UnifiedPermissionsGuard,
     RateLimitGuard,
-    
+
     // 过滤器 - 需要被AppModule使用
     RateLimitExceptionFilter,
-    
+
     // 中间件 - 需要被main.ts使用
     SecurityMiddleware,
-    
+
     // 仓库 - 可能被其他模块使用
     ApiKeyRepository,
     UserRepository,

@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
-import { TRANSFORMATION_TYPE_VALUES, API_TYPE_VALUES } from "../constants/data-mapper.constants";
+import {
+  TRANSFORMATION_TYPE_VALUES,
+  API_TYPE_VALUES,
+} from "../constants/data-mapper.constants";
 
 // 🆕 转换规则子Schema
 @Schema({ _id: false })

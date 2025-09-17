@@ -25,7 +25,7 @@ export const STREAM_CACHE_CONFIG = {
   COMPRESSION: {
     THRESHOLD_BYTES: 1024, // 流数据压缩阈值: 1KB (优先实时性)
     ENABLED: true, // 是否启用压缩
-    STRATEGY: 'REALTIME', // 使用实时数据压缩策略
+    STRATEGY: "REALTIME", // 使用实时数据压缩策略
   },
 
   // 性能监控
@@ -37,8 +37,8 @@ export const STREAM_CACHE_CONFIG = {
   // 缓存键前缀 - 使用统一命名规范
   KEYS: {
     WARM_CACHE_PREFIX: "stream_cache_warm", // 统一命名: 模块_功能_类型
-    HOT_CACHE_PREFIX: "stream_cache_hot",   // 优化: 去除冗余冒号
-    LOCK_PREFIX: "stream_cache_lock",       // 一致性: 下划线分隔
+    HOT_CACHE_PREFIX: "stream_cache_hot", // 优化: 去除冗余冒号
+    LOCK_PREFIX: "stream_cache_lock", // 一致性: 下划线分隔
   },
 } as const;
 
@@ -53,7 +53,7 @@ export const DEFAULT_STREAM_CACHE_CONFIG = {
   streamBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
   connectionTimeout: 5000, // 5秒连接超时
   heartbeatInterval: 30000, // 30秒心跳间隔
-  
+
   // 基础配置
   defaultTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_SECONDS,
   minTTL: 1,
@@ -63,18 +63,18 @@ export const DEFAULT_STREAM_CACHE_CONFIG = {
   cleanupInterval: STREAM_CACHE_CONFIG.CLEANUP.INTERVAL_MS,
   maxCleanupItems: STREAM_CACHE_CONFIG.CLEANUP.MAX_CLEANUP_ITEMS,
   memoryCleanupThreshold: 0.85,
-  
+
   // 压缩配置
   compressionThreshold: STREAM_CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES,
   compressionEnabled: STREAM_CACHE_CONFIG.COMPRESSION.ENABLED,
-  compressionDataType: 'stream' as const,
-  
+  compressionDataType: "stream" as const,
+
   // 性能监控配置
   slowOperationThreshold: STREAM_CACHE_CONFIG.MONITORING.SLOW_OPERATION_MS,
   statsLogInterval: STREAM_CACHE_CONFIG.MONITORING.STATS_LOG_INTERVAL_MS,
   performanceMonitoring: true,
   verboseLogging: false,
-  
+
   // 错误处理配置
   maxRetryAttempts: 3,
   retryBaseDelay: 100,

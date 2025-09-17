@@ -4,6 +4,6 @@
  */
 export enum StorageType {
   STORAGETYPECACHE = "storagetype_cache",
-  PERSISTENT = "persistent", 
+  PERSISTENT = "persistent",
   BOTH = "both",
 }

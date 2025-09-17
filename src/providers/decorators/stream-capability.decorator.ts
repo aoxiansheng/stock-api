@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { CapabilityMetadata } from "./types/metadata.types";
 import { Capability } from "./capability.decorator";
-import { API_OPERATIONS } from '@common/constants/domain';
+import { API_OPERATIONS } from "@common/constants/domain";
 
 /**
  * 流能力装饰器 - WebSocket 能力的特化版本

@@ -1,10 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsBoolean,
-  IsNumber,
-  IsOptional,
-  IsString,
-} from "class-validator";
+import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator";
 import { CompressionSizeInfo } from "../shared/cache-shared.interfaces";
 
 /**
@@ -19,7 +14,10 @@ export class CacheCompressionInfoDto implements CompressionSizeInfo {
   @IsNumber()
   originalSize: number;
 
-  @ApiProperty({ description: "处理后数据大小（字节，用于表示压缩后大小）", required: false })
+  @ApiProperty({
+    description: "处理后数据大小（字节，用于表示压缩后大小）",
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   processedSize?: number;

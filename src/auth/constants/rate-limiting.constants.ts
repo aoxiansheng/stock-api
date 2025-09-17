@@ -1,10 +1,10 @@
 /**
  * 频率限制固定标准常量 - 重定向到统一语义常量文件
  * 🎯 重构说明：所有固定标准已整合到 auth-semantic.constants.ts
- * 
+ *
  * ⚠️  此文件已废弃：所有语义常量已迁移到 auth-semantic.constants.ts
  * 🔧 配置参数访问：通过 AuthConfigCompatibilityWrapper 获取可配置参数
- * 
+ *
  * @deprecated 使用 auth-semantic.constants.ts 中的对应常量
  * @see auth-semantic.constants.ts - 所有语义常量的统一位置
  * @see AuthConfigCompatibilityWrapper - 访问配置参数
@@ -21,8 +21,8 @@ export {
   TIME_MULTIPLIERS,
   RATE_LIMIT_VALIDATION,
   RateLimitOperation,
-  RateLimitMessage
-} from './auth-semantic.constants';
+  RateLimitMessage,
+} from "./auth-semantic.constants";
 
 // ⚠️  已完全迁移：所有可配置参数现在通过统一配置系统访问
 // 🔧 新的访问方式：
@@ -30,7 +30,7 @@ export {
 // - AuthConfigCompatibilityWrapper.VALIDATION_LIMITS - 验证限制配置
 // - AuthConfigCompatibilityWrapper.SESSION_CONFIG - 会话配置
 // - AuthConfigCompatibilityWrapper.SECURITY_CONFIG - 安全配置
-// 
+//
 // 📋 已迁移配置：
 // - AUTH_RATE_LIMITS: 登录、注册、密码重置频率限制
 // - SESSION_LIMITS: 会话创建、刷新、注销限制、并发会话数

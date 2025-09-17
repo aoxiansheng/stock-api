@@ -1,5 +1,4 @@
-
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   Controller,
   Post,

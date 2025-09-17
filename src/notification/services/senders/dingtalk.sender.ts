@@ -1,7 +1,7 @@
 /**
  * 钉钉通知发送器
  * 🎯 负责钉钉通知的发送和验证
- * 
+ *
  * @description 从Alert模块迁移的钉钉发送器，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -46,7 +46,9 @@ export class DingTalkSender implements NotificationSender {
     const startTime = Date.now();
 
     // SSRF防护检查
-    const urlValidation = URLSecurityValidator.validateURL(channelConfig.webhook);
+    const urlValidation = URLSecurityValidator.validateURL(
+      channelConfig.webhook,
+    );
     if (!urlValidation.valid) {
       throw new BadRequestException(
         `钉钉 Webhook URL安全检查失败: ${urlValidation.error}`,
@@ -56,16 +58,20 @@ export class DingTalkSender implements NotificationSender {
     try {
       // 构建钉钉消息格式
       const payload = this.buildDingTalkPayload(notification, channelConfig);
-      
+
       // 如果配置了密钥，生成签名
       let url = channelConfig.webhook;
       if (channelConfig.secret) {
-        url = this.generateSignedUrl(channelConfig.webhook, channelConfig.secret);
+        url = this.generateSignedUrl(
+          channelConfig.webhook,
+          channelConfig.secret,
+        );
       }
 
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(url, payload, {
-          timeout: channelConfig.timeout || this.configService.getDefaultTimeout(),
+          timeout:
+            channelConfig.timeout || this.configService.getDefaultTimeout(),
         }),
       );
 
@@ -95,7 +101,7 @@ export class DingTalkSender implements NotificationSender {
           success: false,
           channelId: notification.channelId,
           channelType: this.type,
-          message: `钉钉API错误: ${response.data.errmsg || '未知错误'}`,
+          message: `钉钉API错误: ${response.data.errmsg || "未知错误"}`,
           sentAt: new Date(),
           duration: Date.now() - startTime,
         };
@@ -135,7 +141,8 @@ export class DingTalkSender implements NotificationSender {
       const testPayload = {
         msgtype: "text",
         text: {
-          content: "📢 钉钉通知配置测试\n如果您收到此消息，说明钉钉通知配置正常工作。",
+          content:
+            "📢 钉钉通知配置测试\n如果您收到此消息，说明钉钉通知配置正常工作。",
         },
       };
 
@@ -150,7 +157,7 @@ export class DingTalkSender implements NotificationSender {
         }),
       );
 
-      this.logger.log('钉钉配置测试完成', {
+      this.logger.log("钉钉配置测试完成", {
         errcode: response.data.errcode,
         errmsg: response.data.errmsg,
       });
@@ -189,7 +196,10 @@ export class DingTalkSender implements NotificationSender {
       errors.push("密钥必须是字符串");
     }
 
-    if (config.timeout && (typeof config.timeout !== "number" || config.timeout <= 0)) {
+    if (
+      config.timeout &&
+      (typeof config.timeout !== "number" || config.timeout <= 0)
+    ) {
       errors.push("超时时间必须是正数");
     }
 
@@ -234,7 +244,7 @@ export class DingTalkSender implements NotificationSender {
    */
   private buildDingTalkPayload(
     notification: Notification,
-    config: Record<string, any>
+    config: Record<string, any>,
   ): Record<string, any> {
     // 钉钉支持多种消息类型，这里使用markdown格式
     const markdownContent = this.buildMarkdownContent(notification);
@@ -254,7 +264,7 @@ export class DingTalkSender implements NotificationSender {
    */
   private buildMarkdownContent(notification: Notification): string {
     const priorityEmoji = this.getPriorityEmoji(notification.priority);
-    
+
     let content = `## ${priorityEmoji} ${notification.title}\n\n`;
     content += `${notification.content}\n\n`;
     content += `---\n\n`;
@@ -264,10 +274,13 @@ export class DingTalkSender implements NotificationSender {
     content += `- 优先级: ${notification.priority.toUpperCase()}\n`;
     content += `- 状态: ${notification.status.toUpperCase()}\n`;
     content += `- 接收者: ${notification.recipient}\n`;
-    content += `- 创建时间: ${notification.createdAt.toLocaleString('zh-CN')}\n`;
+    content += `- 创建时间: ${notification.createdAt.toLocaleString("zh-CN")}\n`;
 
     // 如果有扩展元数据，添加到内容中
-    if (notification.metadata && Object.keys(notification.metadata).length > 0) {
+    if (
+      notification.metadata &&
+      Object.keys(notification.metadata).length > 0
+    ) {
       content += `\n**扩展信息:**\n`;
       Object.entries(notification.metadata).forEach(([key, value]) => {
         content += `- ${key}: ${value}\n`;
@@ -300,9 +313,9 @@ export class DingTalkSender implements NotificationSender {
     const timestamp = Date.now();
     const stringToSign = `${timestamp}\n${secret}`;
     const signature = crypto
-      .createHmac('sha256', secret)
+      .createHmac("sha256", secret)
       .update(stringToSign)
-      .digest('base64');
+      .digest("base64");
 
     return `${webhook}&timestamp=${timestamp}&sign=${encodeURIComponent(signature)}`;
   }

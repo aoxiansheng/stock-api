@@ -6,7 +6,10 @@ import {
   IsOptional,
   IsString,
 } from "class-validator";
-import { SerializerType, SERIALIZER_TYPE_VALUES } from "../../constants/config/data-formats.constants";
+import {
+  SerializerType,
+  SERIALIZER_TYPE_VALUES,
+} from "../../constants/config/data-formats.constants";
 import { SizeFields } from "../shared/cache-shared.interfaces";
 
 /**

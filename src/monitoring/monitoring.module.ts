@@ -10,7 +10,7 @@
  */
 
 import { Module } from "@nestjs/common";
-import { CacheModule } from '@cache/module/cache.module';
+import { CacheModule } from "@cache/module/cache.module";
 import { InfrastructureModule } from "./infrastructure/infrastructure.module";
 import { CollectorModule } from "./collector/collector.module";
 import { AnalyzerModule } from "./analyzer/analyzer.module";

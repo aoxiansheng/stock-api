@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { TrendsDto } from "../contracts/interfaces/analyzer.interface";
 import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
-import { CacheService } from '@cache/services/cache.service';
-import { MonitoringCacheKeys } from '../utils/monitoring-cache-keys';
-import { MONITORING_CACHE_TTL } from '../constants/cache-ttl.constants';
+import { CacheService } from "@cache/services/cache.service";
+import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
+import { MONITORING_CACHE_TTL } from "../constants/cache-ttl.constants";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
@@ -40,29 +40,27 @@ export class TrendAnalyzerService {
     period: string = "1h",
   ): Promise<TrendsDto> {
     try {
-      this.logger.debug('TrendAnalyzer: 开始计算性能趋势', {
-        component: 'TrendAnalyzerService',
-        operation: 'calculatePerformanceTrends',
+      this.logger.debug("TrendAnalyzer: 开始计算性能趋势", {
+        component: "TrendAnalyzerService",
+        operation: "calculatePerformanceTrends",
         period,
-        success: true
+        success: true,
       });
 
       // 使用getOrSet热点路径优化（自动处理分布式锁和缓存回填）
-      const cacheKey = MonitoringCacheKeys.trend(this.buildTrendsCacheKey(
-        "performance",
-        period,
-        currentMetrics,
-      ));
+      const cacheKey = MonitoringCacheKeys.trend(
+        this.buildTrendsCacheKey("performance", period, currentMetrics),
+      );
 
       const trends = await this.cacheService.safeGetOrSet<TrendsDto>(
         cacheKey,
         async () => {
           // 缓存未命中，重新计算趋势
-          this.logger.debug('TrendAnalyzer: 趋势分析缓存未命中，重新生成', {
-            component: 'TrendAnalyzerService',
-            operation: 'calculatePerformanceTrends',
+          this.logger.debug("TrendAnalyzer: 趋势分析缓存未命中，重新生成", {
+            component: "TrendAnalyzerService",
+            operation: "calculatePerformanceTrends",
             cacheKey,
-            success: true
+            success: true,
           });
 
           // 使用计算器生成趋势分析
@@ -91,17 +89,17 @@ export class TrendAnalyzerService {
             },
           });
 
-          this.logger.debug('TrendAnalyzer: 趋势分析完成', {
-            component: 'TrendAnalyzerService',
-            operation: 'calculatePerformanceTrends',
+          this.logger.debug("TrendAnalyzer: 趋势分析完成", {
+            component: "TrendAnalyzerService",
+            operation: "calculatePerformanceTrends",
             period,
             hasComparison: !!previousMetrics,
             trendsCount: Object.keys(enhancedTrends).length,
-            success: true
+            success: true,
           });
           return enhancedTrends;
         },
-        { ttl: MONITORING_CACHE_TTL.TREND }
+        { ttl: MONITORING_CACHE_TTL.TREND },
       );
 
       // 发射缓存命中或回填完成事件
@@ -150,12 +148,12 @@ export class TrendAnalyzerService {
     };
   }> {
     try {
-      this.logger.debug('TrendAnalyzer: 分析历史趋势', {
-        component: 'TrendAnalyzerService',
-        operation: 'getHistoricalTrends',
+      this.logger.debug("TrendAnalyzer: 分析历史趋势", {
+        component: "TrendAnalyzerService",
+        operation: "getHistoricalTrends",
         dataPoints: metricsHistory.length,
         period,
-        success: true
+        success: true,
       });
 
       if (metricsHistory.length < 2) {
@@ -179,11 +177,11 @@ export class TrendAnalyzerService {
       // 计算汇总统计
       const summary = this.calculateTrendsSummary(trends);
 
-      this.logger.debug('TrendAnalyzer: 历史趋势分析完成', {
-        component: 'TrendAnalyzerService',
-        operation: 'getHistoricalTrends',
+      this.logger.debug("TrendAnalyzer: 历史趋势分析完成", {
+        component: "TrendAnalyzerService",
+        operation: "getHistoricalTrends",
         trendsCount: trends.length,
-        success: true
+        success: true,
       });
       return { trends, summary };
     } catch (error) {
@@ -215,11 +213,11 @@ export class TrendAnalyzerService {
     }>;
   }> {
     try {
-      this.logger.debug('TrendAnalyzer: 开始异常趋势检测', {
-        component: 'TrendAnalyzerService',
-        operation: 'detectAnomalies',
+      this.logger.debug("TrendAnalyzer: 开始异常趋势检测", {
+        component: "TrendAnalyzerService",
+        operation: "detectAnomalies",
         historicalDataPoints: historicalMetrics.length,
-        success: true
+        success: true,
       });
 
       const anomalies: any[] = [];
@@ -331,12 +329,13 @@ export class TrendAnalyzerService {
         });
       }
 
-      this.logger.debug('TrendAnalyzer: 异常检测完成', {
-        component: 'TrendAnalyzerService',
-        operation: 'detectAnomalies',
+      this.logger.debug("TrendAnalyzer: 异常检测完成", {
+        component: "TrendAnalyzerService",
+        operation: "detectAnomalies",
         anomaliesCount: anomalies.length,
-        highSeverityCount: anomalies.filter((a) => a.severity === "high").length,
-        success: true
+        highSeverityCount: anomalies.filter((a) => a.severity === "high")
+          .length,
+        success: true,
       });
       return {
         hasAnomalies: anomalies.length > 0,
@@ -364,12 +363,12 @@ export class TrendAnalyzerService {
     factors: string[];
   }> {
     try {
-      this.logger.debug('TrendAnalyzer: 开始趋势预测', {
-        component: 'TrendAnalyzerService',
-        operation: 'predictTrends',
+      this.logger.debug("TrendAnalyzer: 开始趋势预测", {
+        component: "TrendAnalyzerService",
+        operation: "predictTrends",
         predictionHours,
         historicalDataPoints: historicalMetrics.length,
-        success: true
+        success: true,
       });
 
       if (historicalMetrics.length < 3) {
@@ -388,12 +387,12 @@ export class TrendAnalyzerService {
       // 识别影响因素
       const factors = this.identifyTrendFactors(historicalMetrics);
 
-      this.logger.debug('TrendAnalyzer: 趋势预测完成', {
-        component: 'TrendAnalyzerService',
-        operation: 'predictTrends',
+      this.logger.debug("TrendAnalyzer: 趋势预测完成", {
+        component: "TrendAnalyzerService",
+        operation: "predictTrends",
         confidence,
         factorsCount: factors.length,
-        success: true
+        success: true,
       });
       return { predictions, confidence, factors };
     } catch (error) {
@@ -407,11 +406,11 @@ export class TrendAnalyzerService {
    */
   async invalidateTrendsCache(): Promise<void> {
     try {
-      await this.cacheService.delByPattern(MonitoringCacheKeys.trend('*'));
-      this.logger.debug('TrendAnalyzer: 趋势相关缓存已失效', {
-        component: 'TrendAnalyzerService',
-        operation: 'invalidateTrendsCache',
-        success: true
+      await this.cacheService.delByPattern(MonitoringCacheKeys.trend("*"));
+      this.logger.debug("TrendAnalyzer: 趋势相关缓存已失效", {
+        component: "TrendAnalyzerService",
+        operation: "invalidateTrendsCache",
+        success: true,
       });
 
       // 发射缓存失效事件
@@ -662,7 +661,7 @@ export class TrendAnalyzerService {
       cacheCount: metrics.cache?.length || 0,
       hasSystem: !!metrics.system,
     };
-    
+
     const serializationResult = MonitoringSerializer.serializeTags(metricsData);
     const content = serializationResult.serialized;
 

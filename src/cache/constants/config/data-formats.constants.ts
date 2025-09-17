@@ -12,17 +12,20 @@ export const CACHE_DATA_FORMATS = Object.freeze({
   SERIALIZATION: {
     JSON: "json" as const,
     MSGPACK: "msgpack" as const,
-  }
+  },
 } as const);
 
 /**
  * 序列化器类型定义
  * 统一序列化类型，避免重复定义
  */
-export type SerializerType = typeof CACHE_DATA_FORMATS.SERIALIZATION[keyof typeof CACHE_DATA_FORMATS.SERIALIZATION];
+export type SerializerType =
+  (typeof CACHE_DATA_FORMATS.SERIALIZATION)[keyof typeof CACHE_DATA_FORMATS.SERIALIZATION];
 
 /**
  * 序列化类型值数组
  * 用于验证装饰器和枚举定义
  */
-export const SERIALIZER_TYPE_VALUES = Object.values(CACHE_DATA_FORMATS.SERIALIZATION);
+export const SERIALIZER_TYPE_VALUES = Object.values(
+  CACHE_DATA_FORMATS.SERIALIZATION,
+);

@@ -1,7 +1,7 @@
 /**
  * 分级压缩阈值配置常量
  * 根据数据特性和业务场景定义不同的压缩策略
- * 
+ *
  * 设计原则：
  * - 实时数据：网络延迟优先，较低阈值，更积极压缩
  * - 批量数据：CPU开销平衡，适中阈值，避免过度压缩
@@ -17,7 +17,7 @@ export const COMPRESSION_THRESHOLDS = {
   STREAM_DATA: 1024, // 1KB - 实时流数据
 
   /**
-   * 批量数据压缩阈值  
+   * 批量数据压缩阈值
    * 用于API批量响应、查询结果集等
    * 特点：数据量适中，CPU/网络平衡考虑
    */
@@ -45,49 +45,51 @@ export const COMPRESSION_THRESHOLDS = {
 export const COMPRESSION_STRATEGIES = {
   REALTIME: {
     threshold: COMPRESSION_THRESHOLDS.STREAM_DATA,
-    algorithm: 'gzip',
+    algorithm: "gzip",
     level: 4, // 平衡压缩率和速度
-    description: '实时数据压缩策略 - 优先延迟'
+    description: "实时数据压缩策略 - 优先延迟",
   },
-  
+
   BATCH: {
     threshold: COMPRESSION_THRESHOLDS.BATCH_DATA,
-    algorithm: 'gzip', 
+    algorithm: "gzip",
     level: 6, // 标准压缩级别
-    description: '批量数据压缩策略 - 平衡性能'
+    description: "批量数据压缩策略 - 平衡性能",
   },
-  
+
   STORAGE: {
     threshold: COMPRESSION_THRESHOLDS.STATIC_DATA,
-    algorithm: 'gzip',
+    algorithm: "gzip",
     level: 9, // 最高压缩率
-    description: '存储优化压缩策略 - 优先空间'
+    description: "存储优化压缩策略 - 优先空间",
   },
-  
+
   ARCHIVE: {
     threshold: COMPRESSION_THRESHOLDS.LARGE_FILES,
-    algorithm: 'brotli', // 更好的压缩率
+    algorithm: "brotli", // 更好的压缩率
     level: 6,
-    description: '归档数据压缩策略 - 最优压缩'
-  }
+    description: "归档数据压缩策略 - 最优压缩",
+  },
 } as const;
 
 /**
  * 获取指定数据类型的压缩阈值
  */
-export function getCompressionThreshold(dataType: 'stream' | 'batch' | 'static' | 'large'): number {
+export function getCompressionThreshold(
+  dataType: "stream" | "batch" | "static" | "large",
+): number {
   const thresholdMap = {
     stream: COMPRESSION_THRESHOLDS.STREAM_DATA,
-    batch: COMPRESSION_THRESHOLDS.BATCH_DATA, 
+    batch: COMPRESSION_THRESHOLDS.BATCH_DATA,
     static: COMPRESSION_THRESHOLDS.STATIC_DATA,
-    large: COMPRESSION_THRESHOLDS.LARGE_FILES
+    large: COMPRESSION_THRESHOLDS.LARGE_FILES,
   };
-  
+
   return thresholdMap[dataType];
 }
 
 /**
  * 类型定义
  */
-export type CompressionDataType = 'stream' | 'batch' | 'static' | 'large';
+export type CompressionDataType = "stream" | "batch" | "static" | "large";
 export type CompressionStrategyName = keyof typeof COMPRESSION_STRATEGIES;

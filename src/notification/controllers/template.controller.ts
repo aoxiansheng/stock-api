@@ -1,7 +1,7 @@
 /**
  * 通知模板控制器
  * 🎯 提供通知模板管理的REST API接口
- * 
+ *
  * @description 实现模板的CRUD操作和高级功能
  * @author Claude Code Assistant
  * @date 2025-09-12
@@ -19,19 +19,37 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-} from '@nestjs/common';
+  UseInterceptors,
+  UseFilters,
+} from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 
-import { NotificationTemplateService } from '../services/notification-template.service';
-import type { 
+// 导入通用组件
+import {
+  ResponseInterceptor,
+  RequestTrackingInterceptor,
+} from "@common/core/interceptors";
+import { GlobalExceptionFilter } from "@common/core/filters";
+import {
+  ApiSuccessResponse,
+  ApiCreatedResponse,
+  ApiPaginatedResponse,
+  ApiStandardResponses,
+} from "@common/core/decorators/swagger-responses.decorator";
+
+import { NotificationTemplateService } from "../services/notification-template.service";
+import type {
   CreateTemplateDto,
   UpdateTemplateDto,
-  TemplateQueryDto,
-  TemplateRenderContext 
-} from '../services/notification-template.service';
+  TemplateRenderContext,
+} from "../services/notification-template.service";
+import { TemplateQueryDto } from "../dto/template-query.dto";
 
-import { NOTIFICATION_MESSAGES } from '../constants/notification.constants';
+import {
+  NOTIFICATION_MESSAGES,
+  NOTIFICATION_VALIDATION,
+} from "../constants/notification.constants";
 
 /**
  * 模板渲染请求DTO
@@ -64,131 +82,120 @@ interface DuplicateTemplateDto {
   metadata?: Record<string, any>;
 }
 
-@Controller('templates')
+@Controller("templates")
+@UseInterceptors(ResponseInterceptor, RequestTrackingInterceptor)
+@UseFilters(GlobalExceptionFilter)
 export class TemplateController {
-  private readonly logger = createLogger('TemplateController');
+  private readonly logger = createLogger("TemplateController");
 
-  constructor(
-    private readonly templateService: NotificationTemplateService,
-  ) {}
+  constructor(private readonly templateService: NotificationTemplateService) {}
 
   /**
    * 创建通知模板
    * POST /templates
    */
+  @ApiCreatedResponse()
+  @ApiStandardResponses()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createTemplate(@Body() createTemplateDto: CreateTemplateDto) {
-    this.logger.debug('创建通知模板', { templateId: createTemplateDto.templateId });
+    this.logger.debug("创建通知模板", {
+      templateId: createTemplateDto.templateId,
+    });
 
-    const template = await this.templateService.createTemplate(createTemplateDto);
-
-    return {
-      message: '模板创建成功',
-      data: template,
-    };
+    return await this.templateService.createTemplate(createTemplateDto);
   }
 
   /**
    * 获取模板列表
    * GET /templates
    */
+  @ApiPaginatedResponse()
+  @ApiStandardResponses()
   @Get()
   async getTemplates(@Query() query: TemplateQueryDto) {
-    this.logger.debug('获取模板列表', { query });
+    this.logger.debug("获取模板列表", { query });
 
-    const result = await this.templateService.queryTemplates(query);
-
-    return {
-      message: '获取模板列表成功',
-      data: result.items,
-      pagination: result.pagination,
-    };
+    return await this.templateService.queryTemplates(query);
   }
 
   /**
    * 根据ID获取模板
    * GET /templates/:templateId
    */
-  @Get(':templateId')
-  async getTemplate(@Param('templateId') templateId: string) {
-    this.logger.debug('获取单个模板', { templateId });
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Get(":templateId")
+  async getTemplate(@Param("templateId") templateId: string) {
+    this.logger.debug("获取单个模板", { templateId });
 
-    const template = await this.templateService.findTemplateById(templateId);
-
-    return {
-      message: '获取模板成功',
-      data: template,
-    };
+    return await this.templateService.findTemplateById(templateId);
   }
 
   /**
    * 更新模板
    * PUT /templates/:templateId
    */
-  @Put(':templateId')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Put(":templateId")
   @HttpCode(HttpStatus.OK)
   async updateTemplate(
-    @Param('templateId') templateId: string,
+    @Param("templateId") templateId: string,
     @Body() updateTemplateDto: UpdateTemplateDto,
   ) {
-    this.logger.debug('更新模板', { templateId });
+    this.logger.debug("更新模板", { templateId });
 
-    const template = await this.templateService.updateTemplate(templateId, updateTemplateDto);
-
-    return {
-      message: '模板更新成功',
-      data: template,
-    };
+    return await this.templateService.updateTemplate(
+      templateId,
+      updateTemplateDto,
+    );
   }
 
   /**
    * 删除模板
    * DELETE /templates/:templateId
    */
-  @Delete(':templateId')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Delete(":templateId")
   @HttpCode(HttpStatus.OK)
-  async deleteTemplate(@Param('templateId') templateId: string) {
-    this.logger.debug('删除模板', { templateId });
+  async deleteTemplate(@Param("templateId") templateId: string) {
+    this.logger.debug("删除模板", { templateId });
 
     await this.templateService.deleteTemplate(templateId);
-
-    return {
-      message: '模板删除成功',
-      data: null,
-    };
+    return { message: "模板删除成功" };
   }
 
   /**
    * 根据事件类型获取模板
    * GET /templates/event/:eventType
    */
-  @Get('event/:eventType')
-  async getTemplatesByEventType(@Param('eventType') eventType: string) {
-    this.logger.debug('根据事件类型获取模板', { eventType });
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Get("event/:eventType")
+  async getTemplatesByEventType(@Param("eventType") eventType: string) {
+    this.logger.debug("根据事件类型获取模板", { eventType });
 
-    const templates = await this.templateService.getTemplatesByEventType(eventType);
-
-    return {
-      message: '获取事件模板成功',
-      data: templates,
-    };
+    return await this.templateService.getTemplatesByEventType(eventType);
   }
 
   /**
    * 渲染模板
    * POST /templates/render
    */
-  @Post('render')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Post("render")
   @HttpCode(HttpStatus.OK)
   async renderTemplate(@Body() renderDto: RenderTemplateDto) {
-    this.logger.debug('渲染模板', { 
+    this.logger.debug("渲染模板", {
       templateId: renderDto.templateId,
-      channelType: renderDto.channelType 
+      channelType: renderDto.channelType,
     });
 
     if (!renderDto.templateId || !renderDto.variables) {
-      throw new BadRequestException('templateId和variables参数是必需的');
+      throw new BadRequestException("templateId和variables参数是必需的");
     }
 
     const context: TemplateRenderContext = {
@@ -198,66 +205,64 @@ export class TemplateController {
       fallbackToDefault: renderDto.fallbackToDefault,
     };
 
-    const rendered = await this.templateService.renderTemplate(context);
-
-    return {
-      message: '模板渲染成功',
-      data: rendered,
-    };
+    return await this.templateService.renderTemplate(context);
   }
 
   /**
    * 批量渲染模板
    * POST /templates/render/batch
    */
-  @Post('render/batch')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Post("render/batch")
   @HttpCode(HttpStatus.OK)
   async renderTemplatesBatch(@Body() batchRenderDto: BatchRenderDto) {
-    this.logger.debug('批量渲染模板', { count: batchRenderDto.requests.length });
+    this.logger.debug("批量渲染模板", {
+      count: batchRenderDto.requests.length,
+    });
 
     if (!batchRenderDto.requests || batchRenderDto.requests.length === 0) {
-      throw new BadRequestException('requests参数不能为空');
+      throw new BadRequestException("requests参数不能为空");
     }
 
     if (batchRenderDto.requests.length > 50) {
-      throw new BadRequestException('单次批量渲染最多支持50个模板');
+      throw new BadRequestException("单次批量渲染最多支持50个模板");
     }
 
-    const contexts: TemplateRenderContext[] = batchRenderDto.requests.map(request => ({
-      templateId: request.templateId,
-      channelType: request.channelType,
-      variables: request.variables,
-      fallbackToDefault: request.fallbackToDefault,
-    }));
+    const contexts: TemplateRenderContext[] = batchRenderDto.requests.map(
+      (request) => ({
+        templateId: request.templateId,
+        channelType: request.channelType,
+        variables: request.variables,
+        fallbackToDefault: request.fallbackToDefault,
+      }),
+    );
 
-    const rendered = await this.templateService.renderTemplatesBatch(contexts);
-
-    return {
-      message: '批量渲染完成',
-      data: rendered,
-    };
+    return await this.templateService.renderTemplatesBatch(contexts);
   }
 
   /**
    * 复制模板
    * POST /templates/:templateId/duplicate
    */
-  @Post(':templateId/duplicate')
+  @ApiCreatedResponse()
+  @ApiStandardResponses()
+  @Post(":templateId/duplicate")
   @HttpCode(HttpStatus.CREATED)
   async duplicateTemplate(
-    @Param('templateId') templateId: string,
+    @Param("templateId") templateId: string,
     @Body() duplicateDto: DuplicateTemplateDto,
   ) {
-    this.logger.debug('复制模板', { 
+    this.logger.debug("复制模板", {
       sourceTemplateId: templateId,
-      newTemplateId: duplicateDto.newTemplateId 
+      newTemplateId: duplicateDto.newTemplateId,
     });
 
     if (!duplicateDto.newTemplateId) {
-      throw new BadRequestException('newTemplateId参数是必需的');
+      throw new BadRequestException("newTemplateId参数是必需的");
     }
 
-    const template = await this.templateService.duplicateTemplate(
+    return await this.templateService.duplicateTemplate(
       templateId,
       duplicateDto.newTemplateId,
       {
@@ -268,58 +273,63 @@ export class TemplateController {
         tags: duplicateDto.tags,
         category: duplicateDto.category,
         metadata: duplicateDto.metadata,
-      }
+      },
     );
-
-    return {
-      message: '模板复制成功',
-      data: template,
-    };
   }
 
   /**
    * 获取模板统计信息
-   * GET /templates/stats
+   * GET /templates/stats/overview
    */
-  @Get('stats/overview')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Get("stats/overview")
   async getTemplateStats() {
-    this.logger.debug('获取模板统计信息');
+    this.logger.debug("获取模板统计信息");
 
-    const stats = await this.templateService.getTemplateStats();
-
-    return {
-      message: '获取统计信息成功',
-      data: stats,
-    };
+    return await this.templateService.getTemplateStats();
   }
 
   /**
    * 验证模板语法
    * POST /templates/validate
    */
-  @Post('validate')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Post("validate")
   @HttpCode(HttpStatus.OK)
-  async validateTemplate(@Body() validateDto: {
-    templateContent: string;
-    templateEngine?: string;
-    variables?: Record<string, any>;
-  }) {
-    this.logger.debug('验证模板语法');
+  async validateTemplate(
+    @Body()
+    validateDto: {
+      templateContent: string;
+      templateEngine?: string;
+      variables?: Record<string, any>;
+    },
+  ) {
+    this.logger.debug("验证模板语法");
 
     try {
       // 简单的语法验证
-      if (!validateDto.templateContent || validateDto.templateContent.trim().length === 0) {
-        throw new BadRequestException('模板内容不能为空');
+      if (
+        !validateDto.templateContent ||
+        validateDto.templateContent.trim().length === 0
+      ) {
+        throw new BadRequestException("模板内容不能为空");
       }
 
-      if (validateDto.templateContent.length > 10000) {
-        throw new BadRequestException('模板内容过长，最大支持10000字符');
+      if (
+        validateDto.templateContent.length >
+        NOTIFICATION_VALIDATION.LIMITS.CONTENT_MAX_LENGTH
+      ) {
+        throw new BadRequestException(
+          `模板内容过长，最大支持${NOTIFICATION_VALIDATION.LIMITS.CONTENT_MAX_LENGTH}字符`,
+        );
       }
 
       // 如果提供了变量，尝试渲染验证
       if (validateDto.variables) {
         const testTemplate = {
-          templateId: 'test-template',
+          templateId: "test-template",
           variables: validateDto.variables,
         };
 
@@ -328,19 +338,13 @@ export class TemplateController {
       }
 
       return {
-        message: '模板验证通过',
-        data: {
-          valid: true,
-          errors: [],
-        },
+        valid: true,
+        errors: [],
       };
     } catch (error) {
       return {
-        message: '模板验证失败',
-        data: {
-          valid: false,
-          errors: [error.message],
-        },
+        valid: false,
+        errors: [error.message],
       };
     }
   }
@@ -349,31 +353,35 @@ export class TemplateController {
    * 批量启用/禁用模板
    * PUT /templates/batch/toggle
    */
-  @Put('batch/toggle')
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Put("batch/toggle")
   @HttpCode(HttpStatus.OK)
-  async batchToggleTemplates(@Body() batchToggleDto: {
-    templateIds: string[];
-    enabled: boolean;
-  }) {
-    this.logger.debug('批量切换模板状态', { 
+  async batchToggleTemplates(
+    @Body() batchToggleDto: { templateIds: string[]; enabled: boolean },
+  ) {
+    this.logger.debug("批量切换模板状态", {
       count: batchToggleDto.templateIds.length,
-      enabled: batchToggleDto.enabled 
+      enabled: batchToggleDto.enabled,
     });
 
-    if (!batchToggleDto.templateIds || batchToggleDto.templateIds.length === 0) {
-      throw new BadRequestException('templateIds不能为空');
+    if (
+      !batchToggleDto.templateIds ||
+      batchToggleDto.templateIds.length === 0
+    ) {
+      throw new BadRequestException("templateIds不能为空");
     }
 
     if (batchToggleDto.templateIds.length > 100) {
-      throw new BadRequestException('单次批量操作最多支持100个模板');
+      throw new BadRequestException("单次批量操作最多支持100个模板");
     }
 
     const results = await Promise.allSettled(
-      batchToggleDto.templateIds.map(templateId =>
-        this.templateService.updateTemplate(templateId, { 
-          enabled: batchToggleDto.enabled 
-        })
-      )
+      batchToggleDto.templateIds.map((templateId) =>
+        this.templateService.updateTemplate(templateId, {
+          enabled: batchToggleDto.enabled,
+        }),
+      ),
     );
 
     const successful: string[] = [];
@@ -381,7 +389,7 @@ export class TemplateController {
 
     results.forEach((result, index) => {
       const templateId = batchToggleDto.templateIds[index];
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         successful.push(templateId);
       } else {
         failed.push({
@@ -392,13 +400,10 @@ export class TemplateController {
     });
 
     return {
-      message: '批量操作完成',
-      data: {
-        successful,
-        failed,
-        successCount: successful.length,
-        failedCount: failed.length,
-      },
+      successful,
+      failed,
+      successCount: successful.length,
+      failedCount: failed.length,
     };
   }
 
@@ -406,18 +411,23 @@ export class TemplateController {
    * 根据标签搜索模板
    * GET /templates/search/tags
    */
-  @Get('search/tags')
-  async searchTemplatesByTags(@Query('tags') tags: string) {
-    this.logger.debug('根据标签搜索模板', { tags });
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Get("search/tags")
+  async searchTemplatesByTags(@Query("tags") tags: string) {
+    this.logger.debug("根据标签搜索模板", { tags });
 
     if (!tags) {
-      throw new BadRequestException('tags参数是必需的');
+      throw new BadRequestException("tags参数是必需的");
     }
 
-    const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-    
+    const tagArray = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag);
+
     if (tagArray.length === 0) {
-      throw new BadRequestException('至少需要一个有效的标签');
+      throw new BadRequestException("至少需要一个有效的标签");
     }
 
     const templates = await this.templateService.queryTemplates({
@@ -426,8 +436,7 @@ export class TemplateController {
     });
 
     return {
-      message: '搜索完成',
-      data: templates.items,
+      items: templates.items,
       total: templates.pagination.total,
     };
   }
@@ -436,22 +445,21 @@ export class TemplateController {
    * 模板使用情况分析
    * GET /templates/:templateId/usage
    */
-  @Get(':templateId/usage')
-  async getTemplateUsage(@Param('templateId') templateId: string) {
-    this.logger.debug('获取模板使用情况', { templateId });
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Get(":templateId/usage")
+  async getTemplateUsage(@Param("templateId") templateId: string) {
+    this.logger.debug("获取模板使用情况", { templateId });
 
     const template = await this.templateService.findTemplateById(templateId);
 
     return {
-      message: '获取使用情况成功',
-      data: {
-        templateId: template.templateId,
-        name: template.name,
-        usageCount: template.usageCount,
-        lastUsedAt: template.lastUsedAt,
-        createdAt: template.createdAt,
-        updatedAt: template.updatedAt,
-      },
+      templateId: template.templateId,
+      name: template.name,
+      usageCount: template.usageCount,
+      lastUsedAt: template.lastUsedAt,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
     };
   }
 
@@ -459,14 +467,16 @@ export class TemplateController {
    * 导出模板配置
    * GET /templates/:templateId/export
    */
-  @Get(':templateId/export')
-  async exportTemplate(@Param('templateId') templateId: string) {
-    this.logger.debug('导出模板配置', { templateId });
+  @ApiSuccessResponse()
+  @ApiStandardResponses()
+  @Get(":templateId/export")
+  async exportTemplate(@Param("templateId") templateId: string) {
+    this.logger.debug("导出模板配置", { templateId });
 
     const template = await this.templateService.findTemplateById(templateId);
 
     // 移除不需要导出的字段
-    const exportData = {
+    return {
       templateId: template.templateId,
       name: template.name,
       description: template.description,
@@ -481,34 +491,26 @@ export class TemplateController {
       metadata: template.metadata,
       version: template.version,
     };
-
-    return {
-      message: '导出成功',
-      data: exportData,
-    };
   }
 
   /**
    * 导入模板配置
    * POST /templates/import
    */
-  @Post('import')
+  @ApiCreatedResponse()
+  @ApiStandardResponses()
+  @Post("import")
   @HttpCode(HttpStatus.CREATED)
   async importTemplate(@Body() importData: CreateTemplateDto) {
-    this.logger.debug('导入模板配置', { templateId: importData.templateId });
+    this.logger.debug("导入模板配置", { templateId: importData.templateId });
 
     // 设置为用户定义的模板
     const templateData: CreateTemplateDto = {
       ...importData,
-      templateType: 'user_defined',
+      templateType: "user_defined",
       enabled: true,
     };
 
-    const template = await this.templateService.createTemplate(templateData);
-
-    return {
-      message: '模板导入成功',
-      data: template,
-    };
+    return await this.templateService.createTemplate(templateData);
   }
 }

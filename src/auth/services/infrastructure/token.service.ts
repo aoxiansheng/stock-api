@@ -1,6 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { createLogger } from "@common/modules/logging";
 import { securityConfig } from "@auth/config/security.config";
+// 🆕 引入新的统一配置系统 - 与现有配置并存
+import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
 import { UserRole } from "../../enums/user-role.enum";
 import { User } from "../../schemas/user.schema";
 
@@ -19,18 +22,59 @@ export interface JwtPayload {
  */
 @Injectable()
 export class TokenService {
-  private readonly logger = new Logger(TokenService.name);
+  private readonly logger = createLogger(TokenService.name);
+  // 🎯 使用集中化的配置 - 保留原有配置作为后备
+  private readonly legacySessionConfig = securityConfig.session;
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    // 🆕 可选注入新配置系统 - 如果可用则使用，否则回退到原配置
+    private readonly authConfig?: AuthConfigCompatibilityWrapper,
+  ) {}
+
+  // 🆕 统一配置访问方法 - 优先使用新配置，回退到原配置
+  private get sessionConfig() {
+    if (this.authConfig) {
+      // 使用新的统一配置系统
+      const newConfig = {
+        jwtDefaultExpiry:
+          this.authConfig.SECURITY_CONFIG.session.jwtDefaultExpiry,
+        refreshTokenDefaultExpiry:
+          this.authConfig.SECURITY_CONFIG.session.refreshTokenDefaultExpiry,
+      };
+
+      // 🔍 调试日志：记录使用新配置系统
+      this.logger.debug("TokenService: 使用新统一配置系统", {
+        configSource: "AuthConfigCompatibilityWrapper",
+        jwtDefaultExpiry: newConfig.jwtDefaultExpiry,
+        refreshTokenDefaultExpiry: newConfig.refreshTokenDefaultExpiry,
+      });
+
+      return newConfig;
+    }
+
+    // 回退到原有配置
+    this.logger.debug("TokenService: 回退到原有配置系统", {
+      configSource: "securityConfig.session",
+      jwtDefaultExpiry: this.legacySessionConfig.jwtDefaultExpiry,
+      refreshTokenDefaultExpiry:
+        this.legacySessionConfig.refreshTokenDefaultExpiry,
+    });
+
+    return this.legacySessionConfig;
+  }
 
   /**
    * 为用户生成访问令牌和刷新令牌
    */
-  async generateTokens(user: User): Promise<{ 
-    accessToken: string; 
-    refreshToken: string 
+  async generateTokens(user: User): Promise<{
+    accessToken: string;
+    refreshToken: string;
   }> {
-    this.logger.debug('生成用户令牌', { userId: user.id, username: user.username });
+    this.logger.debug("生成用户令牌", {
+      userId: user.id,
+      username: user.username,
+    });
 
     const payload: JwtPayload = {
       sub: user.id,
@@ -42,24 +86,24 @@ export class TokenService {
       const [accessToken, refreshToken] = await Promise.all([
         // 生成访问令牌（较短的过期时间）
         this.jwtService.signAsync(payload),
-        
+
         // 生成刷新令牌（较长的过期时间）
         this.jwtService.signAsync(payload, {
-          expiresIn: securityConfig.session.refreshTokenDefaultExpiry,
+          expiresIn: this.sessionConfig.refreshTokenDefaultExpiry,
         }),
       ]);
 
-      this.logger.debug('用户令牌生成成功', { 
-        userId: user.id, 
-        username: user.username 
+      this.logger.debug("用户令牌生成成功", {
+        userId: user.id,
+        username: user.username,
       });
 
       return { accessToken, refreshToken };
     } catch (error) {
-      this.logger.error('生成用户令牌失败', { 
-        userId: user.id, 
-        username: user.username, 
-        error: error.message 
+      this.logger.error("生成用户令牌失败", {
+        userId: user.id,
+        username: user.username,
+        error: error.message,
       });
       throw error;
     }
@@ -69,20 +113,20 @@ export class TokenService {
    * 验证访问令牌
    */
   async verifyAccessToken(token: string): Promise<JwtPayload> {
-    this.logger.debug('验证访问令牌');
+    this.logger.debug("验证访问令牌");
 
     try {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
-      
-      this.logger.debug('访问令牌验证成功', { 
-        userId: payload.sub, 
-        username: payload.username 
+
+      this.logger.debug("访问令牌验证成功", {
+        userId: payload.sub,
+        username: payload.username,
       });
 
       return payload;
     } catch (error) {
-      this.logger.debug('访问令牌验证失败', { error: error.message });
-      throw new UnauthorizedException('访问令牌无效或已过期');
+      this.logger.debug("访问令牌验证失败", { error: error.message });
+      throw new UnauthorizedException("访问令牌无效或已过期");
     }
   }
 
@@ -90,21 +134,21 @@ export class TokenService {
    * 验证刷新令牌
    */
   async verifyRefreshToken(token: string): Promise<JwtPayload> {
-    this.logger.debug('验证刷新令牌');
+    this.logger.debug("验证刷新令牌");
 
     try {
       // 在生产环境中，刷新令牌最好使用独立的密钥
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
-      
-      this.logger.debug('刷新令牌验证成功', { 
-        userId: payload.sub, 
-        username: payload.username 
+
+      this.logger.debug("刷新令牌验证成功", {
+        userId: payload.sub,
+        username: payload.username,
       });
 
       return payload;
     } catch (error) {
-      this.logger.debug('刷新令牌验证失败', { error: error.message });
-      throw new UnauthorizedException('刷新令牌无效或已过期');
+      this.logger.debug("刷新令牌验证失败", { error: error.message });
+      throw new UnauthorizedException("刷新令牌无效或已过期");
     }
   }
 
@@ -117,7 +161,7 @@ export class TokenService {
       const payload = this.jwtService.decode(token) as JwtPayload;
       return payload;
     } catch (error) {
-      this.logger.error('令牌解析失败', { error: error.message });
+      this.logger.error("令牌解析失败", { error: error.message });
       return null;
     }
   }
@@ -134,10 +178,10 @@ export class TokenService {
 
       const now = Math.floor(Date.now() / 1000);
       const threshold = thresholdMinutes * 60;
-      
-      return (payload.exp - now) <= threshold;
+
+      return payload.exp - now <= threshold;
     } catch (error) {
-      this.logger.error('检查令牌过期时间失败', { error: error.message });
+      this.logger.error("检查令牌过期时间失败", { error: error.message });
       return true;
     }
   }
@@ -155,7 +199,7 @@ export class TokenService {
       const now = Math.floor(Date.now() / 1000);
       return Math.max(0, payload.exp - now);
     } catch (error) {
-      this.logger.error('获取令牌剩余时间失败', { error: error.message });
+      this.logger.error("获取令牌剩余时间失败", { error: error.message });
       return 0;
     }
   }
@@ -165,18 +209,18 @@ export class TokenService {
    * 用于特殊场景，如API密钥验证、临时访问等
    */
   async signCustomPayload(
-    payload: Record<string, any>, 
-    options?: { expiresIn?: string }
+    payload: Record<string, any>,
+    options?: { expiresIn?: string },
   ): Promise<string> {
-    this.logger.debug('生成自定义载荷令牌', { payload: Object.keys(payload) });
+    this.logger.debug("生成自定义载荷令牌", { payload: Object.keys(payload) });
 
     try {
       const token = await this.jwtService.signAsync(payload, options);
-      
-      this.logger.debug('自定义载荷令牌生成成功');
+
+      this.logger.debug("自定义载荷令牌生成成功");
       return token;
     } catch (error) {
-      this.logger.error('生成自定义载荷令牌失败', { error: error.message });
+      this.logger.error("生成自定义载荷令牌失败", { error: error.message });
       throw error;
     }
   }
@@ -184,17 +228,19 @@ export class TokenService {
   /**
    * 验证自定义载荷的令牌
    */
-  async verifyCustomPayload<T extends object = Record<string, any>>(token: string): Promise<T> {
-    this.logger.debug('验证自定义载荷令牌');
+  async verifyCustomPayload<T extends object = Record<string, any>>(
+    token: string,
+  ): Promise<T> {
+    this.logger.debug("验证自定义载荷令牌");
 
     try {
       const payload = await this.jwtService.verifyAsync<T>(token);
-      
-      this.logger.debug('自定义载荷令牌验证成功');
+
+      this.logger.debug("自定义载荷令牌验证成功");
       return payload;
     } catch (error) {
-      this.logger.debug('自定义载荷令牌验证失败', { error: error.message });
-      throw new UnauthorizedException('自定义令牌无效或已过期');
+      this.logger.debug("自定义载荷令牌验证失败", { error: error.message });
+      throw new UnauthorizedException("自定义令牌无效或已过期");
     }
   }
 
@@ -208,9 +254,10 @@ export class TokenService {
     refreshTokenExpiresIn: string;
   } {
     return {
-      algorithm: 'HS256', // JWT默认算法
-      defaultExpiresIn: securityConfig.session.jwtDefaultExpiry || '15m',
-      refreshTokenExpiresIn: securityConfig.session.refreshTokenDefaultExpiry || '7d',
+      algorithm: "HS256", // JWT默认算法
+      defaultExpiresIn: this.sessionConfig.jwtDefaultExpiry || "15m",
+      refreshTokenExpiresIn:
+        this.sessionConfig.refreshTokenDefaultExpiry || "7d",
     };
   }
 }

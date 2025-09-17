@@ -13,7 +13,6 @@ import { AnalyzerModule } from "../analyzer/analyzer.module";
 import { HealthModule } from "../health/health.module";
 import { PresenterController } from "./presenter.controller";
 import { PresenterService } from "./presenter.service";
-import { PresenterErrorHandlerService } from "./presenter-error.service";
 
 @Module({
   imports: [
@@ -21,7 +20,7 @@ import { PresenterErrorHandlerService } from "./presenter-error.service";
     HealthModule, // 添加 HealthModule 以获取 ExtendedHealthService
   ],
   controllers: [PresenterController],
-  providers: [PresenterService, PresenterErrorHandlerService],
-  exports: [PresenterService, PresenterErrorHandlerService],
+  providers: [PresenterService],
+  exports: [PresenterService],
 })
 export class PresenterModule {}

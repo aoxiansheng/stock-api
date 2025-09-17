@@ -1,9 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
-import { MONITORING_SYSTEM_LIMITS, MonitoringSystemLimitUtils } from "../constants/config/monitoring-system.constants";
+import {
+  MONITORING_SYSTEM_LIMITS,
+  MonitoringSystemLimitUtils,
+} from "../constants/config/monitoring-system.constants";
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
 // TODO Phase 2: 当统一配置系统完全实现后，替换硬编码阈值为 MonitoringEnhancedConfig
 
@@ -39,11 +42,16 @@ export class AnalyzerHealthScoreCalculator {
         cacheScore * weights.cache +
         systemScore * weights.system;
 
-      const finalScore = Math.round(Math.max(0, Math.min(MONITORING_SYSTEM_LIMITS.FULL_SCORE, overallScore)));
+      const finalScore = Math.round(
+        Math.max(
+          0,
+          Math.min(MONITORING_SYSTEM_LIMITS.FULL_SCORE, overallScore),
+        ),
+      );
 
-      this.logger.debug('ScoreCalculator: 健康分计算完成', {
-        component: 'AnalyzerHealthScoreCalculator',
-        operation: 'calculateOverallHealthScore',
+      this.logger.debug("ScoreCalculator: 健康分计算完成", {
+        component: "AnalyzerHealthScoreCalculator",
+        operation: "calculateOverallHealthScore",
         overall: finalScore,
         components: {
           api: apiScore,
@@ -51,7 +59,7 @@ export class AnalyzerHealthScoreCalculator {
           cache: cacheScore,
           system: systemScore,
         },
-        success: true
+        success: true,
       });
 
       return finalScore;
@@ -72,7 +80,9 @@ export class AnalyzerHealthScoreCalculator {
     }
 
     const totalRequests = requests.length;
-    const errorRequests = requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length;
+    const errorRequests = requests.filter(
+      (r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+    ).length;
     const errorRate = errorRequests / totalRequests;
 
     // 计算平均响应时间
@@ -84,7 +94,8 @@ export class AnalyzerHealthScoreCalculator {
     let errorScore = 40;
     if (errorRate > 0.1)
       errorScore = 0; // 错误率>10%
-    else if (errorRate > 0.05) // 5% 错误率阈值
+    else if (errorRate > 0.05)
+      // 5% 错误率阈值
       errorScore = 20; // 错误率>5%
     else if (errorRate > 0.01) errorScore = 35; // 错误率>1%
 
@@ -233,12 +244,16 @@ export class AnalyzerHealthScoreCalculator {
       const requests = rawMetrics.requests || [];
       if (requests.length > 0) {
         const errorRate =
-          requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length / requests.length;
+          requests.filter(
+            (r) =>
+              r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+          ).length / requests.length;
         const avgResponseTime =
           requests.reduce((sum, r) => sum + (r.responseTimeMs || 0), 0) /
           requests.length;
 
-        if (errorRate > 0.05) { // 5% 错误率阈值
+        if (errorRate > 0.05) {
+          // 5% 错误率阈值
           recommendations.push("API错误率过高，建议检查错误日志并优化错误处理");
         }
         if (MonitoringSystemLimitUtils.isSlowRequest(avgResponseTime)) {
@@ -257,7 +272,8 @@ export class AnalyzerHealthScoreCalculator {
         if (avgQueryTime > 500) {
           recommendations.push("数据库查询时间过长，建议优化索引或查询语句");
         }
-        if (errorRate > 0.05) { // 5% 错误率阈值
+        if (errorRate > 0.05) {
+          // 5% 错误率阈值
           recommendations.push(
             "数据库操作失败率过高，建议检查连接池配置和网络状况",
           );

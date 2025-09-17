@@ -373,7 +373,11 @@ export class QueryExecutionEngine implements OnModuleInit {
       // 记录批量处理效率监控指标
       const processingTime = Date.now() - startTime;
       const symbolsPerSecond =
-        totalSymbolsCount / Math.max(processingTime / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND, 0.001);
+        totalSymbolsCount /
+        Math.max(
+          processingTime / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND,
+          0.001,
+        );
       this.recordBatchProcessingMetrics(
         totalSymbolsCount,
         processingTime,
@@ -385,12 +389,19 @@ export class QueryExecutionEngine implements OnModuleInit {
       const totalRequests = totalCacheHits + totalRealtimeHits;
       if (totalRequests > 0) {
         const cacheHitRatio = totalCacheHits / totalRequests;
-        this.recordCacheMetrics("batch_cache_hit", cacheHitRatio > (CONSTANTS.SEMANTIC.CACHE.PERFORMANCE.HIT_RATE_THRESHOLDS.POOR / CONSTANTS.FOUNDATION.VALUES.PERCENTAGES.MAX), 0, {
-          hitRatio: cacheHitRatio,
-          totalRequests,
-          queryType: request.queryType,
-          market: this.inferMarketFromSymbols(validSymbols),
-        });
+        this.recordCacheMetrics(
+          "batch_cache_hit",
+          cacheHitRatio >
+            CONSTANTS.SEMANTIC.CACHE.PERFORMANCE.HIT_RATE_THRESHOLDS.POOR /
+              CONSTANTS.FOUNDATION.VALUES.PERCENTAGES.MAX,
+          0,
+          {
+            hitRatio: cacheHitRatio,
+            totalRequests,
+            queryType: request.queryType,
+            market: this.inferMarketFromSymbols(validSymbols),
+          },
+        );
       }
 
       // 处理结果数据
@@ -739,7 +750,8 @@ export class QueryExecutionEngine implements OnModuleInit {
       const batchRequests = symbols.map((symbol) =>
         buildCacheOrchestratorRequest({
           symbols: [symbol],
-          receiverType: request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
+          receiverType:
+            request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
           provider: request.provider,
           queryId: `${queryId}_${symbol}`,
           marketStatus,
@@ -755,7 +767,9 @@ export class QueryExecutionEngine implements OnModuleInit {
         await this.smartCacheOrchestrator.batchGetDataWithSmartCache(
           batchRequests,
         );
-      const orchestratorDuration = (Date.now() - orchestratorStartTime) / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND;
+      const orchestratorDuration =
+        (Date.now() - orchestratorStartTime) /
+        CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND;
 
       // 记录智能缓存编排器调用完成监控
       this.recordCacheMetrics(
@@ -793,7 +807,8 @@ export class QueryExecutionEngine implements OnModuleInit {
             data: [result.data],
             metadata: {
               provider: request.provider || "auto",
-              capability: request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
+              capability:
+                request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
               timestamp: new Date().toISOString(),
               requestId: queryId,
               processingTime: 0,
@@ -863,13 +878,16 @@ export class QueryExecutionEngine implements OnModuleInit {
   ): DataRequestDto {
     return {
       symbols,
-      receiverType: queryRequest.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
+      receiverType:
+        queryRequest.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
       options: {
         preferredProvider: queryRequest.provider,
         realtime: true,
         fields: queryRequest.options?.includeFields,
         market: queryRequest.market,
-        timeout: queryRequest.maxAge ? queryRequest.maxAge * CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND : undefined,
+        timeout: queryRequest.maxAge
+          ? queryRequest.maxAge * CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND
+          : undefined,
         storageMode: "none", // 关键：禁止Receiver存储，由Query管理缓存
       },
     };

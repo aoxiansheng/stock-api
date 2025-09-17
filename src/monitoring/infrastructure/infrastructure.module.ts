@@ -19,10 +19,7 @@ import { ApiMonitoringInterceptor } from "./interceptors/api-monitoring.intercep
 import { FeatureFlags } from "@appcore/config/feature-flags.config";
 
 @Module({
-  imports: [
-    RedisModule,
-    MetricsModule
-  ],
+  imports: [RedisModule, MetricsModule],
   providers: [
     FeatureFlags, // 🔧 Phase 2.4: 集中提供 FeatureFlags（满足 MetricsRegistryService 依赖）
     MonitoringEventBridgeService, // 🎯 新增：事件桥接服务

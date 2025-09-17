@@ -1,10 +1,10 @@
 /**
  * 缓存共享接口统一定义
  * 🎯 合并原来分散的小接口文件，减少文件碎片化
- * 
+ *
  * 原始文件合并：
  * - cache-statistics.interface.ts
- * - key-pattern.interface.ts  
+ * - key-pattern.interface.ts
  * - size-fields.interface.ts
  * - ttl-fields.interface.ts
  */
@@ -83,7 +83,7 @@ export interface RequiredTTL {
 }
 
 /**
- * 可选TTL接口 - 可选的TTL字段  
+ * 可选TTL接口 - 可选的TTL字段
  * 用于TTL为可选配置的场景
  */
 export interface OptionalTTL {
@@ -113,7 +113,10 @@ export interface CacheItemInfo extends KeyPattern, TTLFields {
 /**
  * 缓存项完整信息 - 包含统计、大小和TTL信息
  */
-export interface CacheItemDetails extends CacheStatistics, SizeFields, TTLFields {
+export interface CacheItemDetails
+  extends CacheStatistics,
+    SizeFields,
+    TTLFields {
   // 继承了统计、大小和TTL的所有字段
 }
 

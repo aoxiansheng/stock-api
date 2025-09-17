@@ -5,7 +5,7 @@
  */
 
 // 导出所有语义常量
-export { 
+export {
   HTTP_STATUS_CODES,
   HTTP_TIMEOUTS,
   HTTP_BATCH_SEMANTICS,
@@ -14,8 +14,8 @@ export {
   HTTP_METHOD_ARRAYS,
   HTTP_CONTENT_TYPES,
   HTTP_SUCCESS_MESSAGES,
-  HttpSemanticsUtil
-} from './http-semantics.constants';
+  HttpSemanticsUtil,
+} from "./http-semantics.constants";
 
 export {
   CACHE_KEY_SEMANTICS,
@@ -23,8 +23,8 @@ export {
   CACHE_SIZE_SEMANTICS,
   CACHE_PERFORMANCE_SEMANTICS,
   CACHE_OPERATIONS,
-  CacheSemanticsUtil
-} from './cache-semantics.constants';
+  CacheSemanticsUtil,
+} from "./cache-semantics.constants";
 
 export {
   RETRY_DELAY_SEMANTICS,
@@ -32,8 +32,8 @@ export {
   RETRY_STRATEGY_SEMANTICS,
   RETRYABLE_ERROR_SEMANTICS,
   RETRY_CONFIG_TEMPLATES,
-  RetrySemanticsUtil
-} from './retry-semantics.constants';
+  RetrySemanticsUtil,
+} from "./retry-semantics.constants";
 
 export {
   BATCH_SIZE_SEMANTICS,
@@ -41,21 +41,21 @@ export {
   BATCH_TIMEOUT_SEMANTICS,
   BATCH_STRATEGY_SEMANTICS,
   BATCH_CONFIG_TEMPLATES,
-  BatchSemanticsUtil
-} from './batch-semantics.constants';
+  BatchSemanticsUtil,
+} from "./batch-semantics.constants";
 
 export {
   HTTP_STATUS_SEMANTICS,
   STATUS_CODE_SEMANTICS,
-  StatusCodeSemanticsUtil
-} from './status-codes-semantics.constants';
+  StatusCodeSemanticsUtil,
+} from "./status-codes-semantics.constants";
 
 export {
   MESSAGE_SEMANTICS,
   MESSAGE_TEMPLATE_SEMANTICS,
   MESSAGE_FORMAT_SEMANTICS,
-  MessageSemanticsUtil
-} from './message-semantics.constants';
+  MessageSemanticsUtil,
+} from "./message-semantics.constants";
 
 export {
   ERROR_MESSAGES,
@@ -66,53 +66,53 @@ export {
   VALIDATION_TRANSLATIONS,
   SYSTEM_ERROR_MESSAGES,
   BUSINESS_ERROR_MESSAGES,
-  ErrorMessageUtil
-} from './error-messages.constants';
+  ErrorMessageUtil,
+} from "./error-messages.constants";
 
 // 导出类型定义
 // 导入所有工具类
-import { HttpSemanticsUtil } from './http-semantics.constants';
-import { CacheSemanticsUtil } from './cache-semantics.constants';
-import { RetrySemanticsUtil } from './retry-semantics.constants';
-import { BatchSemanticsUtil } from './batch-semantics.constants';
-import { StatusCodeSemanticsUtil } from './status-codes-semantics.constants';
-import { MessageSemanticsUtil } from './message-semantics.constants';
-import { ErrorMessageUtil } from './error-messages.constants';
+import { HttpSemanticsUtil } from "./http-semantics.constants";
+import { CacheSemanticsUtil } from "./cache-semantics.constants";
+import { RetrySemanticsUtil } from "./retry-semantics.constants";
+import { BatchSemanticsUtil } from "./batch-semantics.constants";
+import { StatusCodeSemanticsUtil } from "./status-codes-semantics.constants";
+import { MessageSemanticsUtil } from "./message-semantics.constants";
+import { ErrorMessageUtil } from "./error-messages.constants";
 
 // 导入用于对象定义
-import { 
+import {
   HTTP_STATUS_CODES,
   HTTP_TIMEOUTS,
   HTTP_BATCH_SEMANTICS,
   HTTP_HEADERS,
   HTTP_METHODS,
   HTTP_CONTENT_TYPES,
-  HTTP_SUCCESS_MESSAGES
-} from './http-semantics.constants';
+  HTTP_SUCCESS_MESSAGES,
+} from "./http-semantics.constants";
 
 import {
   CACHE_KEY_SEMANTICS,
   CACHE_STRATEGY_SEMANTICS,
   CACHE_SIZE_SEMANTICS,
   CACHE_PERFORMANCE_SEMANTICS,
-  CACHE_OPERATIONS
-} from './cache-semantics.constants';
+  CACHE_OPERATIONS,
+} from "./cache-semantics.constants";
 
 import {
   RETRY_DELAY_SEMANTICS,
   RETRY_COUNT_SEMANTICS,
   RETRY_STRATEGY_SEMANTICS,
   RETRYABLE_ERROR_SEMANTICS,
-  RETRY_CONFIG_TEMPLATES
-} from './retry-semantics.constants';
+  RETRY_CONFIG_TEMPLATES,
+} from "./retry-semantics.constants";
 
 import {
   BATCH_SIZE_SEMANTICS,
   CONCURRENCY_SEMANTICS,
   BATCH_TIMEOUT_SEMANTICS,
   BATCH_STRATEGY_SEMANTICS,
-  BATCH_CONFIG_TEMPLATES
-} from './batch-semantics.constants';
+  BATCH_CONFIG_TEMPLATES,
+} from "./batch-semantics.constants";
 
 import {
   ERROR_MESSAGES,
@@ -122,8 +122,8 @@ import {
   VALIDATION_MESSAGES,
   VALIDATION_TRANSLATIONS,
   SYSTEM_ERROR_MESSAGES,
-  BUSINESS_ERROR_MESSAGES
-} from './error-messages.constants';
+  BUSINESS_ERROR_MESSAGES,
+} from "./error-messages.constants";
 
 // Semantic层统一常量对象
 export const SEMANTIC_CONSTANTS = Object.freeze({
@@ -135,7 +135,7 @@ export const SEMANTIC_CONSTANTS = Object.freeze({
     METHODS: HTTP_METHODS,
     SUCCESS_MESSAGES: HTTP_SUCCESS_MESSAGES,
   },
-  
+
   // 缓存语义
   CACHE: {
     KEYS: CACHE_KEY_SEMANTICS,
@@ -143,14 +143,14 @@ export const SEMANTIC_CONSTANTS = Object.freeze({
     PERFORMANCE: CACHE_PERFORMANCE_SEMANTICS,
     OPERATIONS: CACHE_OPERATIONS,
   },
-  
+
   // 重试语义
   RETRY: {
     DELAYS: RETRY_DELAY_SEMANTICS,
     COUNTS: RETRY_COUNT_SEMANTICS,
     TEMPLATES: RETRY_CONFIG_TEMPLATES,
   },
-  
+
   // 批量处理语义
   BATCH: {
     SIZES: BATCH_SIZE_SEMANTICS,
@@ -158,7 +158,7 @@ export const SEMANTIC_CONSTANTS = Object.freeze({
     TIMEOUTS: BATCH_TIMEOUT_SEMANTICS,
     TEMPLATES: BATCH_CONFIG_TEMPLATES,
   },
-  
+
   // 错误消息语义
   ERROR_MESSAGES,
   AUTH_ERROR_MESSAGES,
@@ -194,7 +194,7 @@ export class SemanticUtils {
    */
   static validateSemanticConfig(config: any): boolean {
     // 基础验证逻辑
-    return !!(config && typeof config === 'object');
+    return !!(config && typeof config === "object");
   }
 
   /**
@@ -215,23 +215,23 @@ export class SemanticUtils {
    */
   static getRecommendedConfigForScenario(scenario: string) {
     const recommendations: Record<string, any> = {
-      'high-performance': {
+      "high-performance": {
         http: HTTP_TIMEOUTS.REQUEST.FAST_MS,
         retry: RETRY_CONFIG_TEMPLATES.CRITICAL_OPERATION,
         batch: BATCH_CONFIG_TEMPLATES.HIGH_PERFORMANCE,
       },
-      'high-reliability': {
+      "high-reliability": {
         http: HTTP_TIMEOUTS.REQUEST.SLOW_MS,
         retry: RETRY_CONFIG_TEMPLATES.NETWORK_OPERATION,
         batch: BATCH_CONFIG_TEMPLATES.HIGH_RELIABILITY,
       },
-      'resource-efficient': {
+      "resource-efficient": {
         http: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,
         retry: RETRY_CONFIG_TEMPLATES.DATABASE_OPERATION,
         batch: BATCH_CONFIG_TEMPLATES.RESOURCE_EFFICIENT,
       },
     };
 
-    return recommendations[scenario] || recommendations['high-reliability'];
+    return recommendations[scenario] || recommendations["high-reliability"];
   }
 }

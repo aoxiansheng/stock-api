@@ -3,8 +3,8 @@
  * 🎯 启动时验证关键常量配置，确保应用能正常运行
  */
 
-import { Logger } from '@nestjs/common';
-import { ALERT_DEFAULTS } from '../constants';
+import { Logger } from "@nestjs/common";
+import { ALERT_DEFAULTS } from "../constants";
 
 /**
  * 验证结果接口
@@ -29,7 +29,7 @@ export class AlertConstantsValidator {
    * @returns 验证结果
    */
   static validateAll(): ValidationResult {
-    this.logger.log('Alert模块常量验证...');
+    this.logger.log("Alert模块常量验证...");
 
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -37,17 +37,16 @@ export class AlertConstantsValidator {
     try {
       // 2. 验证默认值不为空
       if (!ALERT_DEFAULTS.severity) {
-        errors.push('默认告警严重级别不能为空');
+        errors.push("默认告警严重级别不能为空");
       }
 
       if (!ALERT_DEFAULTS.operator) {
-        errors.push('默认比较操作符不能为空');
+        errors.push("默认比较操作符不能为空");
       }
 
       // 3. 验证关键数值合理性
       // RETRY_COUNT已迁移到alert.config.ts的maxRetries配置
       // 此处不再需要验证已迁移的配置项
-
     } catch (error) {
       errors.push(`验证异常: ${error.message}`);
     }
@@ -55,19 +54,19 @@ export class AlertConstantsValidator {
     const result: ValidationResult = {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
 
     // 记录结果
     if (result.isValid) {
-      this.logger.log('常量验证通过 ✅');
+      this.logger.log("常量验证通过 ✅");
       if (warnings.length > 0) {
         this.logger.warn(`发现 ${warnings.length} 个警告`);
       }
     } else {
       this.logger.error(`验证失败，发现 ${errors.length} 个错误`);
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error('生产环境常量验证失败');
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("生产环境常量验证失败");
       }
     }
 

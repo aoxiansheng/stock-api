@@ -1,7 +1,7 @@
 /**
  * 通知渠道DTO
  * 🎯 提供通知渠道相关的数据传输对象
- * 
+ *
  * @description 从Alert模块迁移的通知渠道DTO，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -21,8 +21,8 @@ import {
 } from "class-validator";
 
 // 使用Notification模块的类型
-import { 
-  NotificationChannelType, 
+import {
+  NotificationChannelType,
   NotificationPriority,
   NotificationStatus,
 } from "../types/notification.types";
@@ -83,8 +83,8 @@ export class NotificationChannelDto {
   @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
-  @ApiPropertyOptional({ 
-    description: "优先级", 
+  @ApiPropertyOptional({
+    description: "优先级",
     enum: NotificationPriority,
     default: NotificationPriority.NORMAL,
   })
@@ -130,8 +130,8 @@ export class CreateNotificationChannelDto {
   @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
-  @ApiPropertyOptional({ 
-    description: "优先级", 
+  @ApiPropertyOptional({
+    description: "优先级",
     enum: NotificationPriority,
     default: NotificationPriority.NORMAL,
   })
@@ -144,7 +144,7 @@ export class CreateNotificationChannelDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "标签",
     type: "object",
     additionalProperties: true,
@@ -200,8 +200,8 @@ export class UpdateNotificationChannelDto {
   @Max(LOCAL_NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
   timeout?: number;
 
-  @ApiPropertyOptional({ 
-    description: "优先级", 
+  @ApiPropertyOptional({
+    description: "优先级",
     enum: NotificationPriority,
   })
   @IsOptional()
@@ -213,7 +213,7 @@ export class UpdateNotificationChannelDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "标签",
     type: "object",
     additionalProperties: true,
@@ -276,7 +276,7 @@ export class NotificationChannelResponseDto {
   @ApiPropertyOptional({ description: "描述信息" })
   description?: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "标签",
     type: "object",
     additionalProperties: true,
@@ -312,8 +312,8 @@ export class CreateNotificationDto {
   @IsString()
   content: string;
 
-  @ApiProperty({ 
-    description: "优先级", 
+  @ApiProperty({
+    description: "优先级",
     enum: NotificationPriority,
     default: NotificationPriority.NORMAL,
   })
@@ -324,7 +324,7 @@ export class CreateNotificationDto {
   @IsString()
   recipient: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "扩展元数据",
     type: "object",
     additionalProperties: true,
@@ -348,7 +348,10 @@ export class NotificationQueryDto {
   @IsString()
   channelId?: string;
 
-  @ApiPropertyOptional({ description: "渠道类型", enum: NotificationChannelType })
+  @ApiPropertyOptional({
+    description: "渠道类型",
+    enum: NotificationChannelType,
+  })
   @IsOptional()
   @IsEnum(NotificationChannelType)
   channelType?: NotificationChannelType;
@@ -396,7 +399,11 @@ export class NotificationQueryDto {
   @IsString()
   sortBy?: string;
 
-  @ApiPropertyOptional({ description: "排序方向", enum: ["asc", "desc"], default: "desc" })
+  @ApiPropertyOptional({
+    description: "排序方向",
+    enum: ["asc", "desc"],
+    default: "desc",
+  })
   @IsOptional()
   @IsEnum(["asc", "desc"])
   sortOrder?: "asc" | "desc";
@@ -451,7 +458,7 @@ export class NotificationResponseDto {
   @ApiPropertyOptional({ description: "发送耗时(ms)" })
   duration?: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: "扩展元数据",
     type: "object",
     additionalProperties: true,

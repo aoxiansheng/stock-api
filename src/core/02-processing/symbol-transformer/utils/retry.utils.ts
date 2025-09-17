@@ -1,8 +1,8 @@
 import { RETRY_CONFIG } from "../constants/symbol-transformer-enhanced.constants";
-import { 
+import {
   CircuitState,
   CircuitBreakerConfig,
-  CIRCUIT_BREAKER_BUSINESS_SCENARIOS
+  CIRCUIT_BREAKER_BUSINESS_SCENARIOS,
 } from "@common/constants/domain/circuit-breaker-domain.constants";
 import { ErrorType } from "../constants/symbol-transformer-enhanced.constants";
 

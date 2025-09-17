@@ -5,7 +5,11 @@
  * 这个文件统一管理所有系统错误消息，避免在多个地方重复定义相同的错误消息
  */
 import { deepFreeze } from "../../utils/object-immutability.util";
-import { QUICK_MESSAGE_SEMANTICS, MESSAGE_TEMPLATE_FUNCTIONS, MESSAGE_SEMANTICS } from "./message-semantics.constants";
+import {
+  QUICK_MESSAGE_SEMANTICS,
+  MESSAGE_TEMPLATE_FUNCTIONS,
+  MESSAGE_SEMANTICS,
+} from "./message-semantics.constants";
 
 // 📢 认证和授权错误消息
 export const AUTH_ERROR_MESSAGES = deepFreeze({
@@ -222,7 +226,8 @@ export class ErrorMessageUtil {
     switch (type) {
       case ErrorMessageType.AUTH:
         return (
-          AUTH_ERROR_MESSAGES[key] || MESSAGE_SEMANTICS.PERMISSION.UNAUTHORIZED_ACCESS
+          AUTH_ERROR_MESSAGES[key] ||
+          MESSAGE_SEMANTICS.PERMISSION.UNAUTHORIZED_ACCESS
         );
       case ErrorMessageType.BUSINESS:
         return (
@@ -240,7 +245,10 @@ export class ErrorMessageUtil {
           HTTP_ERROR_MESSAGES.HTTP_INTERNAL_SERVER_ERROR
         );
       default:
-        return ERROR_MESSAGES[key] || MESSAGE_SEMANTICS.PERMISSION.UNAUTHORIZED_ACCESS;
+        return (
+          ERROR_MESSAGES[key] ||
+          MESSAGE_SEMANTICS.PERMISSION.UNAUTHORIZED_ACCESS
+        );
     }
   }
 

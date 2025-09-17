@@ -1,12 +1,8 @@
-import {
-  Injectable,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import Redis from "ioredis";
 import { MONITORING_HEALTH_STATUS, ExtendedHealthStatus } from "../constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
-
-
 
 import { HealthCheckService, HealthCheckResult } from "./health-check.service";
 import { InjectRedis } from "@nestjs-modules/ioredis";
@@ -154,12 +150,12 @@ export class ExtendedHealthService {
         startup: this.lastHealthCheck
           ? {
               lastCheck: this.lastHealthCheck.timestamp.toISOString(),
-              success: this.lastHealthCheck.status === 'healthy',
-              phases: this.lastHealthCheck.checks.map(check => ({
+              success: this.lastHealthCheck.status === "healthy",
+              phases: this.lastHealthCheck.checks.map((check) => ({
                 name: check.name,
-                success: check.status === 'healthy',
+                success: check.status === "healthy",
                 duration: check.duration || 0,
-                error: check.status === 'unhealthy' ? check.message : undefined,
+                error: check.status === "unhealthy" ? check.message : undefined,
               })),
             }
           : undefined,
@@ -168,13 +164,13 @@ export class ExtendedHealthService {
         recommendations,
       };
 
-      this.logger.debug('ExtendedHealthService: 扩展健康检查完成', {
-        component: 'ExtendedHealthService',
-        operation: 'getFullHealthStatus',
+      this.logger.debug("ExtendedHealthService: 扩展健康检查完成", {
+        component: "ExtendedHealthService",
+        operation: "getFullHealthStatus",
         status: status.status,
         healthScore,
         duration: Date.now() - startTime,
-        success: true
+        success: true,
       });
 
       return status;
@@ -450,9 +446,7 @@ export class ExtendedHealthService {
   /**
    * 确定整体状态
    */
-  private determineOverallStatus(
-    healthScore: number,
-  ): ExtendedHealthStatus {
+  private determineOverallStatus(healthScore: number): ExtendedHealthStatus {
     if (healthScore >= 80) return MONITORING_HEALTH_STATUS.HEALTHY;
     if (healthScore >= 50) return MONITORING_HEALTH_STATUS.DEGRADED;
     return MONITORING_HEALTH_STATUS.UNHEALTHY;
@@ -531,8 +525,7 @@ export class ExtendedHealthService {
 
     const staleTime = MONITORING_SYSTEM_LIMITS.MONITORING_CACHE_STALE_TIME_MS; // 5分钟过期
     const now = Date.now();
-    const validatedTime =
-      this.lastValidation.overall.validatedAt.getTime();
+    const validatedTime = this.lastValidation.overall.validatedAt.getTime();
 
     return now - validatedTime > staleTime;
   }

@@ -3,8 +3,8 @@ import { Injectable } from "@nestjs/common";
 import { ProviderMetadata, Constructor } from "./types/metadata.types";
 import { CapabilityCollector } from "./capability-collector";
 import { METADATA_KEYS } from "../constants/metadata.constants";
-import { OPERATION_LIMITS } from '@common/constants/domain';
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { OPERATION_LIMITS } from "@common/constants/domain";
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 /**
  * 提供商装饰器 - 自动注册数据源提供商
@@ -44,7 +44,11 @@ export function Provider(metadata: ProviderMetadata) {
     CapabilityCollector.registerProvider(finalMetadata, target);
 
     // 存储元数据到类上
-    Reflect.defineMetadata(METADATA_KEYS.PROVIDER_METADATA, finalMetadata, target);
+    Reflect.defineMetadata(
+      METADATA_KEYS.PROVIDER_METADATA,
+      finalMetadata,
+      target,
+    );
     Reflect.defineMetadata("provider:registered", true, target);
 
     // 自动应用 @Injectable 装饰器，确保可以被依赖注入
@@ -129,7 +133,10 @@ export function HealthCheck(
 
     // 存储健康检查方法信息
     const existingChecks =
-      Reflect.getMetadata(METADATA_KEYS.HEALTH_CHECK_METADATA, target.constructor) || [];
+      Reflect.getMetadata(
+        METADATA_KEYS.HEALTH_CHECK_METADATA,
+        target.constructor,
+      ) || [];
     existingChecks.push({
       methodName: propertyName,
       options: defaultOptions,

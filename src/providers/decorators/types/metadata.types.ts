@@ -4,8 +4,15 @@
 
 // 元数据键值已移至 constants/metadata.constants.ts 统一管理
 // 为了兼容性，从常量文件导入
-import { PROVIDER_METADATA_KEY, CAPABILITY_METADATA_KEY } from '../../constants/metadata.constants';
-import { ProviderConfig, CapabilityConfig, StreamConfig } from '../../types/config.types';
+import {
+  PROVIDER_METADATA_KEY,
+  CAPABILITY_METADATA_KEY,
+} from "../../constants/metadata.constants";
+import {
+  ProviderConfig,
+  CapabilityConfig,
+  StreamConfig,
+} from "../../types/config.types";
 
 export { PROVIDER_METADATA_KEY, CAPABILITY_METADATA_KEY };
 
@@ -100,9 +107,9 @@ export interface ProviderLoadResult {
  */
 export interface ConventionViolation {
   type:
-    | "structural"     // 结构问题：missing_file, missing_directory, invalid_structure
-    | "naming"         // 命名问题：naming_convention
-    | "interface"      // 接口问题：missing_export, interface_error, scan_error
+    | "structural" // 结构问题：missing_file, missing_directory, invalid_structure
+    | "naming" // 命名问题：naming_convention
+    | "interface"; // 接口问题：missing_export, interface_error, scan_error
   path: string;
   message: string;
   severity?: "low" | "medium" | "high" | "critical";

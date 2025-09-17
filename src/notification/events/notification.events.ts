@@ -1,7 +1,7 @@
 /**
  * 通知事件定义
  * 🎯 实现事件驱动架构的核心事件类型
- * 
+ *
  * @description 支持异步、松耦合的通知处理流程
  * @author Claude Code Assistant
  * @date 2025-09-12
@@ -11,31 +11,31 @@ import {
   NotificationPriority,
   NotificationChannelType,
   NotificationStatus,
-} from '../types/notification.types';
+} from "../types/notification.types";
 
 /**
  * 通知事件类型枚举
  */
 export enum NotificationEventType {
   // 核心事件
-  NOTIFICATION_REQUESTED = 'notification.requested',
-  NOTIFICATION_SENT = 'notification.sent',
-  NOTIFICATION_DELIVERED = 'notification.delivered',
-  NOTIFICATION_FAILED = 'notification.failed',
-  NOTIFICATION_RETRIED = 'notification.retried',
-  
+  NOTIFICATION_REQUESTED = "notification.requested",
+  NOTIFICATION_SENT = "notification.sent",
+  NOTIFICATION_DELIVERED = "notification.delivered",
+  NOTIFICATION_FAILED = "notification.failed",
+  NOTIFICATION_RETRIED = "notification.retried",
+
   // 批量事件
-  BATCH_NOTIFICATION_STARTED = 'notification.batch.started',
-  BATCH_NOTIFICATION_COMPLETED = 'notification.batch.completed',
-  BATCH_NOTIFICATION_FAILED = 'notification.batch.failed',
-  
+  BATCH_NOTIFICATION_STARTED = "notification.batch.started",
+  BATCH_NOTIFICATION_COMPLETED = "notification.batch.completed",
+  BATCH_NOTIFICATION_FAILED = "notification.batch.failed",
+
   // 历史事件
-  NOTIFICATION_HISTORY_RECORDED = 'notification.history.recorded',
-  NOTIFICATION_HISTORY_QUERIED = 'notification.history.queried',
-  
+  NOTIFICATION_HISTORY_RECORDED = "notification.history.recorded",
+  NOTIFICATION_HISTORY_QUERIED = "notification.history.queried",
+
   // 系统事件
-  NOTIFICATION_SYSTEM_ERROR = 'notification.system.error',
-  NOTIFICATION_CHANNEL_ERROR = 'notification.channel.error',
+  NOTIFICATION_SYSTEM_ERROR = "notification.system.error",
+  NOTIFICATION_CHANNEL_ERROR = "notification.channel.error",
 }
 
 /**
@@ -46,38 +46,35 @@ export abstract class NotificationEvent {
    * 事件类型
    */
   abstract readonly eventType: NotificationEventType;
-  
+
   /**
    * 事件ID，用于追踪和去重
    */
   readonly eventId: string;
-  
+
   /**
    * 事件时间戳
    */
   readonly timestamp: Date;
-  
+
   /**
    * 关联的警告ID
    */
   readonly alertId: string;
-  
+
   /**
    * 事件元数据
    */
   readonly metadata: Record<string, any>;
 
-  constructor(
-    alertId: string,
-    metadata: Record<string, any> = {}
-  ) {
+  constructor(alertId: string, metadata: Record<string, any> = {}) {
     this.eventId = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.timestamp = new Date();
     this.alertId = alertId;
     this.metadata = {
       ...metadata,
-      eventSource: 'NotificationModule',
-      eventVersion: '1.0',
+      eventSource: "NotificationModule",
+      eventVersion: "1.0",
     };
   }
 }
@@ -97,7 +94,7 @@ export class NotificationRequestedEvent extends NotificationEvent {
     public readonly message: string,
     public readonly channelTypes: NotificationChannelType[],
     public readonly recipients?: string[],
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -122,7 +119,7 @@ export class NotificationSentEvent extends NotificationEvent {
     public readonly recipient: string,
     public readonly sentAt: Date,
     public readonly duration: number,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -147,7 +144,7 @@ export class NotificationDeliveredEvent extends NotificationEvent {
     public readonly channelType: NotificationChannelType,
     public readonly deliveredAt: Date,
     public readonly confirmationId?: string,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -172,7 +169,7 @@ export class NotificationFailedEvent extends NotificationEvent {
     public readonly retryCount: number,
     public readonly failedAt: Date,
     public readonly willRetry: boolean = false,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -198,7 +195,7 @@ export class NotificationRetriedEvent extends NotificationEvent {
     public readonly retryAttempt: number,
     public readonly previousError: string,
     public readonly retriedAt: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -222,7 +219,7 @@ export class BatchNotificationStartedEvent extends NotificationEvent {
     public readonly requestCount: number,
     public readonly concurrency: number,
     public readonly startedAt: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -246,7 +243,7 @@ export class BatchNotificationCompletedEvent extends NotificationEvent {
     public readonly failureCount: number,
     public readonly totalDuration: number,
     public readonly completedAt: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -272,7 +269,7 @@ export class BatchNotificationFailedEvent extends NotificationEvent {
     public readonly processedCount: number,
     public readonly totalCount: number,
     public readonly failedAt: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -296,7 +293,7 @@ export class NotificationHistoryRecordedEvent extends NotificationEvent {
     public readonly notificationId: string,
     public readonly status: NotificationStatus,
     public readonly recordedAt: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -319,7 +316,7 @@ export class NotificationHistoryQueriedEvent extends NotificationEvent {
     public readonly resultCount: number,
     public readonly queryDuration: number,
     public readonly queriedAt: Date,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -342,14 +339,14 @@ export class NotificationSystemErrorEvent extends NotificationEvent {
     public readonly error: string,
     public readonly stackTrace?: string,
     public readonly context?: Record<string, any>,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
       component,
       error,
       context,
-      severity: 'error',
+      severity: "error",
     });
   }
 }
@@ -366,7 +363,7 @@ export class NotificationChannelErrorEvent extends NotificationEvent {
     public readonly channelId: string,
     public readonly error: string,
     public readonly isChannelDown: boolean = false,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, any> = {},
   ) {
     super(alertId, {
       ...metadata,
@@ -394,7 +391,7 @@ export class NotificationEventFactory {
     message: string,
     channelTypes: NotificationChannelType[],
     recipients?: string[],
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): NotificationRequestedEvent {
     return new NotificationRequestedEvent(
       alertId,
@@ -404,7 +401,7 @@ export class NotificationEventFactory {
       message,
       channelTypes,
       recipients,
-      metadata
+      metadata,
     );
   }
 
@@ -418,7 +415,7 @@ export class NotificationEventFactory {
     channelType: NotificationChannelType,
     recipient: string,
     duration: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): NotificationSentEvent {
     return new NotificationSentEvent(
       alertId,
@@ -428,7 +425,7 @@ export class NotificationEventFactory {
       recipient,
       new Date(),
       duration,
-      metadata
+      metadata,
     );
   }
 
@@ -442,7 +439,7 @@ export class NotificationEventFactory {
     error: string,
     retryCount: number,
     willRetry: boolean = false,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): NotificationFailedEvent {
     return new NotificationFailedEvent(
       alertId,
@@ -452,7 +449,7 @@ export class NotificationEventFactory {
       retryCount,
       new Date(),
       willRetry,
-      metadata
+      metadata,
     );
   }
 
@@ -465,7 +462,7 @@ export class NotificationEventFactory {
     successCount: number,
     failureCount: number,
     totalDuration: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): BatchNotificationCompletedEvent {
     return new BatchNotificationCompletedEvent(
       alertId,
@@ -474,7 +471,7 @@ export class NotificationEventFactory {
       failureCount,
       totalDuration,
       new Date(),
-      metadata
+      metadata,
     );
   }
 }
@@ -483,15 +480,21 @@ export class NotificationEventFactory {
  * 事件类型守卫
  */
 export class NotificationEventTypeGuards {
-  static isNotificationRequestedEvent(event: NotificationEvent): event is NotificationRequestedEvent {
+  static isNotificationRequestedEvent(
+    event: NotificationEvent,
+  ): event is NotificationRequestedEvent {
     return event.eventType === NotificationEventType.NOTIFICATION_REQUESTED;
   }
 
-  static isNotificationSentEvent(event: NotificationEvent): event is NotificationSentEvent {
+  static isNotificationSentEvent(
+    event: NotificationEvent,
+  ): event is NotificationSentEvent {
     return event.eventType === NotificationEventType.NOTIFICATION_SENT;
   }
 
-  static isNotificationFailedEvent(event: NotificationEvent): event is NotificationFailedEvent {
+  static isNotificationFailedEvent(
+    event: NotificationEvent,
+  ): event is NotificationFailedEvent {
     return event.eventType === NotificationEventType.NOTIFICATION_FAILED;
   }
 

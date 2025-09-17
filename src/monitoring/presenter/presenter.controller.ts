@@ -6,7 +6,7 @@ import {
   HttpStatus,
   Post,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiQuery } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
 
 import { NoPerformanceMonitoring } from "../infrastructure/decorators/infrastructure-config.decorator";
@@ -20,8 +20,15 @@ import {
 import { Auth, Public } from "../../auth/decorators/auth.decorator";
 import { UserRole } from "../../auth/enums/user-role.enum";
 import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
+import { GetEndpointMetricsDto } from "../contracts/dto/queries/get-endpoint-metrics.dto";
 import { PresenterService } from "./presenter.service";
 import { ExtendedHealthService } from "../health/extended-health.service";
+import {
+  PerformanceAnalysisDto,
+  HealthScoreDto,
+} from "../contracts/dto/responses";
+import { HealthReportDto } from "../contracts/dto/responses/health-report.dto";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 
 /**
  * 展示层控制器
@@ -51,20 +58,10 @@ export class PresenterController {
     summary: "获取性能分析数据",
     description: "获取系统整体性能分析，包括响应时间、错误率、吞吐量等指标",
   })
-  @ApiSuccessResponse({
+  @ApiResponse({
+    status: 200,
     description: "性能分析数据获取成功",
-    schema: {
-      type: "object",
-      properties: {
-        timestamp: { type: "string", format: "date-time" },
-        summary: { type: "object", description: "性能摘要" },
-        healthScore: { type: "number", description: "健康分数" },
-        trends: { type: "object", description: "趋势分析" },
-        endpointMetrics: { type: "array", description: "端点指标" },
-        databaseMetrics: { type: "object", description: "数据库指标" },
-        cacheMetrics: { type: "object", description: "缓存指标" },
-      },
-    },
+    type: PerformanceAnalysisDto,
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -81,15 +78,10 @@ export class PresenterController {
     summary: "获取系统健康评分",
     description: "获取系统健康评分数值",
   })
-  @ApiSuccessResponse({
+  @ApiResponse({
+    status: 200,
     description: "健康评分获取成功",
-    schema: {
-      type: "object",
-      properties: {
-        healthScore: { type: "number", minimum: 0, maximum: 100 },
-        timestamp: { type: "string", format: "date-time" },
-      },
-    },
+    type: HealthScoreDto,
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
@@ -106,17 +98,7 @@ export class PresenterController {
     summary: "获取详细健康报告",
     description: "获取系统详细健康报告，包括各组件健康状况和建议",
   })
-  @ApiSuccessResponse({
-    description: "健康报告获取成功",
-    schema: {
-      type: "object",
-      properties: {
-        overall: { type: "object", description: "整体健康状况" },
-        components: { type: "object", description: "组件健康状况" },
-        recommendations: { type: "array", description: "优化建议" },
-      },
-    },
-  })
+  @ApiSuccessResponse({ type: HealthReportDto })
   @ApiStandardResponses()
   @JwtAuthResponses()
   async getHealthReport() {
@@ -156,13 +138,63 @@ export class PresenterController {
   }
 
   /**
-   * 获取端点指标
+   * 获取端点指标 (支持分页)
    */
   @Auth([UserRole.ADMIN])
   @Get("endpoints")
   @ApiOperation({
     summary: "获取端点性能指标",
-    description: "获取API端点的性能指标数据",
+    description: "获取API端点的性能指标数据，支持分页查询",
+  })
+  @ApiSuccessResponse({
+    description: "端点指标获取成功",
+    schema: {
+      type: "object",
+      properties: {
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              endpoint: { type: "string" },
+              method: { type: "string" },
+              totalOperations: { type: "number" },
+              responseTimeMs: { type: "number" },
+              errorRate: { type: "number" },
+              lastUsed: { type: "string", format: "date-time" },
+            },
+          },
+        },
+        pagination: {
+          type: "object",
+          properties: {
+            page: { type: "number" },
+            limit: { type: "number" },
+            total: { type: "number" },
+            totalPages: { type: "number" },
+            hasNext: { type: "boolean" },
+            hasPrev: { type: "boolean" },
+          },
+        },
+      },
+    },
+  })
+  @ApiStandardResponses()
+  @JwtAuthResponses()
+  async getEndpointMetrics(@Query() query: GetEndpointMetricsDto) {
+    return this.presenterService.getEndpointMetrics(query);
+  }
+
+  /**
+   * 获取端点指标 (Legacy兼容端点)
+   * @deprecated 使用 GET /endpoints 替代
+   */
+  @Auth([UserRole.ADMIN])
+  @Get("endpoints/legacy")
+  @ApiOperation({
+    summary: "获取端点性能指标 (Legacy)",
+    description: "Legacy兼容端点，建议使用 GET /endpoints",
+    deprecated: true,
   })
   @ApiQuery({
     name: "limit",
@@ -189,8 +221,8 @@ export class PresenterController {
   })
   @ApiStandardResponses()
   @JwtAuthResponses()
-  async getEndpointMetrics(@Query("limit") limit?: string) {
-    return this.presenterService.getEndpointMetrics(limit);
+  async getEndpointMetricsLegacy(@Query("limit") limit?: string) {
+    return this.presenterService.getEndpointMetricsLegacy(limit);
   }
 
   /**

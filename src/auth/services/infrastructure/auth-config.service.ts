@@ -1,10 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
-import authConfig from '../../config/auth-configuration';
+import { Injectable, Inject } from "@nestjs/common";
+import authConfig from "../../config/auth-configuration";
 
 /**
  * Auth配置服务
  * 提供类型安全的配置访问
- * 
+ *
  * @description
  * 封装配置访问逻辑，提供便捷的方法获取认证和安全相关配置
  * 遵循NestJS依赖注入最佳实践

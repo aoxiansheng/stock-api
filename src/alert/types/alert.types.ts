@@ -81,7 +81,8 @@ export const NotificationStatus = {
   RETRY: "retry",
 } as const;
 
-export type NotificationStatus = (typeof NotificationStatus)[keyof typeof NotificationStatus];
+export type NotificationStatus =
+  (typeof NotificationStatus)[keyof typeof NotificationStatus];
 
 /**
  * 通知渠道接口 - 解决循环依赖的核心接口

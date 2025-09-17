@@ -14,7 +14,10 @@ import {
   MarketStatusResult,
 } from "../../../shared/services/market-status.service";
 import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
-import { Market, MarketStatus } from "../../../shared/constants/market.constants";
+import {
+  Market,
+  MarketStatus,
+} from "../../../shared/constants/market.constants";
 import {
   CacheStrategy,
   CacheOrchestratorRequest,
@@ -32,16 +35,16 @@ import {
   NoCacheConfig,
   DEFAULT_SMART_CACHE_CONFIG,
 } from "../interfaces/smart-cache-config.interface";
-import { 
+import {
   SMART_CACHE_CONSTANTS,
-  SmartCacheConstantsType 
-} from '../constants/smart-cache.constants';
-import { 
+  SmartCacheConstantsType,
+} from "../constants/smart-cache.constants";
+import {
   SMART_CACHE_COMPONENT,
   LogContext,
   OperationType,
-  MetricType 
-} from '../constants/smart-cache.component.constants';
+  MetricType,
+} from "../constants/smart-cache.component.constants";
 
 /**
  * 智能缓存编排器服务 - Phase 5.2 重构版
@@ -67,7 +70,9 @@ import {
 
 @Injectable()
 export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = createLogger(SMART_CACHE_COMPONENT.LOG_CONTEXTS.ORCHESTRATOR_SERVICE);
+  private readonly logger = createLogger(
+    SMART_CACHE_COMPONENT.LOG_CONTEXTS.ORCHESTRATOR_SERVICE,
+  );
 
   /** 后台更新任务管理Map：cacheKey -> BackgroundUpdateTask */
   private readonly backgroundUpdateTasks = new Map<
@@ -115,7 +120,8 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   private validateAndInitializeConfig(): void {
     try {
       // 提供默认配置保护 - 使用统一常量定义的默认配置
-      const defaultConfig: SmartCacheOrchestratorConfig = DEFAULT_SMART_CACHE_CONFIG;
+      const defaultConfig: SmartCacheOrchestratorConfig =
+        DEFAULT_SMART_CACHE_CONFIG;
 
       // 合并配置，使用默认值作为回退
       this.config = {
@@ -123,7 +129,8 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           this.rawConfig?.defaultMinUpdateInterval,
           defaultConfig.defaultMinUpdateInterval,
           5000,
-          SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS * 10, // 300000ms
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS *
+            10, // 300000ms
         ),
         maxConcurrentUpdates: this.validateNumber(
           this.rawConfig?.maxConcurrentUpdates,
@@ -165,12 +172,15 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       // 紧急默认配置 - 使用常量定义的保守配置
       this.config = {
-        defaultMinUpdateInterval: SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS * 2, // 60000ms
-        maxConcurrentUpdates: SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
+        defaultMinUpdateInterval:
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS * 2, // 60000ms
+        maxConcurrentUpdates:
+          SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
         enableBackgroundUpdate: false, // 保守地禁用后台更新
         enableDataChangeDetection: false,
         enableMetrics: false,
-        gracefulShutdownTimeout: SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
+        gracefulShutdownTimeout:
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
         strategies: {
           [CacheStrategy.STRONG_TIMELINESS]: {
             ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
@@ -187,19 +197,22 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
             enableDataChangeDetection: false,
           },
           [CacheStrategy.ADAPTIVE]: {
-            baseTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
+            baseTtl:
+              SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
             minTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S * 2, // 60s
             maxTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
             adaptationFactor: 1.0,
             enableBackgroundUpdate: false,
-            changeDetectionWindow: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
+            changeDetectionWindow:
+              SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
             enableDataChangeDetection: false,
           },
           [CacheStrategy.MARKET_AWARE]: {
             openMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S * 2, // 60s
             closedMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S,
             enableBackgroundUpdate: false,
-            marketStatusCheckInterval: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
+            marketStatusCheckInterval:
+              SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
             openMarketUpdateThresholdRatio: 0.5,
             closedMarketUpdateThresholdRatio: 0.2,
             enableDataChangeDetection: false,
@@ -582,7 +595,10 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       // 重试逻辑
       if (task.retryCount < task.maxRetries) {
         task.status = "pending";
-        task.scheduledAt = Date.now() + task.retryCount * SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS; // 递增延迟重试
+        task.scheduledAt =
+          Date.now() +
+          task.retryCount *
+            SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS; // 递增延迟重试
         this.updateQueue.push(task);
         this.logger.log(
           `Scheduled retry ${task.retryCount}/${task.maxRetries} for cache key: ${task.cacheKey}`,
@@ -1628,7 +1644,8 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       cacheResult.metadata?.dynamicTtl
     ) {
       const thresholdRatio =
-        (strategyConfig as any).updateThresholdRatio || SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO;
+        (strategyConfig as any).updateThresholdRatio ||
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO;
       const remainingRatio =
         cacheResult.metadata.ttlRemaining / cacheResult.metadata.dynamicTtl;
 

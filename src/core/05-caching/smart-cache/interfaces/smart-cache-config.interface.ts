@@ -1,7 +1,10 @@
 import { CacheStrategy } from "./smart-cache-orchestrator.interface";
-import { SMART_CACHE_CONSTANTS, SmartCacheConstantsType } from '../constants/smart-cache.constants';
-import { SMART_CACHE_COMPONENT } from '../constants/smart-cache.component.constants';
-import { SmartCacheConfigValidator } from '../validators/smart-cache-config.validator';
+import {
+  SMART_CACHE_CONSTANTS,
+  SmartCacheConstantsType,
+} from "../constants/smart-cache.constants";
+import { SMART_CACHE_COMPONENT } from "../constants/smart-cache.component.constants";
+import { SmartCacheConfigValidator } from "../validators/smart-cache-config.validator";
 
 /**
  * 智能缓存编排器配置令牌
@@ -187,9 +190,12 @@ export interface AdaptiveConfig {
  */
 export const DEFAULT_SMART_CACHE_CONFIG = Object.freeze({
   // 基础配置 - 使用明确命名的常量
-  defaultMinUpdateInterval: SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
-  maxConcurrentUpdates: SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
-  gracefulShutdownTimeout: SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
+  defaultMinUpdateInterval:
+    SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
+  maxConcurrentUpdates:
+    SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
+  gracefulShutdownTimeout:
+    SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
   enableBackgroundUpdate: true,
   enableDataChangeDetection: true,
   enableMetrics: true,
@@ -199,8 +205,10 @@ export const DEFAULT_SMART_CACHE_CONFIG = Object.freeze({
     [CacheStrategy.STRONG_TIMELINESS]: Object.freeze({
       ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
       enableBackgroundUpdate: true,
-      updateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO,
-      forceRefreshInterval: SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
+      updateThresholdRatio:
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO,
+      forceRefreshInterval:
+        SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
       enableDataChangeDetection: true,
     }),
 
@@ -208,19 +216,25 @@ export const DEFAULT_SMART_CACHE_CONFIG = Object.freeze({
     [CacheStrategy.WEAK_TIMELINESS]: Object.freeze({
       ttl: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
       enableBackgroundUpdate: true,
-      updateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.WEAK_UPDATE_RATIO,
-      minUpdateInterval: SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S * 12, // 60秒
+      updateThresholdRatio:
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.WEAK_UPDATE_RATIO,
+      minUpdateInterval:
+        SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S * 12, // 60秒
       enableDataChangeDetection: true,
     }),
 
     // 市场感知策略配置
     [CacheStrategy.MARKET_AWARE]: Object.freeze({
       openMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S,
-      closedMarketTtl: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
+      closedMarketTtl:
+        SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
       enableBackgroundUpdate: true,
-      marketStatusCheckInterval: SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S, // 300秒
-      openMarketUpdateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_OPEN_UPDATE_RATIO,
-      closedMarketUpdateThresholdRatio: SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_CLOSED_UPDATE_RATIO,
+      marketStatusCheckInterval:
+        SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S, // 300秒
+      openMarketUpdateThresholdRatio:
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_OPEN_UPDATE_RATIO,
+      closedMarketUpdateThresholdRatio:
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_CLOSED_UPDATE_RATIO,
       enableDataChangeDetection: true,
     }),
 
@@ -243,7 +257,8 @@ export const DEFAULT_SMART_CACHE_CONFIG = Object.freeze({
 } as const);
 
 // 从默认配置推导接口类型，确保类型一致性
-export type SmartCacheOrchestratorConfigType = typeof DEFAULT_SMART_CACHE_CONFIG;
+export type SmartCacheOrchestratorConfigType =
+  typeof DEFAULT_SMART_CACHE_CONFIG;
 
 /**
  * 配置验证函数
@@ -255,57 +270,75 @@ export function validateSmartCacheConfig(
   const errors: string[] = [];
 
   // 基础配置验证 - 使用统一验证器
-  errors.push(...SmartCacheConfigValidator.validateInterval(
-    config.defaultMinUpdateInterval,
-    'defaultMinUpdateInterval'
-  ));
+  errors.push(
+    ...SmartCacheConfigValidator.validateInterval(
+      config.defaultMinUpdateInterval,
+      "defaultMinUpdateInterval",
+    ),
+  );
 
-  errors.push(...SmartCacheConfigValidator.validateConcurrency(
-    config.maxConcurrentUpdates
-  ));
+  errors.push(
+    ...SmartCacheConfigValidator.validateConcurrency(
+      config.maxConcurrentUpdates,
+    ),
+  );
 
-  errors.push(...SmartCacheConfigValidator.validateInterval(
-    config.gracefulShutdownTimeout,
-    'gracefulShutdownTimeout'
-  ));
+  errors.push(
+    ...SmartCacheConfigValidator.validateInterval(
+      config.gracefulShutdownTimeout,
+      "gracefulShutdownTimeout",
+    ),
+  );
 
   // 策略配置验证 - 使用统一验证器
   Object.entries(config.strategies).forEach(([strategy, strategyConfig]) => {
     switch (strategy as CacheStrategy) {
       case CacheStrategy.STRONG_TIMELINESS:
         const strongConfig = strategyConfig as StrongTimelinessConfig;
-        errors.push(...SmartCacheConfigValidator.validateTTL(strongConfig.ttl, strategy));
-        errors.push(...SmartCacheConfigValidator.validateThresholdRatio(
-          strongConfig.updateThresholdRatio, 
-          strategy
-        ));
+        errors.push(
+          ...SmartCacheConfigValidator.validateTTL(strongConfig.ttl, strategy),
+        );
+        errors.push(
+          ...SmartCacheConfigValidator.validateThresholdRatio(
+            strongConfig.updateThresholdRatio,
+            strategy,
+          ),
+        );
         break;
 
       case CacheStrategy.WEAK_TIMELINESS:
         const weakConfig = strategyConfig as WeakTimelinessConfig;
-        errors.push(...SmartCacheConfigValidator.validateTTL(weakConfig.ttl, strategy));
-        errors.push(...SmartCacheConfigValidator.validateInterval(
-          weakConfig.minUpdateInterval * 1000, // 转换为毫秒
-          `${strategy}.minUpdateInterval`
-        ));
+        errors.push(
+          ...SmartCacheConfigValidator.validateTTL(weakConfig.ttl, strategy),
+        );
+        errors.push(
+          ...SmartCacheConfigValidator.validateInterval(
+            weakConfig.minUpdateInterval * 1000, // 转换为毫秒
+            `${strategy}.minUpdateInterval`,
+          ),
+        );
         break;
 
       case CacheStrategy.MARKET_AWARE:
         const marketConfig = strategyConfig as MarketAwareConfig;
-        errors.push(...SmartCacheConfigValidator.validateMarketAwareConfig(
-          marketConfig.openMarketTtl,
-          marketConfig.closedMarketTtl,
-          marketConfig.marketStatusCheckInterval
-        ));
+        errors.push(
+          ...SmartCacheConfigValidator.validateMarketAwareConfig(
+            marketConfig.openMarketTtl,
+            marketConfig.closedMarketTtl,
+            marketConfig.marketStatusCheckInterval,
+          ),
+        );
         break;
 
       case CacheStrategy.ADAPTIVE:
         const adaptiveConfig = strategyConfig as AdaptiveConfig;
-        errors.push(...SmartCacheConfigValidator.validateAdaptiveTtlRange(
-          adaptiveConfig.minTtl,
-          adaptiveConfig.maxTtl,
-          adaptiveConfig.baseTtl
-        ));
+        errors.push(
+          ...SmartCacheConfigValidator.validateAdaptiveTtlRange(
+            adaptiveConfig.minTtl,
+            adaptiveConfig.maxTtl,
+            adaptiveConfig.baseTtl,
+          ),
+        );
         if (adaptiveConfig.adaptationFactor <= 0) {
           errors.push(`${strategy}: adaptationFactor must be positive`);
         }

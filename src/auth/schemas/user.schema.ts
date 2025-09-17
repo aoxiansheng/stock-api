@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
 import { UserRole } from "../enums/user-role.enum";
-import { CommonStatus } from "../enums/common-status.enum";
+import { OperationStatus } from "@common/types/enums/shared-base.enum";
 import { USER_REGISTRATION } from "../constants/user-operations.constants";
 
 export type UserDocument = User & Document;
@@ -26,9 +26,9 @@ export class User {
   @Prop({ required: true, unique: true, trim: true, lowercase: true })
   email: string;
 
-  @Prop({ 
-    required: true, 
-    minlength: USER_REGISTRATION.PASSWORD_MIN_LENGTH 
+  @Prop({
+    required: true,
+    minlength: USER_REGISTRATION.PASSWORD_MIN_LENGTH,
   })
   passwordHash: string;
 
@@ -42,10 +42,10 @@ export class User {
 
   @Prop({
     type: String,
-    enum: Object.values(CommonStatus),
-    default: CommonStatus.ACTIVE
+    enum: Object.values(OperationStatus),
+    default: OperationStatus.ACTIVE,
   })
-  status: CommonStatus;
+  status: OperationStatus;
 
   @Prop()
   lastAccessedAt?: Date;

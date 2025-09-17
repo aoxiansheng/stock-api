@@ -6,10 +6,10 @@
 import { Module } from "@nestjs/common";
 import { DiscoveryModule } from "@nestjs/core";
 
-import { 
+import {
   AuthPermissionConstants,
   AuthPermissionMetadataExtractor,
-  AuthPermissionValidationService 
+  AuthPermissionValidationService,
 } from "./adapters/auth-permission.adapter";
 import { PermissionDecoratorValidator } from "./validators/permission-decorator.validator";
 
@@ -21,9 +21,6 @@ import { PermissionDecoratorValidator } from "./validators/permission-decorator.
     AuthPermissionValidationService,
     PermissionDecoratorValidator,
   ],
-  exports: [
-    AuthPermissionValidationService,
-    PermissionDecoratorValidator,
-  ],
+  exports: [AuthPermissionValidationService, PermissionDecoratorValidator],
 })
 export class PermissionModule {}

@@ -26,15 +26,8 @@ import { ExtendedHealthService } from "./extended-health.service";
  * - 提供更详细的应用级健康信息
  */
 @Module({
-  imports: [
-  ],
-  providers: [
-    ExtendedHealthService,
-    HealthCheckService,
-  ],
-  exports: [
-    ExtendedHealthService,
-    HealthCheckService,
-  ],
+  imports: [],
+  providers: [ExtendedHealthService, HealthCheckService],
+  exports: [ExtendedHealthService, HealthCheckService],
 })
 export class HealthModule {}

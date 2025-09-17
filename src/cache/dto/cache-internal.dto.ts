@@ -2,7 +2,7 @@
  * 缓存内部DTO - 向后兼容接口
  * 🎯 统一定义缓存相关的DTO，确保系统一致性
  * ⚠️  本文件保持向后兼容，推荐使用模块化导入
- * 
+ *
  * 新的模块化结构：
  * - config/ : 配置相关DTO（缓存配置）
  * - operations/ : 操作相关DTO（操作结果、批量操作、预热配置）
@@ -19,24 +19,24 @@
 // ============================================================================
 
 // 重新导出所有模块化DTO，确保现有代码不受影响
-export { CacheConfigDto } from './config/cache-config.dto';
-export { CacheOperationResultDto } from './operations/cache-operation-result.dto';
-export { BatchCacheOperationDto } from './operations/batch-operation.dto';
-export { CacheWarmupConfigDto } from './operations/warmup-config.dto';
-export { CacheHealthCheckResultDto } from './health/health-check-result.dto';
-export { CacheCompressionInfoDto } from './data-processing/compression-info.dto';
-export { CacheSerializationInfoDto } from './data-processing/serialization-info.dto';
-export { DistributedLockInfoDto } from './locking/distributed-lock-info.dto';
-export { CacheKeyPatternAnalysisDto } from './analytics/key-pattern-analysis.dto';
-export { CachePerformanceMonitoringDto } from './monitoring/performance-monitoring.dto';
-export { CacheMetricsUpdateDto } from './metrics/metrics-update.dto';
+export { CacheConfigDto } from "./config/cache-config.dto";
+export { CacheOperationResultDto } from "./operations/cache-operation-result.dto";
+export { BatchCacheOperationDto } from "./operations/batch-operation.dto";
+export { CacheWarmupConfigDto } from "./operations/warmup-config.dto";
+export { CacheHealthCheckResultDto } from "./health/health-check-result.dto";
+export { CacheCompressionInfoDto } from "./data-processing/compression-info.dto";
+export { CacheSerializationInfoDto } from "./data-processing/serialization-info.dto";
+export { DistributedLockInfoDto } from "./locking/distributed-lock-info.dto";
+export { CacheKeyPatternAnalysisDto } from "./analytics/key-pattern-analysis.dto";
+export { CachePerformanceMonitoringDto } from "./monitoring/performance-monitoring.dto";
+export { CacheMetricsUpdateDto } from "./metrics/metrics-update.dto";
 
 // ============================================================================
 // 废弃的DTO（过渡期保留）
 // ============================================================================
 
 // 重新导出废弃的DTO，保持兼容性
-export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
+export { RedisCacheRuntimeStatsDto } from "./redis-cache-runtime-stats.dto";
 
 // ============================================================================
 // 过渡期辅助工具
@@ -44,14 +44,14 @@ export { RedisCacheRuntimeStatsDto } from './redis-cache-runtime-stats.dto';
 
 /**
  * 模块化导入指南
- * 
+ *
  * 推荐使用模块化导入方式，详见统一接口配置
- * 
+ *
  * ```typescript
  * // 推荐方式：直接从具体模块导入
  * import { CacheConfigDto } from './config/cache-config.dto'
  * import { CacheOperationResultDto } from './operations/cache-operation-result.dto'
- * 
+ *
  * // 统一接口：使用cache-shared.interfaces
  * import { CacheStatistics, TTLFields } from './shared/cache-shared.interfaces'
  * ```

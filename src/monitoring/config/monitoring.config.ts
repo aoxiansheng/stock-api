@@ -1,36 +1,43 @@
 /**
  * 监控组件配置接口和默认值
- * 
+ *
  * ⚠️ 配置系统重构通知：
  * ==========================================
  * 本配置文件正在迁移到统一配置系统：
- * 
+ *
  * 🔄 已迁移的配置：
  * - TTL配置 → MonitoringUnifiedTtlConfig
  * - 批量处理配置 → MonitoringUnifiedLimitsConfig
- * 
+ *
  * 📋 推荐使用方式：
  * ```typescript
- * import { 
- *   monitoringUnifiedTtlConfig, 
- *   monitoringUnifiedLimitsConfig 
+ * import {
+ *   monitoringUnifiedTtlConfig,
+ *   monitoringUnifiedLimitsConfig
  * } from './unified';
  * ```
- * 
+ *
  * 职责边界：
  * - 专门负责监控数据的缓存管理（区别于缓存统计替换功能）
  * - 监控事件处理和性能指标阈值配置
  * - 不涉及系统级缓存配置和跨组件共享配置
  */
 
-import { registerAs } from '@nestjs/config';
-import { IsNumber, IsBoolean, IsString, Min, Max, validateSync } from 'class-validator';
-import { plainToClass, Transform, Type } from 'class-transformer';
-import { 
-  MonitoringUnifiedTtlConfig, 
+import { registerAs } from "@nestjs/config";
+import {
+  IsNumber,
+  IsBoolean,
+  IsString,
+  Min,
+  Max,
+  validateSync,
+} from "class-validator";
+import { plainToClass, Transform, Type } from "class-transformer";
+import {
+  MonitoringUnifiedTtlConfig,
   MonitoringUnifiedLimitsConfig,
-  MONITORING_UNIFIED_TTL_CONSTANTS 
-} from './unified';
+  MONITORING_UNIFIED_TTL_CONSTANTS,
+} from "./unified";
 
 /**
  * @deprecated 使用 MonitoringUnifiedTtlConfig 替代
@@ -97,16 +104,16 @@ export class MonitoringCacheConfig {
    * 影响：命名空间变更会导致现有缓存失效，需要重新预热
    * 推荐值：生产环境使用'monitoring_prod'，开发环境使用'monitoring_dev' */
   @IsString()
-  @Transform(({ value }) => value || 'monitoring')
-  namespace: string = 'monitoring';
+  @Transform(({ value }) => value || "monitoring")
+  namespace: string = "monitoring";
 
   /** 监控数据索引键前缀
    * 用途：用于创建监控数据索引的Redis键前缀，支持快速查询和聚合
    * 影响：索引前缀变更会影响监控数据的查询性能和索引重建
    * 推荐值：保持与namespace一致的命名规范 */
-  @IsString() 
-  @Transform(({ value }) => value || 'monitoring:index')
-  keyIndexPrefix: string = 'monitoring:index';
+  @IsString()
+  @Transform(({ value }) => value || "monitoring:index")
+  keyIndexPrefix: string = "monitoring:index";
 
   /** 数据压缩阈值（字节）
    * 用途：当监控数据大小超过此阈值时，自动启用压缩存储节省内存
@@ -153,7 +160,7 @@ export class MonitoringEventsConfig {
    * 影响：启用时提供更智能的监控能力但增加计算开销，禁用时节省资源但失去自动洞察
    * 推荐值：生产环境启用，测试环境可禁用以减少干扰 */
   @IsBoolean()
-  @Transform(({ value }) => value !== 'false')
+  @Transform(({ value }) => value !== "false")
   enableAutoAnalysis: boolean = true;
 
   /** 监控事件处理失败重试次数
@@ -199,7 +206,8 @@ export class MonitoringPerformanceConfig {
   /** 延迟阈值配置对象
    * 用途：包含P95和P99延迟告警阈值，用于监控系统响应时间性能 */
   @Type(() => MonitoringLatencyThresholdsConfig)
-  latencyThresholds: MonitoringLatencyThresholdsConfig = new MonitoringLatencyThresholdsConfig();
+  latencyThresholds: MonitoringLatencyThresholdsConfig =
+    new MonitoringLatencyThresholdsConfig();
 
   /** 缓存命中率阈值（0.1-1.0）
    * 用途：当缓存命中率低于此阈值时触发告警，用于监控缓存效率
@@ -247,61 +255,61 @@ export interface MonitoringConfig {
   cache: {
     /** Redis命名空间 - 用于隔离监控数据缓存键 */
     namespace: string;
-    
+
     /** 索引键前缀 - 用于监控数据索引的Redis键前缀 */
     keyIndexPrefix: string;
-    
+
     /** 压缩阈值（字节） - 超过此大小的监控数据将被压缩存储 */
     compressionThreshold: number;
-    
+
     /** 回退次数告警阈值 - 连续回退多少次后触发告警 */
     fallbackThreshold: number;
-    
+
     /** 监控数据TTL配置 - 不同类型监控数据的缓存生存时间（秒） */
     ttl: {
       /** 健康检查数据TTL（秒） - 系统健康状态数据的缓存时间 */
       health: number;
-      
+
       /** 趋势数据TTL（秒） - 性能趋势分析数据的缓存时间 */
       trend: number;
-      
+
       /** 性能指标数据TTL（秒） - 实时性能指标数据的缓存时间 */
       performance: number;
-      
+
       /** 告警数据TTL（秒） - 告警状态和历史数据的缓存时间 */
       alert: number;
-      
+
       /** 缓存统计数据TTL（秒） - 缓存命中率等统计信息的缓存时间 */
       cacheStats: number;
     };
-    
+
     /** 监控数据批处理大小 - 批量处理监控数据时的批次大小 */
     batchSize: number;
   };
-  
+
   /** 监控事件处理配置 */
   events: {
     /** 是否启用自动分析 - 自动分析监控数据并生成洞察报告 */
     enableAutoAnalysis: boolean;
-    
+
     /** 事件处理重试次数 - 监控事件处理失败时的最大重试次数 */
     retryAttempts: number;
   };
-  
+
   /** 性能监控阈值配置 */
   performance: {
     /** 延迟阈值配置（毫秒） */
     latencyThresholds: {
       /** P95延迟告警阈值（ms） - 95%请求延迟超过此值时触发告警 */
       p95Warning: number;
-      
+
       /** P99延迟严重告警阈值（ms） - 99%请求延迟超过此值时触发严重告警 */
       p99Critical: number;
     };
-    
+
     /** 缓存命中率告警阈值（0-1） - 缓存命中率低于此值时触发告警 */
     hitRateThreshold: number;
-    
+
     /** 错误率告警阈值（0-1） - 错误率超过此值时触发告警 */
     errorRateThreshold: number;
   };
@@ -309,7 +317,7 @@ export interface MonitoringConfig {
 
 /**
  * 默认监控配置
- * 
+ *
  * 环境变量覆盖说明：
  * - 支持通过环境变量覆盖默认值，便于不同环境的定制化配置
  * - 所有环境变量均有合理的默认值，确保在无环境变量时也能正常工作
@@ -319,10 +327,14 @@ export interface MonitoringConfig {
 // 核心环境变量获取和计算
 const getCoreEnvValues = () => {
   const defaultTtl = parseInt(process.env.MONITORING_DEFAULT_TTL) || 300;
-  const defaultBatchSize = parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
-  const apiResponseGood = parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
-  const cacheHitThreshold = parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
-  const errorRateThreshold = parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
+  const defaultBatchSize =
+    parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
+  const apiResponseGood =
+    parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
+  const cacheHitThreshold =
+    parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
+  const errorRateThreshold =
+    parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
   const autoAnalysis = process.env.MONITORING_AUTO_ANALYSIS !== "false";
   const eventRetry = parseInt(process.env.MONITORING_EVENT_RETRY) || 3;
   const namespace = process.env.MONITORING_NAMESPACE || "monitoring";
@@ -345,47 +357,47 @@ export const DEFAULT_MONITORING_CONFIG: MonitoringConfig = {
   cache: {
     // 使用核心环境变量 MONITORING_NAMESPACE 替代 MONITORING_CACHE_NAMESPACE
     namespace: coreEnv.namespace,
-    
+
     // 基于核心命名空间生成索引前缀
     keyIndexPrefix: `${coreEnv.namespace}:index`,
-    
+
     // 数据压缩阈值 - 保持固定值，不需要环境变量控制
     compressionThreshold: 1024,
-    
+
     // 回退告警阈值 - 保持固定值，不需要环境变量控制
     fallbackThreshold: 10,
-    
+
     ttl: {
       // 基于核心环境变量 MONITORING_DEFAULT_TTL 的倍数计算
-      health: coreEnv.defaultTtl,                                    // 1.0x
-      trend: Math.floor(coreEnv.defaultTtl * 2.0),                  // 2.0x
-      performance: Math.floor(coreEnv.defaultTtl * 0.6),            // 0.6x
-      alert: Math.floor(coreEnv.defaultTtl * 0.2),                  // 0.2x
-      cacheStats: Math.floor(coreEnv.defaultTtl * 0.4),             // 0.4x
+      health: coreEnv.defaultTtl, // 1.0x
+      trend: Math.floor(coreEnv.defaultTtl * 2.0), // 2.0x
+      performance: Math.floor(coreEnv.defaultTtl * 0.6), // 0.6x
+      alert: Math.floor(coreEnv.defaultTtl * 0.2), // 0.2x
+      cacheStats: Math.floor(coreEnv.defaultTtl * 0.4), // 0.4x
     },
-    
+
     // 使用核心环境变量 MONITORING_DEFAULT_BATCH_SIZE
     batchSize: coreEnv.defaultBatchSize,
   },
-  
+
   events: {
     // 使用核心环境变量 MONITORING_AUTO_ANALYSIS
     enableAutoAnalysis: coreEnv.autoAnalysis,
-    
+
     // 使用核心环境变量 MONITORING_EVENT_RETRY
     retryAttempts: coreEnv.eventRetry,
   },
-  
+
   performance: {
     latencyThresholds: {
       // 基于核心环境变量 MONITORING_API_RESPONSE_GOOD 的倍数计算
-      p95Warning: coreEnv.apiResponseGood,                           // 1.0x
-      p99Critical: Math.floor(coreEnv.apiResponseGood * 2.5),        // 2.5x
+      p95Warning: coreEnv.apiResponseGood, // 1.0x
+      p99Critical: Math.floor(coreEnv.apiResponseGood * 2.5), // 2.5x
     },
-    
+
     // 使用核心环境变量 MONITORING_CACHE_HIT_THRESHOLD
     hitRateThreshold: coreEnv.cacheHitThreshold,
-    
+
     // 使用核心环境变量 MONITORING_ERROR_RATE_THRESHOLD
     errorRateThreshold: coreEnv.errorRateThreshold,
   },
@@ -393,12 +405,12 @@ export const DEFAULT_MONITORING_CONFIG: MonitoringConfig = {
 
 /**
  * 监控配置验证函数
- * 
+ *
  * 职责：
  * - 确保所有配置参数在合理范围内
  * - 提供清晰的错误信息帮助定位配置问题
  * - 合并默认配置和自定义配置
- * 
+ *
  * @param config 部分配置覆盖，将与默认配置合并
  * @returns 验证通过的完整监控配置
  * @throws Error 配置验证失败时抛出具体错误信息
@@ -444,12 +456,12 @@ export function validateMonitoringConfig(
 
 /**
  * 获取环境特定的监控配置
- * 
+ *
  * 根据不同运行环境自动调整监控配置参数：
  * - production: 优化性能和稳定性，延长缓存时间，提高质量要求
  * - test: 快速响应和轻量化，缩短缓存时间，减少资源占用
  * - development: 使用默认配置，平衡开发体验和功能完整性
- * 
+ *
  * @returns 针对当前环境优化的监控配置
  */
 export function getMonitoringConfigForEnvironment(): MonitoringConfig {
@@ -463,17 +475,17 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
         cache: {
           ...DEFAULT_MONITORING_CONFIG.cache,
           ttl: {
-            health: 600,      // 10分钟 - 生产环境延长健康检查缓存，减少检查频率
-            trend: 1200,      // 20分钟 - 趋势数据在生产环境变化更稳定
+            health: 600, // 10分钟 - 生产环境延长健康检查缓存，减少检查频率
+            trend: 1200, // 20分钟 - 趋势数据在生产环境变化更稳定
             performance: 300, // 5分钟 - 适当延长性能数据缓存
-            alert: 120,       // 2分钟 - 告警数据允许稍长的缓存时间
-            cacheStats: 240,  // 4分钟 - 统计数据缓存时间延长
+            alert: 120, // 2分钟 - 告警数据允许稍长的缓存时间
+            cacheStats: 240, // 4分钟 - 统计数据缓存时间延长
           },
           batchSize: 20, // 生产环境增大批处理，提高吞吐量
         },
         performance: {
           ...DEFAULT_MONITORING_CONFIG.performance,
-          hitRateThreshold: 0.9,  // 90% - 生产环境要求更高的缓存命中率
+          hitRateThreshold: 0.9, // 90% - 生产环境要求更高的缓存命中率
           errorRateThreshold: 0.05, // 5% - 生产环境降低错误率容忍度
         },
       });
@@ -485,11 +497,11 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
         cache: {
           ...DEFAULT_MONITORING_CONFIG.cache,
           ttl: {
-            health: 10,      // 10秒 - 测试时需要快速更新状态
-            trend: 20,       // 20秒 - 快速验证趋势分析功能
+            health: 10, // 10秒 - 测试时需要快速更新状态
+            trend: 20, // 20秒 - 快速验证趋势分析功能
             performance: 10, // 10秒 - 快速反映性能变化
-            alert: 5,        // 5秒 - 告警测试需要即时响应
-            cacheStats: 10,  // 10秒 - 统计功能快速验证
+            alert: 5, // 5秒 - 告警测试需要即时响应
+            cacheStats: 10, // 10秒 - 统计功能快速验证
           },
           batchSize: 3, // 测试环境小批次处理，减少资源占用
         },
@@ -507,77 +519,78 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
 
 /**
  * 类型安全的监控配置注册（推荐使用）
- * 
+ *
  * 使用 class-validator 进行严格的类型验证和转换
  * 提供更好的开发体验和运行时安全保障
- * 
+ *
  * 使用方式：
  * ```typescript
  * // 在模块中导入
  * @Module({
  *   imports: [ConfigModule.forFeature(monitoringConfigValidated)]
  * })
- * 
+ *
  * // 在服务中注入
  * constructor(
- *   @Inject('monitoringValidated') 
+ *   @Inject('monitoringValidated')
  *   private readonly config: MonitoringConfigValidated
  * ) {}
  * ```
  */
-export const monitoringConfigValidated = registerAs('monitoringValidated', (): MonitoringConfigValidated => {
-  const rawConfig = {
-    cache: {
-      namespace: process.env.MONITORING_CACHE_NAMESPACE,
-      keyIndexPrefix: process.env.MONITORING_KEY_INDEX_PREFIX,
-      compressionThreshold: process.env.MONITORING_COMPRESSION_THRESHOLD,
-      fallbackThreshold: process.env.MONITORING_FALLBACK_THRESHOLD,
-      ttl: {
-        health: process.env.MONITORING_TTL_HEALTH,
-        trend: process.env.MONITORING_TTL_TREND,
-        performance: process.env.MONITORING_TTL_PERFORMANCE,
-        alert: process.env.MONITORING_TTL_ALERT,
-        cacheStats: process.env.MONITORING_TTL_CACHE_STATS,
+export const monitoringConfigValidated = registerAs(
+  "monitoringValidated",
+  (): MonitoringConfigValidated => {
+    const rawConfig = {
+      cache: {
+        namespace: process.env.MONITORING_CACHE_NAMESPACE,
+        keyIndexPrefix: process.env.MONITORING_KEY_INDEX_PREFIX,
+        compressionThreshold: process.env.MONITORING_COMPRESSION_THRESHOLD,
+        fallbackThreshold: process.env.MONITORING_FALLBACK_THRESHOLD,
+        ttl: {
+          health: process.env.MONITORING_TTL_HEALTH,
+          trend: process.env.MONITORING_TTL_TREND,
+          performance: process.env.MONITORING_TTL_PERFORMANCE,
+          alert: process.env.MONITORING_TTL_ALERT,
+          cacheStats: process.env.MONITORING_TTL_CACHE_STATS,
+        },
+        batchSize: process.env.MONITORING_BATCH_SIZE,
       },
-      batchSize: process.env.MONITORING_BATCH_SIZE,
-    },
-    events: {
-      enableAutoAnalysis: process.env.MONITORING_AUTO_ANALYSIS,
-      retryAttempts: process.env.MONITORING_EVENT_RETRY,
-    },
-    performance: {
-      latencyThresholds: {
-        p95Warning: process.env.MONITORING_P95_WARNING,
-        p99Critical: process.env.MONITORING_P99_CRITICAL,
+      events: {
+        enableAutoAnalysis: process.env.MONITORING_AUTO_ANALYSIS,
+        retryAttempts: process.env.MONITORING_EVENT_RETRY,
       },
-      hitRateThreshold: process.env.MONITORING_HIT_RATE_THRESHOLD,
-      errorRateThreshold: process.env.MONITORING_ERROR_RATE_THRESHOLD,
-    },
-  };
+      performance: {
+        latencyThresholds: {
+          p95Warning: process.env.MONITORING_P95_WARNING,
+          p99Critical: process.env.MONITORING_P99_CRITICAL,
+        },
+        hitRateThreshold: process.env.MONITORING_HIT_RATE_THRESHOLD,
+        errorRateThreshold: process.env.MONITORING_ERROR_RATE_THRESHOLD,
+      },
+    };
 
-  // 使用 class-transformer 和 class-validator 进行转换和验证
-  const config = plainToClass(MonitoringConfigValidated, rawConfig, {
-    enableImplicitConversion: true,
-  });
+    // 使用 class-transformer 和 class-validator 进行转换和验证
+    const config = plainToClass(MonitoringConfigValidated, rawConfig, {
+      enableImplicitConversion: true,
+    });
 
-  // 执行验证
-  const errors = validateSync(config, { 
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  });
+    // 执行验证
+    const errors = validateSync(config, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
 
-  if (errors.length > 0) {
-    const errorMessages = errors.map(error => 
-      Object.values(error.constraints || {}).join(', ')
-    ).join('; ');
-    
-    throw new Error(
-      `监控配置验证失败: ${errorMessages}`
-    );
-  }
+    if (errors.length > 0) {
+      const errorMessages = errors
+        .map((error) => Object.values(error.constraints || {}).join(", "))
+        .join("; ");
 
-  return config;
-});
+      throw new Error(`监控配置验证失败: ${errorMessages}`);
+    }
+
+    return config;
+  },
+);
 
 /**
  * 监控配置类型导出

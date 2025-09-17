@@ -1,5 +1,5 @@
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   Controller,
   Post,
@@ -8,7 +8,7 @@ import {
   Query as QueryParam,
   ValidationPipe,
   HttpStatus,
-  HttpCode
+  HttpCode,
 } from "@nestjs/common";
 import {
   ApiTags,

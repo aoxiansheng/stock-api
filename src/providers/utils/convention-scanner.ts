@@ -62,7 +62,9 @@ export class ConventionScanner {
     const cacheKey = `${providersPath}:${JSON.stringify(finalOptions)}`;
 
     // 检查缓存（5分钟内的扫描结果直接返回）
-    const cacheThreshold = new Date(Date.now() - PROVIDER_TIMEOUT.CACHE_DURATION_MS);
+    const cacheThreshold = new Date(
+      Date.now() - PROVIDER_TIMEOUT.CACHE_DURATION_MS,
+    );
     if (
       ConventionScanner.scanCache.has(cacheKey) &&
       ConventionScanner.lastScanTime &&
@@ -356,7 +358,7 @@ export class ConventionScanner {
     // 检查命名约定
     if (!this.isValidCapabilityName(capabilityName)) {
       violations.push({
-        type: "naming", 
+        type: "naming",
         path: join(
           SmartPathResolver.getProviderCapabilitiesPath(providerName),
           filename,
@@ -392,7 +394,7 @@ export class ConventionScanner {
       // 检查提供商名称约定
       if (!this.isValidProviderName(provider.name)) {
         violations.push({
-          type: "naming", 
+          type: "naming",
           path: SmartPathResolver.getProviderPath(provider.name),
           message: `提供商名称 ${provider.name} 不符合命名约定`,
           suggestion: "提供商名称应使用 kebab-case 格式",

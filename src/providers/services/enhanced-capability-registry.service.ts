@@ -68,8 +68,7 @@ export class EnhancedCapabilityRegistryService implements OnModuleInit {
   private registryStats: RegistryStats | null = null;
   private static initializationPromise: Promise<void> | null = null;
 
-  constructor() // @Optional() private readonly capabilityRegistry?: CapabilityRegistryService
-  {}
+  constructor() {} // @Optional() private readonly capabilityRegistry?: CapabilityRegistryService
 
   async onModuleInit() {
     // 防止重复初始化 - 使用单例模式

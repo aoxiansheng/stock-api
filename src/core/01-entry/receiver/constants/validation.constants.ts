@@ -4,7 +4,10 @@
  */
 
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
+import {
+  HTTP_TIMEOUTS,
+  BATCH_SIZE_SEMANTICS,
+} from "@common/constants/semantic";
 
 /**
  * 数据接收验证规则常量

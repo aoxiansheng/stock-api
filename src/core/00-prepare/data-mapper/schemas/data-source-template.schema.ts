@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 import { API_TYPE_VALUES } from "../constants/data-mapper.constants";
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 // 🆕 提取字段的子Schema
 @Schema({ _id: false })

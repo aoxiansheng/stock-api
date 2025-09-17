@@ -1,16 +1,22 @@
-import { registerAs } from '@nestjs/config';
-import { AuthCacheConfigValidation, authCacheConfig } from './auth-cache.config';
-import { AuthLimitsConfigValidation, authLimitsConfig } from './auth-limits.config';
+import { registerAs } from "@nestjs/config";
+import {
+  AuthCacheConfigValidation,
+  authCacheConfig,
+} from "./auth-cache.config";
+import {
+  AuthLimitsConfigValidation,
+  authLimitsConfig,
+} from "./auth-limits.config";
 
 /**
  * Auth统一配置入口
  * 整合所有Auth相关的分层配置，提供统一访问接口
- * 
+ *
  * @description
  * 这是Auth模块配置的统一入口点，包含：
  * 1. 缓存配置 - TTL和缓存相关参数
  * 2. 限制配置 - 数值限制、阈值、超时等参数
- * 
+ *
  * 通过分层设计避免单一配置类过大，同时提供统一访问入口
  */
 export interface AuthUnifiedConfigInterface {
@@ -19,9 +25,9 @@ export interface AuthUnifiedConfigInterface {
    * 包含所有缓存相关的TTL配置
    */
   cache: AuthCacheConfigValidation;
-  
+
   /**
-   * 限制配置层  
+   * 限制配置层
    * 包含所有数值限制、阈值、超时配置
    */
   limits: AuthLimitsConfigValidation;
@@ -35,10 +41,10 @@ const createAuthUnifiedConfig = (): AuthUnifiedConfigInterface => {
   // 创建各层配置实例
   const cacheConfig = authCacheConfig();
   const limitsConfig = authLimitsConfig();
-  
+
   return {
     cache: cacheConfig,
-    limits: limitsConfig
+    limits: limitsConfig,
   };
 };
 
@@ -46,7 +52,7 @@ const createAuthUnifiedConfig = (): AuthUnifiedConfigInterface => {
  * 配置注册函数
  * 使用NestJS ConfigService标准模式注册统一配置
  */
-const authUnifiedConfig = registerAs('authUnified', createAuthUnifiedConfig);
+const authUnifiedConfig = registerAs("authUnified", createAuthUnifiedConfig);
 
 /**
  * 配置类型导出
@@ -70,40 +76,48 @@ export const createAuthConfig = (): AuthUnifiedConfigInterface => {
  * 配置验证函数
  * 验证统一配置的完整性和一致性
  */
-export const validateAuthUnifiedConfig = (config: AuthUnifiedConfigInterface): string[] => {
+export const validateAuthUnifiedConfig = (
+  config: AuthUnifiedConfigInterface,
+): string[] => {
   const errors: string[] = [];
-  
+
   // 验证配置层级完整性
   if (!config.cache) {
-    errors.push('缺少缓存配置层 (cache)');
+    errors.push("缺少缓存配置层 (cache)");
   }
-  
+
   if (!config.limits) {
-    errors.push('缺少限制配置层 (limits)');
+    errors.push("缺少限制配置层 (limits)");
   }
-  
+
   // 验证关键配置项存在性
-  if (config.cache && typeof config.cache.permissionCacheTtl !== 'number') {
-    errors.push('权限缓存TTL配置无效');
+  if (config.cache && typeof config.cache.permissionCacheTtl !== "number") {
+    errors.push("权限缓存TTL配置无效");
   }
-  
-  if (config.limits && typeof config.limits.globalRateLimit !== 'number') {
-    errors.push('全局频率限制配置无效');
+
+  if (config.limits && typeof config.limits.globalRateLimit !== "number") {
+    errors.push("全局频率限制配置无效");
   }
-  
+
   // 验证配置一致性
   if (config.cache && config.limits) {
     // 确保TTL配置合理性
-    if (config.cache.permissionCacheTtl > config.limits.sessionTimeoutMinutes * 60) {
-      errors.push('权限缓存TTL不应超过会话超时时间');
+    if (
+      config.cache.permissionCacheTtl >
+      config.limits.sessionTimeoutMinutes * 60
+    ) {
+      errors.push("权限缓存TTL不应超过会话超时时间");
     }
-    
+
     // 确保频率限制合理性
-    if (config.limits.apiKeyValidatePerSecond * 60 > config.limits.globalRateLimit * 2) {
-      errors.push('API Key验证频率与全局频率限制不匹配');
+    if (
+      config.limits.apiKeyValidatePerSecond * 60 >
+      config.limits.globalRateLimit * 2
+    ) {
+      errors.push("API Key验证频率与全局频率限制不匹配");
     }
   }
-  
+
   return errors;
 };
 
@@ -116,18 +130,18 @@ export const getAuthConfigSummary = (config: AuthUnifiedConfigInterface) => {
     cache: {
       permissionTtl: config.cache.permissionCacheTtl,
       apiKeyTtl: config.cache.apiKeyCacheTtl,
-      sessionTtl: config.cache.sessionCacheTtl
+      sessionTtl: config.cache.sessionCacheTtl,
     },
     limits: {
       globalRateLimit: config.limits.globalRateLimit,
       maxStringLength: config.limits.maxStringLength,
       maxApiKeysPerUser: config.limits.maxApiKeysPerUser,
-      timeoutMs: config.limits.timeoutMs
+      timeoutMs: config.limits.timeoutMs,
     },
     validation: {
       configLayersCount: 2,
       hasCache: !!config.cache,
-      hasLimits: !!config.limits
-    }
+      hasLimits: !!config.limits,
+    },
   };
 };

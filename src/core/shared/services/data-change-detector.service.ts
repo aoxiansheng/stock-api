@@ -12,7 +12,7 @@ import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/syste
 import {
   Market,
   MarketStatus,
-  CHANGE_DETECTION_THRESHOLDS
+  CHANGE_DETECTION_THRESHOLDS,
 } from "../constants/market.constants";
 import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
 

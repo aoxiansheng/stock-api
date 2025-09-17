@@ -1,10 +1,11 @@
 import { Permission } from "../enums/user-role.enum";
-import { CommonStatus } from "../enums/common-status.enum";
+import { OperationStatus } from "@common/types/enums/shared-base.enum";
 import {
   AuthSubject,
   AuthSubjectType,
 } from "../interfaces/auth-subject.interface";
 import { ApiKey } from "../schemas/apikey.schema";
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
 
 /**
  * API Key权限主体
@@ -33,14 +34,41 @@ export class ApiKeySubject implements AuthSubject {
   public readonly metadata: Record<string, any>;
 
   constructor(apiKey: ApiKey | any) {
-    this.id = apiKey.id || apiKey._id?.toString();
+    // 提取并验证API Key ID
+    const rawId = apiKey.id || apiKey._id?.toString();
+    if (!rawId) {
+      throw new Error("API Key主体缺少必要的ID字段");
+    }
+
+    // 验证API Key ID格式
+    try {
+      DatabaseValidationUtils.validateObjectId(rawId, "API Key ID");
+      this.id = rawId;
+    } catch (error) {
+      throw new Error(`API Key主体ID格式无效: ${error.message}`);
+    }
+
     this.permissions = Array.isArray(apiKey.permissions)
       ? apiKey.permissions
       : [];
+
+    // 验证并设置userId（如果存在）
+    const rawUserId = apiKey.userId?.toString();
+    let validatedUserId: string | undefined;
+
+    if (rawUserId) {
+      try {
+        DatabaseValidationUtils.validateObjectId(rawUserId, "用户ID");
+        validatedUserId = rawUserId;
+      } catch (error) {
+        throw new Error(`API Key关联的用户ID格式无效: ${error.message}`);
+      }
+    }
+
     this.metadata = {
       name: apiKey.name,
       appKey: apiKey.appKey,
-      userId: apiKey.userId?.toString(),
+      userId: validatedUserId,
       rateLimit: apiKey.rateLimit,
       status: apiKey.status,
       expiresAt: apiKey.expiresAt,
@@ -50,9 +78,6 @@ export class ApiKeySubject implements AuthSubject {
     };
 
     // 验证必要字段
-    if (!this.id) {
-      throw new Error("API Key主体缺少必要的ID字段");
-    }
     if (!Array.isArray(this.permissions)) {
       throw new Error("API Key主体的权限字段必须是数组");
     }
@@ -116,7 +141,7 @@ export class ApiKeySubject implements AuthSubject {
    */
   isValid(): boolean {
     // 检查是否激活
-    if (this.metadata.status !== CommonStatus.ACTIVE) {
+    if (this.metadata.status !== OperationStatus.ACTIVE) {
       return false;
     }
 
@@ -159,6 +184,11 @@ export class ApiKeySubject implements AuthSubject {
    * 检查是否属于指定用户
    */
   belongsToUser(userId: string): boolean {
+    // 验证传入的用户ID格式
+    if (!DatabaseValidationUtils.isValidObjectId(userId)) {
+      return false;
+    }
+
     return this.metadata.userId === userId;
   }
 

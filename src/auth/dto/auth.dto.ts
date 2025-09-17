@@ -11,7 +11,7 @@ import {
 } from "class-validator";
 
 import { UserRole } from "../enums/user-role.enum";
-import { CommonStatus } from "../enums/common-status.enum";
+import { OperationStatus } from "@common/types/enums/shared-base.enum";
 // Note: AUTH_CONFIG and AUTH_VALIDATION_RULES are no longer needed in this file
 import { BaseUserDto, BasePasswordDto } from "./base-auth.dto";
 
@@ -51,7 +51,7 @@ export class LoginResponseDto {
     username: string;
     email: string;
     role: UserRole;
-    status: CommonStatus;
+    status: OperationStatus;
     createdAt: Date;
   };
 
@@ -88,8 +88,11 @@ export class UserResponseDto {
   @ApiProperty({ description: "用户角色", enum: UserRole })
   role: UserRole;
 
-  @ApiProperty({ description: "用户状态", enum: Object.values(CommonStatus) })
-  status: CommonStatus;
+  @ApiProperty({
+    description: "用户状态",
+    enum: Object.values(OperationStatus),
+  })
+  status: OperationStatus;
 
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
@@ -140,6 +143,10 @@ export class PaginatedUsersDto {
   @ApiProperty({ description: "是否有上一页" })
   hasPrev: boolean;
 
-  @ApiProperty({ description: "用户统计信息", type: UserStatsDto, required: false })
+  @ApiProperty({
+    description: "用户统计信息",
+    type: UserStatsDto,
+    required: false,
+  })
   stats?: UserStatsDto;
 }

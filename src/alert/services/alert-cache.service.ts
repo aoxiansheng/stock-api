@@ -1,24 +1,25 @@
 /**
  * Alert缓存服务
  * 🎯 专门负责告警相关的缓存管理
- * 
+ *
  * @description 单一职责：缓存操作，包括活跃告警、冷却状态、时序数据
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { UnifiedTtlConfig } from '../../cache/config/unified-ttl.config';
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
 
 import { createLogger } from "@common/logging/index";
-import { CacheService } from '../../cache/services/cache.service';
-import { IAlert } from '../interfaces';
-import { AlertStatus } from '../types/alert.types';
+import { CacheService } from "../../cache/services/cache.service";
+import { AlertHistoryRepository } from "../repositories/alert-history.repository";
+import { IAlert } from "../interfaces";
+import { AlertStatus } from "../types/alert.types";
 
 @Injectable()
 export class AlertCacheService implements OnModuleInit {
-  private readonly logger = createLogger('AlertCacheService');
+  private readonly logger = createLogger("AlertCacheService");
   private readonly config: {
     activeAlertPrefix: string;
     cooldownPrefix: string;
@@ -30,19 +31,20 @@ export class AlertCacheService implements OnModuleInit {
   constructor(
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    private readonly alertHistoryRepository: AlertHistoryRepository,
   ) {
     this.config = {
-      activeAlertPrefix: 'alert:active',
-      cooldownPrefix: 'alert:cooldown',
-      timeseriesPrefix: 'alert:timeseries',
+      activeAlertPrefix: "alert:active",
+      cooldownPrefix: "alert:cooldown",
+      timeseriesPrefix: "alert:timeseries",
       maxTimeseriesLength: 1000,
     };
     // 获取统一TTL配置
-    this.ttlConfig = this.configService.get<UnifiedTtlConfig>('unifiedTtl');
+    this.ttlConfig = this.configService.get<UnifiedTtlConfig>("unifiedTtl");
   }
 
   async onModuleInit() {
-    this.logger.log('告警缓存服务初始化完成');
+    this.logger.log("告警缓存服务初始化完成");
     await this.loadActiveAlerts();
   }
 
@@ -50,9 +52,9 @@ export class AlertCacheService implements OnModuleInit {
    * 设置活跃告警缓存
    */
   async setActiveAlert(ruleId: string, alert: IAlert): Promise<void> {
-    const operation = 'SET_ACTIVE_ALERT';
-    
-    this.logger.debug('设置活跃告警缓存', {
+    const operation = "SET_ACTIVE_ALERT";
+
+    this.logger.debug("设置活跃告警缓存", {
       operation,
       ruleId,
       alertId: alert.id,
@@ -60,7 +62,7 @@ export class AlertCacheService implements OnModuleInit {
 
     try {
       const cacheKey = this.getActiveAlertKey(ruleId);
-      
+
       await this.cacheService.set(cacheKey, alert, {
         ttl: this.ttlConfig.alertActiveDataTtl,
       });
@@ -68,14 +70,14 @@ export class AlertCacheService implements OnModuleInit {
       // 同时缓存到时序数据
       await this.addToTimeseries(alert);
 
-      this.logger.debug('活跃告警缓存设置成功', {
+      this.logger.debug("活跃告警缓存设置成功", {
         operation,
         ruleId,
         alertId: alert.id,
         cacheKey,
       });
     } catch (error) {
-      this.logger.error('设置活跃告警缓存失败', {
+      this.logger.error("设置活跃告警缓存失败", {
         operation,
         ruleId,
         alertId: alert.id,
@@ -89,9 +91,9 @@ export class AlertCacheService implements OnModuleInit {
    * 获取活跃告警
    */
   async getActiveAlert(ruleId: string): Promise<IAlert | null> {
-    const operation = 'GET_ACTIVE_ALERT';
-    
-    this.logger.debug('获取活跃告警缓存', {
+    const operation = "GET_ACTIVE_ALERT";
+
+    this.logger.debug("获取活跃告警缓存", {
       operation,
       ruleId,
     });
@@ -100,7 +102,7 @@ export class AlertCacheService implements OnModuleInit {
       const cacheKey = this.getActiveAlertKey(ruleId);
       const alert = await this.cacheService.get<IAlert>(cacheKey);
 
-      this.logger.debug('获取活跃告警缓存完成', {
+      this.logger.debug("获取活跃告警缓存完成", {
         operation,
         ruleId,
         found: !!alert,
@@ -109,7 +111,7 @@ export class AlertCacheService implements OnModuleInit {
 
       return alert;
     } catch (error) {
-      this.logger.error('获取活跃告警缓存失败', {
+      this.logger.error("获取活跃告警缓存失败", {
         operation,
         ruleId,
         error: error.message,
@@ -122,9 +124,9 @@ export class AlertCacheService implements OnModuleInit {
    * 清除活跃告警缓存
    */
   async clearActiveAlert(ruleId: string): Promise<void> {
-    const operation = 'CLEAR_ACTIVE_ALERT';
-    
-    this.logger.debug('清除活跃告警缓存', {
+    const operation = "CLEAR_ACTIVE_ALERT";
+
+    this.logger.debug("清除活跃告警缓存", {
       operation,
       ruleId,
     });
@@ -133,13 +135,13 @@ export class AlertCacheService implements OnModuleInit {
       const cacheKey = this.getActiveAlertKey(ruleId);
       await this.cacheService.del(cacheKey);
 
-      this.logger.debug('活跃告警缓存清除成功', {
+      this.logger.debug("活跃告警缓存清除成功", {
         operation,
         ruleId,
         cacheKey,
       });
     } catch (error) {
-      this.logger.error('清除活跃告警缓存失败', {
+      this.logger.error("清除活跃告警缓存失败", {
         operation,
         ruleId,
         error: error.message,
@@ -152,16 +154,16 @@ export class AlertCacheService implements OnModuleInit {
    * 获取所有活跃告警
    */
   async getAllActiveAlerts(): Promise<IAlert[]> {
-    const operation = 'GET_ALL_ACTIVE_ALERTS';
-    
-    this.logger.debug('获取所有活跃告警', { operation });
+    const operation = "GET_ALL_ACTIVE_ALERTS";
+
+    this.logger.debug("获取所有活跃告警", { operation });
 
     try {
       const pattern = `${this.config.activeAlertPrefix}:*`;
       const keys = await this.scanKeys(pattern);
-      
+
       if (keys.length === 0) {
-        this.logger.debug('缓存中无活跃告警', { operation });
+        this.logger.debug("缓存中无活跃告警", { operation });
         return [];
       }
 
@@ -170,19 +172,19 @@ export class AlertCacheService implements OnModuleInit {
           try {
             return await this.cacheService.get<IAlert>(key);
           } catch (error) {
-            this.logger.warn('获取单个活跃告警失败', {
+            this.logger.warn("获取单个活跃告警失败", {
               operation,
               key,
               error: error.message,
             });
             return null;
           }
-        })
+        }),
       );
 
-      const validAlerts = alerts.filter(alert => alert !== null) as IAlert[];
-      
-      this.logger.debug('获取所有活跃告警完成', {
+      const validAlerts = alerts.filter((alert) => alert !== null) as IAlert[];
+
+      this.logger.debug("获取所有活跃告警完成", {
         operation,
         totalKeys: keys.length,
         validAlerts: validAlerts.length,
@@ -190,7 +192,7 @@ export class AlertCacheService implements OnModuleInit {
 
       return validAlerts;
     } catch (error) {
-      this.logger.error('获取所有活跃告警失败', {
+      this.logger.error("获取所有活跃告警失败", {
         operation,
         error: error.message,
       });
@@ -202,10 +204,10 @@ export class AlertCacheService implements OnModuleInit {
    * 设置规则冷却状态
    */
   async setCooldown(ruleId: string, cooldownSeconds: number): Promise<void> {
-    const operation = 'SET_COOLDOWN';
-    
+    const operation = "SET_COOLDOWN";
+
     if (cooldownSeconds <= 0) {
-      this.logger.debug('跳过设置冷却，时间无效', {
+      this.logger.debug("跳过设置冷却，时间无效", {
         operation,
         ruleId,
         cooldownSeconds,
@@ -213,7 +215,7 @@ export class AlertCacheService implements OnModuleInit {
       return;
     }
 
-    this.logger.debug('设置规则冷却', {
+    this.logger.debug("设置规则冷却", {
       operation,
       ruleId,
       cooldownSeconds,
@@ -221,19 +223,19 @@ export class AlertCacheService implements OnModuleInit {
 
     try {
       const cacheKey = this.getCooldownKey(ruleId);
-      
+
       await this.cacheService.set(cacheKey, true, {
         ttl: cooldownSeconds,
       });
 
-      this.logger.log('规则冷却设置成功', {
+      this.logger.log("规则冷却设置成功", {
         operation,
         ruleId,
         cooldownSeconds,
         cacheKey,
       });
     } catch (error) {
-      this.logger.error('设置规则冷却失败', {
+      this.logger.error("设置规则冷却失败", {
         operation,
         ruleId,
         cooldownSeconds,
@@ -247,9 +249,9 @@ export class AlertCacheService implements OnModuleInit {
    * 检查规则是否在冷却期
    */
   async isInCooldown(ruleId: string): Promise<boolean> {
-    const operation = 'CHECK_COOLDOWN';
-    
-    this.logger.debug('检查规则冷却状态', {
+    const operation = "CHECK_COOLDOWN";
+
+    this.logger.debug("检查规则冷却状态", {
       operation,
       ruleId,
     });
@@ -258,7 +260,7 @@ export class AlertCacheService implements OnModuleInit {
       const cacheKey = this.getCooldownKey(ruleId);
       const inCooldown = await this.cacheService.get<boolean>(cacheKey);
 
-      this.logger.debug('规则冷却状态检查完成', {
+      this.logger.debug("规则冷却状态检查完成", {
         operation,
         ruleId,
         inCooldown: !!inCooldown,
@@ -266,7 +268,7 @@ export class AlertCacheService implements OnModuleInit {
 
       return !!inCooldown;
     } catch (error) {
-      this.logger.error('检查规则冷却状态失败', {
+      this.logger.error("检查规则冷却状态失败", {
         operation,
         ruleId,
         error: error.message,
@@ -280,9 +282,9 @@ export class AlertCacheService implements OnModuleInit {
    * 清除规则冷却状态
    */
   async clearCooldown(ruleId: string): Promise<void> {
-    const operation = 'CLEAR_COOLDOWN';
-    
-    this.logger.debug('清除规则冷却', {
+    const operation = "CLEAR_COOLDOWN";
+
+    this.logger.debug("清除规则冷却", {
       operation,
       ruleId,
     });
@@ -291,13 +293,13 @@ export class AlertCacheService implements OnModuleInit {
       const cacheKey = this.getCooldownKey(ruleId);
       await this.cacheService.del(cacheKey);
 
-      this.logger.log('规则冷却清除成功', {
+      this.logger.log("规则冷却清除成功", {
         operation,
         ruleId,
         cacheKey,
       });
     } catch (error) {
-      this.logger.error('清除规则冷却失败', {
+      this.logger.error("清除规则冷却失败", {
         operation,
         ruleId,
         error: error.message,
@@ -309,22 +311,24 @@ export class AlertCacheService implements OnModuleInit {
   /**
    * 批量检查冷却状态
    */
-  async batchCheckCooldown(ruleIds: string[]): Promise<Record<string, boolean>> {
-    const operation = 'BATCH_CHECK_COOLDOWN';
-    
-    this.logger.debug('批量检查冷却状态', {
+  async batchCheckCooldown(
+    ruleIds: string[],
+  ): Promise<Record<string, boolean>> {
+    const operation = "BATCH_CHECK_COOLDOWN";
+
+    this.logger.debug("批量检查冷却状态", {
       operation,
       ruleCount: ruleIds.length,
     });
 
     const results: Record<string, boolean> = {};
-    
+
     const promises = ruleIds.map(async (ruleId) => {
       try {
         const inCooldown = await this.isInCooldown(ruleId);
         results[ruleId] = inCooldown;
       } catch (error) {
-        this.logger.warn('单个规则冷却检查失败', {
+        this.logger.warn("单个规则冷却检查失败", {
           operation,
           ruleId,
           error: error.message,
@@ -335,7 +339,7 @@ export class AlertCacheService implements OnModuleInit {
 
     await Promise.allSettled(promises);
 
-    this.logger.debug('批量冷却检查完成', {
+    this.logger.debug("批量冷却检查完成", {
       operation,
       ruleCount: ruleIds.length,
       inCooldownCount: Object.values(results).filter(Boolean).length,
@@ -348,9 +352,9 @@ export class AlertCacheService implements OnModuleInit {
    * 添加到时序数据
    */
   async addToTimeseries(alert: IAlert): Promise<void> {
-    const operation = 'ADD_TO_TIMESERIES';
-    
-    this.logger.debug('添加到时序数据', {
+    const operation = "ADD_TO_TIMESERIES";
+
+    this.logger.debug("添加到时序数据", {
       operation,
       ruleId: alert.ruleId,
       alertId: alert.id,
@@ -374,21 +378,28 @@ export class AlertCacheService implements OnModuleInit {
 
       // 推入到列表头部（最新的在前）
       await this.cacheService.listPush(timeseriesKey, alertData);
-      
-      // 限制列表长度
-      await this.cacheService.listTrim(timeseriesKey, 0, this.config.maxTimeseriesLength - 1);
-      
-      // 设置TTL
-      await this.cacheService.expire(timeseriesKey, this.ttlConfig.alertHistoricalDataTtl);
 
-      this.logger.debug('时序数据添加成功', {
+      // 限制列表长度
+      await this.cacheService.listTrim(
+        timeseriesKey,
+        0,
+        this.config.maxTimeseriesLength - 1,
+      );
+
+      // 设置TTL
+      await this.cacheService.expire(
+        timeseriesKey,
+        this.ttlConfig.alertHistoricalDataTtl,
+      );
+
+      this.logger.debug("时序数据添加成功", {
         operation,
         ruleId: alert.ruleId,
         alertId: alert.id,
         timeseriesKey,
       });
     } catch (error) {
-      this.logger.warn('添加时序数据失败', {
+      this.logger.warn("添加时序数据失败", {
         operation,
         ruleId: alert.ruleId,
         alertId: alert.id,
@@ -402,9 +413,9 @@ export class AlertCacheService implements OnModuleInit {
    * 获取时序数据
    */
   async getTimeseries(ruleId: string, limit: number = 100): Promise<IAlert[]> {
-    const operation = 'GET_TIMESERIES';
-    
-    this.logger.debug('获取时序数据', {
+    const operation = "GET_TIMESERIES";
+
+    this.logger.debug("获取时序数据", {
       operation,
       ruleId,
       limit,
@@ -412,27 +423,33 @@ export class AlertCacheService implements OnModuleInit {
 
     try {
       const timeseriesKey = this.getTimeseriesKey(ruleId);
-      const cachedData = await this.cacheService.listRange(timeseriesKey, 0, limit - 1);
+      const cachedData = await this.cacheService.listRange(
+        timeseriesKey,
+        0,
+        limit - 1,
+      );
 
-      const alerts = cachedData.map((data) => {
-        try {
-          const parsed = JSON.parse(data);
-          return {
-            ...parsed,
-            startTime: new Date(parsed.startTime),
-          };
-        } catch (parseError) {
-          this.logger.warn('解析时序数据失败', {
-            operation,
-            ruleId,
-            data,
-            error: parseError.message,
-          });
-          return null;
-        }
-      }).filter(alert => alert !== null) as IAlert[];
+      const alerts = cachedData
+        .map((data) => {
+          try {
+            const parsed = JSON.parse(data);
+            return {
+              ...parsed,
+              startTime: new Date(parsed.startTime),
+            };
+          } catch (parseError) {
+            this.logger.warn("解析时序数据失败", {
+              operation,
+              ruleId,
+              data,
+              error: parseError.message,
+            });
+            return null;
+          }
+        })
+        .filter((alert) => alert !== null) as IAlert[];
 
-      this.logger.debug('时序数据获取完成', {
+      this.logger.debug("时序数据获取完成", {
         operation,
         ruleId,
         requestedLimit: limit,
@@ -441,7 +458,7 @@ export class AlertCacheService implements OnModuleInit {
 
       return alerts;
     } catch (error) {
-      this.logger.error('获取时序数据失败', {
+      this.logger.error("获取时序数据失败", {
         operation,
         ruleId,
         error: error.message,
@@ -454,9 +471,9 @@ export class AlertCacheService implements OnModuleInit {
    * 更新时序数据中的告警状态
    */
   async updateTimeseriesAlertStatus(updatedAlert: IAlert): Promise<void> {
-    const operation = 'UPDATE_TIMESERIES_STATUS';
-    
-    this.logger.debug('更新时序数据状态', {
+    const operation = "UPDATE_TIMESERIES_STATUS";
+
+    this.logger.debug("更新时序数据状态", {
       operation,
       ruleId: updatedAlert.ruleId,
       alertId: updatedAlert.id,
@@ -465,7 +482,11 @@ export class AlertCacheService implements OnModuleInit {
 
     try {
       const timeseriesKey = this.getTimeseriesKey(updatedAlert.ruleId);
-      const cachedData = await this.cacheService.listRange(timeseriesKey, 0, -1);
+      const cachedData = await this.cacheService.listRange(
+        timeseriesKey,
+        0,
+        -1,
+      );
 
       let updated = false;
       const updatedData = cachedData.map((data) => {
@@ -485,7 +506,7 @@ export class AlertCacheService implements OnModuleInit {
           }
           return data;
         } catch (parseError) {
-          this.logger.warn('解析时序数据失败，跳过更新', {
+          this.logger.warn("解析时序数据失败，跳过更新", {
             operation,
             data,
             error: parseError.message,
@@ -497,28 +518,34 @@ export class AlertCacheService implements OnModuleInit {
       if (updated) {
         // 清除旧数据
         await this.cacheService.del(timeseriesKey);
-        
+
         // 重新推入更新的数据
         if (updatedData.length > 0) {
-          await this.cacheService.listPush(timeseriesKey, updatedData.reverse());
-          await this.cacheService.expire(timeseriesKey, this.ttlConfig.alertHistoricalDataTtl);
+          await this.cacheService.listPush(
+            timeseriesKey,
+            updatedData.reverse(),
+          );
+          await this.cacheService.expire(
+            timeseriesKey,
+            this.ttlConfig.alertHistoricalDataTtl,
+          );
         }
 
-        this.logger.debug('时序数据状态更新成功', {
+        this.logger.debug("时序数据状态更新成功", {
           operation,
           ruleId: updatedAlert.ruleId,
           alertId: updatedAlert.id,
           status: updatedAlert.status,
         });
       } else {
-        this.logger.debug('时序数据中未找到对应告警', {
+        this.logger.debug("时序数据中未找到对应告警", {
           operation,
           ruleId: updatedAlert.ruleId,
           alertId: updatedAlert.id,
         });
       }
     } catch (error) {
-      this.logger.warn('更新时序数据状态失败', {
+      this.logger.warn("更新时序数据状态失败", {
         operation,
         ruleId: updatedAlert.ruleId,
         alertId: updatedAlert.id,
@@ -535,9 +562,9 @@ export class AlertCacheService implements OnModuleInit {
     cleanedKeys: number;
     errors: string[];
   }> {
-    const operation = 'CLEANUP_TIMESERIES';
-    
-    this.logger.log('清理过期时序数据', {
+    const operation = "CLEANUP_TIMESERIES";
+
+    this.logger.log("清理过期时序数据", {
       operation,
       daysToKeep,
     });
@@ -555,7 +582,10 @@ export class AlertCacheService implements OnModuleInit {
           const ttl = await this.cacheService.getClient().ttl(key);
           if (ttl === -1) {
             // TTL为-1表示没有过期时间，重新设置TTL
-            await this.cacheService.expire(key, this.ttlConfig.alertHistoricalDataTtl);
+            await this.cacheService.expire(
+              key,
+              this.ttlConfig.alertHistoricalDataTtl,
+            );
           }
           cleanedKeys++;
         } catch (error) {
@@ -565,7 +595,7 @@ export class AlertCacheService implements OnModuleInit {
 
       await Promise.allSettled(cleanupPromises);
 
-      this.logger.log('时序数据清理完成', {
+      this.logger.log("时序数据清理完成", {
         operation,
         totalKeys: keys.length,
         cleanedKeys,
@@ -574,7 +604,7 @@ export class AlertCacheService implements OnModuleInit {
 
       return { cleanedKeys, errors };
     } catch (error) {
-      this.logger.error('时序数据清理失败', {
+      this.logger.error("时序数据清理失败", {
         operation,
         error: error.message,
       });
@@ -587,15 +617,16 @@ export class AlertCacheService implements OnModuleInit {
    */
   private async scanKeys(pattern: string): Promise<string[]> {
     const keys: string[] = [];
-    let cursor = '0';
-    
+    let cursor = "0";
+
     do {
-      const [nextCursor, foundKeys] = await this.cacheService.getClient()
-        .scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      const [nextCursor, foundKeys] = await this.cacheService
+        .getClient()
+        .scan(cursor, "MATCH", pattern, "COUNT", 100);
       cursor = nextCursor;
       keys.push(...foundKeys);
-    } while (cursor !== '0');
-    
+    } while (cursor !== "0");
+
     return keys;
   }
 
@@ -603,24 +634,54 @@ export class AlertCacheService implements OnModuleInit {
    * 启动时加载活跃告警到缓存
    */
   private async loadActiveAlerts(): Promise<void> {
-    const operation = 'LOAD_ACTIVE_ALERTS';
-    
-    this.logger.log('加载活跃告警到缓存', { operation });
+    const operation = "LOAD_ACTIVE_ALERTS";
+
+    this.logger.log("加载活跃告警到缓存", { operation });
 
     try {
-      // TODO: 从数据库加载活跃告警
-      // 这里暂时跳过，等待AlertHistoryRepository的实现
-      
-      this.logger.log('活跃告警加载完成', {
+      // 从数据库加载所有活跃告警
+      const activeAlerts = await this.alertHistoryRepository.findActive();
+
+      if (activeAlerts.length === 0) {
+        this.logger.log("数据库中无活跃告警", { operation });
+        return;
+      }
+
+      // 批量加载到缓存
+      let loadedCount = 0;
+      let failedCount = 0;
+
+      const loadPromises = activeAlerts.map(async (alert) => {
+        try {
+          await this.setActiveAlert(alert.ruleId, alert);
+          loadedCount++;
+        } catch (error) {
+          failedCount++;
+          this.logger.warn("加载单个活跃告警失败", {
+            operation,
+            alertId: alert.id,
+            ruleId: alert.ruleId,
+            error: error.message,
+          });
+        }
+      });
+
+      await Promise.allSettled(loadPromises);
+
+      this.logger.log("活跃告警加载完成", {
         operation,
-        loadedCount: 0,
+        totalAlerts: activeAlerts.length,
+        loadedCount,
+        failedCount,
+        successRate: Math.round((loadedCount / activeAlerts.length) * 100),
       });
     } catch (error) {
-      this.logger.error('加载活跃告警失败', {
+      this.logger.error("加载活跃告警失败", {
         operation,
         error: error.message,
+        stack: error.stack,
       });
-      // 初始化失败不应阻止服务启动
+      // 初始化失败不应阻止服务启动，但应该记录详细错误
     }
   }
 
@@ -648,18 +709,79 @@ export class AlertCacheService implements OnModuleInit {
   /**
    * 获取缓存服务统计
    */
-  getCacheStats(): {
+  async getCacheStats(): Promise<{
     activeAlerts: number;
     cooldownRules: number;
     timeseriesKeys: number;
     cacheHitRate: number;
-  } {
-    // TODO: 实现缓存统计追踪
-    return {
-      activeAlerts: 0,
-      cooldownRules: 0,
-      timeseriesKeys: 0,
-      cacheHitRate: 0,
-    };
+    lastUpdated: Date;
+  }> {
+    const operation = "GET_CACHE_STATS";
+
+    this.logger.debug("获取缓存统计", { operation });
+
+    try {
+      // 使用Promise.allSettled以防单个统计获取失败
+      const [activeAlertsResult, cooldownRulesResult, timeseriesKeysResult] =
+        await Promise.allSettled([
+          this.countKeysByPattern(`${this.config.activeAlertPrefix}:*`),
+          this.countKeysByPattern(`${this.config.cooldownPrefix}:*`),
+          this.countKeysByPattern(`${this.config.timeseriesPrefix}:*`),
+        ]);
+
+      const stats = {
+        activeAlerts:
+          activeAlertsResult.status === "fulfilled"
+            ? activeAlertsResult.value
+            : 0,
+        cooldownRules:
+          cooldownRulesResult.status === "fulfilled"
+            ? cooldownRulesResult.value
+            : 0,
+        timeseriesKeys:
+          timeseriesKeysResult.status === "fulfilled"
+            ? timeseriesKeysResult.value
+            : 0,
+        cacheHitRate: 0, // TODO: 需要在CacheService中实现命中率统计
+        lastUpdated: new Date(),
+      };
+
+      this.logger.debug("缓存统计获取完成", {
+        operation,
+        stats,
+      });
+
+      return stats;
+    } catch (error) {
+      this.logger.error("获取缓存统计失败", {
+        operation,
+        error: error.message,
+      });
+
+      // 返回默认值
+      return {
+        activeAlerts: 0,
+        cooldownRules: 0,
+        timeseriesKeys: 0,
+        cacheHitRate: 0,
+        lastUpdated: new Date(),
+      };
+    }
+  }
+
+  /**
+   * 按模式统计键数量
+   */
+  private async countKeysByPattern(pattern: string): Promise<number> {
+    try {
+      const keys = await this.scanKeys(pattern);
+      return keys.length;
+    } catch (error) {
+      this.logger.warn("按模式统计键失败", {
+        pattern,
+        error: error.message,
+      });
+      return 0;
+    }
   }
 }

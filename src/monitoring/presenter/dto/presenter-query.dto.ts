@@ -27,7 +27,7 @@ export class DateRangeValidator implements ValidatorConstraintInterface {
     // 检查日期顺序和范围（31天限制）
     const diffMs = end.getTime() - start.getTime();
     const diffDays = Math.floor(diffMs / MONITORING_SYSTEM_LIMITS.DAY_IN_MS);
-    
+
     return diffDays >= 0 && diffDays <= 31;
   }
 
@@ -48,4 +48,3 @@ export class GetDbPerformanceQueryDto {
   @Validate(DateRangeValidator, ["startDate"])
   endDate?: string;
 }
-

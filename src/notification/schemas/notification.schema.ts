@@ -1,7 +1,7 @@
 /**
  * 通知实例Schema
  * 🎯 定义通知实例在MongoDB中的数据结构
- * 
+ *
  * @description 从Alert模块迁移的通知Schema，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -9,8 +9,8 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 
-import { 
-  NotificationChannelType, 
+import {
+  NotificationChannelType,
   NotificationPriority,
   NotificationStatus,
 } from "../types/notification.types";
@@ -23,13 +23,13 @@ export type NotificationDocument = NotificationInstance & Document;
   versionKey: false,
 })
 export class NotificationInstance {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Alert' })
+  @Prop({ required: true, type: Types.ObjectId, ref: "Alert" })
   alertId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'NotificationChannel' })
+  @Prop({ required: true, type: Types.ObjectId, ref: "NotificationChannel" })
   channelId: Types.ObjectId;
 
-  @Prop({ 
+  @Prop({
     required: true,
     enum: Object.values(NotificationChannelType),
     type: String,
@@ -42,7 +42,7 @@ export class NotificationInstance {
   @Prop({ required: true })
   content: string;
 
-  @Prop({ 
+  @Prop({
     required: true,
     enum: Object.values(NotificationStatus),
     default: NotificationStatus.PENDING,
@@ -50,7 +50,7 @@ export class NotificationInstance {
   })
   status: NotificationStatus;
 
-  @Prop({ 
+  @Prop({
     required: true,
     enum: Object.values(NotificationPriority),
     default: NotificationPriority.NORMAL,
@@ -89,7 +89,8 @@ export class NotificationInstance {
   updatedAt: Date;
 }
 
-export const NotificationSchema = SchemaFactory.createForClass(NotificationInstance);
+export const NotificationSchema =
+  SchemaFactory.createForClass(NotificationInstance);
 
 // 添加索引
 NotificationSchema.index({ alertId: 1 });
@@ -103,17 +104,23 @@ NotificationSchema.index({ sentAt: -1 });
 NotificationSchema.index({ deliveredAt: -1 });
 NotificationSchema.index({ failedAt: -1 });
 NotificationSchema.index({ retryCount: 1 });
-NotificationSchema.index({ 
-  status: 1, 
-  priority: 1, 
-  createdAt: -1 
-}, { 
-  name: "status_priority_created" 
-});
-NotificationSchema.index({ 
-  alertId: 1, 
-  channelType: 1, 
-  status: 1 
-}, { 
-  name: "alert_channel_status" 
-});
+NotificationSchema.index(
+  {
+    status: 1,
+    priority: 1,
+    createdAt: -1,
+  },
+  {
+    name: "status_priority_created",
+  },
+);
+NotificationSchema.index(
+  {
+    alertId: 1,
+    channelType: 1,
+    status: 1,
+  },
+  {
+    name: "alert_channel_status",
+  },
+);

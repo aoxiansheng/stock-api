@@ -11,21 +11,20 @@
 export const CORE_TIMEZONES = Object.freeze({
   // 亚洲时区
   ASIA: {
-    SHANGHAI: "Asia/Shanghai",       // 中国标准时间 (CST) UTC+8
-    HONG_KONG: "Asia/Hong_Kong",     // 香港时间 (HKT) UTC+8  
+    SHANGHAI: "Asia/Shanghai", // 中国标准时间 (CST) UTC+8
+    HONG_KONG: "Asia/Hong_Kong", // 香港时间 (HKT) UTC+8
   },
 
   // 美洲时区
   AMERICA: {
-    NEW_YORK: "America/New_York",    // 美国东部时间 (EST/EDT) UTC-5/-4
+    NEW_YORK: "America/New_York", // 美国东部时间 (EST/EDT) UTC-5/-4
   },
 
-  // 欧洲时区  
-  EUROPE: {
-  },
+  // 欧洲时区
+  EUROPE: {},
 
   // 特殊时区
-  UTC: "UTC",                        // 协调世界时 UTC+0
+  UTC: "UTC", // 协调世界时 UTC+0
 } as const);
 
 /**
@@ -35,28 +34,28 @@ export const CORE_TIMEZONES = Object.freeze({
 export const CORE_TRADING_TIMES = Object.freeze({
   // 中国市场标准时间
   CHINA: {
-    PRE_MARKET_START: "09:15",       // 集合竞价开始
-    MARKET_OPEN: "09:30",            // 开市时间
-    MORNING_CLOSE: "11:30",          // 上午收市
-    AFTERNOON_OPEN: "13:00",         // 下午开市  
-    MARKET_CLOSE: "15:00",           // 收市时间
+    PRE_MARKET_START: "09:15", // 集合竞价开始
+    MARKET_OPEN: "09:30", // 开市时间
+    MORNING_CLOSE: "11:30", // 上午收市
+    AFTERNOON_OPEN: "13:00", // 下午开市
+    MARKET_CLOSE: "15:00", // 收市时间
   },
 
   // 香港市场时间
   HONG_KONG: {
-    PRE_MARKET_START: "09:00",       // 竞价时段开始
-    MARKET_OPEN: "09:30",            // 开市时间
-    LUNCH_BREAK_START: "12:00",      // 午休开始
-    LUNCH_BREAK_END: "13:00",        // 午休结束  
-    MARKET_CLOSE: "16:00",           // 收市时间
+    PRE_MARKET_START: "09:00", // 竞价时段开始
+    MARKET_OPEN: "09:30", // 开市时间
+    LUNCH_BREAK_START: "12:00", // 午休开始
+    LUNCH_BREAK_END: "13:00", // 午休结束
+    MARKET_CLOSE: "16:00", // 收市时间
   },
 
   // 美国市场时间
   US: {
-    PRE_MARKET_START: "04:00",       // 盘前交易开始 (ET)
-    MARKET_OPEN: "09:30",            // 开市时间 (ET)
-    MARKET_CLOSE: "16:00",           // 收市时间 (ET)
-    AFTER_HOURS_END: "20:00",        // 盘后交易结束 (ET)
+    PRE_MARKET_START: "04:00", // 盘前交易开始 (ET)
+    MARKET_OPEN: "09:30", // 开市时间 (ET)
+    MARKET_CLOSE: "16:00", // 收市时间 (ET)
+    AFTER_HOURS_END: "20:00", // 盘后交易结束 (ET)
   },
 } as const);
 
@@ -87,8 +86,10 @@ export class TimezoneUtil {
    */
   static getTimezoneOffset(timezone: string): number {
     const now = new Date();
-    const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
-    const targetTime = new Date(utc.toLocaleString('en-US', { timeZone: timezone }));
+    const utc = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    const targetTime = new Date(
+      utc.toLocaleString("en-US", { timeZone: timezone }),
+    );
     return (targetTime.getTime() - utc.getTime()) / (1000 * 60);
   }
 
@@ -98,10 +99,10 @@ export class TimezoneUtil {
   static supportsDST(timezone: string): boolean {
     const jan = new Date(2023, 0, 1);
     const jul = new Date(2023, 6, 1);
-    
+
     const janOffset = TimezoneUtil.getTimezoneOffset(timezone);
     const julOffset = TimezoneUtil.getTimezoneOffset(timezone);
-    
+
     return janOffset !== julOffset;
   }
 
@@ -109,9 +110,6 @@ export class TimezoneUtil {
    * 获取常用的中国相关时区
    */
   static getChinaTimezones(): string[] {
-    return [
-      CORE_TIMEZONES.ASIA.SHANGHAI,
-      CORE_TIMEZONES.ASIA.HONG_KONG,
-    ];
+    return [CORE_TIMEZONES.ASIA.SHANGHAI, CORE_TIMEZONES.ASIA.HONG_KONG];
   }
 }

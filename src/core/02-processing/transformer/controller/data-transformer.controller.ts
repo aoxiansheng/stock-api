@@ -2,7 +2,7 @@ import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/logging/index";
 
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   ApiSuccessResponse,
   ApiStandardResponses,
@@ -121,7 +121,12 @@ export class DataTransformerController {
         data: [
           {
             success: true,
-            transformedData: [{ symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, lastPrice: 385.6 }],
+            transformedData: [
+              {
+                symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+                lastPrice: 385.6,
+              },
+            ],
             metadata: { recordsProcessed: 1, processingTime: 25 },
           },
           {

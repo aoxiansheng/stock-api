@@ -1,5 +1,4 @@
-
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   IsString,
   IsEnum,
@@ -21,7 +20,11 @@ import {
   RULE_LIST_TYPE_VALUES,
   DATA_MAPPER_CONFIG,
 } from "../constants/data-mapper.constants";
-import type { TransformationType, ApiType, RuleListType } from "../constants/data-mapper.constants";
+import type {
+  TransformationType,
+  ApiType,
+  RuleListType,
+} from "../constants/data-mapper.constants";
 
 // 🆕 转换规则DTO
 export class TransformRuleDto {

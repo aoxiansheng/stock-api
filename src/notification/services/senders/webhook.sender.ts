@@ -1,7 +1,7 @@
 /**
  * Webhook通知发送器
  * 🎯 负责Webhook通知的发送和验证
- * 
+ *
  * @description 从Alert模块迁移的Webhook发送器，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -60,11 +60,12 @@ export class WebhookSender implements NotificationSender {
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(channelConfig.url, payload, {
           headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'NotificationService/1.0',
-            ...channelConfig.headers || {},
+            "Content-Type": "application/json",
+            "User-Agent": "NotificationService/1.0",
+            ...(channelConfig.headers || {}),
           },
-          timeout: channelConfig.timeout || this.configService.getWebhookTimeout(),
+          timeout:
+            channelConfig.timeout || this.configService.getWebhookTimeout(),
         }),
       );
 
@@ -84,7 +85,8 @@ export class WebhookSender implements NotificationSender {
           message: `Webhook 调用成功: ${response.status}`,
           sentAt: new Date(),
           duration: Date.now() - executionStart,
-          deliveryId: response.headers['x-delivery-id'] || `webhook_${Date.now()}`,
+          deliveryId:
+            response.headers["x-delivery-id"] || `webhook_${Date.now()}`,
         };
       } else {
         this.logger.warn(`Webhook返回非成功状态码`, {
@@ -156,15 +158,15 @@ export class WebhookSender implements NotificationSender {
       const response: AxiosResponse = await firstValueFrom(
         this.httpService.post(config.url, testPayload, {
           headers: {
-            'Content-Type': 'application/json',
-            'User-Agent': 'NotificationService/1.0 (Test)',
-            ...config.headers || {},
+            "Content-Type": "application/json",
+            "User-Agent": "NotificationService/1.0 (Test)",
+            ...(config.headers || {}),
           },
           timeout: this.configService.getWebhookTimeout(),
         }),
       );
 
-      this.logger.log('Webhook配置测试完成', {
+      this.logger.log("Webhook配置测试完成", {
         url: config.url,
         status: response.status,
       });
@@ -222,7 +224,10 @@ export class WebhookSender implements NotificationSender {
     }
 
     // 验证HTTP方法
-    if (config.method && !['GET', 'POST', 'PUT', 'PATCH'].includes(config.method.toUpperCase())) {
+    if (
+      config.method &&
+      !["GET", "POST", "PUT", "PATCH"].includes(config.method.toUpperCase())
+    ) {
       errors.push("HTTP方法必须是 GET, POST, PUT 或 PATCH");
     }
 
@@ -285,7 +290,7 @@ export class WebhookSender implements NotificationSender {
    */
   private buildWebhookPayload(
     notification: Notification,
-    config: Record<string, any>
+    config: Record<string, any>,
   ): Record<string, any> {
     const basePayload = {
       notification: {

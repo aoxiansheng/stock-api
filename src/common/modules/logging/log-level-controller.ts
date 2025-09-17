@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import * as fs from "fs";
+import * as path from "path";
 import {
   LogLevel,
   LogLevelConfig,
@@ -8,11 +8,11 @@ import {
   UpdateConfig,
   CacheEntry,
   LoggingStats,
-} from './types';
+} from "./types";
 
 /**
  * 日志级别控制器
- * 
+ *
  * 核心功能：
  * 1. 管理全局日志级别配置
  * 2. 提供级别检查逻辑
@@ -54,18 +54,18 @@ export class LogLevelController implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.loadConfiguration();
-      console.log('✅ LogLevelController initialized successfully');
+      console.log("✅ LogLevelController initialized successfully");
     } catch (error) {
-      console.error('❌ Failed to initialize LogLevelController:', error);
+      console.error("❌ Failed to initialize LogLevelController:", error);
       // 使用默认配置继续运行
       this.config = this.getDefaultConfig();
-      console.warn('⚠️ Using default logging configuration');
+      console.warn("⚠️ Using default logging configuration");
     }
   }
 
   /**
    * 检查是否应该记录日志
-   * 
+   *
    * @param context 日志上下文（类名、模块名等）
    * @param level 日志级别
    * @returns 是否应该记录
@@ -90,7 +90,7 @@ export class LogLevelController implements OnModuleInit {
 
       // 执行级别检查
       const result = this.performLevelCheck(context, level);
-      
+
       // 缓存结果
       if (this.config.performance.cacheEnabled) {
         this.setCacheResult(cacheKey, result);
@@ -101,7 +101,7 @@ export class LogLevelController implements OnModuleInit {
 
       return result;
     } catch (error) {
-      console.error('Error in shouldLog:', error);
+      console.error("Error in shouldLog:", error);
       return true; // 出错时允许日志输出，确保不影响业务
     }
   }
@@ -114,7 +114,12 @@ export class LogLevelController implements OnModuleInit {
 
     // 1. 检查模块级别配置（最高优先级）
     const moduleLevel = this.config.modules[context];
-    if (moduleLevel && typeof moduleLevel === 'string' && moduleLevel !== '' && !moduleLevel.startsWith('//')) {
+    if (
+      moduleLevel &&
+      typeof moduleLevel === "string" &&
+      moduleLevel !== "" &&
+      !moduleLevel.startsWith("//")
+    ) {
       return this.isLevelEnabled(level, moduleLevel as LogLevel);
     }
 
@@ -125,10 +130,13 @@ export class LogLevelController implements OnModuleInit {
   /**
    * 检查级别是否启用
    */
-  private isLevelEnabled(targetLevel: LogLevel, configLevel: LogLevel): boolean {
+  private isLevelEnabled(
+    targetLevel: LogLevel,
+    configLevel: LogLevel,
+  ): boolean {
     const targetValue = LOG_LEVEL_VALUES[targetLevel];
     const configValue = LOG_LEVEL_VALUES[configLevel];
-    
+
     if (targetValue === undefined || configValue === undefined) {
       return true; // 未知级别时允许输出
     }
@@ -179,12 +187,12 @@ export class LogLevelController implements OnModuleInit {
    */
   private cleanupExpiredCache(): void {
     const now = Date.now();
-    
+
     // 每30秒执行一次清理
     if (now - this.lastCacheCleanup < 30000) return;
-    
+
     this.lastCacheCleanup = now;
-    
+
     if (!this.config) return;
 
     for (const [key, entry] of this.levelCache.entries()) {
@@ -220,14 +228,16 @@ export class LogLevelController implements OnModuleInit {
   private updateStats(responseTime: number): void {
     const total = this.stats.cacheHits + this.stats.cacheMisses;
     this.stats.hitRate = total > 0 ? this.stats.cacheHits / total : 0;
-    
+
     // 计算移动平均响应时间
-    this.stats.averageResponseTime = 
+    this.stats.averageResponseTime =
       (this.stats.averageResponseTime * (total - 1) + responseTime) / total;
 
     // 性能监控：响应时间超过阈值时记录警告
-    if (this.config?.performance.performanceThreshold && 
-        responseTime > this.config.performance.performanceThreshold) {
+    if (
+      this.config?.performance.performanceThreshold &&
+      responseTime > this.config.performance.performanceThreshold
+    ) {
       this.logPerformanceWarning(responseTime);
     }
   }
@@ -239,18 +249,24 @@ export class LogLevelController implements OnModuleInit {
     try {
       // 避免创建循环依赖，直接使用console输出性能警告
       // 这里不使用createLogger以免造成无限递归
-      console.warn(`[LogLevelController] Performance warning: Level check took ${responseTime}ms (threshold: ${this.config?.performance.performanceThreshold}ms)`, {
-        timestamp: new Date().toISOString(),
-        responseTime,
-        threshold: this.config?.performance.performanceThreshold,
-        totalQueries: this.stats.totalQueries,
-        hitRate: this.stats.hitRate,
-        averageResponseTime: this.stats.averageResponseTime,
-        cacheSize: this.levelCache.size
-      });
+      console.warn(
+        `[LogLevelController] Performance warning: Level check took ${responseTime}ms (threshold: ${this.config?.performance.performanceThreshold}ms)`,
+        {
+          timestamp: new Date().toISOString(),
+          responseTime,
+          threshold: this.config?.performance.performanceThreshold,
+          totalQueries: this.stats.totalQueries,
+          hitRate: this.stats.hitRate,
+          averageResponseTime: this.stats.averageResponseTime,
+          cacheSize: this.levelCache.size,
+        },
+      );
     } catch (error) {
       // 静默处理性能警告记录错误，不影响主流程
-      console.error('[LogLevelController] Failed to log performance warning:', error);
+      console.error(
+        "[LogLevelController] Failed to log performance warning:",
+        error,
+      );
     }
   }
 
@@ -292,7 +308,7 @@ export class LogLevelController implements OnModuleInit {
   } {
     const now = Date.now();
     const uptime = (now - this.stats.lastResetTime) / 1000; // 秒
-    
+
     // 计算缓存详细信息
     let totalAge = 0;
     let oldestTime = now;
@@ -332,48 +348,52 @@ export class LogLevelController implements OnModuleInit {
    * 获取缓存健康状态
    */
   getCacheHealth(): {
-    status: 'excellent' | 'good' | 'warning' | 'critical';
+    status: "excellent" | "good" | "warning" | "critical";
     issues: string[];
     recommendations: string[];
   } {
     const stats = this.getDetailedStats();
     const issues: string[] = [];
     const recommendations: string[] = [];
-    let status: 'excellent' | 'good' | 'warning' | 'critical' = 'excellent';
+    let status: "excellent" | "good" | "warning" | "critical" = "excellent";
 
     // 检查命中率
     if (stats.basic.hitRate < 0.5) {
       issues.push(`缓存命中率过低: ${(stats.basic.hitRate * 100).toFixed(1)}%`);
-      recommendations.push('考虑增加TTL时间或检查日志调用模式');
-      status = 'critical';
+      recommendations.push("考虑增加TTL时间或检查日志调用模式");
+      status = "critical";
     } else if (stats.basic.hitRate < 0.7) {
       issues.push(`缓存命中率较低: ${(stats.basic.hitRate * 100).toFixed(1)}%`);
-      recommendations.push('检查是否存在过多的随机context名称');
-      status = status === 'excellent' ? 'warning' : status;
+      recommendations.push("检查是否存在过多的随机context名称");
+      status = status === "excellent" ? "warning" : status;
     }
 
     // 检查缓存利用率
     if (stats.cache.utilizationRate > 0.9) {
-      issues.push(`缓存使用率过高: ${(stats.cache.utilizationRate * 100).toFixed(1)}%`);
-      recommendations.push('考虑增加maxCacheSize配置');
-      status = status === 'excellent' ? 'warning' : status;
+      issues.push(
+        `缓存使用率过高: ${(stats.cache.utilizationRate * 100).toFixed(1)}%`,
+      );
+      recommendations.push("考虑增加maxCacheSize配置");
+      status = status === "excellent" ? "warning" : status;
     }
 
     // 检查淘汰频率
-    const evictionRate = stats.basic.totalQueries > 0 ? 
-      stats.basic.cacheEvictions / stats.basic.totalQueries : 0;
+    const evictionRate =
+      stats.basic.totalQueries > 0
+        ? stats.basic.cacheEvictions / stats.basic.totalQueries
+        : 0;
     if (evictionRate > 0.1) {
       issues.push(`缓存淘汰频率过高: ${(evictionRate * 100).toFixed(2)}%`);
-      recommendations.push('缓存容量不足，频繁淘汰影响性能');
-      status = 'critical';
+      recommendations.push("缓存容量不足，频繁淘汰影响性能");
+      status = "critical";
     }
 
     // 如果没有问题，根据命中率确定状态
     if (issues.length === 0) {
       if (stats.basic.hitRate > 0.9) {
-        status = 'excellent';
+        status = "excellent";
       } else if (stats.basic.hitRate > 0.8) {
-        status = 'good';
+        status = "good";
       }
     }
 
@@ -385,9 +405,9 @@ export class LogLevelController implements OnModuleInit {
    */
   private getDefaultConfig(): LogLevelConfig {
     return {
-      version: '1.0.0',
-      description: 'Default logging configuration',
-      global: 'info',
+      version: "1.0.0",
+      description: "Default logging configuration",
+      global: "info",
       modules: {},
       features: {
         enhancedLoggingEnabled: false,
@@ -459,25 +479,29 @@ export class LogLevelController implements OnModuleInit {
 
       // 1. 加载默认配置
       const defaultConfig = this.getDefaultConfig();
-      
+
       // 2. 尝试加载配置文件
       const fileConfig = this.loadFromConfigFile();
-      
+
       // 3. 加载环境变量覆盖
       const envOverrides = this.loadEnvironmentOverrides();
-      
+
       // 4. 合并配置
-      this.config = this.mergeConfigurations(defaultConfig, fileConfig, envOverrides);
-      
+      this.config = this.mergeConfigurations(
+        defaultConfig,
+        fileConfig,
+        envOverrides,
+      );
+
       // 5. 验证配置
       this.validateConfiguration();
-      
-      console.log('✅ Log configuration loaded successfully');
+
+      console.log("✅ Log configuration loaded successfully");
       if (this.configFilePath) {
         console.log(`📁 Config file: ${this.configFilePath}`);
       }
     } catch (error) {
-      console.error('❌ Failed to load log configuration:', error);
+      console.error("❌ Failed to load log configuration:", error);
       throw error;
     }
   }
@@ -489,23 +513,30 @@ export class LogLevelController implements OnModuleInit {
     const configPaths = [
       process.env.LOG_CONFIG_PATH,
       // 优先搜索日志组件内部配置目录
-      path.join(__dirname, 'config', 'log-levels.json'),
-      path.join(__dirname, 'config', `log-levels.${process.env.NODE_ENV || 'development'}.json`),
+      path.join(__dirname, "config", "log-levels.json"),
+      path.join(
+        __dirname,
+        "config",
+        `log-levels.${process.env.NODE_ENV || "development"}.json`,
+      ),
       // 兼容旧的全局配置路径（向后兼容）
-      path.join(process.cwd(), 'config', 'log-levels.json'),
-      path.join(process.cwd(), 'log-levels.json'),
-      path.join(process.cwd(), `log-levels.${process.env.NODE_ENV || 'development'}.json`),
+      path.join(process.cwd(), "config", "log-levels.json"),
+      path.join(process.cwd(), "log-levels.json"),
+      path.join(
+        process.cwd(),
+        `log-levels.${process.env.NODE_ENV || "development"}.json`,
+      ),
     ].filter(Boolean) as string[];
 
     for (const configPath of configPaths) {
       try {
         if (fs.existsSync(configPath)) {
-          const content = fs.readFileSync(configPath, 'utf-8');
+          const content = fs.readFileSync(configPath, "utf-8");
           const config = JSON.parse(content);
-          
+
           this.configFilePath = configPath;
           console.log(`📖 Loaded config from: ${configPath}`);
-          
+
           return this.parseFileConfig(config);
         }
       } catch (error) {
@@ -514,7 +545,9 @@ export class LogLevelController implements OnModuleInit {
       }
     }
 
-    console.log('📄 No config file found, using defaults with environment overrides');
+    console.log(
+      "📄 No config file found, using defaults with environment overrides",
+    );
     return null;
   }
 
@@ -523,18 +556,20 @@ export class LogLevelController implements OnModuleInit {
    */
   private parseFileConfig(config: any): Partial<LogLevelConfig> {
     // 基础验证
-    if (!config || typeof config !== 'object') {
-      throw new Error('Invalid config format');
+    if (!config || typeof config !== "object") {
+      throw new Error("Invalid config format");
     }
 
     // 清理注释行和空字符串
-    if (config.modules && typeof config.modules === 'object') {
+    if (config.modules && typeof config.modules === "object") {
       const cleanedModules: Record<string, LogLevel> = {};
       for (const [key, value] of Object.entries(config.modules)) {
-        if (typeof value === 'string' && 
-            value !== '' && 
-            !value.startsWith('//') && 
-            !key.startsWith('//')) {
+        if (
+          typeof value === "string" &&
+          value !== "" &&
+          !value.startsWith("//") &&
+          !key.startsWith("//")
+        ) {
           cleanedModules[key] = value as LogLevel;
         }
       }
@@ -561,12 +596,12 @@ export class LogLevelController implements OnModuleInit {
 
     // 模块级别覆盖
     if (process.env.LOG_DEBUG_MODULE) {
-      const modules = process.env.LOG_DEBUG_MODULE.split(',');
+      const modules = process.env.LOG_DEBUG_MODULE.split(",");
       overrides.modules = {};
       for (const module of modules) {
         const trimmed = module.trim();
         if (trimmed) {
-          overrides.modules[trimmed] = 'debug';
+          overrides.modules[trimmed] = "debug";
           console.log(`🔧 Environment override: ${trimmed} = debug`);
         }
       }
@@ -576,14 +611,14 @@ export class LogLevelController implements OnModuleInit {
     if (process.env.ENHANCED_LOGGING_ENABLED !== undefined) {
       overrides.features = {
         ...overrides.features,
-        enhancedLoggingEnabled: process.env.ENHANCED_LOGGING_ENABLED === 'true',
+        enhancedLoggingEnabled: process.env.ENHANCED_LOGGING_ENABLED === "true",
       };
     }
 
     if (process.env.LOG_LEVEL_CACHE_ENABLED !== undefined) {
       overrides.features = {
         ...overrides.features,
-        levelCacheEnabled: process.env.LOG_LEVEL_CACHE_ENABLED === 'true',
+        levelCacheEnabled: process.env.LOG_LEVEL_CACHE_ENABLED === "true",
       };
     }
 
@@ -596,7 +631,7 @@ export class LogLevelController implements OnModuleInit {
   private mergeConfigurations(
     defaultConfig: LogLevelConfig,
     fileConfig: Partial<LogLevelConfig> | null,
-    envOverrides: Partial<LogLevelConfig>
+    envOverrides: Partial<LogLevelConfig>,
   ): LogLevelConfig {
     let merged = { ...defaultConfig };
 
@@ -622,9 +657,9 @@ export class LogLevelController implements OnModuleInit {
     for (const key in source) {
       if (source[key] !== undefined && source[key] !== null) {
         if (
-          typeof source[key] === 'object' &&
+          typeof source[key] === "object" &&
           !Array.isArray(source[key]) &&
-          typeof target[key] === 'object' &&
+          typeof target[key] === "object" &&
           !Array.isArray(target[key])
         ) {
           result[key] = this.deepMerge(target[key], source[key]);
@@ -642,20 +677,30 @@ export class LogLevelController implements OnModuleInit {
    */
   private validateConfiguration(): void {
     if (!this.config) {
-      throw new Error('Configuration is null');
+      throw new Error("Configuration is null");
     }
 
     // 验证全局级别
-    if (!this.config.global || LOG_LEVEL_VALUES[this.config.global] === undefined) {
-      console.warn(`⚠️ Invalid global log level: ${this.config.global}, using 'info'`);
-      this.config.global = 'info';
+    if (
+      !this.config.global ||
+      LOG_LEVEL_VALUES[this.config.global] === undefined
+    ) {
+      console.warn(
+        `⚠️ Invalid global log level: ${this.config.global}, using 'info'`,
+      );
+      this.config.global = "info";
     }
 
     // 验证模块级别
     if (this.config.modules) {
       for (const [module, level] of Object.entries(this.config.modules)) {
-        if (typeof level === 'string' && LOG_LEVEL_VALUES[level as LogLevel] === undefined) {
-          console.warn(`⚠️ Invalid log level for module ${module}: ${level}, removing`);
+        if (
+          typeof level === "string" &&
+          LOG_LEVEL_VALUES[level as LogLevel] === undefined
+        ) {
+          console.warn(
+            `⚠️ Invalid log level for module ${module}: ${level}, removing`,
+          );
           delete this.config.modules[module];
         }
       }
@@ -669,7 +714,9 @@ export class LogLevelController implements OnModuleInit {
         perf.cacheExpiry = 5000;
       }
       if (perf.maxCacheSize < 1 || perf.maxCacheSize > 10000) {
-        console.warn(`⚠️ Invalid maxCacheSize: ${perf.maxCacheSize}, using 500`);
+        console.warn(
+          `⚠️ Invalid maxCacheSize: ${perf.maxCacheSize}, using 500`,
+        );
         perf.maxCacheSize = 500;
       }
     }
@@ -678,7 +725,11 @@ export class LogLevelController implements OnModuleInit {
   /**
    * 动态更新日志级别（将在后续实现）
    */
-  updateLogLevel(target: string, level: LogLevel, type: 'module' | 'global'): void {
+  updateLogLevel(
+    target: string,
+    level: LogLevel,
+    type: "module" | "global",
+  ): void {
     // TODO: 在后续任务中实现
     console.log(`📝 Dynamic update requested: ${type}=${target}:${level}`);
   }
@@ -698,26 +749,34 @@ export class LogLevelController implements OnModuleInit {
   } {
     const slowQueries = this.getSlowQueriesCount();
     const suggestions: string[] = [];
-    
+
     // 分析缓存命中率
     if (this.stats.hitRate < 0.8) {
-      suggestions.push('缓存命中率偏低，考虑增加缓存过期时间或预热常用查询');
+      suggestions.push("缓存命中率偏低，考虑增加缓存过期时间或预热常用查询");
     }
-    
+
     // 分析平均响应时间
     if (this.stats.averageResponseTime > 1.0) {
-      suggestions.push('平均响应时间较高，建议检查配置文件大小和复杂度');
+      suggestions.push("平均响应时间较高，建议检查配置文件大小和复杂度");
     }
-    
+
     // 分析缓存大小
-    if (this.levelCache.size > (this.config?.performance.maxCacheSize || 500) * 0.9) {
-      suggestions.push('缓存使用率接近上限，考虑增加maxCacheSize或优化缓存策略');
+    if (
+      this.levelCache.size >
+      (this.config?.performance.maxCacheSize || 500) * 0.9
+    ) {
+      suggestions.push(
+        "缓存使用率接近上限，考虑增加maxCacheSize或优化缓存策略",
+      );
     }
-    
+
     // 分析慢查询频率
     const slowQueryRate = slowQueries / Math.max(this.stats.totalQueries, 1);
-    if (slowQueryRate > 0.01) { // 1%的慢查询率
-      suggestions.push(`慢查询占比${(slowQueryRate * 100).toFixed(2)}%，建议进行性能优化`);
+    if (slowQueryRate > 0.01) {
+      // 1%的慢查询率
+      suggestions.push(
+        `慢查询占比${(slowQueryRate * 100).toFixed(2)}%，建议进行性能优化`,
+      );
     }
 
     return {
@@ -727,8 +786,8 @@ export class LogLevelController implements OnModuleInit {
         slowQueries,
         averageResponseTime: this.stats.averageResponseTime,
         hitRate: this.stats.hitRate,
-        cacheEffectiveness: this.getCacheEffectivenessLevel()
-      }
+        cacheEffectiveness: this.getCacheEffectivenessLevel(),
+      },
     };
   }
 
@@ -739,16 +798,16 @@ export class LogLevelController implements OnModuleInit {
     // 由于我们目前没有跟踪每个context的查询频率，
     // 这里返回配置中最可能成为热路径的服务
     const hotPathCandidates = [
-      'CacheService',
-      'AuthService', 
-      'DataFetcherService',
-      'QueryService',
-      'ReceiverService',
-      'SmartCacheOrchestrator'
+      "CacheService",
+      "AuthService",
+      "DataFetcherService",
+      "QueryService",
+      "ReceiverService",
+      "SmartCacheOrchestrator",
     ];
-    
-    return hotPathCandidates.filter(context => 
-      this.config?.modules[context] !== undefined
+
+    return hotPathCandidates.filter(
+      (context) => this.config?.modules[context] !== undefined,
     );
   }
 
@@ -771,10 +830,10 @@ export class LogLevelController implements OnModuleInit {
    * 获取缓存有效性级别
    */
   private getCacheEffectivenessLevel(): string {
-    if (this.stats.hitRate >= 0.95) return 'excellent';
-    if (this.stats.hitRate >= 0.85) return 'good';
-    if (this.stats.hitRate >= 0.70) return 'fair';
-    return 'poor';
+    if (this.stats.hitRate >= 0.95) return "excellent";
+    if (this.stats.hitRate >= 0.85) return "good";
+    if (this.stats.hitRate >= 0.7) return "fair";
+    return "poor";
   }
 
   /**
@@ -788,7 +847,7 @@ export class LogLevelController implements OnModuleInit {
     const beforeMetrics = {
       hitRate: this.stats.hitRate,
       averageResponseTime: this.stats.averageResponseTime,
-      cacheSize: this.levelCache.size
+      cacheSize: this.levelCache.size,
     };
 
     const optimizations: string[] = [];
@@ -798,38 +857,44 @@ export class LogLevelController implements OnModuleInit {
       const beforeCacheSize = this.levelCache.size;
       this.cleanupExpiredCache();
       if (this.levelCache.size < beforeCacheSize) {
-        optimizations.push(`清理了${beforeCacheSize - this.levelCache.size}个过期缓存条目`);
+        optimizations.push(
+          `清理了${beforeCacheSize - this.levelCache.size}个过期缓存条目`,
+        );
       }
 
       // 2. 如果缓存命中率低，预热常用查询
       if (this.stats.hitRate < 0.8) {
         this.preheatCache();
-        optimizations.push('执行了缓存预热操作');
+        optimizations.push("执行了缓存预热操作");
       }
 
       // 3. 重置统计信息以获得新的基线
       if (this.stats.totalQueries > 10000) {
         this.resetStats();
-        optimizations.push('重置了统计信息以建立新的性能基线');
+        optimizations.push("重置了统计信息以建立新的性能基线");
       }
 
-      console.log(`🔧 [LogLevelController] Applied ${optimizations.length} performance optimizations`);
-
+      console.log(
+        `🔧 [LogLevelController] Applied ${optimizations.length} performance optimizations`,
+      );
     } catch (error) {
-      console.error('❌ [LogLevelController] Performance optimization failed:', error);
-      optimizations.push('优化过程中发生错误，请检查日志');
+      console.error(
+        "❌ [LogLevelController] Performance optimization failed:",
+        error,
+      );
+      optimizations.push("优化过程中发生错误，请检查日志");
     }
 
     const afterMetrics = {
       hitRate: this.stats.hitRate,
       averageResponseTime: this.stats.averageResponseTime,
-      cacheSize: this.levelCache.size
+      cacheSize: this.levelCache.size,
     };
 
     return {
       optimizationsApplied: optimizations,
       beforeMetrics,
-      afterMetrics
+      afterMetrics,
     };
   }
 
@@ -838,13 +903,13 @@ export class LogLevelController implements OnModuleInit {
    */
   private preheatCache(): void {
     if (!this.config) return;
-    
+
     // 预热最常见的日志级别组合
-    const commonLevels: LogLevel[] = ['error', 'warn', 'info'];
+    const commonLevels: LogLevel[] = ["error", "warn", "info"];
     const hotServices = this.identifyHotPaths();
-    
-    hotServices.forEach(context => {
-      commonLevels.forEach(level => {
+
+    hotServices.forEach((context) => {
+      commonLevels.forEach((level) => {
         const cacheKey = `${context}:${level}`;
         if (!this.levelCache.has(cacheKey)) {
           const result = this.performLevelCheck(context, level);

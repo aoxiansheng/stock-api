@@ -8,7 +8,7 @@ import { Observable } from "rxjs";
 import { tap, catchError } from "rxjs/operators";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
 
 /**
@@ -80,7 +80,9 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
             source: "api",
             endpoint: request.path,
             method: request.method,
-            statusCode: error.status || MONITORING_SYSTEM_LIMITS.HTTP_SERVER_ERROR_THRESHOLD,
+            statusCode:
+              error.status ||
+              MONITORING_SYSTEM_LIMITS.HTTP_SERVER_ERROR_THRESHOLD,
             duration,
             requestId,
             metadata: {
@@ -108,14 +110,14 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
       this.eventBus.emit(eventType, eventData);
     } catch (error) {
       // 静默处理事件发送错误，记录调试信息但不影响请求
-      this.logger.debug('ApiMonitoringInterceptor: API监控事件发送失败', {
-        component: 'ApiMonitoringInterceptor',
-        operation: 'emitEvent',
+      this.logger.debug("ApiMonitoringInterceptor: API监控事件发送失败", {
+        component: "ApiMonitoringInterceptor",
+        operation: "emitEvent",
         eventType,
         error: error.message,
         endpoint: eventData.endpoint,
         method: eventData.method,
-        success: false
+        success: false,
       });
     }
   }

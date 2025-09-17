@@ -5,7 +5,7 @@
  */
 
 // 使用监控模块专属的健康状态常量
-import { type MonitoringHealthStatus } from '../config/monitoring-health.constants';
+import { type MonitoringHealthStatus } from "../config/monitoring-health.constants";
 
 export {
   MONITORING_HEALTH_STATUS,
@@ -18,11 +18,11 @@ export {
   getMonitoringStatusSeverity,
   mapInternalToExternalStatus,
   MONITORING_STATUS_DESCRIPTIONS,
-  MONITORING_STATUS_COLORS
-} from '../config/monitoring-health.constants';
+  MONITORING_STATUS_COLORS,
+} from "../config/monitoring-health.constants";
 
 // 导出类型
-export type { MonitoringHealthStatus } from '../config/monitoring-health.constants';
+export type { MonitoringHealthStatus } from "../config/monitoring-health.constants";
 
 // 统一状态类型别名
 export type BasicHealthStatus = MonitoringHealthStatus;

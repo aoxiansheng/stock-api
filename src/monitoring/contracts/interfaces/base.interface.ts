@@ -10,10 +10,10 @@
 export interface BaseHealthMetrics {
   /** 健康评分 (0-100) */
   healthScore: number;
-  
+
   /** 响应时间（毫秒） */
   responseTimeMs: number;
-  
+
   /** 错误率 (0-1) */
   errorRate: number;
 }
@@ -34,13 +34,13 @@ export interface BaseTimestamp {
 export interface BaseTrendMetric<T = number> {
   /** 当前值 */
   current: T;
-  
+
   /** 历史值 */
   previous: T;
-  
+
   /** 趋势方向 */
   trend: "up" | "down" | "stable";
-  
+
   /** 变化百分比 */
   changePercentage: number;
 }
@@ -52,10 +52,10 @@ export interface BaseTrendMetric<T = number> {
 export interface BasePerformanceSummary {
   /** 总操作数 */
   totalOperations: number;
-  
+
   /** 成功操作数 */
   successfulOperations: number;
-  
+
   /** 失败操作数 */
   failedOperations: number;
 }
@@ -67,7 +67,7 @@ export interface BasePerformanceSummary {
 export interface BaseEndpointIdentifier {
   /** 端点路径 */
   endpoint: string;
-  
+
   /** HTTP方法 */
   method: string;
 }
@@ -79,10 +79,10 @@ export interface BaseEndpointIdentifier {
 export interface BaseCacheMetrics {
   /** 命中次数 */
   hits: number;
-  
+
   /** 未命中次数 */
   misses: number;
-  
+
   /** 命中率 (0-1) */
   hitRate: number;
 }
@@ -90,20 +90,26 @@ export interface BaseCacheMetrics {
 /**
  * 组合接口：带时间戳的健康指标
  */
-export interface TimestampedHealthMetrics extends BaseHealthMetrics, BaseTimestamp {}
+export interface TimestampedHealthMetrics
+  extends BaseHealthMetrics,
+    BaseTimestamp {}
 
 /**
  * 组合接口：带时间戳的性能摘要
  */
-export interface TimestampedPerformanceSummary extends BasePerformanceSummary, BaseTimestamp {}
+export interface TimestampedPerformanceSummary
+  extends BasePerformanceSummary,
+    BaseTimestamp {}
 
 /**
  * 组合接口：完整的组件健康状态
  */
-export interface ComponentHealthStatus extends BaseHealthMetrics, BaseTimestamp {
+export interface ComponentHealthStatus
+  extends BaseHealthMetrics,
+    BaseTimestamp {
   /** 组件名称 */
   componentName: string;
-  
+
   /** 组件类型 */
   componentType: string;
 }

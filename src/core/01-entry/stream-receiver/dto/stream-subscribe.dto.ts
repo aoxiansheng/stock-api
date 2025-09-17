@@ -1,11 +1,11 @@
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   IsArray,
   IsString,
   IsOptional,
   ArrayMinSize,
-  ArrayMaxSize
+  ArrayMaxSize,
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 

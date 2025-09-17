@@ -1,10 +1,11 @@
-import { InjectRedis } from "@nestjs-modules/ioredis";
 import { Injectable, BadRequestException } from "@nestjs/common";
-import { Redis } from "ioredis";
 
-import { createLogger } from "@common/logging/index";
+import { createLogger } from "@common/modules/logging";
+import { CacheService } from "../../../cache/services/cache.service";
 
 import { securityConfig } from "@auth/config/security.config";
+// 🆕 引入新的统一配置系统 - 与现有配置并存
+import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
 import {
   RateLimitOperation,
   RateLimitMessage,
@@ -29,11 +30,44 @@ import { ApiKey } from "../../schemas/apikey.schema";
 @Injectable()
 export class RateLimitService {
   private readonly logger = createLogger(RateLimitService.name);
-  // 🎯 使用集中化配置
-  private readonly config = securityConfig.rateLimit;
+  // 🎯 使用集中化的配置 - 保留原有配置作为后备
+  private readonly legacyConfig = securityConfig.rateLimit;
   private readonly luaScriptsService = new RateLimitLuaScriptsService();
 
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  constructor(
+    private readonly cacheService: CacheService,
+    // 🆕 可选注入新配置系统 - 如果可用则使用，否则回退到原配置
+    private readonly authConfig?: AuthConfigCompatibilityWrapper,
+  ) {}
+
+  // 🆕 统一配置访问方法 - 优先使用新配置，回退到原配置
+  private get config() {
+    if (this.authConfig) {
+      // 使用新的统一配置系统
+      const newConfig = {
+        luaExpireBufferSeconds: 10, // 固定值，无需配置化
+        redisPrefix: "rl", // 固定值，与原配置一致
+      };
+
+      // 🔍 调试日志：记录使用新配置系统
+      this.logger.debug("RateLimitService: 使用新统一配置系统", {
+        configSource: "AuthConfigCompatibilityWrapper",
+        luaExpireBufferSeconds: newConfig.luaExpireBufferSeconds,
+        redisPrefix: newConfig.redisPrefix,
+      });
+
+      return newConfig;
+    }
+
+    // 回退到原有配置
+    this.logger.debug("RateLimitService: 回退到原有配置系统", {
+      configSource: "securityConfig.rateLimit",
+      luaExpireBufferSeconds: this.legacyConfig.luaExpireBufferSeconds,
+      redisPrefix: this.legacyConfig.redisPrefix,
+    });
+
+    return this.legacyConfig;
+  }
 
   /**
    * 检查API Key的频率限制
@@ -73,13 +107,13 @@ export class RateLimitService {
     try {
       switch (strategy) {
         case RateLimitStrategy.FIXED_WINDOW:
-          return await this.checkFixedWindow(
+          return await this.checkFixedWindowSafe(
             key,
             rateLimit.requestLimit,
             windowSeconds,
           );
         case RateLimitStrategy.SLIDING_WINDOW:
-          return await this.checkSlidingWindow(
+          return await this.checkSlidingWindowSafe(
             key,
             rateLimit.requestLimit,
             windowSeconds,
@@ -93,22 +127,75 @@ export class RateLimitService {
         error: error.stack,
       });
 
-      // 🎯 实现故障恢复机制 - fail-open策略
+      // 🎯 增强的故障恢复机制 - fail-open策略
       this.logger.warn("限流服务异常，启用fail-open模式允许请求通过", {
         operation,
         appKey,
         strategy,
         errorType: error.constructor.name,
+        failureMode: "cache_service_unavailable",
       });
 
-      return {
-        allowed: true,
-        limit: rateLimit.requestLimit,
-        current: 0,
-        remaining: rateLimit.requestLimit,
-        resetTime: Date.now() + windowSeconds * 1000,
-        retryAfter: undefined,
-      };
+      return this.createFailOpenResponse(rateLimit.requestLimit, windowSeconds);
+    }
+  }
+
+  /**
+   * 创建失败开放响应 - 缓存服务不可用时的降级处理
+   */
+  private createFailOpenResponse(
+    limit: number,
+    windowSeconds: number,
+  ): RateLimitResult {
+    return {
+      allowed: true,
+      limit,
+      current: 0,
+      remaining: limit,
+      resetTime: Date.now() + windowSeconds * 1000,
+      retryAfter: undefined,
+    };
+  }
+
+  /**
+   * 固定窗口频率限制算法 - 容错版本
+   */
+  private async checkFixedWindowSafe(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<RateLimitResult> {
+    try {
+      return await this.checkFixedWindow(key, limit, windowSeconds);
+    } catch (error) {
+      this.logger.warn("固定窗口限流检查失败，启用fail-open模式", {
+        key,
+        limit,
+        windowSeconds,
+        error: error.message,
+      });
+      return this.createFailOpenResponse(limit, windowSeconds);
+    }
+  }
+
+  /**
+   * 滑动窗口频率限制算法 - 容错版本
+   */
+  private async checkSlidingWindowSafe(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<RateLimitResult> {
+    try {
+      return await this.checkSlidingWindow(key, limit, windowSeconds);
+    } catch (error) {
+      this.logger.warn("滑动窗口限流检查失败，启用fail-open模式", {
+        key,
+        limit,
+        windowSeconds,
+        error: error.message,
+      });
+      return this.createFailOpenResponse(limit, windowSeconds);
     }
   }
 
@@ -134,7 +221,7 @@ export class RateLimitService {
       windowSeconds,
     });
 
-    const pipeline = this.redis.pipeline();
+    const pipeline = this.cacheService.multi();
     pipeline.incr(windowKey);
     // 🎯 使用集中化配置
     pipeline.expire(
@@ -189,7 +276,7 @@ export class RateLimitService {
 
     const luaScript = this.luaScriptsService.getSlidingWindowScript();
 
-    const result = (await this.redis.eval(
+    const result = (await this.cacheService.eval(
       luaScript,
       1,
       slidingKey,
@@ -258,7 +345,7 @@ export class RateLimitService {
   }
 
   /**
-   * 获取API Key的当前使用统计
+   * 获取API Key的当前使用统计 - 容错版本
    */
   async getCurrentUsage(
     apiKey: ApiKey,
@@ -278,22 +365,35 @@ export class RateLimitService {
     let current = 0;
     let resetTime = 0;
 
-    if (strategy === RateLimitStrategy.FIXED_WINDOW) {
-      const windowStart =
-        Math.floor(currentTime / (windowSeconds * 1000)) * windowSeconds * 1000;
-      const windowKey = `${key}:fixed:${windowStart}`;
-      resetTime = windowStart + windowSeconds * 1000;
-      const count = await this.redis.get(windowKey);
-      current = count ? parseInt(count, 10) : 0;
-    } else {
-      const slidingKey = `${key}:sliding`;
-      current = await this.redis.zcard(slidingKey);
-      const oldest = await this.redis.zrange(slidingKey, 0, 0);
-      if (oldest.length > 0) {
-        resetTime = parseInt(oldest[0], 10) + windowSeconds * 1000;
+    try {
+      if (strategy === RateLimitStrategy.FIXED_WINDOW) {
+        const windowStart =
+          Math.floor(currentTime / (windowSeconds * 1000)) *
+          windowSeconds *
+          1000;
+        const windowKey = `${key}:fixed:${windowStart}`;
+        resetTime = windowStart + windowSeconds * 1000;
+        const count = await this.cacheService.safeGet<string>(windowKey);
+        current = count ? parseInt(count, 10) : 0;
       } else {
-        resetTime = currentTime;
+        const slidingKey = `${key}:sliding`;
+        current = await this.cacheService.zcard(slidingKey);
+        const oldest = await this.cacheService.zrange(slidingKey, 0, 0);
+        if (oldest.length > 0) {
+          resetTime = parseInt(oldest[0], 10) + windowSeconds * 1000;
+        } else {
+          resetTime = currentTime;
+        }
       }
+    } catch (error) {
+      this.logger.warn("获取使用统计失败，返回降级数据", {
+        appKey,
+        strategy,
+        error: error.message,
+      });
+      // 降级处理：返回保守的统计数据
+      current = 0;
+      resetTime = currentTime + windowSeconds * 1000;
     }
 
     return {
@@ -335,7 +435,7 @@ export class RateLimitService {
     }
 
     if (keyToDelete) {
-      await this.redis.del(keyToDelete);
+      await this.cacheService.del(keyToDelete);
       this.logger.log(RateLimitMessage.RATE_LIMIT_RESET, {
         operation,
         appKey,

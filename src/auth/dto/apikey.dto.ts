@@ -14,7 +14,7 @@ import {
 } from "class-validator";
 
 import { Permission } from "../enums/user-role.enum";
-import { CommonStatus } from "../enums/common-status.enum";
+import { OperationStatus } from "@common/types/enums/shared-base.enum";
 
 /**
  * 速率限制DTO
@@ -122,8 +122,8 @@ export class ApiKeyResponseDto {
   @ApiProperty({ description: "速率限制配置" })
   rateLimit: RateLimitDto;
 
-  @ApiProperty({ description: "状态", enum: CommonStatus })
-  status: CommonStatus;
+  @ApiProperty({ description: "状态", enum: OperationStatus })
+  status: OperationStatus;
 
   @ApiProperty({ description: "过期时间" })
   expiresAt?: Date;
@@ -174,7 +174,6 @@ export class ApiKeyUsageDto {
 
   @ApiProperty({ description: "创建时间" })
   createdAt: Date;
-
 }
 
 /**
@@ -213,7 +212,6 @@ export class UserDetailedStatsDto {
 
   @ApiProperty({ description: "注册时间" })
   createdAt: Date;
-
 }
 
 /**
@@ -263,12 +261,12 @@ export class UpdateApiKeyDto {
 
   @ApiProperty({
     description: "状态",
-    enum: CommonStatus,
+    enum: OperationStatus,
     required: false,
   })
   @IsOptional()
-  @IsEnum(CommonStatus)
-  status?: CommonStatus;
+  @IsEnum(OperationStatus)
+  status?: OperationStatus;
 
   @ApiProperty({
     description: "过期时间",

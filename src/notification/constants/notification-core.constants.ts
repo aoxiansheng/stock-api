@@ -1,7 +1,7 @@
 /**
  * Notification核心常量定义
  * 🎯 基于四层配置体系标准，严格保留符合标准的常量
- * 
+ *
  * @description 仅保留固定不变、基于标准协议的语义常量
  * @see docs/代码审查文档/配置文件标准/四层配置体系标准规则与开发指南.md
  */
@@ -22,7 +22,7 @@ export const NOTIFICATION_OPERATIONS = Object.freeze({
   INITIALIZE_SENDERS: "initialize_senders",
   RETRY_FAILED_NOTIFICATION: "retry_failed_notification",
   VALIDATE_CHANNEL_CONFIG: "validate_channel_config",
-  
+
   // 模板相关操作
   CREATE_TEMPLATE: "create_template",
   UPDATE_TEMPLATE: "update_template",
@@ -51,7 +51,7 @@ export const NOTIFICATION_MESSAGES = Object.freeze({
   NOTIFICATION_RETRIED: "通知重试成功",
   CHANNEL_CONFIG_VALID: "通道配置验证通过",
   NO_CHANNELS_CONFIGURED: "未配置通知渠道",
-  
+
   // Error messages
   NOTIFICATION_FAILED: "通知发送失败",
   BATCH_NOTIFICATIONS_FAILED: "批量通知发送失败",
@@ -64,7 +64,7 @@ export const NOTIFICATION_MESSAGES = Object.freeze({
   RETRY_LIMIT_EXCEEDED: "重试次数超出限制",
   NOTIFICATION_TIMEOUT: "通知发送超时",
   CHANNEL_UNAVAILABLE: "通知渠道不可用",
-  
+
   // Status messages
   SENDING: "发送中...",
   TESTING: "测试中...",
@@ -85,16 +85,17 @@ export const NOTIFICATION_MESSAGES = Object.freeze({
 export const NOTIFICATION_VALIDATION_PATTERNS = Object.freeze({
   // 邮箱格式验证（基于RFC 5322标准）
   EMAIL_PATTERN: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i,
-  
+
   // URL格式验证（基于RFC 3986标准）
-  URL_PATTERN: /^https?:\/\/[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:\/~\+#]*[\w\-\@?^=%&\/~\+#])?$/i,
-  
+  URL_PATTERN:
+    /^https?:\/\/[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:\/~\+#]*[\w\-\@?^=%&\/~\+#])?$/i,
+
   // 电话号码格式验证（基于E.164标准）
   PHONE_PATTERN: /^\+?[1-9]\d{1,14}$/,
-  
+
   // 变量名格式验证（基于编程语言标准）
   VARIABLE_NAME_PATTERN: /^[a-zA-Z_][a-zA-Z0-9_]*$/i,
-  
+
   // 模板变量模式（基于模板引擎标准）
   VARIABLE_PATTERN: /\{(\w+)\}/g,
 } as const);
@@ -106,7 +107,7 @@ export const NOTIFICATION_VALIDATION_PATTERNS = Object.freeze({
 export const NOTIFICATION_TEMPLATE_VARIABLES = Object.freeze({
   ALERT_ID: "alertId",
   RULE_NAME: "ruleName",
-  METRIC: "metric", 
+  METRIC: "metric",
   VALUE: "value",
   THRESHOLD: "threshold",
   SEVERITY: "severity",

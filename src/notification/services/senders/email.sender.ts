@@ -1,7 +1,7 @@
 /**
  * 邮件通知发送器
  * 🎯 负责邮件通知的发送和验证
- * 
+ *
  * @description 从Alert模块迁移的邮件发送器，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -45,7 +45,7 @@ export class EmailSender implements NotificationSender {
         channelConfig: {
           to: channelConfig.to,
           from: channelConfig.from,
-          smtp: channelConfig.smtp ? 'configured' : 'not configured',
+          smtp: channelConfig.smtp ? "configured" : "not configured",
         },
       });
 
@@ -87,20 +87,20 @@ export class EmailSender implements NotificationSender {
       // 验证基本配置
       const validation = this.validateConfig(config);
       if (!validation.valid) {
-        this.logger.warn('邮件配置验证失败', { errors: validation.errors });
+        this.logger.warn("邮件配置验证失败", { errors: validation.errors });
         return false;
       }
 
       // 这里可以发送测试邮件
-      this.logger.log('邮件配置测试通过', {
+      this.logger.log("邮件配置测试通过", {
         to: config.to,
         from: config.from,
-        smtp: config.smtp ? 'configured' : 'not configured',
+        smtp: config.smtp ? "configured" : "not configured",
       });
 
       return true;
     } catch (error) {
-      this.logger.error('邮件配置测试失败', { error: error.message });
+      this.logger.error("邮件配置测试失败", { error: error.message });
       return false;
     }
   }
@@ -171,7 +171,7 @@ export class EmailSender implements NotificationSender {
           description: "收件人邮箱地址",
         },
         from: {
-          type: "string", 
+          type: "string",
           format: "email",
           description: "发件人邮箱地址",
         },
@@ -223,10 +223,10 @@ export class EmailSender implements NotificationSender {
    */
   private async simulateEmailSending(
     notification: Notification,
-    config: Record<string, any>
+    config: Record<string, any>,
   ): Promise<void> {
     // 模拟网络延迟
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // 这里应该是实际的邮件发送逻辑
     // 例如使用 nodemailer 或第三方邮件服务
@@ -246,7 +246,7 @@ export class EmailSender implements NotificationSender {
     });
     */
 
-    this.logger.debug('邮件发送模拟完成', {
+    this.logger.debug("邮件发送模拟完成", {
       to: notification.recipient,
       subject: notification.title,
     });

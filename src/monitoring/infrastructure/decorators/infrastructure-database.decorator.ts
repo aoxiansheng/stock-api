@@ -3,7 +3,7 @@
  * 基于重构后的三层架构，集成到现有的监控体系中
  */
 
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { EventEmitter } from "events";
 
 const logger = createLogger("PerformanceDecorators");

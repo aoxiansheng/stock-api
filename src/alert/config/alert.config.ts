@@ -1,12 +1,21 @@
-import { registerAs } from '@nestjs/config';
-import { IsNumber, Min, Max, IsString, Length, validateSync, ValidateNested } from 'class-validator';
-import { plainToClass, Type } from 'class-transformer';
-import { 
-  AlertValidationRules, 
-  AlertCacheConfig, 
+import { registerAs } from "@nestjs/config";
+import { BadRequestException } from "@nestjs/common";
+import {
+  IsNumber,
+  Min,
+  Max,
+  IsString,
+  Length,
+  validateSync,
+  ValidateNested,
+} from "class-validator";
+import { plainToClass, Type } from "class-transformer";
+import {
+  AlertValidationRules,
+  AlertCacheConfig,
   AlertLimitsConfig,
-  CompleteAlertValidation 
-} from './alert-validation.config';
+  CompleteAlertValidation,
+} from "./alert-validation.config";
 
 /**
  * 导出配置接口以供其他模块使用
@@ -35,7 +44,7 @@ export interface AlertConfig {
 /**
  * Alert配置验证类
  * 🎯 使用增强标准模式统一管理Alert模块配置
- * 
+ *
  * 统一的配置项：
  * - evaluationInterval: Alert评估间隔配置
  * - defaultCooldown: 解决300秒TTL重复定义问题
@@ -126,50 +135,69 @@ export class AlertConfigValidation {
  * Alert配置注册
  * 使用 NestJS ConfigModule registerAs 模式
  */
-export default registerAs('alert', (): AlertConfig => {
+export default registerAs("alert", (): AlertConfig => {
   // 构建完整配置对象，包含嵌套验证对象
   const fullConfig = {
-    evaluationInterval: parseInt(process.env.ALERT_EVALUATION_INTERVAL, 10) || 60,
+    evaluationInterval:
+      parseInt(process.env.ALERT_EVALUATION_INTERVAL, 10) || 60,
     defaultCooldown: parseInt(process.env.ALERT_DEFAULT_COOLDOWN, 10) || 300,
     batchSize: parseInt(process.env.ALERT_BATCH_SIZE, 10) || 100,
-    evaluationTimeout: parseInt(process.env.ALERT_EVALUATION_TIMEOUT, 10) || 5000,
+    evaluationTimeout:
+      parseInt(process.env.ALERT_EVALUATION_TIMEOUT, 10) || 5000,
     maxRetries: parseInt(process.env.ALERT_MAX_RETRIES, 10) || 3,
     validation: {
-      durationMin: parseInt(process.env.ALERT_VALIDATION_DURATION_MIN, 10) || 30,
-      durationMax: parseInt(process.env.ALERT_VALIDATION_DURATION_MAX, 10) || 600,
-      cooldownMax: parseInt(process.env.ALERT_VALIDATION_COOLDOWN_MAX, 10) || 3000,
+      durationMin:
+        parseInt(process.env.ALERT_VALIDATION_DURATION_MIN, 10) || 30,
+      durationMax:
+        parseInt(process.env.ALERT_VALIDATION_DURATION_MAX, 10) || 600,
+      cooldownMax:
+        parseInt(process.env.ALERT_VALIDATION_COOLDOWN_MAX, 10) || 3000,
     },
     cache: {
-      cooldownPrefix: process.env.ALERT_CACHE_COOLDOWN_PREFIX || 'alert:cooldown:',
-      activeAlertPrefix: process.env.ALERT_CACHE_ACTIVE_PREFIX || 'alert:active',
+      cooldownPrefix:
+        process.env.ALERT_CACHE_COOLDOWN_PREFIX || "alert:cooldown:",
+      activeAlertPrefix:
+        process.env.ALERT_CACHE_ACTIVE_PREFIX || "alert:active",
     },
     limits: {
-      maxConditionsPerRule: parseInt(process.env.ALERT_LIMITS_MAX_CONDITIONS, 10) || 10,
-      maxRulesPerUser: parseInt(process.env.ALERT_LIMITS_MAX_RULES_PER_USER, 10) || 100,
-      defaultPageSize: parseInt(process.env.ALERT_LIMITS_DEFAULT_PAGE_SIZE, 10) || 20,
-      maxQueryResults: parseInt(process.env.ALERT_LIMITS_MAX_QUERY_RESULTS, 10) || 100,
+      maxConditionsPerRule:
+        parseInt(process.env.ALERT_LIMITS_MAX_CONDITIONS, 10) || 10,
+      maxRulesPerUser:
+        parseInt(process.env.ALERT_LIMITS_MAX_RULES_PER_USER, 10) || 100,
+      defaultPageSize:
+        parseInt(process.env.ALERT_LIMITS_DEFAULT_PAGE_SIZE, 10) || 20,
+      maxQueryResults:
+        parseInt(process.env.ALERT_LIMITS_MAX_QUERY_RESULTS, 10) || 100,
     },
   };
-  
+
   // 转换为完整验证类实例进行嵌套验证
   const validatedConfig = plainToClass(AlertConfigValidation, fullConfig);
-  
+
   // 使用 class-validator 验证配置（包括嵌套对象）
   const errors = validateSync(validatedConfig);
   if (errors.length > 0) {
-    const errorMessages = errors.map(error => {
-      const constraints = error.constraints ? Object.values(error.constraints).join(', ') : '';
-      const childErrors = error.children?.length > 0 
-        ? error.children.map(child => 
-            `${error.property}.${child.property}: ${Object.values(child.constraints || {}).join(', ')}`
-          ).join('; ') 
-        : '';
-      return `${error.property}: ${constraints}${childErrors ? '; ' + childErrors : ''}`;
-    }).join(' | ');
-    
-    throw new Error(`Alert configuration validation failed: ${errorMessages}`);
+    const errorMessages = errors
+      .map((error) => {
+        const constraints = error.constraints
+          ? Object.values(error.constraints).join(", ")
+          : "";
+        const childErrors =
+          error.children?.length > 0
+            ? error.children
+                .map(
+                  (child) =>
+                    `${error.property}.${child.property}: ${Object.values(child.constraints || {}).join(", ")}`,
+                )
+                .join("; ")
+            : "";
+        return `${error.property}: ${constraints}${childErrors ? "; " + childErrors : ""}`;
+      })
+      .join(" | ");
+
+    throw new BadRequestException(`Alert configuration validation failed: ${errorMessages}`);
   }
-  
+
   // 返回完整配置（所有字段都经过验证）
   return {
     evaluationInterval: validatedConfig.evaluationInterval,

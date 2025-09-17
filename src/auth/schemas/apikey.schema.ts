@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 
 import { Permission } from "../enums/user-role.enum";
-import { CommonStatus } from "../enums/common-status.enum";
+import { OperationStatus } from "@common/types/enums/shared-base.enum";
 
 export type ApiKeyDocument = ApiKey & Document;
 
@@ -53,10 +53,10 @@ export class ApiKey {
 
   @Prop({
     type: String,
-    enum: Object.values(CommonStatus),
-    default: CommonStatus.ACTIVE
+    enum: Object.values(OperationStatus),
+    default: OperationStatus.ACTIVE,
   })
-  status: CommonStatus;
+  status: OperationStatus;
 
   @Prop({ index: true })
   expiresAt?: Date;

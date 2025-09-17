@@ -2,7 +2,7 @@ import { createLogger } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 
 // Extract Market enum for backward compatibility
-import { Market } from '../../../core/shared/constants/market.constants';
+import { Market } from "../../../core/shared/constants/market.constants";
 
 import { ICapability } from "../../interfaces/capability.interface";
 import { LongportBasicInfo } from "../types";

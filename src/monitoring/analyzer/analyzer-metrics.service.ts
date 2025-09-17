@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
 import {
   PerformanceSummary,
@@ -100,7 +100,9 @@ export class AnalyzerMetricsCalculator {
       return 0;
     }
 
-    const errorRequests = requests.filter((r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD).length;
+    const errorRequests = requests.filter(
+      (r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+    ).length;
     return Math.round((errorRequests / requests.length) * 10000) / 10000; // 保留4位小数
   }
 
@@ -134,7 +136,10 @@ export class AnalyzerMetricsCalculator {
       const endpointGroups = new Map<string, typeof requests>();
 
       for (const request of requests) {
-        const key = MONITORING_KEY_TEMPLATES.REQUEST_KEY(request.method, request.endpoint);
+        const key = MONITORING_KEY_TEMPLATES.REQUEST_KEY(
+          request.method,
+          request.endpoint,
+        );
         if (!endpointGroups.has(key)) {
           endpointGroups.set(key, []);
         }
@@ -148,7 +153,8 @@ export class AnalyzerMetricsCalculator {
         const [method, endpoint] = key.split(":");
         const requestCount = endpointRequests.length;
         const errorCount = endpointRequests.filter(
-          (r) => r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+          (r) =>
+            r.statusCode >= MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
         ).length;
         const totalResponseTime = endpointRequests.reduce(
           (sum, r) => sum + (r.responseTimeMs || 0),
@@ -199,19 +205,22 @@ export class AnalyzerMetricsCalculator {
       const totalOperations = dbOps.length;
       const totalTime = dbOps.reduce((sum, op) => sum + op.responseTimeMs, 0);
       const responseTimeMs = Math.round(totalTime / totalOperations);
-      const slowQueries = dbOps.filter((op) => op.responseTimeMs > MONITORING_SYSTEM_LIMITS.SLOW_QUERY_THRESHOLD_MS).length; // >SLOW_QUERY_THRESHOLD_MS认为是慢查询
+      const slowQueries = dbOps.filter(
+        (op) =>
+          op.responseTimeMs > MONITORING_SYSTEM_LIMITS.SLOW_QUERY_THRESHOLD_MS,
+      ).length; // >SLOW_QUERY_THRESHOLD_MS认为是慢查询
       const failedOperations = dbOps.filter((op) => !op.success).length;
       const errorRate =
         Math.round((failedOperations / totalOperations) * 10000) / 10000;
 
-      this.logger.debug('MetricsCalculator: 数据库指标计算完成', {
-        component: 'AnalyzerMetricsCalculator',
-        operation: 'calculateDatabaseMetrics',
+      this.logger.debug("MetricsCalculator: 数据库指标计算完成", {
+        component: "AnalyzerMetricsCalculator",
+        operation: "calculateDatabaseMetrics",
         totalOperations,
         responseTimeMs,
         slowQueries,
         errorRate,
-        success: true
+        success: true,
       });
 
       return {
@@ -254,7 +263,10 @@ export class AnalyzerMetricsCalculator {
       const hits = cacheOps.filter((op) => op.hit).length;
       const misses = totalOperations - hits;
       const hitRate = Math.round((hits / totalOperations) * 10000) / 10000;
-      const totalTime = cacheOps.reduce((sum, op) => sum + op.responseTimeMs, 0);
+      const totalTime = cacheOps.reduce(
+        (sum, op) => sum + op.responseTimeMs,
+        0,
+      );
       const responseTimeMs = Math.round(totalTime / totalOperations);
 
       this.logger.debug("缓存指标计算完成", {
@@ -417,7 +429,10 @@ export class AnalyzerMetricsCalculator {
     if (values.length === 0) return 0;
 
     const sorted = [...values].sort((a, b) => a - b);
-    const index = Math.floor((percentile / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER) * sorted.length);
+    const index = Math.floor(
+      (percentile / MONITORING_SYSTEM_LIMITS.PERCENTAGE_MULTIPLIER) *
+        sorted.length,
+    );
     return sorted[Math.min(index, sorted.length - 1)];
   }
 

@@ -2,7 +2,7 @@
  * Cache模块统一配置
  * 🎯 遵循四层配置体系标准，消除配置重叠
  * ✅ 支持环境变量覆盖和配置验证
- * 
+ *
  * 📋 本文件合并了以下配置，消除重叠：
  * - cache.config.ts（保留：压缩、大小限制、操作配置）
  * - cache-ttl.config.ts（整合：所有TTL配置）
@@ -10,9 +10,9 @@
  * - simplified-ttl-config.constants.ts（替换：硬编码TTL常量）
  */
 
-import { registerAs } from '@nestjs/config';
-import { IsNumber, IsBoolean, Min, Max, validateSync } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { registerAs } from "@nestjs/config";
+import { IsNumber, IsBoolean, Min, Max, validateSync } from "class-validator";
+import { plainToClass } from "class-transformer";
 
 /**
  * Cache统一配置验证类
@@ -22,7 +22,7 @@ export class CacheUnifiedConfigValidation {
   // ========================================
   // TTL配置（替换cache-ttl.config.ts）
   // ========================================
-  
+
   /**
    * 默认缓存TTL（秒）
    * 替换所有模块中的300秒默认TTL定义
@@ -35,7 +35,7 @@ export class CacheUnifiedConfigValidation {
   @Min(1)
   @Max(86400)
   defaultTtl: number = 300;
-  
+
   /**
    * 强时效性TTL（秒）
    * 用于实时数据如股票报价
@@ -45,7 +45,7 @@ export class CacheUnifiedConfigValidation {
   @Min(1)
   @Max(60)
   strongTimelinessTtl: number = 5;
-  
+
   /**
    * 实时数据TTL（秒）
    * 用于中等时效性需求
@@ -90,7 +90,7 @@ export class CacheUnifiedConfigValidation {
   @Min(60)
   @Max(1800)
   suggestionTtl: number = 300;
-  
+
   /**
    * 长期缓存TTL（秒）
    * 用于配置、规则等较少变化的数据
@@ -104,7 +104,7 @@ export class CacheUnifiedConfigValidation {
   // ========================================
   // 性能配置（保留自cache.config.ts）
   // ========================================
-  
+
   /**
    * 压缩阈值（字节）
    * 超过此大小的数据将被压缩
@@ -112,27 +112,27 @@ export class CacheUnifiedConfigValidation {
   @IsNumber()
   @Min(0)
   compressionThreshold: number = 1024;
-  
+
   /**
    * 是否启用压缩
    */
   @IsBoolean()
   compressionEnabled: boolean = true;
-  
+
   /**
    * 最大缓存项数
    */
   @IsNumber()
   @Min(1)
   maxItems: number = 10000;
-  
+
   /**
    * 最大键长度
    */
   @IsNumber()
   @Min(1)
   maxKeyLength: number = 255;
-  
+
   /**
    * 最大值大小（MB）
    */
@@ -143,21 +143,21 @@ export class CacheUnifiedConfigValidation {
   // ========================================
   // 操作配置（保留自cache.config.ts）
   // ========================================
-  
+
   /**
    * 慢操作阈值（毫秒）
    */
   @IsNumber()
   @Min(1)
   slowOperationMs: number = 100;
-  
+
   /**
    * 重试延迟（毫秒）
    */
   @IsNumber()
   @Min(1)
   retryDelayMs: number = 100;
-  
+
   /**
    * 分布式锁TTL（秒）
    * 替换: simplified-ttl-config.constants.ts:35,72,73 DISTRIBUTED_LOCK, LOCK, LOCK_TTL
@@ -169,7 +169,7 @@ export class CacheUnifiedConfigValidation {
   // ========================================
   // 限制配置（替换cache-limits.config.ts）
   // ========================================
-  
+
   /**
    * 最大批量操作大小
    * 替换: cache-limits.config.ts:39 maxBatchSize
@@ -178,7 +178,7 @@ export class CacheUnifiedConfigValidation {
   @Min(1)
   @Max(1000)
   maxBatchSize: number = 100;
-  
+
   /**
    * 最大缓存大小（条目数）
    * 替换: cache-limits.config.ts:48 maxCacheSize
@@ -187,7 +187,7 @@ export class CacheUnifiedConfigValidation {
   @Min(1000)
   @Max(100000)
   maxCacheSize: number = 10000;
-  
+
   /**
    * LRU排序批量大小
    * 替换: cache-limits.config.ts:57 lruSortBatchSize
@@ -196,7 +196,7 @@ export class CacheUnifiedConfigValidation {
   @Min(100)
   @Max(10000)
   lruSortBatchSize: number = 1000;
-  
+
   /**
    * Smart Cache最大批量大小
    * 替换: cache-limits.config.ts:66 smartCacheMaxBatch
@@ -205,7 +205,7 @@ export class CacheUnifiedConfigValidation {
   @Min(10)
   @Max(1000)
   smartCacheMaxBatch: number = 50;
-  
+
   /**
    * 缓存内存限制（MB）
    * 替换: cache-limits.config.ts:75 maxCacheSizeMB
@@ -230,7 +230,7 @@ export class CacheUnifiedConfigValidation {
  * Cache统一配置注册函数
  * 使用命名空间 'cacheUnified' 注册配置
  */
-export default registerAs('cacheUnified', (): CacheUnifiedConfigValidation => {
+export default registerAs("cacheUnified", (): CacheUnifiedConfigValidation => {
   const rawConfig = {
     // TTL配置 - 统一所有TTL环境变量
     defaultTtl: parseInt(process.env.CACHE_DEFAULT_TTL, 10) || 300,
@@ -241,23 +241,25 @@ export default registerAs('cacheUnified', (): CacheUnifiedConfigValidation => {
     transformerTtl: parseInt(process.env.CACHE_TRANSFORMER_TTL, 10) || 300,
     suggestionTtl: parseInt(process.env.CACHE_SUGGESTION_TTL, 10) || 300,
     longTermTtl: parseInt(process.env.CACHE_LONG_TERM_TTL, 10) || 3600,
-    
+
     // 性能配置
-    compressionThreshold: parseInt(process.env.CACHE_COMPRESSION_THRESHOLD, 10) || 1024,
-    compressionEnabled: process.env.CACHE_COMPRESSION_ENABLED !== 'false',
+    compressionThreshold:
+      parseInt(process.env.CACHE_COMPRESSION_THRESHOLD, 10) || 1024,
+    compressionEnabled: process.env.CACHE_COMPRESSION_ENABLED !== "false",
     maxItems: parseInt(process.env.CACHE_MAX_ITEMS, 10) || 10000,
     maxKeyLength: parseInt(process.env.CACHE_MAX_KEY_LENGTH, 10) || 255,
     maxValueSizeMB: parseInt(process.env.CACHE_MAX_VALUE_SIZE_MB, 10) || 10,
-    
+
     // 操作配置
     slowOperationMs: parseInt(process.env.CACHE_SLOW_OPERATION_MS, 10) || 100,
     retryDelayMs: parseInt(process.env.CACHE_RETRY_DELAY_MS, 10) || 100,
     lockTtl: parseInt(process.env.CACHE_LOCK_TTL, 10) || 30,
-    
+
     // 限制配置
     maxBatchSize: parseInt(process.env.CACHE_MAX_BATCH_SIZE, 10) || 100,
     maxCacheSize: parseInt(process.env.CACHE_MAX_SIZE, 10) || 10000,
-    lruSortBatchSize: parseInt(process.env.CACHE_LRU_SORT_BATCH_SIZE, 10) || 1000,
+    lruSortBatchSize:
+      parseInt(process.env.CACHE_LRU_SORT_BATCH_SIZE, 10) || 1000,
     smartCacheMaxBatch: parseInt(process.env.SMART_CACHE_MAX_BATCH, 10) || 50,
     maxCacheSizeMB: parseInt(process.env.CACHE_MAX_SIZE_MB, 10) || 1024,
 
@@ -267,18 +269,20 @@ export default registerAs('cacheUnified', (): CacheUnifiedConfigValidation => {
 
   // 转换为验证类实例
   const config = plainToClass(CacheUnifiedConfigValidation, rawConfig);
-  
+
   // 执行验证
-  const errors = validateSync(config, { 
+  const errors = validateSync(config, {
     whitelist: true,
     forbidNonWhitelisted: true,
   });
 
   if (errors.length > 0) {
     const errorMessages = errors
-      .map(error => Object.values(error.constraints || {}).join(', '))
-      .join('; ');
-    throw new Error(`Cache unified configuration validation failed: ${errorMessages}`);
+      .map((error) => Object.values(error.constraints || {}).join(", "))
+      .join("; ");
+    throw new Error(
+      `Cache unified configuration validation failed: ${errorMessages}`,
+    );
   }
 
   return config;

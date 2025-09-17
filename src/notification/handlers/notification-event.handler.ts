@@ -1,14 +1,14 @@
 /**
  * 通知事件处理器
  * 🎯 处理所有通知相关事件的核心处理器
- * 
+ *
  * @description 实现事件驱动架构，处理通知生命周期中的各种事件
  * @author Claude Code Assistant
  * @date 2025-09-12
  */
 
-import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { Injectable } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
 
@@ -29,20 +29,20 @@ import {
   NotificationSystemErrorEvent,
   NotificationChannelErrorEvent,
   NotificationEventTypeGuards,
-} from '../events/notification.events';
+} from "../events/notification.events";
 
 // 导入DTO类型
 import {
   CreateNotificationHistoryDto,
   NotificationHistoryDto,
   NotificationStatsDto,
-} from '../dto/notification-history.dto';
+} from "../dto/notification-history.dto";
 
 // 导入服务
-import { NotificationHistoryService } from '../services/notification-history.service';
+import { NotificationHistoryService } from "../services/notification-history.service";
 
 // 导入常量
-import { NOTIFICATION_MESSAGES } from '../constants/notification.constants';
+import { NOTIFICATION_MESSAGES } from "../constants/notification.constants";
 
 /**
  * 通知事件统计接口
@@ -62,8 +62,8 @@ interface EventStatistics {
  */
 @Injectable()
 export class NotificationEventHandler {
-  private readonly logger = createLogger('NotificationEventHandler');
-  
+  private readonly logger = createLogger("NotificationEventHandler");
+
   // 事件处理统计
   private readonly statistics: EventStatistics = {
     totalEvents: 0,
@@ -77,13 +77,11 @@ export class NotificationEventHandler {
   // 处理时间记录（用于计算平均值）
   private processingTimes: number[] = [];
 
-  constructor(
-    private readonly historyService: NotificationHistoryService,
-  ) {
-    this.logger.debug('NotificationEventHandler 已初始化');
-    
+  constructor(private readonly historyService: NotificationHistoryService) {
+    this.logger.debug("NotificationEventHandler 已初始化");
+
     // 初始化统计数据
-    Object.values(NotificationEventType).forEach(type => {
+    Object.values(NotificationEventType).forEach((type) => {
       this.statistics.eventsByType[type] = 0;
     });
   }
@@ -94,10 +92,12 @@ export class NotificationEventHandler {
    * 处理通知请求事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_REQUESTED)
-  async handleNotificationRequested(event: NotificationRequestedEvent): Promise<void> {
+  async handleNotificationRequested(
+    event: NotificationRequestedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理通知请求事件', {
+    this.logger.debug("处理通知请求事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       requestId: event.requestId,
@@ -108,17 +108,16 @@ export class NotificationEventHandler {
     try {
       // 记录通知请求统计
       await this.recordEventStatistics(event);
-      
+
       // 可以在这里添加额外的业务逻辑
       // 例如：验证请求、预处理、路由等
-      
-      this.logger.debug('通知请求事件处理完成', {
+
+      this.logger.debug("通知请求事件处理完成", {
         eventId: event.eventId,
         requestId: event.requestId,
       });
-
     } catch (error) {
-      this.logger.error('处理通知请求事件失败', {
+      this.logger.error("处理通知请求事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -134,7 +133,7 @@ export class NotificationEventHandler {
   async handleNotificationSent(event: NotificationSentEvent): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理通知发送成功事件', {
+    this.logger.debug("处理通知发送成功事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       notificationId: event.notificationId,
@@ -148,11 +147,11 @@ export class NotificationEventHandler {
         alertId: event.alertId,
         channelId: event.channelId,
         channelType: event.channelType,
-        status: 'sent',
-        priority: event.metadata.priority || 'NORMAL',
+        status: "sent",
+        priority: event.metadata.priority || "NORMAL",
         recipient: event.recipient,
-        title: event.metadata.title || '通知',
-        content: event.metadata.content || '',
+        title: event.metadata.title || "通知",
+        content: event.metadata.content || "",
         sentAt: event.sentAt.toISOString(),
         retryCount: 0,
         duration: event.duration,
@@ -168,21 +167,20 @@ export class NotificationEventHandler {
           success: true,
           channelId: event.channelId,
           channelType: event.channelType,
-          message: '通知发送成功',
+          message: "通知发送成功",
           sentAt: event.sentAt,
           duration: event.duration,
-        } as any
+        } as any,
       );
 
       await this.recordEventStatistics(event, true);
 
-      this.logger.debug('通知发送成功事件处理完成', {
+      this.logger.debug("通知发送成功事件处理完成", {
         eventId: event.eventId,
         notificationId: event.notificationId,
       });
-
     } catch (error) {
-      this.logger.error('处理通知发送成功事件失败', {
+      this.logger.error("处理通知发送成功事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -195,10 +193,12 @@ export class NotificationEventHandler {
    * 处理通知投递成功事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_DELIVERED)
-  async handleNotificationDelivered(event: NotificationDeliveredEvent): Promise<void> {
+  async handleNotificationDelivered(
+    event: NotificationDeliveredEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理通知投递成功事件', {
+    this.logger.debug("处理通知投递成功事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       notificationId: event.notificationId,
@@ -208,16 +208,15 @@ export class NotificationEventHandler {
     try {
       // 更新历史记录状态
       // 这里需要实现更新历史记录状态的逻辑
-      
+
       await this.recordEventStatistics(event, true);
 
-      this.logger.debug('通知投递成功事件处理完成', {
+      this.logger.debug("通知投递成功事件处理完成", {
         eventId: event.eventId,
         notificationId: event.notificationId,
       });
-
     } catch (error) {
-      this.logger.error('处理通知投递成功事件失败', {
+      this.logger.error("处理通知投递成功事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -230,10 +229,12 @@ export class NotificationEventHandler {
    * 处理通知发送失败事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_FAILED)
-  async handleNotificationFailed(event: NotificationFailedEvent): Promise<void> {
+  async handleNotificationFailed(
+    event: NotificationFailedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.warn('处理通知发送失败事件', {
+    this.logger.warn("处理通知发送失败事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       notificationId: event.notificationId,
@@ -254,12 +255,12 @@ export class NotificationEventHandler {
           sentAt: event.failedAt,
           retryCount: event.retryCount,
           message: `通知发送失败: ${event.error}`,
-        } as any
+        } as any,
       );
 
       // 如果需要重试，这里可以触发重试逻辑
       if (event.willRetry) {
-        this.logger.debug('通知将进行重试', {
+        this.logger.debug("通知将进行重试", {
           notificationId: event.notificationId,
           retryCount: event.retryCount,
         });
@@ -268,13 +269,12 @@ export class NotificationEventHandler {
 
       await this.recordEventStatistics(event, false);
 
-      this.logger.debug('通知发送失败事件处理完成', {
+      this.logger.debug("通知发送失败事件处理完成", {
         eventId: event.eventId,
         notificationId: event.notificationId,
       });
-
     } catch (error) {
-      this.logger.error('处理通知发送失败事件失败', {
+      this.logger.error("处理通知发送失败事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -287,10 +287,12 @@ export class NotificationEventHandler {
    * 处理通知重试事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_RETRIED)
-  async handleNotificationRetried(event: NotificationRetriedEvent): Promise<void> {
+  async handleNotificationRetried(
+    event: NotificationRetriedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理通知重试事件', {
+    this.logger.debug("处理通知重试事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       notificationId: event.notificationId,
@@ -301,14 +303,13 @@ export class NotificationEventHandler {
     try {
       await this.recordEventStatistics(event);
 
-      this.logger.debug('通知重试事件处理完成', {
+      this.logger.debug("通知重试事件处理完成", {
         eventId: event.eventId,
         notificationId: event.notificationId,
         retryAttempt: event.retryAttempt,
       });
-
     } catch (error) {
-      this.logger.error('处理通知重试事件失败', {
+      this.logger.error("处理通知重试事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -323,10 +324,12 @@ export class NotificationEventHandler {
    * 处理批量通知开始事件
    */
   @OnEvent(NotificationEventType.BATCH_NOTIFICATION_STARTED)
-  async handleBatchNotificationStarted(event: BatchNotificationStartedEvent): Promise<void> {
+  async handleBatchNotificationStarted(
+    event: BatchNotificationStartedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理批量通知开始事件', {
+    this.logger.debug("处理批量通知开始事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       batchId: event.batchId,
@@ -337,13 +340,12 @@ export class NotificationEventHandler {
     try {
       await this.recordEventStatistics(event);
 
-      this.logger.debug('批量通知开始事件处理完成', {
+      this.logger.debug("批量通知开始事件处理完成", {
         eventId: event.eventId,
         batchId: event.batchId,
       });
-
     } catch (error) {
-      this.logger.error('处理批量通知开始事件失败', {
+      this.logger.error("处理批量通知开始事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -356,10 +358,12 @@ export class NotificationEventHandler {
    * 处理批量通知完成事件
    */
   @OnEvent(NotificationEventType.BATCH_NOTIFICATION_COMPLETED)
-  async handleBatchNotificationCompleted(event: BatchNotificationCompletedEvent): Promise<void> {
+  async handleBatchNotificationCompleted(
+    event: BatchNotificationCompletedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.log('处理批量通知完成事件', {
+    this.logger.log("处理批量通知完成事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       batchId: event.batchId,
@@ -375,13 +379,12 @@ export class NotificationEventHandler {
       // 可以在这里添加批量处理完成后的业务逻辑
       // 例如：发送汇总报告、更新统计等
 
-      this.logger.debug('批量通知完成事件处理完成', {
+      this.logger.debug("批量通知完成事件处理完成", {
         eventId: event.eventId,
         batchId: event.batchId,
       });
-
     } catch (error) {
-      this.logger.error('处理批量通知完成事件失败', {
+      this.logger.error("处理批量通知完成事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -394,10 +397,12 @@ export class NotificationEventHandler {
    * 处理批量通知失败事件
    */
   @OnEvent(NotificationEventType.BATCH_NOTIFICATION_FAILED)
-  async handleBatchNotificationFailed(event: BatchNotificationFailedEvent): Promise<void> {
+  async handleBatchNotificationFailed(
+    event: BatchNotificationFailedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.error('处理批量通知失败事件', {
+    this.logger.error("处理批量通知失败事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       batchId: event.batchId,
@@ -409,13 +414,12 @@ export class NotificationEventHandler {
     try {
       await this.recordEventStatistics(event, false);
 
-      this.logger.debug('批量通知失败事件处理完成', {
+      this.logger.debug("批量通知失败事件处理完成", {
         eventId: event.eventId,
         batchId: event.batchId,
       });
-
     } catch (error) {
-      this.logger.error('处理批量通知失败事件失败', {
+      this.logger.error("处理批量通知失败事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -430,10 +434,12 @@ export class NotificationEventHandler {
    * 处理通知历史记录事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_HISTORY_RECORDED)
-  async handleNotificationHistoryRecorded(event: NotificationHistoryRecordedEvent): Promise<void> {
+  async handleNotificationHistoryRecorded(
+    event: NotificationHistoryRecordedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理通知历史记录事件', {
+    this.logger.debug("处理通知历史记录事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       historyId: event.historyId,
@@ -444,13 +450,12 @@ export class NotificationEventHandler {
     try {
       await this.recordEventStatistics(event);
 
-      this.logger.debug('通知历史记录事件处理完成', {
+      this.logger.debug("通知历史记录事件处理完成", {
         eventId: event.eventId,
         historyId: event.historyId,
       });
-
     } catch (error) {
-      this.logger.error('处理通知历史记录事件失败', {
+      this.logger.error("处理通知历史记录事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -463,10 +468,12 @@ export class NotificationEventHandler {
    * 处理通知历史查询事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_HISTORY_QUERIED)
-  async handleNotificationHistoryQueried(event: NotificationHistoryQueriedEvent): Promise<void> {
+  async handleNotificationHistoryQueried(
+    event: NotificationHistoryQueriedEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.debug('处理通知历史查询事件', {
+    this.logger.debug("处理通知历史查询事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       queryId: event.queryId,
@@ -477,13 +484,12 @@ export class NotificationEventHandler {
     try {
       await this.recordEventStatistics(event);
 
-      this.logger.debug('通知历史查询事件处理完成', {
+      this.logger.debug("通知历史查询事件处理完成", {
         eventId: event.eventId,
         queryId: event.queryId,
       });
-
     } catch (error) {
-      this.logger.error('处理通知历史查询事件失败', {
+      this.logger.error("处理通知历史查询事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -498,10 +504,12 @@ export class NotificationEventHandler {
    * 处理通知系统错误事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_SYSTEM_ERROR)
-  async handleNotificationSystemError(event: NotificationSystemErrorEvent): Promise<void> {
+  async handleNotificationSystemError(
+    event: NotificationSystemErrorEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.error('处理通知系统错误事件', {
+    this.logger.error("处理通知系统错误事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       component: event.component,
@@ -515,13 +523,12 @@ export class NotificationEventHandler {
       // 可以在这里添加错误处理逻辑
       // 例如：发送错误报告、触发自动恢复等
 
-      this.logger.debug('通知系统错误事件处理完成', {
+      this.logger.debug("通知系统错误事件处理完成", {
         eventId: event.eventId,
         component: event.component,
       });
-
     } catch (error) {
-      this.logger.error('处理通知系统错误事件失败', {
+      this.logger.error("处理通知系统错误事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -534,10 +541,12 @@ export class NotificationEventHandler {
    * 处理通知渠道错误事件
    */
   @OnEvent(NotificationEventType.NOTIFICATION_CHANNEL_ERROR)
-  async handleNotificationChannelError(event: NotificationChannelErrorEvent): Promise<void> {
+  async handleNotificationChannelError(
+    event: NotificationChannelErrorEvent,
+  ): Promise<void> {
     const startTime = Date.now();
 
-    this.logger.error('处理通知渠道错误事件', {
+    this.logger.error("处理通知渠道错误事件", {
       eventId: event.eventId,
       alertId: event.alertId,
       channelType: event.channelType,
@@ -551,20 +560,19 @@ export class NotificationEventHandler {
 
       // 如果渠道完全不可用，可以在这里触发降级逻辑
       if (event.isChannelDown) {
-        this.logger.warn('通知渠道不可用，建议启用降级方案', {
+        this.logger.warn("通知渠道不可用，建议启用降级方案", {
           channelType: event.channelType,
           channelId: event.channelId,
         });
         // 可以在这里触发渠道故障转移逻辑
       }
 
-      this.logger.debug('通知渠道错误事件处理完成', {
+      this.logger.debug("通知渠道错误事件处理完成", {
         eventId: event.eventId,
         channelType: event.channelType,
       });
-
     } catch (error) {
-      this.logger.error('处理通知渠道错误事件失败', {
+      this.logger.error("处理通知渠道错误事件失败", {
         eventId: event.eventId,
         error: error.message,
       });
@@ -578,14 +586,20 @@ export class NotificationEventHandler {
   /**
    * 记录事件统计信息
    */
-  private async recordEventStatistics(event: NotificationEvent, isSuccess?: boolean): Promise<void> {
+  private async recordEventStatistics(
+    event: NotificationEvent,
+    isSuccess?: boolean,
+  ): Promise<void> {
     this.statistics.totalEvents++;
     this.statistics.eventsByType[event.eventType]++;
     this.statistics.lastEventAt = event.timestamp;
 
     if (isSuccess === true) {
       this.statistics.successEvents++;
-    } else if (isSuccess === false || NotificationEventTypeGuards.isErrorEvent(event)) {
+    } else if (
+      isSuccess === false ||
+      NotificationEventTypeGuards.isErrorEvent(event)
+    ) {
       this.statistics.errorEvents++;
     }
   }
@@ -603,8 +617,9 @@ export class NotificationEventHandler {
     }
 
     // 计算平均处理时间
-    this.statistics.averageProcessingTime = 
-      this.processingTimes.reduce((a, b) => a + b, 0) / this.processingTimes.length;
+    this.statistics.averageProcessingTime =
+      this.processingTimes.reduce((a, b) => a + b, 0) /
+      this.processingTimes.length;
   }
 
   /**
@@ -623,8 +638,8 @@ export class NotificationEventHandler {
     this.statistics.successEvents = 0;
     this.statistics.averageProcessingTime = 0;
     this.processingTimes = [];
-    
-    Object.keys(this.statistics.eventsByType).forEach(key => {
+
+    Object.keys(this.statistics.eventsByType).forEach((key) => {
       this.statistics.eventsByType[key as NotificationEventType] = 0;
     });
   }
@@ -632,21 +647,23 @@ export class NotificationEventHandler {
   /**
    * 健康检查
    */
-  healthCheck(): { status: 'healthy' | 'unhealthy'; details: any } {
-    const errorRate = this.statistics.totalEvents > 0 
-      ? this.statistics.errorEvents / this.statistics.totalEvents 
-      : 0;
+  healthCheck(): { status: "healthy" | "unhealthy"; details: any } {
+    const errorRate =
+      this.statistics.totalEvents > 0
+        ? this.statistics.errorEvents / this.statistics.totalEvents
+        : 0;
 
-    const isHealthy = errorRate < 0.1 && this.statistics.averageProcessingTime < 1000;
+    const isHealthy =
+      errorRate < 0.1 && this.statistics.averageProcessingTime < 1000;
 
     return {
-      status: isHealthy ? 'healthy' : 'unhealthy',
+      status: isHealthy ? "healthy" : "unhealthy",
       details: {
         ...this.statistics,
         errorRate: errorRate.toFixed(3),
         healthCheck: {
-          errorRateThreshold: '< 10%',
-          processingTimeThreshold: '< 1000ms',
+          errorRateThreshold: "< 10%",
+          processingTimeThreshold: "< 1000ms",
           currentErrorRate: `${(errorRate * 100).toFixed(1)}%`,
           currentAvgProcessingTime: `${this.statistics.averageProcessingTime.toFixed(1)}ms`,
         },

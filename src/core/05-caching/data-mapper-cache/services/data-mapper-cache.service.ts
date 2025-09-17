@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Redis } from "ioredis";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { IDataMapperCache } from "../interfaces/data-mapper-cache.interface";
@@ -68,7 +68,8 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   private async scanKeysWithTimeout(
     pattern: string,
-    timeoutMs: number = DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.DEFAULT_SCAN_MS,
+    timeoutMs: number = DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS
+      .DEFAULT_SCAN_MS,
   ): Promise<string[]> {
     const keys: string[] = [];
     let cursor = "0";
@@ -95,7 +96,11 @@ export class DataMapperCacheService implements IDataMapperCache {
         );
         cursor = result[0];
         keys.push(...result[1]);
-      } while (cursor !== "0" && keys.length < DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.MAX_KEYS_PREVENTION); // 防止内存过度使用
+      } while (
+        cursor !== "0" &&
+        keys.length <
+          DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.MAX_KEYS_PREVENTION
+      ); // 防止内存过度使用
 
       return keys;
     } catch (error) {
@@ -111,7 +116,8 @@ export class DataMapperCacheService implements IDataMapperCache {
   private async batchDelete(keys: string[]): Promise<void> {
     if (keys.length === 0) return;
 
-    const BATCH_SIZE = DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.DELETE_BATCH_SIZE;
+    const BATCH_SIZE =
+      DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.DELETE_BATCH_SIZE;
     const batches = [];
 
     for (let i = 0; i < keys.length; i += BATCH_SIZE) {
@@ -123,8 +129,11 @@ export class DataMapperCacheService implements IDataMapperCache {
       try {
         await this.redis.del(...batch);
         // 批次间短暂延迟，降低Redis负载
-        await new Promise((resolve) => 
-          setTimeout(resolve, DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.INTER_BATCH_DELAY_MS)
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            DATA_MAPPER_CACHE_CONSTANTS.BATCH_OPERATIONS.INTER_BATCH_DELAY_MS,
+          ),
         );
       } catch (error) {
         this.logger.warn("批量删除失败", {
@@ -485,8 +494,8 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       for (const pattern of patterns) {
         const keys = await this.scanKeysWithTimeout(
-          pattern, 
-          DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.PROVIDER_INVALIDATE_MS
+          pattern,
+          DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.PROVIDER_INVALIDATE_MS,
         );
         await this.batchDelete(keys);
         totalDeleted += keys.length;
@@ -717,14 +726,18 @@ export class DataMapperCacheService implements IDataMapperCache {
    * @private
    */
   private validateCacheKey(key: string): void {
-    if (!key || typeof key !== 'string') {
-      throw new Error(DATA_MAPPER_CACHE_CONSTANTS.ERROR_MESSAGES.INVALID_RULE_ID);
+    if (!key || typeof key !== "string") {
+      throw new Error(
+        DATA_MAPPER_CACHE_CONSTANTS.ERROR_MESSAGES.INVALID_RULE_ID,
+      );
     }
-    
+
     if (key.length > DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH) {
-      throw new Error(`缓存键长度超过限制: ${key.length}/${DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH}`);
+      throw new Error(
+        `缓存键长度超过限制: ${key.length}/${DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH}`,
+      );
     }
-    
+
     // 检查键格式（不应包含空格或特殊字符）
     if (!/^[a-zA-Z0-9:_-]+$/.test(key)) {
       throw new Error(`缓存键包含无效字符: ${key}`);

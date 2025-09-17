@@ -3,7 +3,10 @@
  */
 
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
+import {
+  HTTP_TIMEOUTS,
+  BATCH_SIZE_SEMANTICS,
+} from "@common/constants/semantic";
 import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
 
 /**

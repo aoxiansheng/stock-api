@@ -3,7 +3,7 @@
  * 用于整个系统中的认证类型标识
  */
 
-import { AuthenticationType } from './shared-base.enum';
+import { AuthenticationType } from "./shared-base.enum";
 
 // 使用共享基础枚举，消除重复值
 export const AuthType = AuthenticationType;

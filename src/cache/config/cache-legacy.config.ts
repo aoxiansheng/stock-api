@@ -1,20 +1,20 @@
 /**
  * 缓存模块遗留配置
  * 🚨 已废弃：此文件已被cache-unified.config.ts完全替代
- * 
+ *
  * @deprecated 将在v3.0.0版本中移除
  * @migration 使用cache-unified.config.ts替代
  * @compatibility 通过CacheModule自动提供向后兼容
- * 
+ *
  * 迁移指南：
  * - 新服务：直接使用@Inject('cacheUnified') CacheUnifiedConfig
  * - 现有服务：继续使用当前接口，自动映射到统一配置
  * - 所有配置项已迁移到cache-unified.config.ts，包括TTL、限制、性能配置
  */
 
-import { registerAs } from '@nestjs/config';
-import { IsNumber, IsBoolean, Min, validateSync } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { registerAs } from "@nestjs/config";
+import { IsNumber, IsBoolean, Min, validateSync } from "class-validator";
+import { plainToClass } from "class-transformer";
 
 // Deprecated装饰器已移除，不再有废弃字段
 
@@ -44,7 +44,6 @@ export class CacheConfigValidation {
   @Min(1)
   maxValueSizeMB: number = 10; // 最大值大小(MB)
 
-
   @IsNumber()
   @Min(1)
   slowOperationMs: number = 100; // 慢操作阈值(毫秒)
@@ -62,12 +61,13 @@ export class CacheConfigValidation {
  * 缓存配置注册函数
  * 使用命名空间 'cache' 注册配置
  */
-export default registerAs('cache', (): CacheConfigValidation => {
+export default registerAs("cache", (): CacheConfigValidation => {
   // 从环境变量读取配置
   const config = {
     // defaultTtl已迁移到cache-unified.config.ts，通过统一配置访问
-    compressionThreshold: parseInt(process.env.CACHE_COMPRESSION_THRESHOLD, 10) || 1024,
-    compressionEnabled: process.env.CACHE_COMPRESSION_ENABLED !== 'false',
+    compressionThreshold:
+      parseInt(process.env.CACHE_COMPRESSION_THRESHOLD, 10) || 1024,
+    compressionEnabled: process.env.CACHE_COMPRESSION_ENABLED !== "false",
     maxItems: parseInt(process.env.CACHE_MAX_ITEMS, 10) || 10000,
     maxKeyLength: parseInt(process.env.CACHE_MAX_KEY_LENGTH, 10) || 255,
     maxValueSizeMB: parseInt(process.env.CACHE_MAX_VALUE_SIZE_MB, 10) || 10,
@@ -88,8 +88,8 @@ export default registerAs('cache', (): CacheConfigValidation => {
 
   if (errors.length > 0) {
     const errorMessages = errors
-      .map(error => Object.values(error.constraints || {}).join(', '))
-      .join('; ');
+      .map((error) => Object.values(error.constraints || {}).join(", "))
+      .join("; ");
     throw new Error(`Cache configuration validation failed: ${errorMessages}`);
   }
 
@@ -103,7 +103,7 @@ export default registerAs('cache', (): CacheConfigValidation => {
 export type CacheConfig = CacheConfigValidation;
 
 // 重新导出兼容性接口，确保现有代码继续工作
-export type { 
+export type {
   LegacyCacheConfig,
-  CacheConfigCompatibilityWrapper 
-} from './cache-config-compatibility';
+  CacheConfigCompatibilityWrapper,
+} from "./cache-config-compatibility";

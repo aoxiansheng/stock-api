@@ -1,7 +1,7 @@
 /**
  * 通用警告事件接口
  * 🎯 提供模块间事件通信的标准化数据结构
- * 
+ *
  * @description 为实现Alert和Notification模块完全解耦而设计
  * @author Claude Code Assistant
  * @date 2025-09-10
@@ -12,10 +12,10 @@
  * 避免依赖Alert模块的AlertSeverity
  */
 export enum GenericAlertSeverity {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH', 
-  CRITICAL = 'CRITICAL'
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
 }
 
 /**
@@ -23,10 +23,10 @@ export enum GenericAlertSeverity {
  * 避免依赖Alert模块的AlertStatus
  */
 export enum GenericAlertStatus {
-  ACTIVE = 'ACTIVE',
-  RESOLVED = 'RESOLVED',
-  ACKNOWLEDGED = 'ACKNOWLEDGED',
-  SUPPRESSED = 'SUPPRESSED'
+  ACTIVE = "ACTIVE",
+  RESOLVED = "RESOLVED",
+  ACKNOWLEDGED = "ACKNOWLEDGED",
+  SUPPRESSED = "SUPPRESSED",
 }
 
 /**
@@ -34,11 +34,11 @@ export enum GenericAlertStatus {
  * 定义所有支持的警告事件类型
  */
 export enum GenericAlertEventType {
-  FIRED = 'FIRED',
-  RESOLVED = 'RESOLVED', 
-  ACKNOWLEDGED = 'ACKNOWLEDGED',
-  SUPPRESSED = 'SUPPRESSED',
-  ESCALATED = 'ESCALATED'
+  FIRED = "FIRED",
+  RESOLVED = "RESOLVED",
+  ACKNOWLEDGED = "ACKNOWLEDGED",
+  SUPPRESSED = "SUPPRESSED",
+  ESCALATED = "ESCALATED",
 }
 
 /**
@@ -116,32 +116,32 @@ export interface GenericAlertEvent {
    * 事件类型
    */
   eventType: GenericAlertEventType;
-  
+
   /**
    * 事件时间戳
    */
   timestamp: Date;
-  
+
   /**
    * 事件关联ID，用于追踪
    */
   correlationId: string;
-  
+
   /**
    * 警告数据
    */
   alert: GenericAlert;
-  
+
   /**
    * 触发规则
    */
   rule: GenericAlertRule;
-  
+
   /**
    * 上下文信息
    */
   context: GenericAlertContext;
-  
+
   /**
    * 事件特定数据
    * 不同事件类型可能包含不同的额外信息
@@ -151,24 +151,24 @@ export interface GenericAlertEvent {
     resolvedBy?: string;
     resolvedAt?: Date;
     resolutionComment?: string;
-    
+
     // 确认事件相关
     acknowledgedBy?: string;
     acknowledgedAt?: Date;
     acknowledgmentComment?: string;
-    
+
     // 抑制事件相关
     suppressedBy?: string;
     suppressedAt?: Date;
     suppressionDuration?: number;
     suppressionReason?: string;
-    
+
     // 升级事件相关
     previousSeverity?: GenericAlertSeverity;
     newSeverity?: GenericAlertSeverity;
     escalatedAt?: Date;
     escalationReason?: string;
-    
+
     // 扩展字段
     [key: string]: any;
   };
@@ -194,7 +194,7 @@ export interface GenericAlertEventHandler {
    * 处理警告事件
    */
   handle(event: GenericAlertEvent): Promise<GenericAlertEventResult>;
-  
+
   /**
    * 获取支持的事件类型
    */

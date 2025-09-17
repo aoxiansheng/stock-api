@@ -4,8 +4,8 @@
  * 📦 基于Foundation层构建，解决MAX_BATCH_SIZE等重复定义问题
  */
 
-import { NUMERIC_CONSTANTS } from '../core';
-import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
+import { NUMERIC_CONSTANTS } from "../core";
+import { CORE_VALUES, CORE_TIMEOUTS } from "../foundation";
 
 /**
  * 批量大小语义配置
@@ -14,34 +14,34 @@ import { CORE_VALUES, CORE_TIMEOUTS } from '../foundation';
 export const BATCH_SIZE_SEMANTICS = Object.freeze({
   // 基础批量大小配置
   BASIC: {
-    MIN_SIZE: NUMERIC_CONSTANTS.N_1,                             // 1 - 最小批量大小
-    OPTIMAL_SIZE: NUMERIC_CONSTANTS.N_50,                        // 50 - 最优批量大小
-    MAX_SIZE: NUMERIC_CONSTANTS.N_1000,                          // 1000 - 最大批量大小 🎯
+    MIN_SIZE: NUMERIC_CONSTANTS.N_1, // 1 - 最小批量大小
+    OPTIMAL_SIZE: NUMERIC_CONSTANTS.N_50, // 50 - 最优批量大小
+    MAX_SIZE: NUMERIC_CONSTANTS.N_1000, // 1000 - 最大批量大小 🎯
   },
 
   // 场景特定批量大小
   SCENARIO: {
     // 数据库操作
-    DATABASE_INSERT: NUMERIC_CONSTANTS.N_50,                          // 50 - 数据库插入
-    
+    DATABASE_INSERT: NUMERIC_CONSTANTS.N_50, // 50 - 数据库插入
+
     // API请求处理
-    API_REQUEST_PROCESSING: NUMERIC_CONSTANTS.N_100,                  // 100 - API请求处理
-    
+    API_REQUEST_PROCESSING: NUMERIC_CONSTANTS.N_100, // 100 - API请求处理
+
     // 文件操作
-    
+
     // 缓存操作
-    
+
     // 消息处理
-    NOTIFICATION_BATCH: NUMERIC_CONSTANTS.N_50,                      // 50 - 通知批量发送
+    NOTIFICATION_BATCH: NUMERIC_CONSTANTS.N_50, // 50 - 通知批量发送
   },
 
   // 性能优化分级批量大小
   PERFORMANCE: {
-    MICRO_BATCH: NUMERIC_CONSTANTS.N_6,                             // 6 - 微批量（超快处理）
-    SMALL_BATCH: NUMERIC_CONSTANTS.N_50 / 2,                        // 25 - 小批量（快速处理）
-    MEDIUM_BATCH: NUMERIC_CONSTANTS.N_50,                             // 50 - 中批量（平衡处理）
-    LARGE_BATCH: NUMERIC_CONSTANTS.N_100,                             // 100 - 大批量（高吞吐）
-    HUGE_BATCH: NUMERIC_CONSTANTS.N_500,                             // 500 - 巨批量（最大吞吐）
+    MICRO_BATCH: NUMERIC_CONSTANTS.N_6, // 6 - 微批量（超快处理）
+    SMALL_BATCH: NUMERIC_CONSTANTS.N_50 / 2, // 25 - 小批量（快速处理）
+    MEDIUM_BATCH: NUMERIC_CONSTANTS.N_50, // 50 - 中批量（平衡处理）
+    LARGE_BATCH: NUMERIC_CONSTANTS.N_100, // 100 - 大批量（高吞吐）
+    HUGE_BATCH: NUMERIC_CONSTANTS.N_500, // 500 - 巨批量（最大吞吐）
   },
 });
 
@@ -52,45 +52,45 @@ export const BATCH_SIZE_SEMANTICS = Object.freeze({
 export const CONCURRENCY_SEMANTICS = Object.freeze({
   // 基础并发配置
   BASIC: {
-    DEFAULT_WORKERS: NUMERIC_CONSTANTS.N_6,                     // 6 - 默认工作进程数
+    DEFAULT_WORKERS: NUMERIC_CONSTANTS.N_6, // 6 - 默认工作进程数
   },
 
   // 场景特定并发配置
   SCENARIO: {
     // I/O密集型操作
     IO_INTENSIVE: {
-      WORKERS: NUMERIC_CONSTANTS.N_6,                    // 6 - I/O密集型默认工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6, // 6 - I/O密集型默认工作进程数
     },
-    
+
     // CPU密集型操作
     CPU_INTENSIVE: {
-      WORKERS: NUMERIC_CONSTANTS.N_6 / 2,  // 3 - CPU密集型较少工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6 / 2, // 3 - CPU密集型较少工作进程数
     },
-    
+
     // 网络请求
     NETWORK_REQUEST: {
-      WORKERS: NUMERIC_CONSTANTS.N_6,                    // 6 - 网络请求默认工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6, // 6 - 网络请求默认工作进程数
     },
-    
+
     // 数据库连接
     DATABASE_CONNECTION: {
-      WORKERS: NUMERIC_CONSTANTS.N_6,  // 6 - 数据库连接工作进程数
+      WORKERS: NUMERIC_CONSTANTS.N_6, // 6 - 数据库连接工作进程数
     },
   },
 
   // 资源限制分级
   RESOURCE_LIMITS: {
     LOW_RESOURCE: {
-      BATCH_SIZE: NUMERIC_CONSTANTS.N_6,                      // 6 - 低资源批量大小
-      WORKERS: NUMERIC_CONSTANTS.N_1,                           // 1 - 低资源工作进程数
+      BATCH_SIZE: NUMERIC_CONSTANTS.N_6, // 6 - 低资源批量大小
+      WORKERS: NUMERIC_CONSTANTS.N_1, // 1 - 低资源工作进程数
     },
     MEDIUM_RESOURCE: {
-      BATCH_SIZE: NUMERIC_CONSTANTS.N_50,                       // 50 - 中等资源批量大小
-      WORKERS: NUMERIC_CONSTANTS.N_6,                         // 6 - 中等资源工作进程数
+      BATCH_SIZE: NUMERIC_CONSTANTS.N_50, // 50 - 中等资源批量大小
+      WORKERS: NUMERIC_CONSTANTS.N_6, // 6 - 中等资源工作进程数
     },
     HIGH_RESOURCE: {
-      BATCH_SIZE: NUMERIC_CONSTANTS.N_100,                      // 100 - 高资源批量大小
-      WORKERS: NUMERIC_CONSTANTS.N_50,                          // 50 - 高资源工作进程数
+      BATCH_SIZE: NUMERIC_CONSTANTS.N_100, // 100 - 高资源批量大小
+      WORKERS: NUMERIC_CONSTANTS.N_50, // 50 - 高资源工作进程数
     },
   },
 });
@@ -102,25 +102,25 @@ export const CONCURRENCY_SEMANTICS = Object.freeze({
 export const BATCH_TIMEOUT_SEMANTICS = Object.freeze({
   // 基础超时配置（毫秒）
   BASIC: {
-    QUICK_BATCH_MS: CORE_TIMEOUTS.OPERATION.QUICK_MS,          // 1000ms - 快速批量处理
-    STANDARD_BATCH_MS: CORE_TIMEOUTS.OPERATION.STANDARD_MS,    // 10000ms - 标准批量处理
-    LONG_BATCH_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS,    // 60000ms - 长时间批量处理
+    QUICK_BATCH_MS: CORE_TIMEOUTS.OPERATION.QUICK_MS, // 1000ms - 快速批量处理
+    STANDARD_BATCH_MS: CORE_TIMEOUTS.OPERATION.STANDARD_MS, // 10000ms - 标准批量处理
+    LONG_BATCH_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS, // 60000ms - 长时间批量处理
     BACKGROUND_BATCH_MS: CORE_TIMEOUTS.OPERATION.BACKGROUND_MS, // 600000ms - 后台批量处理
   },
 
   // 场景特定超时（毫秒）
   SCENARIO: {
-    DATABASE_BATCH_MS: CORE_TIMEOUTS.DATABASE.TRANSACTION_MS,  // 30000ms - 数据库批量操作
-    API_BATCH_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS,     // 60000ms - API批量请求（使用长运行超时）
+    DATABASE_BATCH_MS: CORE_TIMEOUTS.DATABASE.TRANSACTION_MS, // 30000ms - 数据库批量操作
+    API_BATCH_MS: CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS, // 60000ms - API批量请求（使用长运行超时）
   },
 
   // 批量大小相关超时策略（毫秒）
   SIZE_BASED: {
-    MICRO_BATCH_MS: NUMERIC_CONSTANTS.N_1000,            // 1000ms - 微批量超时
-    SMALL_BATCH_MS: NUMERIC_CONSTANTS.N_5000,          // 5000ms - 小批量超时
-    MEDIUM_BATCH_MS: CORE_TIMEOUTS.OPERATION.STANDARD_MS,      // 10000ms - 中批量超时
-    LARGE_BATCH_MS: NUMERIC_CONSTANTS.N_30000,        // 30000ms - 大批量超时
-    HUGE_BATCH_MS: NUMERIC_CONSTANTS.N_60000,             // 60000ms - 巨批量超时
+    MICRO_BATCH_MS: NUMERIC_CONSTANTS.N_1000, // 1000ms - 微批量超时
+    SMALL_BATCH_MS: NUMERIC_CONSTANTS.N_5000, // 5000ms - 小批量超时
+    MEDIUM_BATCH_MS: CORE_TIMEOUTS.OPERATION.STANDARD_MS, // 10000ms - 中批量超时
+    LARGE_BATCH_MS: NUMERIC_CONSTANTS.N_30000, // 30000ms - 大批量超时
+    HUGE_BATCH_MS: NUMERIC_CONSTANTS.N_60000, // 60000ms - 巨批量超时
   },
 });
 
@@ -131,26 +131,24 @@ export const BATCH_TIMEOUT_SEMANTICS = Object.freeze({
 export const BATCH_STRATEGY_SEMANTICS = Object.freeze({
   // 处理策略类型
   PROCESSING_STRATEGIES: {
-    SEQUENTIAL: 'sequential',            // 顺序处理
-    PARALLEL: 'parallel',               // 并行处理
-    ADAPTIVE: 'adaptive',               // 自适应处理
+    SEQUENTIAL: "sequential", // 顺序处理
+    PARALLEL: "parallel", // 并行处理
+    ADAPTIVE: "adaptive", // 自适应处理
   },
 
   // 错误处理策略
   ERROR_STRATEGIES: {
-    FAIL_FAST: 'fail-fast',            // 快速失败
-    FAIL_SAFE: 'fail-safe',            // 安全失败
-    BEST_EFFORT: 'best-effort',        // 尽力而为
-    RETRY_FAILED: 'retry-failed',      // 重试失败项
+    FAIL_FAST: "fail-fast", // 快速失败
+    FAIL_SAFE: "fail-safe", // 安全失败
+    BEST_EFFORT: "best-effort", // 尽力而为
+    RETRY_FAILED: "retry-failed", // 重试失败项
   },
 
   // 内存管理策略
-  MEMORY_STRATEGIES: {
-  },
+  MEMORY_STRATEGIES: {},
 
   // 优先级策略
-  PRIORITY_STRATEGIES: {
-  },
+  PRIORITY_STRATEGIES: {},
 });
 
 /**
@@ -228,16 +226,18 @@ export class BatchSemanticsUtil {
   /**
    * 根据操作类型推荐并发数
    */
-  static getRecommendedConcurrency(operationType: 'io' | 'cpu' | 'network' | 'database'): number {
+  static getRecommendedConcurrency(
+    operationType: "io" | "cpu" | "network" | "database",
+  ): number {
     const scenario = CONCURRENCY_SEMANTICS.SCENARIO;
     switch (operationType) {
-      case 'io':
+      case "io":
         return scenario.IO_INTENSIVE.WORKERS;
-      case 'cpu':
+      case "cpu":
         return scenario.CPU_INTENSIVE.WORKERS;
-      case 'network':
+      case "network":
         return scenario.NETWORK_REQUEST.WORKERS;
-      case 'database':
+      case "database":
         return scenario.DATABASE_CONNECTION.WORKERS;
       default:
         return CONCURRENCY_SEMANTICS.BASIC.DEFAULT_WORKERS;
@@ -279,8 +279,10 @@ export class BatchSemanticsUtil {
    * 判断批量大小是否合理
    */
   static isValidBatchSize(batchSize: number): boolean {
-    return batchSize >= BATCH_SIZE_SEMANTICS.BASIC.MIN_SIZE && 
-           batchSize <= BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE;
+    return (
+      batchSize >= BATCH_SIZE_SEMANTICS.BASIC.MIN_SIZE &&
+      batchSize <= BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE
+    );
   }
 }
 

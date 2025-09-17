@@ -10,29 +10,29 @@ import {
   ENVIRONMENT_FEATURES,
   ENVIRONMENT_RESOURCE_LIMITS,
   EnvironmentConfigManager,
-  EnvironmentConfigUtil
-} from './environment-config.constants';
+  EnvironmentConfigUtil,
+} from "./environment-config.constants";
 
 // 导入核心常量用于QUICK配置
-import { NUMERIC_CONSTANTS } from '../core/numeric.constants';
-import { CORE_VALUES } from '../foundation/core-values.constants';
-import { HTTP_TIMEOUTS } from '../semantic/http-semantics.constants';
-import { BATCH_SIZE_SEMANTICS } from '../semantic/batch-semantics.constants';
-import { HTTP_STATUS_CODES } from '../semantic/http-semantics.constants';
+import { NUMERIC_CONSTANTS } from "../core/numeric.constants";
+import { CORE_VALUES } from "../foundation/core-values.constants";
+import { HTTP_TIMEOUTS } from "../semantic/http-semantics.constants";
+import { BATCH_SIZE_SEMANTICS } from "../semantic/batch-semantics.constants";
+import { HTTP_STATUS_CODES } from "../semantic/http-semantics.constants";
 
 // 导入枚举类型
 const Environment = {
-  DEVELOPMENT: 'development',
-  TEST: 'test',
-  STAGING: 'staging',
-  PRODUCTION: 'production'
+  DEVELOPMENT: "development",
+  TEST: "test",
+  STAGING: "staging",
+  PRODUCTION: "production",
 } as const;
 
 const LogLevel = {
-  ERROR: 'error',
-  WARN: 'warn',
-  INFO: 'info',
-  DEBUG: 'debug'
+  ERROR: "error",
+  WARN: "warn",
+  INFO: "info",
+  DEBUG: "debug",
 } as const;
 
 // 导出环境配置相关
@@ -41,7 +41,7 @@ export {
   ENVIRONMENT_FEATURES,
   ENVIRONMENT_RESOURCE_LIMITS,
   EnvironmentConfigManager,
-  EnvironmentConfigUtil
+  EnvironmentConfigUtil,
 };
 
 // 导出类型定义
@@ -60,7 +60,7 @@ export const APPLICATION_CONSTANTS = Object.freeze({
 
   // 元信息
   META: {
-    VERSION: '1.0.0',
+    VERSION: "1.0.0",
   },
 } as const);
 
@@ -91,7 +91,7 @@ export class ConstantSystemManager {
    */
   getFullSystemConfig(): any {
     const environmentConfig = this.environmentConfigManager.getConfigSummary();
-    
+
     return {
       environment: environmentConfig,
       meta: APPLICATION_CONSTANTS.META,
@@ -131,7 +131,8 @@ export class ConstantSystemManager {
     const warnings: string[] = [];
 
     // 验证环境配置
-    const envValidation = this.environmentConfigManager.validateEnvironmentConfig();
+    const envValidation =
+      this.environmentConfigManager.validateEnvironmentConfig();
     warnings.push(...envValidation.warnings);
 
     // 检查配置一致性
@@ -141,7 +142,7 @@ export class ConstantSystemManager {
     return {
       valid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
   }
 
@@ -156,23 +157,23 @@ export class ConstantSystemManager {
     // 检查生产环境安全配置
     if (env === Environment.PRODUCTION) {
       if (features.DEBUG?.ENABLE_DEBUG_LOGS) {
-        warnings.push('Debug logs enabled in production environment');
+        warnings.push("Debug logs enabled in production environment");
       }
       if (features.DEV_TOOLS?.ENABLE_SWAGGER_UI) {
-        warnings.push('Swagger UI enabled in production environment');
+        warnings.push("Swagger UI enabled in production environment");
       }
       if (features.SECURITY?.CORS_ALLOW_ALL) {
-        warnings.push('CORS allow all enabled in production environment');
+        warnings.push("CORS allow all enabled in production environment");
       }
     }
 
     // 检查开发环境性能配置
     if (env === Environment.DEVELOPMENT) {
       if (!features.DEBUG?.ENABLE_DEBUG_LOGS) {
-        warnings.push('Debug logs disabled in development environment');
+        warnings.push("Debug logs disabled in development environment");
       }
       if (!features.DEV_TOOLS?.ENABLE_API_DOCS) {
-        warnings.push('API docs disabled in development environment');
+        warnings.push("API docs disabled in development environment");
       }
     }
 
@@ -190,7 +191,7 @@ export class ConstantSystemManager {
       system: {
         totalLayers: 3, // Foundation, Semantic, Domain
         totalDomains: 3, // Market, Alert, RateLimit
-        architecture: 'Foundation → Semantic → Domain → Application',
+        architecture: "Foundation → Semantic → Domain → Application",
         version: APPLICATION_CONSTANTS.META.VERSION,
       },
 
@@ -219,7 +220,7 @@ export class ConstantSystemManager {
    */
   getRecommendedConfig(_scenario?: string): any {
     const env = this.environmentConfigManager.getCurrentEnvironment();
-    
+
     // 基于环境返回简化的推荐配置
     const baseConfig = {
       environment: env,
@@ -234,16 +235,16 @@ export class ConstantSystemManager {
   /**
    * 导出配置到文件
    */
-  exportConfig(format: 'json' | 'yaml' | 'env' = 'json'): string {
+  exportConfig(format: "json" | "yaml" | "env" = "json"): string {
     const config = this.getRuntimeConfig();
-    
+
     switch (format) {
-      case 'json':
+      case "json":
         return JSON.stringify(config, null, 2);
-      case 'yaml':
+      case "yaml":
         // 简化的YAML导出（实际项目中可使用yaml库）
         return this.objectToYaml(config);
-      case 'env':
+      case "env":
         return this.objectToEnvVars(config);
       default:
         return JSON.stringify(config, null, 2);
@@ -254,11 +255,11 @@ export class ConstantSystemManager {
    * 简化的对象转YAML
    */
   private objectToYaml(obj: any, indent: number = 0): string {
-    const spaces = '  '.repeat(indent);
-    let yaml = '';
+    const spaces = "  ".repeat(indent);
+    let yaml = "";
 
     for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'object' && value !== null) {
+      if (typeof value === "object" && value !== null) {
         yaml += `${spaces}${key}:\n${this.objectToYaml(value, indent + 1)}`;
       } else {
         yaml += `${spaces}${key}: ${value}\n`;
@@ -271,13 +272,15 @@ export class ConstantSystemManager {
   /**
    * 简化的对象转环境变量
    */
-  private objectToEnvVars(obj: any, prefix: string = ''): string {
-    let envVars = '';
+  private objectToEnvVars(obj: any, prefix: string = ""): string {
+    let envVars = "";
 
     for (const [key, value] of Object.entries(obj)) {
-      const envKey = prefix ? `${prefix}_${key.toUpperCase()}` : key.toUpperCase();
-      
-      if (typeof value === 'object' && value !== null) {
+      const envKey = prefix
+        ? `${prefix}_${key.toUpperCase()}`
+        : key.toUpperCase();
+
+      if (typeof value === "object" && value !== null) {
         envVars += this.objectToEnvVars(value, envKey);
       } else {
         envVars += `${envKey}=${value}\n`;
@@ -295,52 +298,52 @@ export class ConstantSystemManager {
 export const CONFIG = {
   // 系统管理器实例
   SYSTEM: ConstantSystemManager.getInstance(),
-  
+
   // 环境配置
   ENV: EnvironmentConfigManager.getInstance(),
-  
+
   // 完整应用配置
   APP: APPLICATION_CONSTANTS,
-  
+
   // 快速访问配置 - 修复TS2339错误
   QUICK: {
     // 超时配置
     TIMEOUTS: {
-      FAST_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS,        // 5秒
-      NORMAL_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,    // 30秒
-      DATABASE_QUERY_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,    // 30秒
-      SLOW_OPERATION_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS,      // 60秒
+      FAST_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS, // 5秒
+      NORMAL_REQUEST_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 30秒
+      DATABASE_QUERY_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 30秒
+      SLOW_OPERATION_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS, // 60秒
     },
-    
+
     // 批量大小配置
     BATCH_SIZES: {
-      SMALL: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH,     // 25
-      OPTIMAL: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,        // 50
-      MAX: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,                // 1000
+      SMALL: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH, // 25
+      OPTIMAL: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE, // 50
+      MAX: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE, // 1000
     },
-    
+
     // 缓存TTL配置
     CACHE_TTL: {
-      REALTIME_SEC: NUMERIC_CONSTANTS.N_5,                  // 5秒
-      FREQUENT_SEC: NUMERIC_CONSTANTS.N_60,                 // 60秒 (1分钟)
-      STATIC_SEC: NUMERIC_CONSTANTS.N_86400,                // 86400秒 (1天)
+      REALTIME_SEC: NUMERIC_CONSTANTS.N_5, // 5秒
+      FREQUENT_SEC: NUMERIC_CONSTANTS.N_60, // 60秒 (1分钟)
+      STATIC_SEC: NUMERIC_CONSTANTS.N_86400, // 86400秒 (1天)
     },
-    
+
     // HTTP状态码
     HTTP_STATUS: {
-      OK: HTTP_STATUS_CODES.SUCCESS.OK,                    // 200
+      OK: HTTP_STATUS_CODES.SUCCESS.OK, // 200
       BAD_REQUEST: HTTP_STATUS_CODES.CLIENT_ERROR.BAD_REQUEST, // 400
       INTERNAL_ERROR: HTTP_STATUS_CODES.SERVER_ERROR.INTERNAL_SERVER_ERROR, // 500
     },
-    
+
     // 常用数值
     VALUES: {
-      ONE_SECOND_MS: NUMERIC_CONSTANTS.N_1000,             // 1000ms
-      TEN_SECONDS_MS: NUMERIC_CONSTANTS.N_10000,           // 10000ms
-      DEFAULT_RETRIES: NUMERIC_CONSTANTS.N_3,              // 3
-      MAX_RETRIES: NUMERIC_CONSTANTS.N_5,                  // 5
-    }
-  }
+      ONE_SECOND_MS: NUMERIC_CONSTANTS.N_1000, // 1000ms
+      TEN_SECONDS_MS: NUMERIC_CONSTANTS.N_10000, // 10000ms
+      DEFAULT_RETRIES: NUMERIC_CONSTANTS.N_3, // 3
+      MAX_RETRIES: NUMERIC_CONSTANTS.N_5, // 5
+    },
+  },
 } as const;
 
 /**

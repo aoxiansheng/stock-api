@@ -1,31 +1,29 @@
 /**
  * Alert生命周期服务
  * 🎯 专门负责告警的创建、更新、解决等生命周期管理
- * 
+ *
  * @description 单一职责：告警状态转换和生命周期事件
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import {
-  Injectable,
-  NotFoundException,
-  Inject,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { ConfigType } from '@nestjs/config';
+import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import type { ConfigType } from "@nestjs/config";
 
 import { createLogger } from "@common/logging/index";
-import { AlertHistoryRepository } from '../repositories/alert-history.repository';
-import { IAlert, IAlertRule, IRuleEvaluationResult } from '../interfaces';
-import { AlertStatus } from '../types/alert.types';
-import { AlertEventPublisher } from './alert-event-publisher.service';
-import { AlertCacheService } from './alert-cache.service';
-import cacheLimitsConfig from '@cache/config/cache-unified.config';
+import { BUSINESS_ERROR_MESSAGES } from "@common/constants/semantic/error-messages.constants";
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
+import { AlertHistoryRepository } from "../repositories/alert-history.repository";
+import { IAlert, IAlertRule, IRuleEvaluationResult } from "../interfaces";
+import { AlertStatus } from "../types/alert.types";
+import { AlertEventPublisher } from "./alert-event-publisher.service";
+import { AlertCacheService } from "./alert-cache.service";
+import alertCacheConfig from "../config/alert-cache.config";
 
 @Injectable()
 export class AlertLifecycleService {
-  private readonly logger = createLogger('AlertLifecycleService');
+  private readonly logger = createLogger("AlertLifecycleService");
   private readonly alertConfig: {
     defaultCooldown: number;
   };
@@ -35,11 +33,11 @@ export class AlertLifecycleService {
     private readonly alertEventPublisher: AlertEventPublisher,
     private readonly alertCacheService: AlertCacheService,
     private readonly configService: ConfigService,
-    @Inject(cacheLimitsConfig.KEY)
-    private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
+    @Inject(alertCacheConfig.KEY)
+    private readonly alertCacheLimits: ConfigType<typeof alertCacheConfig>,
   ) {
     // 获取alert业务配置（保留defaultCooldown，这是业务配置而非缓存配置）
-    this.alertConfig = this.configService.get('alert', {
+    this.alertConfig = this.configService.get("alert", {
       defaultCooldown: 300,
     });
   }
@@ -47,10 +45,13 @@ export class AlertLifecycleService {
   /**
    * 创建新告警
    */
-  async createAlert(result: IRuleEvaluationResult, rule: IAlertRule): Promise<IAlert> {
-    const operation = 'CREATE_ALERT';
-    
-    this.logger.debug('创建新告警', {
+  async createAlert(
+    result: IRuleEvaluationResult,
+    rule: IAlertRule,
+  ): Promise<IAlert> {
+    const operation = "CREATE_ALERT";
+
+    this.logger.debug("创建新告警", {
       operation,
       ruleId: rule.id,
       ruleName: rule.name,
@@ -87,12 +88,12 @@ export class AlertLifecycleService {
         triggeredAt: new Date(),
         tags: rule.tags,
         triggerCondition: {
-          operator: rule.operator || '>',
+          operator: rule.operator || ">",
           duration: rule.duration || this.alertConfig.defaultCooldown,
         },
       });
 
-      this.logger.log('告警创建成功', {
+      this.logger.log("告警创建成功", {
         operation,
         alertId: alert.id,
         ruleId: rule.id,
@@ -102,7 +103,7 @@ export class AlertLifecycleService {
 
       return alert;
     } catch (error) {
-      this.logger.error('告警创建失败', {
+      this.logger.error("告警创建失败", {
         operation,
         ruleId: rule.id,
         ruleName: rule.name,
@@ -121,30 +122,32 @@ export class AlertLifecycleService {
     acknowledgedBy: string;
     comment?: string;
   }): Promise<IAlert>;
-  
+
   /**
    * 确认告警 - 传统参数重载
    */
   async acknowledgeAlert(
     alertId: string,
     acknowledgedBy: string,
-    comment?: string
+    comment?: string,
   ): Promise<IAlert>;
 
   /**
    * 确认告警 - 实现
    */
   async acknowledgeAlert(
-    alertIdOrParams: string | { id: string; acknowledgedBy: string; comment?: string },
+    alertIdOrParams:
+      | string
+      | { id: string; acknowledgedBy: string; comment?: string },
     acknowledgedBy?: string,
-    comment?: string
+    comment?: string,
   ): Promise<IAlert> {
     // 参数适配
     let alertId: string;
     let ackBy: string;
     let ackComment: string | undefined;
 
-    if (typeof alertIdOrParams === 'string') {
+    if (typeof alertIdOrParams === "string") {
       alertId = alertIdOrParams;
       ackBy = acknowledgedBy!;
       ackComment = comment;
@@ -153,9 +156,12 @@ export class AlertLifecycleService {
       ackBy = alertIdOrParams.acknowledgedBy;
       ackComment = alertIdOrParams.comment;
     }
-    const operation = 'ACKNOWLEDGE_ALERT';
-    
-    this.logger.debug('确认告警', {
+
+    // 验证告警ID格式
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+    const operation = "ACKNOWLEDGE_ALERT";
+
+    this.logger.debug("确认告警", {
       operation,
       alertId,
       acknowledgedBy: ackBy,
@@ -165,7 +171,7 @@ export class AlertLifecycleService {
       const alert = await this.updateAlertStatus(
         alertId,
         AlertStatus.ACKNOWLEDGED,
-        ackBy
+        ackBy,
       );
 
       // 发布告警确认事件
@@ -173,10 +179,10 @@ export class AlertLifecycleService {
         alert,
         ackBy,
         new Date(),
-        ackComment
+        ackComment,
       );
 
-      this.logger.log('告警确认成功', {
+      this.logger.log("告警确认成功", {
         operation,
         alertId,
         acknowledgedBy: ackBy,
@@ -184,7 +190,7 @@ export class AlertLifecycleService {
 
       return alert;
     } catch (error) {
-      this.logger.error('告警确认失败', {
+      this.logger.error("告警确认失败", {
         operation,
         alertId,
         error: error.message,
@@ -211,17 +217,19 @@ export class AlertLifecycleService {
     alertId: string,
     resolvedBy: string,
     ruleId: string,
-    comment?: string
+    comment?: string,
   ): Promise<IAlert>;
 
   /**
    * 解决告警 - 实现
    */
   async resolveAlert(
-    alertIdOrParams: string | { id: string; resolvedBy: string; ruleId: string; comment?: string },
+    alertIdOrParams:
+      | string
+      | { id: string; resolvedBy: string; ruleId: string; comment?: string },
     resolvedBy?: string,
     ruleId?: string,
-    comment?: string
+    comment?: string,
   ): Promise<IAlert> {
     // 参数适配
     let alertId: string;
@@ -229,7 +237,7 @@ export class AlertLifecycleService {
     let resRuleId: string;
     let resComment: string | undefined;
 
-    if (typeof alertIdOrParams === 'string') {
+    if (typeof alertIdOrParams === "string") {
       alertId = alertIdOrParams;
       resBy = resolvedBy!;
       resRuleId = ruleId!;
@@ -240,9 +248,13 @@ export class AlertLifecycleService {
       resRuleId = alertIdOrParams.ruleId;
       resComment = alertIdOrParams.comment;
     }
-    const operation = 'RESOLVE_ALERT';
-    
-    this.logger.debug('解决告警', {
+
+    // 验证告警ID和规则ID格式
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+    DatabaseValidationUtils.validateObjectId(resRuleId, "告警规则ID");
+    const operation = "RESOLVE_ALERT";
+
+    this.logger.debug("解决告警", {
       operation,
       alertId,
       resolvedBy: resBy,
@@ -253,7 +265,7 @@ export class AlertLifecycleService {
       const alert = await this.updateAlertStatus(
         alertId,
         AlertStatus.RESOLVED,
-        resBy
+        resBy,
       );
 
       // 清除活跃告警缓存
@@ -264,10 +276,10 @@ export class AlertLifecycleService {
         alert,
         new Date(),
         resBy,
-        resComment
+        resComment,
       );
 
-      this.logger.log('告警解决成功', {
+      this.logger.log("告警解决成功", {
         operation,
         alertId,
         resolvedBy: resBy,
@@ -275,7 +287,7 @@ export class AlertLifecycleService {
 
       return alert;
     } catch (error) {
-      this.logger.error('告警解决失败', {
+      this.logger.error("告警解决失败", {
         operation,
         alertId,
         error: error.message,
@@ -292,11 +304,14 @@ export class AlertLifecycleService {
     alertId: string,
     suppressedBy: string,
     suppressionDuration: number,
-    reason?: string
+    reason?: string,
   ): Promise<IAlert> {
-    const operation = 'SUPPRESS_ALERT';
-    
-    this.logger.debug('抑制告警', {
+    const operation = "SUPPRESS_ALERT";
+
+    // 验证告警ID格式
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+
+    this.logger.debug("抑制告警", {
       operation,
       alertId,
       suppressedBy,
@@ -307,7 +322,7 @@ export class AlertLifecycleService {
       const alert = await this.updateAlertStatus(
         alertId,
         AlertStatus.SUPPRESSED,
-        suppressedBy
+        suppressedBy,
       );
 
       // 发布告警抑制事件
@@ -316,10 +331,10 @@ export class AlertLifecycleService {
         suppressedBy,
         new Date(),
         suppressionDuration,
-        reason
+        reason,
       );
 
-      this.logger.log('告警抑制成功', {
+      this.logger.log("告警抑制成功", {
         operation,
         alertId,
         suppressedBy,
@@ -328,7 +343,7 @@ export class AlertLifecycleService {
 
       return alert;
     } catch (error) {
-      this.logger.error('告警抑制失败', {
+      this.logger.error("告警抑制失败", {
         operation,
         alertId,
         error: error.message,
@@ -345,11 +360,14 @@ export class AlertLifecycleService {
     alertId: string,
     newSeverity: string,
     escalatedBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<IAlert> {
-    const operation = 'ESCALATE_ALERT';
-    
-    this.logger.debug('升级告警严重程度', {
+    const operation = "ESCALATE_ALERT";
+
+    // 验证告警ID格式
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+
+    this.logger.debug("升级告警严重程度", {
       operation,
       alertId,
       newSeverity,
@@ -359,17 +377,17 @@ export class AlertLifecycleService {
     try {
       const existingAlert = await this.alertHistoryRepository.findById(alertId);
       if (!existingAlert) {
-        throw new NotFoundException(`告警 ${alertId} 不存在`);
+        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
       }
 
       const previousSeverity = existingAlert.severity;
-      
+
       const alert = await this.alertHistoryRepository.update(alertId, {
         severity: newSeverity as any, // Type conversion handled at runtime
       });
 
       if (!alert) {
-        throw new NotFoundException(`更新后未找到告警 ${alertId}`);
+        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
       }
 
       // 发布告警升级事件
@@ -378,10 +396,10 @@ export class AlertLifecycleService {
         previousSeverity,
         newSeverity,
         new Date(),
-        reason
+        reason,
       );
 
-      this.logger.log('告警升级成功', {
+      this.logger.log("告警升级成功", {
         operation,
         alertId,
         previousSeverity,
@@ -391,7 +409,7 @@ export class AlertLifecycleService {
 
       return alert;
     } catch (error) {
-      this.logger.error('告警升级失败', {
+      this.logger.error("告警升级失败", {
         operation,
         alertId,
         error: error.message,
@@ -407,19 +425,24 @@ export class AlertLifecycleService {
   async batchUpdateAlertStatus(
     alertIds: string[],
     status: AlertStatus,
-    updatedBy: string
+    updatedBy: string,
   ): Promise<{
     successCount: number;
     failedCount: number;
     errors: string[];
   }> {
-    const operation = 'BATCH_UPDATE_STATUS';
-    
-    if (alertIds.length > this.cacheLimits.alertBatchSize) {
-      throw new Error(`批量操作数量超出限制，最大允许${this.cacheLimits.alertBatchSize}个`);
+    const operation = "BATCH_UPDATE_STATUS";
+
+    // 验证所有告警ID格式
+    DatabaseValidationUtils.validateObjectIds(alertIds, "告警ID列表");
+
+    if (alertIds.length > this.alertCacheLimits.batchSize) {
+      throw new Error(
+        `批量操作数量超出限制，最大允许${this.alertCacheLimits.batchSize}个`,
+      );
     }
 
-    this.logger.log('批量更新告警状态', {
+    this.logger.log("批量更新告警状态", {
       operation,
       alertCount: alertIds.length,
       status,
@@ -439,10 +462,10 @@ export class AlertLifecycleService {
           failedCount++;
           errors.push(`${alertId}: ${error.message}`);
         }
-      })
+      }),
     );
 
-    this.logger.log('批量更新告警状态完成', {
+    this.logger.log("批量更新告警状态完成", {
       operation,
       successCount,
       failedCount,
@@ -457,16 +480,19 @@ export class AlertLifecycleService {
    * 获取告警详细信息
    */
   async getAlertById(alertId: string): Promise<IAlert> {
-    const operation = 'GET_ALERT_BY_ID';
-    
+    const operation = "GET_ALERT_BY_ID";
+
+    // 验证告警ID格式
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+
     try {
       const alert = await this.alertHistoryRepository.findById(alertId);
-      
+
       if (!alert) {
-        throw new NotFoundException(`告警 ${alertId} 不存在`);
+        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
       }
 
-      this.logger.debug('获取告警详情成功', {
+      this.logger.debug("获取告警详情成功", {
         operation,
         alertId,
         status: alert.status,
@@ -475,7 +501,7 @@ export class AlertLifecycleService {
 
       return alert;
     } catch (error) {
-      this.logger.error('获取告警详情失败', {
+      this.logger.error("获取告警详情失败", {
         operation,
         alertId,
         error: error.message,
@@ -491,8 +517,10 @@ export class AlertLifecycleService {
   private async updateAlertStatus(
     alertId: string,
     status: AlertStatus,
-    updatedBy: string
+    updatedBy: string,
   ): Promise<IAlert> {
+    // 验证告警ID格式
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
     const updateData: any = { status };
 
     if (status === AlertStatus.ACKNOWLEDGED) {
@@ -505,9 +533,9 @@ export class AlertLifecycleService {
     }
 
     const alert = await this.alertHistoryRepository.update(alertId, updateData);
-    
+
     if (!alert) {
-      throw new NotFoundException(`更新后未找到告警 ${alertId}`);
+      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
     }
 
     return alert;
@@ -523,9 +551,15 @@ export class AlertLifecycleService {
     triggeredAt?: Date;
     [key: string]: any;
   }): Promise<void> {
-    const operation = 'PROCESS_ALERT';
-    
-    this.logger.debug('处理告警', {
+    const operation = "PROCESS_ALERT";
+
+    // 验证ID格式（如果提供的话）
+    if (alertData.id) {
+      DatabaseValidationUtils.validateObjectId(alertData.id, "告警ID");
+    }
+    DatabaseValidationUtils.validateObjectId(alertData.ruleId, "告警规则ID");
+
+    this.logger.debug("处理告警", {
       operation,
       alertId: alertData.id,
       ruleId: alertData.ruleId,
@@ -534,7 +568,7 @@ export class AlertLifecycleService {
     try {
       // 这里可以根据需要处理告警数据
       // 例如：通知发送、状态更新、数据存储等
-      
+
       // 添加到时序数据
       if (alertData.id) {
         const alert = await this.getAlertById(alertData.id);
@@ -542,15 +576,14 @@ export class AlertLifecycleService {
           await this.alertCacheService.addToTimeseries(alert);
         }
       }
-      
-      this.logger.debug('告警处理完成', {
+
+      this.logger.debug("告警处理完成", {
         operation,
         alertId: alertData.id,
         ruleId: alertData.ruleId,
       });
-      
     } catch (error) {
-      this.logger.error('告警处理失败', {
+      this.logger.error("告警处理失败", {
         operation,
         alertId: alertData.id,
         ruleId: alertData.ruleId,

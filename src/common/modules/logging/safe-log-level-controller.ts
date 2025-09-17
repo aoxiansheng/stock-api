@@ -1,9 +1,9 @@
-import { LogLevelController } from './log-level-controller';
-import { LogLevel, LogLevelConfig, LoggingStats } from './types';
+import { LogLevelController } from "./log-level-controller";
+import { LogLevel, LogLevelConfig, LoggingStats } from "./types";
 
 /**
  * 安全日志级别控制器
- * 
+ *
  * 核心功能：
  * 1. 提供LogLevelController的安全访问封装
  * 2. 实现自动降级机制，确保不影响业务运行
@@ -42,20 +42,23 @@ export class SafeLogLevelController {
       await this.controller.onModuleInit();
       this.isInitialized = true;
       this.degradationMode = false;
-      
-      console.log('✅ SafeLogLevelController initialized successfully');
+
+      console.log("✅ SafeLogLevelController initialized successfully");
     } catch (error) {
       this.initializationError = error as Error;
       this.degradationMode = true;
       this.isInitialized = false;
-      
-      console.warn('⚠️ SafeLogLevelController initialization failed, entering degradation mode:', error);
+
+      console.warn(
+        "⚠️ SafeLogLevelController initialization failed, entering degradation mode:",
+        error,
+      );
     }
   }
 
   /**
    * 安全的日志级别检查
-   * 
+   *
    * @param context 日志上下文
    * @param level 日志级别
    * @returns 是否应该记录日志（降级模式下总是返回true）
@@ -69,7 +72,7 @@ export class SafeLogLevelController {
     try {
       return this.controller.shouldLog(context, level);
     } catch (error) {
-      this.handleError('shouldLog', error as Error);
+      this.handleError("shouldLog", error as Error);
       return true; // 出错时允许日志输出
     }
   }
@@ -85,7 +88,7 @@ export class SafeLogLevelController {
     try {
       return this.controller.getConfiguration();
     } catch (error) {
-      this.handleError('getConfiguration', error as Error);
+      this.handleError("getConfiguration", error as Error);
       return null;
     }
   }
@@ -101,7 +104,7 @@ export class SafeLogLevelController {
     try {
       return this.controller.getStats();
     } catch (error) {
-      this.handleError('getStats', error as Error);
+      this.handleError("getStats", error as Error);
       return null;
     }
   }
@@ -129,22 +132,22 @@ export class SafeLogLevelController {
    * 尝试重新初始化控制器
    */
   async reinitialize(): Promise<boolean> {
-    console.log('🔄 Attempting to reinitialize SafeLogLevelController...');
-    
+    console.log("🔄 Attempting to reinitialize SafeLogLevelController...");
+
     try {
       await this.initializeController();
-      
+
       if (!this.degradationMode && this.isInitialized) {
-        console.log('✅ SafeLogLevelController reinitialization successful');
+        console.log("✅ SafeLogLevelController reinitialization successful");
         this.errorCount = 0;
         this.lastErrorTime = null;
         this.initializationError = null;
         return true;
       }
-      
+
       return false;
     } catch (error) {
-      console.warn('❌ SafeLogLevelController reinitialization failed:', error);
+      console.warn("❌ SafeLogLevelController reinitialization failed:", error);
       return false;
     }
   }
@@ -155,16 +158,20 @@ export class SafeLogLevelController {
   private handleError(method: string, error: Error): void {
     this.errorCount++;
     this.lastErrorTime = Date.now();
-    
+
     // 避免错误日志过多，限制频率
     const now = Date.now();
-    if (!this.lastErrorTime || now - this.lastErrorTime > 60000) { // 1分钟内只记录一次
-      console.warn(`⚠️ SafeLogLevelController.${method} error (count: ${this.errorCount}):`, error.message);
+    if (!this.lastErrorTime || now - this.lastErrorTime > 60000) {
+      // 1分钟内只记录一次
+      console.warn(
+        `⚠️ SafeLogLevelController.${method} error (count: ${this.errorCount}):`,
+        error.message,
+      );
     }
 
     // 如果错误过多，进入降级模式
     if (this.errorCount > 10 && !this.degradationMode) {
-      console.warn('⚠️ Too many errors, entering degradation mode');
+      console.warn("⚠️ Too many errors, entering degradation mode");
       this.degradationMode = true;
     }
   }
@@ -175,20 +182,20 @@ export class SafeLogLevelController {
   resetErrorCount(): void {
     this.errorCount = 0;
     this.lastErrorTime = null;
-    console.log('🔄 SafeLogLevelController error count reset');
+    console.log("🔄 SafeLogLevelController error count reset");
   }
 
   /**
    * 强制退出降级模式（用于测试或手动恢复）
    */
   async forceRecovery(): Promise<boolean> {
-    console.log('🔄 Forcing SafeLogLevelController recovery...');
-    
+    console.log("🔄 Forcing SafeLogLevelController recovery...");
+
     this.degradationMode = false;
     this.errorCount = 0;
     this.lastErrorTime = null;
     this.initializationError = null;
-    
+
     return await this.reinitialize();
   }
 
@@ -222,7 +229,7 @@ export function safeShoudLog(context: string, level: LogLevel): boolean {
     return controller.shouldLog(context, level);
   } catch (error) {
     // 最后的安全网：即使SafeLogLevelController也失败时，允许所有日志
-    console.warn('⚠️ safeShoudLog failed, allowing all logs:', error);
+    console.warn("⚠️ safeShoudLog failed, allowing all logs:", error);
     return true;
   }
 }

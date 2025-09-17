@@ -1,7 +1,7 @@
 /**
  * 通知渠道Schema
  * 🎯 定义通知渠道在MongoDB中的数据结构
- * 
+ *
  * @description 从Alert模块迁移的通知渠道Schema，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -9,9 +9,9 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
-import { 
-  NotificationChannelType, 
-  NotificationPriority 
+import {
+  NotificationChannelType,
+  NotificationPriority,
 } from "../types/notification.types";
 
 export type NotificationChannelDocument = NotificationChannel & Document;
@@ -25,8 +25,8 @@ export class NotificationChannel {
   @Prop({ required: true, trim: true })
   name: string;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     enum: Object.values(NotificationChannelType),
     type: String,
   })
@@ -44,7 +44,7 @@ export class NotificationChannel {
   @Prop({ min: 1000, max: 300000, default: 30000 })
   timeout: number;
 
-  @Prop({ 
+  @Prop({
     enum: Object.values(NotificationPriority),
     default: NotificationPriority.NORMAL,
     type: String,
@@ -64,7 +64,8 @@ export class NotificationChannel {
   updatedAt: Date;
 }
 
-export const NotificationChannelSchema = SchemaFactory.createForClass(NotificationChannel);
+export const NotificationChannelSchema =
+  SchemaFactory.createForClass(NotificationChannel);
 
 // 添加索引
 NotificationChannelSchema.index({ name: 1 }, { unique: true });

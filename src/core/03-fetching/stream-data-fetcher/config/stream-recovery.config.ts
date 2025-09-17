@@ -219,7 +219,10 @@ export class StreamRecoveryConfigService {
   /**
    * 动态更新配置 (用于运行时调整)
    */
-  updateRateLimit(provider: string, config: StreamRecoveryRateLimitConfig): void {
+  updateRateLimit(
+    provider: string,
+    config: StreamRecoveryRateLimitConfig,
+  ): void {
     this.config.rateLimit.providers[provider] = config;
   }
 

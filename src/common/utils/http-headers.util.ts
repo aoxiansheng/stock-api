@@ -1,4 +1,4 @@
-import { Request } from "express";
+import { Request, Response } from "express";
 
 /**
  * HTTP Headers 处理工具类
@@ -336,5 +336,61 @@ export class HttpHeadersUtil {
     }
 
     return safeHeaders;
+  }
+
+  /**
+   * 设置标准的安全响应头
+   */
+  static setSecurityHeaders(res: Response): void {
+    // 内容安全策略
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self'; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none';",
+    );
+
+    // 防止点击劫持
+    res.setHeader("X-Frame-Options", "DENY");
+
+    // 防止MIME类型嗅探
+    res.setHeader("X-Content-Type-Options", "nosniff");
+
+    // XSS保护
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+
+    // 强制HTTPS (生产环境)
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains; preload",
+      );
+    }
+
+    // 隐藏服务器信息
+    res.removeHeader("X-Powered-By");
+    res.setHeader("Server", "API Gateway");
+
+    // 防止信息泄露
+    res.setHeader("X-Download-Options", "noopen");
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    // 权限策略
+    res.setHeader(
+      "Permissions-Policy",
+      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()",
+    );
+  }
+
+  /**
+   * 获取内容长度
+   */
+  static getContentLength(req: Request): string | undefined {
+    return this.getHeader(req, "content-length");
   }
 }

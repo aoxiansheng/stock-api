@@ -1,12 +1,12 @@
 /**
  * Alert事件定义
  * 🎯 用于Alert和Notification模块间的事件驱动通信
- * 
+ *
  * @description 根据Alert组件拆分计划创建的事件系统
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
 
-import { Alert, AlertRule } from '../types/alert.types';
+import { Alert, AlertRule } from "../types/alert.types";
 
 /**
  * 警告触发事件
@@ -16,7 +16,7 @@ export class AlertFiredEvent {
   constructor(
     public readonly alert: Alert,
     public readonly rule: AlertRule,
-    public readonly context: AlertContext
+    public readonly context: AlertContext,
   ) {}
 }
 
@@ -29,7 +29,7 @@ export class AlertResolvedEvent {
     public readonly alert: Alert,
     public readonly resolvedAt: Date,
     public readonly resolvedBy?: string,
-    public readonly comment?: string
+    public readonly comment?: string,
   ) {}
 }
 
@@ -42,7 +42,7 @@ export class AlertAcknowledgedEvent {
     public readonly alert: Alert,
     public readonly acknowledgedAt: Date,
     public readonly acknowledgedBy: string,
-    public readonly comment?: string
+    public readonly comment?: string,
   ) {}
 }
 
@@ -56,7 +56,7 @@ export class AlertSuppressedEvent {
     public readonly suppressedAt: Date,
     public readonly suppressedBy: string,
     public readonly suppressionDuration: number, // 抑制时长(秒)
-    public readonly reason?: string
+    public readonly reason?: string,
   ) {}
 }
 
@@ -70,7 +70,7 @@ export class AlertEscalatedEvent {
     public readonly previousSeverity: string,
     public readonly newSeverity: string,
     public readonly escalatedAt: Date,
-    public readonly escalationReason: string
+    public readonly escalationReason: string,
   ) {}
 }
 
@@ -109,18 +109,18 @@ export interface AlertContext {
  * 统一管理所有警告事件的名称
  */
 export const ALERT_EVENTS = {
-  FIRED: 'alert.fired',
-  RESOLVED: 'alert.resolved', 
-  ACKNOWLEDGED: 'alert.acknowledged',
-  SUPPRESSED: 'alert.suppressed',
-  ESCALATED: 'alert.escalated'
+  FIRED: "alert.fired",
+  RESOLVED: "alert.resolved",
+  ACKNOWLEDGED: "alert.acknowledged",
+  SUPPRESSED: "alert.suppressed",
+  ESCALATED: "alert.escalated",
 } as const;
 
 /**
  * 事件类型定义
  * 用于类型安全的事件处理
  */
-export type AlertEventType = typeof ALERT_EVENTS[keyof typeof ALERT_EVENTS];
+export type AlertEventType = (typeof ALERT_EVENTS)[keyof typeof ALERT_EVENTS];
 
 /**
  * 事件映射类型

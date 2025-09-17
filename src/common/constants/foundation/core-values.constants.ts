@@ -25,23 +25,23 @@ export const CORE_VALUES = Object.freeze({
     TWO_HUNDRED: 200,
     THREE_HUNDRED: 300,
     FIVE_HUNDRED: 500,
-    THOUSAND: 1000,       // 🎯 解决1000重复定义
+    THOUSAND: 1000, // 🎯 解决1000重复定义
     TWO_THOUSAND: 2000,
     FIVE_THOUSAND: 5000,
-    TEN_THOUSAND: 10000,  // 🎯 解决10000重复定义
+    TEN_THOUSAND: 10000, // 🎯 解决10000重复定义
     ONE_HUNDRED_THOUSAND: 100000,
   },
 
   /**
    * 时间转换常量 - 数学固定值（保留）
    * 🎯 这些是数学常量，不是可配置的TTL/超时值
-   * 
+   *
    * 注意：TTL/超时配置值已迁移到配置文件
    * @see src/appcore/config/unified-ttl.config.ts (TTL配置)
    */
   TIME_MS: {
-    ONE_SECOND: 1000,         // 1秒 = 1000毫秒（数学常量）
-    ONE_MINUTE: 60 * 1000,    // 1分钟 = 60000毫秒（数学常量）
+    ONE_SECOND: 1000, // 1秒 = 1000毫秒（数学常量）
+    ONE_MINUTE: 60 * 1000, // 1分钟 = 60000毫秒（数学常量）
     ONE_HOUR: 60 * 60 * 1000, // 1小时 = 3600000毫秒（数学常量）
   },
 
@@ -49,15 +49,15 @@ export const CORE_VALUES = Object.freeze({
    * 协议标准长度限制 (保留固定标准)
    */
   PROTOCOL_LIMITS: {
-    URL_MAX: 2048,     // RFC标准URL最大长度
-    EMAIL_MAX: 320,    // RFC 5321标准邮箱最大长度  
+    URL_MAX: 2048, // RFC标准URL最大长度
+    EMAIL_MAX: 320, // RFC 5321标准邮箱最大长度
     FILENAME_MAX: 255, // 文件系统标准文件名最大长度
   },
 
   /**
    * ❌ 可调节大小限制已迁移到配置文件
    * 🎯 使用 @common/config/common-constants.config.ts 替代
-   * 
+   *
    * @deprecated SIZES.TINY, SMALL, MEDIUM, LARGE, HUGE, MASSIVE 现在是可配置参数
    * @see src/common/config/common-constants.config.ts
    */
@@ -99,7 +99,7 @@ export const CORE_VALUES = Object.freeze({
   /**
    * ❌ 网络、性能、超时、重试、批量、内存、连接池、监控配置已迁移
    * 🎯 这些都是可调节的性能参数，不应作为常量定义
-   * 
+   *
    * @deprecated 以下配置已迁移到相应的配置文件:
    * - NETWORK: 迁移至 @common/config/common-constants.config.ts
    * - PERFORMANCE_MS: 迁移至 @common/config/common-constants.config.ts
@@ -111,7 +111,7 @@ export const CORE_VALUES = Object.freeze({
    * - MONITORING: 迁移至 @monitoring/config/monitoring.config.ts
    */
   // 所有可调节参数已迁移到配置文件
-});;
+});
 
 /**
  * 类型定义 (仅保留固定常量的类型)
@@ -129,6 +129,6 @@ export type FileSizeConstants = typeof CORE_VALUES.FILE_SIZE_BYTES;
  * 已迁移类型 - 现在使用配置文件
  * @deprecated 请使用对应的配置类型
  */
-// TimeMS, TimeSeconds, Sizes, PerformanceMS, TimeoutMS, 
+// TimeMS, TimeSeconds, Sizes, PerformanceMS, TimeoutMS,
 // RetryConfig, BatchLimits, MemoryMB, ConnectionPool, MonitoringConfig
 // 这些类型现在位于相应的配置文件中

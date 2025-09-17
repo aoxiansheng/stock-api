@@ -4,7 +4,10 @@
  */
 
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
+import {
+  HTTP_TIMEOUTS,
+  BATCH_SIZE_SEMANTICS,
+} from "@common/constants/semantic";
 import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 
@@ -97,11 +100,11 @@ export const SYMBOL_MAPPER_PERFORMANCE_CONFIG = Object.freeze({
  */
 export const SYMBOL_MAPPER_CONFIG = Object.freeze({
   // 删除未使用的分页常量，完全依赖 PaginationService
-  
+
   DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 默认超时时间 - 使用Foundation层配置
   MAX_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.maxAttempts, // 最大重试次数 - 使用统一配置
   RETRY_DELAY_MS: RETRY_BUSINESS_SCENARIOS.SYMBOL_MAPPER.initialDelayMs, // 重试延迟 - 使用统一配置
-  
+
   // 模块特有配置
   MAX_MAPPING_RULES_PER_SOURCE: 10000, // 每个数据源最大映射规则数
 } as const);

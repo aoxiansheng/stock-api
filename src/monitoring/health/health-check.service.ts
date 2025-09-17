@@ -5,10 +5,10 @@ import Redis from "ioredis";
 import * as mongoose from "mongoose";
 
 export interface HealthCheckResult {
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   checks: Array<{
     name: string;
-    status: 'healthy' | 'unhealthy';
+    status: "healthy" | "unhealthy";
     message?: string;
     duration?: number;
   }>;
@@ -17,7 +17,7 @@ export interface HealthCheckResult {
 
 /**
  * HealthCheckService - 健康检查服务
- * 
+ *
  * 职责：
  * - 执行系统健康检查
  * - 监控关键服务状态
@@ -49,8 +49,8 @@ export class HealthCheckService {
     checks.push(memoryCheck);
 
     // 确定整体状态
-    const hasUnhealthy = checks.some(check => check.status === 'unhealthy');
-    const status = hasUnhealthy ? 'unhealthy' : 'healthy';
+    const hasUnhealthy = checks.some((check) => check.status === "unhealthy");
+    const status = hasUnhealthy ? "unhealthy" : "healthy";
 
     return {
       status,
@@ -65,21 +65,21 @@ export class HealthCheckService {
   private async checkMongoDB(): Promise<any> {
     const startTime = Date.now();
     try {
-      const mongoUri = this.config.get('MONGODB_URI');
+      const mongoUri = this.config.get("MONGODB_URI");
       const connection = await mongoose.createConnection(mongoUri).asPromise();
       await connection.db.admin().ping();
       await connection.close();
-      
+
       return {
-        name: 'mongodb',
-        status: 'healthy',
-        message: 'MongoDB连接正常',
+        name: "mongodb",
+        status: "healthy",
+        message: "MongoDB连接正常",
         duration: Date.now() - startTime,
       };
     } catch (error) {
       return {
-        name: 'mongodb',
-        status: 'unhealthy',
+        name: "mongodb",
+        status: "unhealthy",
         message: `MongoDB连接失败: ${error.message}`,
         duration: Date.now() - startTime,
       };
@@ -92,7 +92,7 @@ export class HealthCheckService {
   private async checkRedis(): Promise<any> {
     const startTime = Date.now();
     try {
-      const redisUrl = this.config.get('REDIS_URL');
+      const redisUrl = this.config.get("REDIS_URL");
       const redis = new Redis(redisUrl, {
         retryStrategy: () => null,
         lazyConnect: true,
@@ -103,15 +103,15 @@ export class HealthCheckService {
       await redis.quit();
 
       return {
-        name: 'redis',
-        status: 'healthy',
-        message: 'Redis连接正常',
+        name: "redis",
+        status: "healthy",
+        message: "Redis连接正常",
         duration: Date.now() - startTime,
       };
     } catch (error) {
       return {
-        name: 'redis',
-        status: 'unhealthy',
+        name: "redis",
+        status: "unhealthy",
         message: `Redis连接失败: ${error.message}`,
         duration: Date.now() - startTime,
       };
@@ -127,12 +127,12 @@ export class HealthCheckService {
     const heapTotalMB = Math.round(usage.heapTotal / 1024 / 1024);
     const usagePercent = Math.round((usage.heapUsed / usage.heapTotal) * 100);
 
-    const status = usagePercent > 90 ? 'unhealthy' : 'healthy';
+    const status = usagePercent > 90 ? "unhealthy" : "healthy";
 
     return {
-      name: 'memory',
+      name: "memory",
       status,
       message: `内存使用: ${heapUsedMB}MB / ${heapTotalMB}MB (${usagePercent}%)`,
     };
   }
-} 
+}

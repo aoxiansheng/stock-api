@@ -6,13 +6,16 @@
 // 导入统一常量系统，避免重复定义
 
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import { HTTP_TIMEOUTS, BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
+import {
+  HTTP_TIMEOUTS,
+  BATCH_SIZE_SEMANTICS,
+} from "@common/constants/semantic";
 import { CORE_LIMITS } from "../../../shared/constants/limits";
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 // 复用 data-mapper 的转换类型常量，避免重复定义
-import { 
-  TRANSFORMATION_TYPES, 
-  TRANSFORMATION_TYPE_VALUES 
+import {
+  TRANSFORMATION_TYPES,
+  TRANSFORMATION_TYPE_VALUES,
 } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 import type { TransformationType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 

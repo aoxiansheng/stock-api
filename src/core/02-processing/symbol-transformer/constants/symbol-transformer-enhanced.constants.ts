@@ -1,7 +1,7 @@
 /**
  * Symbol Transformer Enhanced Constants
  * 基于BaseConstants的增强版符号转换器常量定义
- * 
+ *
  * @description
  * - 继承BaseConstants提供的标准化管理功能
  * - 保持与原有constants的完全兼容性
@@ -9,8 +9,8 @@
  * - 支持运行时验证和调试功能
  */
 
-import { deepFreeze } from '@common/utils/object-immutability.util';
-import { CONSTANTS } from '@common/constants';
+import { deepFreeze } from "@common/utils/object-immutability.util";
+import { CONSTANTS } from "@common/constants";
 
 // Extract constants for backward compatibility
 const RETRY_CONSTANTS = CONSTANTS.SEMANTIC.RETRY;
@@ -32,12 +32,16 @@ export enum ErrorType {
  * 模块元数据定义
  */
 export const SYMBOL_TRANSFORMER_METADATA = deepFreeze({
-  moduleName: 'symbol-transformer',
-  version: '2.1.0',
-  createdAt: '2024-01-15T00:00:00Z',
+  moduleName: "symbol-transformer",
+  version: "2.1.0",
+  createdAt: "2024-01-15T00:00:00Z",
   lastUpdated: new Date().toISOString(),
-  description: '符号转换器模块常量配置，支持多市场股票代码转换',
-  dependencies: ['retry-semantics.constants', 'core-values.constants', 'circuit-breaker-domain.constants'],
+  description: "符号转换器模块常量配置，支持多市场股票代码转换",
+  dependencies: [
+    "retry-semantics.constants",
+    "core-values.constants",
+    "circuit-breaker-domain.constants",
+  ],
 } as const);
 
 // ====================== 预编译的股票代码格式正则表达式 ======================
@@ -102,21 +106,23 @@ export const RETRY_CONFIG = {
  * @param scenario 业务场景
  * @returns 场景配置
  */
-export const getScenarioConfig = (scenario: 'high-frequency' | 'batch-processing' | 'real-time') => {
+export const getScenarioConfig = (
+  scenario: "high-frequency" | "batch-processing" | "real-time",
+) => {
   switch (scenario) {
-    case 'high-frequency':
+    case "high-frequency":
       return {
         ...CONFIG,
         MAX_BATCH_SIZE: 100, // 高频场景减小批次
         REQUEST_TIMEOUT: 3000, // 更严格的超时
       };
-    case 'batch-processing':
+    case "batch-processing":
       return {
         ...CONFIG,
         MAX_BATCH_SIZE: 5000, // 批处理增大批次
         REQUEST_TIMEOUT: 60000, // 更宽松的超时
       };
-    case 'real-time':
+    case "real-time":
       return {
         ...CONFIG,
         MAX_BATCH_SIZE: 10, // 实时场景小批次
@@ -133,7 +139,10 @@ export const getScenarioConfig = (scenario: 'high-frequency' | 'batch-processing
  * @param market 市场类型
  * @returns 是否有效
  */
-export const validateSymbolFormat = (symbol: string, market?: keyof typeof MARKET_TYPES): boolean => {
+export const validateSymbolFormat = (
+  symbol: string,
+  market?: keyof typeof MARKET_TYPES,
+): boolean => {
   if (!symbol || symbol.length > CONFIG.MAX_SYMBOL_LENGTH) {
     return false;
   }
@@ -143,7 +152,7 @@ export const validateSymbolFormat = (symbol: string, market?: keyof typeof MARKE
   }
 
   // 如果没有指定市场，检查是否匹配任一市场格式
-  return Object.values(SYMBOL_PATTERNS).some(pattern => pattern.test(symbol));
+  return Object.values(SYMBOL_PATTERNS).some((pattern) => pattern.test(symbol));
 };
 
 /**
@@ -157,7 +166,7 @@ export const inferMarketType = (symbol: string): keyof typeof MARKET_TYPES => {
       return market as keyof typeof MARKET_TYPES;
     }
   }
-  return 'UNKNOWN';
+  return "UNKNOWN";
 };
 
 /**
@@ -176,8 +185,9 @@ export const isRetryableError = (errorType: string | ErrorType): boolean => {
 };
 
 // ====================== 类型定义 ======================
-export type MarketType = typeof MARKET_TYPES[keyof typeof MARKET_TYPES];
-export type TransformDirection = typeof TRANSFORM_DIRECTIONS[keyof typeof TRANSFORM_DIRECTIONS];
+export type MarketType = (typeof MARKET_TYPES)[keyof typeof MARKET_TYPES];
+export type TransformDirection =
+  (typeof TRANSFORM_DIRECTIONS)[keyof typeof TRANSFORM_DIRECTIONS];
 // ErrorType is already defined as enum above
 
 // ====================== 汇总导出 ======================
@@ -195,7 +205,7 @@ export const SYMBOL_TRANSFORMER_ENHANCED = deepFreeze({
   ErrorType, // 添加枚举导出
   MONITORING_CONFIG,
   RETRY_CONFIG,
-  
+
   // 工具函数
   getScenarioConfig,
   validateSymbolFormat,

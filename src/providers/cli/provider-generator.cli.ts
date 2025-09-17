@@ -3,7 +3,7 @@ import { createLogger } from "@common/logging/index";
 import { SmartErrorHandler } from "../utils/smart-error-handler";
 import { SmartPathResolver } from "../utils/smart-path-resolver";
 import { ConventionScanner } from "../utils/convention-scanner";
-import { API_OPERATIONS } from '@common/constants/domain';
+import { API_OPERATIONS } from "@common/constants/domain";
 
 /**
  * 提供商生成器CLI工具

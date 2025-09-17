@@ -15,7 +15,7 @@ export class SecurityMiddleware implements NestMiddleware {
   private readonly logger = createLogger(SecurityMiddleware.name);
 
   constructor(private readonly authConfigService: AuthConfigService) {}
-  
+
   // IP限制配置通过配置服务获取
   private get ipRateLimitConfig() {
     return this.authConfigService.getIpRateLimitConfig();
@@ -26,7 +26,7 @@ export class SecurityMiddleware implements NestMiddleware {
       // 检查请求体大小（在解析之前进行初步检查）
       if (this.isRequestTooLarge(req)) {
         this.logger.warn(`请求体过大被拒绝: ${req.method} ${req.url}`, {
-          contentLength: req.get("content-length"),
+          contentLength: HttpHeadersUtil.getContentLength(req),
           maxAllowed: this.authConfigService.getMaxPayloadSizeString(),
         });
 
@@ -43,7 +43,7 @@ export class SecurityMiddleware implements NestMiddleware {
       const contentTypeResult = this.validateContentTypeSecurity(req);
       if (!contentTypeResult.isValid) {
         this.logger.warn(`不安全的内容类型被拒绝: ${req.method} ${req.url}`, {
-          contentType: req.get("content-type"),
+          contentType: HttpHeadersUtil.getContentType(req),
           reason: contentTypeResult.reason,
         });
 
@@ -88,7 +88,7 @@ export class SecurityMiddleware implements NestMiddleware {
       this.sanitizeInput(req);
 
       // 设置安全响应头
-      this.setSecurityHeaders(res);
+      HttpHeadersUtil.setSecurityHeaders(res);
 
       next();
     } catch (error: any) {
@@ -107,7 +107,7 @@ export class SecurityMiddleware implements NestMiddleware {
   }
 
   private isRequestTooLarge(req: Request): boolean {
-    const contentLength = req.get("content-length");
+    const contentLength = HttpHeadersUtil.getContentLength(req);
     if (contentLength) {
       const sizeInBytes = parseInt(contentLength, 10);
       const maxSizeInBytes = this.authConfigService.getMaxPayloadSizeBytes();
@@ -260,52 +260,6 @@ export class SecurityMiddleware implements NestMiddleware {
       .substring(0, this.authConfigService.getMaxStringLengthSanitize()); // 限制长度防止DoS攻击
   }
 
-  private setSecurityHeaders(res: Response) {
-    // 内容安全策略
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
-        "style-src 'self' 'unsafe-inline'; " +
-        "img-src 'self' data: https:; " +
-        "font-src 'self'; " +
-        "connect-src 'self'; " +
-        "frame-ancestors 'none';",
-    );
-
-    // 防止点击劫持
-    res.setHeader("X-Frame-Options", "DENY");
-
-    // 防止MIME类型嗅探
-    res.setHeader("X-Content-Type-Options", "nosniff");
-
-    // XSS保护
-    res.setHeader("X-XSS-Protection", "1; mode=block");
-
-    // 强制HTTPS (生产环境)
-    if (process.env.NODE_ENV === "production") {
-      res.setHeader(
-        "Strict-Transport-Security",
-        "max-age=31536000; includeSubDomains; preload",
-      );
-    }
-
-    // 隐藏服务器信息
-    res.removeHeader("X-Powered-By");
-    res.setHeader("Server", "API Gateway");
-
-    // 防止信息泄露
-    res.setHeader("X-Download-Options", "noopen");
-    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-
-    // 权限策略
-    res.setHeader(
-      "Permissions-Policy",
-      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()",
-    );
-  }
-
   private isSuspiciousRequest(req: Request): boolean {
     const suspiciousPatterns = [
       // SQL注入模式
@@ -369,7 +323,7 @@ export class SecurityMiddleware implements NestMiddleware {
       return { isValid: true };
     }
 
-    const contentType = req.get("content-type");
+    const contentType = HttpHeadersUtil.getContentType(req);
 
     if (!contentType) {
       // POST、PUT、PATCH等方法应该有Content-Type
@@ -570,7 +524,8 @@ export class SecurityMiddleware implements NestMiddleware {
     }
 
     // 检查字符串长度
-    const maxStringLength = this.authConfigService.getMaxStringLengthComplexity(); // 单个字符串最大长度
+    const maxStringLength =
+      this.authConfigService.getMaxStringLengthComplexity(); // 单个字符串最大长度
     const longString = this.findLongString(body);
     if (longString && longString.length > maxStringLength) {
       return {
@@ -834,11 +789,11 @@ export class RateLimitByIPMiddleware implements NestMiddleware {
   private get enabled() {
     return this.authConfigService.isIpRateLimitEnabled();
   }
-  
+
   private get maxRequestsPerMinute() {
     return this.authConfigService.getIpRateLimitConfig().maxRequests;
   }
-  
+
   private get windowMs() {
     return this.authConfigService.getIpRateLimitConfig().windowMs;
   }

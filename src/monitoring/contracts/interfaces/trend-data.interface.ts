@@ -5,10 +5,10 @@
 export interface TrendDataInterface {
   /** 响应时间趋势 (毫秒) */
   responseTimeTrend: number[];
-  
+
   /** 错误率趋势 (0-1) */
   errorRateTrend: number[];
-  
+
   /** 吞吐量趋势 (请求/分钟) */
   throughputTrend: number[];
 }

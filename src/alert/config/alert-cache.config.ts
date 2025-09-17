@@ -2,16 +2,17 @@
  * Alert模块Cache配置
  * 🎯 从Cache模块迁移Alert特定的缓存配置，实现模块边界清晰化
  * ✅ 遵循四层配置体系，支持环境变量覆盖和配置验证
- * 
+ *
  * 迁移来源：
  * - src/cache/config/cache-unified.config.ts（Alert相关配置）
  * - src/cache/config/cache-limits.config.ts（Alert批处理配置）
  * - src/cache/config/unified-ttl.config.ts（Alert TTL配置）
  */
 
-import { registerAs } from '@nestjs/config';
-import { IsNumber, IsBoolean, Min, Max, validateSync } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { registerAs } from "@nestjs/config";
+import { BadRequestException } from "@nestjs/common";
+import { IsNumber, IsBoolean, Min, Max, validateSync } from "class-validator";
+import { plainToClass } from "class-transformer";
 
 /**
  * Alert缓存配置验证类
@@ -21,7 +22,7 @@ export class AlertCacheConfigValidation {
   // ========================================
   // Alert TTL配置（从unified-ttl.config.ts迁移）
   // ========================================
-  
+
   /**
    * Alert活跃数据TTL（秒）
    * 用于当前活跃告警的缓存时效
@@ -148,42 +149,48 @@ export class AlertCacheConfigValidation {
  * Alert缓存配置注册函数
  * 使用命名空间 'alertCache' 注册配置
  */
-export default registerAs('alertCache', (): AlertCacheConfigValidation => {
+export default registerAs("alertCache", (): AlertCacheConfigValidation => {
   const rawConfig = {
     // TTL配置 - Alert模块统一使用ALERT_前缀
     activeDataTtl: parseInt(process.env.ALERT_CACHE_ACTIVE_TTL, 10) || 300,
-    historicalDataTtl: parseInt(process.env.ALERT_CACHE_HISTORICAL_TTL, 10) || 3600,
+    historicalDataTtl:
+      parseInt(process.env.ALERT_CACHE_HISTORICAL_TTL, 10) || 3600,
     cooldownTtl: parseInt(process.env.ALERT_CACHE_COOLDOWN_TTL, 10) || 300,
     configCacheTtl: parseInt(process.env.ALERT_CACHE_CONFIG_TTL, 10) || 600,
     statsCacheTtl: parseInt(process.env.ALERT_CACHE_STATS_TTL, 10) || 300,
-    
+
     // 批处理配置 - 从原Cache配置环境变量迁移
     batchSize: parseInt(process.env.ALERT_BATCH_SIZE, 10) || 100,
-    maxBatchProcessing: parseInt(process.env.ALERT_MAX_BATCH_PROCESSING, 10) || 1000,
+    maxBatchProcessing:
+      parseInt(process.env.ALERT_MAX_BATCH_PROCESSING, 10) || 1000,
     largeBatchSize: parseInt(process.env.ALERT_LARGE_BATCH_SIZE, 10) || 1000,
     maxActiveAlerts: parseInt(process.env.ALERT_MAX_ACTIVE_ALERTS, 10) || 10000,
-    
+
     // 性能配置 - Alert模块专用
-    compressionThreshold: parseInt(process.env.ALERT_CACHE_COMPRESSION_THRESHOLD, 10) || 2048,
-    compressionEnabled: process.env.ALERT_CACHE_COMPRESSION_ENABLED !== 'false',
-    maxCacheMemoryMB: parseInt(process.env.ALERT_CACHE_MAX_MEMORY_MB, 10) || 128,
+    compressionThreshold:
+      parseInt(process.env.ALERT_CACHE_COMPRESSION_THRESHOLD, 10) || 2048,
+    compressionEnabled: process.env.ALERT_CACHE_COMPRESSION_ENABLED !== "false",
+    maxCacheMemoryMB:
+      parseInt(process.env.ALERT_CACHE_MAX_MEMORY_MB, 10) || 128,
     maxKeyLength: parseInt(process.env.ALERT_CACHE_MAX_KEY_LENGTH, 10) || 256,
   };
 
   // 转换为验证类实例
   const config = plainToClass(AlertCacheConfigValidation, rawConfig);
-  
+
   // 执行验证
-  const errors = validateSync(config, { 
+  const errors = validateSync(config, {
     whitelist: true,
     forbidNonWhitelisted: true,
   });
 
   if (errors.length > 0) {
     const errorMessages = errors
-      .map(error => Object.values(error.constraints || {}).join(', '))
-      .join('; ');
-    throw new Error(`Alert cache configuration validation failed: ${errorMessages}`);
+      .map((error) => Object.values(error.constraints || {}).join(", "))
+      .join("; ");
+    throw new BadRequestException(
+      `Alert cache configuration validation failed: ${errorMessages}`,
+    );
   }
 
   return config;
@@ -204,13 +211,13 @@ export interface AlertCacheConfigInterface {
   cooldownTtl: number;
   configCacheTtl: number;
   statsCacheTtl: number;
-  
+
   // 批处理配置
   batchSize: number;
   maxBatchProcessing: number;
   largeBatchSize: number;
   maxActiveAlerts: number;
-  
+
   // 性能配置
   compressionThreshold: number;
   compressionEnabled: boolean;
@@ -223,33 +230,33 @@ export interface AlertCacheConfigInterface {
  */
 export const ALERT_CACHE_MIGRATION_GUIDE = {
   fromCacheModule: {
-    'cache-unified.config.ts': [
-      'alertActiveDataTtl → activeDataTtl',
-      'alertHistoricalDataTtl → historicalDataTtl', 
-      'alertCooldownTtl → cooldownTtl',
-      'alertConfigCacheTtl → configCacheTtl',
-      'alertStatsCacheTtl → statsCacheTtl',
-      'alertBatchSize → batchSize',
-      'alertMaxBatchProcessing → maxBatchProcessing',
-      'alertLargeBatchSize → largeBatchSize',
-      'alertMaxActiveAlerts → maxActiveAlerts'
+    "cache-unified.config.ts": [
+      "alertActiveDataTtl → activeDataTtl",
+      "alertHistoricalDataTtl → historicalDataTtl",
+      "alertCooldownTtl → cooldownTtl",
+      "alertConfigCacheTtl → configCacheTtl",
+      "alertStatsCacheTtl → statsCacheTtl",
+      "alertBatchSize → batchSize",
+      "alertMaxBatchProcessing → maxBatchProcessing",
+      "alertLargeBatchSize → largeBatchSize",
+      "alertMaxActiveAlerts → maxActiveAlerts",
     ],
-    'cache-limits.config.ts': [
-      '所有Alert相关的批处理配置已迁移',
-      '环境变量保持兼容，支持新旧格式'
+    "cache-limits.config.ts": [
+      "所有Alert相关的批处理配置已迁移",
+      "环境变量保持兼容，支持新旧格式",
     ],
-    'unified-ttl.config.ts': [
-      '所有Alert相关的TTL配置已迁移',
-      '新环境变量格式：ALERT_CACHE_* 替代 CACHE_ALERT_*'
-    ]
+    "unified-ttl.config.ts": [
+      "所有Alert相关的TTL配置已迁移",
+      "新环境变量格式：ALERT_CACHE_* 替代 CACHE_ALERT_*",
+    ],
   },
   environmentVariables: {
-    newFormat: 'ALERT_CACHE_*',
-    oldFormat: 'CACHE_ALERT_* (已移除，使用ALERT_前缀)',
+    newFormat: "ALERT_CACHE_*",
+    oldFormat: "CACHE_ALERT_* (已移除，使用ALERT_前缀)",
     examples: [
-      'ALERT_CACHE_ACTIVE_TTL=300',
-      'ALERT_CACHE_HISTORICAL_TTL=3600',
-      'ALERT_BATCH_SIZE=100'
-    ]
-  }
+      "ALERT_CACHE_ACTIVE_TTL=300",
+      "ALERT_CACHE_HISTORICAL_TTL=3600",
+      "ALERT_BATCH_SIZE=100",
+    ],
+  },
 } as const;

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 
 /**
  * 收集器存储库
@@ -18,10 +18,10 @@ export class CollectorRepository {
    */
   async saveRawMetrics(metrics: any): Promise<void> {
     // 实现数据存储逻辑
-    this.logger.debug('CollectorRepository: 原始指标数据已保存', {
-      component: 'CollectorRepository',
-      operation: 'saveRawMetrics',
-      success: true
+    this.logger.debug("CollectorRepository: 原始指标数据已保存", {
+      component: "CollectorRepository",
+      operation: "saveRawMetrics",
+      success: true,
     });
   }
 
@@ -33,12 +33,12 @@ export class CollectorRepository {
     end: Date;
   }): Promise<any[]> {
     // 实现历史数据检索逻辑
-    this.logger.debug('CollectorRepository: 获取历史数据', {
-      component: 'CollectorRepository',
-      operation: 'getHistoricalMetrics',
+    this.logger.debug("CollectorRepository: 获取历史数据", {
+      component: "CollectorRepository",
+      operation: "getHistoricalMetrics",
       startTime: timeRange.start,
       endTime: timeRange.end,
-      success: true
+      success: true,
     });
     return [];
   }
@@ -51,12 +51,12 @@ export class CollectorRepository {
     endTime: Date,
   ): Promise<{ requests: any[]; database: any[]; cache: any[]; system?: any }> {
     // 实现指标查找逻辑
-    this.logger.debug('CollectorRepository: 查找指标数据', {
-      component: 'CollectorRepository',
-      operation: 'findMetrics',
+    this.logger.debug("CollectorRepository: 查找指标数据", {
+      component: "CollectorRepository",
+      operation: "findMetrics",
       startTime,
       endTime,
-      success: true
+      success: true,
     });
     return {
       requests: [],
@@ -71,11 +71,11 @@ export class CollectorRepository {
    */
   async deleteOldMetrics(olderThan: Date): Promise<void> {
     // 实现数据清理逻辑
-    this.logger.debug('CollectorRepository: 删除旧数据', {
-      component: 'CollectorRepository',
-      operation: 'deleteOldMetrics',
+    this.logger.debug("CollectorRepository: 删除旧数据", {
+      component: "CollectorRepository",
+      operation: "deleteOldMetrics",
       olderThan,
-      success: true
+      success: true,
     });
   }
 }

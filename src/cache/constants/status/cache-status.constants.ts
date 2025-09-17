@@ -6,7 +6,7 @@
 
 export const CACHE_STATUS = Object.freeze({
   HEALTHY: "healthy",
-  WARNING: "warning", 
+  WARNING: "warning",
   UNHEALTHY: "unhealthy",
   CONNECTED: "connected",
   DISCONNECTED: "disconnected",
@@ -16,7 +16,7 @@ export const CACHE_STATUS = Object.freeze({
 /**
  * 缓存状态类型定义
  */
-export type CacheStatus = typeof CACHE_STATUS[keyof typeof CACHE_STATUS];
+export type CacheStatus = (typeof CACHE_STATUS)[keyof typeof CACHE_STATUS];
 
 /**
  * 缓存状态值数组 - 用于验证装饰器

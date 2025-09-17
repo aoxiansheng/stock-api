@@ -1,11 +1,11 @@
 // 定义采样配置常量
 const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
-import { OPERATION_LIMITS } from '@common/constants/domain';
+import { OPERATION_LIMITS } from "@common/constants/domain";
 import {
   Injectable,
   NotFoundException,
   OnModuleDestroy,
-  Inject
+  Inject,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 import { Subject, fromEvent, race, timer } from "rxjs";
@@ -13,10 +13,7 @@ import { takeUntil, first, map } from "rxjs/operators";
 import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import {
-  createLogger,
-  sanitizeLogData,
-} from "@common/logging/index";
+import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { BaseFetcherService } from "../../../shared/services/base-fetcher.service";
 import {
   IStreamDataFetcher,
@@ -606,7 +603,8 @@ export class StreamDataFetcherService
         triggeredAt: this.concurrencyControl.circuitBreaker.triggeredAt,
         recoveryDelay: this.concurrencyControl.circuitBreaker.recoveryDelay,
       },
-      recentAdjustments: this.performanceMetrics.concurrencyHistory.slice(-RECENT_METRICS_COUNT),
+      recentAdjustments:
+        this.performanceMetrics.concurrencyHistory.slice(-RECENT_METRICS_COUNT),
       lastUpdate: new Date(
         this.performanceMetrics.lastMetricsUpdate,
       ).toISOString(),

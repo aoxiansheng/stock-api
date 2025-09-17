@@ -1,17 +1,17 @@
 import { LoggerService } from "@nestjs/common";
 import pino, { Logger as PinoLogger } from "pino";
-import { SafeLogLevelController } from './safe-log-level-controller';
-import { LogLevel } from './types';
+import { SafeLogLevelController } from "./safe-log-level-controller";
+import { LogLevel } from "./types";
 
 /**
  * 全局级别检查函数
- * 
+ *
  * 用途：快速检查特定服务的特定级别是否应该记录日志
  * 性能：利用SafeLogLevelController的缓存机制，响应时间<1ms
  */
 export function shouldLog(context: string, level: LogLevel): boolean {
   // 检查增强日志功能是否启用
-  if (process.env.ENHANCED_LOGGING_ENABLED !== 'true') {
+  if (process.env.ENHANCED_LOGGING_ENABLED !== "true") {
     return true; // 未启用时，允许所有日志
   }
 
@@ -26,7 +26,7 @@ export function shouldLog(context: string, level: LogLevel): boolean {
 
 /**
  * 增强版自定义日志类
- * 
+ *
  * 特性：
  * 1. 完全实现LoggerService接口
  * 2. 集成SafeLogLevelController进行级别控制
@@ -41,7 +41,7 @@ export class EnhancedCustomLogger implements LoggerService {
 
   constructor(context?: string) {
     this.context = context;
-    
+
     // 使用简化的pino配置
     this.pinoLogger = pino({
       name: "newstockapi-enhanced",
@@ -49,14 +49,18 @@ export class EnhancedCustomLogger implements LoggerService {
     });
 
     // 检查增强日志功能是否启用
-    this.enhancedLoggingEnabled = process.env.ENHANCED_LOGGING_ENABLED === 'true';
-    
+    this.enhancedLoggingEnabled =
+      process.env.ENHANCED_LOGGING_ENABLED === "true";
+
     if (this.enhancedLoggingEnabled) {
       try {
         this.safeController = SafeLogLevelController.getInstance();
       } catch (error) {
         // 如果SafeLogLevelController初始化失败，降级到原始行为
-        console.warn('⚠️ SafeLogLevelController initialization failed, falling back to standard logging:', error);
+        console.warn(
+          "⚠️ SafeLogLevelController initialization failed, falling back to standard logging:",
+          error,
+        );
         this.enhancedLoggingEnabled = false;
         this.safeController = null;
       }
@@ -71,7 +75,7 @@ export class EnhancedCustomLogger implements LoggerService {
       return true; // 降级模式：允许所有日志
     }
 
-    const context = this.context || 'Application';
+    const context = this.context || "Application";
     return this.safeController.shouldLog(context, level);
   }
 
@@ -79,13 +83,13 @@ export class EnhancedCustomLogger implements LoggerService {
    * 记录普通日志
    */
   log(message: any, ...optionalParams: any[]): void {
-    if (this.shouldLogWithController('info')) {
+    if (this.shouldLogWithController("info")) {
       this.pinoLogger.info(
         {
           context: this.context || "Application",
           ...(optionalParams.length && { params: optionalParams }),
         },
-        String(message)
+        String(message),
       );
     }
   }
@@ -94,13 +98,13 @@ export class EnhancedCustomLogger implements LoggerService {
    * 记录错误日志
    */
   error(message: any, ...optionalParams: any[]): void {
-    if (this.shouldLogWithController('error')) {
+    if (this.shouldLogWithController("error")) {
       this.pinoLogger.error(
         {
           context: this.context || "Application",
           ...(optionalParams.length && { params: optionalParams }),
         },
-        String(message)
+        String(message),
       );
     }
   }
@@ -109,13 +113,13 @@ export class EnhancedCustomLogger implements LoggerService {
    * 记录警告日志
    */
   warn(message: any, ...optionalParams: any[]): void {
-    if (this.shouldLogWithController('warn')) {
+    if (this.shouldLogWithController("warn")) {
       this.pinoLogger.warn(
         {
           context: this.context || "Application",
           ...(optionalParams.length && { params: optionalParams }),
         },
-        String(message)
+        String(message),
       );
     }
   }
@@ -124,13 +128,13 @@ export class EnhancedCustomLogger implements LoggerService {
    * 记录调试日志
    */
   debug(message: any, ...optionalParams: any[]): void {
-    if (this.shouldLogWithController('debug')) {
+    if (this.shouldLogWithController("debug")) {
       this.pinoLogger.debug(
         {
           context: this.context || "Application",
           ...(optionalParams.length && { params: optionalParams }),
         },
-        String(message)
+        String(message),
       );
     }
   }
@@ -139,13 +143,13 @@ export class EnhancedCustomLogger implements LoggerService {
    * 记录详细日志
    */
   verbose(message: any, ...optionalParams: any[]): void {
-    if (this.shouldLogWithController('trace')) {
+    if (this.shouldLogWithController("trace")) {
       this.pinoLogger.trace(
         {
           context: this.context || "Application",
           ...(optionalParams.length && { params: optionalParams }),
         },
-        String(message)
+        String(message),
       );
     }
   }
@@ -162,10 +166,13 @@ export class EnhancedCustomLogger implements LoggerService {
    */
   private getLogLevel(): string {
     const level = process.env.LOG_LEVEL?.toLowerCase();
-    if (level && ["fatal", "error", "warn", "info", "debug", "trace"].includes(level)) {
+    if (
+      level &&
+      ["fatal", "error", "warn", "info", "debug", "trace"].includes(level)
+    ) {
       return level;
     }
-    
+
     // 根据环境设置默认级别
     if (process.env.NODE_ENV === "production") {
       return "info";
@@ -187,7 +194,7 @@ export class EnhancedCustomLogger implements LoggerService {
     return {
       enabled: this.enhancedLoggingEnabled,
       controllerReady: this.safeController !== null,
-      context: this.context || 'Application',
+      context: this.context || "Application",
       safeControllerStatus: this.safeController?.getStatus(),
     };
   }
@@ -262,7 +269,13 @@ export function sanitizeLogData(data: any): any {
 /**
  * 获取日志级别配置（兼容函数）
  */
-export function getLogLevels(): ("error" | "warn" | "log" | "debug" | "verbose")[] {
+export function getLogLevels(): (
+  | "error"
+  | "warn"
+  | "log"
+  | "debug"
+  | "verbose"
+)[] {
   const env = process.env.NODE_ENV;
   const logLevel = process.env.LOG_LEVEL?.toUpperCase();
 
@@ -297,9 +310,9 @@ export function getLogLevels(): ("error" | "warn" | "log" | "debug" | "verbose")
 
 /**
  * 创建带上下文的日志实例 - 核心函数
- * 
+ *
  * 这是替换原 createLogger 函数的核心入口点
- * 
+ *
  * @param context - 日志上下文（通常是服务名）
  * @returns EnhancedCustomLogger 实例，完全兼容 LoggerService 接口
  */

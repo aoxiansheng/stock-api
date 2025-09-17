@@ -10,13 +10,13 @@ import {
 import { ResponseTimeFields } from "../../../common/interfaces/time-fields.interface";
 import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { 
-  BaseHealthMetrics, 
-  BaseTimestamp, 
-  BasePerformanceSummary, 
-  BaseEndpointIdentifier, 
-  BaseCacheMetrics, 
-  BaseTrendMetric 
+import {
+  BaseHealthMetrics,
+  BaseTimestamp,
+  BasePerformanceSummary,
+  BaseEndpointIdentifier,
+  BaseCacheMetrics,
+  BaseTrendMetric,
 } from "../interfaces/base.interface";
 
 /**
@@ -45,7 +45,6 @@ export class PerformanceSummaryDto implements BasePerformanceSummary {
   @IsNumber()
   errorRate: number;
 }
-
 
 export class EndpointMetricDto implements BaseEndpointIdentifier {
   @ApiProperty({ description: "端点路径" })
@@ -116,7 +115,6 @@ export class CacheAnalysisDto implements ResponseTimeFields, BaseCacheMetrics {
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
   responseTimeMs: number;
-
 }
 
 // 基础健康状态
@@ -138,7 +136,10 @@ export class ApiHealthDto extends BaseHealthDto implements ResponseTimeFields {
 }
 
 // 数据库组件健康状态
-export class DatabaseHealthDto extends BaseHealthDto implements ResponseTimeFields {
+export class DatabaseHealthDto
+  extends BaseHealthDto
+  implements ResponseTimeFields
+{
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
   responseTimeMs: number;
@@ -149,7 +150,10 @@ export class DatabaseHealthDto extends BaseHealthDto implements ResponseTimeFiel
 }
 
 // 缓存组件健康状态
-export class CacheHealthDto extends BaseHealthDto implements ResponseTimeFields {
+export class CacheHealthDto
+  extends BaseHealthDto
+  implements ResponseTimeFields
+{
   @ApiProperty({ description: "命中次数" })
   @IsNumber()
   hits: number;
@@ -161,7 +165,6 @@ export class CacheHealthDto extends BaseHealthDto implements ResponseTimeFields 
   @ApiProperty({ description: "平均响应时间（毫秒）" })
   @IsNumber()
   responseTimeMs: number;
-
 }
 
 // 系统组件健康状态
@@ -174,7 +177,6 @@ export class SystemHealthDto extends BaseHealthDto {
   @IsNumber()
   cpuUsage: number;
 }
-
 
 /**
  * 系统组件健康状态集合DTO - 简化嵌套结构
@@ -217,7 +219,6 @@ export class PerformanceSummaryDataDto {
   @IsNumber()
   systemLoad: number;
 }
-
 
 export class OptimizationSuggestionDto {
   @ApiProperty({

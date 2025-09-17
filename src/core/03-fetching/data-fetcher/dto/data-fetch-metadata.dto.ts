@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 
 /**
  * 数据获取元数据DTO

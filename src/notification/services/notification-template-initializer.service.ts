@@ -1,34 +1,34 @@
 /**
  * 通知模板初始化服务
  * 🎯 负责初始化系统默认模板
- * 
+ *
  * @description 创建系统预设的通知模板，替代常量文件中的静态模板
  * @author Claude Code Assistant
  * @date 2025-09-12
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 
-import { NotificationTemplateService } from './notification-template.service';
-import type { CreateTemplateDto } from './notification-template.service';
+import { NotificationTemplateService } from "./notification-template.service";
+import type { CreateTemplateDto } from "./notification-template.service";
 
-import { NOTIFICATION_OPERATIONS } from '../constants/notification.constants';
+import { NOTIFICATION_OPERATIONS } from "../constants/notification.constants";
 
 @Injectable()
 export class NotificationTemplateInitializerService {
-  private readonly logger = createLogger('NotificationTemplateInitializerService');
+  private readonly logger = createLogger(
+    "NotificationTemplateInitializerService",
+  );
 
-  constructor(
-    private readonly templateService: NotificationTemplateService,
-  ) {}
+  constructor(private readonly templateService: NotificationTemplateService) {}
 
   /**
    * 初始化所有默认模板
    */
   async initializeDefaultTemplates(): Promise<void> {
-    this.logger.log('开始初始化默认通知模板', {
+    this.logger.log("开始初始化默认通知模板", {
       operation: NOTIFICATION_OPERATIONS.INITIALIZE_DEFAULT_TEMPLATES,
     });
 
@@ -41,11 +41,11 @@ export class NotificationTemplateInitializerService {
         this.initializeAlertEscalatedTemplates(),
       ]);
 
-      this.logger.log('默认通知模板初始化完成', {
+      this.logger.log("默认通知模板初始化完成", {
         operation: NOTIFICATION_OPERATIONS.INITIALIZE_DEFAULT_TEMPLATES,
       });
     } catch (error) {
-      this.logger.error('默认通知模板初始化失败', {
+      this.logger.error("默认通知模板初始化失败", {
         operation: NOTIFICATION_OPERATIONS.INITIALIZE_DEFAULT_TEMPLATES,
         error: error.message,
       });
@@ -58,13 +58,13 @@ export class NotificationTemplateInitializerService {
    */
   private async initializeAlertFiredTemplates(): Promise<void> {
     const template: CreateTemplateDto = {
-      templateId: 'system-alert-fired-default',
-      name: '警告触发通知模板（系统默认）',
-      description: '当警告被触发时发送的通知模板',
-      eventType: 'alert_fired',
-      templateType: 'system',
+      templateId: "system-alert-fired-default",
+      name: "警告触发通知模板（系统默认）",
+      description: "当警告被触发时发送的通知模板",
+      eventType: "alert_fired",
+      templateType: "system",
       defaultContent: {
-        subject: '[{{severity}}] {{ruleName}} - 警告触发',
+        subject: "[{{severity}}] {{ruleName}} - 警告触发",
         body: `🚨 **警告触发通知**
 
 **警告详情:**
@@ -84,13 +84,13 @@ export class NotificationTemplateInitializerService {
 {{/if}}
 
 请及时处理此警告以避免系统影响。`,
-        format: 'text',
+        format: "text",
       },
       channelTemplates: [
         {
-          channelType: 'email',
+          channelType: "email",
           template: {
-            subject: '[{{severity}}] {{ruleName}} - 警告触发',
+            subject: "[{{severity}}] {{ruleName}} - 警告触发",
             body: `<h2 style="color: #d73027;">🚨 警告触发通知</h2>
 
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
@@ -137,11 +137,11 @@ export class NotificationTemplateInitializerService {
 <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 4px; margin: 20px 0;">
   <p style="margin: 0; color: #0c5460;">⚠️ <strong>请及时处理此警告以避免系统影响。</strong></p>
 </div>`,
-            format: 'html',
+            format: "html",
           },
         },
         {
-          channelType: 'slack',
+          channelType: "slack",
           template: {
             body: `🚨 *警告触发通知*
 
@@ -159,11 +159,11 @@ export class NotificationTemplateInitializerService {
 {{/if}}
 
 :point_right: 请及时处理此警告`,
-            format: 'text',
+            format: "text",
           },
         },
         {
-          channelType: 'webhook',
+          channelType: "webhook",
           template: {
             body: `{
   "type": "alert_fired",
@@ -187,34 +187,89 @@ export class NotificationTemplateInitializerService {
   "timestamp": "{{startTime}}",
   "action": "fired"
 }`,
-            format: 'json',
+            format: "json",
           },
         },
       ],
       variables: [
-        { name: 'alertId', type: 'string', description: '警告ID', required: true },
-        { name: 'ruleName', type: 'string', description: '规则名称', required: true },
-        { name: 'ruleId', type: 'string', description: '规则ID', required: true },
-        { name: 'ruleDescription', type: 'string', description: '规则描述', required: false },
-        { name: 'metric', type: 'string', description: '监控指标', required: true },
-        { name: 'value', type: 'number', description: '当前值', required: true },
-        { name: 'threshold', type: 'number', description: '阈值', required: true },
-        { name: 'severity', type: 'string', description: '严重级别', required: true },
-        { name: 'status', type: 'string', description: '状态', required: true },
-        { name: 'message', type: 'string', description: '警告消息', required: true },
-        { name: 'startTime', type: 'string', description: '开始时间', required: true },
-        { name: 'tags', type: 'string', description: '标签信息', required: false },
+        {
+          name: "alertId",
+          type: "string",
+          description: "警告ID",
+          required: true,
+        },
+        {
+          name: "ruleName",
+          type: "string",
+          description: "规则名称",
+          required: true,
+        },
+        {
+          name: "ruleId",
+          type: "string",
+          description: "规则ID",
+          required: true,
+        },
+        {
+          name: "ruleDescription",
+          type: "string",
+          description: "规则描述",
+          required: false,
+        },
+        {
+          name: "metric",
+          type: "string",
+          description: "监控指标",
+          required: true,
+        },
+        {
+          name: "value",
+          type: "number",
+          description: "当前值",
+          required: true,
+        },
+        {
+          name: "threshold",
+          type: "number",
+          description: "阈值",
+          required: true,
+        },
+        {
+          name: "severity",
+          type: "string",
+          description: "严重级别",
+          required: true,
+        },
+        { name: "status", type: "string", description: "状态", required: true },
+        {
+          name: "message",
+          type: "string",
+          description: "警告消息",
+          required: true,
+        },
+        {
+          name: "startTime",
+          type: "string",
+          description: "开始时间",
+          required: true,
+        },
+        {
+          name: "tags",
+          type: "string",
+          description: "标签信息",
+          required: false,
+        },
       ],
       enabled: true,
       priority: 100,
-      templateEngine: 'handlebars',
-      tags: ['系统默认', '警告触发', '通知'],
-      category: '系统警告',
-      createdBy: 'system',
+      templateEngine: "handlebars",
+      tags: ["系统默认", "警告触发", "通知"],
+      category: "系统警告",
+      createdBy: "system",
       metadata: {
-        version: '1.0.0',
+        version: "1.0.0",
         createdAt: new Date().toISOString(),
-        description: '系统默认的警告触发通知模板',
+        description: "系统默认的警告触发通知模板",
       },
     };
 
@@ -226,13 +281,13 @@ export class NotificationTemplateInitializerService {
    */
   private async initializeAlertResolvedTemplates(): Promise<void> {
     const template: CreateTemplateDto = {
-      templateId: 'system-alert-resolved-default',
-      name: '警告解决通知模板（系统默认）',
-      description: '当警告被解决时发送的通知模板',
-      eventType: 'alert_resolved',
-      templateType: 'system',
+      templateId: "system-alert-resolved-default",
+      name: "警告解决通知模板（系统默认）",
+      description: "当警告被解决时发送的通知模板",
+      eventType: "alert_resolved",
+      templateType: "system",
       defaultContent: {
-        subject: '[已解决] {{ruleName}} - 警告恢复',
+        subject: "[已解决] {{ruleName}} - 警告恢复",
         body: `✅ **警告解决通知**
 
 **警告详情:**
@@ -248,13 +303,13 @@ export class NotificationTemplateInitializerService {
 - 触发值: {{value}} (阈值: {{threshold}})
 
 此警告已恢复正常，系统运行状态良好。`,
-        format: 'text',
+        format: "text",
       },
       channelTemplates: [
         {
-          channelType: 'email',
+          channelType: "email",
           template: {
-            subject: '[已解决] {{ruleName}} - 警告恢复',
+            subject: "[已解决] {{ruleName}} - 警告恢复",
             body: `<h2 style="color: #28a745;">✅ 警告解决通知</h2>
 
 <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 4px; margin: 20px 0;">
@@ -294,32 +349,82 @@ export class NotificationTemplateInitializerService {
   <li><strong>严重级别:</strong> {{severity}}</li>
   <li><strong>触发值:</strong> {{value}} (阈值: {{threshold}})</li>
 </ul>`,
-            format: 'html',
+            format: "html",
           },
         },
       ],
       variables: [
-        { name: 'alertId', type: 'string', description: '警告ID', required: true },
-        { name: 'ruleName', type: 'string', description: '规则名称', required: true },
-        { name: 'metric', type: 'string', description: '监控指标', required: true },
-        { name: 'resolvedAt', type: 'string', description: '解决时间', required: true },
-        { name: 'resolvedBy', type: 'string', description: '解决人', required: false },
-        { name: 'duration', type: 'number', description: '持续时间（秒）', required: false },
-        { name: 'startTime', type: 'string', description: '触发时间', required: true },
-        { name: 'severity', type: 'string', description: '严重级别', required: true },
-        { name: 'value', type: 'number', description: '触发值', required: true },
-        { name: 'threshold', type: 'number', description: '阈值', required: true },
+        {
+          name: "alertId",
+          type: "string",
+          description: "警告ID",
+          required: true,
+        },
+        {
+          name: "ruleName",
+          type: "string",
+          description: "规则名称",
+          required: true,
+        },
+        {
+          name: "metric",
+          type: "string",
+          description: "监控指标",
+          required: true,
+        },
+        {
+          name: "resolvedAt",
+          type: "string",
+          description: "解决时间",
+          required: true,
+        },
+        {
+          name: "resolvedBy",
+          type: "string",
+          description: "解决人",
+          required: false,
+        },
+        {
+          name: "duration",
+          type: "number",
+          description: "持续时间（秒）",
+          required: false,
+        },
+        {
+          name: "startTime",
+          type: "string",
+          description: "触发时间",
+          required: true,
+        },
+        {
+          name: "severity",
+          type: "string",
+          description: "严重级别",
+          required: true,
+        },
+        {
+          name: "value",
+          type: "number",
+          description: "触发值",
+          required: true,
+        },
+        {
+          name: "threshold",
+          type: "number",
+          description: "阈值",
+          required: true,
+        },
       ],
       enabled: true,
       priority: 90,
-      templateEngine: 'handlebars',
-      tags: ['系统默认', '警告解决', '通知'],
-      category: '系统警告',
-      createdBy: 'system',
+      templateEngine: "handlebars",
+      tags: ["系统默认", "警告解决", "通知"],
+      category: "系统警告",
+      createdBy: "system",
       metadata: {
-        version: '1.0.0',
+        version: "1.0.0",
         createdAt: new Date().toISOString(),
-        description: '系统默认的警告解决通知模板',
+        description: "系统默认的警告解决通知模板",
       },
     };
 
@@ -331,13 +436,13 @@ export class NotificationTemplateInitializerService {
    */
   private async initializeAlertAcknowledgedTemplates(): Promise<void> {
     const template: CreateTemplateDto = {
-      templateId: 'system-alert-acknowledged-default',
-      name: '警告确认通知模板（系统默认）',
-      description: '当警告被确认时发送的通知模板',
-      eventType: 'alert_acknowledged',
-      templateType: 'system',
+      templateId: "system-alert-acknowledged-default",
+      name: "警告确认通知模板（系统默认）",
+      description: "当警告被确认时发送的通知模板",
+      eventType: "alert_acknowledged",
+      templateType: "system",
       defaultContent: {
-        subject: '[已确认] {{ruleName}} - 警告已确认',
+        subject: "[已确认] {{ruleName}} - 警告已确认",
         body: `📋 **警告确认通知**
 
 **确认详情:**
@@ -352,14 +457,14 @@ export class NotificationTemplateInitializerService {
 - 当前值: {{value}} (阈值: {{threshold}})
 
 此警告已被确认，正在处理中。`,
-        format: 'text',
+        format: "text",
       },
       enabled: true,
       priority: 80,
-      templateEngine: 'handlebars',
-      tags: ['系统默认', '警告确认', '通知'],
-      category: '系统警告',
-      createdBy: 'system',
+      templateEngine: "handlebars",
+      tags: ["系统默认", "警告确认", "通知"],
+      category: "系统警告",
+      createdBy: "system",
     };
 
     await this.createTemplateIfNotExists(template);
@@ -370,13 +475,13 @@ export class NotificationTemplateInitializerService {
    */
   private async initializeAlertSuppressedTemplates(): Promise<void> {
     const template: CreateTemplateDto = {
-      templateId: 'system-alert-suppressed-default',
-      name: '警告抑制通知模板（系统默认）',
-      description: '当警告被抑制时发送的通知模板',
-      eventType: 'alert_suppressed',
-      templateType: 'system',
+      templateId: "system-alert-suppressed-default",
+      name: "警告抑制通知模板（系统默认）",
+      description: "当警告被抑制时发送的通知模板",
+      eventType: "alert_suppressed",
+      templateType: "system",
       defaultContent: {
-        subject: '[已抑制] {{ruleName}} - 警告已抑制',
+        subject: "[已抑制] {{ruleName}} - 警告已抑制",
         body: `🔇 **警告抑制通知**
 
 **抑制详情:**
@@ -393,14 +498,14 @@ export class NotificationTemplateInitializerService {
 - 当前值: {{value}} (阈值: {{threshold}})
 
 此警告已被临时抑制，在抑制期间将不会发送通知。`,
-        format: 'text',
+        format: "text",
       },
       enabled: true,
       priority: 70,
-      templateEngine: 'handlebars',
-      tags: ['系统默认', '警告抑制', '通知'],
-      category: '系统警告',
-      createdBy: 'system',
+      templateEngine: "handlebars",
+      tags: ["系统默认", "警告抑制", "通知"],
+      category: "系统警告",
+      createdBy: "system",
     };
 
     await this.createTemplateIfNotExists(template);
@@ -411,13 +516,14 @@ export class NotificationTemplateInitializerService {
    */
   private async initializeAlertEscalatedTemplates(): Promise<void> {
     const template: CreateTemplateDto = {
-      templateId: 'system-alert-escalated-default',
-      name: '警告升级通知模板（系统默认）',
-      description: '当警告被升级时发送的通知模板',
-      eventType: 'alert_escalated',
-      templateType: 'system',
+      templateId: "system-alert-escalated-default",
+      name: "警告升级通知模板（系统默认）",
+      description: "当警告被升级时发送的通知模板",
+      eventType: "alert_escalated",
+      templateType: "system",
       defaultContent: {
-        subject: '[严重程度升级] {{ruleName}} - {{previousSeverity}} → {{newSeverity}}',
+        subject:
+          "[严重程度升级] {{ruleName}} - {{previousSeverity}} → {{newSeverity}}",
         body: `🚨 **警告严重程度升级**
 
 **升级详情:**
@@ -439,14 +545,14 @@ export class NotificationTemplateInitializerService {
 📈 警告严重程度已升级，请及时处理
 🔍 建议检查相关系统状态
 {{/eq}}`,
-        format: 'text',
+        format: "text",
       },
       enabled: true,
       priority: 95,
-      templateEngine: 'handlebars',
-      tags: ['系统默认', '警告升级', '通知'],
-      category: '系统警告',
-      createdBy: 'system',
+      templateEngine: "handlebars",
+      tags: ["系统默认", "警告升级", "通知"],
+      category: "系统警告",
+      createdBy: "system",
     };
 
     await this.createTemplateIfNotExists(template);
@@ -455,10 +561,12 @@ export class NotificationTemplateInitializerService {
   /**
    * 创建模板（如果不存在）
    */
-  private async createTemplateIfNotExists(template: CreateTemplateDto): Promise<void> {
+  private async createTemplateIfNotExists(
+    template: CreateTemplateDto,
+  ): Promise<void> {
     try {
       await this.templateService.findTemplateById(template.templateId);
-      this.logger.debug('模板已存在，跳过创建', {
+      this.logger.debug("模板已存在，跳过创建", {
         templateId: template.templateId,
         name: template.name,
       });
@@ -466,13 +574,13 @@ export class NotificationTemplateInitializerService {
       // 模板不存在，创建新模板
       try {
         await this.templateService.createTemplate(template);
-        this.logger.log('系统默认模板创建成功', {
+        this.logger.log("系统默认模板创建成功", {
           templateId: template.templateId,
           name: template.name,
           eventType: template.eventType,
         });
       } catch (createError) {
-        this.logger.error('系统默认模板创建失败', {
+        this.logger.error("系统默认模板创建失败", {
           templateId: template.templateId,
           name: template.name,
           error: createError.message,

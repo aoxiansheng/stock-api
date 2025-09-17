@@ -1,7 +1,7 @@
 import { IsArray, IsString, IsOptional, ArrayMinSize } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 
 /**
  * WebSocket 取消订阅请求 DTO

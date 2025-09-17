@@ -7,7 +7,10 @@ import {
   IsOptional,
   IsObject,
 } from "class-validator";
-import { BasicHealthStatus, BASIC_HEALTH_STATUSES } from "../../constants/status/unified-health-status.constants";
+import {
+  BasicHealthStatus,
+  BASIC_HEALTH_STATUSES,
+} from "../../constants/status/unified-health-status.constants";
 
 /**
  * 缓存健康检查结果DTO

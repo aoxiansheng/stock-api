@@ -1,34 +1,38 @@
 /**
  * Alert配置一致性测试
  * 🎯 验证Alert模块四层配置体系的一致性和完整性
- * 
+ *
  * @description 确保Alert模块的配置系统符合四层配置体系要求
  * @author Claude Code Assistant
  * @date 2025-09-16
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { validateSync } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { Test, TestingModule } from "@nestjs/testing";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { validateSync } from "class-validator";
+import { plainToClass } from "class-transformer";
 
 // Alert配置导入
-import alertConfig, { AlertConfigValidation } from '@alert/config/alert.config';
-import alertCacheConfig, { AlertCacheConfigValidation } from '@alert/config/alert-cache.config';
-import alertPerformanceConfig, { AlertPerformanceConfig } from '@alert/config/alert-performance.config';
-import { 
-  AlertValidationRules, 
-  AlertCacheConfig as AlertCacheConfigClass, 
+import alertConfig, { AlertConfigValidation } from "@alert/config/alert.config";
+import alertCacheConfig, {
+  AlertCacheConfigValidation,
+} from "@alert/config/alert-cache.config";
+import alertPerformanceConfig, {
+  AlertPerformanceConfig,
+} from "@alert/config/alert-performance.config";
+import {
+  AlertValidationRules,
+  AlertCacheConfig as AlertCacheConfigClass,
   AlertLimitsConfig,
-  CompleteAlertValidation 
-} from '@alert/config/alert-validation.config';
+  CompleteAlertValidation,
+} from "@alert/config/alert-validation.config";
 
 // 常量导入
-import { VALIDATION_LIMITS } from '@common/constants/validation.constants';
-import { ALERT_DEFAULTS } from '@alert/constants/defaults.constants';
-import { RETRY_LIMITS } from '@alert/constants/limits.constants';
+import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
+import { ALERT_DEFAULTS } from "@alert/constants/defaults.constants";
+import { RETRY_LIMITS } from "@alert/constants/limits.constants";
 
-describe('Alert配置一致性测试', () => {
+describe("Alert配置一致性测试", () => {
   let configService: ConfigService;
   let module: TestingModule;
 
@@ -49,37 +53,37 @@ describe('Alert配置一致性测试', () => {
     await module.close();
   });
 
-  describe('四层配置体系验证', () => {
-    describe('1. 环境变量层', () => {
-      it('应该支持所有必要的环境变量', () => {
+  describe("四层配置体系验证", () => {
+    describe("1. 环境变量层", () => {
+      it("应该支持所有必要的环境变量", () => {
         const expectedEnvVars = [
-          'ALERT_EVALUATION_INTERVAL',
-          'ALERT_DEFAULT_COOLDOWN',
-          'ALERT_BATCH_SIZE',
-          'ALERT_EVALUATION_TIMEOUT',
-          'ALERT_MAX_RETRIES',
-          'ALERT_VALIDATION_DURATION_MIN',
-          'ALERT_VALIDATION_DURATION_MAX',
-          'ALERT_VALIDATION_COOLDOWN_MAX',
-          'ALERT_CACHE_ACTIVE_TTL',
-          'ALERT_CACHE_HISTORICAL_TTL',
-          'ALERT_CACHE_COOLDOWN_TTL',
-          'ALERT_MAX_CONCURRENCY',
-          'ALERT_QUEUE_SIZE_LIMIT',
-          'ALERT_RATE_LIMIT_PER_MINUTE',
-          'ALERT_CONNECTION_POOL_SIZE',
+          "ALERT_EVALUATION_INTERVAL",
+          "ALERT_DEFAULT_COOLDOWN",
+          "ALERT_BATCH_SIZE",
+          "ALERT_EVALUATION_TIMEOUT",
+          "ALERT_MAX_RETRIES",
+          "ALERT_VALIDATION_DURATION_MIN",
+          "ALERT_VALIDATION_DURATION_MAX",
+          "ALERT_VALIDATION_COOLDOWN_MAX",
+          "ALERT_CACHE_ACTIVE_TTL",
+          "ALERT_CACHE_HISTORICAL_TTL",
+          "ALERT_CACHE_COOLDOWN_TTL",
+          "ALERT_MAX_CONCURRENCY",
+          "ALERT_QUEUE_SIZE_LIMIT",
+          "ALERT_RATE_LIMIT_PER_MINUTE",
+          "ALERT_CONNECTION_POOL_SIZE",
         ];
 
         // 验证环境变量格式（即使未设置，也应该有默认值处理）
-        expectedEnvVars.forEach(envVar => {
-          expect(typeof envVar).toBe('string');
+        expectedEnvVars.forEach((envVar) => {
+          expect(typeof envVar).toBe("string");
           expect(envVar).toMatch(/^ALERT_/);
         });
       });
 
-      it('应该处理环境变量默认值', () => {
+      it("应该处理环境变量默认值", () => {
         // 测试默认值是否正确设置
-        const alertConfigData = configService.get('alert');
+        const alertConfigData = configService.get("alert");
         expect(alertConfigData).toBeDefined();
         expect(alertConfigData.evaluationInterval).toBeGreaterThan(0);
         expect(alertConfigData.defaultCooldown).toBeGreaterThan(0);
@@ -87,9 +91,9 @@ describe('Alert配置一致性测试', () => {
       });
     });
 
-    describe('2. 配置文件层', () => {
-      it('Alert主配置应该有效', () => {
-        const alertConfigData = configService.get('alert');
+    describe("2. 配置文件层", () => {
+      it("Alert主配置应该有效", () => {
+        const alertConfigData = configService.get("alert");
         expect(alertConfigData).toBeDefined();
         expect(alertConfigData.evaluationInterval).toBeGreaterThanOrEqual(10);
         expect(alertConfigData.defaultCooldown).toBeGreaterThanOrEqual(60);
@@ -98,56 +102,69 @@ describe('Alert配置一致性测试', () => {
         expect(alertConfigData.maxRetries).toBeGreaterThanOrEqual(1);
       });
 
-      it('Alert缓存配置应该有效', () => {
-        const alertCacheConfigData = configService.get('alertCache');
+      it("Alert缓存配置应该有效", () => {
+        const alertCacheConfigData = configService.get("alertCache");
         expect(alertCacheConfigData).toBeDefined();
         expect(alertCacheConfigData.activeDataTtl).toBeGreaterThanOrEqual(60);
-        expect(alertCacheConfigData.historicalDataTtl).toBeGreaterThanOrEqual(300);
+        expect(alertCacheConfigData.historicalDataTtl).toBeGreaterThanOrEqual(
+          300,
+        );
         expect(alertCacheConfigData.batchSize).toBeGreaterThanOrEqual(10);
-        expect(alertCacheConfigData.maxActiveAlerts).toBeGreaterThanOrEqual(1000);
+        expect(alertCacheConfigData.maxActiveAlerts).toBeGreaterThanOrEqual(
+          1000,
+        );
       });
 
-      it('Alert性能配置应该有效', () => {
-        const alertPerformanceConfigData = configService.get('alertPerformance');
+      it("Alert性能配置应该有效", () => {
+        const alertPerformanceConfigData =
+          configService.get("alertPerformance");
         expect(alertPerformanceConfigData).toBeDefined();
-        expect(alertPerformanceConfigData.maxConcurrency).toBeGreaterThanOrEqual(1);
-        expect(alertPerformanceConfigData.queueSizeLimit).toBeGreaterThanOrEqual(10);
-        expect(alertPerformanceConfigData.rateLimitPerMinute).toBeGreaterThanOrEqual(1);
+        expect(
+          alertPerformanceConfigData.maxConcurrency,
+        ).toBeGreaterThanOrEqual(1);
+        expect(
+          alertPerformanceConfigData.queueSizeLimit,
+        ).toBeGreaterThanOrEqual(10);
+        expect(
+          alertPerformanceConfigData.rateLimitPerMinute,
+        ).toBeGreaterThanOrEqual(1);
         expect(alertPerformanceConfigData.batchSize).toBeGreaterThanOrEqual(1);
-        expect(alertPerformanceConfigData.connectionPoolSize).toBeGreaterThanOrEqual(1);
+        expect(
+          alertPerformanceConfigData.connectionPoolSize,
+        ).toBeGreaterThanOrEqual(1);
       });
     });
 
-    describe('3. 配置验证层', () => {
-      it('AlertConfigValidation应该通过验证', () => {
+    describe("3. 配置验证层", () => {
+      it("AlertConfigValidation应该通过验证", () => {
         const config = new AlertConfigValidation();
         const errors = validateSync(config);
         expect(errors.length).toBe(0);
       });
 
-      it('AlertCacheConfigValidation应该通过验证', () => {
+      it("AlertCacheConfigValidation应该通过验证", () => {
         const config = new AlertCacheConfigValidation();
         const errors = validateSync(config);
         expect(errors.length).toBe(0);
       });
 
-      it('AlertPerformanceConfig应该通过验证', () => {
+      it("AlertPerformanceConfig应该通过验证", () => {
         const config = new AlertPerformanceConfig();
         const errors = validateSync(config);
         expect(errors.length).toBe(0);
       });
 
-      it('嵌套配置验证应该工作', () => {
+      it("嵌套配置验证应该工作", () => {
         const completeConfig = new CompleteAlertValidation();
         const errors = validateSync(completeConfig, {
-          validationError: { target: false }
+          validationError: { target: false },
         });
         expect(errors.length).toBe(0);
       });
     });
 
-    describe('4. 常量文件层', () => {
-      it('VALIDATION_LIMITS应该包含Alert所需常量', () => {
+    describe("4. 常量文件层", () => {
+      it("VALIDATION_LIMITS应该包含Alert所需常量", () => {
         expect(VALIDATION_LIMITS.DURATION_MIN).toBeDefined();
         expect(VALIDATION_LIMITS.DURATION_MAX).toBeDefined();
         expect(VALIDATION_LIMITS.COOLDOWN_MIN).toBeDefined();
@@ -158,12 +175,12 @@ describe('Alert配置一致性测试', () => {
         expect(VALIDATION_LIMITS.TIMEOUT_MAX).toBeDefined();
       });
 
-      it('ALERT_DEFAULTS应该提供合理默认值', () => {
+      it("ALERT_DEFAULTS应该提供合理默认值", () => {
         expect(ALERT_DEFAULTS).toBeDefined();
-        expect(typeof ALERT_DEFAULTS).toBe('object');
+        expect(typeof ALERT_DEFAULTS).toBe("object");
       });
 
-      it('RETRY_LIMITS应该提供重试配置', () => {
+      it("RETRY_LIMITS应该提供重试配置", () => {
         expect(RETRY_LIMITS.MINIMAL_RETRIES).toBeGreaterThanOrEqual(1);
         expect(RETRY_LIMITS.STANDARD_RETRIES).toBeGreaterThanOrEqual(1);
         expect(RETRY_LIMITS.CRITICAL_RETRIES).toBeGreaterThanOrEqual(1);
@@ -172,39 +189,53 @@ describe('Alert配置一致性测试', () => {
     });
   });
 
-  describe('配置一致性验证', () => {
-    it('Alert配置与常量应该一致', () => {
-      const alertConfigData = configService.get('alert');
-      
+  describe("配置一致性验证", () => {
+    it("Alert配置与常量应该一致", () => {
+      const alertConfigData = configService.get("alert");
+
       // 验证持续时间限制一致性
-      expect(alertConfigData.validation.duration.min).toBe(VALIDATION_LIMITS.DURATION_MIN);
-      expect(alertConfigData.validation.duration.max).toBe(VALIDATION_LIMITS.DURATION_MAX);
-      
+      expect(alertConfigData.validation.duration.min).toBe(
+        VALIDATION_LIMITS.DURATION_MIN,
+      );
+      expect(alertConfigData.validation.duration.max).toBe(
+        VALIDATION_LIMITS.DURATION_MAX,
+      );
+
       // 验证冷却时间限制一致性
-      expect(alertConfigData.validation.cooldown.max).toBe(VALIDATION_LIMITS.COOLDOWN_MAX);
+      expect(alertConfigData.validation.cooldown.max).toBe(
+        VALIDATION_LIMITS.COOLDOWN_MAX,
+      );
     });
 
-    it('缓存配置与主配置应该兼容', () => {
-      const alertConfigData = configService.get('alert');
-      const alertCacheConfigData = configService.get('alertCache');
-      
+    it("缓存配置与主配置应该兼容", () => {
+      const alertConfigData = configService.get("alert");
+      const alertCacheConfigData = configService.get("alertCache");
+
       // 批处理大小应该一致或兼容
-      expect(alertCacheConfigData.batchSize).toBeGreaterThanOrEqual(alertConfigData.batchSize * 0.5);
-      expect(alertCacheConfigData.batchSize).toBeLessThanOrEqual(alertConfigData.batchSize * 2);
+      expect(alertCacheConfigData.batchSize).toBeGreaterThanOrEqual(
+        alertConfigData.batchSize * 0.5,
+      );
+      expect(alertCacheConfigData.batchSize).toBeLessThanOrEqual(
+        alertConfigData.batchSize * 2,
+      );
     });
 
-    it('性能配置应该与主配置协调', () => {
-      const alertConfigData = configService.get('alert');
-      const alertPerformanceConfigData = configService.get('alertPerformance');
-      
+    it("性能配置应该与主配置协调", () => {
+      const alertConfigData = configService.get("alert");
+      const alertPerformanceConfigData = configService.get("alertPerformance");
+
       // 批处理大小应该协调
-      expect(alertPerformanceConfigData.batchSize).toBeGreaterThanOrEqual(alertConfigData.batchSize * 0.5);
-      expect(alertPerformanceConfigData.batchSize).toBeLessThanOrEqual(alertConfigData.batchSize * 2);
+      expect(alertPerformanceConfigData.batchSize).toBeGreaterThanOrEqual(
+        alertConfigData.batchSize * 0.5,
+      );
+      expect(alertPerformanceConfigData.batchSize).toBeLessThanOrEqual(
+        alertConfigData.batchSize * 2,
+      );
     });
   });
 
-  describe('配置边界值测试', () => {
-    it('应该正确处理最小值', () => {
+  describe("配置边界值测试", () => {
+    it("应该正确处理最小值", () => {
       const minConfig = {
         evaluationInterval: 10,
         defaultCooldown: 60,
@@ -218,7 +249,7 @@ describe('Alert配置一致性测试', () => {
       expect(errors.length).toBe(0);
     });
 
-    it('应该正确处理最大值', () => {
+    it("应该正确处理最大值", () => {
       const maxConfig = {
         evaluationInterval: 3600,
         defaultCooldown: 7200,
@@ -232,13 +263,13 @@ describe('Alert配置一致性测试', () => {
       expect(errors.length).toBe(0);
     });
 
-    it('应该拒绝超出边界的值', () => {
+    it("应该拒绝超出边界的值", () => {
       const invalidConfig = {
         evaluationInterval: 5, // 低于最小值10
-        defaultCooldown: 30,   // 低于最小值60
-        batchSize: 5,          // 低于最小值10
+        defaultCooldown: 30, // 低于最小值60
+        batchSize: 5, // 低于最小值10
         evaluationTimeout: 500, // 低于最小值1000
-        maxRetries: 0,         // 低于最小值1
+        maxRetries: 0, // 低于最小值1
       };
 
       const config = plainToClass(AlertConfigValidation, invalidConfig);
@@ -247,11 +278,11 @@ describe('Alert配置一致性测试', () => {
     });
   });
 
-  describe('配置热重载测试', () => {
-    it('配置更改应该能够重新验证', () => {
+  describe("配置热重载测试", () => {
+    it("配置更改应该能够重新验证", () => {
       // 模拟环境变量更改
       const originalValue = process.env.ALERT_EVALUATION_INTERVAL;
-      process.env.ALERT_EVALUATION_INTERVAL = '120';
+      process.env.ALERT_EVALUATION_INTERVAL = "120";
 
       try {
         // 重新创建配置
@@ -268,10 +299,10 @@ describe('Alert配置一致性测试', () => {
     });
   });
 
-  describe('配置错误处理', () => {
-    it('应该正确处理无效的环境变量', () => {
+  describe("配置错误处理", () => {
+    it("应该正确处理无效的环境变量", () => {
       const originalValue = process.env.ALERT_EVALUATION_INTERVAL;
-      process.env.ALERT_EVALUATION_INTERVAL = 'invalid_number';
+      process.env.ALERT_EVALUATION_INTERVAL = "invalid_number";
 
       try {
         const config = alertConfig();
@@ -286,7 +317,7 @@ describe('Alert配置一致性测试', () => {
       }
     });
 
-    it('应该在配置验证失败时抛出错误', () => {
+    it("应该在配置验证失败时抛出错误", () => {
       const invalidRawConfig = {
         evaluationInterval: -1,
         defaultCooldown: -1,
@@ -299,33 +330,33 @@ describe('Alert配置一致性测试', () => {
         const config = plainToClass(AlertConfigValidation, invalidRawConfig);
         const errors = validateSync(config);
         if (errors.length > 0) {
-          throw new Error('Configuration validation failed');
+          throw new Error("Configuration validation failed");
         }
       }).toThrow();
     });
   });
 
-  describe('配置完整性检查', () => {
-    it('所有必需的配置字段都应该存在', () => {
-      const alertConfigData = configService.get('alert');
+  describe("配置完整性检查", () => {
+    it("所有必需的配置字段都应该存在", () => {
+      const alertConfigData = configService.get("alert");
       const requiredFields = [
-        'evaluationInterval',
-        'defaultCooldown', 
-        'batchSize',
-        'evaluationTimeout',
-        'maxRetries',
-        'validation',
-        'cache'
+        "evaluationInterval",
+        "defaultCooldown",
+        "batchSize",
+        "evaluationTimeout",
+        "maxRetries",
+        "validation",
+        "cache",
       ];
 
-      requiredFields.forEach(field => {
+      requiredFields.forEach((field) => {
         expect(alertConfigData[field]).toBeDefined();
       });
     });
 
-    it('嵌套配置对象应该完整', () => {
-      const alertConfigData = configService.get('alert');
-      
+    it("嵌套配置对象应该完整", () => {
+      const alertConfigData = configService.get("alert");
+
       // 验证validation对象
       expect(alertConfigData.validation.duration).toBeDefined();
       expect(alertConfigData.validation.duration.min).toBeDefined();

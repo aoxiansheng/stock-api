@@ -1,10 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsBoolean,
-  IsString,
-  IsNumber,
-  IsOptional,
-} from "class-validator";
+import { IsBoolean, IsString, IsNumber, IsOptional } from "class-validator";
 import { ProcessingTimeFields } from "../../../common/interfaces/time-fields.interface";
 
 /**

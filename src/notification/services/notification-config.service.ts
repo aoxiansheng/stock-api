@@ -1,32 +1,36 @@
 /**
  * Notification Configuration Service
  * 🎯 通知系统配置访问和业务逻辑辅助服务
- * 
+ *
  * @description 提供统一的配置访问接口，消除硬编码配置
  * @see docs/代码审查文档/配置文件标准/四层配置体系标准规则与开发指南.md
  */
 
-import { Injectable, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { 
+import { Injectable, Inject } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import {
   NotificationUnifiedConfig,
   NotificationBatchConfig,
   NotificationTimeoutConfig,
   NotificationRetryConfig,
   NotificationValidationConfig,
   NotificationFeatureConfig,
-  NotificationTemplateConfig
-} from '../config/notification-unified.config';
-import { NotificationChannelType, NotificationPriority } from '../types/notification.types';
+  NotificationTemplateConfig,
+} from "../config/notification-unified.config";
+import {
+  NotificationChannelType,
+  NotificationPriority,
+} from "../types/notification.types";
 
 @Injectable()
 export class NotificationConfigService {
   private readonly config: NotificationUnifiedConfig;
 
   constructor(private readonly configService: ConfigService) {
-    this.config = this.configService.get<NotificationUnifiedConfig>('notification');
+    this.config =
+      this.configService.get<NotificationUnifiedConfig>("notification");
     if (!this.config) {
-      throw new Error('Notification configuration not found');
+      throw new Error("Notification configuration not found");
     }
   }
 
@@ -268,15 +272,15 @@ export class NotificationConfigService {
    */
   getChannelTimeout(channelType: NotificationChannelType): number {
     switch (channelType) {
-      case 'email':
+      case "email":
         return this.getEmailTimeout();
-      case 'sms':
+      case "sms":
         return this.getSmsTimeout();
-      case 'webhook':
+      case "webhook":
         return this.getWebhookTimeout();
-      case 'slack':
-      case 'dingtalk':
-      case 'log':
+      case "slack":
+      case "dingtalk":
+      case "log":
       default:
         return this.getDefaultTimeout();
     }
@@ -292,18 +296,24 @@ export class NotificationConfigService {
       return 0;
     }
 
-    const { initialRetryDelay, retryBackoffMultiplier, maxRetryDelay, jitterFactor } = this.config.retry;
-    
+    const {
+      initialRetryDelay,
+      retryBackoffMultiplier,
+      maxRetryDelay,
+      jitterFactor,
+    } = this.config.retry;
+
     // 计算指数退避延迟
-    const baseDelay = initialRetryDelay * Math.pow(retryBackoffMultiplier, attemptNumber - 1);
-    
+    const baseDelay =
+      initialRetryDelay * Math.pow(retryBackoffMultiplier, attemptNumber - 1);
+
     // 限制最大延迟
     const cappedDelay = Math.min(baseDelay, maxRetryDelay);
-    
+
     // 添加抖动以避免雷群效应
     const jitter = cappedDelay * jitterFactor * (Math.random() - 0.5);
     const finalDelay = Math.max(0, cappedDelay + jitter);
-    
+
     return Math.round(finalDelay);
   }
 
@@ -341,8 +351,10 @@ export class NotificationConfigService {
    */
   isValidVariableName(variableName: string): boolean {
     const length = variableName.length;
-    return length >= this.getVariableNameMinLength() && 
-           length <= this.getVariableNameMaxLength();
+    return (
+      length >= this.getVariableNameMinLength() &&
+      length <= this.getVariableNameMaxLength()
+    );
   }
 
   /**
@@ -352,8 +364,10 @@ export class NotificationConfigService {
    */
   isValidTemplate(template: string): boolean {
     const length = template.length;
-    return length >= this.getMinTemplateLength() && 
-           length <= this.getMaxTemplateLength();
+    return (
+      length >= this.getMinTemplateLength() &&
+      length <= this.getMaxTemplateLength()
+    );
   }
 
   /**

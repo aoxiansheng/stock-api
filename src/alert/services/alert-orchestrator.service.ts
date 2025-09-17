@@ -1,39 +1,52 @@
 /**
  * Alert编排服务
  * 🎯 协调所有Alert服务，提供统一的高级接口
- * 
+ *
  * @description 门面模式，简化复杂的服务交互，提供统一的告警管理接口
  * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { ConfigType } from '@nestjs/config';
+import {
+  Injectable,
+  OnModuleInit,
+  Inject,
+  NotFoundException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import type { ConfigType } from "@nestjs/config";
 
 import { createLogger } from "@common/logging/index";
-import { CreateAlertRuleDto, UpdateAlertRuleDto } from '../dto';
-import { IAlert, IAlertRule, IAlertQuery, IAlertStats, IMetricData } from '../interfaces';
-import { AlertStatus } from '../types/alert.types';
-import cacheLimitsConfig from '@cache/config/cache-unified.config';
+import { BUSINESS_ERROR_MESSAGES } from "@common/constants/semantic/error-messages.constants";
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
+import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../dto";
+import {
+  IAlert,
+  IAlertRule,
+  IAlertQuery,
+  IAlertStats,
+  IMetricData,
+} from "../interfaces";
+import { AlertStatus } from "../types/alert.types";
+import alertCacheConfig from "../config/alert-cache.config";
 
 // 新服务层导入
-import { AlertRuleService } from './alert-rule.service';
-import { AlertEvaluationService } from './alert-evaluation.service';
-import { AlertLifecycleService } from './alert-lifecycle.service';
-import { AlertQueryService } from './alert-query.service';
-import { AlertCacheService } from './alert-cache.service';
-import { AlertEventPublisher } from './alert-event-publisher.service';
+import { AlertRuleService } from "./alert-rule.service";
+import { AlertEvaluationService } from "./alert-evaluation.service";
+import { AlertLifecycleService } from "./alert-lifecycle.service";
+import { AlertQueryService } from "./alert-query.service";
+import { AlertCacheService } from "./alert-cache.service";
+import { AlertEventPublisher } from "./alert-event-publisher.service";
 
 /**
  * 统一的Alert管理服务
- * 
+ *
  * 这个服务作为门面，协调所有底层服务，
  * 提供简化的接口供控制器和其他模块使用
  */
 @Injectable()
 export class AlertOrchestratorService implements OnModuleInit {
-  private readonly logger = createLogger('AlertOrchestratorService');
+  private readonly logger = createLogger("AlertOrchestratorService");
 
   constructor(
     private readonly ruleService: AlertRuleService,
@@ -43,12 +56,12 @@ export class AlertOrchestratorService implements OnModuleInit {
     private readonly cacheService: AlertCacheService,
     private readonly eventPublisher: AlertEventPublisher,
     private readonly configService: ConfigService,
-    @Inject(cacheLimitsConfig.KEY)
-    private readonly cacheLimits: ConfigType<typeof cacheLimitsConfig>,
+    @Inject(alertCacheConfig.KEY)
+    private readonly alertCacheLimits: ConfigType<typeof alertCacheConfig>,
   ) {}
 
   async onModuleInit() {
-    this.logger.log('告警编排服务初始化完成');
+    this.logger.log("告警编排服务初始化完成");
     await this.performHealthCheck();
   }
 
@@ -64,19 +77,28 @@ export class AlertOrchestratorService implements OnModuleInit {
   /**
    * 更新告警规则
    */
-  async updateRule(ruleId: string, updateRuleDto: UpdateAlertRuleDto): Promise<IAlertRule> {
+  async updateRule(
+    ruleId: string,
+    updateRuleDto: UpdateAlertRuleDto,
+  ): Promise<IAlertRule> {
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
     return await this.ruleService.updateRule(ruleId, updateRuleDto);
   }
 
   /**
    * 删除告警规则
    */
-  async deleteRule(ruleId: string): Promise<boolean> {
+  async deleteRule(ruleId: string): Promise<void> {
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
     // 删除规则前清理相关缓存
     await this.cacheService.clearActiveAlert(ruleId);
     await this.cacheService.clearCooldown(ruleId);
-    
-    return await this.ruleService.deleteRule(ruleId);
+
+    const deleted = await this.ruleService.deleteRule(ruleId);
+    if (!deleted) {
+      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+    }
   }
 
   /**
@@ -90,6 +112,7 @@ export class AlertOrchestratorService implements OnModuleInit {
    * 根据ID获取规则
    */
   async getRuleById(ruleId: string): Promise<IAlertRule> {
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
     return await this.ruleService.getRuleById(ruleId);
   }
 
@@ -97,14 +120,16 @@ export class AlertOrchestratorService implements OnModuleInit {
    * 启用/禁用规则
    */
   async toggleRule(ruleId: string, enabled: boolean): Promise<boolean> {
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
     const result = await this.ruleService.toggleRule(ruleId, enabled);
-    
+
     // 如果禁用规则，清理相关缓存
     if (!enabled && result) {
       await this.cacheService.clearActiveAlert(ruleId);
       await this.cacheService.clearCooldown(ruleId);
     }
-    
+
     return result;
   }
 
@@ -145,6 +170,7 @@ export class AlertOrchestratorService implements OnModuleInit {
    * 评估单个规则
    */
   async evaluateRule(ruleId: string, metricData: IMetricData[]) {
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
     return await this.evaluationService.evaluateRule(ruleId, metricData);
   }
 
@@ -153,20 +179,43 @@ export class AlertOrchestratorService implements OnModuleInit {
   /**
    * 确认告警
    */
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string, comment?: string): Promise<IAlert> {
-    const alert = await this.lifecycleService.acknowledgeAlert(alertId, acknowledgedBy, comment);
-    
+  async acknowledgeAlert(
+    alertId: string,
+    acknowledgedBy: string,
+    comment?: string,
+  ): Promise<IAlert> {
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+
+    const alert = await this.lifecycleService.acknowledgeAlert(
+      alertId,
+      acknowledgedBy,
+      comment,
+    );
+
     // 更新缓存
     await this.cacheService.updateTimeseriesAlertStatus(alert);
-    
+
     return alert;
   }
 
   /**
    * 解决告警
    */
-  async resolveAlert(alertId: string, resolvedBy: string, ruleId: string, comment?: string): Promise<IAlert> {
-    return await this.lifecycleService.resolveAlert(alertId, resolvedBy, ruleId, comment);
+  async resolveAlert(
+    alertId: string,
+    resolvedBy: string,
+    ruleId: string,
+    comment?: string,
+  ): Promise<IAlert> {
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
+    return await this.lifecycleService.resolveAlert(
+      alertId,
+      resolvedBy,
+      ruleId,
+      comment,
+    );
   }
 
   /**
@@ -176,13 +225,20 @@ export class AlertOrchestratorService implements OnModuleInit {
     alertId: string,
     suppressedBy: string,
     suppressionDuration: number,
-    reason?: string
+    reason?: string,
   ): Promise<IAlert> {
-    const alert = await this.lifecycleService.suppressAlert(alertId, suppressedBy, suppressionDuration, reason);
-    
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+
+    const alert = await this.lifecycleService.suppressAlert(
+      alertId,
+      suppressedBy,
+      suppressionDuration,
+      reason,
+    );
+
     // 更新缓存
     await this.cacheService.updateTimeseriesAlertStatus(alert);
-    
+
     return alert;
   }
 
@@ -193,13 +249,20 @@ export class AlertOrchestratorService implements OnModuleInit {
     alertId: string,
     newSeverity: string,
     escalatedBy: string,
-    reason?: string
+    reason?: string,
   ): Promise<IAlert> {
-    const alert = await this.lifecycleService.escalateAlert(alertId, newSeverity, escalatedBy, reason);
-    
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+
+    const alert = await this.lifecycleService.escalateAlert(
+      alertId,
+      newSeverity,
+      escalatedBy,
+      reason,
+    );
+
     // 更新缓存
     await this.cacheService.updateTimeseriesAlertStatus(alert);
-    
+
     return alert;
   }
 
@@ -209,14 +272,23 @@ export class AlertOrchestratorService implements OnModuleInit {
   async batchUpdateAlertStatus(
     alertIds: string[],
     status: AlertStatus,
-    updatedBy: string
+    updatedBy: string,
   ): Promise<{ successCount: number; failedCount: number; errors: string[] }> {
+    // 验证所有告警ID格式
+    DatabaseValidationUtils.validateObjectIds(alertIds, "告警ID列表");
+
     // 检查批量操作限制
-    if (alertIds.length > this.cacheLimits.alertBatchSize) {
-      throw new Error(`批量操作数量超出限制，最大允许${this.cacheLimits.alertBatchSize}个`);
+    if (alertIds.length > this.alertCacheLimits.batchSize) {
+      throw new Error(
+        `批量操作数量超出限制，最大允许${this.alertCacheLimits.batchSize}个`,
+      );
     }
-    
-    return await this.lifecycleService.batchUpdateAlertStatus(alertIds, status, updatedBy);
+
+    return await this.lifecycleService.batchUpdateAlertStatus(
+      alertIds,
+      status,
+      updatedBy,
+    );
   }
 
   // ==================== 查询接口 ====================
@@ -234,11 +306,11 @@ export class AlertOrchestratorService implements OnModuleInit {
   async getActiveAlerts(): Promise<IAlert[]> {
     // 优先从缓存获取
     const cachedAlerts = await this.cacheService.getAllActiveAlerts();
-    
+
     if (cachedAlerts.length > 0) {
       return cachedAlerts;
     }
-    
+
     // 回退到查询服务
     return await this.queryService.getActiveAlerts();
   }
@@ -253,23 +325,35 @@ export class AlertOrchestratorService implements OnModuleInit {
   /**
    * 根据规则ID获取告警
    */
-  async getAlertsByRuleId(ruleId: string, limit: number = 50): Promise<IAlert[]> {
+  async getAlertsByRuleId(
+    ruleId: string,
+    limit: number = 50,
+  ): Promise<IAlert[]> {
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
     return await this.queryService.getAlertsByRuleId(ruleId, limit);
   }
 
   /**
    * 搜索告警
    */
-  async searchAlerts(keyword: string, filters: Partial<IAlertQuery> = {}, limit: number = 50): Promise<IAlert[]> {
+  async searchAlerts(
+    keyword: string,
+    filters: Partial<IAlertQuery> = {},
+    limit: number = 50,
+  ): Promise<IAlert[]> {
     return await this.queryService.searchAlerts(keyword, filters, limit);
   }
 
   /**
    * 根据ID获取告警
    */
-  async getAlertById(alertId: string): Promise<IAlert | null> {
+  async getAlertById(alertId: string): Promise<IAlert> {
+    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
     const alerts = await this.queryService.getAlerts({ alertId });
-    return alerts.length > 0 ? alerts[0] : null;
+    if (alerts.length === 0) {
+      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+    }
+    return alerts[0];
   }
 
   // ==================== 统计接口 ====================
@@ -302,7 +386,7 @@ export class AlertOrchestratorService implements OnModuleInit {
   async getAlertTrend(
     startDate: Date,
     endDate: Date,
-    interval: 'hour' | 'day' | 'week' = 'day'
+    interval: "hour" | "day" | "week" = "day",
   ) {
     return await this.queryService.getAlertTrend(startDate, endDate, interval);
   }
@@ -315,8 +399,9 @@ export class AlertOrchestratorService implements OnModuleInit {
   async cleanupExpiredData(daysToKeep: number = 7): Promise<{
     timeseriesCleanup: { cleanedKeys: number; errors: string[] };
   }> {
-    const timeseriesCleanup = await this.cacheService.cleanupTimeseriesData(daysToKeep);
-    
+    const timeseriesCleanup =
+      await this.cacheService.cleanupTimeseriesData(daysToKeep);
+
     return { timeseriesCleanup };
   }
 
@@ -333,13 +418,13 @@ export class AlertOrchestratorService implements OnModuleInit {
    * 执行服务健康检查
    */
   async performHealthCheck(): Promise<{
-    status: 'healthy' | 'unhealthy' | 'degraded';
+    status: "healthy" | "unhealthy" | "degraded";
     services: Record<string, any>;
     timestamp: Date;
   }> {
-    const operation = 'HEALTH_CHECK';
-    
-    this.logger.debug('执行服务健康检查', { operation });
+    const operation = "HEALTH_CHECK";
+
+    this.logger.debug("执行服务健康检查", { operation });
 
     try {
       const serviceChecks = {
@@ -352,42 +437,42 @@ export class AlertOrchestratorService implements OnModuleInit {
       };
 
       // 并发执行所有检查
-      const results = await Promise.allSettled(Object.entries(serviceChecks).map(
-        async ([name, checkFn]) => {
+      const results = await Promise.allSettled(
+        Object.entries(serviceChecks).map(async ([name, checkFn]) => {
           try {
             const stats = await checkFn;
-            return { name, status: 'healthy', stats };
+            return { name, status: "healthy", stats };
           } catch (error) {
-            return { name, status: 'unhealthy', error: error.message };
+            return { name, status: "unhealthy", error: error.message };
           }
-        }
-      ));
+        }),
+      );
 
       const services = {};
       let healthyCount = 0;
-      
+
       results.forEach((result, index) => {
         const serviceName = Object.keys(serviceChecks)[index];
-        if (result.status === 'fulfilled') {
+        if (result.status === "fulfilled") {
           services[serviceName] = result.value;
-          if (result.value.status === 'healthy') {
+          if (result.value.status === "healthy") {
             healthyCount++;
           }
         } else {
-          services[serviceName] = { status: 'unhealthy', error: result.reason };
+          services[serviceName] = { status: "unhealthy", error: result.reason };
         }
       });
 
       // 计算整体健康状态
       const totalServices = results.length;
-      let overallStatus: 'healthy' | 'unhealthy' | 'degraded';
-      
+      let overallStatus: "healthy" | "unhealthy" | "degraded";
+
       if (healthyCount === totalServices) {
-        overallStatus = 'healthy';
+        overallStatus = "healthy";
       } else if (healthyCount >= totalServices * 0.7) {
-        overallStatus = 'degraded';
+        overallStatus = "degraded";
       } else {
-        overallStatus = 'unhealthy';
+        overallStatus = "unhealthy";
       }
 
       const healthCheck = {
@@ -396,7 +481,7 @@ export class AlertOrchestratorService implements OnModuleInit {
         timestamp: new Date(),
       };
 
-      this.logger.log('服务健康检查完成', {
+      this.logger.log("服务健康检查完成", {
         operation,
         status: overallStatus,
         healthyServices: healthyCount,
@@ -405,13 +490,13 @@ export class AlertOrchestratorService implements OnModuleInit {
 
       return healthCheck;
     } catch (error) {
-      this.logger.error('服务健康检查失败', {
+      this.logger.error("服务健康检查失败", {
         operation,
         error: error.message,
       });
 
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         services: { error: error.message },
         timestamp: new Date(),
       };
@@ -427,15 +512,16 @@ export class AlertOrchestratorService implements OnModuleInit {
     cache: { hitRate: number; activeAlerts: number };
     performance: { lastEvaluation: Date | null; averageResponseTime: number };
   }> {
-    const operation = 'SERVICE_OVERVIEW';
-    
+    const operation = "SERVICE_OVERVIEW";
+
     try {
-      const [ruleStats, alertStats, cacheStats, evaluationStats] = await Promise.all([
-        this.ruleService.getRuleStats(),
-        this.queryService.getAlertStatistics(),
-        this.cacheService.getCacheStats(),
-        this.evaluationService.getEvaluationStats(),
-      ]);
+      const [ruleStats, alertStats, cacheStats, evaluationStats] =
+        await Promise.all([
+          this.ruleService.getRuleStats(),
+          this.queryService.getAlertStatistics(),
+          this.cacheService.getCacheStats(),
+          this.evaluationService.getEvaluationStats(),
+        ]);
 
       const overview = {
         rules: {
@@ -458,19 +544,18 @@ export class AlertOrchestratorService implements OnModuleInit {
         },
       };
 
-      this.logger.debug('服务层概览获取完成', {
+      this.logger.debug("服务层概览获取完成", {
         operation,
         overview,
       });
 
       return overview;
     } catch (error) {
-      this.logger.error('获取服务层概览失败', {
+      this.logger.error("获取服务层概览失败", {
         operation,
         error: error.message,
       });
       throw error;
     }
   }
-
 }

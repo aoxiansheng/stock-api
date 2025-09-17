@@ -1,10 +1,10 @@
 /**
  * 监控组件核心环境变量配置
- * 
+ *
  * 📋 Phase 4: Environment Variable Optimization
  * ==========================================
  * 本文件定义了8个核心环境变量，替换原有的18+个监控相关环境变量：
- * 
+ *
  * ✅ 8个核心环境变量：
  * 1. MONITORING_DEFAULT_TTL - 统一TTL配置
  * 2. MONITORING_DEFAULT_BATCH_SIZE - 统一批量大小
@@ -14,26 +14,33 @@
  * 6. MONITORING_AUTO_ANALYSIS - 自动分析开关
  * 7. MONITORING_EVENT_RETRY - 事件重试次数
  * 8. MONITORING_NAMESPACE - 命名空间前缀
- * 
+ *
  * ✅ 替换的原环境变量 (18+个)：
  * - TTL变量：MONITORING_TTL_HEALTH, MONITORING_TTL_TREND, etc.
  * - 批量变量：MONITORING_BATCH_SIZE, MONITORING_ALERT_BATCH_*, etc.
  * - 性能变量：MONITORING_P95_WARNING, MONITORING_P99_CRITICAL, etc.
  * - 其他变量：MONITORING_CACHE_NAMESPACE, MONITORING_EVENT_*, etc.
- * 
+ *
  * ✅ 环境特定适配：
  * - 开发环境：平衡的配置值
  * - 测试环境：快速响应配置
  * - 生产环境：性能优化配置
- * 
+ *
  * @version 1.0.0
  * @since 2025-09-16
  * @author Claude Code
  */
 
-import { IsNumber, IsBoolean, IsString, Min, Max, validateSync } from 'class-validator';
-import { Transform, plainToClass } from 'class-transformer';
-import { registerAs } from '@nestjs/config';
+import {
+  IsNumber,
+  IsBoolean,
+  IsString,
+  Min,
+  Max,
+  validateSync,
+} from "class-validator";
+import { Transform, plainToClass } from "class-transformer";
+import { registerAs } from "@nestjs/config";
 
 /**
  * 监控核心环境变量配置类
@@ -42,25 +49,25 @@ import { registerAs } from '@nestjs/config';
 export class MonitoringCoreEnvConfig {
   /**
    * 默认TTL时间（秒）
-   * 
+   *
    * 用途：所有监控数据类型的基础TTL时间
    * 适配逻辑：
    * - health = defaultTtl * 1.0
-   * - trend = defaultTtl * 2.0  
+   * - trend = defaultTtl * 2.0
    * - performance = defaultTtl * 0.6
    * - alert = defaultTtl * 0.2
    * - cacheStats = defaultTtl * 0.4
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：300秒
    * - 测试环境：30秒
    * - 生产环境：600秒
-   * 
+   *
    * 环境变量：MONITORING_DEFAULT_TTL
    */
-  @IsNumber({}, { message: '默认TTL必须是数字' })
-  @Min(1, { message: '默认TTL最小值为1秒' })
-  @Max(3600, { message: '默认TTL最大值为1小时' })
+  @IsNumber({}, { message: "默认TTL必须是数字" })
+  @Min(1, { message: "默认TTL最小值为1秒" })
+  @Max(3600, { message: "默认TTL最大值为1小时" })
   @Transform(({ value }) => {
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? 300 : parsed;
@@ -69,7 +76,7 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * 默认批量大小
-   * 
+   *
    * 用途：所有批量处理操作的基础批量大小
    * 适配逻辑：
    * - alertBatch.small = defaultBatchSize * 0.5
@@ -77,17 +84,17 @@ export class MonitoringCoreEnvConfig {
    * - alertBatch.large = defaultBatchSize * 2.0
    * - dataProcessingBatch.standard = defaultBatchSize * 1.0
    * - dataCleanupBatch.standard = defaultBatchSize * 100
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：10
    * - 测试环境：5
    * - 生产环境：20
-   * 
+   *
    * 环境变量：MONITORING_DEFAULT_BATCH_SIZE
    */
-  @IsNumber({}, { message: '默认批量大小必须是数字' })
-  @Min(1, { message: '默认批量大小最小值为1' })
-  @Max(1000, { message: '默认批量大小最大值为1000' })
+  @IsNumber({}, { message: "默认批量大小必须是数字" })
+  @Min(1, { message: "默认批量大小最小值为1" })
+  @Max(1000, { message: "默认批量大小最大值为1000" })
   @Transform(({ value }) => {
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? 10 : parsed;
@@ -96,23 +103,23 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * API响应时间阈值（毫秒）
-   * 
+   *
    * 用途：API性能监控的基准响应时间
    * 适配逻辑：
    * - p95Warning = apiResponseGood * 1.0
    * - p99Critical = apiResponseGood * 2.5
    * - slowRequestThreshold = apiResponseGood * 2.0
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：300毫秒
    * - 测试环境：100毫秒
    * - 生产环境：200毫秒
-   * 
+   *
    * 环境变量：MONITORING_API_RESPONSE_GOOD
    */
-  @IsNumber({}, { message: 'API响应时间阈值必须是数字' })
-  @Min(50, { message: 'API响应时间阈值最小值为50毫秒' })
-  @Max(5000, { message: 'API响应时间阈值最大值为5000毫秒' })
+  @IsNumber({}, { message: "API响应时间阈值必须是数字" })
+  @Min(50, { message: "API响应时间阈值最小值为50毫秒" })
+  @Max(5000, { message: "API响应时间阈值最大值为5000毫秒" })
   @Transform(({ value }) => {
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? 300 : parsed;
@@ -121,23 +128,23 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * 缓存命中率阈值（0.0-1.0）
-   * 
+   *
    * 用途：缓存性能监控的基准命中率
    * 适配逻辑：
    * - hitRateThreshold = cacheHitThreshold
    * - cacheWarningThreshold = cacheHitThreshold - 0.1
    * - cacheEfficiencyThreshold = cacheHitThreshold - 0.2
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：0.7
    * - 测试环境：0.5
    * - 生产环境：0.85
-   * 
+   *
    * 环境变量：MONITORING_CACHE_HIT_THRESHOLD
    */
-  @IsNumber({}, { message: '缓存命中率阈值必须是数字' })
-  @Min(0.1, { message: '缓存命中率阈值最小值为0.1' })
-  @Max(1.0, { message: '缓存命中率阈值最大值为1.0' })
+  @IsNumber({}, { message: "缓存命中率阈值必须是数字" })
+  @Min(0.1, { message: "缓存命中率阈值最小值为0.1" })
+  @Max(1.0, { message: "缓存命中率阈值最大值为1.0" })
   @Transform(({ value }) => {
     const parsed = parseFloat(value);
     return isNaN(parsed) ? 0.8 : parsed;
@@ -146,23 +153,23 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * 错误率阈值（0.0-1.0）
-   * 
+   *
    * 用途：系统错误监控的基准错误率
    * 适配逻辑：
    * - errorRateThreshold = errorRateThreshold
    * - warningErrorRate = errorRateThreshold * 0.5
    * - criticalErrorRate = errorRateThreshold * 2.0
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：0.1
    * - 测试环境：0.2
    * - 生产环境：0.05
-   * 
+   *
    * 环境变量：MONITORING_ERROR_RATE_THRESHOLD
    */
-  @IsNumber({}, { message: '错误率阈值必须是数字' })
-  @Min(0.01, { message: '错误率阈值最小值为0.01' })
-  @Max(0.5, { message: '错误率阈值最大值为0.5' })
+  @IsNumber({}, { message: "错误率阈值必须是数字" })
+  @Min(0.01, { message: "错误率阈值最小值为0.01" })
+  @Max(0.5, { message: "错误率阈值最大值为0.5" })
   @Transform(({ value }) => {
     const parsed = parseFloat(value);
     return isNaN(parsed) ? 0.1 : parsed;
@@ -171,25 +178,25 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * 自动分析功能开关
-   * 
+   *
    * 用途：控制所有自动分析和智能功能
    * 适配逻辑：
    * - enableAutoAnalysis = autoAnalysis
    * - enableTrendAnalysis = autoAnalysis
    * - enableAnomalyDetection = autoAnalysis
    * - enablePerformanceInsights = autoAnalysis
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：true
    * - 测试环境：false
    * - 生产环境：true
-   * 
+   *
    * 环境变量：MONITORING_AUTO_ANALYSIS
    */
-  @IsBoolean({ message: '自动分析开关必须是布尔值' })
+  @IsBoolean({ message: "自动分析开关必须是布尔值" })
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      return value !== 'false' && value !== '0';
+    if (typeof value === "string") {
+      return value !== "false" && value !== "0";
     }
     return Boolean(value);
   })
@@ -197,24 +204,24 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * 事件重试次数
-   * 
+   *
    * 用途：所有事件处理的基础重试次数
    * 适配逻辑：
    * - eventRetry.maxRetryAttempts = eventRetry
    * - alertRetryAttempts = eventRetry
    * - notificationRetryAttempts = eventRetry
    * - dataProcessingRetry = eventRetry
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：3
    * - 测试环境：1
    * - 生产环境：5
-   * 
+   *
    * 环境变量：MONITORING_EVENT_RETRY
    */
-  @IsNumber({}, { message: '事件重试次数必须是数字' })
-  @Min(0, { message: '事件重试次数最小值为0' })
-  @Max(10, { message: '事件重试次数最大值为10' })
+  @IsNumber({}, { message: "事件重试次数必须是数字" })
+  @Min(0, { message: "事件重试次数最小值为0" })
+  @Max(10, { message: "事件重试次数最大值为10" })
   @Transform(({ value }) => {
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? 3 : parsed;
@@ -223,33 +230,33 @@ export class MonitoringCoreEnvConfig {
 
   /**
    * 命名空间前缀
-   * 
+   *
    * 用途：所有监控数据的统一命名空间
    * 适配逻辑：
    * - cacheNamespace = namespace
    * - keyIndexPrefix = namespace + ':index'
    * - alertNamespace = namespace + ':alerts'
    * - metricsNamespace = namespace + ':metrics'
-   * 
+   *
    * 环境推荐值：
    * - 开发环境：monitoring_dev
-   * - 测试环境：monitoring_test  
+   * - 测试环境：monitoring_test
    * - 生产环境：monitoring_prod
-   * 
+   *
    * 环境变量：MONITORING_NAMESPACE
    */
-  @IsString({ message: '命名空间必须是字符串' })
-  @Transform(({ value }) => value || 'monitoring')
-  namespace: string = 'monitoring';
+  @IsString({ message: "命名空间必须是字符串" })
+  @Transform(({ value }) => value || "monitoring")
+  namespace: string = "monitoring";
 
   /**
    * 根据环境调整配置
    */
   adjustForEnvironment(): void {
-    const env = process.env.NODE_ENV || 'development';
-    
+    const env = process.env.NODE_ENV || "development";
+
     switch (env) {
-      case 'production':
+      case "production":
         // 生产环境：更长TTL，更大批量，更严格阈值
         this.defaultTtl = Math.max(this.defaultTtl, 600);
         this.defaultBatchSize = Math.max(this.defaultBatchSize, 20);
@@ -257,10 +264,12 @@ export class MonitoringCoreEnvConfig {
         this.cacheHitThreshold = Math.max(this.cacheHitThreshold, 0.85);
         this.errorRateThreshold = Math.min(this.errorRateThreshold, 0.05);
         this.eventRetry = Math.max(this.eventRetry, 5);
-        this.namespace = this.namespace.includes('_') ? this.namespace : `${this.namespace}_prod`;
+        this.namespace = this.namespace.includes("_")
+          ? this.namespace
+          : `${this.namespace}_prod`;
         break;
-        
-      case 'test':
+
+      case "test":
         // 测试环境：更短TTL，更小批量，更宽松阈值
         this.defaultTtl = Math.min(this.defaultTtl, 30);
         this.defaultBatchSize = Math.min(this.defaultBatchSize, 5);
@@ -269,12 +278,16 @@ export class MonitoringCoreEnvConfig {
         this.errorRateThreshold = Math.min(this.errorRateThreshold, 0.2);
         this.eventRetry = Math.min(this.eventRetry, 1);
         this.autoAnalysis = false; // 测试时禁用自动分析
-        this.namespace = this.namespace.includes('_') ? this.namespace : `${this.namespace}_test`;
+        this.namespace = this.namespace.includes("_")
+          ? this.namespace
+          : `${this.namespace}_test`;
         break;
-        
+
       default: // development
         // 开发环境：使用默认值或环境变量值
-        this.namespace = this.namespace.includes('_') ? this.namespace : `${this.namespace}_dev`;
+        this.namespace = this.namespace.includes("_")
+          ? this.namespace
+          : `${this.namespace}_dev`;
         break;
     }
   }
@@ -287,42 +300,46 @@ export class MonitoringCoreEnvConfig {
 
     // 验证TTL合理性
     if (this.defaultTtl < 1 || this.defaultTtl > 3600) {
-      errors.push('默认TTL必须在1-3600秒之间');
+      errors.push("默认TTL必须在1-3600秒之间");
     }
 
-    // 验证批量大小合理性  
+    // 验证批量大小合理性
     if (this.defaultBatchSize < 1 || this.defaultBatchSize > 1000) {
-      errors.push('默认批量大小必须在1-1000之间');
+      errors.push("默认批量大小必须在1-1000之间");
     }
 
     // 验证API响应时间合理性
     if (this.apiResponseGood < 50 || this.apiResponseGood > 5000) {
-      errors.push('API响应时间阈值必须在50-5000毫秒之间');
+      errors.push("API响应时间阈值必须在50-5000毫秒之间");
     }
 
     // 验证缓存命中率合理性
     if (this.cacheHitThreshold < 0.1 || this.cacheHitThreshold > 1.0) {
-      errors.push('缓存命中率阈值必须在0.1-1.0之间');
+      errors.push("缓存命中率阈值必须在0.1-1.0之间");
     }
 
     // 验证错误率合理性
     if (this.errorRateThreshold < 0.01 || this.errorRateThreshold > 0.5) {
-      errors.push('错误率阈值必须在0.01-0.5之间');
+      errors.push("错误率阈值必须在0.01-0.5之间");
     }
 
     // 验证重试次数合理性
     if (this.eventRetry < 0 || this.eventRetry > 10) {
-      errors.push('事件重试次数必须在0-10之间');
+      errors.push("事件重试次数必须在0-10之间");
     }
 
     // 验证命名空间格式
-    if (!this.namespace || this.namespace.length < 1 || this.namespace.length > 50) {
-      errors.push('命名空间长度必须在1-50字符之间');
+    if (
+      !this.namespace ||
+      this.namespace.length < 1 ||
+      this.namespace.length > 50
+    ) {
+      errors.push("命名空间长度必须在1-50字符之间");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -337,10 +354,10 @@ export class MonitoringCoreEnvConfig {
     cacheStats: number;
   } {
     return {
-      health: this.defaultTtl,                    // 1.0x
-      trend: Math.floor(this.defaultTtl * 2.0),  // 2.0x
+      health: this.defaultTtl, // 1.0x
+      trend: Math.floor(this.defaultTtl * 2.0), // 2.0x
       performance: Math.floor(this.defaultTtl * 0.6), // 0.6x
-      alert: Math.floor(this.defaultTtl * 0.2),  // 0.2x
+      alert: Math.floor(this.defaultTtl * 0.2), // 0.2x
       cacheStats: Math.floor(this.defaultTtl * 0.4), // 0.4x
     };
   }
@@ -419,67 +436,68 @@ export class MonitoringCoreEnvConfig {
 
 /**
  * 监控核心环境变量配置注册
- * 
+ *
  * 用法：
  * ```typescript
  * // 在模块中导入
  * @Module({
  *   imports: [ConfigModule.forFeature(monitoringCoreEnvConfig)]
  * })
- * 
+ *
  * // 在服务中注入
  * constructor(
- *   @Inject('monitoringCoreEnv') 
+ *   @Inject('monitoringCoreEnv')
  *   private readonly coreEnvConfig: MonitoringCoreEnvConfig
  * ) {}
  * ```
  */
-export const monitoringCoreEnvConfig = registerAs('monitoringCoreEnv', (): MonitoringCoreEnvConfig => {
-  const rawConfig = {
-    defaultTtl: process.env.MONITORING_DEFAULT_TTL,
-    defaultBatchSize: process.env.MONITORING_DEFAULT_BATCH_SIZE,
-    apiResponseGood: process.env.MONITORING_API_RESPONSE_GOOD,
-    cacheHitThreshold: process.env.MONITORING_CACHE_HIT_THRESHOLD,
-    errorRateThreshold: process.env.MONITORING_ERROR_RATE_THRESHOLD,
-    autoAnalysis: process.env.MONITORING_AUTO_ANALYSIS,
-    eventRetry: process.env.MONITORING_EVENT_RETRY,
-    namespace: process.env.MONITORING_NAMESPACE,
-  };
+export const monitoringCoreEnvConfig = registerAs(
+  "monitoringCoreEnv",
+  (): MonitoringCoreEnvConfig => {
+    const rawConfig = {
+      defaultTtl: process.env.MONITORING_DEFAULT_TTL,
+      defaultBatchSize: process.env.MONITORING_DEFAULT_BATCH_SIZE,
+      apiResponseGood: process.env.MONITORING_API_RESPONSE_GOOD,
+      cacheHitThreshold: process.env.MONITORING_CACHE_HIT_THRESHOLD,
+      errorRateThreshold: process.env.MONITORING_ERROR_RATE_THRESHOLD,
+      autoAnalysis: process.env.MONITORING_AUTO_ANALYSIS,
+      eventRetry: process.env.MONITORING_EVENT_RETRY,
+      namespace: process.env.MONITORING_NAMESPACE,
+    };
 
-  // 使用 class-transformer 和 class-validator 进行转换和验证
-  const config = plainToClass(MonitoringCoreEnvConfig, rawConfig, {
-    enableImplicitConversion: true,
-  });
+    // 使用 class-transformer 和 class-validator 进行转换和验证
+    const config = plainToClass(MonitoringCoreEnvConfig, rawConfig, {
+      enableImplicitConversion: true,
+    });
 
-  // 执行验证
-  const errors = validateSync(config, { 
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  });
+    // 执行验证
+    const errors = validateSync(config, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
 
-  if (errors.length > 0) {
-    const errorMessages = errors.map(error => 
-      Object.values(error.constraints || {}).join(', ')
-    ).join('; ');
-    
-    throw new Error(
-      `监控核心环境变量配置验证失败: ${errorMessages}`
-    );
-  }
+    if (errors.length > 0) {
+      const errorMessages = errors
+        .map((error) => Object.values(error.constraints || {}).join(", "))
+        .join("; ");
 
-  // 根据环境调整配置
-  config.adjustForEnvironment();
+      throw new Error(`监控核心环境变量配置验证失败: ${errorMessages}`);
+    }
 
-  // 验证最终配置的合理性
-  const validation = config.validateConfiguration();
-  if (!validation.isValid) {
-    throw new Error(
-      `监控核心环境变量配置不合理: ${validation.errors.join('; ')}`
-    );
-  }
+    // 根据环境调整配置
+    config.adjustForEnvironment();
 
-  return config;
-});
+    // 验证最终配置的合理性
+    const validation = config.validateConfiguration();
+    if (!validation.isValid) {
+      throw new Error(
+        `监控核心环境变量配置不合理: ${validation.errors.join("; ")}`,
+      );
+    }
+
+    return config;
+  },
+);
 
 /**
  * 核心环境变量工具类
@@ -491,14 +509,14 @@ export class MonitoringCoreEnvUtils {
    */
   static getEnvironmentVariableMapping(): Record<string, string> {
     return {
-      'defaultTtl': 'MONITORING_DEFAULT_TTL',
-      'defaultBatchSize': 'MONITORING_DEFAULT_BATCH_SIZE',
-      'apiResponseGood': 'MONITORING_API_RESPONSE_GOOD',
-      'cacheHitThreshold': 'MONITORING_CACHE_HIT_THRESHOLD',
-      'errorRateThreshold': 'MONITORING_ERROR_RATE_THRESHOLD',
-      'autoAnalysis': 'MONITORING_AUTO_ANALYSIS',
-      'eventRetry': 'MONITORING_EVENT_RETRY',
-      'namespace': 'MONITORING_NAMESPACE',
+      defaultTtl: "MONITORING_DEFAULT_TTL",
+      defaultBatchSize: "MONITORING_DEFAULT_BATCH_SIZE",
+      apiResponseGood: "MONITORING_API_RESPONSE_GOOD",
+      cacheHitThreshold: "MONITORING_CACHE_HIT_THRESHOLD",
+      errorRateThreshold: "MONITORING_ERROR_RATE_THRESHOLD",
+      autoAnalysis: "MONITORING_AUTO_ANALYSIS",
+      eventRetry: "MONITORING_EVENT_RETRY",
+      namespace: "MONITORING_NAMESPACE",
     };
   }
 
@@ -512,166 +530,175 @@ export class MonitoringCoreEnvUtils {
   }[] {
     return [
       {
-        category: 'TTL配置',
+        category: "TTL配置",
         variables: [
-          'MONITORING_TTL_HEALTH',
-          'MONITORING_TTL_TREND',
-          'MONITORING_TTL_PERFORMANCE',
-          'MONITORING_TTL_ALERT',
-          'MONITORING_TTL_CACHE_STATS'
+          "MONITORING_TTL_HEALTH",
+          "MONITORING_TTL_TREND",
+          "MONITORING_TTL_PERFORMANCE",
+          "MONITORING_TTL_ALERT",
+          "MONITORING_TTL_CACHE_STATS",
         ],
-        replacedBy: 'MONITORING_DEFAULT_TTL'
+        replacedBy: "MONITORING_DEFAULT_TTL",
       },
       {
-        category: '批量配置',
+        category: "批量配置",
         variables: [
-          'MONITORING_BATCH_SIZE',
-          'MONITORING_ALERT_BATCH_SMALL',
-          'MONITORING_ALERT_BATCH_MEDIUM',
-          'MONITORING_DATA_BATCH_STANDARD'
+          "MONITORING_BATCH_SIZE",
+          "MONITORING_ALERT_BATCH_SMALL",
+          "MONITORING_ALERT_BATCH_MEDIUM",
+          "MONITORING_DATA_BATCH_STANDARD",
         ],
-        replacedBy: 'MONITORING_DEFAULT_BATCH_SIZE'
+        replacedBy: "MONITORING_DEFAULT_BATCH_SIZE",
       },
       {
-        category: '性能阈值',
-        variables: [
-          'MONITORING_P95_WARNING',
-          'MONITORING_P99_CRITICAL'
-        ],
-        replacedBy: 'MONITORING_API_RESPONSE_GOOD'
+        category: "性能阈值",
+        variables: ["MONITORING_P95_WARNING", "MONITORING_P99_CRITICAL"],
+        replacedBy: "MONITORING_API_RESPONSE_GOOD",
       },
       {
-        category: '缓存配置',
+        category: "缓存配置",
         variables: [
-          'MONITORING_HIT_RATE_THRESHOLD',
-          'MONITORING_CACHE_NAMESPACE'
+          "MONITORING_HIT_RATE_THRESHOLD",
+          "MONITORING_CACHE_NAMESPACE",
         ],
-        replacedBy: 'MONITORING_CACHE_HIT_THRESHOLD + MONITORING_NAMESPACE'
+        replacedBy: "MONITORING_CACHE_HIT_THRESHOLD + MONITORING_NAMESPACE",
       },
       {
-        category: '错误监控',
-        variables: [
-          'MONITORING_ERROR_RATE_THRESHOLD'
-        ],
-        replacedBy: 'MONITORING_ERROR_RATE_THRESHOLD'
+        category: "错误监控",
+        variables: ["MONITORING_ERROR_RATE_THRESHOLD"],
+        replacedBy: "MONITORING_ERROR_RATE_THRESHOLD",
       },
       {
-        category: '分析功能',
-        variables: [
-          'MONITORING_AUTO_ANALYSIS'
-        ],
-        replacedBy: 'MONITORING_AUTO_ANALYSIS'
+        category: "分析功能",
+        variables: ["MONITORING_AUTO_ANALYSIS"],
+        replacedBy: "MONITORING_AUTO_ANALYSIS",
       },
       {
-        category: '事件重试',
+        category: "事件重试",
         variables: [
-          'MONITORING_EVENT_RETRY',
-          'MONITORING_EVENT_MAX_RETRY_ATTEMPTS'
+          "MONITORING_EVENT_RETRY",
+          "MONITORING_EVENT_MAX_RETRY_ATTEMPTS",
         ],
-        replacedBy: 'MONITORING_EVENT_RETRY'
+        replacedBy: "MONITORING_EVENT_RETRY",
       },
       {
-        category: '命名空间',
+        category: "命名空间",
         variables: [
-          'MONITORING_CACHE_NAMESPACE',
-          'MONITORING_KEY_INDEX_PREFIX'
+          "MONITORING_CACHE_NAMESPACE",
+          "MONITORING_KEY_INDEX_PREFIX",
         ],
-        replacedBy: 'MONITORING_NAMESPACE'
-      }
+        replacedBy: "MONITORING_NAMESPACE",
+      },
     ];
   }
 
   /**
    * 根据环境获取推荐的配置值
    */
-  static getRecommendedConfig(environment: 'development' | 'test' | 'production'): MonitoringCoreEnvConfig {
+  static getRecommendedConfig(
+    environment: "development" | "test" | "production",
+  ): MonitoringCoreEnvConfig {
     const config = new MonitoringCoreEnvConfig();
-    
+
     // 临时设置环境
     const originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = environment;
-    
+
     // 调整配置
     config.adjustForEnvironment();
-    
+
     // 恢复原环境
     if (originalEnv) {
       process.env.NODE_ENV = originalEnv;
     } else {
       delete process.env.NODE_ENV;
     }
-    
+
     return config;
   }
 
   /**
    * 验证环境变量值的合理性
    */
-  static validateEnvironmentValue(key: string, value: string): { isValid: boolean; error?: string } {
+  static validateEnvironmentValue(
+    key: string,
+    value: string,
+  ): { isValid: boolean; error?: string } {
     try {
       const config = new MonitoringCoreEnvConfig();
       const mapping = this.getEnvironmentVariableMapping();
-      
+
       // 根据键名验证不同类型的值
       switch (key) {
-        case 'MONITORING_DEFAULT_TTL':
+        case "MONITORING_DEFAULT_TTL":
           const ttl = parseInt(value, 10);
           if (isNaN(ttl) || ttl < 1 || ttl > 3600) {
-            return { isValid: false, error: 'TTL必须是1-3600之间的数字' };
+            return { isValid: false, error: "TTL必须是1-3600之间的数字" };
           }
           break;
-          
-        case 'MONITORING_DEFAULT_BATCH_SIZE':
+
+        case "MONITORING_DEFAULT_BATCH_SIZE":
           const batch = parseInt(value, 10);
           if (isNaN(batch) || batch < 1 || batch > 1000) {
-            return { isValid: false, error: '批量大小必须是1-1000之间的数字' };
+            return { isValid: false, error: "批量大小必须是1-1000之间的数字" };
           }
           break;
-          
-        case 'MONITORING_API_RESPONSE_GOOD':
+
+        case "MONITORING_API_RESPONSE_GOOD":
           const api = parseInt(value, 10);
           if (isNaN(api) || api < 50 || api > 5000) {
-            return { isValid: false, error: 'API响应时间必须是50-5000之间的数字' };
+            return {
+              isValid: false,
+              error: "API响应时间必须是50-5000之间的数字",
+            };
           }
           break;
-          
-        case 'MONITORING_CACHE_HIT_THRESHOLD':
+
+        case "MONITORING_CACHE_HIT_THRESHOLD":
           const cache = parseFloat(value);
           if (isNaN(cache) || cache < 0.1 || cache > 1.0) {
-            return { isValid: false, error: '缓存命中率必须是0.1-1.0之间的数字' };
+            return {
+              isValid: false,
+              error: "缓存命中率必须是0.1-1.0之间的数字",
+            };
           }
           break;
-          
-        case 'MONITORING_ERROR_RATE_THRESHOLD':
+
+        case "MONITORING_ERROR_RATE_THRESHOLD":
           const error = parseFloat(value);
           if (isNaN(error) || error < 0.01 || error > 0.5) {
-            return { isValid: false, error: '错误率必须是0.01-0.5之间的数字' };
+            return { isValid: false, error: "错误率必须是0.01-0.5之间的数字" };
           }
           break;
-          
-        case 'MONITORING_AUTO_ANALYSIS':
-          if (value !== 'true' && value !== 'false' && value !== '1' && value !== '0') {
-            return { isValid: false, error: '自动分析必须是true/false或1/0' };
+
+        case "MONITORING_AUTO_ANALYSIS":
+          if (
+            value !== "true" &&
+            value !== "false" &&
+            value !== "1" &&
+            value !== "0"
+          ) {
+            return { isValid: false, error: "自动分析必须是true/false或1/0" };
           }
           break;
-          
-        case 'MONITORING_EVENT_RETRY':
+
+        case "MONITORING_EVENT_RETRY":
           const retry = parseInt(value, 10);
           if (isNaN(retry) || retry < 0 || retry > 10) {
-            return { isValid: false, error: '重试次数必须是0-10之间的数字' };
+            return { isValid: false, error: "重试次数必须是0-10之间的数字" };
           }
           break;
-          
-        case 'MONITORING_NAMESPACE':
+
+        case "MONITORING_NAMESPACE":
           if (!value || value.length < 1 || value.length > 50) {
-            return { isValid: false, error: '命名空间长度必须在1-50字符之间' };
+            return { isValid: false, error: "命名空间长度必须在1-50字符之间" };
           }
           break;
-          
+
         default:
-          return { isValid: false, error: '未知的环境变量' };
+          return { isValid: false, error: "未知的环境变量" };
       }
-      
+
       return { isValid: true };
     } catch (error) {
       return { isValid: false, error: error.message };
@@ -681,9 +708,11 @@ export class MonitoringCoreEnvUtils {
   /**
    * 生成环境变量配置示例
    */
-  static generateExampleConfig(environment: 'development' | 'test' | 'production'): string {
+  static generateExampleConfig(
+    environment: "development" | "test" | "production",
+  ): string {
     const config = this.getRecommendedConfig(environment);
-    
+
     return `# 监控组件核心环境变量配置 - ${environment.toUpperCase()}环境
 # Phase 4: Environment Variable Optimization - 8个核心变量
 
@@ -733,9 +762,9 @@ export const MONITORING_CORE_ENV_CONSTANTS = {
     ERROR_RATE_THRESHOLD: 0.1,
     AUTO_ANALYSIS: true,
     EVENT_RETRY: 3,
-    NAMESPACE: 'monitoring',
+    NAMESPACE: "monitoring",
   },
-  
+
   /** 生产环境值 */
   PRODUCTION: {
     DEFAULT_TTL: 600,
@@ -745,9 +774,9 @@ export const MONITORING_CORE_ENV_CONSTANTS = {
     ERROR_RATE_THRESHOLD: 0.05,
     AUTO_ANALYSIS: true,
     EVENT_RETRY: 5,
-    NAMESPACE: 'monitoring_prod',
+    NAMESPACE: "monitoring_prod",
   },
-  
+
   /** 测试环境值 */
   TEST: {
     DEFAULT_TTL: 30,
@@ -757,9 +786,9 @@ export const MONITORING_CORE_ENV_CONSTANTS = {
     ERROR_RATE_THRESHOLD: 0.2,
     AUTO_ANALYSIS: false,
     EVENT_RETRY: 1,
-    NAMESPACE: 'monitoring_test',
+    NAMESPACE: "monitoring_test",
   },
-  
+
   /** 验证限制 */
   LIMITS: {
     MIN_TTL: 1,
@@ -776,5 +805,5 @@ export const MONITORING_CORE_ENV_CONSTANTS = {
     MAX_EVENT_RETRY: 10,
     MIN_NAMESPACE_LENGTH: 1,
     MAX_NAMESPACE_LENGTH: 50,
-  }
+  },
 } as const;

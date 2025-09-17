@@ -5,7 +5,7 @@
  */
 
 // Import shared enums instead of redefining them
-import { Environment, LogLevel } from '../../types/enums/shared-base.enum';
+import { Environment, LogLevel } from "../../types/enums/shared-base.enum";
 
 /**
  * 环境检测配置
@@ -13,15 +13,14 @@ import { Environment, LogLevel } from '../../types/enums/shared-base.enum';
  */
 export const ENVIRONMENT_DETECTION = Object.freeze({
   // 环境变量映射
-  ENV_VAR_MAPPING: {
-  } as const,
+  ENV_VAR_MAPPING: {} as const,
 
   // 环境标识符映射
   IDENTIFIER_MAPPING: {
-    [Environment.DEVELOPMENT]: ['dev', 'develop', 'development', 'local'],
-    [Environment.TEST]: ['test', 'testing', 'spec'],
-    [Environment.STAGING]: ['stage', 'staging', 'pre', 'preprod'],
-    [Environment.PRODUCTION]: ['prod', 'production', 'live'],
+    [Environment.DEVELOPMENT]: ["dev", "develop", "development", "local"],
+    [Environment.TEST]: ["test", "testing", "spec"],
+    [Environment.STAGING]: ["stage", "staging", "pre", "preprod"],
+    [Environment.PRODUCTION]: ["prod", "production", "live"],
   } as const,
 
   // 默认环境配置
@@ -29,10 +28,10 @@ export const ENVIRONMENT_DETECTION = Object.freeze({
 
   // 环境检测优先级
   DETECTION_PRIORITY: [
-    'NODE_ENV',
-    'APP_ENV', 
-    'DEPLOY_ENV',
-    'ENVIRONMENT',
+    "NODE_ENV",
+    "APP_ENV",
+    "DEPLOY_ENV",
+    "ENVIRONMENT",
   ] as const,
 });
 
@@ -44,20 +43,16 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
   // 开发环境特性
   [Environment.DEVELOPMENT]: {
     // 调试功能
-    DEBUG: {
-    },
-    
+    DEBUG: {},
+
     // 性能优化
-    PERFORMANCE: {
-    },
-    
+    PERFORMANCE: {},
+
     // 开发工具
-    DEV_TOOLS: {
-    },
-    
+    DEV_TOOLS: {},
+
     // 安全设置（开发环境宽松一些）
-    SECURITY: {
-    },
+    SECURITY: {},
   },
 
   // 测试环境特性
@@ -71,7 +66,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       ENABLE_SQL_LOGGING: false,
       ENABLE_CACHE_LOGGING: false,
     },
-    
+
     // 性能优化
     PERFORMANCE: {
       ENABLE_HOT_RELOAD: false,
@@ -80,7 +75,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       DISABLE_COMPRESSION: false,
       SKIP_AUTH_FOR_TESTING: true, // 测试环境可以跳过认证
     },
-    
+
     // 开发工具
     DEV_TOOLS: {
       ENABLE_API_DOCS: true,
@@ -89,7 +84,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       ENABLE_METRICS_ENDPOINT: true,
       ENABLE_DEBUG_ENDPOINT: false,
     },
-    
+
     // 安全设置
     SECURITY: {
       CORS_ALLOW_ALL: true,
@@ -110,7 +105,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       ENABLE_SQL_LOGGING: false,
       ENABLE_CACHE_LOGGING: false,
     },
-    
+
     // 性能优化
     PERFORMANCE: {
       ENABLE_HOT_RELOAD: false,
@@ -119,7 +114,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       DISABLE_COMPRESSION: false,
       SKIP_AUTH_FOR_TESTING: false,
     },
-    
+
     // 开发工具
     DEV_TOOLS: {
       ENABLE_API_DOCS: true,
@@ -128,7 +123,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       ENABLE_METRICS_ENDPOINT: true,
       ENABLE_DEBUG_ENDPOINT: false,
     },
-    
+
     // 安全设置
     SECURITY: {
       CORS_ALLOW_ALL: false,
@@ -149,7 +144,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       ENABLE_SQL_LOGGING: false,
       ENABLE_CACHE_LOGGING: false,
     },
-    
+
     // 性能优化
     PERFORMANCE: {
       ENABLE_HOT_RELOAD: false,
@@ -158,7 +153,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       DISABLE_COMPRESSION: false,
       SKIP_AUTH_FOR_TESTING: false,
     },
-    
+
     // 开发工具（生产环境全部关闭）
     DEV_TOOLS: {
       ENABLE_API_DOCS: false,
@@ -167,7 +162,7 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
       ENABLE_METRICS_ENDPOINT: false, // 生产环境通过专门的监控系统
       ENABLE_DEBUG_ENDPOINT: false,
     },
-    
+
     // 安全设置（生产环境最严格）
     SECURITY: {
       CORS_ALLOW_ALL: false,
@@ -185,85 +180,81 @@ export const ENVIRONMENT_FEATURES = Object.freeze({
 export const ENVIRONMENT_RESOURCE_LIMITS = Object.freeze({
   // 开发环境资源限制
   [Environment.DEVELOPMENT]: {
-    MEMORY: {
-    },
-    CPU: {
-    },
-    STORAGE: {
-    },
-    NETWORK: {
-    },
+    MEMORY: {},
+    CPU: {},
+    STORAGE: {},
+    NETWORK: {},
   },
 
   // 测试环境资源限制
   [Environment.TEST]: {
     MEMORY: {
-      MAX_HEAP_SIZE_MB: 256,           // 256MB堆内存（测试环境更小）
-      MAX_CACHE_SIZE_MB: 64,           // 64MB缓存
-      GC_THRESHOLD_MB: 128,            // 128MB触发GC
+      MAX_HEAP_SIZE_MB: 256, // 256MB堆内存（测试环境更小）
+      MAX_CACHE_SIZE_MB: 64, // 64MB缓存
+      GC_THRESHOLD_MB: 128, // 128MB触发GC
     },
     CPU: {
-      MAX_WORKERS: 1,                  // 最多1个工作进程
-      MAX_CONCURRENT_REQUESTS: 5,      // 最多5个并发请求
-      REQUEST_TIMEOUT_MS: 30000,       // 30秒请求超时
+      MAX_WORKERS: 1, // 最多1个工作进程
+      MAX_CONCURRENT_REQUESTS: 5, // 最多5个并发请求
+      REQUEST_TIMEOUT_MS: 30000, // 30秒请求超时
     },
     STORAGE: {
-      MAX_LOG_SIZE_MB: 50,             // 50MB日志大小
-      MAX_TEMP_SIZE_MB: 200,           // 200MB临时文件
-      LOG_RETENTION_DAYS: 3,           // 3天日志保留
+      MAX_LOG_SIZE_MB: 50, // 50MB日志大小
+      MAX_TEMP_SIZE_MB: 200, // 200MB临时文件
+      LOG_RETENTION_DAYS: 3, // 3天日志保留
     },
     NETWORK: {
-      MAX_CONNECTIONS: 25,             // 25个最大连接
-      CONNECTION_POOL_SIZE: 2,         // 2个连接池大小
-      SOCKET_TIMEOUT_MS: 15000,        // 15秒Socket超时
+      MAX_CONNECTIONS: 25, // 25个最大连接
+      CONNECTION_POOL_SIZE: 2, // 2个连接池大小
+      SOCKET_TIMEOUT_MS: 15000, // 15秒Socket超时
     },
   },
 
   // 预发布环境资源限制
   [Environment.STAGING]: {
     MEMORY: {
-      MAX_HEAP_SIZE_MB: 2048,          // 2GB堆内存
-      MAX_CACHE_SIZE_MB: 512,          // 512MB缓存
-      GC_THRESHOLD_MB: 1024,           // 1GB触发GC
+      MAX_HEAP_SIZE_MB: 2048, // 2GB堆内存
+      MAX_CACHE_SIZE_MB: 512, // 512MB缓存
+      GC_THRESHOLD_MB: 1024, // 1GB触发GC
     },
     CPU: {
-      MAX_WORKERS: 4,                  // 最多4个工作进程
-      MAX_CONCURRENT_REQUESTS: 100,    // 最多100个并发请求
-      REQUEST_TIMEOUT_MS: 30000,       // 30秒请求超时
+      MAX_WORKERS: 4, // 最多4个工作进程
+      MAX_CONCURRENT_REQUESTS: 100, // 最多100个并发请求
+      REQUEST_TIMEOUT_MS: 30000, // 30秒请求超时
     },
     STORAGE: {
-      MAX_LOG_SIZE_MB: 1000,           // 1GB日志大小
-      MAX_TEMP_SIZE_MB: 2000,          // 2GB临时文件
-      LOG_RETENTION_DAYS: 30,          // 30天日志保留
+      MAX_LOG_SIZE_MB: 1000, // 1GB日志大小
+      MAX_TEMP_SIZE_MB: 2000, // 2GB临时文件
+      LOG_RETENTION_DAYS: 30, // 30天日志保留
     },
     NETWORK: {
-      MAX_CONNECTIONS: 200,            // 200个最大连接
-      CONNECTION_POOL_SIZE: 20,        // 20个连接池大小
-      SOCKET_TIMEOUT_MS: 30000,        // 30秒Socket超时
+      MAX_CONNECTIONS: 200, // 200个最大连接
+      CONNECTION_POOL_SIZE: 20, // 20个连接池大小
+      SOCKET_TIMEOUT_MS: 30000, // 30秒Socket超时
     },
   },
 
   // 生产环境资源限制
   [Environment.PRODUCTION]: {
     MEMORY: {
-      MAX_HEAP_SIZE_MB: 4096,          // 4GB堆内存
-      MAX_CACHE_SIZE_MB: 1024,         // 1GB缓存
-      GC_THRESHOLD_MB: 2048,           // 2GB触发GC
+      MAX_HEAP_SIZE_MB: 4096, // 4GB堆内存
+      MAX_CACHE_SIZE_MB: 1024, // 1GB缓存
+      GC_THRESHOLD_MB: 2048, // 2GB触发GC
     },
     CPU: {
-      MAX_WORKERS: 8,                  // 最多8个工作进程
-      MAX_CONCURRENT_REQUESTS: 1000,   // 最多1000个并发请求
-      REQUEST_TIMEOUT_MS: 30000,       // 30秒请求超时
+      MAX_WORKERS: 8, // 最多8个工作进程
+      MAX_CONCURRENT_REQUESTS: 1000, // 最多1000个并发请求
+      REQUEST_TIMEOUT_MS: 30000, // 30秒请求超时
     },
     STORAGE: {
-      MAX_LOG_SIZE_MB: 5000,           // 5GB日志大小
-      MAX_TEMP_SIZE_MB: 10000,         // 10GB临时文件
-      LOG_RETENTION_DAYS: 90,          // 90天日志保留
+      MAX_LOG_SIZE_MB: 5000, // 5GB日志大小
+      MAX_TEMP_SIZE_MB: 10000, // 10GB临时文件
+      LOG_RETENTION_DAYS: 90, // 90天日志保留
     },
     NETWORK: {
-      MAX_CONNECTIONS: 1000,           // 1000个最大连接
-      CONNECTION_POOL_SIZE: 100,       // 100个连接池大小
-      SOCKET_TIMEOUT_MS: 30000,        // 30秒Socket超时
+      MAX_CONNECTIONS: 1000, // 1000个最大连接
+      CONNECTION_POOL_SIZE: 100, // 100个连接池大小
+      SOCKET_TIMEOUT_MS: 30000, // 30秒Socket超时
     },
   },
 });
@@ -275,7 +266,7 @@ export class EnvironmentConfigManager {
   private static instance: EnvironmentConfigManager;
   private currentEnvironment: Environment;
   private envVariables: Map<string, string>;
-  
+
   private constructor() {
     this.currentEnvironment = this.detectEnvironment();
     this.envVariables = new Map();
@@ -296,14 +287,22 @@ export class EnvironmentConfigManager {
    * 自动检测当前环境
    */
   private detectEnvironment(): Environment {
-    const { ENV_VAR_MAPPING, IDENTIFIER_MAPPING, DETECTION_PRIORITY, DEFAULT_ENVIRONMENT } = ENVIRONMENT_DETECTION;
+    const {
+      ENV_VAR_MAPPING,
+      IDENTIFIER_MAPPING,
+      DETECTION_PRIORITY,
+      DEFAULT_ENVIRONMENT,
+    } = ENVIRONMENT_DETECTION;
 
     // 按优先级检测环境变量
     for (const envVar of DETECTION_PRIORITY) {
       const value = process.env[envVar]?.toLowerCase();
       if (value) {
         // 检查值是否匹配已知环境标识符
-        for (const [env, identifiers] of Object.entries(IDENTIFIER_MAPPING) as [string, readonly string[]][]) {
+        for (const [env, identifiers] of Object.entries(IDENTIFIER_MAPPING) as [
+          string,
+          readonly string[],
+        ][]) {
           if ((identifiers as readonly string[]).includes(value)) {
             return env as Environment;
           }
@@ -372,14 +371,20 @@ export class EnvironmentConfigManager {
    * 获取环境特性配置
    */
   getEnvironmentFeatures(): any {
-    return ENVIRONMENT_FEATURES[this.currentEnvironment] || ENVIRONMENT_FEATURES[Environment.DEVELOPMENT];
+    return (
+      ENVIRONMENT_FEATURES[this.currentEnvironment] ||
+      ENVIRONMENT_FEATURES[Environment.DEVELOPMENT]
+    );
   }
 
   /**
    * 获取环境资源限制
    */
   getResourceLimits(): any {
-    return ENVIRONMENT_RESOURCE_LIMITS[this.currentEnvironment] || ENVIRONMENT_RESOURCE_LIMITS[Environment.DEVELOPMENT];
+    return (
+      ENVIRONMENT_RESOURCE_LIMITS[this.currentEnvironment] ||
+      ENVIRONMENT_RESOURCE_LIMITS[Environment.DEVELOPMENT]
+    );
   }
 
   /**
@@ -395,7 +400,7 @@ export class EnvironmentConfigManager {
   getBooleanEnvVariable(key: string, defaultValue: boolean = false): boolean {
     const value = this.getEnvVariable(key);
     if (!value) return defaultValue;
-    return ['true', '1', 'yes', 'on'].includes(value.toLowerCase());
+    return ["true", "1", "yes", "on"].includes(value.toLowerCase());
   }
 
   /**
@@ -456,8 +461,8 @@ export class EnvironmentConfigManager {
     const warnings: string[] = [];
 
     // 检查关键环境变量
-    const requiredVars = ['NODE_ENV'];
-    const recommendedVars = ['PORT', 'HOST', 'DATABASE_URL', 'REDIS_URL'];
+    const requiredVars = ["NODE_ENV"];
+    const recommendedVars = ["PORT", "HOST", "DATABASE_URL", "REDIS_URL"];
 
     for (const varName of requiredVars) {
       if (!this.getEnvVariable(varName)) {
@@ -473,20 +478,20 @@ export class EnvironmentConfigManager {
 
     // 检查生产环境特殊要求
     if (this.isProduction()) {
-      if (this.isFeatureEnabled('DEBUG', 'ENABLE_DEBUG_LOGS')) {
-        warnings.push('Debug logs are enabled in production environment');
+      if (this.isFeatureEnabled("DEBUG", "ENABLE_DEBUG_LOGS")) {
+        warnings.push("Debug logs are enabled in production environment");
       }
-      if (this.isFeatureEnabled('DEV_TOOLS', 'ENABLE_SWAGGER_UI')) {
-        warnings.push('Swagger UI is enabled in production environment');
+      if (this.isFeatureEnabled("DEV_TOOLS", "ENABLE_SWAGGER_UI")) {
+        warnings.push("Swagger UI is enabled in production environment");
       }
-      if (this.isFeatureEnabled('SECURITY', 'CORS_ALLOW_ALL')) {
-        warnings.push('CORS allow all is enabled in production environment');
+      if (this.isFeatureEnabled("SECURITY", "CORS_ALLOW_ALL")) {
+        warnings.push("CORS allow all is enabled in production environment");
       }
     }
 
     return {
       valid: warnings.length === 0,
-      warnings
+      warnings,
     };
   }
 }
@@ -520,9 +525,13 @@ export class EnvironmentConfigUtil {
 
     // 比较特性配置
     this.deepCompare(config1.features, config2.features, differences.features);
-    
+
     // 比较资源限制
-    this.deepCompare(config1.resourceLimits, config2.resourceLimits, differences.resourceLimits);
+    this.deepCompare(
+      config1.resourceLimits,
+      config2.resourceLimits,
+      differences.resourceLimits,
+    );
 
     return differences;
   }
@@ -533,7 +542,7 @@ export class EnvironmentConfigUtil {
   private static deepCompare(obj1: any, obj2: any, result: any): void {
     for (const key in obj1) {
       if (obj1[key] !== obj2[key]) {
-        if (typeof obj1[key] === 'object' && typeof obj2[key] === 'object') {
+        if (typeof obj1[key] === "object" && typeof obj2[key] === "object") {
           result[key] = {};
           this.deepCompare(obj1[key], obj2[key], result[key]);
         } else {
@@ -546,21 +555,27 @@ export class EnvironmentConfigUtil {
   /**
    * 获取环境迁移建议
    */
-  static getEnvironmentMigrationAdvice(fromEnv: Environment, toEnv: Environment): string[] {
+  static getEnvironmentMigrationAdvice(
+    fromEnv: Environment,
+    toEnv: Environment,
+  ): string[] {
     const advice: string[] = [];
 
-    if (fromEnv === Environment.DEVELOPMENT && toEnv === Environment.PRODUCTION) {
-      advice.push('禁用所有调试功能');
-      advice.push('启用安全功能（CORS、CSRF等）');
-      advice.push('增加资源限制配置');
-      advice.push('禁用开发工具端点');
-      advice.push('设置适当的日志级别');
+    if (
+      fromEnv === Environment.DEVELOPMENT &&
+      toEnv === Environment.PRODUCTION
+    ) {
+      advice.push("禁用所有调试功能");
+      advice.push("启用安全功能（CORS、CSRF等）");
+      advice.push("增加资源限制配置");
+      advice.push("禁用开发工具端点");
+      advice.push("设置适当的日志级别");
     }
 
     if (fromEnv === Environment.TEST && toEnv === Environment.PRODUCTION) {
-      advice.push('确保认证功能正常启用');
-      advice.push('调整并发和资源限制');
-      advice.push('禁用测试相关的特殊配置');
+      advice.push("确保认证功能正常启用");
+      advice.push("调整并发和资源限制");
+      advice.push("禁用测试相关的特殊配置");
     }
 
     return advice;

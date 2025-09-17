@@ -1,12 +1,12 @@
 /**
  * 通知渠道模板配置
  * 🎯 从常量迁移而来的可配置模板定义
- * 
+ *
  * @description 支持环境差异化和运行时调整的模板配置
  */
 
-import { IsObject, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsObject, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
 export class AlertTemplateConfig {
   email: {
@@ -37,7 +37,7 @@ export class AlertTemplateConfig {
     payload: {
       alert: {
         id: "{alertId}",
-        ruleName: "{ruleName}", 
+        ruleName: "{ruleName}",
         severity: "{severity}",
         status: "{status}",
         value: "{value}",

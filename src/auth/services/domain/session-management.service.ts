@@ -1,9 +1,11 @@
-import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { TokenService, JwtPayload } from "../infrastructure/token.service";
 import { User } from "../../schemas/user.schema";
 import { UserAuthenticationService } from "./user-authentication.service";
 import { CacheService } from "../../../cache/services/cache.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { DatabaseValidationUtils } from "../../../common/utils/database.utils";
+import { createLogger } from "@common/modules/logging";
 
 /**
  * 会话管理服务 - 用户会话和令牌生命周期管理
@@ -12,7 +14,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
  */
 @Injectable()
 export class SessionManagementService {
-  private readonly logger = new Logger(SessionManagementService.name);
+  private readonly logger = createLogger(SessionManagementService.name);
 
   constructor(
     private readonly tokenService: TokenService,
@@ -29,7 +31,13 @@ export class SessionManagementService {
     accessToken: string;
     refreshToken: string;
   }> {
-    this.logger.log('创建用户会话', { userId: user.id, username: user.username });
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(user.id, "用户ID");
+
+    this.logger.log("创建用户会话", {
+      userId: user.id,
+      username: user.username,
+    });
 
     try {
       // 生成令牌对
@@ -37,22 +45,27 @@ export class SessionManagementService {
 
       // 更新用户最后登录时间（异步执行，不影响响应时间）
       setImmediate(() => {
-        this.userAuthService.updateLastLoginTime(user.id).catch(error => 
-          this.logger.error('更新最后登录时间失败', { userId: user.id, error: error.message })
-        );
+        this.userAuthService
+          .updateLastLoginTime(user.id)
+          .catch((error) =>
+            this.logger.error("更新最后登录时间失败", {
+              userId: user.id,
+              error: error.message,
+            }),
+          );
       });
 
-      this.logger.log('用户会话创建成功', { 
-        userId: user.id, 
-        username: user.username 
+      this.logger.log("用户会话创建成功", {
+        userId: user.id,
+        username: user.username,
       });
 
       return tokens;
     } catch (error) {
-      this.logger.error('创建用户会话失败', { 
-        userId: user.id, 
-        username: user.username, 
-        error: error.message 
+      this.logger.error("创建用户会话失败", {
+        userId: user.id,
+        username: user.username,
+        error: error.message,
       });
       throw error;
     }
@@ -66,15 +79,18 @@ export class SessionManagementService {
     accessToken: string;
     refreshToken: string;
   }> {
-    this.logger.log('开始刷新用户会话');
+    this.logger.log("开始刷新用户会话");
 
     try {
       // 1. 验证刷新令牌并获取载荷
       const payload = await this.tokenService.verifyRefreshToken(refreshToken);
-      
-      this.logger.debug('刷新令牌验证成功', { 
-        userId: payload.sub, 
-        username: payload.username 
+
+      // 验证载荷中的用户ID格式
+      DatabaseValidationUtils.validateObjectId(payload.sub, "用户ID");
+
+      this.logger.debug("刷新令牌验证成功", {
+        userId: payload.sub,
+        username: payload.username,
       });
 
       // 2. 验证用户状态是否仍然有效
@@ -83,14 +99,14 @@ export class SessionManagementService {
       // 3. 生成新的令牌对
       const newTokens = await this.tokenService.generateTokens(user);
 
-      this.logger.log('用户会话刷新成功', { 
-        userId: user.id, 
-        username: user.username 
+      this.logger.log("用户会话刷新成功", {
+        userId: user.id,
+        username: user.username,
       });
 
       return newTokens;
     } catch (error) {
-      this.logger.warn('刷新用户会话失败', { error: error.message });
+      this.logger.warn("刷新用户会话失败", { error: error.message });
       throw error;
     }
   }
@@ -100,15 +116,18 @@ export class SessionManagementService {
    * 用于请求拦截器中的用户身份验证
    */
   async validateAccessToken(accessToken: string): Promise<User> {
-    this.logger.debug('验证访问令牌');
+    this.logger.debug("验证访问令牌");
 
     try {
       // 1. 验证并解析令牌载荷
       const payload = await this.tokenService.verifyAccessToken(accessToken);
-      
-      this.logger.debug('访问令牌验证成功', { 
-        userId: payload.sub, 
-        username: payload.username 
+
+      // 验证载荷中的用户ID格式
+      DatabaseValidationUtils.validateObjectId(payload.sub, "用户ID");
+
+      this.logger.debug("访问令牌验证成功", {
+        userId: payload.sub,
+        username: payload.username,
       });
 
       // 2. 获取最新的用户信息并验证用户状态
@@ -116,8 +135,8 @@ export class SessionManagementService {
 
       return user;
     } catch (error) {
-      this.logger.debug('访问令牌验证失败', { error: error.message });
-      throw new UnauthorizedException('访问令牌无效或已过期');
+      this.logger.debug("访问令牌验证失败", { error: error.message });
+      throw new UnauthorizedException("访问令牌无效或已过期");
     }
   }
 
@@ -126,28 +145,31 @@ export class SessionManagementService {
    * 用于Passport JWT策略
    */
   async validateJwtPayload(payload: JwtPayload): Promise<User> {
-    this.logger.debug('验证JWT载荷', { 
-      userId: payload.sub, 
-      username: payload.username 
+    // 验证载荷中的用户ID格式
+    DatabaseValidationUtils.validateObjectId(payload.sub, "用户ID");
+
+    this.logger.debug("验证JWT载荷", {
+      userId: payload.sub,
+      username: payload.username,
     });
 
     try {
       // 获取用户信息并验证状态
       const user = await this.userAuthService.getUserById(payload.sub);
-      
-      this.logger.debug('JWT载荷验证成功', { 
-        userId: user.id, 
-        username: user.username 
+
+      this.logger.debug("JWT载荷验证成功", {
+        userId: user.id,
+        username: user.username,
       });
 
       return user;
     } catch (error) {
-      this.logger.warn('JWT载荷验证失败', { 
-        userId: payload.sub, 
+      this.logger.warn("JWT载荷验证失败", {
+        userId: payload.sub,
         username: payload.username,
-        error: error.message 
+        error: error.message,
       });
-      throw new UnauthorizedException('用户身份无效或已被禁用');
+      throw new UnauthorizedException("用户身份无效或已被禁用");
     }
   }
 
@@ -156,34 +178,38 @@ export class SessionManagementService {
    * 在实际实现中可以将令牌加入黑名单或从Redis中移除
    */
   async destroyUserSession(accessToken: string): Promise<void> {
-    this.logger.log('销毁用户会话');
+    this.logger.log("销毁用户会话");
 
     try {
       // 解析令牌获取用户信息
       const payload = await this.tokenService.verifyAccessToken(accessToken);
-      
+
       // 1. 将令牌加入Redis黑名单
       const tokenId = payload.sub; // 使用用户ID作为唯一标识
       const blacklistKey = `auth:blacklist:${tokenId}`;
-      const tokenExpiry = payload.exp ? payload.exp - Math.floor(Date.now() / 1000) : 3600; // 剩余过期时间或默认1小时
-      await this.cacheService.set(blacklistKey, 'revoked', { ttl: tokenExpiry });
+      const tokenExpiry = payload.exp
+        ? payload.exp - Math.floor(Date.now() / 1000)
+        : 3600; // 剩余过期时间或默认1小时
+      await this.cacheService.set(blacklistKey, "revoked", {
+        ttl: tokenExpiry,
+      });
 
       // 2. 记录会话销毁事件
-      this.eventEmitter.emit('auth.session.destroyed', {
+      this.eventEmitter.emit("auth.session.destroyed", {
         userId: payload.sub,
         username: payload.username,
         tokenId,
         timestamp: new Date(),
-        reason: 'user_logout'
+        reason: "user_logout",
       });
 
       // 3. 清理相关的缓存数据
       const userCacheKeys = [
         `auth:session:${payload.sub}`,
         `auth:user:${payload.sub}`,
-        `auth:permissions:${payload.sub}`
+        `auth:permissions:${payload.sub}`,
       ];
-      
+
       for (const key of userCacheKeys) {
         try {
           await this.cacheService.del(key);
@@ -191,13 +217,13 @@ export class SessionManagementService {
           this.logger.warn(`清理缓存失败: ${key}`, error);
         }
       }
-      
-      this.logger.log('用户会话销毁成功', { 
-        userId: payload.sub, 
-        username: payload.username 
+
+      this.logger.log("用户会话销毁成功", {
+        userId: payload.sub,
+        username: payload.username,
       });
     } catch (error) {
-      this.logger.error('销毁用户会话失败', { error: error.message });
+      this.logger.error("销毁用户会话失败", { error: error.message });
       // 会话销毁失败不应阻止用户操作，只记录错误
     }
   }
@@ -207,28 +233,33 @@ export class SessionManagementService {
    * 用于安全操作，如密码重置、账户禁用等场景
    */
   async destroyAllUserSessions(userId: string): Promise<void> {
-    this.logger.log('销毁用户所有会话', { userId });
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
+
+    this.logger.log("销毁用户所有会话", { userId });
 
     try {
       // 1. 将该用户的所有令牌加入黑名单（通过用户ID模式匹配）
       const userBlacklistKey = `auth:blacklist:user:${userId}`;
-      await this.cacheService.set(userBlacklistKey, 'all_sessions_revoked', { ttl: 24 * 3600 }); // 24小时过期
+      await this.cacheService.set(userBlacklistKey, "all_sessions_revoked", {
+        ttl: 24 * 3600,
+      }); // 24小时过期
 
       // 2. 清理Redis中该用户的所有会话相关数据
       const userDataPatterns = [
         `auth:session:${userId}*`,
         `auth:user:${userId}*`,
         `auth:permissions:${userId}*`,
-        `auth:refresh:${userId}*`
+        `auth:refresh:${userId}*`,
       ];
 
       const deletedKeys: string[] = [];
       for (const pattern of userDataPatterns) {
         try {
           // 直接通过Redis实例使用通配符删除匹配的键
-          const keys = await this.cacheService['redis'].keys(pattern);
+          const keys = await this.cacheService["redis"].keys(pattern);
           if (keys.length > 0) {
-            await this.cacheService['redis'].del(...keys);
+            await this.cacheService["redis"].del(...keys);
             deletedKeys.push(...keys);
           }
         } catch (error) {
@@ -237,18 +268,21 @@ export class SessionManagementService {
       }
 
       // 3. 记录安全事件
-      this.eventEmitter.emit('auth.security.all_sessions_destroyed', {
+      this.eventEmitter.emit("auth.security.all_sessions_destroyed", {
         userId,
         timestamp: new Date(),
-        reason: 'security_operation',
+        reason: "security_operation",
         deletedCacheKeys: deletedKeys,
         totalDeletedKeys: deletedKeys.length,
-        initiatedBy: 'system' // 可以根据实际情况传入操作者信息
+        initiatedBy: "system", // 可以根据实际情况传入操作者信息
       });
-      
-      this.logger.log('用户所有会话销毁成功', { userId });
+
+      this.logger.log("用户所有会话销毁成功", { userId });
     } catch (error) {
-      this.logger.error('销毁用户所有会话失败', { userId, error: error.message });
+      this.logger.error("销毁用户所有会话失败", {
+        userId,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -264,11 +298,11 @@ export class SessionManagementService {
     issuedAt: Date;
     expiresAt: Date;
   }> {
-    this.logger.debug('获取会话信息');
+    this.logger.debug("获取会话信息");
 
     try {
       const payload = await this.tokenService.verifyAccessToken(accessToken);
-      
+
       return {
         userId: payload.sub,
         username: payload.username,
@@ -277,8 +311,8 @@ export class SessionManagementService {
         expiresAt: new Date(payload.exp * 1000),
       };
     } catch (error) {
-      this.logger.error('获取会话信息失败', { error: error.message });
-      throw new UnauthorizedException('无法获取会话信息');
+      this.logger.error("获取会话信息失败", { error: error.message });
+      throw new UnauthorizedException("无法获取会话信息");
     }
   }
 
@@ -286,13 +320,16 @@ export class SessionManagementService {
    * 检查会话是否即将过期
    * 用于提前刷新令牌的场景
    */
-  async isSessionNearExpiry(accessToken: string, thresholdMinutes: number = 5): Promise<boolean> {
+  async isSessionNearExpiry(
+    accessToken: string,
+    thresholdMinutes: number = 5,
+  ): Promise<boolean> {
     try {
       const sessionInfo = await this.getSessionInfo(accessToken);
       const now = new Date();
       const thresholdMs = thresholdMinutes * 60 * 1000;
-      
-      return (sessionInfo.expiresAt.getTime() - now.getTime()) <= thresholdMs;
+
+      return sessionInfo.expiresAt.getTime() - now.getTime() <= thresholdMs;
     } catch (error) {
       // 如果无法获取会话信息，认为会话已过期
       return true;

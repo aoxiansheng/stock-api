@@ -1,7 +1,7 @@
 /**
  * Notification模块类型定义
  * 🎯 通知相关的所有类型定义
- * 
+ *
  * @description 从Alert模块拆分出来的通知相关类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -20,7 +20,7 @@ export interface BaseEntity {
  */
 export const NotificationChannelType = {
   EMAIL: "email",
-  WEBHOOK: "webhook", 
+  WEBHOOK: "webhook",
   SLACK: "slack",
   LOG: "log",
   SMS: "sms",
@@ -41,20 +41,22 @@ export const NotificationStatus = {
   RETRY: "retry",
 } as const;
 
-export type NotificationStatus = (typeof NotificationStatus)[keyof typeof NotificationStatus];
+export type NotificationStatus =
+  (typeof NotificationStatus)[keyof typeof NotificationStatus];
 
 /**
  * 通知优先级枚举
  */
 export const NotificationPriority = {
   LOW: "low",
-  NORMAL: "normal", 
+  NORMAL: "normal",
   HIGH: "high",
   URGENT: "urgent",
   CRITICAL: "critical",
 } as const;
 
-export type NotificationPriority = (typeof NotificationPriority)[keyof typeof NotificationPriority];
+export type NotificationPriority =
+  (typeof NotificationPriority)[keyof typeof NotificationPriority];
 
 /**
  * 通知渠道配置接口
@@ -161,11 +163,14 @@ export interface BatchNotificationResult {
   results: NotificationResult[];
   duration: number;
   summary: {
-    byChannel: Record<NotificationChannelType, {
-      total: number;
-      successful: number;
-      failed: number;
-    }>;
+    byChannel: Record<
+      NotificationChannelType,
+      {
+        total: number;
+        successful: number;
+        failed: number;
+      }
+    >;
     byStatus: Record<NotificationStatus, number>;
   };
 }
@@ -175,7 +180,7 @@ export interface BatchNotificationResult {
  */
 export interface NotificationSender {
   type: NotificationChannelType;
-  
+
   /**
    * 发送通知
    */
@@ -183,12 +188,12 @@ export interface NotificationSender {
     notification: Notification,
     channelConfig: Record<string, any>,
   ): Promise<NotificationResult>;
-  
+
   /**
    * 测试通知渠道
    */
   test(config: Record<string, any>): Promise<boolean>;
-  
+
   /**
    * 验证渠道配置
    */
@@ -196,7 +201,7 @@ export interface NotificationSender {
     valid: boolean;
     errors: string[];
   };
-  
+
   /**
    * 获取发送器支持的配置选项
    */
@@ -212,7 +217,12 @@ export interface NotificationTemplate {
   /** 模板名称 */
   name: string;
   /** 模板类型 */
-  type: 'alert_fired' | 'alert_resolved' | 'alert_acknowledged' | 'alert_suppressed' | 'alert_escalated';
+  type:
+    | "alert_fired"
+    | "alert_resolved"
+    | "alert_acknowledged"
+    | "alert_suppressed"
+    | "alert_escalated";
   /** 适用的通知渠道 */
   channels: NotificationChannelType[];
   /** 标题模板 */
@@ -220,12 +230,15 @@ export interface NotificationTemplate {
   /** 内容模板 */
   contentTemplate: string;
   /** 模板变量 */
-  variables: Record<string, {
-    type: 'string' | 'number' | 'date' | 'boolean';
-    description: string;
-    required: boolean;
-    defaultValue?: any;
-  }>;
+  variables: Record<
+    string,
+    {
+      type: "string" | "number" | "date" | "boolean";
+      description: string;
+      required: boolean;
+      defaultValue?: any;
+    }
+  >;
   /** 模板格式 */
   format?: "text" | "html" | "markdown";
   /** 是否启用 */
@@ -272,18 +285,24 @@ export interface NotificationStats {
   /** 平均发送时间 */
   averageSendTime: number;
   /** 按渠道统计 */
-  byChannel: Record<NotificationChannelType, {
-    total: number;
-    successful: number;
-    failed: number;
-    averageSendTime: number;
-  }>;
+  byChannel: Record<
+    NotificationChannelType,
+    {
+      total: number;
+      successful: number;
+      failed: number;
+      averageSendTime: number;
+    }
+  >;
   /** 按优先级统计 */
-  byPriority: Record<NotificationPriority, {
-    total: number;
-    successful: number;
-    failed: number;
-  }>;
+  byPriority: Record<
+    NotificationPriority,
+    {
+      total: number;
+      successful: number;
+      failed: number;
+    }
+  >;
   /** 按状态统计 */
   byStatus: Record<NotificationStatus, number>;
 }

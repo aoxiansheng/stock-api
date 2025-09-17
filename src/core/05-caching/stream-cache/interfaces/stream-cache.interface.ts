@@ -3,7 +3,7 @@
  * 专用于实时流数据的缓存操作
  */
 
-import { StreamCacheConfig as BaseStreamCacheConfig } from '../../common-cache/interfaces/base-cache-config.interface';
+import { StreamCacheConfig as BaseStreamCacheConfig } from "../../common-cache/interfaces/base-cache-config.interface";
 
 /**
  * 压缩数据点格式 - 流数据专用格式

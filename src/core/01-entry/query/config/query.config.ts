@@ -34,12 +34,22 @@ export class QueryConfigService {
 
   /** 市场级并行处理超时时间（毫秒） */
   get marketParallelTimeout(): number {
-    return Number(this.configService.get("QUERY_MARKET_TIMEOUT", QUERY_TIMEOUT_CONFIG.QUERY_MS));
+    return Number(
+      this.configService.get(
+        "QUERY_MARKET_TIMEOUT",
+        QUERY_TIMEOUT_CONFIG.QUERY_MS,
+      ),
+    );
   }
 
   /** Receiver批次超时时间（毫秒） */
   get receiverBatchTimeout(): number {
-    return Number(this.configService.get("QUERY_RECEIVER_TIMEOUT", QUERY_TIMEOUT_CONFIG.REALTIME_FETCH_MS));
+    return Number(
+      this.configService.get(
+        "QUERY_RECEIVER_TIMEOUT",
+        QUERY_TIMEOUT_CONFIG.REALTIME_FETCH_MS,
+      ),
+    );
   }
 
   // =============== 内存监控配置 ===============

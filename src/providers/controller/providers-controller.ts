@@ -1,8 +1,7 @@
 import { Controller, Get, Param } from "@nestjs/common";
-import { OPERATION_LIMITS } from '@common/constants/domain';
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS
-} from '@common/constants/domain';
+import { OPERATION_LIMITS } from "@common/constants/domain";
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   ApiTags,
   ApiOperation,
@@ -29,7 +28,9 @@ import { EnhancedCapabilityRegistryService } from "../services/enhanced-capabili
 export class ProvidersController {
   private readonly logger = createLogger(ProvidersController.name);
 
-  constructor(private readonly capabilityRegistry: EnhancedCapabilityRegistryService) {}
+  constructor(
+    private readonly capabilityRegistry: EnhancedCapabilityRegistryService,
+  ) {}
 
   /**
    * 格式化能力注册信息为统一的返回格式
@@ -76,7 +77,12 @@ export class ProvidersController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Throttle({ default: { ttl: 60000, limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE } })
+  @Throttle({
+    default: {
+      ttl: 60000,
+      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
+    },
+  })
   @Get("capabilities")
   @ApiOperation({
     summary: "获取所有可用能力",
@@ -131,7 +137,12 @@ export class ProvidersController {
 
   @ApiKeyAuth()
   @RequirePermissions(Permission.PROVIDERS_READ)
-  @Throttle({ default: { ttl: 60000, limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE } })
+  @Throttle({
+    default: {
+      ttl: 60000,
+      limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE,
+    },
+  })
   @Get("stream-capabilities")
   @ApiOperation({
     summary: "获取所有可用流能力",

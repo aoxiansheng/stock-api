@@ -1,9 +1,9 @@
-import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 
 /**
  * LifecycleService - 应用生命周期管理服务
- * 
+ *
  * 职责：
  * - 管理应用生命周期事件
  * - 注册关闭钩子
@@ -18,13 +18,13 @@ export class LifecycleService implements OnApplicationShutdown {
    * 注册关闭钩子
    */
   async registerShutdownHooks(): Promise<void> {
-    this.logger.log('注册应用关闭钩子...');
-    
+    this.logger.log("注册应用关闭钩子...");
+
     // 监听进程信号
-    process.on('SIGTERM', () => this.handleShutdown('SIGTERM'));
-    process.on('SIGINT', () => this.handleShutdown('SIGINT'));
-    
-    this.logger.log('关闭钩子注册完成');
+    process.on("SIGTERM", () => this.handleShutdown("SIGTERM"));
+    process.on("SIGINT", () => this.handleShutdown("SIGINT"));
+
+    this.logger.log("关闭钩子注册完成");
   }
 
   /**
@@ -39,17 +39,17 @@ export class LifecycleService implements OnApplicationShutdown {
    */
   async onApplicationShutdown(signal?: string): Promise<void> {
     this.logger.log(`应用关闭中... Signal: ${signal}`);
-    
+
     // 执行所有关闭回调
     for (const callback of this.shutdownCallbacks) {
       try {
         await callback();
       } catch (error) {
-        this.logger.error('执行关闭回调失败:', error);
+        this.logger.error("执行关闭回调失败:", error);
       }
     }
-    
-    this.logger.log('应用关闭完成');
+
+    this.logger.log("应用关闭完成");
   }
 
   /**

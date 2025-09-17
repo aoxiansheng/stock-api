@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { REFERENCE_DATA } from '@common/constants/domain';
-import { API_OPERATIONS } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   IsArray,
   IsString,
@@ -12,7 +12,7 @@ import {
   ArrayMaxSize,
   IsNotEmpty,
   MaxLength,
-  IsIn
+  IsIn,
 } from "class-validator";
 
 import {
@@ -48,11 +48,11 @@ export class RequestOptionsDto extends BaseRequestOptionsDto {
   @ApiPropertyOptional({
     description: "存储模式：none=不存储，short_ttl=短时效存储，both=双存储",
     enum: StorageModeUtils.getAllModes(),
-    default: StorageModeUtils.getDefault()
+    default: StorageModeUtils.getDefault(),
   })
   @IsOptional()
   @IsIn(StorageModeUtils.getAllModes(), {
-    message: `存储模式必须是以下值之一: ${StorageModeUtils.getAllModes().join(', ')}`
+    message: `存储模式必须是以下值之一: ${StorageModeUtils.getAllModes().join(", ")}`,
   })
   storageMode?: StorageMode = StorageModeUtils.getDefault();
 }

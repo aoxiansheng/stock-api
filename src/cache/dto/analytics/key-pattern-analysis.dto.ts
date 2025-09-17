@@ -1,8 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsString,
-  IsNumber,
-} from "class-validator";
+import { IsString, IsNumber } from "class-validator";
 import { CacheStatistics, KeyPattern } from "../shared/cache-shared.interfaces";
 
 /**

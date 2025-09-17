@@ -1,4 +1,4 @@
-import { API_OPERATIONS } from '@common/constants/domain';
+import { API_OPERATIONS } from "@common/constants/domain";
 /**
  * 查询服务常量
  * 🎯 统一定义查询相关的常量，确保系统一致性
@@ -86,7 +86,7 @@ export const QUERY_PERFORMANCE_CONFIG = Object.freeze({
   LOG_SYMBOLS_LIMIT: 3, // 日志中显示的股票数量限制
   /**
    * 批量查询请求支持的最大子查询数量
-   * 用途：限制BulkQueryRequestDto中queries数组的长度  
+   * 用途：限制BulkQueryRequestDto中queries数组的长度
    * 适用场景：批量查询操作，防止单次批量请求包含过多子查询
    * 注意：每个子查询仍受MAX_SYMBOLS_PER_QUERY限制，两者独立生效
    */
@@ -284,8 +284,11 @@ export const QUERY_HEALTH_CONFIG = Object.freeze({
   MAX_FAILURES: CONSTANTS.SEMANTIC.RETRY.COUNTS.BASIC.DEFAULT, // 最大失败次数
   RECOVERY_THRESHOLD: CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE, // 恢复阈值
   METRICS_WINDOW_SIZE: CONSTANTS.SEMANTIC.BATCH.SIZES.PERFORMANCE.LARGE_BATCH, // 指标窗口大小
-  ERROR_RATE_THRESHOLD: CONSTANTS.SEMANTIC.CACHE.PERFORMANCE.HIT_RATE_THRESHOLDS.POOR / CONSTANTS.FOUNDATION.VALUES.PERCENTAGES.MAX, // 错误率阈值（10%）
-  RESPONSE_TIME_THRESHOLD: CONSTANTS.SEMANTIC.HTTP.TIMEOUTS.REQUEST.NORMAL_MS / 15, // 响应时间阈值（2秒）
+  ERROR_RATE_THRESHOLD:
+    CONSTANTS.SEMANTIC.CACHE.PERFORMANCE.HIT_RATE_THRESHOLDS.POOR /
+    CONSTANTS.FOUNDATION.VALUES.PERCENTAGES.MAX, // 错误率阈值（10%）
+  RESPONSE_TIME_THRESHOLD:
+    CONSTANTS.SEMANTIC.HTTP.TIMEOUTS.REQUEST.NORMAL_MS / 15, // 响应时间阈值（2秒）
 } as const);
 
 /**
@@ -314,5 +317,5 @@ export const QUERY_LIMITS = Object.freeze({
       QUERY_LIMIT_MAX: QUERY_VALIDATION_RULES.MAX_QUERY_LIMIT,
       QUERY_LIMIT_MIN: QUERY_VALIDATION_RULES.MIN_QUERY_LIMIT,
     };
-  }
+  },
 } as const);

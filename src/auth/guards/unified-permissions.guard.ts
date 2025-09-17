@@ -174,7 +174,9 @@ export class UnifiedPermissionsGuard implements CanActivate {
     checkResult: any,
   ): string {
     const subjectName = authSubject.getDisplayName();
-    const messages = [subjectName + " " + MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT];
+    const messages = [
+      subjectName + " " + MESSAGE_SEMANTICS.PERMISSION.INSUFFICIENT,
+    ];
 
     if (checkResult.missingRoles.length > 0) {
       messages.push(`所需角色: [${checkResult.missingRoles.join(", ")}]`);

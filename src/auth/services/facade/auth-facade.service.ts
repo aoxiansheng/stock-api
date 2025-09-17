@@ -1,8 +1,10 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "@common/modules/logging";
 import { CreateUserDto, LoginDto } from "../../dto/auth.dto";
 import { CreateApiKeyDto, ApiKeyUsageDto } from "../../dto/apikey.dto";
 import { User } from "../../schemas/user.schema";
 import { ApiKeyDocument } from "../../schemas/apikey.schema";
+import { DatabaseValidationUtils } from "../../../common/utils/database.utils";
 
 import { UserAuthenticationService } from "../domain/user-authentication.service";
 import { ApiKeyManagementService } from "../domain/apikey-management.service";
@@ -18,7 +20,7 @@ import { AuthEventNotificationService } from "../domain/notification.service";
  */
 @Injectable()
 export class AuthFacadeService {
-  private readonly logger = new Logger(AuthFacadeService.name);
+  private readonly logger = createLogger(AuthFacadeService.name);
 
   constructor(
     private readonly userAuthService: UserAuthenticationService,
@@ -33,7 +35,7 @@ export class AuthFacadeService {
    * 用户注册流程编排
    */
   async register(createUserDto: CreateUserDto): Promise<User> {
-    this.logger.log('开始用户注册流程', { username: createUserDto.username });
+    this.logger.log("开始用户注册流程", { username: createUserDto.username });
 
     try {
       // 1. 安全策略检查
@@ -48,15 +50,21 @@ export class AuthFacadeService {
       // 4. 发送通知事件
       await this.notificationService.sendRegistrationSuccessEvent(user);
 
-      this.logger.log('用户注册成功', { userId: user.id, username: user.username });
+      this.logger.log("用户注册成功", {
+        userId: user.id,
+        username: user.username,
+      });
       return user;
     } catch (error) {
       // 记录失败审计日志
       await this.auditService.logUserRegistrationFailure(createUserDto, error);
-      
+
       // 发送失败通知
-      await this.notificationService.sendRegistrationFailureEvent(createUserDto, error);
-      
+      await this.notificationService.sendRegistrationFailureEvent(
+        createUserDto,
+        error,
+      );
+
       throw error;
     }
   }
@@ -64,12 +72,12 @@ export class AuthFacadeService {
   /**
    * 用户登录流程编排
    */
-  async login(loginDto: LoginDto): Promise<{ 
-    user: User; 
-    accessToken: string; 
-    refreshToken: string 
+  async login(loginDto: LoginDto): Promise<{
+    user: User;
+    accessToken: string;
+    refreshToken: string;
   }> {
-    this.logger.log('开始用户登录流程', { username: loginDto.username });
+    this.logger.log("开始用户登录流程", { username: loginDto.username });
 
     try {
       // 1. 安全策略检查（频率限制、IP白名单等）
@@ -87,19 +95,22 @@ export class AuthFacadeService {
       // 5. 发送通知事件
       await this.notificationService.sendLoginSuccessEvent(user);
 
-      this.logger.log('用户登录成功', { userId: user.id, username: user.username });
-      
+      this.logger.log("用户登录成功", {
+        userId: user.id,
+        username: user.username,
+      });
+
       return {
         user,
-        ...tokens
+        ...tokens,
       };
     } catch (error) {
       // 记录失败审计日志
       await this.auditService.logUserLoginFailure(loginDto, error);
-      
+
       // 发送失败通知
       await this.notificationService.sendLoginFailureEvent(loginDto, error);
-      
+
       throw error;
     }
   }
@@ -111,7 +122,7 @@ export class AuthFacadeService {
     accessToken: string;
     refreshToken: string;
   }> {
-    this.logger.log('开始刷新令牌流程');
+    this.logger.log("开始刷新令牌流程");
 
     try {
       // 1. 安全策略检查
@@ -126,12 +137,12 @@ export class AuthFacadeService {
       // 4. 发送通知事件
       await this.notificationService.sendTokenRefreshEvent(token);
 
-      this.logger.log('令牌刷新成功');
+      this.logger.log("令牌刷新成功");
       return tokens;
     } catch (error) {
       // 记录失败审计日志
       await this.auditService.logTokenRefreshFailure(token, error);
-      
+
       throw error;
     }
   }
@@ -139,15 +150,30 @@ export class AuthFacadeService {
   /**
    * 创建API密钥流程编排
    */
-  async createApiKey(userId: string, createApiKeyDto: CreateApiKeyDto): Promise<any> {
-    this.logger.log('开始创建API密钥流程', { userId, name: createApiKeyDto.name });
+  async createApiKey(
+    userId: string,
+    createApiKeyDto: CreateApiKeyDto,
+  ): Promise<any> {
+    this.logger.log("开始创建API密钥流程", {
+      userId,
+      name: createApiKeyDto.name,
+    });
+
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
 
     try {
       // 1. 安全策略检查
-      await this.securityService.validateApiKeyCreationPolicy(userId, createApiKeyDto);
+      await this.securityService.validateApiKeyCreationPolicy(
+        userId,
+        createApiKeyDto,
+      );
 
       // 2. 执行API密钥创建
-      const apiKey = await this.apiKeyService.createApiKey(userId, createApiKeyDto);
+      const apiKey = await this.apiKeyService.createApiKey(
+        userId,
+        createApiKeyDto,
+      );
 
       // 3. 记录审计日志
       await this.auditService.logApiKeyCreation(userId, apiKey);
@@ -155,12 +181,19 @@ export class AuthFacadeService {
       // 4. 发送通知事件
       await this.notificationService.sendApiKeyCreationEvent(userId, apiKey);
 
-      this.logger.log('API密钥创建成功', { userId, apiKeyId: (apiKey as any)._id });
+      this.logger.log("API密钥创建成功", {
+        userId,
+        apiKeyId: (apiKey as any)._id,
+      });
       return apiKey;
     } catch (error) {
       // 记录失败审计日志
-      await this.auditService.logApiKeyCreationFailure(userId, createApiKeyDto, error);
-      
+      await this.auditService.logApiKeyCreationFailure(
+        userId,
+        createApiKeyDto,
+        error,
+      );
+
       throw error;
     }
   }
@@ -168,28 +201,36 @@ export class AuthFacadeService {
   /**
    * 验证API密钥流程编排
    */
-  async validateApiKey(appKey: string, accessToken: string): Promise<ApiKeyDocument> {
-    this.logger.debug('开始验证API密钥流程', { appKey });
+  async validateApiKey(
+    appKey: string,
+    accessToken: string,
+  ): Promise<ApiKeyDocument> {
+    this.logger.debug("开始验证API密钥流程", { appKey });
 
     try {
       // 1. 安全策略检查（频率限制等）
       await this.securityService.validateApiKeyUsagePolicy(appKey);
 
       // 2. 执行API密钥验证
-      const apiKey = await this.apiKeyService.validateApiKey(appKey, accessToken);
+      const apiKey = await this.apiKeyService.validateApiKey(
+        appKey,
+        accessToken,
+      );
 
       // 3. 记录审计日志（异步，不影响性能）
       setImmediate(() => {
-        this.auditService.logApiKeyUsage(apiKey).catch(err => 
-          this.logger.error('记录API密钥使用审计日志失败', err.stack)
-        );
+        this.auditService
+          .logApiKeyUsage(apiKey)
+          .catch((err) =>
+            this.logger.error("记录API密钥使用审计日志失败", err.stack),
+          );
       });
 
       return apiKey;
     } catch (error) {
       // 记录失败审计日志
       await this.auditService.logApiKeyValidationFailure(appKey, error);
-      
+
       throw error;
     }
   }
@@ -198,7 +239,11 @@ export class AuthFacadeService {
    * 获取用户API密钥列表
    */
   async getUserApiKeys(userId: string): Promise<any[]> {
-    this.logger.log('获取用户API密钥列表', { userId });
+    this.logger.log("获取用户API密钥列表", { userId });
+
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
+
     return this.apiKeyService.getUserApiKeys(userId);
   }
 
@@ -206,7 +251,10 @@ export class AuthFacadeService {
    * 撤销API密钥
    */
   async revokeApiKey(appKey: string, userId: string): Promise<void> {
-    this.logger.log('开始撤销API密钥', { appKey, userId });
+    this.logger.log("开始撤销API密钥", { appKey, userId });
+
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
 
     try {
       // 1. 执行撤销操作
@@ -218,11 +266,11 @@ export class AuthFacadeService {
       // 3. 发送通知事件
       await this.notificationService.sendApiKeyRevocationEvent(appKey, userId);
 
-      this.logger.log('API密钥撤销成功', { appKey, userId });
+      this.logger.log("API密钥撤销成功", { appKey, userId });
     } catch (error) {
       // 记录失败审计日志
       await this.auditService.logApiKeyRevocationFailure(appKey, userId, error);
-      
+
       throw error;
     }
   }
@@ -230,23 +278,39 @@ export class AuthFacadeService {
   /**
    * 获取API密钥使用统计
    */
-  async getApiKeyUsage(appKey: string, userId: string): Promise<ApiKeyUsageDto> {
-    this.logger.log('获取API密钥使用统计', { appKey, userId });
+  async getApiKeyUsage(
+    appKey: string,
+    userId: string,
+  ): Promise<ApiKeyUsageDto> {
+    this.logger.log("获取API密钥使用统计", { appKey, userId });
+
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
+
     return this.apiKeyService.getApiKeyUsage(appKey, userId);
   }
 
   /**
    * 重置API密钥频率限制
    */
-  async resetApiKeyRateLimit(appKey: string, userId: string): Promise<{ success: boolean }> {
-    this.logger.log('开始重置API密钥频率限制', { appKey, userId });
+  async resetApiKeyRateLimit(
+    appKey: string,
+    userId: string,
+  ): Promise<{ success: boolean }> {
+    this.logger.log("开始重置API密钥频率限制", { appKey, userId });
+
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
 
     try {
       // 1. 安全策略检查
       await this.securityService.validateRateLimitResetPolicy(appKey, userId);
 
       // 2. 执行重置操作
-      const result = await this.apiKeyService.resetApiKeyRateLimit(appKey, userId);
+      const result = await this.apiKeyService.resetApiKeyRateLimit(
+        appKey,
+        userId,
+      );
 
       // 3. 记录审计日志
       await this.auditService.logApiKeyRateLimitReset(appKey, userId);
@@ -254,12 +318,16 @@ export class AuthFacadeService {
       // 4. 发送通知事件
       await this.notificationService.sendRateLimitResetEvent(appKey, userId);
 
-      this.logger.log('API密钥频率限制重置成功', { appKey, userId });
+      this.logger.log("API密钥频率限制重置成功", { appKey, userId });
       return result;
     } catch (error) {
       // 记录失败审计日志
-      await this.auditService.logApiKeyRateLimitResetFailure(appKey, userId, error);
-      
+      await this.auditService.logApiKeyRateLimitResetFailure(
+        appKey,
+        userId,
+        error,
+      );
+
       throw error;
     }
   }
@@ -273,27 +341,38 @@ export class AuthFacadeService {
     includeInactive: boolean = false,
     includeStats: boolean = true,
   ) {
-    this.logger.log('管理员获取用户列表', { page, limit, includeStats });
+    this.logger.log("管理员获取用户列表", { page, limit, includeStats });
 
     try {
       // 1. 安全策略检查（确保是管理员权限）
       await this.securityService.validateAdminOperationPolicy();
 
       // 2. 获取用户列表
-      const result = await this.userAuthService.getAllUsers(page, limit, includeInactive, includeStats);
+      const result = await this.userAuthService.getAllUsers(
+        page,
+        limit,
+        includeInactive,
+        includeStats,
+      );
 
       // 3. 记录审计日志
       await this.auditService.logAdminUserListAccess(page, result.users.length);
 
       // 4. 发送通知事件
-      await this.notificationService.sendAdminOperationEvent('get_users', { page, recordCount: result.users.length });
+      await this.notificationService.sendAdminOperationEvent("get_users", {
+        page,
+        recordCount: result.users.length,
+      });
 
-      this.logger.log('管理员用户列表获取成功', { page, recordCount: result.users.length });
+      this.logger.log("管理员用户列表获取成功", {
+        page,
+        recordCount: result.users.length,
+      });
       return result;
     } catch (error) {
       // 记录失败审计日志
       await this.auditService.logAdminUserListAccessFailure(page, error);
-      
+
       throw error;
     }
   }

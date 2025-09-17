@@ -1,5 +1,4 @@
-
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   IsString,
   IsEnum,
@@ -131,7 +130,10 @@ export class ExtractedFieldDto {
 
 // 🆕 数据源分析结果响应DTO
 export class DataSourceAnalysisResponseDto {
-  @ApiProperty({ description: "数据提供商", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
+  @ApiProperty({
+    description: "数据提供商",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+  })
   @IsString()
   provider: string;
 
@@ -197,7 +199,10 @@ export class CreateDataSourceTemplateDto {
   @MaxLength(DATA_MAPPER_CONFIG.MAX_RULE_NAME_LENGTH)
   name: string;
 
-  @ApiProperty({ description: "数据提供商", example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT })
+  @ApiProperty({
+    description: "数据提供商",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+  })
   @IsString()
   provider: string;
 
@@ -205,7 +210,11 @@ export class CreateDataSourceTemplateDto {
   @IsEnum(API_TYPE_VALUES)
   apiType: ApiType;
 
-  @ApiProperty({ description: "模板描述", required: false, maxLength: DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH })
+  @ApiProperty({
+    description: "模板描述",
+    required: false,
+    maxLength: DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH,
+  })
   @IsString()
   @MaxLength(DATA_MAPPER_CONFIG.MAX_DESCRIPTION_LENGTH)
   @IsOptional()

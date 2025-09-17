@@ -1,12 +1,19 @@
 import { Injectable, OnModuleDestroy, Scope } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@common/logging/index";
-import { PROVIDER_TIMEOUT, ConnectionStatus, IConnectionState, CONNECTION_CONFIG } from "../../constants";
-import { REFERENCE_DATA } from '@common/constants/domain';
+import {
+  PROVIDER_TIMEOUT,
+  ConnectionStatus,
+  IConnectionState,
+  CONNECTION_CONFIG,
+} from "../../constants";
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 // LongPort SDK 导入
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Config, QuoteContext, SubType } = require(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+const { Config, QuoteContext, SubType } = require(
+  REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+);
 
 /**
  * LongPort WebSocket 流上下文服务
@@ -41,7 +48,8 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
 
   // === 重连机制 ===
   private reconnectAttempts = 0;
-  private readonly maxReconnectAttempts = PROVIDER_TIMEOUT.MAX_RECONNECT_ATTEMPTS;
+  private readonly maxReconnectAttempts =
+    PROVIDER_TIMEOUT.MAX_RECONNECT_ATTEMPTS;
   private readonly reconnectDelay = PROVIDER_TIMEOUT.RECONNECT_DELAY_MS;
 
   // === 回调和订阅管理 ===
@@ -78,7 +86,9 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
       if (!LongportSgStreamContextService.instance) {
         LongportSgStreamContextService.instance =
           new LongportSgStreamContextService(configService);
-        const logger = createLogger("LongportSgStreamContextService.getInstance");
+        const logger = createLogger(
+          "LongportSgStreamContextService.getInstance",
+        );
         logger.log("单例实例创建成功");
       }
       return LongportSgStreamContextService.instance;
@@ -151,7 +161,8 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
           this.config = new Config(appKey, appSecret, accessToken);
         } else {
           this.connectionState.status = ConnectionStatus.FAILED;
-          this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
+          this.connectionState.healthStatus =
+            CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
           throw new Error(
             "LongPort 配置不完整：缺少 APP_KEY、APP_SECRET 或 ACCESS_TOKEN",
           );
@@ -198,7 +209,8 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
     } catch (error) {
       // 更新失败状态
       this.connectionState.status = ConnectionStatus.FAILED;
-      this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
+      this.connectionState.healthStatus =
+        CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
 
       this.logger.error({
         message: "LongPort WebSocket 初始化失败",
@@ -222,7 +234,8 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
     // 更新连接状态
     this.connectionState.status = ConnectionStatus.DISCONNECTED;
     this.connectionState.subscriptionCount = 0;
-    this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
+    this.connectionState.healthStatus =
+      CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
     this.connectionState.connectionId = null;
 
     this.logger.log({
@@ -335,7 +348,8 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
       });
     } catch (error) {
       // 更新健康状态
-      this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
+      this.connectionState.healthStatus =
+        CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
 
       this.logger.error({
         message: "LongPort WebSocket 订阅失败",
@@ -804,7 +818,8 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
 
       // 即使清理失败，也要重置基本状态
       this.connectionState.status = ConnectionStatus.FAILED;
-      this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
+      this.connectionState.healthStatus =
+        CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
     }
   }
 

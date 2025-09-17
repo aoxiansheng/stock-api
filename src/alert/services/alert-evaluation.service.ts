@@ -1,33 +1,44 @@
 /**
  * Alert评估服务
  * 🎯 专门负责规则评估和指标处理
- * 
+ *
  * @description 单一职责：评估逻辑，不涉及规则管理和告警生命周期
- * @author Claude Code Assistant  
+ * @author Claude Code Assistant
  * @date 2025-09-10
  */
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import { Cron, CronExpression } from "@nestjs/schedule";
+import { ConfigService } from "@nestjs/config";
 
 import { createLogger } from "@common/logging/index";
-import { IAlertRule, IMetricData, IRuleEvaluationResult } from '../interfaces';
-import { AlertRuleService } from './alert-rule.service';
-import { AlertCacheService } from './alert-cache.service';
-import { AlertLifecycleService } from './alert-lifecycle.service';
-import { RuleEvaluator } from '../evaluators/rule.evaluator';
+import { IAlertRule, IMetricData, IRuleEvaluationResult } from "../interfaces";
+import { AlertRuleService } from "./alert-rule.service";
+import { AlertCacheService } from "./alert-cache.service";
+import { AlertLifecycleService } from "./alert-lifecycle.service";
+import { RuleEvaluator } from "../evaluators/rule.evaluator";
 
 @Injectable()
 export class AlertEvaluationService implements OnModuleInit {
-  private readonly logger = createLogger('AlertEvaluationService');
+  private readonly logger = createLogger("AlertEvaluationService");
   private readonly alertConfig: {
     evaluationInterval: number;
     evaluationTimeout: number;
     maxRetries: number;
   };
   private lastEvaluationTime: Date | null = null;
+
+  // 评估统计追踪
+  private evaluationStats = {
+    totalEvaluations: 0,
+    successfulEvaluations: 0,
+    failedEvaluations: 0,
+    totalRulesEvaluated: 0,
+    triggeredRules: 0,
+    resolvedRules: 0,
+    evaluationErrors: 0,
+  };
 
   constructor(
     private readonly alertRuleService: AlertRuleService,
@@ -38,7 +49,7 @@ export class AlertEvaluationService implements OnModuleInit {
     private readonly configService: ConfigService,
   ) {
     // 获取alert配置
-    this.alertConfig = this.configService.get('alert', {
+    this.alertConfig = this.configService.get("alert", {
       evaluationInterval: 60,
       evaluationTimeout: 5000,
       maxRetries: 3,
@@ -46,7 +57,7 @@ export class AlertEvaluationService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    this.logger.log('告警评估服务初始化完成', {
+    this.logger.log("告警评估服务初始化完成", {
       evaluationInterval: this.alertConfig.evaluationInterval,
       evaluationTimeout: this.alertConfig.evaluationTimeout,
       maxRetries: this.alertConfig.maxRetries,
@@ -58,40 +69,53 @@ export class AlertEvaluationService implements OnModuleInit {
    */
   async processMetrics(metricData: IMetricData[]): Promise<void> {
     if (metricData.length === 0) {
-      this.logger.debug('无指标数据需要处理');
+      this.logger.debug("无指标数据需要处理");
       return;
     }
 
-    const operation = 'PROCESS_METRICS';
-    this.logger.debug('开始处理指标数据', {
+    const operation = "PROCESS_METRICS";
+    this.logger.debug("开始处理指标数据", {
       operation,
       metricCount: metricData.length,
     });
 
     try {
       const enabledRules = await this.alertRuleService.getEnabledRules();
-      
+
       if (enabledRules.length === 0) {
-        this.logger.debug('没有启用的规则需要评估', { operation });
+        this.logger.debug("没有启用的规则需要评估", { operation });
         return;
       }
 
-      const evaluationResults = this.ruleEvaluator.evaluateRules(enabledRules, metricData);
+      const evaluationResults = this.ruleEvaluator.evaluateRules(
+        enabledRules,
+        metricData,
+      );
 
       // 并行处理评估结果
       await Promise.all(
-        evaluationResults.map(result => this.handleEvaluationResult(result, enabledRules))
+        evaluationResults.map((result) =>
+          this.handleEvaluationResult(result, enabledRules),
+        ),
       );
 
-      this.logger.debug('指标数据处理完成', {
+      // 更新统计信息
+      this.evaluationStats.totalRulesEvaluated += evaluationResults.length;
+      const triggeredCount = evaluationResults.filter(
+        (r) => r.triggered,
+      ).length;
+      this.evaluationStats.triggeredRules += triggeredCount;
+
+      this.logger.debug("指标数据处理完成", {
         operation,
         metricCount: metricData.length,
         ruleCount: enabledRules.length,
-        triggeredCount: evaluationResults.filter(r => r.triggered).length,
+        triggeredCount: triggeredCount,
+        totalRulesEvaluated: this.evaluationStats.totalRulesEvaluated,
+        totalTriggeredRules: this.evaluationStats.triggeredRules,
       });
-
     } catch (error) {
-      this.logger.error('指标数据处理失败', {
+      this.logger.error("指标数据处理失败", {
         operation,
         error: error.message,
         stack: error.stack,
@@ -103,10 +127,13 @@ export class AlertEvaluationService implements OnModuleInit {
   /**
    * 评估单个规则
    */
-  async evaluateRule(ruleId: string, metricData: IMetricData[]): Promise<IRuleEvaluationResult> {
-    const operation = 'EVALUATE_SINGLE_RULE';
-    
-    this.logger.debug('评估单个规则', {
+  async evaluateRule(
+    ruleId: string,
+    metricData: IMetricData[],
+  ): Promise<IRuleEvaluationResult> {
+    const operation = "EVALUATE_SINGLE_RULE";
+
+    this.logger.debug("评估单个规则", {
       operation,
       ruleId,
       metricCount: metricData.length,
@@ -114,15 +141,15 @@ export class AlertEvaluationService implements OnModuleInit {
 
     try {
       const rule = await this.alertRuleService.getRuleById(ruleId);
-      
+
       if (!rule.enabled) {
-        this.logger.debug('规则已禁用，跳过评估', { operation, ruleId });
-        return this.createSkippedResult(rule, '规则已禁用');
+        this.logger.debug("规则已禁用，跳过评估", { operation, ruleId });
+        return this.createSkippedResult(rule, "规则已禁用");
       }
 
       const result = this.ruleEvaluator.evaluateRule(rule, metricData);
 
-      this.logger.debug('单个规则评估完成', {
+      this.logger.debug("单个规则评估完成", {
         operation,
         ruleId,
         triggered: result.triggered,
@@ -130,7 +157,7 @@ export class AlertEvaluationService implements OnModuleInit {
 
       return result;
     } catch (error) {
-      this.logger.error('单个规则评估失败', {
+      this.logger.error("单个规则评估失败", {
         operation,
         ruleId,
         error: error.message,
@@ -143,10 +170,13 @@ export class AlertEvaluationService implements OnModuleInit {
   /**
    * 批量评估指定规则
    */
-  async evaluateRules(ruleIds: string[], metricData: IMetricData[]): Promise<IRuleEvaluationResult[]> {
-    const operation = 'EVALUATE_BATCH_RULES';
-    
-    this.logger.debug('批量评估规则', {
+  async evaluateRules(
+    ruleIds: string[],
+    metricData: IMetricData[],
+  ): Promise<IRuleEvaluationResult[]> {
+    const operation = "EVALUATE_BATCH_RULES";
+
+    this.logger.debug("批量评估规则", {
       operation,
       ruleCount: ruleIds.length,
       metricCount: metricData.length,
@@ -154,28 +184,33 @@ export class AlertEvaluationService implements OnModuleInit {
 
     try {
       const rules = await Promise.all(
-        ruleIds.map(ruleId => this.alertRuleService.getRuleById(ruleId))
+        ruleIds.map((ruleId) => this.alertRuleService.getRuleById(ruleId)),
       );
 
-      const enabledRules = rules.filter(rule => rule.enabled);
-      
+      const enabledRules = rules.filter((rule) => rule.enabled);
+
       if (enabledRules.length === 0) {
-        this.logger.debug('没有启用的规则需要评估', { operation });
-        return ruleIds.map(ruleId => this.createSkippedResult({ id: ruleId } as IAlertRule, '规则已禁用'));
+        this.logger.debug("没有启用的规则需要评估", { operation });
+        return ruleIds.map((ruleId) =>
+          this.createSkippedResult({ id: ruleId } as IAlertRule, "规则已禁用"),
+        );
       }
 
-      const results = this.ruleEvaluator.evaluateRules(enabledRules, metricData);
+      const results = this.ruleEvaluator.evaluateRules(
+        enabledRules,
+        metricData,
+      );
 
-      this.logger.debug('批量规则评估完成', {
+      this.logger.debug("批量规则评估完成", {
         operation,
         totalRules: ruleIds.length,
         enabledRules: enabledRules.length,
-        triggeredCount: results.filter(r => r.triggered).length,
+        triggeredCount: results.filter((r) => r.triggered).length,
       });
 
       return results;
     } catch (error) {
-      this.logger.error('批量规则评估失败', {
+      this.logger.error("批量规则评估失败", {
         operation,
         ruleIds,
         error: error.message,
@@ -188,32 +223,32 @@ export class AlertEvaluationService implements OnModuleInit {
   /**
    * 监听系统事件进行评估
    */
-  @OnEvent('performance.**')
-  @OnEvent('security.**')
-  @OnEvent('auth.**')
-  @OnEvent('provider.**')
-  @OnEvent('system.**')
+  @OnEvent("performance.**")
+  @OnEvent("security.**")
+  @OnEvent("auth.**")
+  @OnEvent("provider.**")
+  @OnEvent("system.**")
   async handleSystemEvent(event: any): Promise<void> {
-    const operation = 'HANDLE_SYSTEM_EVENT';
-    
-    this.logger.debug('处理系统事件', {
+    const operation = "HANDLE_SYSTEM_EVENT";
+
+    this.logger.debug("处理系统事件", {
       operation,
       eventType: event.type,
     });
 
     try {
       const metricData = this.convertEventToMetric(event);
-      
+
       if (metricData) {
         await this.processMetrics([metricData]);
-        
-        this.logger.debug('系统事件处理完成', {
+
+        this.logger.debug("系统事件处理完成", {
           operation,
           eventType: event.type,
         });
       }
     } catch (error) {
-      this.logger.error('系统事件处理失败', {
+      this.logger.error("系统事件处理失败", {
         operation,
         error: error.message,
         eventType: event?.type,
@@ -229,14 +264,15 @@ export class AlertEvaluationService implements OnModuleInit {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async scheduleRuleEvaluation(): Promise<void> {
-    const operation = 'SCHEDULED_EVALUATION';
-    
+    const operation = "SCHEDULED_EVALUATION";
+
     // 检查是否应该基于配置的间隔执行
     const now = new Date();
     if (this.lastEvaluationTime) {
-      const timeSinceLastEvaluation = (now.getTime() - this.lastEvaluationTime.getTime()) / 1000;
+      const timeSinceLastEvaluation =
+        (now.getTime() - this.lastEvaluationTime.getTime()) / 1000;
       if (timeSinceLastEvaluation < this.alertConfig.evaluationInterval) {
-        this.logger.debug('跳过评估，未到配置的间隔时间', {
+        this.logger.debug("跳过评估，未到配置的间隔时间", {
           operation,
           timeSinceLastEvaluation,
           requiredInterval: this.alertConfig.evaluationInterval,
@@ -244,32 +280,43 @@ export class AlertEvaluationService implements OnModuleInit {
         return;
       }
     }
-    
-    this.logger.debug('开始定时规则评估', { 
+
+    this.logger.debug("开始定时规则评估", {
       operation,
       evaluationInterval: this.alertConfig.evaluationInterval,
     });
 
     try {
+      // 增加评估计数
+      this.evaluationStats.totalEvaluations++;
+
       // 在实际实现中，这里应该从监控数据源获取最新指标
       const recentMetrics: IMetricData[] = await this.fetchRecentMetrics();
-      
+
       await this.processMetrics(recentMetrics);
-      
-      // 更新最后评估时间
+
+      // 更新最后评估时间和成功计数
       this.lastEvaluationTime = now;
-      
-      this.logger.debug('定时规则评估完成', {
+      this.evaluationStats.successfulEvaluations++;
+
+      this.logger.debug("定时规则评估完成", {
         operation,
         metricCount: recentMetrics.length,
         evaluationTime: now,
+        totalEvaluations: this.evaluationStats.totalEvaluations,
+        successfulEvaluations: this.evaluationStats.successfulEvaluations,
       });
-      
     } catch (error) {
-      this.logger.error('定时规则评估失败', {
+      // 记录失败评估
+      this.evaluationStats.failedEvaluations++;
+      this.evaluationStats.evaluationErrors++;
+
+      this.logger.error("定时规则评估失败", {
         operation,
         error: error.message,
         stack: error.stack,
+        failedEvaluations: this.evaluationStats.failedEvaluations,
+        evaluationErrors: this.evaluationStats.evaluationErrors,
       });
       // 不重新抛出错误，避免影响后续定时任务
     }
@@ -283,16 +330,19 @@ export class AlertEvaluationService implements OnModuleInit {
     triggeredCount: number;
     errors: string[];
   }> {
-    const operation = 'FORCE_EVALUATE_ALL';
-    
-    this.logger.log('强制评估所有规则', { operation });
+    const operation = "FORCE_EVALUATE_ALL";
+
+    this.logger.log("强制评估所有规则", { operation });
 
     try {
       const enabledRules = await this.alertRuleService.getEnabledRules();
       const recentMetrics = await this.fetchRecentMetrics();
-      
-      const results = this.ruleEvaluator.evaluateRules(enabledRules, recentMetrics);
-      
+
+      const results = this.ruleEvaluator.evaluateRules(
+        enabledRules,
+        recentMetrics,
+      );
+
       // 并行处理结果，收集错误
       const errors: string[] = [];
       await Promise.allSettled(
@@ -302,23 +352,23 @@ export class AlertEvaluationService implements OnModuleInit {
           } catch (error) {
             errors.push(`规则 ${result.ruleId}: ${error.message}`);
           }
-        })
+        }),
       );
 
       const summary = {
         evaluatedCount: results.length,
-        triggeredCount: results.filter(r => r.triggered).length,
+        triggeredCount: results.filter((r) => r.triggered).length,
         errors,
       };
 
-      this.logger.log('强制评估完成', {
+      this.logger.log("强制评估完成", {
         operation,
         ...summary,
       });
 
       return summary;
     } catch (error) {
-      this.logger.error('强制评估失败', {
+      this.logger.error("强制评估失败", {
         operation,
         error: error.message,
         stack: error.stack,
@@ -332,27 +382,42 @@ export class AlertEvaluationService implements OnModuleInit {
    */
   private async handleEvaluationResult(
     result: IRuleEvaluationResult,
-    rules: IAlertRule[]
+    rules: IAlertRule[],
   ): Promise<void> {
-    const rule = rules.find(r => r.id === result.ruleId);
+    const rule = rules.find((r) => r.id === result.ruleId);
     if (!rule) return;
 
     try {
-      const activeAlert = await this.alertCacheService.getActiveAlert(result.ruleId);
-      const isInCooldown = await this.alertCacheService.isInCooldown(result.ruleId);
+      const activeAlert = await this.alertCacheService.getActiveAlert(
+        result.ruleId,
+      );
+      const isInCooldown = await this.alertCacheService.isInCooldown(
+        result.ruleId,
+      );
 
       if (result.triggered) {
         // 规则触发但告警不存在且不在冷却期，创建新告警
         if (!activeAlert && !isInCooldown) {
           await this.alertLifecycleService.createAlert(result, rule);
-          await this.alertCacheService.setCooldown(result.ruleId, rule.cooldown);
+          await this.alertCacheService.setCooldown(
+            result.ruleId,
+            rule.cooldown,
+          );
+          // 记录新创建的告警
+          this.evaluationStats.triggeredRules++;
         }
       } else if (activeAlert) {
         // 规则恢复且有活跃告警，解决告警
-        await this.alertLifecycleService.resolveAlert(activeAlert.id, 'system', rule.id);
+        await this.alertLifecycleService.resolveAlert(
+          activeAlert.id,
+          "system",
+          rule.id,
+        );
+        // 记录解决的告警
+        this.evaluationStats.resolvedRules++;
       }
     } catch (error) {
-      this.logger.error('处理评估结果失败', {
+      this.logger.error("处理评估结果失败", {
         ruleId: result.ruleId,
         triggered: result.triggered,
         error: error.message,
@@ -364,7 +429,10 @@ export class AlertEvaluationService implements OnModuleInit {
   /**
    * 创建跳过评估的结果
    */
-  private createSkippedResult(rule: IAlertRule, reason: string): IRuleEvaluationResult {
+  private createSkippedResult(
+    rule: IAlertRule,
+    reason: string,
+  ): IRuleEvaluationResult {
     return {
       ruleId: rule.id,
       triggered: false,
@@ -401,19 +469,53 @@ export class AlertEvaluationService implements OnModuleInit {
     totalEvaluations: number;
     successfulEvaluations: number;
     failedEvaluations: number;
+    totalRulesEvaluated: number;
+    triggeredRules: number;
+    resolvedRules: number;
+    evaluationErrors: number;
+    successRate: number;
     evaluationInterval: number;
     evaluationTimeout: number;
     maxRetries: number;
   } {
-    // TODO: 实现完整的评估统计追踪
+    const successRate =
+      this.evaluationStats.totalEvaluations > 0
+        ? Math.round(
+            (this.evaluationStats.successfulEvaluations /
+              this.evaluationStats.totalEvaluations) *
+              100,
+          )
+        : 0;
+
     return {
       lastEvaluationTime: this.lastEvaluationTime,
-      totalEvaluations: 0,
-      successfulEvaluations: 0,
-      failedEvaluations: 0,
+      totalEvaluations: this.evaluationStats.totalEvaluations,
+      successfulEvaluations: this.evaluationStats.successfulEvaluations,
+      failedEvaluations: this.evaluationStats.failedEvaluations,
+      totalRulesEvaluated: this.evaluationStats.totalRulesEvaluated,
+      triggeredRules: this.evaluationStats.triggeredRules,
+      resolvedRules: this.evaluationStats.resolvedRules,
+      evaluationErrors: this.evaluationStats.evaluationErrors,
+      successRate: successRate,
       evaluationInterval: this.alertConfig.evaluationInterval,
       evaluationTimeout: this.alertConfig.evaluationTimeout,
       maxRetries: this.alertConfig.maxRetries,
     };
+  }
+
+  /**
+   * 重置评估统计数据
+   */
+  resetEvaluationStats(): void {
+    this.evaluationStats = {
+      totalEvaluations: 0,
+      successfulEvaluations: 0,
+      failedEvaluations: 0,
+      totalRulesEvaluated: 0,
+      triggeredRules: 0,
+      resolvedRules: 0,
+      evaluationErrors: 0,
+    };
+    this.logger.log("评估统计数据已重置");
   }
 }

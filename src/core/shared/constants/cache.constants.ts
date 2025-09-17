@@ -9,7 +9,7 @@ export const SHARED_CACHE_CONSTANTS = {
    * 这里保留是为了向后兼容，建议使用 CacheLimitsProvider.getCacheSizeLimit()
    */
   MAX_CACHE_SIZE: 10000,
-  
+
   /**
    * 缓存清理阈值（可扩展）
    */

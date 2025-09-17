@@ -1,6 +1,6 @@
 import { applyDecorators, HttpStatus } from "@nestjs/common";
 import { ApiResponse, ApiResponseOptions } from "@nestjs/swagger";
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 // Note: PaginatedDataDto is available in common-response.dto if needed for future use
 

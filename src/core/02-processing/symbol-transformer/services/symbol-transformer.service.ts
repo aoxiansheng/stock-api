@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { SymbolMapperCacheService } from "../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
 import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
@@ -227,14 +227,22 @@ export class SymbolTransformerService {
    * 向后兼容的方法名 - mapSymbols
    */
   async mapSymbols(provider: string, symbols: string | string[]) {
-    return await this.transformSymbols(provider, symbols, MappingDirection.TO_STANDARD);
+    return await this.transformSymbols(
+      provider,
+      symbols,
+      MappingDirection.TO_STANDARD,
+    );
   }
 
   /**
    * 向后兼容的方法名 - mapSymbol
    */
   async mapSymbol(provider: string, symbol: string) {
-    return await this.transformSingleSymbol(provider, symbol, MappingDirection.TO_STANDARD);
+    return await this.transformSingleSymbol(
+      provider,
+      symbol,
+      MappingDirection.TO_STANDARD,
+    );
   }
 
   /**

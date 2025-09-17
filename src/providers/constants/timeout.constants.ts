@@ -5,15 +5,15 @@
 
 export const PROVIDER_TIMEOUT = {
   // 连接超时配置
-  LOCK_TIMEOUT_MS: 10_000,           // 10秒锁定超时
-  MAX_RECONNECT_ATTEMPTS: 5,         // 最大重连次数
-  RECONNECT_DELAY_MS: 1_000,         // 1秒重连延迟
-  
+  LOCK_TIMEOUT_MS: 10_000, // 10秒锁定超时
+  MAX_RECONNECT_ATTEMPTS: 5, // 最大重连次数
+  RECONNECT_DELAY_MS: 1_000, // 1秒重连延迟
+
   // 缓存配置
-  CACHE_DURATION_MS: 5 * 60 * 1000,  // 5分钟缓存
-  
+  CACHE_DURATION_MS: 5 * 60 * 1000, // 5分钟缓存
+
   // WebSocket配置
-  
+
   // Stream处理配置
 } as const;
 
@@ -25,11 +25,11 @@ export type ProviderTimeoutConfig = typeof PROVIDER_TIMEOUT;
  */
 export function validateTimeoutConfig(): boolean {
   const requiredKeys = [
-    'LOCK_TIMEOUT_MS',
-    'MAX_RECONNECT_ATTEMPTS', 
-    'RECONNECT_DELAY_MS',
-    'CACHE_DURATION_MS'
+    "LOCK_TIMEOUT_MS",
+    "MAX_RECONNECT_ATTEMPTS",
+    "RECONNECT_DELAY_MS",
+    "CACHE_DURATION_MS",
   ];
-  
-  return requiredKeys.every(key => key in PROVIDER_TIMEOUT);
+
+  return requiredKeys.every((key) => key in PROVIDER_TIMEOUT);
 }

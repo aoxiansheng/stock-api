@@ -4,7 +4,10 @@ import { ApiKeyManagementService } from "../../../../auth/services/domain/apikey
 import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
 import { Socket } from "socket.io";
 import { Permission } from "../../../../auth/enums/user-role.enum";
-import { STREAM_PERMISSIONS, hasStreamPermissions } from '../constants/stream-permissions.constants';
+import {
+  STREAM_PERMISSIONS,
+  hasStreamPermissions,
+} from "../constants/stream-permissions.constants";
 import { CONSTANTS } from "@common/constants";
 import { RateLimitStrategy } from "../../../../auth/constants";
 
@@ -95,7 +98,11 @@ export class WsAuthGuard implements CanActivate {
       if (!apiKeyDoc) {
         this.logger.warn({
           message: "API Key 验证失败",
-          apiKey: apiKey.substring(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2) + "***", // 只记录前8位，保护敏感信息
+          apiKey:
+            apiKey.substring(
+              0,
+              CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
+            ) + "***", // 只记录前8位，保护敏感信息
           clientId: client.id,
         });
         return false;
@@ -109,7 +116,11 @@ export class WsAuthGuard implements CanActivate {
       if (!hasStreamPermission) {
         this.logger.warn({
           message: "API Key 缺少 WebSocket 流权限",
-          apiKey: apiKey.substring(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2) + "***",
+          apiKey:
+            apiKey.substring(
+              0,
+              CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
+            ) + "***",
           requiredPermissions: [
             ...STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS,
             Permission.STREAM_WRITE,
@@ -180,7 +191,11 @@ export class WsAuthGuard implements CanActivate {
       if (!result.allowed) {
         this.logger.warn({
           message: "WebSocket API Key 频率限制超出",
-          apiKey: apiKeyDoc.appKey.substring(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2) + "***",
+          apiKey:
+            apiKeyDoc.appKey.substring(
+              0,
+              CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
+            ) + "***",
           limit: result.limit,
           current: result.current,
           clientId: client.id,
@@ -190,7 +205,11 @@ export class WsAuthGuard implements CanActivate {
 
       this.logger.debug({
         message: "WebSocket 频率限制检查通过",
-        apiKey: apiKeyDoc.appKey.substring(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2) + "***",
+        apiKey:
+          apiKeyDoc.appKey.substring(
+            0,
+            CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
+          ) + "***",
         current: result.current,
         limit: result.limit,
         clientId: client.id,

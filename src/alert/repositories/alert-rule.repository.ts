@@ -3,6 +3,8 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
 import { createLogger } from "@common/logging/index";
+import { BUSINESS_ERROR_MESSAGES } from "@common/constants/semantic/error-messages.constants";
+import { DatabaseValidationUtils } from "@common/utils/database.utils";
 
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../dto";
 import { IAlertRule } from "../interfaces/alert.interface";
@@ -30,6 +32,9 @@ export class AlertRuleRepository {
     ruleId: string,
     updateRuleDto: UpdateAlertRuleDto,
   ): Promise<IAlertRule> {
+    // 验证ObjectId格式
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
     const rule = await this.alertRuleModel
       .findOneAndUpdate(
         { id: ruleId },
@@ -41,7 +46,7 @@ export class AlertRuleRepository {
 
     if (!rule) {
       this.logger.warn(`尝试更新不存在的规则`, { ruleId });
-      throw new NotFoundException(`未找到ID为 ${ruleId} 的规则`);
+      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
     }
 
     this.logger.debug(`更新告警规则成功`, { ruleId });
@@ -49,6 +54,9 @@ export class AlertRuleRepository {
   }
 
   async delete(ruleId: string): Promise<boolean> {
+    // 验证ObjectId格式
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
     const result = await this.alertRuleModel.deleteOne({ id: ruleId }).exec();
     if (result.deletedCount === 0) {
       this.logger.warn(`尝试删除不存在的规则`, { ruleId });
@@ -67,6 +75,9 @@ export class AlertRuleRepository {
   }
 
   async findById(ruleId: string): Promise<IAlertRule | null> {
+    // 验证ObjectId格式
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
     const rule = await this.alertRuleModel
       .findOne({ id: ruleId })
       .lean()
@@ -79,6 +90,9 @@ export class AlertRuleRepository {
   }
 
   async toggle(ruleId: string, enabled: boolean): Promise<boolean> {
+    // 验证ObjectId格式
+    DatabaseValidationUtils.validateObjectId(ruleId, "告警规则ID");
+
     const result = await this.alertRuleModel
       .updateOne({ id: ruleId }, { enabled, updatedAt: new Date() })
       .exec();

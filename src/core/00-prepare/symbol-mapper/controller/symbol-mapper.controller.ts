@@ -1,5 +1,4 @@
-
-import { REFERENCE_DATA } from '@common/constants/domain';
+import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   Controller,
   Get,
@@ -328,7 +327,11 @@ export class SymbolMapperController {
         statusCode: 200,
         message: "获取所有符号映射规则成功",
         data: {
-          providers: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "iexcloud", "twelvedata"],
+          providers: [
+            REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            "iexcloud",
+            "twelvedata",
+          ],
           totalProviders: 3,
           totalRules: 156,
           rulesByProvider: {

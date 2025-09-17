@@ -139,7 +139,7 @@ export const ALERT_HISTORY_MESSAGES = Object.freeze({
 /**
  * 告警操作常量
  * 🎯 告警相关操作标识
- * 
+ *
  * @note 通知相关操作已迁移到 notification/constants/notification.constants.ts
  */
 export const ALERT_OPERATIONS = Object.freeze({
@@ -172,9 +172,9 @@ export const OPERATOR_SYMBOLS = Object.freeze({
   "<=": "小于等于",
   "==": "等于",
   "!=": "不等于",
-  "contains": "包含",
-  "not_contains": "不包含",
-  "regex": "正则匹配",
+  contains: "包含",
+  not_contains: "不包含",
+  regex: "正则匹配",
 });
 
 // NOTE: 通知相关常量已迁移到 notification/constants/notification.constants.ts
@@ -188,7 +188,10 @@ export class AlertMessageUtil {
   /**
    * 格式化消息模板
    */
-  static formatMessage(template: string, variables: Record<string, any>): string {
+  static formatMessage(
+    template: string,
+    variables: Record<string, any>,
+  ): string {
     return template.replace(/\{(\w+)\}/g, (match, key) => {
       return variables[key] !== undefined ? String(variables[key]) : match;
     });
@@ -201,14 +204,16 @@ export class AlertMessageUtil {
    */
   static getSeverityColor(severity: string): string {
     const colorMap = {
-      low: '#28a745',      // 绿色
-      medium: '#ffc107',   // 黄色
-      high: '#fd7e14',     // 橙色
-      critical: '#dc3545', // 红色
-      emergency: '#6f42c1', // 紫色
+      low: "#28a745", // 绿色
+      medium: "#ffc107", // 黄色
+      high: "#fd7e14", // 橙色
+      critical: "#dc3545", // 红色
+      emergency: "#6f42c1", // 紫色
     };
-    
-    return colorMap[severity.toLowerCase() as keyof typeof colorMap] || '#6c757d';
+
+    return (
+      colorMap[severity.toLowerCase() as keyof typeof colorMap] || "#6c757d"
+    );
   }
 
   /**
@@ -216,13 +221,13 @@ export class AlertMessageUtil {
    */
   static getSeverityIcon(severity: string): string {
     const iconMap = {
-      low: 'ℹ️',
-      medium: '⚠️',
-      high: '🔶',
-      critical: '❌',
-      emergency: '🚨',
+      low: "ℹ️",
+      medium: "⚠️",
+      high: "🔶",
+      critical: "❌",
+      emergency: "🚨",
     };
-    
-    return iconMap[severity.toLowerCase() as keyof typeof iconMap] || '📢';
+
+    return iconMap[severity.toLowerCase() as keyof typeof iconMap] || "📢";
   }
 }

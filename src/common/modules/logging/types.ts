@@ -1,7 +1,14 @@
 /**
  * 日志级别枚举
  */
-export type LogLevel = 'silent' | 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
+export type LogLevel =
+  | "silent"
+  | "fatal"
+  | "error"
+  | "warn"
+  | "info"
+  | "debug"
+  | "trace";
 
 /**
  * 日志级别数值映射
@@ -91,7 +98,7 @@ export interface UpdateConfig {
   /** 新的日志级别 */
   level: LogLevel;
   /** 更新类型 */
-  type: 'module' | 'namespace' | 'global';
+  type: "module" | "namespace" | "global";
 }
 
 /**

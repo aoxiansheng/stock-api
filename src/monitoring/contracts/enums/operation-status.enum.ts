@@ -106,4 +106,3 @@ export function isInProgressOperation(status: OperationStatus): boolean {
  * 所有操作状态值数组
  */
 export const ALL_OPERATION_STATUSES = Object.values(OperationStatus);
-

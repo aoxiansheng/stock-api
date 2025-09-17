@@ -3,8 +3,8 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import os from "os";
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { SMART_CACHE_CONSTANTS } from '../constants/smart-cache.constants';
-import { SMART_CACHE_COMPONENT } from '../constants/smart-cache.component.constants';
+import { SMART_CACHE_CONSTANTS } from "../constants/smart-cache.constants";
+import { SMART_CACHE_COMPONENT } from "../constants/smart-cache.component.constants";
 
 /**
  * SmartCache 性能优化器服务
@@ -19,18 +19,23 @@ import { SMART_CACHE_COMPONENT } from '../constants/smart-cache.component.consta
  */
 @Injectable()
 export class SmartCachePerformanceOptimizer {
-  private readonly logger = createLogger(SMART_CACHE_COMPONENT.LOG_CONTEXTS.PERFORMANCE_OPTIMIZER);
+  private readonly logger = createLogger(
+    SMART_CACHE_COMPONENT.LOG_CONTEXTS.PERFORMANCE_OPTIMIZER,
+  );
 
   /** 系统资源监控相关 */
   private lastMemoryCheck = 0;
-  private memoryCheckInterval = SMART_CACHE_CONSTANTS.INTERVALS_MS.MEMORY_CHECK_INTERVAL_MS;
-  private cpuCheckInterval = SMART_CACHE_CONSTANTS.INTERVALS_MS.CPU_CHECK_INTERVAL_MS;
+  private memoryCheckInterval =
+    SMART_CACHE_CONSTANTS.INTERVALS_MS.MEMORY_CHECK_INTERVAL_MS;
+  private cpuCheckInterval =
+    SMART_CACHE_CONSTANTS.INTERVALS_MS.CPU_CHECK_INTERVAL_MS;
   private lastCpuCheck = 0;
 
   /** 动态配置管理 */
   private dynamicMaxConcurrency: number;
   private originalMaxConcurrency: number;
-  private currentBatchSize: number = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
+  private currentBatchSize: number =
+    SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
 
   /** 性能统计 */
   private performanceStats = {
@@ -50,8 +55,11 @@ export class SmartCachePerformanceOptimizer {
   ) {
     // 初始化默认并发数
     this.originalMaxConcurrency = Math.min(
-      Math.max(SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT, os.cpus().length), 
-      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT
+      Math.max(
+        SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
+        os.cpus().length,
+      ),
+      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
     );
     this.dynamicMaxConcurrency = this.originalMaxConcurrency;
 
@@ -113,7 +121,10 @@ export class SmartCachePerformanceOptimizer {
       let memoryFactor = 1.0;
       if (systemMetrics.memory.percentage < 0.7) {
         memoryFactor = 1.2;
-      } else if (systemMetrics.memory.percentage > SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MEMORY_PRESSURE_THRESHOLD) {
+      } else if (
+        systemMetrics.memory.percentage >
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MEMORY_PRESSURE_THRESHOLD
+      ) {
         memoryFactor = 0.5;
       }
 
@@ -175,7 +186,10 @@ export class SmartCachePerformanceOptimizer {
   async checkMemoryPressure(): Promise<boolean> {
     try {
       const systemMetrics = await this.getSystemMetrics();
-      return systemMetrics.memory.percentage > SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MEMORY_PRESSURE_THRESHOLD;
+      return (
+        systemMetrics.memory.percentage >
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MEMORY_PRESSURE_THRESHOLD
+      );
     } catch (error) {
       this.logger.error("Memory pressure check failed", error);
       return false;
@@ -253,9 +267,12 @@ export class SmartCachePerformanceOptimizer {
    * 计算最优批量大小
    */
   calculateOptimalBatchSize(currentLoad = 0): number {
-    const DEFAULT_BATCH_SIZE = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
-    const MAX_BATCH_SIZE = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_BATCH_SIZE_COUNT;
-    const MIN_BATCH_SIZE = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_BATCH_SIZE_COUNT;
+    const DEFAULT_BATCH_SIZE =
+      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
+    const MAX_BATCH_SIZE =
+      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_BATCH_SIZE_COUNT;
+    const MIN_BATCH_SIZE =
+      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_BATCH_SIZE_COUNT;
 
     try {
       const maxConcurrency = this.dynamicMaxConcurrency;
@@ -263,9 +280,14 @@ export class SmartCachePerformanceOptimizer {
 
       let batchSize: number = DEFAULT_BATCH_SIZE;
 
-      if (loadFactor < SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO) {
+      if (
+        loadFactor < SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO
+      ) {
         batchSize = Math.min(DEFAULT_BATCH_SIZE * 2, MAX_BATCH_SIZE);
-      } else if (loadFactor > SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.CPU_PRESSURE_THRESHOLD) {
+      } else if (
+        loadFactor >
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.CPU_PRESSURE_THRESHOLD
+      ) {
         batchSize = Math.max(DEFAULT_BATCH_SIZE / 2, MIN_BATCH_SIZE);
       }
 
@@ -273,7 +295,10 @@ export class SmartCachePerformanceOptimizer {
       const memoryUsage = process.memoryUsage();
       const memoryPressure = memoryUsage.heapUsed / memoryUsage.heapTotal;
 
-      if (memoryPressure > SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.CPU_PRESSURE_THRESHOLD) {
+      if (
+        memoryPressure >
+        SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.CPU_PRESSURE_THRESHOLD
+      ) {
         batchSize = Math.max(batchSize / 2, MIN_BATCH_SIZE);
       }
 

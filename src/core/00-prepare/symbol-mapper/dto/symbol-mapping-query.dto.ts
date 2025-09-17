@@ -1,10 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import {
-  IsOptional,
-  IsString,
-  IsBoolean,
-} from "class-validator";
+import { IsOptional, IsString, IsBoolean } from "class-validator";
 import { BaseQueryDto } from "@common/dto/base-query.dto";
 
 export class SymbolMappingQueryDto extends BaseQueryDto {

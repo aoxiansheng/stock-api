@@ -3,9 +3,10 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+import { DatabaseValidationUtils } from "../../common/utils/database.utils";
 
 import { User, UserDocument } from "../schemas/user.schema";
-import { CommonStatus } from "../enums/common-status.enum";
+import { OperationStatus } from "@common/types/enums/shared-base.enum";
 @Injectable()
 export class UserRepository {
   constructor(
@@ -24,6 +25,9 @@ export class UserRepository {
   }
 
   async findById(id: string): Promise<UserDocument | null> {
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(id, "用户ID");
+
     return this.userModel.findById(id).exec();
   }
 
@@ -73,7 +77,7 @@ export class UserRepository {
       normalizedPage,
       normalizedLimit,
     );
-    const filter = includeInactive ? {} : { status: CommonStatus.ACTIVE };
+    const filter = includeInactive ? {} : { status: OperationStatus.ACTIVE };
 
     const [users, total] = await Promise.all([
       this.userModel
@@ -104,9 +108,14 @@ export class UserRepository {
    * @param userId - 用户ID
    */
   async updateLastLoginTime(userId: string): Promise<void> {
-    await this.userModel.findByIdAndUpdate(userId, {
-      lastAccessedAt: new Date(),
-    }).exec();
+    // 验证用户ID格式
+    DatabaseValidationUtils.validateObjectId(userId, "用户ID");
+
+    await this.userModel
+      .findByIdAndUpdate(userId, {
+        lastAccessedAt: new Date(),
+      })
+      .exec();
   }
 
   /**
@@ -116,7 +125,7 @@ export class UserRepository {
   async getUserStats() {
     const [totalUsers, activeUsers, usersByRole] = await Promise.all([
       this.userModel.countDocuments().exec(),
-      this.userModel.countDocuments({ status: CommonStatus.ACTIVE }).exec(),
+      this.userModel.countDocuments({ status: OperationStatus.ACTIVE }).exec(),
       this.userModel
         .aggregate([
           {

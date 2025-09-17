@@ -1,4 +1,4 @@
-import { API_OPERATIONS } from '@common/constants/domain';
+import { API_OPERATIONS } from "@common/constants/domain";
 /**
  * 数据接收操作相关常量
  * 包含能力类型、操作类型、状态、事件、指标等

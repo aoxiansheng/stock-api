@@ -36,7 +36,9 @@ export class LongportSgProvider implements IDataProvider {
     private streamContextService: LongportSgStreamContextService,
   ) {
     // 工厂提供者已确保注入的是单例实例，无需额外检查
-    this.logger.log("LongportSgProvider 构造函数完成，使用工厂提供者保证的单例");
+    this.logger.log(
+      "LongportSgProvider 构造函数完成，使用工厂提供者保证的单例",
+    );
   }
 
   async initialize(): Promise<void> {

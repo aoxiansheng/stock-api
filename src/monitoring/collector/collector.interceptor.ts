@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
 } from "@nestjs/common";
-import { createLogger } from "@common/logging/index";;
+import { createLogger } from "@common/logging/index";
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 import { CollectorService } from "./collector.service";
@@ -41,7 +41,9 @@ export class CollectorInterceptor implements NestInterceptor {
             operation: request.route?.path || request.url,
             responseTimeMs: responseTime,
             statusCode: response.statusCode,
-            success: response.statusCode < MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
+            success:
+              response.statusCode <
+              MONITORING_SYSTEM_LIMITS.HTTP_SUCCESS_THRESHOLD,
             metadata: {
               method: request.method,
               endpoint: request.route?.path || request.url,

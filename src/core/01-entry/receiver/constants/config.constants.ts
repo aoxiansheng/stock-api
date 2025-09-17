@@ -12,7 +12,7 @@ import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-seman
  */
 const RECEIVER_BASE_CONFIG = Object.freeze({
   DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 默认超时时间 - 使用统一配置
-  MAX_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.RECEIVER.maxAttempts, // 最大重试次数 - 使用统一配置  
+  MAX_RETRY_ATTEMPTS: RETRY_BUSINESS_SCENARIOS.RECEIVER.maxAttempts, // 最大重试次数 - 使用统一配置
   RETRY_DELAY_MS: RETRY_BUSINESS_SCENARIOS.RECEIVER.initialDelayMs, // 重试延迟 - 使用统一配置
 } as const);
 
@@ -42,7 +42,7 @@ export const RECEIVER_CONFIG = Object.freeze({
  */
 export const RECEIVER_DEFAULTS = Object.freeze({
   TIMEOUT_MS: RECEIVER_BASE_CONFIG.DEFAULT_TIMEOUT_MS, // 引用基础配置避免重复
-  RETRY_ATTEMPTS: RECEIVER_BASE_CONFIG.MAX_RETRY_ATTEMPTS, // 引用基础配置避免重复  
+  RETRY_ATTEMPTS: RECEIVER_BASE_CONFIG.MAX_RETRY_ATTEMPTS, // 引用基础配置避免重复
   LOG_LEVEL: "info", // 默认日志级别
   ENABLE_PERFORMANCE_MONITORING: true, // 默认启用性能监控
   ENABLE_METRICS_COLLECTION: true, // 默认启用指标收集
@@ -58,18 +58,18 @@ export const RECEIVER_CACHE_CONFIG = Object.freeze({
   // TTL配置（秒）
   TTL_SECONDS: {
     PROVIDER_SELECTION: 300, // 提供商选择缓存TTL（5分钟）
-    MARKET_INFERENCE: 600,   // 市场推断缓存TTL（10分钟）
-    VALIDATION_RESULT: 60,   // 验证结果缓存TTL（1分钟）
-    QUICK_LOOKUP: 30,        // 快速查找缓存（30秒）
+    MARKET_INFERENCE: 600, // 市场推断缓存TTL（10分钟）
+    VALIDATION_RESULT: 60, // 验证结果缓存TTL（1分钟）
+    QUICK_LOOKUP: 30, // 快速查找缓存（30秒）
   },
-  
+
   // 容量限制
   CAPACITY_LIMITS: {
-    MAX_CACHE_ENTRIES: 1000,    // 最大缓存条目数
-    MAX_MEMORY_MB: 50,          // 最大内存使用（MB）
-    EVICTION_RATIO: 0.2,        // 清理比例（20%）
+    MAX_CACHE_ENTRIES: 1000, // 最大缓存条目数
+    MAX_MEMORY_MB: 50, // 最大内存使用（MB）
+    EVICTION_RATIO: 0.2, // 清理比例（20%）
   },
-  
+
   // 键前缀配置
   KEY_PREFIXES: {
     PROVIDER_SELECTION: "receiver:provider:",
@@ -77,11 +77,11 @@ export const RECEIVER_CACHE_CONFIG = Object.freeze({
     VALIDATION: "receiver:validation:",
     BASE: "receiver:",
   },
-  
+
   // 性能阈值
   PERFORMANCE_THRESHOLDS: {
-    HIT_RATE_TARGET: 0.85,      // 目标命中率85%
-    MEMORY_PRESSURE_LIMIT: 0.80, // 内存压力阈值80%
+    HIT_RATE_TARGET: 0.85, // 目标命中率85%
+    MEMORY_PRESSURE_LIMIT: 0.8, // 内存压力阈值80%
   },
 } as const);
 

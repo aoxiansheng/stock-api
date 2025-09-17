@@ -11,6 +11,7 @@ import { MongoError } from "mongodb";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
+import { CacheException, isCacheException } from "../../../cache/exceptions";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import { CONSTANTS } from "@common/constants";
 
@@ -159,6 +160,48 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code: mongoError.code,
         message: mongoError.message,
         stack: mongoError.stack,
+      });
+    } else if (isCacheException(exception)) {
+      // 🔧 新增: Cache异常处理
+      const cacheError = exception as CacheException;
+      status = cacheError.getStatus();
+      message = cacheError.message;
+      errorType = "CacheError";
+
+      // 提供Cache异常的详细信息
+      details = {
+        operation: cacheError.operation,
+        cacheKey: cacheError.cacheKey,
+        originalError: cacheError.originalError?.message,
+        ...((cacheError as any).serializationType && {
+          serializationType: (cacheError as any).serializationType,
+        }),
+        ...((cacheError as any).batchSize && {
+          batchSize: (cacheError as any).batchSize,
+        }),
+        ...((cacheError as any).maxAllowed && {
+          maxAllowed: (cacheError as any).maxAllowed,
+        }),
+        ...((cacheError as any).timeoutMs && {
+          timeoutMs: (cacheError as any).timeoutMs,
+        }),
+        ...((cacheError as any).lockKey && {
+          lockKey: (cacheError as any).lockKey,
+        }),
+        ...((cacheError as any).validationType && {
+          validationType: (cacheError as any).validationType,
+        }),
+        ...((cacheError as any).configKey && {
+          configKey: (cacheError as any).configKey,
+        }),
+      };
+
+      // 记录Cache异常详情
+      this.logger.warn("缓存异常", {
+        operation: cacheError.operation,
+        cacheKey: cacheError.cacheKey,
+        status,
+        originalError: cacheError.originalError?.message,
       });
     } else if (this.isJWTError(exception)) {
       // JWT异常
@@ -327,6 +370,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     status: number,
     exception: unknown,
   ): string {
+    // 🔧 新增: Cache异常相关错误码
+    if (isCacheException(exception)) {
+      const cacheError = exception as CacheException;
+      switch (cacheError.constructor.name) {
+        case "CacheConnectionException":
+          return "CACHE_CONNECTION_ERROR";
+        case "CacheOperationException":
+          return "CACHE_OPERATION_ERROR";
+        case "CacheSerializationException":
+          return "CACHE_SERIALIZATION_ERROR";
+        case "CacheValidationException":
+          return "CACHE_VALIDATION_ERROR";
+        case "CacheConfigurationException":
+          return "CACHE_CONFIGURATION_ERROR";
+        case "CacheTimeoutException":
+          return "CACHE_TIMEOUT_ERROR";
+        case "CacheLockException":
+          return "CACHE_LOCK_ERROR";
+        case "CacheBatchException":
+          return "CACHE_BATCH_ERROR";
+        default:
+          return "CACHE_ERROR";
+      }
+    }
+
     // JWT相关错误
     if (this.isJWTError(exception)) {
       const jwtError = exception as any;

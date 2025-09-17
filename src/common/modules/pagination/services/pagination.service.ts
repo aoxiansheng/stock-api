@@ -24,9 +24,18 @@ export class PaginationService {
 
   constructor(private readonly configService: ConfigService) {
     // 从配置服务读取，提供默认值作为回退
-    this.DEFAULT_PAGE = this.configService.get<number>('PAGINATION_DEFAULT_PAGE', 1);
-    this.DEFAULT_LIMIT = this.configService.get<number>('PAGINATION_DEFAULT_LIMIT', 10);
-    this.MAX_LIMIT = this.configService.get<number>('PAGINATION_MAX_LIMIT', 100);
+    this.DEFAULT_PAGE = this.configService.get<number>(
+      "PAGINATION_DEFAULT_PAGE",
+      1,
+    );
+    this.DEFAULT_LIMIT = this.configService.get<number>(
+      "PAGINATION_DEFAULT_LIMIT",
+      10,
+    );
+    this.MAX_LIMIT = this.configService.get<number>(
+      "PAGINATION_MAX_LIMIT",
+      100,
+    );
   }
 
   /**

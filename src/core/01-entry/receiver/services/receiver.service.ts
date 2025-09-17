@@ -1,5 +1,4 @@
-
-import { API_OPERATIONS } from '@common/constants/domain';
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   Injectable,
   BadRequestException,
@@ -390,7 +389,10 @@ export class ReceiverService {
           requestId,
           errors: validationResult.errors,
           warnings: validationResult.warnings,
-          symbols: request.symbols?.slice(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE),
+          symbols: request.symbols?.slice(
+            0,
+            CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE,
+          ),
           operation: "validateRequest",
         }),
       );
@@ -528,7 +530,10 @@ export class ReceiverService {
           error: error.message,
           receiverType,
           market,
-          symbols: symbols.slice(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.THREE),
+          symbols: symbols.slice(
+            0,
+            CONSTANTS.FOUNDATION.VALUES.QUANTITIES.THREE,
+          ),
           operation: "determineOptimalProvider",
         }),
       );
@@ -1003,7 +1008,12 @@ export class ReceiverService {
     // 使用 symbols 数量做简单 TTL 调整示例（避免未使用变量警告）
     const symbolCount = symbols?.length || 0;
     if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
-      return Math.max(defaultTTL, SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S / CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE * 2); // 大批量请求给更长 TTL
+      return Math.max(
+        defaultTTL,
+        (SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S /
+          CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE) *
+          2,
+      ); // 大批量请求给更长 TTL
     }
 
     // 这里可以根据symbols判断市场，然后设置不同的TTL

@@ -1,7 +1,7 @@
 /**
  * 日志通知发送器
  * 🎯 负责将通知记录到日志系统
- * 
+ *
  * @description 从Alert模块迁移的日志发送器，更新为使用Notification类型
  * @see docs/代码审查文档/常量枚举值审查说明/Alert组件拆分计划.md
  */
@@ -35,10 +35,10 @@ export class LogSender implements NotificationSender {
     try {
       // 构建日志内容
       const logContent = this.buildLogContent(notification, channelConfig);
-      
+
       // 根据优先级选择日志级别
       const logLevel = this.getLogLevel(notification.priority);
-      
+
       // 记录到日志系统
       this.logger[logLevel](logContent, {
         notificationId: notification.id,
@@ -87,7 +87,7 @@ export class LogSender implements NotificationSender {
         config,
         testTime: new Date().toISOString(),
       });
-      
+
       return true;
     } catch (error) {
       this.logger.error(`日志配置测试失败: ${error.message}`);
@@ -106,19 +106,22 @@ export class LogSender implements NotificationSender {
 
     // 验证日志级别（如果指定）
     if (config.logLevel) {
-      const validLevels = ['error', 'warn', 'info', 'debug'];
+      const validLevels = ["error", "warn", "info", "debug"];
       if (!validLevels.includes(config.logLevel)) {
-        errors.push(`日志级别必须是以下之一: ${validLevels.join(', ')}`);
+        errors.push(`日志级别必须是以下之一: ${validLevels.join(", ")}`);
       }
     }
 
     // 验证格式（如果指定）
-    if (config.format && !['json', 'text'].includes(config.format)) {
+    if (config.format && !["json", "text"].includes(config.format)) {
       errors.push("日志格式必须是 'json' 或 'text'");
     }
 
     // 验证是否包含敏感信息标志
-    if (config.includeSensitiveData && typeof config.includeSensitiveData !== 'boolean') {
+    if (
+      config.includeSensitiveData &&
+      typeof config.includeSensitiveData !== "boolean"
+    ) {
       errors.push("includeSensitiveData 必须是布尔值");
     }
 
@@ -168,16 +171,16 @@ export class LogSender implements NotificationSender {
    */
   private buildLogContent(
     notification: Notification,
-    config: Record<string, any>
+    config: Record<string, any>,
   ): string {
     const maxLength = config.maxContentLength || 1000;
-    
+
     let content = `[通知] ${notification.title}`;
-    
+
     if (notification.content) {
       content += `\n内容: ${notification.content}`;
     }
-    
+
     content += `\n详情:`;
     content += `\n  - 通知ID: ${notification.id}`;
     content += `\n  - 警告ID: ${notification.alertId}`;
@@ -193,7 +196,7 @@ export class LogSender implements NotificationSender {
 
     // 截断过长的内容
     if (content.length > maxLength) {
-      content = content.substring(0, maxLength - 3) + '...';
+      content = content.substring(0, maxLength - 3) + "...";
     }
 
     return content;
@@ -203,18 +206,18 @@ export class LogSender implements NotificationSender {
    * 根据通知优先级获取日志级别
    * @private
    */
-  private getLogLevel(priority: string): 'error' | 'warn' | 'info' | 'debug' {
+  private getLogLevel(priority: string): "error" | "warn" | "info" | "debug" {
     switch (priority.toLowerCase()) {
-      case 'critical':
-      case 'urgent':
-        return 'error';
-      case 'high':
-        return 'warn';
-      case 'normal':
-        return 'info';
-      case 'low':
+      case "critical":
+      case "urgent":
+        return "error";
+      case "high":
+        return "warn";
+      case "normal":
+        return "info";
+      case "low":
       default:
-        return 'debug';
+        return "debug";
     }
   }
 }

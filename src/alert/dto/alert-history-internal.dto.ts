@@ -99,7 +99,6 @@ export class AlertStatusUpdateDataDto {
  * 告警查询参数DTO
  */
 export class AlertQueryParamsDto extends BaseQueryDto {
-
   @ApiProperty({ description: "告警状态", enum: AlertStatus, required: false })
   @IsOptional()
   @IsEnum(AlertStatus)
