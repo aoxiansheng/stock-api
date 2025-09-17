@@ -71,13 +71,13 @@ export class AuthPermissionConstants implements PermissionConstants {
       try {
         // 动态导入认证模块常量
         const { REQUIRE_API_KEY } = await import(
-          "../../../../auth/decorators/require-apikey.decorator"
+          "../../decorators/require-apikey.decorator"
         );
         const { PERMISSIONS_KEY } = await import(
-          "../../../../auth/decorators/permissions.decorator"
+          "../../decorators/permissions.decorator"
         );
         const { Permission } = await import(
-          "../../../../auth/enums/user-role.enum"
+          "../../enums/user-role.enum"
         );
 
         authConstants = {

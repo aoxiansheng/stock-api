@@ -14,7 +14,6 @@ src/common/
 │   └── decorators/             # 装饰器
 ├── modules/                     # 功能模块
 │   ├── pagination/             # 分页模块
-│   ├── permission/             # 权限验证模块
 │   └── logging/                # 日志模块
 ├── dto/                        # 数据传输对象
 ├── validators/                 # 验证器
@@ -307,37 +306,7 @@ export class UsersModule {}
 }
 ```
 
-### 2. 权限验证模块 (PermissionModule)-只有 auth 组件可以集成，其他组件跳过集成
-
-**位置**: `src/common/modules/permission/`
-
-**功能**: 提供统一的权限验证框架，支持角色和权限检查
-
-#### 使用方法
-
-```typescript
-import { PermissionModule } from '@common/modules/permission';
-
-@Module({
-  imports: [PermissionModule],
-  // ...
-})
-export class AppModule {}
-
-// 在控制器中使用
-import { RequiresPermissions } from '@common/modules/permission/validators';
-
-@Controller('admin')
-export class AdminController {
-  @RequiresPermissions(['admin.users.read'])
-  @Get('users')
-  getUsers() {
-    return this.usersService.getUsers();
-  }
-}
-```
-
-### 3. 日志模块 (LoggingModule)
+### 2. 日志模块 (LoggingModule)
 
 **位置**: `src/common/modules/logging/`
 

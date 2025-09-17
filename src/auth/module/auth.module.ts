@@ -9,7 +9,7 @@ import { DatabaseModule } from "../../database/database.module"; // 🆕 统一�
 import { GlobalExceptionFilter } from "@common/core/filters/global-exception.filter";
 import { ResponseInterceptor } from "@common/core/interceptors/response.interceptor";
 import { RequestTrackingInterceptor } from "@common/core/interceptors/request-tracking.interceptor";
-import { PermissionModule } from "@common/modules/permission/permission.module";
+import { PermissionModule } from "@auth/permission/permission.module";
 import authConfig from "../config/auth-configuration";
 // 🆕 新的分层配置系统
 import { authUnifiedConfig } from "../config/auth-unified.config";

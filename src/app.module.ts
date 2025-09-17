@@ -36,7 +36,7 @@ import { MonitoringModule } from "./monitoring/monitoring.module";
 import { AlertEnhancedModule } from "./alert/module/alert-enhanced.module";
 import { NotificationModule } from "./notification/notification.module";
 import { ProvidersModule } from "./providers/module/providers-sg.module";
-import { PermissionValidationModule } from "./common/modules/permission/modules/permission-validation.module";
+import { PermissionValidationModule } from "./auth/permission/modules/permission-validation.module";
 import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
 
 // 安全防护守卫

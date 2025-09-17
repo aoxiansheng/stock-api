@@ -31,10 +31,12 @@ import {
   CACHE_EXTENDED_OPERATIONS,
   CACHE_INTERNAL_OPERATIONS,
 } from "../constants/operations/cache-operations.constants";
+import type {
+  SerializerType,
+} from "../constants/config/data-formats.constants";
+
 import {
   CACHE_DATA_FORMATS,
-  SerializerType,
-  SERIALIZER_TYPE_VALUES,
 } from "../constants/config/data-formats.constants";
 
 // 🎯 Gzip 压缩/解压缩
