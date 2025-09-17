@@ -27,8 +27,14 @@ export { CacheHealthCheckResultDto } from "./health/health-check-result.dto";
 export { CacheCompressionInfoDto } from "./data-processing/compression-info.dto";
 export { CacheSerializationInfoDto } from "./data-processing/serialization-info.dto";
 export { DistributedLockInfoDto } from "./locking/distributed-lock-info.dto";
-export { CacheKeyPatternAnalysisDto } from "./analytics/key-pattern-analysis.dto";
-export { CachePerformanceMonitoringDto } from "./monitoring/performance-monitoring.dto";
+export { 
+  CacheKeyPatternAnalysisQueryDto,
+  CacheKeyPatternAnalysisDto 
+} from "./analytics/key-pattern-analysis.dto";
+export { 
+  CachePerformanceMonitoringQueryDto,
+  CachePerformanceMonitoringDto 
+} from "./monitoring/performance-monitoring.dto";
 export { CacheMetricsUpdateDto } from "./metrics/metrics-update.dto";
 
 // ============================================================================
@@ -52,7 +58,26 @@ export { RedisCacheRuntimeStatsDto } from "./redis-cache-runtime-stats.dto";
  * import { CacheConfigDto } from './config/cache-config.dto'
  * import { CacheOperationResultDto } from './operations/cache-operation-result.dto'
  *
+ * // 🆕 Phase 5: DTO标准化 - 分页查询DTO导入
+ * import { 
+ *   CacheKeyPatternAnalysisQueryDto,
+ *   CachePerformanceMonitoringQueryDto 
+ * } from './analytics/key-pattern-analysis.dto'
+ *
+ * // 分页响应使用通用组件库
+ * import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data'
+ * import { PaginationService } from '@common/modules/pagination/services/pagination.service'
+ *
  * // 统一接口：使用cache-shared.interfaces
  * import { CacheStatistics, TTLFields } from './shared/cache-shared.interfaces'
+ *
+ * // 分页端点示例
+ * async getKeyPatterns(
+ *   @Query() query: CacheKeyPatternAnalysisQueryDto,
+ * ): Promise<PaginatedDataDto<CacheKeyPatternAnalysisDto>> {
+ *   const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+ *   // ... 业务逻辑
+ *   return this.paginationService.createPaginatedResponse(items, page, limit, total);
+ * }
  * ```
  */

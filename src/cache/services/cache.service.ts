@@ -66,6 +66,12 @@ export class CacheService {
     // 🎯 所有配置现在通过统一配置获取，移除冗余的Provider依赖
     @Inject("cacheTtl") private readonly ttlConfig: CacheUnifiedConfig, // 🎯 TTL统一配置（兼容）
   ) {
+    this.logger.debug("CacheService初始化开始", {
+      context: "CacheService",
+      operation: "constructor",
+      timestamp: new Date().toISOString(),
+    });
+    
     // 🎯 优先使用统一配置
     this.cacheUnifiedConfig =
       this.configService.get<CacheUnifiedConfig>("cacheUnified");
@@ -79,8 +85,11 @@ export class CacheService {
       this.logger.warn(
         "⚠️  DEPRECATED: 检测到旧版cache配置，请迁移到cacheUnified配置",
         {
+          context: "CacheService",
+          operation: "constructor",
           migrationGuide: "docs/cache-migration-guide.md",
           newConfigNamespace: "cacheUnified",
+          timestamp: new Date().toISOString(),
         },
       );
 
@@ -88,12 +97,24 @@ export class CacheService {
       this.logger.warn(
         "⚠️  DEPRECATED: CacheConfig 已废弃，请迁移到 CacheUnifiedConfig",
         {
+          context: "CacheService",
+          operation: "constructor",
           currentValue: this.cacheUnifiedConfig.defaultTtl,
           migrationGuide: "Use @Inject('cacheUnified') CacheUnifiedConfig",
           migrationNote: "当前已自动使用统一配置",
+          timestamp: new Date().toISOString(),
         },
       );
     }
+    
+    this.logger.debug("CacheService初始化完成", {
+      context: "CacheService",
+      operation: "constructor",
+      defaultTtl: this.cacheUnifiedConfig.defaultTtl,
+      compressionThreshold: this.cacheUnifiedConfig.compressionThreshold,
+      maxBatchSize: this.cacheUnifiedConfig.maxBatchSize,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
@@ -174,13 +195,25 @@ export class CacheService {
     const startTime = Date.now();
     try {
       const serializedValue = this.serialize(value, options.serializer);
-      const compressedValue = this.shouldCompress(
+      const shouldCompress = this.shouldCompress(
         serializedValue,
         options.compressionThreshold ??
           this.cacheUnifiedConfig.compressionThreshold,
-      )
+      );
+      const compressedValue = shouldCompress
         ? await this.compress(serializedValue)
         : serializedValue;
+      
+      this.logger.debug("缓存设置操作详情", {
+        context: "CacheService",
+        operation: "set",
+        key,
+        ttl: options.ttl,
+        compressed: shouldCompress,
+        originalSize: serializedValue.length,
+        finalSize: compressedValue.length,
+        timestamp: new Date().toISOString(),
+      });
 
       const result = await this.redis.setex(key, options.ttl, compressedValue);
 
@@ -233,9 +266,19 @@ export class CacheService {
       });
 
       // 解压缩和反序列化
-      const decompressedValue = this.isCompressed(value)
+      const isCompressed = this.isCompressed(value);
+      const decompressedValue = isCompressed
         ? await this.decompress(value)
         : value;
+      
+      this.logger.debug("缓存获取操作详情", {
+        context: "CacheService",
+        operation: "get",
+        key,
+        compressed: isCompressed,
+        valueSize: value.length,
+        timestamp: new Date().toISOString(),
+      });
 
       // 检查慢操作
       const duration = Date.now() - startTime;
@@ -312,7 +355,12 @@ export class CacheService {
         }
 
         // 仍然没有缓存，直接执行回调（可能会有短暂的重复计算）
-        this.logger.warn(CACHE_MESSAGES.WARNINGS.LOCK_TIMEOUT, { key });
+        this.logger.warn(CACHE_MESSAGES.WARNINGS.LOCK_TIMEOUT, { 
+          context: "CacheService",
+          operation: "getOrSet",
+          key,
+          timestamp: new Date().toISOString(),
+        });
         return await callback();
       }
     } catch (error) {
@@ -684,6 +732,12 @@ export class CacheService {
   ): Promise<void> {
     this.logger.log(
       `${CACHE_MESSAGES.SUCCESS.WARMUP_STARTED}，共 ${warmupData.size} 个项目...`,
+      {
+        context: "CacheService",
+        operation: "warmup",
+        itemCount: warmupData.size,
+        timestamp: new Date().toISOString(),
+      },
     );
     const startTime = Date.now();
 
@@ -692,9 +746,25 @@ export class CacheService {
       const duration = Date.now() - startTime;
       this.logger.log(
         `${CACHE_MESSAGES.SUCCESS.WARMUP_COMPLETED}，耗时 ${duration}ms`,
+        {
+          context: "CacheService",
+          operation: "warmup",
+          itemCount: warmupData.size,
+          duration,
+          timestamp: new Date().toISOString(),
+        },
       );
     } catch (error) {
-      this.logger.error(CACHE_MESSAGES.ERRORS.WARMUP_FAILED, error);
+      this.logger.error(CACHE_MESSAGES.ERRORS.WARMUP_FAILED, 
+        sanitizeLogData({
+          context: "CacheService",
+          operation: "warmup",
+          itemCount: warmupData.size,
+          error: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString(),
+        })
+      );
     }
   }
 
@@ -753,10 +823,13 @@ export class CacheService {
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {
+        context: "CacheService",
         operation: CACHE_INTERNAL_OPERATIONS.SERIALIZE,
         sizeInBytes,
         maxSizeBytes,
         sizeMB: Math.round((sizeInBytes / (1024 * 1024)) * 100) / 100,
+        recommendation: "Consider compressing large values or reducing data size",
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -805,9 +878,15 @@ export class CacheService {
         compressedBuffer.toString("base64")
       );
     } catch (error) {
-      this.logger.error(
+      this.logger.warn(
         CACHE_MESSAGES.ERRORS.COMPRESSION_FAILED,
-        sanitizeLogData({ error }),
+        sanitizeLogData({ 
+          context: "CacheService",
+          operation: "compress",
+          error: error.message,
+          impact: "fallback_to_uncompressed",
+          timestamp: new Date().toISOString(),
+        }),
       );
       // 压缩失败则返回原始值
       return value;
@@ -824,9 +903,15 @@ export class CacheService {
       const decompressedBuffer = await gunzip(buffer);
       return decompressedBuffer.toString("utf8");
     } catch (error) {
-      this.logger.error(
+      this.logger.warn(
         CACHE_MESSAGES.ERRORS.DECOMPRESSION_FAILED,
-        sanitizeLogData({ error }),
+        sanitizeLogData({ 
+          context: "CacheService",
+          operation: "decompress",
+          error: error.message,
+          impact: "fallback_to_original_value",
+          timestamp: new Date().toISOString(),
+        }),
       );
       // 解压失败则返回原始值（可能未被压缩）
       return value;
@@ -850,12 +935,15 @@ export class CacheService {
     try {
       await this.redis.eval(script, 1, lockKey, lockValue);
     } catch (error) {
-      this.logger.error(
+      this.logger.warn(
         CACHE_MESSAGES.ERRORS.LOCK_RELEASE_FAILED,
         sanitizeLogData({
+          context: "CacheService",
           operation: CACHE_EXTENDED_OPERATIONS.RELEASE_LOCK,
           lockKey,
           error: error.message,
+          impact: "possible_resource_leak",
+          timestamp: new Date().toISOString(),
         }),
       );
     }
@@ -954,11 +1042,16 @@ export class CacheService {
     try {
       return await this.get<T>(key);
     } catch (error) {
-      this.logger.warn("缓存读取失败，优雅降级", {
-        key,
-        error: error.message,
-        operation: "safeGet",
-      });
+      this.logger.warn("缓存读取失败，优雅降级", 
+        sanitizeLogData({
+          context: "CacheService",
+          operation: "safeGet",
+          key,
+          error: error.message,
+          impact: "fallback_to_null",
+          timestamp: new Date().toISOString(),
+        })
+      );
       return null;
     }
   }
@@ -978,11 +1071,16 @@ export class CacheService {
     try {
       await this.set(key, value, options);
     } catch (error) {
-      this.logger.warn("缓存写入失败，忽略错误", {
-        key,
-        error: error.message,
-        operation: "safeSet",
-      });
+      this.logger.warn("缓存写入失败，忽略错误", 
+        sanitizeLogData({
+          context: "CacheService",
+          operation: "safeSet",
+          key,
+          error: error.message,
+          impact: "cache_miss_on_next_read",
+          timestamp: new Date().toISOString(),
+        })
+      );
       // 不抛出异常，保证监控逻辑继续执行
     }
   }
@@ -1003,11 +1101,16 @@ export class CacheService {
     try {
       return await this.getOrSet<T>(key, factory, options);
     } catch (error) {
-      this.logger.warn("缓存操作失败，直接调用工厂方法", {
-        key,
-        error: error.message,
-        operation: "safeGetOrSet",
-      });
+      this.logger.warn("缓存操作失败，直接调用工厂方法", 
+        sanitizeLogData({
+          context: "CacheService",
+          operation: "safeGetOrSet",
+          key,
+          error: error.message,
+          impact: "fallback_to_factory",
+          timestamp: new Date().toISOString(),
+        })
+      );
       return await factory();
     }
   }
@@ -1046,11 +1149,16 @@ export class CacheService {
     try {
       return await this.redis.zcard(key);
     } catch (error) {
-      this.logger.error("获取有序集合大小失败", {
-        operation: "zcard",
-        key,
-        error: error.message,
-      });
+      this.logger.error("获取有序集合大小失败", 
+        sanitizeLogData({
+          context: "CacheService",
+          operation: "zcard",
+          key,
+          error: error.message,
+          impact: "returned_zero",
+          timestamp: new Date().toISOString(),
+        })
+      );
       // 限流相关的非关键功能，返回0而不是抛异常
       return 0;
     }
@@ -1064,13 +1172,18 @@ export class CacheService {
     try {
       return await this.redis.zrange(key, start, stop);
     } catch (error) {
-      this.logger.error("获取有序集合范围失败", {
-        operation: "zrange",
-        key,
-        start,
-        stop,
-        error: error.message,
-      });
+      this.logger.error("获取有序集合范围失败", 
+        sanitizeLogData({
+          context: "CacheService",
+          operation: "zrange",
+          key,
+          start,
+          stop,
+          error: error.message,
+          impact: "returned_empty_array",
+          timestamp: new Date().toISOString(),
+        })
+      );
       // 限流相关的非关键功能，返回空数组而不是抛异常
       return [];
     }

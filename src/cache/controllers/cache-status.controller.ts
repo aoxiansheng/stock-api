@@ -1,25 +1,41 @@
-import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Get, HttpCode, HttpStatus, Query } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Public } from "@auth/decorators/public.decorator";
 
 import { CacheService } from "../services/cache.service";
+import { PaginationService } from "@common/modules/pagination/services/pagination.service";
+import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
+import { 
+  ApiSuccessResponse,
+  ApiStandardResponses 
+} from "@common/core/decorators/swagger-responses.decorator";
 import { 
   ApiCacheHealthResponse,
   ApiCacheStatsResponse,
   ApiCacheConfigResponse 
 } from "../decorators/cache-swagger-responses.decorator";
 import { CACHE_STATUS } from "../constants/status/cache-status.constants";
+import { 
+  CacheKeyPatternAnalysisQueryDto,
+  CacheKeyPatternAnalysisDto,
+  CachePerformanceMonitoringQueryDto,
+  CachePerformanceMonitoringDto 
+} from "../dto/cache-internal.dto";
 
 /**
  * Cache状态控制器
- * 🎯 Phase 3: 响应格式统一验证 - 提供Cache模块状态查询端点
+ * 🎯 Phase 5: DTO标准化验证 - 提供Cache模块状态查询端点
  * ✅ 用于验证ResponseInterceptor和Swagger装饰器的统一性
  * 🔄 遵循项目标准的响应格式规范
+ * 🆕 新增分页查询端点验证PaginatedDataDto标准化
  */
 @ApiTags("缓存状态")
 @Controller("cache/status")
 export class CacheStatusController {
-  constructor(private readonly cacheService: CacheService) {}
+  constructor(
+    private readonly cacheService: CacheService,
+    private readonly paginationService: PaginationService,
+  ) {}
 
   /**
    * 获取缓存健康状态
@@ -33,6 +49,7 @@ export class CacheStatusController {
     description: "检查Redis连接状态和基本健康指标"
   })
   @ApiCacheHealthResponse()
+  @ApiStandardResponses()
   async getHealth() {
     const startTime = Date.now();
     
@@ -76,6 +93,7 @@ export class CacheStatusController {
     description: "获取缓存性能指标和使用统计"
   })
   @ApiCacheStatsResponse()
+  @ApiStandardResponses()
   async getStats() {
     // 简化的统计信息实现
     return {
@@ -114,6 +132,7 @@ export class CacheStatusController {
     description: "获取当前缓存配置参数"
   })
   @ApiCacheConfigResponse()
+  @ApiStandardResponses()
   async getConfig() {
     // 返回简化的配置信息
     return {
@@ -123,5 +142,173 @@ export class CacheStatusController {
       serializer: "json",
       compressionThreshold: 1024,
     };
+  }
+
+  /**
+   * 分页查询缓存键模式分析数据
+   * 🎯 Phase 5: DTO标准化 - 验证分页查询和PaginatedDataDto响应
+   */
+  @Get("key-patterns")
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "分页查询缓存键模式分析数据",
+    description: "获取缓存键使用模式的统计分析信息，支持分页和筛选",
+  })
+  @ApiSuccessResponse({
+    description: "分页查询缓存键模式分析数据成功",
+    type: PaginatedDataDto<CacheKeyPatternAnalysisDto>,
+  })
+  @ApiStandardResponses()
+  async getKeyPatterns(
+    @Query() query: CacheKeyPatternAnalysisQueryDto,
+  ): Promise<PaginatedDataDto<CacheKeyPatternAnalysisDto>> {
+    // 模拟查询参数处理
+    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+    
+    // 模拟生成键模式分析数据
+    const mockData: CacheKeyPatternAnalysisDto[] = [
+      {
+        pattern: "user:*",
+        hits: 1250,
+        misses: 150,
+        hitRate: 0.89,
+        totalRequests: 1400,
+        lastAccessTime: Date.now() - 3600000,
+      },
+      {
+        pattern: "config:*",
+        hits: 850,
+        misses: 50,
+        hitRate: 0.94,
+        totalRequests: 900,
+        lastAccessTime: Date.now() - 1800000,
+      },
+      {
+        pattern: "session:*",
+        hits: 3200,
+        misses: 800,
+        hitRate: 0.80,
+        totalRequests: 4000,
+        lastAccessTime: Date.now() - 300000,
+      },
+    ];
+
+    // 应用过滤条件
+    let filteredData = mockData;
+    if (query.pattern) {
+      filteredData = mockData.filter(item => 
+        item.pattern.includes(query.pattern)
+      );
+    }
+    if (query.minHits) {
+      filteredData = filteredData.filter(item => 
+        item.hits >= query.minHits
+      );
+    }
+
+    // 分页处理
+    const total = filteredData.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedItems = filteredData.slice(startIndex, endIndex);
+
+    // 返回标准分页响应
+    return this.paginationService.createPaginatedResponse(
+      paginatedItems,
+      page,
+      limit,
+      total,
+    );
+  }
+
+  /**
+   * 分页查询缓存性能监控数据
+   * 🎯 Phase 5: DTO标准化 - 验证复杂查询条件的分页响应
+   */
+  @Get("performance")
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "分页查询缓存性能监控数据",
+    description: "获取缓存操作的性能监控信息，支持时间范围筛选和分页",
+  })
+  @ApiSuccessResponse({
+    description: "分页查询缓存性能监控数据成功",
+    type: PaginatedDataDto<CachePerformanceMonitoringDto>,
+  })
+  @ApiStandardResponses()
+  async getPerformanceData(
+    @Query() query: CachePerformanceMonitoringQueryDto,
+  ): Promise<PaginatedDataDto<CachePerformanceMonitoringDto>> {
+    // 模拟查询参数处理
+    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
+    
+    // 模拟生成性能监控数据
+    const mockData: CachePerformanceMonitoringDto[] = [
+      {
+        operation: "get",
+        processingTimeMs: 2.5,
+        timestamp: Date.now() - 7200000,
+        isSlowOperation: false,
+        slowOperationThreshold: 100,
+        additionalMetrics: { keySize: 15, valueSize: 2048 },
+      },
+      {
+        operation: "set",
+        processingTimeMs: 5.8,
+        timestamp: Date.now() - 3600000,
+        isSlowOperation: false,
+        slowOperationThreshold: 100,
+        additionalMetrics: { keySize: 20, valueSize: 4096 },
+      },
+      {
+        operation: "del",
+        processingTimeMs: 125.0,
+        timestamp: Date.now() - 1800000,
+        isSlowOperation: true,
+        slowOperationThreshold: 100,
+        additionalMetrics: { keySize: 18, deletedKeys: 50 },
+      },
+    ];
+
+    // 应用过滤条件
+    let filteredData = mockData;
+    if (query.operation) {
+      filteredData = mockData.filter(item => 
+        item.operation === query.operation
+      );
+    }
+    if (query.slowOperationsOnly) {
+      filteredData = filteredData.filter(item => 
+        item.isSlowOperation
+      );
+    }
+    if (query.startTime) {
+      const startTimestamp = new Date(query.startTime).getTime();
+      filteredData = filteredData.filter(item => 
+        item.timestamp >= startTimestamp
+      );
+    }
+    if (query.endTime) {
+      const endTimestamp = new Date(query.endTime).getTime();
+      filteredData = filteredData.filter(item => 
+        item.timestamp <= endTimestamp
+      );
+    }
+
+    // 分页处理
+    const total = filteredData.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedItems = filteredData.slice(startIndex, endIndex);
+
+    // 返回标准分页响应
+    return this.paginationService.createPaginatedResponse(
+      paginatedItems,
+      page,
+      limit,
+      total,
+    );
   }
 }
