@@ -30,37 +30,37 @@
  */
 export const CACHE_TYPE_SEMANTICS = Object.freeze({
   // 数据缓存类型
-  DATA: {
+  DATA: Object.freeze({
     STOCK_QUOTE: "stock_quote", // 股票报价数据
     STOCK_INFO: "stock_info", // 股票基础信息
     MARKET_DATA: "market_data", // 市场数据
     INDEX_DATA: "index_data", // 指数数据
     REAL_TIME: "real_time", // 实时数据流
     HISTORICAL: "historical", // 历史数据
-  },
+  }),
 
   // 系统缓存类型
-  SYSTEM: {
+  SYSTEM: Object.freeze({
     AUTH: "auth", // 认证缓存
     PERMISSION: "permission", // 权限缓存
     SESSION: "session", // 会话缓存
     CONFIG: "config", // 配置缓存
     MAPPING: "mapping", // 映射缓存
     RULE: "rule", // 规则缓存
-  },
+  }),
 
   // 功能缓存类型
-  FUNCTIONAL: {
+  FUNCTIONAL: Object.freeze({
     MONITORING: "monitoring", // 监控缓存
     METRICS: "metrics", // 指标缓存
     ALERT: "alert", // 告警缓存
     NOTIFICATION: "notification", // 通知缓存
     ANALYTICS: "analytics", // 分析缓存
     REPORT: "report", // 报告缓存
-  },
+  }),
 
   // 操作缓存类型
-  OPERATIONAL: {
+  OPERATIONAL: Object.freeze({
     LOCK: "lock", // 分布式锁
     QUEUE: "queue", // 队列缓存
     BATCH: "batch", // 批处理缓存

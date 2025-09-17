@@ -16,8 +16,7 @@ import {
   CacheUnifiedConfigValidation,
 } from "../../../../../src/cache/config/cache-unified.config";
 import cacheUnifiedConfig from "../../../../../src/cache/config/cache-unified.config";
-import cacheConfig from "../../../../../src/cache/config/cache.config";
-// 已删除的配置文件，现在使用统一配置
+// 使用统一配置替代已删除的cache.config
 
 describe("Cache Configuration Consistency", () => {
   let configService: ConfigService;

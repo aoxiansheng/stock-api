@@ -285,11 +285,11 @@ describe("Cache Configuration Performance", () => {
         async (_, workerIndex) => {
           for (let i = 0; i < iterationsPerWorker; i++) {
             const key = generateCacheKey(
-              "worker",
-              `${workerIndex}`,
+              "receiver",
+              `worker_${workerIndex}`,
               `item_${i}`,
             );
-            expect(key).toBe(`worker:${workerIndex}:item_${i}`);
+            expect(key).toBe(`receiver:worker_${workerIndex}:item_${i}`);
           }
         },
       );

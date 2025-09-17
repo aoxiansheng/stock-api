@@ -5,13 +5,13 @@ import {
   IsNumber,
   IsOptional,
   ValidateNested,
+  Min,
+  Max,
 } from "class-validator";
 import { CacheConfigDto } from "../config/cache-config.dto";
 import { BatchSizeInfo, RequiredTTL } from "../shared/cache-shared.interfaces";
-import {
-  IsValidTTL,
-  IsValidBatchSize,
-} from "../../decorators/validation.decorators";
+import { IsValidCacheTTL } from "../../decorators/validation.decorators";
+import { IsNumberInRange } from "@common/validators";
 
 /**
  * 批量缓存操作DTO
@@ -32,7 +32,7 @@ export class BatchCacheOperationDto<T = any>
     maximum: 604800,
     example: 3600,
   })
-  @IsValidTTL()
+  @IsValidCacheTTL()
   ttl: number;
 
   @ApiProperty({
@@ -41,7 +41,7 @@ export class BatchCacheOperationDto<T = any>
     maximum: 1000,
     example: 50,
   })
-  @IsValidBatchSize()
+  @IsNumberInRange({ min: 1, max: 1000, message: "批量操作大小必须在 1 到 1000 之间" })
   batchSize: number;
 
   @ApiProperty({ description: "操作配置", required: false })

@@ -10,10 +10,8 @@ import {
   OptionalTTL,
 } from "../shared/cache-shared.interfaces";
 // 🎯 Phase 2.4: 使用重构后的验证器
-import {
-  IsValidCacheTTL,
-  MaxCacheValueSize,
-} from "../../decorators/validation.decorators";
+import { IsValidCacheTTL } from "../../decorators/validation.decorators";
+import { MaxValueSize } from "@common/validators";
 
 /**
  * 通用缓存配置DTO
@@ -47,7 +45,7 @@ export class CacheConfigDto
     minimum: 0,
   })
   @IsOptional()
-  @MaxCacheValueSize(10485760) // 10MB限制
+  @MaxValueSize(10485760) // 10MB限制
   maxSize?: number;
 
   @ApiProperty({

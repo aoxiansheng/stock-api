@@ -7,7 +7,8 @@ import { CacheConfigCompatibilityModule } from "../config/compatibility-registry
 import cacheUnifiedConfig from "../config/cache-unified.config";
 // 兼容性配置（保留向后兼容）
 import cacheConfig from "../config/cache-legacy.config";
-// 🎯 Phase 1.2: 移除CacheLoggingUtil依赖，使用通用日志组件
+// 🎯 Phase 3: 响应格式统一 - ResponseInterceptor在全局级别配置
+import { CacheStatusController } from "../controllers/cache-status.controller";
 
 @Module({
   imports: [
@@ -20,9 +21,13 @@ import cacheConfig from "../config/cache-legacy.config";
     // 🎯 兼容性注册模块
     CacheConfigCompatibilityModule,
   ],
+  controllers: [
+    // 🎯 Phase 3: 响应格式统一验证控制器
+    CacheStatusController,
+  ],
   providers: [
     CacheService,
-    // 🎯 Phase 1.2: 移除CacheLoggingUtil，使用通用日志组件
+    // 🎯 Phase 3: ResponseInterceptor在全局级别配置，无需在此模块重复注册
 
     // 🎯 统一配置提供者（主要）
     {

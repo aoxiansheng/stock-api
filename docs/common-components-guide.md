@@ -307,7 +307,7 @@ export class UsersModule {}
 }
 ```
 
-### 2. 权限验证模块 (PermissionModule)
+### 2. 权限验证模块 (PermissionModule)-只有 auth 组件可以集成，其他组件跳过集成
 
 **位置**: `src/common/modules/permission/`
 

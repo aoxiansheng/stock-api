@@ -13,6 +13,7 @@ import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
 
 import { createLogger } from "@common/logging/index";
 import { DatabaseValidationUtils } from "@common/utils/database.utils";
+import { BUSINESS_ERROR_MESSAGES } from "@common/constants/semantic/error-messages.constants";
 import { IAlertRule } from "../interfaces";
 import { VALID_OPERATORS, type Operator, AlertRuleUtil } from "../constants";
 
@@ -21,6 +22,35 @@ export class AlertRuleValidator {
   private readonly logger = createLogger("AlertRuleValidator");
 
   constructor(private readonly configService: ConfigService) {}
+
+  /**
+   * 通用ObjectId验证辅助方法
+   * 减少重复的try-catch代码
+   */
+  private validateObjectId(id: string, errors: string[], fieldName: string): boolean {
+    try {
+      DatabaseValidationUtils.validateObjectId(id, fieldName);
+      return true;
+    } catch (error) {
+      errors.push(error.message);
+      return false;
+    }
+  }
+
+  /**
+   * 获取有效的严重程度列表
+   * 集中管理严重程度常量，避免重复定义
+   */
+  private getValidSeverities(): string[] {
+    return ["info", "warning", "critical"];
+  }
+
+  /**
+   * 验证严重程度是否有效
+   */
+  private isValidSeverity(severity: string): boolean {
+    return this.getValidSeverities().includes(severity);
+  }
 
   /**
    * 验证规则配置
@@ -36,13 +66,9 @@ export class AlertRuleValidator {
       ruleName: rule.name,
     });
 
-    // ✅ ID格式验证 - 使用通用组件库的DatabaseValidationUtils
-    if (rule.id) {
-      try {
-        DatabaseValidationUtils.validateObjectId(rule.id, "告警规则ID");
-      } catch (error) {
-        errors.push(error.message);
-      }
+    // ID格式验证 - 使用通用组件库的DatabaseValidationUtils
+    if (rule.id && !this.validateObjectId(rule.id, errors, "告警规则ID")) {
+      // 验证失败，错误已添加到errors数组
     }
 
     // ✅ 基础验证 - 利用 AlertRuleUtil 中的通用逻辑
@@ -103,7 +129,7 @@ export class AlertRuleValidator {
 
     // 验证通知渠道
     if (!rule.channels || rule.channels.length === 0) {
-      errors.push("无效的通知渠道配置: 至少需要配置一个通知渠道");
+      errors.push(`${BUSINESS_ERROR_MESSAGES.REQUIRED_FIELD_MISSING}: 通知渠道`);
     } else {
       // 验证每个渠道的配置
       rule.channels.forEach((channel, index) => {
@@ -127,11 +153,10 @@ export class AlertRuleValidator {
       warnings.push("使用0作为阈值时请确认业务逻辑正确");
     }
 
-    // 验证严重程度
-    const validSeverities = ["info", "warning", "critical"];
-    if (!validSeverities.includes(rule.severity)) {
+    // 验证严重程度 - 使用常量避免重复定义
+    if (!this.isValidSeverity(rule.severity)) {
       errors.push(
-        `无效的严重程度: ${rule.severity}，必须是: ${validSeverities.join(", ")}`,
+        `无效的严重程度: ${rule.severity}，必须是: ${this.getValidSeverities().join(", ")}`,
       );
     }
 
@@ -232,7 +257,7 @@ export class AlertRuleValidator {
 
     return {
       supportedOperators: this.getSupportedOperators(),
-      validSeverities: ["info", "warning", "critical"],
+      validSeverities: this.getValidSeverities(), // 使用统一常量
       defaultDuration:
         defaultConfig.duration ||
         this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,

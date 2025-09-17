@@ -6,7 +6,7 @@ import {
   Optional,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { Request } from "express";
+import type { Request } from "express";
 
 import { createLogger } from "@common/logging/index";
 

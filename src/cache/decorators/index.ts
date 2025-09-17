@@ -5,3 +5,5 @@
  */
 
 export * from "./validation.decorators";
+// 🎯 Phase 3: 响应格式统一 - Cache专用Swagger响应装饰器
+export * from "./cache-swagger-responses.decorator";

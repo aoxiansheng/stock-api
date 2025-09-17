@@ -7,10 +7,10 @@ import {
   IsOptional,
   IsObject,
 } from "class-validator";
-import {
-  BasicHealthStatus,
-  BASIC_HEALTH_STATUSES,
-} from "../../constants/status/unified-health-status.constants";
+
+// 简化的健康状态定义，避免循环依赖
+const HEALTH_STATUSES = ["healthy", "warning", "unhealthy"] as const;
+type HealthStatus = typeof HEALTH_STATUSES[number];
 
 /**
  * 缓存健康检查结果DTO
@@ -18,10 +18,10 @@ import {
 export class CacheHealthCheckResultDto {
   @ApiProperty({
     description: "健康状态",
-    enum: BASIC_HEALTH_STATUSES,
+    enum: HEALTH_STATUSES,
   })
-  @IsEnum(BASIC_HEALTH_STATUSES)
-  status: BasicHealthStatus;
+  @IsEnum(HEALTH_STATUSES)
+  status: HealthStatus;
 
   @ApiProperty({ description: "延迟时间（毫秒）" })
   @IsNumber()

@@ -15,12 +15,7 @@ import {
   ValidationArguments,
 } from "class-validator";
 import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
-// 🎯 Phase 2.3: 引入通用验证器
-import {
-  IsValidStringLength,
-  IsNumberInRange,
-  MaxValueSize,
-} from "@common/validators";
+// 通用验证器现在由使用方直接导入，不在此文件中使用
 
 /**
  * 验证Cache键格式和Redis兼容性
@@ -61,24 +56,8 @@ export function IsValidCacheKey(validationOptions?: ValidationOptions) {
   };
 }
 
-/**
- * 🎯 Phase 2.3: 使用通用验证器替代MaxCacheKeyLength
- * @deprecated 使用 @IsValidStringLength({ max: number }) 替代
- */
-export const MaxCacheKeyLength = (
-  maxLength: number,
-  validationOptions?: ValidationOptions,
-) =>
-  IsValidStringLength(
-    { max: maxLength, message: `缓存键长度不能超过 ${maxLength} 个字符` },
-    validationOptions,
-  );
-
-/**
- * 🎯 Phase 2.3: 使用通用验证器替代MaxCacheValueSize
- * @deprecated 使用 @MaxValueSize(maxSizeBytes) 替代
- */
-export const MaxCacheValueSize = MaxValueSize;
+// 废弃的装饰器已删除
+// 使用通用验证器：@IsValidStringLength 和 @MaxValueSize
 
 /**
  * 验证Cache TTL值的业务规则
@@ -118,25 +97,9 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
   };
 }
 
-/**
- * 🎯 Phase 2.3: 使用通用验证器替代IsValidBatchSize
- * @deprecated 使用 @IsNumberInRange({ min: 1, max: BATCH_MAX_SIZE }) 替代
- */
-export const IsValidBatchSize = (validationOptions?: ValidationOptions) =>
-  IsNumberInRange(
-    {
-      min: 1,
-      max: BATCH_MAX_SIZE,
-      message: `批量操作大小必须在 1 到 ${BATCH_MAX_SIZE} 之间`,
-    },
-    validationOptions,
-  );
-
-/**
- * 🎯 Phase 2.3: 保留原有IsValidTTL作为向后兼容
- * @deprecated 使用 @IsValidCacheTTL 替代（更明确的命名）
- */
-export const IsValidTTL = IsValidCacheTTL;
+// 废弃的装饰器已删除
+// 使用通用验证器：@IsNumberInRange
+// 使用明确命名：@IsValidCacheTTL
 
 // Cache专用验证常量
 // 复用Common组件限制，但为Cache模块特化

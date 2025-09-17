@@ -15,36 +15,35 @@ export {
   NOTIFICATION_ERROR_TEMPLATES,
 } from "./notification-core.constants";
 
+// ✅ 直接导出通用常量，避免重复实现
+export { NOTIFICATION_VALIDATION_LIMITS } from '@common/constants/validation.constants';
+
 /**
- * 通知验证常量
- * 🎯 提供通知验证相关的常量
+ * 通知验证常量（向后兼容性保持）
+ * 🎯 提供通知验证相关的常量，使用通用常量避免重复
  */
+import { NOTIFICATION_VALIDATION_LIMITS } from '@common/constants/validation.constants';
+
 export const NOTIFICATION_VALIDATION = Object.freeze({
-  // 通用验证限制
+  // ✅ 使用通用验证限制常量
   LIMITS: {
-    // 基础字符串长度限制
-    TITLE_MAX_LENGTH: 200,
-    CONTENT_MAX_LENGTH: 10000,
-    URL_MAX_LENGTH: 2048,
-    EMAIL_MAX_LENGTH: 254,
-    PHONE_MAX_LENGTH: 20,
-    // 数组大小限制
-    MAX_RECIPIENTS: 100,
-    MAX_TAGS: 20,
-    // 批量操作限制
-    MAX_BATCH_SIZE: 50,
+    // 基础字符串长度限制（从通用常量获取）
+    TITLE_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.TITLE_MAX_LENGTH,
+    CONTENT_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.CONTENT_MAX_LENGTH_EXTENDED, // 使用扩展版本保持兼容
+    URL_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.WEBHOOK_URL_MAX_LENGTH,
+    EMAIL_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.EMAIL_MAX_LENGTH,
+    PHONE_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.PHONE_MAX_LENGTH,
+    // 数组大小限制（从通用常量获取）
+    MAX_RECIPIENTS: NOTIFICATION_VALIDATION_LIMITS.MAX_RECIPIENTS,
+    MAX_TAGS: NOTIFICATION_VALIDATION_LIMITS.MAX_TAGS,
+    // 批量操作限制（从通用常量获取）
+    MAX_BATCH_SIZE: NOTIFICATION_VALIDATION_LIMITS.MAX_BATCH_SIZE,
   },
 
-  // 本模块特有的验证模式
-  PATTERNS: {
-    EMAIL_PATTERN: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i,
-    URL_PATTERN:
-      /^https?:\/\/[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:\/~\+#]*[\w\-\@?^=%&\/~\+#])?$/i,
-    PHONE_PATTERN: /^\+?[1-9]\d{1,14}$/,
-    VARIABLE_PATTERN: /\{(\w+)\}/g,
-  },
+  // ❌ 验证模式已移除 - 直接在验证器装饰器中使用
+  // @IsValidEmail, @IsValidUrl, @IsValidPhoneNumber 装饰器已提供相同功能
 
-  // 模板变量定义
+  // 模板变量定义（保留，这是通知模块特有的业务逻辑）
   VARIABLES: {
     ALERT_ID: "alertId",
     RULE_NAME: "ruleName",

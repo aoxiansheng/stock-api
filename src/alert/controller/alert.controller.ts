@@ -414,11 +414,11 @@ export class AlertController {
   ): Promise<{ message: string }> {
     // 频率限制现在由 @Throttle 装饰器和 ThrottlerGuard 处理
 
-    // 🆕 Enhanced security: Get secure client identifier for audit logging
+    // Enhanced security: Get secure client identifier for audit logging
     const clientIdentifier = req ? HttpHeadersUtil.getSecureClientIdentifier(req) : 'unknown';
     this.logger.log(`告警评估触发请求来自客户端: ${clientIdentifier}`);
 
-    // 🆕 Use new orchestrator service for evaluation
+    // Use orchestrator service for evaluation
     if (triggerDto?.ruleId) {
       // Validate rule exists - exception handling moved to service layer
       await this.alertOrchestrator.getRuleById(triggerDto.ruleId);
@@ -434,16 +434,29 @@ export class AlertController {
         }))
       : [];
 
-    // 🆕 Use new orchestrator service for evaluation
+    // Use orchestrator service for evaluation
     await this.alertOrchestrator.evaluateAllRules(metricsData);
 
-    return {
-      message: triggerDto?.ruleId
-        ? `告警规则 ${triggerDto.ruleId} 评估已触发`
-        : triggerDto?.metrics?.length
-          ? `告警评估已触发，处理了 ${triggerDto.metrics.length} 个指标`
-          : "告警评估已触发",
-    };
+    // 🔧 Simplified message generation - let ResponseInterceptor handle formatting
+    const message = this.generateEvaluationMessage(triggerDto);
+    
+    return { message };
+  }
+
+  /**
+   * 生成评估触发消息
+   * 简化消息生成逻辑，提高可读性和可维护性
+   */
+  private generateEvaluationMessage(triggerDto?: TriggerAlertDto): string {
+    if (triggerDto?.ruleId) {
+      return `告警规则 ${triggerDto.ruleId} 评估已触发`;
+    }
+    
+    if (triggerDto?.metrics?.length) {
+      return `告警评估已触发，处理了 ${triggerDto.metrics.length} 个指标`;
+    }
+    
+    return "告警评估已触发";
   }
 
   // ==================== 批量操作 ====================
@@ -466,26 +479,16 @@ export class AlertController {
   async batchAcknowledgeAlerts(
     @Body() body: { alertIds: string[]; acknowledgedBy: string },
   ): Promise<{ succeeded: string[]; failed: string[] }> {
-    const succeeded: string[] = [];
-    const failed: string[] = [];
-
-    // 🆕 Use new lifecycle service for batch acknowledgment
-    await Promise.all(
-      body.alertIds.map(async (alertId) => {
-        try {
-          await this.alertOrchestrator.acknowledgeAlert(
-            alertId,
-            body.acknowledgedBy,
-          );
-          succeeded.push(alertId);
-        } catch (error) {
-          this.logger.error(`批量确认告警失败: ${alertId}`, error.stack);
-          failed.push(alertId);
-        }
-      }),
+    // Use orchestrator service for batch acknowledgment
+    const results = await this.processBatchOperation(
+      body.alertIds, 
+      'acknowledge',
+      async (alertId) => {
+        await this.alertOrchestrator.acknowledgeAlert(alertId, body.acknowledgedBy);
+      }
     );
 
-    return { succeeded, failed };
+    return results;
   }
 
   @Post("batch/resolve")
@@ -506,35 +509,75 @@ export class AlertController {
   async batchResolveAlerts(
     @Body() body: { alertIds: string[]; resolvedBy: string },
   ): Promise<{ succeeded: string[]; failed: string[] }> {
-    const succeeded: string[] = [];
-    const failed: string[] = [];
-
-    // 🆕 Use orchestrator service for batch resolution
+    // Pre-fetch alert data for batch resolution
     const allAlerts = await this.alertOrchestrator.getActiveAlerts();
     const alertMap = new Map<string, IAlert>(
       allAlerts.map((a: IAlert) => [a.id, a]),
     );
 
-    await Promise.all(
-      body.alertIds.map(async (alertId) => {
+    // Use orchestrator service for batch resolution
+    const results = await this.processBatchOperation(
+      body.alertIds, 
+      'resolve',
+      async (alertId) => {
         const alert = alertMap.get(alertId);
         if (!alert) {
-          failed.push(alertId);
-          return;
+          throw new NotFoundException(`告警不存在: ${alertId}`);
         }
 
+        await this.alertOrchestrator.resolveAlert(
+          alertId,
+          body.resolvedBy,
+          alert.ruleId,
+        );
+      }
+    );
+
+    return results;
+  }
+
+  /**
+   * 统一批量操作处理器
+   * 标准化错误处理和日志记录，提高代码复用性
+   */
+  private async processBatchOperation(
+    alertIds: string[],
+    operationType: 'acknowledge' | 'resolve',
+    operation: (alertId: string) => Promise<void>
+  ): Promise<{ succeeded: string[]; failed: string[] }> {
+    const succeeded: string[] = [];
+    const failed: string[] = [];
+
+    await Promise.all(
+      alertIds.map(async (alertId) => {
         try {
-          await this.alertOrchestrator.resolveAlert(
-            alertId,
-            body.resolvedBy,
-            alert.ruleId,
-          );
+          await operation(alertId);
           succeeded.push(alertId);
         } catch (error) {
-          this.logger.error(`批量解决告警失败: ${alertId}`, error.stack);
+          // 标准化错误日志格式
+          this.logger.error(
+            `批量${operationType === 'acknowledge' ? '确认' : '解决'}告警失败`,
+            {
+              alertId,
+              operationType,
+              error: error.message,
+              stack: error.stack,
+            }
+          );
           failed.push(alertId);
         }
       }),
+    );
+
+    // 记录批量操作结果
+    this.logger.log(
+      `批量${operationType === 'acknowledge' ? '确认' : '解决'}告警完成`,
+      {
+        total: alertIds.length,
+        succeeded: succeeded.length,
+        failed: failed.length,
+        operationType,
+      }
     );
 
     return { succeeded, failed };

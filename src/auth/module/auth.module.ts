@@ -8,6 +8,8 @@ import { CacheModule } from "../../cache/module/cache.module";
 import { DatabaseModule } from "../../database/database.module"; // 🆕 统一数据库模块
 import { GlobalExceptionFilter } from "@common/core/filters/global-exception.filter";
 import { ResponseInterceptor } from "@common/core/interceptors/response.interceptor";
+import { RequestTrackingInterceptor } from "@common/core/interceptors/request-tracking.interceptor";
+import { PermissionModule } from "@common/modules/permission/permission.module";
 import authConfig from "../config/auth-configuration";
 // 🆕 新的分层配置系统
 import { authUnifiedConfig } from "../config/auth-unified.config";
@@ -50,6 +52,8 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     ConfigModule.forFeature(authUnifiedConfig),
 
     CacheModule,
+    // 🆕 权限模块 - 提供权限验证和装饰器验证服务
+    PermissionModule,
     // 🆕 事件模块 - 支持GlobalExceptionFilter和ResponseInterceptor
     EventEmitterModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
@@ -112,8 +116,9 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     GlobalExceptionFilter,
     RateLimitExceptionFilter,
 
-    // 拦截器 - 🆕 添加通用ResponseInterceptor
+    // 拦截器 - 🆕 添加通用ResponseInterceptor和RequestTrackingInterceptor
     ResponseInterceptor,
+    RequestTrackingInterceptor,
 
     // 中间件
     SecurityMiddleware,
@@ -153,6 +158,7 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
 
     // 拦截器 - 需要被AppModule使用
     ResponseInterceptor,
+    RequestTrackingInterceptor,
 
     // 中间件 - 需要被main.ts使用
     SecurityMiddleware,

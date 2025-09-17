@@ -1,11 +1,9 @@
 import { registerAs } from "@nestjs/config";
 import {
   AuthCacheConfigValidation,
-  authCacheConfig,
 } from "./auth-cache.config";
 import {
   AuthLimitsConfigValidation,
-  authLimitsConfig,
 } from "./auth-limits.config";
 
 /**
@@ -38,9 +36,42 @@ export interface AuthUnifiedConfigInterface {
  * 整合各个分层配置，确保配置的一致性和完整性
  */
 const createAuthUnifiedConfig = (): AuthUnifiedConfigInterface => {
-  // 创建各层配置实例
-  const cacheConfig = authCacheConfig();
-  const limitsConfig = authLimitsConfig();
+  // 使用配置工厂函数，确保配置验证正确执行
+  const { AuthCacheConfigValidation } = require("./auth-cache.config");
+  const { AuthLimitsConfigValidation } = require("./auth-limits.config");
+  const { validateSync } = require("class-validator");
+
+  // 创建并验证缓存配置
+  const cacheConfig = new AuthCacheConfigValidation();
+  const cacheErrors = validateSync(cacheConfig, {
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  });
+
+  if (cacheErrors.length > 0) {
+    const errorMessages = cacheErrors
+      .map((error) => Object.values(error.constraints || {}).join(", "))
+      .join("; ");
+    throw new Error(
+      `Auth Cache configuration validation failed: ${errorMessages}`,
+    );
+  }
+
+  // 创建并验证限制配置
+  const limitsConfig = new AuthLimitsConfigValidation();
+  const limitsErrors = validateSync(limitsConfig, {
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  });
+
+  if (limitsErrors.length > 0) {
+    const errorMessages = limitsErrors
+      .map((error) => Object.values(error.constraints || {}).join(", "))
+      .join("; ");
+    throw new Error(
+      `Auth Limits configuration validation failed: ${errorMessages}`,
+    );
+  }
 
   return {
     cache: cacheConfig,

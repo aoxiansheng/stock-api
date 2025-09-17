@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
 } from "@nestjs/common";
-import { Response } from "express";
+import type { Response } from "express";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 import { EventEmitter2 } from "@nestjs/event-emitter";

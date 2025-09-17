@@ -27,7 +27,8 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
     const startTime = Date.now();
-    const requestId = this.generateRequestId();
+    // Use request ID from RequestTrackingInterceptor (set by common interceptor)
+    const requestId = (request as any).requestId || this.getFallbackRequestId();
 
     // 发送请求开始事件（异步，不阻塞）
     setImmediate(() => {
@@ -123,10 +124,10 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
   }
 
   /**
-   * 生成请求ID
+   * 获取备用请求ID（当RequestTrackingInterceptor未设置时使用）
    */
-  private generateRequestId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  private getFallbackRequestId(): string {
+    return `fallback_req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
   /**

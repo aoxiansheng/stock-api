@@ -5,8 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
-import { Request, Response } from "express";
-
+import type { Request, Response } from "express";
 import { createLogger } from "@common/logging/index";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import { CONSTANTS } from "@common/constants";

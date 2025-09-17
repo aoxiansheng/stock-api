@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
-import { Request } from "express";
+import type { Request } from "express";
 import { Strategy } from "passport-custom";
 
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";

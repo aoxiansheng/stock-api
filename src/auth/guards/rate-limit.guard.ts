@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { Response } from "express";
+import type { Response } from "express";
 import { AuthenticatedRequest } from "../interfaces/authenticated-request.interface";
 
 import { createLogger } from "@common/logging/index";

@@ -1,43 +1,14 @@
 /**
  * 🎯 监控展示层响应DTO
  *
- * 标准化监控API的响应格式
+ * 监控领域特定的响应DTO定义
+ * 注意：通用响应格式由 ResponseInterceptor 自动处理，不需要手动包装
  */
 
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { IsDate } from "class-validator";
-import { TimestampFields } from "../../../common/interfaces/time-fields.interface";
 import { TrendDataInterface } from "../../contracts/interfaces/trend-data.interface";
-
-/**
- * 标准监控响应DTO
- */
-export class PresenterResponseDto<T = any> {
-  @ApiProperty({ description: "响应状态码" })
-  statusCode: number;
-
-  @ApiProperty({ description: "响应消息" })
-  message: string;
-
-  @ApiProperty({ description: "响应数据" })
-  data: T;
-
-  @ApiProperty({ description: "时间戳" })
-  @IsDate()
-  @Type(() => Date)
-  timestamp: Date;
-
-  @ApiProperty({ description: "请求ID", required: false })
-  requestId?: string;
-
-  constructor(data: T, message: string = "获取成功") {
-    this.statusCode = 200;
-    this.message = message;
-    this.data = data;
-    this.timestamp = new Date();
-  }
-}
 
 /**
  * 健康状态响应DTO

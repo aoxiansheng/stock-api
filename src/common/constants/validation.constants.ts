@@ -106,11 +106,19 @@ export const NOTIFICATION_VALIDATION_LIMITS = Object.freeze({
   // 通知内容限制
   TITLE_MAX_LENGTH: BASE_STRING_LENGTHS.NAME_MAX * 2, // 200
   CONTENT_MAX_LENGTH: BASE_STRING_LENGTHS.DESCRIPTION_MAX * 4, // 2000
+  CONTENT_MAX_LENGTH_EXTENDED: 10000, // 10000 - 针对通知模块的扩展内容长度（保持兼容性）
 
   // 通知渠道限制
   CHANNEL_NAME_MAX_LENGTH: BASE_STRING_LENGTHS.NAME_MAX, // 100
   WEBHOOK_URL_MAX_LENGTH: BASE_STRING_LENGTHS.URL_MAX, // 2083
+  EMAIL_MAX_LENGTH: BASE_STRING_LENGTHS.EMAIL_MAX, // 254
   EMAIL_SUBJECT_MAX_LENGTH: BASE_STRING_LENGTHS.NAME_MAX, // 100
+
+  // 🆕 补充缺失的通知特有限制（从notification模块迁移）
+  MAX_RECIPIENTS: BASE_QUANTITIES.LARGE_BATCH, // 100 - 最大接收者数量
+  MAX_TAGS: BASE_QUANTITIES.SMALL_BATCH * 2, // 20 - 最大标签数量
+  MAX_BATCH_SIZE: BASE_QUANTITIES.MEDIUM_BATCH, // 50 - 最大批量操作大小
+  PHONE_MAX_LENGTH: 20, // 20 - 手机号最大长度
 
   // ❌ 批量、超时、重试配置已迁移到通知组件配置
 
@@ -179,5 +187,111 @@ export class ValidationLimitsUtil {
       };
     }
     return { valid: true };
+  }
+
+  /**
+   * 验证邮箱格式（复用验证器逻辑）
+   * 🎯 提供编程式邮箱验证，复用装饰器中的验证逻辑
+   */
+  static validateEmailFormat(
+    email: string,
+    fieldName: string = "邮箱"
+  ): { valid: boolean; error?: string } {
+    if (!email || typeof email !== "string") {
+      return {
+        valid: false,
+        error: `${fieldName} 必须是有效的字符串`,
+      };
+    }
+
+    // 邮箱格式正则表达式（与 @IsValidEmail 装饰器保持一致）
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    // 基本格式验证
+    if (!emailPattern.test(email)) {
+      return {
+        valid: false,
+        error: `${fieldName} 格式不正确: ${email}`,
+      };
+    }
+
+    // 长度限制
+    if (email.length > BASE_STRING_LENGTHS.EMAIL_MAX) {
+      return {
+        valid: false,
+        error: `${fieldName} 长度不能超过 ${BASE_STRING_LENGTHS.EMAIL_MAX} 个字符，当前长度: ${email.length}`,
+      };
+    }
+
+    // 本地部分长度限制（@符号前）
+    const localPart = email.split("@")[0];
+    if (localPart.length > 64) {
+      return {
+        valid: false,
+        error: `${fieldName} 本地部分长度不能超过 64 个字符`,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * 验证URL格式（复用验证器逻辑）
+   * 🎯 提供编程式URL验证，复用装饰器中的验证逻辑
+   */  
+  static validateUrlFormat(
+    url: string,
+    fieldName: string = "URL"
+  ): { valid: boolean; error?: string } {
+    if (!url || typeof url !== "string") {
+      return {
+        valid: false,
+        error: `${fieldName} 必须是有效的字符串`,
+      };
+    }
+
+    try {
+      const urlObj = new URL(url);
+
+      // 只允许HTTP和HTTPS协议（与 @IsValidUrl 装饰器保持一致）
+      if (!["http:", "https:"].includes(urlObj.protocol)) {
+        return {
+          valid: false,
+          error: `${fieldName} 只支持 HTTP 或 HTTPS 协议: ${url}`,
+        };
+      }
+
+      // 检查主机名
+      if (!urlObj.hostname || urlObj.hostname.length === 0) {
+        return {
+          valid: false,
+          error: `${fieldName} 缺少有效主机名: ${url}`,
+        };
+      }
+
+      // URL长度限制
+      if (url.length > BASE_STRING_LENGTHS.URL_MAX) {
+        return {
+          valid: false,
+          error: `${fieldName} 长度不能超过 ${BASE_STRING_LENGTHS.URL_MAX} 个字符，当前长度: ${url.length}`,
+        };
+      }
+
+      // 基本格式验证（与 @IsValidUrl 装饰器保持一致）
+      const urlPattern = /^https?:\/\/[\w\-]+(\.[\w\-]+)+([\w\-\.,@?^=%&:\/~\+#]*[\w\-\@?^=%&\/~\+#])?$/;
+      if (!urlPattern.test(url)) {
+        return {
+          valid: false,
+          error: `${fieldName} 格式不正确: ${url}`,
+        };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      return {
+        valid: false,
+        error: `${fieldName} 格式不正确: ${url}`,
+      };
+    }
   }
 }

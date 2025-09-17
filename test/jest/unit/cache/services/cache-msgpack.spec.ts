@@ -41,11 +41,7 @@ describe("CacheService msgpack Serialization", () => {
     lruSortBatchSize: 1000,
     smartCacheMaxBatch: 50,
     maxCacheSizeMB: 1024,
-    // Alert配置 (将迁移到Alert模块)
-    alertBatchSize: 100,
-    alertMaxBatchProcessing: 1000,
-    alertLargeBatchSize: 1000,
-    alertMaxActiveAlerts: 10000,
+    // Alert配置已迁移到Alert模块独立配置
   };
 
   beforeEach(async () => {

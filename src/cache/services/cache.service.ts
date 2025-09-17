@@ -10,7 +10,7 @@ import {
   Inject,
   HttpStatus,
 } from "@nestjs/common";
-import { CacheExceptionFactory } from "../exceptions";
+import { CacheConnectionException, CacheSerializationException } from "../exceptions";
 import { ConfigService } from "@nestjs/config";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
@@ -113,6 +113,18 @@ export class CacheService {
   }
 
   /**
+   * 检测是否为Redis连接错误
+   * 简化版错误检测，用于替代CacheExceptionFactory.fromError
+   */
+  private isConnectionError(error: Error): boolean {
+    const msg = error.message.toLowerCase();
+    return msg.includes('connection') || 
+           msg.includes('econnrefused') || 
+           msg.includes('enotfound') || 
+           msg.includes('redis');
+  }
+
+  /**
    * 根据时效性获取TTL
    * 🎯 新增方法：提供基于业务场景的TTL获取
    */
@@ -191,12 +203,11 @@ export class CacheService {
 
       return result === "OK";
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError(
-        CACHE_CORE_OPERATIONS.SET,
-        error,
-        key,
-      );
+      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.SET, key);
+      }
+      throw new ServiceUnavailableException(`缓存设置失败: ${CACHE_CORE_OPERATIONS.SET} (key: ${key})`);
     }
   }
 
@@ -241,12 +252,11 @@ export class CacheService {
     } catch (error) {
       // 🎯 事件驱动监控 - 错误导致未命中
       this.emitCacheEvent("get_miss", key, startTime, { error: error.message });
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError(
-        CACHE_CORE_OPERATIONS.GET,
-        error,
-        key,
-      );
+      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.GET, key);
+      }
+      throw new ServiceUnavailableException(`缓存获取失败: ${CACHE_CORE_OPERATIONS.GET} (key: ${key})`);
     }
   }
 
@@ -306,12 +316,11 @@ export class CacheService {
         return await callback();
       }
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError(
-        CACHE_EXTENDED_OPERATIONS.GET_OR_SET,
-        error,
-        key,
-      );
+      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException(CACHE_EXTENDED_OPERATIONS.GET_OR_SET, key);
+      }
+      throw new ServiceUnavailableException(`缓存获取或设置失败: ${CACHE_EXTENDED_OPERATIONS.GET_OR_SET} (key: ${key})`);
     }
   }
 
@@ -324,8 +333,11 @@ export class CacheService {
         ...(Array.isArray(values) ? values : [values]),
       );
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("listPush", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("listPush", key);
+      }
+      throw new ServiceUnavailableException(`列表推送失败: listPush (key: ${key})`);
     }
   }
 
@@ -333,8 +345,11 @@ export class CacheService {
     try {
       return await this.redis.ltrim(key, start, stop);
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("listTrim", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("listTrim", key);
+      }
+      throw new ServiceUnavailableException(`列表修剪失败: listTrim (key: ${key})`);
     }
   }
 
@@ -369,7 +384,11 @@ export class CacheService {
       );
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("setAdd", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("setAdd", key);
+      }
+      throw new ServiceUnavailableException(`集合添加失败: setAdd (key: ${key})`);
     }
   }
 
@@ -420,7 +439,11 @@ export class CacheService {
       );
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("setRemove", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("setRemove", key);
+      }
+      throw new ServiceUnavailableException(`集合移除失败: setRemove (key: ${key})`);
     }
   }
 
@@ -435,7 +458,11 @@ export class CacheService {
       return await this.redis.hincrby(key, field, value);
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("hashIncrementBy", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("hashIncrementBy", key);
+      }
+      throw new ServiceUnavailableException(`哈希增加失败: hashIncrementBy (key: ${key})`);
     }
   }
 
@@ -444,7 +471,11 @@ export class CacheService {
       return await this.redis.hset(key, field, value);
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("hashSet", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("hashSet", key);
+      }
+      throw new ServiceUnavailableException(`哈希设置失败: hashSet (key: ${key})`);
     }
   }
 
@@ -474,7 +505,11 @@ export class CacheService {
       return (await this.redis.expire(key, seconds)) === 1;
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError("expire", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("expire", key);
+      }
+      throw new ServiceUnavailableException(`设置过期失败: expire (key: ${key})`);
     }
   }
 
@@ -489,13 +524,9 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.cacheUnifiedConfig.maxBatchSize;
     if (keys.length > maxBatchSize) {
-      // 🔧 重构: 使用 Cache 专用异常
-      throw CacheExceptionFactory.batch(
-        CACHE_CORE_OPERATIONS.MGET,
-        keys.length,
-        `批量操作超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`,
-        HttpStatus.BAD_REQUEST,
-        maxBatchSize,
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      throw new BadRequestException(
+        `批量获取超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`
       );
     }
 
@@ -541,15 +572,11 @@ export class CacheService {
           batch: true,
         }),
       );
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.batch(
-        CACHE_CORE_OPERATIONS.MGET,
-        keys.length,
-        `批量获取操作失败: ${error.message}`,
-        HttpStatus.SERVICE_UNAVAILABLE,
-        undefined,
-        error,
-      );
+      // 🔧 简化异常处理: 使用标净NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.MGET, keys.join(','));
+      }
+      throw new ServiceUnavailableException(`批量获取操作失败: ${error.message}`);
     }
 
     return result;
@@ -567,13 +594,9 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.cacheUnifiedConfig.maxBatchSize;
     if (entries.size > maxBatchSize) {
-      // 🔧 重构: 使用 Cache 专用异常
-      throw CacheExceptionFactory.batch(
-        CACHE_CORE_OPERATIONS.MSET,
-        entries.size,
-        `批量操作超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`,
-        HttpStatus.BAD_REQUEST,
-        maxBatchSize,
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      throw new BadRequestException(
+        `批量设置超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`
       );
     }
 
@@ -603,15 +626,12 @@ export class CacheService {
 
       return results.every((result) => result[1] === "OK");
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.batch(
-        CACHE_CORE_OPERATIONS.MSET,
-        entries.size,
-        `批量设置操作失败: ${error.message}`,
-        HttpStatus.SERVICE_UNAVAILABLE,
-        undefined,
-        error,
-      );
+      // 🔧 简化异帰处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        const keyList = Array.from(entries.keys()).join(',');
+        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.MSET, keyList);
+      }
+      throw new ServiceUnavailableException(`批量设置操作失败: ${error.message}`);
     }
   }
 
@@ -628,11 +648,11 @@ export class CacheService {
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
       const cacheKey = Array.isArray(key) ? key.join(",") : key;
-      throw CacheExceptionFactory.fromError(
-        CACHE_CORE_OPERATIONS.DELETE,
-        error,
-        cacheKey,
-      );
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.DELETE, cacheKey);
+      }
+      throw new ServiceUnavailableException(`缓存删除失败: ${CACHE_CORE_OPERATIONS.DELETE} (key: ${cacheKey})`);
     }
   }
 
@@ -647,11 +667,11 @@ export class CacheService {
       return await this.redis.del(...keys);
     } catch (error) {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      throw CacheExceptionFactory.fromError(
-        CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
-        error,
-        pattern,
-      );
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException(CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN, pattern);
+      }
+      throw new ServiceUnavailableException(`模式删除失败: ${CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN} (pattern: ${pattern})`);
     }
   }
 
@@ -721,11 +741,9 @@ export class CacheService {
         serialized = msgpack.encode(value).toString("base64");
         break;
       default:
-        throw CacheExceptionFactory.serialization(
+        throw new CacheSerializationException(
           CACHE_INTERNAL_OPERATIONS.SERIALIZE,
-          serializerType,
-          undefined,
-          new Error(`不支持的序列化类型: ${serializerType}`),
+          serializerType
         );
     }
 
@@ -761,11 +779,9 @@ export class CacheService {
         const buffer = Buffer.from(value, "base64");
         return msgpack.decode(buffer);
       default:
-        throw CacheExceptionFactory.serialization(
+        throw new CacheSerializationException(
           CACHE_INTERNAL_OPERATIONS.DESERIALIZE,
-          deserializerType,
-          undefined,
-          new Error(`不支持的反序列化类型: ${deserializerType}`),
+          deserializerType
         );
     }
   }
@@ -1014,11 +1030,11 @@ export class CacheService {
     try {
       return await this.redis.eval(script, numKeys, ...args);
     } catch (error) {
-      throw CacheExceptionFactory.fromError(
-        "eval",
-        error,
-        args[0] || "lua_script",
-      );
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("eval", args[0] || "lua_script");
+      }
+      throw new ServiceUnavailableException(`Lua脚本执行失败: eval`);
     }
   }
 
@@ -1068,7 +1084,11 @@ export class CacheService {
     try {
       return await this.redis.incr(key);
     } catch (error) {
-      throw CacheExceptionFactory.fromError("incr", error, key);
+      // 🔧 简化异常处理: 使用标准NestJS异常
+      if (this.isConnectionError(error)) {
+        throw new CacheConnectionException("incr", key);
+      }
+      throw new ServiceUnavailableException(`计数器增加失败: incr (key: ${key})`);
     }
   }
 }

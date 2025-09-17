@@ -70,15 +70,15 @@ describe("Cache Component Boundary Verification", () => {
   });
 
   describe("Cache与Alert组件边界验证", () => {
-    it("应该移除Alert配置依赖", () => {
-      // 验证Cache统一配置中的Alert相关配置已标记为deprecated
-      expect(cacheConfig.alertActiveDataTtl).toBeDefined();
-      expect(cacheConfig.alertHistoricalDataTtl).toBeDefined();
-      expect(cacheConfig.alertCooldownTtl).toBeDefined();
-      expect(cacheConfig.alertBatchSize).toBeDefined();
+    it("应该完全移除Alert配置依赖", () => {
+      // 验证Cache统一配置中的Alert相关配置已完全移除
+      expect((cacheConfig as any).alertActiveDataTtl).toBeUndefined();
+      expect((cacheConfig as any).alertHistoricalDataTtl).toBeUndefined();
+      expect((cacheConfig as any).alertCooldownTtl).toBeUndefined();
+      expect((cacheConfig as any).alertBatchSize).toBeUndefined();
 
-      // 这些配置应该在Cache模块中标记为废弃，将迁移到Alert模块
-      // 验证通过JSDoc注释中的@deprecated标记
+      // Alert配置已迁移到Alert模块独立配置文件
+      // 验证Cache模块不再包含Alert特定配置
     });
 
     it("应该有清晰的Alert缓存键前缀", () => {
@@ -107,12 +107,12 @@ describe("Cache Component Boundary Verification", () => {
       expect(businessRules.PRIORITY.HIGH).toContain("alert");
     });
 
-    it("应该隔离Alert特定配置", () => {
-      // 验证Alert相关配置不影响Core Cache配置
-      expect(cacheConfig.defaultTtl).not.toBe(cacheConfig.alertActiveDataTtl);
-      expect(cacheConfig.maxBatchSize).not.toBe(cacheConfig.alertBatchSize);
+    it("应该隔离组件特定配置", () => {
+      // 验证核心缓存配置独立性
+      expect(cacheConfig.defaultTtl).toBe(300);
+      expect(cacheConfig.maxBatchSize).toBe(100);
 
-      // 验证核心缓存操作不受Alert配置影响
+      // 验证核心缓存操作不受其他组件配置影响
       expect(cacheConfig.strongTimelinessTtl).toBe(5); // 股票报价TTL
       expect(cacheConfig.realtimeTtl).toBe(30); // 实时数据TTL
     });

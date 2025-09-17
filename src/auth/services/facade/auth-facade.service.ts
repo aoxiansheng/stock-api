@@ -1,4 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, Scope } from "@nestjs/common";
+import { REQUEST } from "@nestjs/core";
+import type { Request } from "express";
 import { createLogger } from "@common/modules/logging";
 import { CreateUserDto, LoginDto } from "../../dto/auth.dto";
 import { CreateApiKeyDto, ApiKeyUsageDto } from "../../dto/apikey.dto";
@@ -17,12 +19,14 @@ import { AuthEventNotificationService } from "../domain/notification.service";
  * 认证服务门面 - 统一入口点
  * 负责编排业务流程，不包含具体业务逻辑
  * 提供清晰的API边界和统一的错误处理
+ * 🆕 支持请求追踪和关联ID
  */
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AuthFacadeService {
   private readonly logger = createLogger(AuthFacadeService.name);
 
   constructor(
+    @Inject(REQUEST) private readonly request: Request,
     private readonly userAuthService: UserAuthenticationService,
     private readonly apiKeyService: ApiKeyManagementService,
     private readonly sessionService: SessionManagementService,
@@ -32,10 +36,27 @@ export class AuthFacadeService {
   ) {}
 
   /**
+   * 获取当前请求的追踪信息
+   */
+  private getRequestTrackingInfo() {
+    return {
+      requestId: (this.request as any).requestId || 'unknown',
+      correlationId: (this.request as any).correlationId || 'unknown',
+      userAgent: this.request.headers['user-agent'] || 'unknown',
+      clientIP: this.request.ip || this.request.connection?.remoteAddress || 'unknown',
+    };
+  }
+
+  /**
    * 用户注册流程编排
    */
   async register(createUserDto: CreateUserDto): Promise<User> {
-    this.logger.log("开始用户注册流程", { username: createUserDto.username });
+    const trackingInfo = this.getRequestTrackingInfo();
+    
+    this.logger.log("开始用户注册流程", { 
+      username: createUserDto.username,
+      ...trackingInfo
+    });
 
     try {
       // 1. 安全策略检查
@@ -53,6 +74,7 @@ export class AuthFacadeService {
       this.logger.log("用户注册成功", {
         userId: user.id,
         username: user.username,
+        ...trackingInfo
       });
       return user;
     } catch (error) {
@@ -62,7 +84,7 @@ export class AuthFacadeService {
       // 发送失败通知
       await this.notificationService.sendRegistrationFailureEvent(
         createUserDto,
-        error,
+        error
       );
 
       throw error;

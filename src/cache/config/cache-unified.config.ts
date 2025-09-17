@@ -313,17 +313,4 @@ export interface CacheLimitsConfig {
   lruSortBatchSize: number;
   smartCacheMaxBatch: number;
   maxCacheSizeMB: number;
-  alertBatchSize: number;
-  alertMaxBatchProcessing: number;
-  alertLargeBatchSize: number;
-  alertMaxActiveAlerts: number;
-}
-
-export interface CacheAlertTtlConfig {
-  alertActiveDataTtl: number;
-  alertHistoricalDataTtl: number;
-  alertCooldownTtl: number;
-  alertConfigCacheTtl: number;
-  alertStatsCacheTtl: number;
-  alertArchivedDataTtl: number;
 }

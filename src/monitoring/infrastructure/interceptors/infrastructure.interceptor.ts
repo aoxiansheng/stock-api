@@ -12,7 +12,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Observable, tap } from "rxjs";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../contracts/events/system-status.events";

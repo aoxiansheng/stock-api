@@ -15,8 +15,7 @@ import { CacheService } from "../../../../../src/cache/services/cache.service";
 import { CacheModule } from "../../../../../src/cache/module/cache.module";
 import { CacheUnifiedConfig } from "../../../../../src/cache/config/cache-unified.config";
 import cacheUnifiedConfig from "../../../../../src/cache/config/cache-unified.config";
-import cacheConfig from "../../../../../src/cache/config/cache.config";
-// 已删除的配置文件，现在使用统一配置
+// 使用统一配置替代已删除的cache.config
 
 // Mock Redis
 const mockRedis = {

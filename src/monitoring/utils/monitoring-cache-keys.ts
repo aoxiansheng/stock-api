@@ -1,5 +1,5 @@
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
-import { Request } from "express";
+import type { Request } from "express";
 
 /**
  * 监控组件缓存键管理工具类

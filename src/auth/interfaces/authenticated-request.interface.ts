@@ -1,4 +1,4 @@
-import { Request } from "express";
+import type { Request } from "express";
 import { ApiKeyDocument } from "../schemas/apikey.schema";
 
 /**
