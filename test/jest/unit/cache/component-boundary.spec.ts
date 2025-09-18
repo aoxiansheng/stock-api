@@ -55,7 +55,8 @@ describe("Cache Component Boundary Verification", () => {
 
     cacheService = module.get<CacheService>(CacheService);
     configService = module.get<ConfigService>(ConfigService);
-    cacheConfig = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+    cacheConfig =
+      configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
   });
 
   afterAll(async () => {

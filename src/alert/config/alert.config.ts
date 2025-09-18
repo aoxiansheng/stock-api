@@ -228,7 +228,9 @@ export default registerAs("alert", (): AlertConfig => {
       })
       .join(" | ");
 
-    throw new BadRequestException(`Alert configuration validation failed: ${errorMessages}`);
+    throw new BadRequestException(
+      `Alert configuration validation failed: ${errorMessages}`,
+    );
   }
 
   // 返回完整配置（所有字段都经过验证）

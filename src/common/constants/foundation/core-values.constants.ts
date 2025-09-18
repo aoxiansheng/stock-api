@@ -51,7 +51,6 @@ export const CORE_VALUES = Object.freeze({
     FILENAME_MAX: 255, // 文件系统标准文件名最大长度
   },
 
-
   /**
    * 百分比基础值
    */
@@ -84,7 +83,6 @@ export const CORE_VALUES = Object.freeze({
   FILE_SIZE_BYTES: {
     FIVE_HUNDRED_MB: 524288000, // 500MB
   },
-
 });
 
 /**
@@ -98,4 +96,3 @@ export type ProtocolLimits = typeof CORE_VALUES.PROTOCOL_LIMITS;
 export type MathConstants = typeof CORE_VALUES.MATH;
 export type RadixConstants = typeof CORE_VALUES.RADIX;
 export type FileSizeConstants = typeof CORE_VALUES.FILE_SIZE_BYTES;
-

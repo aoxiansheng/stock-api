@@ -37,7 +37,7 @@ describe("AlertRuleValidator - Enhanced Features", () => {
           },
         },
         {
-          provide: 'cacheUnified',
+          provide: "cacheUnified",
           useValue: {
             defaultTtl: 300,
           },

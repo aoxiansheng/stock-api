@@ -29,7 +29,8 @@ export class AlertCacheService implements OnModuleInit {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly alertHistoryRepository: AlertHistoryRepository,
-    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
+    @Inject("cacheUnified")
+    private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
     this.config = {
       maxTimeseriesLength: 1000,
@@ -566,10 +567,7 @@ export class AlertCacheService implements OnModuleInit {
           const ttl = await this.cacheService.getClient().ttl(key);
           if (ttl === -1) {
             // TTL为-1表示没有过期时间，重新设置TTL
-            await this.cacheService.expire(
-              key,
-              this.cacheConfig.defaultTtl,
-            );
+            await this.cacheService.expire(key, this.cacheConfig.defaultTtl);
           }
           cleanedKeys++;
         } catch (error) {
@@ -611,11 +609,11 @@ export class AlertCacheService implements OnModuleInit {
           this.logger.warn("扫描达到最大尝试次数", {
             pattern,
             attempts,
-            keysFound: keys.length
+            keysFound: keys.length,
           });
           break;
         }
-        
+
         try {
           const [nextCursor, foundKeys] = await this.cacheService
             .getClient()
@@ -628,7 +626,7 @@ export class AlertCacheService implements OnModuleInit {
             pattern,
             cursor,
             attempts,
-            error: scanError.message
+            error: scanError.message,
           });
           break;
         }
@@ -638,7 +636,7 @@ export class AlertCacheService implements OnModuleInit {
     } catch (error) {
       this.logger.error("获取键列表失败", {
         pattern,
-        error: error.message
+        error: error.message,
       });
       return [];
     }
@@ -698,7 +696,6 @@ export class AlertCacheService implements OnModuleInit {
       // 初始化失败不应阻止服务启动，但应该记录详细错误
     }
   }
-
 
   /**
    * 获取缓存服务统计

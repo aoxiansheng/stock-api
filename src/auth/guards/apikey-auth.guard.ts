@@ -52,16 +52,28 @@ export class ApiKeyAuthGuard extends AuthGuard("apikey") {
             return success;
           },
           (error) => {
-            this.recordPerformance(startTime, request, false, undefined, error.message);
+            this.recordPerformance(
+              startTime,
+              request,
+              false,
+              undefined,
+              error.message,
+            );
             throw error;
-          }
+          },
         );
       } else {
         this.recordPerformance(startTime, request, Boolean(result));
         return result;
       }
     } catch (error) {
-      this.recordPerformance(startTime, request, false, undefined, error.message);
+      this.recordPerformance(
+        startTime,
+        request,
+        false,
+        undefined,
+        error.message,
+      );
       throw error;
     }
   }

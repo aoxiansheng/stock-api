@@ -6,9 +6,10 @@ import { createLogger } from "@common/modules/logging";
  */
 export class AuthLoggingUtil {
   private static readonly isProduction = process.env.NODE_ENV === "production";
-  private static readonly isHighTraffic = process.env.AUTH_HIGH_TRAFFIC_MODE === "true";
-  private static readonly enablePerformanceOptimization = 
-    process.env.AUTH_OPTIMIZE_LOGGING === "true" || 
+  private static readonly isHighTraffic =
+    process.env.AUTH_HIGH_TRAFFIC_MODE === "true";
+  private static readonly enablePerformanceOptimization =
+    process.env.AUTH_OPTIMIZE_LOGGING === "true" ||
     AuthLoggingUtil.isProduction;
 
   /**
@@ -37,7 +38,11 @@ export class AuthLoggingUtil {
       },
 
       // 性能敏感操作日志 - 异步记录，不阻塞主流程
-      asyncLog: (level: "log" | "warn" | "error", message: string, data?: any) => {
+      asyncLog: (
+        level: "log" | "warn" | "error",
+        message: string,
+        data?: any,
+      ) => {
         setImmediate(() => {
           logger[level](message, data);
         });
@@ -45,7 +50,10 @@ export class AuthLoggingUtil {
 
       // 条件化详细日志 - 仅在开发环境或明确启用时记录
       verbose: (message: string, data?: any) => {
-        if (!AuthLoggingUtil.isProduction && process.env.AUTH_VERBOSE_LOGGING === "true") {
+        if (
+          !AuthLoggingUtil.isProduction &&
+          process.env.AUTH_VERBOSE_LOGGING === "true"
+        ) {
           logger.log(message, data);
         }
       },
@@ -56,7 +64,9 @@ export class AuthLoggingUtil {
    * 检查是否应该记录详细日志
    */
   static shouldLogVerbose(): boolean {
-    return !AuthLoggingUtil.isProduction || process.env.AUTH_DEBUG_MODE === "true";
+    return (
+      !AuthLoggingUtil.isProduction || process.env.AUTH_DEBUG_MODE === "true"
+    );
   }
 
   /**
@@ -70,36 +80,44 @@ export class AuthLoggingUtil {
    * 检查是否应该记录性能日志
    */
   static shouldLogPerformance(): boolean {
-    return !AuthLoggingUtil.enablePerformanceOptimization || 
-           process.env.AUTH_PERFORMANCE_LOGGING === "true";
+    return (
+      !AuthLoggingUtil.enablePerformanceOptimization ||
+      process.env.AUTH_PERFORMANCE_LOGGING === "true"
+    );
   }
 
   /**
    * 安全日志记录 - 避免记录敏感信息
    */
   static sanitizeLogData(data: any): any {
-    if (!data || typeof data !== 'object') {
+    if (!data || typeof data !== "object") {
       return data;
     }
 
     const sanitized = { ...data };
-    
+
     // 移除敏感字段
     const sensitiveFields = [
-      'password', 'accessToken', 'refreshToken', 'secret',
-      'accessToken', 'auth', 'authorization', 'credentials'
+      "password",
+      "accessToken",
+      "refreshToken",
+      "secret",
+      "accessToken",
+      "auth",
+      "authorization",
+      "credentials",
     ];
 
-    sensitiveFields.forEach(field => {
+    sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
-        sanitized[field] = '[REDACTED]';
+        sanitized[field] = "[REDACTED]";
       }
     });
 
     // 截断长字符串以减少日志大小
-    Object.keys(sanitized).forEach(key => {
-      if (typeof sanitized[key] === 'string' && sanitized[key].length > 200) {
-        sanitized[key] = sanitized[key].substring(0, 200) + '...[TRUNCATED]';
+    Object.keys(sanitized).forEach((key) => {
+      if (typeof sanitized[key] === "string" && sanitized[key].length > 200) {
+        sanitized[key] = sanitized[key].substring(0, 200) + "...[TRUNCATED]";
       }
     });
 
@@ -116,14 +134,14 @@ export class AuthLoggingUtil {
 
     // 基于操作类型和随机数进行采样
     const hash = AuthLoggingUtil.simpleHash(operation);
-    return (hash % 100) < (sampleRate * 100);
+    return hash % 100 < sampleRate * 100;
   }
 
   private static simpleHash(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);

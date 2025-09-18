@@ -59,4 +59,3 @@ export interface IRuleEngine {
    */
   validateRule(rule: IAlertRule): { valid: boolean; errors: string[] };
 }
-

@@ -42,7 +42,11 @@ export class AuthFlowPerformanceInterceptor implements NestInterceptor {
     );
 
     // 分析认证需求
-    const authAnalysis = this.analyzeAuthRequirements(isPublic, requireApiKey, request);
+    const authAnalysis = this.analyzeAuthRequirements(
+      isPublic,
+      requireApiKey,
+      request,
+    );
 
     return next.handle().pipe(
       tap({
@@ -61,7 +65,7 @@ export class AuthFlowPerformanceInterceptor implements NestInterceptor {
     requireApiKey: boolean,
     request: Request,
   ) {
-    const hasApiKeyHeaders = 
+    const hasApiKeyHeaders =
       request.headers["x-app-key"] && request.headers["x-access-token"];
     const hasJwtHeader = request.headers.authorization?.startsWith("Bearer ");
 
@@ -117,7 +121,9 @@ export class AuthFlowPerformanceInterceptor implements NestInterceptor {
       duration,
       authType: authAnalysis.authType,
       isPublic: authAnalysis.isPublic,
-      efficiency: Math.round((authAnalysis.expectedSkips / authAnalysis.expectedGuards) * 100),
+      efficiency: Math.round(
+        (authAnalysis.expectedSkips / authAnalysis.expectedGuards) * 100,
+      ),
     });
   }
 

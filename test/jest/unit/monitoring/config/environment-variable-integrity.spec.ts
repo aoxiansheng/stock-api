@@ -65,7 +65,7 @@ describe("监控组件环境变量完整性测试", () => {
 
   beforeEach(() => {
     // 重置环境变量
-    if (typeof jest !== 'undefined' && jest.resetModules) {
+    if (typeof jest !== "undefined" && jest.resetModules) {
       jest.resetModules();
     }
     process.env = { ...originalEnv };

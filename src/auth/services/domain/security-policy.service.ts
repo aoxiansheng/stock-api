@@ -33,7 +33,7 @@ export class SecurityPolicyService {
 
   constructor(
     private readonly userAuthService: UserAuthenticationService,
-    @Inject('authUnified')
+    @Inject("authUnified")
     private readonly authConfig: AuthUnifiedConfigInterface,
   ) {}
 

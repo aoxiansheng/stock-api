@@ -124,7 +124,6 @@ export class PresenterService {
     return paginatedResponse;
   }
 
-
   /**
    * 获取数据库指标
    */
@@ -431,8 +430,12 @@ export class PresenterService {
         tasksCleared: Math.floor(Math.random() * 10),
         avgExecutionTime: Math.random() * 500 + 200,
         totalTasks:
-          Math.floor(Math.random() * (this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits')?.systemLimits?.maxBufferSize || 1000)) +
-          500,
+          Math.floor(
+            Math.random() *
+              (this.configService.get<MonitoringUnifiedLimitsConfig>(
+                "monitoringUnifiedLimits",
+              )?.systemLimits?.maxBufferSize || 1000),
+          ) + 500,
         dynamicMaxConcurrency: Math.floor(Math.random() * 8) + 4,
         originalMaxConcurrency: 10,
         currentBatchSize: Math.floor(Math.random() * 20) + 10,

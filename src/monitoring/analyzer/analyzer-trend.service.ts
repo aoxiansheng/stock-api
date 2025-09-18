@@ -27,7 +27,7 @@ export class TrendAnalyzerService {
     private readonly metricsCalculator: AnalyzerMetricsCalculator,
     private readonly cacheService: CacheService,
     private readonly eventBus: EventEmitter2,
-    @Inject('monitoringUnifiedTtl')
+    @Inject("monitoringUnifiedTtl")
     private readonly ttlConfig: MonitoringUnifiedTtlConfig,
   ) {
     this.logger.log("TrendAnalyzerService initialized - 趋势分析服务已启动");

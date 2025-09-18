@@ -38,7 +38,9 @@ export class CollectorService
     private readonly eventBus: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
-    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>(
+      "monitoringUnifiedLimits",
+    );
     this.maxBufferSize = limitsConfig?.systemLimits?.maxBufferSize || 1000;
     this.logger.log(
       "CollectorService initialized - 纯事件驱动数据收集服务已启动",

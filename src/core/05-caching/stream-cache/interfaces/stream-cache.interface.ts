@@ -29,7 +29,6 @@ export interface StreamCacheStats {
   compressionRatio: number;
 }
 
-
 /**
  * 流缓存配置 - 新版本，继承基础配置
  */

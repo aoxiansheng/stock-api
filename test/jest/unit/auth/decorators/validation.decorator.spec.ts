@@ -1,5 +1,5 @@
 import { validate, ValidationError } from "class-validator";
-import { 
+import {
   IsValidUsername,
   IsStrongPassword,
   IsValidApiKey,
@@ -8,7 +8,7 @@ import {
   IsUsernameLength,
   IsPasswordLength,
   IsValidSessionTimeout,
-  AUTH_VALIDATION_CONSTANTS
+  AUTH_VALIDATION_CONSTANTS,
 } from "../../../../../src/auth/decorators/validation.decorator";
 
 /**
@@ -86,8 +86,10 @@ describe("Auth Validation Decorators", () => {
         dto.username = username;
 
         const errors = await validate(dto);
-        const usernameErrors = errors.filter(error => error.property === 'username');
-        
+        const usernameErrors = errors.filter(
+          (error) => error.property === "username",
+        );
+
         expect(usernameErrors).toHaveLength(0);
       }
     });
@@ -97,7 +99,7 @@ describe("Auth Validation Decorators", () => {
         // Too short
         "ab",
         "",
-        // Too long  
+        // Too long
         "a".repeat(33),
         // Invalid characters
         "user@name",
@@ -107,7 +109,7 @@ describe("Auth Validation Decorators", () => {
         "用户名", // Chinese characters
         // Invalid start/end
         "_username",
-        "-username", 
+        "-username",
         "username_",
         "username-",
         // Non-string
@@ -121,8 +123,10 @@ describe("Auth Validation Decorators", () => {
         dto.username = username as any;
 
         const errors = await validate(dto);
-        const usernameErrors = errors.filter(error => error.property === 'username');
-        
+        const usernameErrors = errors.filter(
+          (error) => error.property === "username",
+        );
+
         expect(usernameErrors.length).toBeGreaterThan(0);
       }
     });
@@ -144,8 +148,10 @@ describe("Auth Validation Decorators", () => {
         dto.password = password;
 
         const errors = await validate(dto);
-        const passwordErrors = errors.filter(error => error.property === 'password');
-        
+        const passwordErrors = errors.filter(
+          (error) => error.property === "password",
+        );
+
         expect(passwordErrors).toHaveLength(0);
       }
     });
@@ -180,8 +186,10 @@ describe("Auth Validation Decorators", () => {
         dto.password = password as any;
 
         const errors = await validate(dto);
-        const passwordErrors = errors.filter(error => error.property === 'password');
-        
+        const passwordErrors = errors.filter(
+          (error) => error.property === "password",
+        );
+
         expect(passwordErrors.length).toBeGreaterThan(0);
       }
     });
@@ -202,8 +210,10 @@ describe("Auth Validation Decorators", () => {
         dto.apiKey = apiKey;
 
         const errors = await validate(dto);
-        const apiKeyErrors = errors.filter(error => error.property === 'apiKey');
-        
+        const apiKeyErrors = errors.filter(
+          (error) => error.property === "apiKey",
+        );
+
         expect(apiKeyErrors).toHaveLength(0);
       }
     });
@@ -230,8 +240,10 @@ describe("Auth Validation Decorators", () => {
         dto.apiKey = apiKey as any;
 
         const errors = await validate(dto);
-        const apiKeyErrors = errors.filter(error => error.property === 'apiKey');
-        
+        const apiKeyErrors = errors.filter(
+          (error) => error.property === "apiKey",
+        );
+
         expect(apiKeyErrors.length).toBeGreaterThan(0);
       }
     });
@@ -252,8 +264,10 @@ describe("Auth Validation Decorators", () => {
         dto.accessToken = token;
 
         const errors = await validate(dto);
-        const tokenErrors = errors.filter(error => error.property === 'accessToken');
-        
+        const tokenErrors = errors.filter(
+          (error) => error.property === "accessToken",
+        );
+
         expect(tokenErrors).toHaveLength(0);
       }
     });
@@ -279,8 +293,10 @@ describe("Auth Validation Decorators", () => {
         dto.accessToken = token as any;
 
         const errors = await validate(dto);
-        const tokenErrors = errors.filter(error => error.property === 'accessToken');
-        
+        const tokenErrors = errors.filter(
+          (error) => error.property === "accessToken",
+        );
+
         expect(tokenErrors.length).toBeGreaterThan(0);
       }
     });
@@ -306,8 +322,10 @@ describe("Auth Validation Decorators", () => {
         dto.roleName = roleName;
 
         const errors = await validate(dto);
-        const roleErrors = errors.filter(error => error.property === 'roleName');
-        
+        const roleErrors = errors.filter(
+          (error) => error.property === "roleName",
+        );
+
         expect(roleErrors).toHaveLength(0);
       }
     });
@@ -337,8 +355,10 @@ describe("Auth Validation Decorators", () => {
         dto.roleName = roleName as any;
 
         const errors = await validate(dto);
-        const roleErrors = errors.filter(error => error.property === 'roleName');
-        
+        const roleErrors = errors.filter(
+          (error) => error.property === "roleName",
+        );
+
         expect(roleErrors.length).toBeGreaterThan(0);
       }
     });
@@ -357,8 +377,10 @@ describe("Auth Validation Decorators", () => {
         dto.usernameLength = username;
 
         const errors = await validate(dto);
-        const usernameErrors = errors.filter(error => error.property === 'usernameLength');
-        
+        const usernameErrors = errors.filter(
+          (error) => error.property === "usernameLength",
+        );
+
         expect(usernameErrors).toHaveLength(0);
       }
     });
@@ -375,8 +397,10 @@ describe("Auth Validation Decorators", () => {
         dto.usernameLength = username;
 
         const errors = await validate(dto);
-        const usernameErrors = errors.filter(error => error.property === 'usernameLength');
-        
+        const usernameErrors = errors.filter(
+          (error) => error.property === "usernameLength",
+        );
+
         expect(usernameErrors.length).toBeGreaterThan(0);
       }
     });
@@ -395,8 +419,10 @@ describe("Auth Validation Decorators", () => {
         dto.passwordLength = password;
 
         const errors = await validate(dto);
-        const passwordErrors = errors.filter(error => error.property === 'passwordLength');
-        
+        const passwordErrors = errors.filter(
+          (error) => error.property === "passwordLength",
+        );
+
         expect(passwordErrors).toHaveLength(0);
       }
     });
@@ -413,8 +439,10 @@ describe("Auth Validation Decorators", () => {
         dto.passwordLength = password;
 
         const errors = await validate(dto);
-        const passwordErrors = errors.filter(error => error.property === 'passwordLength');
-        
+        const passwordErrors = errors.filter(
+          (error) => error.property === "passwordLength",
+        );
+
         expect(passwordErrors.length).toBeGreaterThan(0);
       }
     });
@@ -434,8 +462,10 @@ describe("Auth Validation Decorators", () => {
         dto.timeout = timeout;
 
         const errors = await validate(dto);
-        const timeoutErrors = errors.filter(error => error.property === 'timeout');
-        
+        const timeoutErrors = errors.filter(
+          (error) => error.property === "timeout",
+        );
+
         expect(timeoutErrors).toHaveLength(0);
       }
     });
@@ -457,8 +487,10 @@ describe("Auth Validation Decorators", () => {
         dto.timeout = timeout as any;
 
         const errors = await validate(dto);
-        const timeoutErrors = errors.filter(error => error.property === 'timeout');
-        
+        const timeoutErrors = errors.filter(
+          (error) => error.property === "timeout",
+        );
+
         expect(timeoutErrors.length).toBeGreaterThan(0);
       }
     });
@@ -509,9 +541,9 @@ describe("Auth Validation Decorators", () => {
 
       const errors = await validate(invalidDto);
       expect(errors).toHaveLength(3);
-      
-      const errorProperties = errors.map(error => error.property).sort();
-      expect(errorProperties).toEqual(['apiKey', 'password', 'username']);
+
+      const errorProperties = errors.map((error) => error.property).sort();
+      expect(errorProperties).toEqual(["apiKey", "password", "username"]);
     });
   });
 });

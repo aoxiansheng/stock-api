@@ -187,7 +187,6 @@ export const REFERENCE_DATA = Object.freeze({
   },
 } as const);
 
-
 /**
  * 类型定义
  */

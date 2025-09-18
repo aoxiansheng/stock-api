@@ -40,7 +40,8 @@ describe("Cache Configuration Performance", () => {
       }),
     } as any;
 
-    unifiedConfig = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+    unifiedConfig =
+      configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
   });
 
   afterAll(() => {
@@ -57,7 +58,10 @@ describe("Cache Configuration Performance", () => {
       const startTime = process.hrtime.bigint();
 
       for (let i = 0; i < iterations; i++) {
-        const config = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+        const config =
+          configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+            "cacheUnified",
+          );
         expect(config.defaultTtl).toBe(300);
         expect(config.strongTimelinessTtl).toBe(5);
         expect(config.maxBatchSize).toBe(100);
@@ -126,9 +130,18 @@ describe("Cache Configuration Performance", () => {
   describe("内存使用优化验证", () => {
     it("应该避免配置对象重复创建", () => {
       // 验证配置对象引用一致性
-      const config1 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
-      const config2 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
-      const config3 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+      const config1 =
+        configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+          "cacheUnified",
+        );
+      const config2 =
+        configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+          "cacheUnified",
+        );
+      const config3 =
+        configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+          "cacheUnified",
+        );
 
       // 模拟ConfigService应该缓存配置对象
       expect(config1).toEqual(config2);
@@ -248,7 +261,10 @@ describe("Cache Configuration Performance", () => {
       // 创建并发访问
       const promises = Array.from({ length: concurrency }, async () => {
         for (let i = 0; i < iterationsPerWorker; i++) {
-          const config = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+          const config =
+            configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+              "cacheUnified",
+            );
           expect(config.defaultTtl).toBe(300);
           expect(config.strongTimelinessTtl).toBe(5);
 
@@ -469,7 +485,9 @@ describe("Cache Configuration Performance", () => {
       };
 
       const newSystemAccess = () => {
-        return configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+        return configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+          "cacheUnified",
+        );
       };
 
       const iterations = 1000;

@@ -123,9 +123,11 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
   ) {
     // 创建专用的指标注册表
     this.registry = new Registry();
-    
+
     // Get limits configuration
-    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>(
+      "monitoringUnifiedLimits",
+    );
 
     // 🎯 初始化流处理指标
     this.streamRecoveryJobsTotal = new Counter({

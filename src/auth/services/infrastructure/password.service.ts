@@ -13,7 +13,7 @@ export class PasswordService {
   private readonly logger = createLogger(PasswordService.name);
 
   constructor(
-    @Inject('authUnified') 
+    @Inject("authUnified")
     private readonly authConfig: AuthUnifiedConfigInterface,
   ) {}
 

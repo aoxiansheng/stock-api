@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from "@nestjs/common";
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Inject,
+} from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import type { ConfigType } from "@nestjs/config";
@@ -26,7 +31,10 @@ import { HealthAnalyzerService } from "./analyzer-health.service";
 import { TrendAnalyzerService } from "./analyzer-trend.service";
 import { CacheService } from "@cache/services/cache.service";
 import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
-import { MonitoringUnifiedTtl, MonitoringUnifiedTtlConfig } from "../config/unified/monitoring-unified-ttl.config";
+import {
+  MonitoringUnifiedTtl,
+  MonitoringUnifiedTtlConfig,
+} from "../config/unified/monitoring-unified-ttl.config";
 import {
   MONITORING_SYSTEM_LIMITS,
   MonitoringSystemLimitUtils,

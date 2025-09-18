@@ -1,10 +1,6 @@
 import { registerAs } from "@nestjs/config";
-import {
-  AuthCacheConfigValidation,
-} from "./auth-cache.config";
-import {
-  AuthLimitsConfigValidation,
-} from "./auth-limits.config";
+import { AuthCacheConfigValidation } from "./auth-cache.config";
+import { AuthLimitsConfigValidation } from "./auth-limits.config";
 
 /**
  * Auth统一配置入口

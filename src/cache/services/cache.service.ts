@@ -10,7 +10,10 @@ import {
   Inject,
   HttpStatus,
 } from "@nestjs/common";
-import { CacheConnectionException, CacheSerializationException } from "../exceptions";
+import {
+  CacheConnectionException,
+  CacheSerializationException,
+} from "../exceptions";
 import { ConfigService } from "@nestjs/config";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
@@ -31,13 +34,9 @@ import {
   CACHE_EXTENDED_OPERATIONS,
   CACHE_INTERNAL_OPERATIONS,
 } from "../constants/operations/cache-operations.constants";
-import type {
-  SerializerType,
-} from "../constants/config/data-formats.constants";
+import type { SerializerType } from "../constants/config/data-formats.constants";
 
-import {
-  CACHE_DATA_FORMATS,
-} from "../constants/config/data-formats.constants";
+import { CACHE_DATA_FORMATS } from "../constants/config/data-formats.constants";
 
 // 🎯 Gzip 压缩/解压缩
 const gzip = promisify(zlib.gzip);
@@ -63,18 +62,19 @@ export class CacheService {
     private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
     private readonly configService: ConfigService,
     // 🎯 统一配置 - 移除冗余配置支持
-    @Inject("cacheUnified") private readonly CacheUnifiedConfig: ConfigType<typeof cacheUnifiedConfig>,
+    @Inject("cacheUnified")
+    private readonly CacheUnifiedConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
     this.logger.debug("CacheService初始化开始", {
       context: "CacheService",
       operation: "constructor",
       timestamp: new Date().toISOString(),
     });
-    
+
     if (!this.CacheUnifiedConfig) {
       throw new Error("Cache unified configuration not found");
     }
-    
+
     this.logger.debug("CacheService初始化完成", {
       context: "CacheService",
       operation: "constructor",
@@ -106,10 +106,12 @@ export class CacheService {
    */
   private isConnectionError(error: Error): boolean {
     const msg = error.message.toLowerCase();
-    return msg.includes('connection') || 
-           msg.includes('econnrefused') || 
-           msg.includes('enotfound') || 
-           msg.includes('redis');
+    return (
+      msg.includes("connection") ||
+      msg.includes("econnrefused") ||
+      msg.includes("enotfound") ||
+      msg.includes("redis")
+    );
   }
 
   /**
@@ -170,7 +172,7 @@ export class CacheService {
       const compressedValue = shouldCompress
         ? await this.compress(serializedValue)
         : serializedValue;
-      
+
       this.logger.debug("缓存设置操作详情", {
         context: "CacheService",
         operation: "set",
@@ -207,7 +209,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(CACHE_CORE_OPERATIONS.SET, key);
       }
-      throw new ServiceUnavailableException(`缓存设置失败: ${CACHE_CORE_OPERATIONS.SET} (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `缓存设置失败: ${CACHE_CORE_OPERATIONS.SET} (key: ${key})`,
+      );
     }
   }
 
@@ -237,7 +241,7 @@ export class CacheService {
       const decompressedValue = isCompressed
         ? await this.decompress(value)
         : value;
-      
+
       this.logger.debug("缓存获取操作详情", {
         context: "CacheService",
         operation: "get",
@@ -266,7 +270,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(CACHE_CORE_OPERATIONS.GET, key);
       }
-      throw new ServiceUnavailableException(`缓存获取失败: ${CACHE_CORE_OPERATIONS.GET} (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `缓存获取失败: ${CACHE_CORE_OPERATIONS.GET} (key: ${key})`,
+      );
     }
   }
 
@@ -322,7 +328,7 @@ export class CacheService {
         }
 
         // 仍然没有缓存，直接执行回调（可能会有短暂的重复计算）
-        this.logger.warn(CACHE_MESSAGES.WARNINGS.LOCK_TIMEOUT, { 
+        this.logger.warn(CACHE_MESSAGES.WARNINGS.LOCK_TIMEOUT, {
           context: "CacheService",
           operation: "getOrSet",
           key,
@@ -333,9 +339,14 @@ export class CacheService {
     } catch (error) {
       // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.GET_OR_SET, key);
+        throw new CacheConnectionException(
+          CACHE_CORE_OPERATIONS.GET_OR_SET,
+          key,
+        );
       }
-      throw new ServiceUnavailableException(`缓存获取或设置失败: ${CACHE_CORE_OPERATIONS.GET_OR_SET} (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `缓存获取或设置失败: ${CACHE_CORE_OPERATIONS.GET_OR_SET} (key: ${key})`,
+      );
     }
   }
 
@@ -352,7 +363,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("listPush", key);
       }
-      throw new ServiceUnavailableException(`列表推送失败: listPush (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `列表推送失败: listPush (key: ${key})`,
+      );
     }
   }
 
@@ -364,7 +377,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("listTrim", key);
       }
-      throw new ServiceUnavailableException(`列表修剪失败: listTrim (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `列表修剪失败: listTrim (key: ${key})`,
+      );
     }
   }
 
@@ -403,7 +418,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("setAdd", key);
       }
-      throw new ServiceUnavailableException(`集合添加失败: setAdd (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `集合添加失败: setAdd (key: ${key})`,
+      );
     }
   }
 
@@ -458,7 +475,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("setRemove", key);
       }
-      throw new ServiceUnavailableException(`集合移除失败: setRemove (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `集合移除失败: setRemove (key: ${key})`,
+      );
     }
   }
 
@@ -477,7 +496,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("hashIncrementBy", key);
       }
-      throw new ServiceUnavailableException(`哈希增加失败: hashIncrementBy (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `哈希增加失败: hashIncrementBy (key: ${key})`,
+      );
     }
   }
 
@@ -490,7 +511,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("hashSet", key);
       }
-      throw new ServiceUnavailableException(`哈希设置失败: hashSet (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `哈希设置失败: hashSet (key: ${key})`,
+      );
     }
   }
 
@@ -524,7 +547,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("expire", key);
       }
-      throw new ServiceUnavailableException(`设置过期失败: expire (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `设置过期失败: expire (key: ${key})`,
+      );
     }
   }
 
@@ -541,7 +566,7 @@ export class CacheService {
     if (keys.length > maxBatchSize) {
       // 🔧 简化异常处理: 使用标准NestJS异常
       throw new BadRequestException(
-        `批量获取超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`
+        `批量获取超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`,
       );
     }
 
@@ -589,9 +614,14 @@ export class CacheService {
       );
       // 🔧 简化异常处理: 使用标净NestJS异常
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.MGET, keys.join(','));
+        throw new CacheConnectionException(
+          CACHE_CORE_OPERATIONS.MGET,
+          keys.join(","),
+        );
       }
-      throw new ServiceUnavailableException(`批量获取操作失败: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `批量获取操作失败: ${error.message}`,
+      );
     }
 
     return result;
@@ -611,7 +641,7 @@ export class CacheService {
     if (entries.size > maxBatchSize) {
       // 🔧 简化异常处理: 使用标准NestJS异常
       throw new BadRequestException(
-        `批量设置超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`
+        `批量设置超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`,
       );
     }
 
@@ -643,10 +673,12 @@ export class CacheService {
     } catch (error) {
       // 🔧 简化异帰处理: 使用标准NestJS异常
       if (this.isConnectionError(error)) {
-        const keyList = Array.from(entries.keys()).join(',');
+        const keyList = Array.from(entries.keys()).join(",");
         throw new CacheConnectionException(CACHE_CORE_OPERATIONS.MSET, keyList);
       }
-      throw new ServiceUnavailableException(`批量设置操作失败: ${error.message}`);
+      throw new ServiceUnavailableException(
+        `批量设置操作失败: ${error.message}`,
+      );
     }
   }
 
@@ -665,9 +697,14 @@ export class CacheService {
       const cacheKey = Array.isArray(key) ? key.join(",") : key;
       // 🔧 简化异常处理: 使用标准NestJS异常
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.DELETE, cacheKey);
+        throw new CacheConnectionException(
+          CACHE_CORE_OPERATIONS.DELETE,
+          cacheKey,
+        );
       }
-      throw new ServiceUnavailableException(`缓存删除失败: ${CACHE_CORE_OPERATIONS.DELETE} (key: ${cacheKey})`);
+      throw new ServiceUnavailableException(
+        `缓存删除失败: ${CACHE_CORE_OPERATIONS.DELETE} (key: ${cacheKey})`,
+      );
     }
   }
 
@@ -684,9 +721,14 @@ export class CacheService {
       // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
       // 🔧 简化异常处理: 使用标准NestJS异常
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN, pattern);
+        throw new CacheConnectionException(
+          CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
+          pattern,
+        );
       }
-      throw new ServiceUnavailableException(`模式删除失败: ${CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN} (pattern: ${pattern})`);
+      throw new ServiceUnavailableException(
+        `模式删除失败: ${CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN} (pattern: ${pattern})`,
+      );
     }
   }
 
@@ -722,7 +764,8 @@ export class CacheService {
         },
       );
     } catch (error) {
-      this.logger.error(CACHE_MESSAGES.ERRORS.WARMUP_FAILED, 
+      this.logger.error(
+        CACHE_MESSAGES.ERRORS.WARMUP_FAILED,
         sanitizeLogData({
           context: "CacheService",
           operation: "warmup",
@@ -730,7 +773,7 @@ export class CacheService {
           error: error.message,
           stack: error.stack,
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
     }
   }
@@ -780,7 +823,7 @@ export class CacheService {
       default:
         throw new CacheSerializationException(
           CACHE_INTERNAL_OPERATIONS.SERIALIZE,
-          serializerType
+          serializerType,
         );
     }
 
@@ -795,7 +838,8 @@ export class CacheService {
         sizeInBytes,
         maxSizeBytes,
         sizeMB: Math.round((sizeInBytes / (1024 * 1024)) * 100) / 100,
-        recommendation: "Consider compressing large values or reducing data size",
+        recommendation:
+          "Consider compressing large values or reducing data size",
         timestamp: new Date().toISOString(),
       });
     }
@@ -821,7 +865,7 @@ export class CacheService {
       default:
         throw new CacheSerializationException(
           CACHE_INTERNAL_OPERATIONS.DESERIALIZE,
-          deserializerType
+          deserializerType,
         );
     }
   }
@@ -847,7 +891,7 @@ export class CacheService {
     } catch (error) {
       this.logger.warn(
         CACHE_MESSAGES.ERRORS.COMPRESSION_FAILED,
-        sanitizeLogData({ 
+        sanitizeLogData({
           context: "CacheService",
           operation: "compress",
           error: error.message,
@@ -872,7 +916,7 @@ export class CacheService {
     } catch (error) {
       this.logger.warn(
         CACHE_MESSAGES.ERRORS.DECOMPRESSION_FAILED,
-        sanitizeLogData({ 
+        sanitizeLogData({
           context: "CacheService",
           operation: "decompress",
           error: error.message,
@@ -1009,7 +1053,8 @@ export class CacheService {
     try {
       return await this.get<T>(key);
     } catch (error) {
-      this.logger.warn("缓存读取失败，优雅降级", 
+      this.logger.warn(
+        "缓存读取失败，优雅降级",
         sanitizeLogData({
           context: "CacheService",
           operation: "safeGet",
@@ -1017,7 +1062,7 @@ export class CacheService {
           error: error.message,
           impact: "fallback_to_null",
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
       return null;
     }
@@ -1038,7 +1083,8 @@ export class CacheService {
     try {
       await this.set(key, value, options);
     } catch (error) {
-      this.logger.warn("缓存写入失败，忽略错误", 
+      this.logger.warn(
+        "缓存写入失败，忽略错误",
         sanitizeLogData({
           context: "CacheService",
           operation: "safeSet",
@@ -1046,7 +1092,7 @@ export class CacheService {
           error: error.message,
           impact: "cache_miss_on_next_read",
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
       // 不抛出异常，保证监控逻辑继续执行
     }
@@ -1068,7 +1114,8 @@ export class CacheService {
     try {
       return await this.getOrSet<T>(key, factory, options);
     } catch (error) {
-      this.logger.warn("缓存操作失败，直接调用工厂方法", 
+      this.logger.warn(
+        "缓存操作失败，直接调用工厂方法",
         sanitizeLogData({
           context: "CacheService",
           operation: "safeGetOrSet",
@@ -1076,7 +1123,7 @@ export class CacheService {
           error: error.message,
           impact: "fallback_to_factory",
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
       return await factory();
     }
@@ -1116,7 +1163,8 @@ export class CacheService {
     try {
       return await this.redis.zcard(key);
     } catch (error) {
-      this.logger.error("获取有序集合大小失败", 
+      this.logger.error(
+        "获取有序集合大小失败",
         sanitizeLogData({
           context: "CacheService",
           operation: "zcard",
@@ -1124,7 +1172,7 @@ export class CacheService {
           error: error.message,
           impact: "returned_zero",
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
       // 限流相关的非关键功能，返回0而不是抛异常
       return 0;
@@ -1139,7 +1187,8 @@ export class CacheService {
     try {
       return await this.redis.zrange(key, start, stop);
     } catch (error) {
-      this.logger.error("获取有序集合范围失败", 
+      this.logger.error(
+        "获取有序集合范围失败",
         sanitizeLogData({
           context: "CacheService",
           operation: "zrange",
@@ -1149,7 +1198,7 @@ export class CacheService {
           error: error.message,
           impact: "returned_empty_array",
           timestamp: new Date().toISOString(),
-        })
+        }),
       );
       // 限流相关的非关键功能，返回空数组而不是抛异常
       return [];
@@ -1168,7 +1217,9 @@ export class CacheService {
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("incr", key);
       }
-      throw new ServiceUnavailableException(`计数器增加失败: incr (key: ${key})`);
+      throw new ServiceUnavailableException(
+        `计数器增加失败: incr (key: ${key})`,
+      );
     }
   }
 }

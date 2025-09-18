@@ -383,7 +383,8 @@ class MonitoringConfigValidator {
     ];
 
     // 检查是否有遗留的旧环境变量仍在使用
-    const legacyEnvPattern = /^MONITORING_(TTL_|BATCH_|ALERT_BATCH_|DATA_BATCH_)/;
+    const legacyEnvPattern =
+      /^MONITORING_(TTL_|BATCH_|ALERT_BATCH_|DATA_BATCH_)/;
     for (const envVar in process.env) {
       if (legacyEnvPattern.test(envVar)) {
         overlaps.push(`检测到废弃环境变量: ${envVar} - 应使用统一环境变量替代`);
@@ -615,7 +616,6 @@ class MonitoringConfigValidator {
         report += `  • ${invalid}\n`;
       });
     }
-
 
     // 配置重复检测结果
     report +=

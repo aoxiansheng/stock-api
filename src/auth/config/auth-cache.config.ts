@@ -77,7 +77,8 @@ export class AuthCacheConfigValidation {
    * 刷新令牌的默认有效期设置
    */
   @IsString()
-  refreshTokenDefaultExpiry: string = process.env.AUTH_REFRESH_TOKEN_DEFAULT_EXPIRY || "7d";
+  refreshTokenDefaultExpiry: string =
+    process.env.AUTH_REFRESH_TOKEN_DEFAULT_EXPIRY || "7d";
 }
 
 /**

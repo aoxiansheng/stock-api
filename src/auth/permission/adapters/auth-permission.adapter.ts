@@ -76,9 +76,7 @@ export class AuthPermissionConstants implements PermissionConstants {
         const { PERMISSIONS_KEY } = await import(
           "../../decorators/permissions.decorator"
         );
-        const { Permission } = await import(
-          "../../enums/user-role.enum"
-        );
+        const { Permission } = await import("../../enums/user-role.enum");
 
         authConstants = {
           REQUIRE_API_KEY,

@@ -30,13 +30,16 @@ import { AuthLoggingUtil } from "../../utils/auth-logging.util";
  */
 @Injectable()
 export class ApiKeyManagementService {
-  private readonly logger = AuthLoggingUtil.createOptimizedLogger(ApiKeyManagementService.name);
+  private readonly logger = AuthLoggingUtil.createOptimizedLogger(
+    ApiKeyManagementService.name,
+  );
 
   constructor(
     @InjectModel(ApiKey.name)
     private readonly apiKeyModel: Model<ApiKeyDocument>,
     private readonly userRepository: UserRepository,
-    @Inject('authUnified') private readonly authConfig: AuthUnifiedConfigInterface,
+    @Inject("authUnified")
+    private readonly authConfig: AuthUnifiedConfigInterface,
     private readonly cacheService: CacheService,
   ) {}
 
@@ -144,20 +147,27 @@ export class ApiKeyManagementService {
     appKey: string,
     accessToken: string,
   ): Promise<ApiKeyDocument> {
-    this.logger.highFrequency("验证API密钥", AuthLoggingUtil.sanitizeLogData({ appKey }));
+    this.logger.highFrequency(
+      "验证API密钥",
+      AuthLoggingUtil.sanitizeLogData({ appKey }),
+    );
 
     // 生成缓存键
     const cacheKey = this.generateApiKeyCacheKey(appKey, accessToken);
 
     try {
       // 首先尝试从缓存获取
-      const cachedApiKey = await this.cacheService.get<ApiKeyDocument>(cacheKey);
-      
+      const cachedApiKey =
+        await this.cacheService.get<ApiKeyDocument>(cacheKey);
+
       if (cachedApiKey) {
         this.logger.highFrequency("API密钥验证命中缓存", { appKey });
-        
+
         // 检查缓存的API密钥是否过期
-        if (cachedApiKey.expiresAt && new Date(cachedApiKey.expiresAt) < new Date()) {
+        if (
+          cachedApiKey.expiresAt &&
+          new Date(cachedApiKey.expiresAt) < new Date()
+        ) {
           this.logger.warn("缓存的API密钥已过期", {
             appKey,
             expiresAt: cachedApiKey.expiresAt,
@@ -169,18 +179,21 @@ export class ApiKeyManagementService {
 
         // 异步更新使用统计（不影响响应时间）
         setImmediate(() => {
-          this.updateApiKeyUsageAsync(cachedApiKey._id.toString()).catch((error) =>
-            this.logger.error("更新API密钥使用统计失败", {
-              apiKeyId: cachedApiKey._id.toString(),
-              error: error.message,
-            }),
+          this.updateApiKeyUsageAsync(cachedApiKey._id.toString()).catch(
+            (error) =>
+              this.logger.error("更新API密钥使用统计失败", {
+                apiKeyId: cachedApiKey._id.toString(),
+                error: error.message,
+              }),
           );
         });
 
         return cachedApiKey;
       }
 
-      this.logger.highFrequency("API密钥验证缓存未命中，查询数据库", { appKey });
+      this.logger.highFrequency("API密钥验证缓存未命中，查询数据库", {
+        appKey,
+      });
 
       // 缓存未命中，查询数据库
       const apiKey = await this.apiKeyModel
@@ -226,13 +239,12 @@ export class ApiKeyManagementService {
       });
 
       return apiKey;
-      
     } catch (error) {
       // 如果是业务异常（如无效凭证、过期），直接抛出
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       // 缓存服务异常时，回退到数据库查询
       this.logger.warn("缓存服务异常，回退到数据库查询", {
         appKey,
@@ -624,12 +636,12 @@ export class ApiKeyManagementService {
    */
   private generateApiKeyCacheKey(appKey: string, accessToken: string): string {
     // 使用SHA256哈希避免敏感信息泄露，同时确保键的唯一性
-    const crypto = require('crypto');
+    const crypto = require("crypto");
     const hash = crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(`${appKey}:${accessToken}`)
-      .digest('hex');
-    
+      .digest("hex");
+
     return `${this.cacheConfig.API_KEY_CACHE_PREFIX}:${hash}`;
   }
 
@@ -637,7 +649,10 @@ export class ApiKeyManagementService {
    * 使API密钥缓存失效
    * 当API密钥被撤销、更新或状态改变时调用
    */
-  async invalidateApiKeyCache(appKey: string, accessToken?: string): Promise<void> {
+  async invalidateApiKeyCache(
+    appKey: string,
+    accessToken?: string,
+  ): Promise<void> {
     try {
       if (accessToken) {
         // 清除特定API密钥的缓存

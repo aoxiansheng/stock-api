@@ -10,7 +10,7 @@ import {
 
 // 简化的健康状态定义，避免循环依赖
 const HEALTH_STATUSES = ["healthy", "warning", "unhealthy"] as const;
-type HealthStatus = typeof HEALTH_STATUSES[number];
+type HealthStatus = (typeof HEALTH_STATUSES)[number];
 
 /**
  * 缓存健康检查结果DTO

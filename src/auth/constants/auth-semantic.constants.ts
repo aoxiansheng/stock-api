@@ -46,11 +46,6 @@ export const API_KEY_VALIDATION = deepFreeze({
   MAX_NAME_LENGTH: 100,
 } as const);
 
-export const JWT_TOKEN_CONFIG = deepFreeze({
-  // 固定的JWT格式验证正则 - 标准格式不变
-  PATTERN: /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/, // JWT格式验证
-} as const);
-
 // ================================
 // 频率限制枚举标准
 // ================================
@@ -62,48 +57,14 @@ export enum RateLimitStrategy {
   LEAKY_BUCKET = "leaky_bucket",
 }
 
-export enum RateLimitTier {
-  FREE = "free",
-  BASIC = "basic",
-  PREMIUM = "premium",
-  ENTERPRISE = "enterprise",
-  INTERNAL = "internal",
-}
-
-export enum RateLimitScope {
-  GLOBAL = "global",
-  PER_USER = "per_user",
-  PER_IP = "per_ip",
-  PER_API_KEY = "per_api_key",
-  PER_ENDPOINT = "per_endpoint",
-}
-
-export const RATE_LIMIT_SCOPES = deepFreeze({
-  GLOBAL: "global", // 全局限制
-  PER_USER: "per_user", // 按用户限制
-  PER_IP: "per_ip", // 按IP限制
-  PER_API_KEY: "per_api_key", // 按API Key限制
-  PER_ENDPOINT: "per_endpoint", // 按端点限制
-} as const);
-
-// 时间单位转换 - 固定标准
-export const TIME_UNITS = deepFreeze({
-  SECOND: "s",
-  MINUTE: "m",
-  HOUR: "h",
-  DAY: "d",
-  WEEK: "w",
-  MONTH: "M",
-} as const);
-
 // 时间倍数转换 - 秒为基础单位的倍数
 export const TIME_MULTIPLIERS = deepFreeze({
-  [TIME_UNITS.SECOND]: 1, // 1秒 = 1秒
-  [TIME_UNITS.MINUTE]: 60, // 1分钟 = 60秒
-  [TIME_UNITS.HOUR]: 3600, // 1小时 = 3600秒
-  [TIME_UNITS.DAY]: 86400, // 1天 = 86400秒
-  [TIME_UNITS.WEEK]: 604800, // 1周 = 604800秒
-  [TIME_UNITS.MONTH]: 2592000, // 1月 = 2592000秒（30天近似）
+  s: 1, // 1秒 = 1秒
+  m: 60, // 1分钟 = 60秒
+  h: 3600, // 1小时 = 3600秒
+  d: 86400, // 1天 = 86400秒
+  w: 604800, // 1周 = 604800秒
+  M: 2592000, // 1月 = 2592000秒（30天近似）
 } as const);
 
 export const RATE_LIMIT_VALIDATION = deepFreeze({
@@ -119,66 +80,6 @@ export const RATE_LIMIT_VALIDATION = deepFreeze({
 // ================================
 // 权限控制枚举标准
 // ================================
-
-export const PERMISSION_LEVELS = deepFreeze({
-  NONE: 0, // 无权限
-  READ: 1, // 读权限
-  WRITE: 2, // 写权限
-  DELETE: 3, // 删除权限
-  ADMIN: 4, // 管理权限
-  SUPER_ADMIN: 5, // 超级管理权限
-} as const);
-
-export const PERMISSION_SUBJECTS = deepFreeze({
-  USER: "user", // 普通用户
-  API_KEY: "api_key", // API密钥
-  SERVICE: "service", // 系统服务
-  SYSTEM: "system", // 系统级
-  GUEST: "guest", // 访客用户
-  ADMIN: "admin", // 管理员
-} as const);
-
-export const PERMISSION_CHECK_STATUS = deepFreeze({
-  ALLOWED: "allowed", // 权限检查通过
-  DENIED: "denied", // 权限检查被拒绝
-  ERROR: "error", // 权限检查过程出错
-} as const);
-
-export const PERMISSION_VALIDATION = deepFreeze({
-  // 固定的验证正则表达式 - 业务规则标准
-  SUBJECT_ID_PATTERN: /^[a-zA-Z0-9_-]+$/, // 主体ID格式
-  PERMISSION_PATTERN: /^[a-zA-Z0-9_:.-]+$/, // 权限名格式
-  ROLE_PATTERN: /^[a-zA-Z0-9_-]+$/, // 角色名格式
-} as const);
-
-export const PERMISSION_GROUPS = deepFreeze({
-  STOCK_DATA: "stock_data", // 股票数据权限组
-  USER_MANAGEMENT: "user_management", // 用户管理权限组
-  API_MANAGEMENT: "api_management", // API管理权限组
-  SYSTEM_ADMIN: "system_admin", // 系统管理权限组
-  MONITORING: "monitoring", // 监控权限组
-  SECURITY: "security", // 安全权限组
-  REPORTING: "reporting", // 报告权限组
-  CONFIGURATION: "configuration", // 配置权限组
-} as const);
-
-export const PERMISSION_CHECK_OPTIONS = deepFreeze({
-  STRICT_MODE: "strict", // 严格模式
-  LENIENT_MODE: "lenient", // 宽松模式
-  CACHE_ENABLED: "cache_enabled", // 缓存启用
-  CACHE_DISABLED: "cache_disabled", // 缓存禁用
-  LOG_ENABLED: "log_enabled", // 日志启用
-  LOG_DISABLED: "log_disabled", // 日志禁用
-  DETAILED_RESULT: "detailed_result", // 详细结果
-  SIMPLE_RESULT: "simple_result", // 简单结果
-} as const);
-
-export const PERMISSION_INHERITANCE = deepFreeze({
-  ROLE_BASED: "role_based", // 基于角色继承
-  PERMISSION_BASED: "permission_based", // 基于权限继承
-  HYBRID: "hybrid", // 混合继承
-  NONE: "none", // 无继承
-} as const);
 
 export const PERMISSION_CONFIG = deepFreeze({
   CACHE_KEY_SEPARATOR: ":", // 缓存键分隔符
@@ -254,22 +155,12 @@ export const AUTH_SEMANTIC_CONSTANTS = deepFreeze({
   // API Key相关
   API_KEY_FORMAT,
   API_KEY_VALIDATION,
-  JWT_TOKEN_CONFIG,
 
   // 频率限制相关
-  RATE_LIMIT_SCOPES,
-  TIME_UNITS,
   TIME_MULTIPLIERS,
   RATE_LIMIT_VALIDATION,
 
   // 权限控制相关
-  PERMISSION_LEVELS,
-  PERMISSION_SUBJECTS,
-  PERMISSION_CHECK_STATUS,
-  PERMISSION_VALIDATION,
-  PERMISSION_GROUPS,
-  PERMISSION_CHECK_OPTIONS,
-  PERMISSION_INHERITANCE,
   PERMISSION_CONFIG,
 
   // 用户操作相关

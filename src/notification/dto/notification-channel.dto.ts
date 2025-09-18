@@ -336,7 +336,6 @@ export class CreateNotificationDto {
   metadata?: Record<string, any>;
 }
 
-
 /**
  * 通知响应DTO
  */

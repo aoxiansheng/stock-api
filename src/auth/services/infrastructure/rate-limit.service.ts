@@ -28,9 +28,7 @@ export class RateLimitService {
   private readonly logger = createLogger(RateLimitService.name);
   private readonly luaScriptsService = new RateLimitLuaScriptsService();
 
-  constructor(
-    private readonly cacheService: CacheService,
-  ) {}
+  constructor(private readonly cacheService: CacheService) {}
 
   // 统一配置访问方法
   private get config() {

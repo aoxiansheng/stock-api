@@ -80,11 +80,15 @@ describe("SecurityMiddleware Performance Tests", () => {
 
     // Setup HttpHeadersUtil mocks for successful processing
     (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("1024");
-    (HttpHeadersUtil.getContentType as jest.Mock).mockReturnValue("application/json");
+    (HttpHeadersUtil.getContentType as jest.Mock).mockReturnValue(
+      "application/json",
+    );
     (HttpHeadersUtil.getClientIP as jest.Mock).mockReturnValue("192.168.1.1");
     (HttpHeadersUtil.getUserAgent as jest.Mock).mockReturnValue("Test Browser");
     (HttpHeadersUtil.getSafeHeaders as jest.Mock).mockReturnValue({});
-    (HttpHeadersUtil.setSecurityHeaders as jest.Mock).mockImplementation(() => {});
+    (HttpHeadersUtil.setSecurityHeaders as jest.Mock).mockImplementation(
+      () => {},
+    );
   });
 
   afterEach(() => {
@@ -98,7 +102,11 @@ describe("SecurityMiddleware Performance Tests", () => {
 
       for (let i = 0; i < iterations; i++) {
         jest.clearAllMocks();
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext,
+        );
       }
 
       const endTime = process.hrtime.bigint();
@@ -107,7 +115,9 @@ describe("SecurityMiddleware Performance Tests", () => {
       // 平均每个请求处理时间应该 < 1ms
       const avgTimePerRequest = durationMs / iterations;
       console.log(`平均每个请求处理时间: ${avgTimePerRequest.toFixed(3)}ms`);
-      console.log(`总处理时间: ${durationMs.toFixed(3)}ms (${iterations} 次请求)`);
+      console.log(
+        `总处理时间: ${durationMs.toFixed(3)}ms (${iterations} 次请求)`,
+      );
 
       expect(avgTimePerRequest).toBeLessThan(1); // 每个请求 < 1ms
       expect(mockNext).toHaveBeenCalledTimes(iterations);
@@ -116,7 +126,10 @@ describe("SecurityMiddleware Performance Tests", () => {
     it("输入清理功能性能测试", () => {
       const largeBody = {
         text: "A".repeat(1000),
-        array: Array.from({ length: 100 }, (_, i) => ({ id: i, value: `value${i}` })),
+        array: Array.from({ length: 100 }, (_, i) => ({
+          id: i,
+          value: `value${i}`,
+        })),
         nested: {
           level1: {
             level2: {
@@ -132,7 +145,11 @@ describe("SecurityMiddleware Performance Tests", () => {
 
       for (let i = 0; i < iterations; i++) {
         jest.clearAllMocks();
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext,
+        );
       }
 
       const endTime = process.hrtime.bigint();
@@ -149,7 +166,8 @@ describe("SecurityMiddleware Performance Tests", () => {
     it("多种安全检查综合性能测试", () => {
       const complexRequest = {
         ...mockRequest,
-        originalUrl: "/api/complex/endpoint?param1=value1&param2=value2&param3=value3",
+        originalUrl:
+          "/api/complex/endpoint?param1=value1&param2=value2&param3=value3",
         body: {
           userInput: "<script>alert('test')</script>Hello World",
           data: {
@@ -164,7 +182,7 @@ describe("SecurityMiddleware Performance Tests", () => {
           },
         },
         query: Object.fromEntries(
-          Array.from({ length: 20 }, (_, i) => [`param${i}`, `value${i}`])
+          Array.from({ length: 20 }, (_, i) => [`param${i}`, `value${i}`]),
         ),
       };
 
@@ -173,7 +191,11 @@ describe("SecurityMiddleware Performance Tests", () => {
 
       for (let i = 0; i < iterations; i++) {
         jest.clearAllMocks();
-        securityMiddleware.use(complexRequest as Request, mockResponse as Response, mockNext);
+        securityMiddleware.use(
+          complexRequest as Request,
+          mockResponse as Response,
+          mockNext,
+        );
       }
 
       const endTime = process.hrtime.bigint();
@@ -191,7 +213,9 @@ describe("SecurityMiddleware Performance Tests", () => {
   describe("异常处理性能测试", () => {
     it("异常抛出不应该显著影响性能", () => {
       // 设置会触发异常的条件
-      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("20971520"); // 20MB
+      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue(
+        "20971520",
+      ); // 20MB
 
       const iterations = 100;
       const startTime = process.hrtime.bigint();
@@ -200,7 +224,11 @@ describe("SecurityMiddleware Performance Tests", () => {
       for (let i = 0; i < iterations; i++) {
         jest.clearAllMocks();
         try {
-          securityMiddleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+          securityMiddleware.use(
+            mockRequest as Request,
+            mockResponse as Response,
+            mockNext,
+          );
         } catch (error) {
           exceptionCount++;
         }
@@ -233,7 +261,10 @@ describe("SecurityMiddleware Performance Tests", () => {
           iterations: 500,
           expectedMaxTime: 1.5, // 1.5ms per request
           body: {
-            data: Array.from({ length: 50 }, (_, i) => ({ id: i, name: `item${i}` })),
+            data: Array.from({ length: 50 }, (_, i) => ({
+              id: i,
+              name: `item${i}`,
+            })),
           },
         },
         {
@@ -242,7 +273,10 @@ describe("SecurityMiddleware Performance Tests", () => {
           expectedMaxTime: 3, // 3ms per request
           body: {
             largeText: "x".repeat(5000),
-            array: Array.from({ length: 200 }, (_, i) => ({ id: i, data: `data${i}` })),
+            array: Array.from({ length: 200 }, (_, i) => ({
+              id: i,
+              data: `data${i}`,
+            })),
           },
         },
       ];
@@ -253,14 +287,20 @@ describe("SecurityMiddleware Performance Tests", () => {
 
         for (let i = 0; i < scenario.iterations; i++) {
           jest.clearAllMocks();
-          securityMiddleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+          securityMiddleware.use(
+            mockRequest as Request,
+            mockResponse as Response,
+            mockNext,
+          );
         }
 
         const endTime = process.hrtime.bigint();
         const durationMs = Number(endTime - startTime) / 1000000;
         const avgTimePerRequest = durationMs / scenario.iterations;
 
-        console.log(`${scenario.name} - 平均时间: ${avgTimePerRequest.toFixed(3)}ms`);
+        console.log(
+          `${scenario.name} - 平均时间: ${avgTimePerRequest.toFixed(3)}ms`,
+        );
 
         expect(avgTimePerRequest).toBeLessThan(scenario.expectedMaxTime);
         expect(mockNext).toHaveBeenCalledTimes(scenario.iterations);
@@ -275,7 +315,7 @@ describe("SecurityMiddleware Performance Tests", () => {
 
       for (let i = 0; i < iterations; i++) {
         jest.clearAllMocks();
-        
+
         // 模拟不同的请求模式
         mockRequest.body = {
           id: i,
@@ -284,7 +324,11 @@ describe("SecurityMiddleware Performance Tests", () => {
           payload: Array.from({ length: 10 }, (_, j) => `item_${i}_${j}`),
         };
 
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, mockNext);
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext,
+        );
 
         // 每100次迭代强制垃圾回收
         if (i % 100 === 0 && global.gc) {

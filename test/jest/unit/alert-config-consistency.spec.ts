@@ -24,9 +24,9 @@ import alertPerformanceConfig, {
 // during the unified cache configuration migration
 
 // 新配置系统导入 (替代过时常量)
-import { ConfigType } from '@nestjs/config';
-import unifiedTtlConfig from '@appcore/config/unified-ttl.config';
-import commonConstantsConfig from '@common/config/common-constants.config';
+import { ConfigType } from "@nestjs/config";
+import unifiedTtlConfig from "@appcore/config/unified-ttl.config";
+import commonConstantsConfig from "@common/config/common-constants.config";
 import { ALERT_DEFAULTS } from "@alert/constants/defaults.constants";
 import { RETRY_LIMITS } from "@alert/constants/limits.constants";
 
@@ -42,11 +42,11 @@ describe("Alert配置一致性测试", () => {
       imports: [
         ConfigModule.forRoot({
           load: [
-            alertConfig, 
-            alertCacheConfig, 
+            alertConfig,
+            alertCacheConfig,
             alertPerformanceConfig,
             unifiedTtlConfig,
-            commonConstantsConfig
+            commonConstantsConfig,
           ],
           isGlobal: true,
         }),
@@ -397,20 +397,20 @@ describe("Alert配置一致性测试", () => {
 
     it("新配置值应该与过时常量保持兼容", () => {
       const commonConstantsConfigData = configService.get("commonConstants");
-      
+
       // 验证新配置提供的值与过时常量在合理范围内
       expect(commonConstantsConfigData.maxRetryAttempts).toBeGreaterThanOrEqual(
-        ALERT_VALIDATION_LIMITS.RETRIES_MIN
+        ALERT_VALIDATION_LIMITS.RETRIES_MIN,
       );
       expect(commonConstantsConfigData.maxRetryAttempts).toBeLessThanOrEqual(
-        ALERT_VALIDATION_LIMITS.RETRIES_MAX
+        ALERT_VALIDATION_LIMITS.RETRIES_MAX,
       );
-      
+
       expect(commonConstantsConfigData.defaultTimeoutMs).toBeGreaterThanOrEqual(
-        ALERT_VALIDATION_LIMITS.TIMEOUT_MIN
+        ALERT_VALIDATION_LIMITS.TIMEOUT_MIN,
       );
       expect(commonConstantsConfigData.defaultTimeoutMs).toBeLessThanOrEqual(
-        ALERT_VALIDATION_LIMITS.TIMEOUT_MAX
+        ALERT_VALIDATION_LIMITS.TIMEOUT_MAX,
       );
     });
 

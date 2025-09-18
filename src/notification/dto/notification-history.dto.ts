@@ -389,4 +389,3 @@ export class NotificationStatsDto {
   })
   byStatus: Record<NotificationStatus, number>;
 }
-

@@ -10,7 +10,7 @@ export const AuthType = AuthenticationType;
 export type AuthType = AuthenticationType;
 
 /**
- * 认证主体类型枚举 
+ * 认证主体类型枚举
  * 使用共享的 AuthenticationType 以消除 "api_key" 重复
  */
 export enum AuthSubjectType {

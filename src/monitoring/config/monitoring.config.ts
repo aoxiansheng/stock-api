@@ -17,11 +17,7 @@ import {
   validateSync,
 } from "class-validator";
 import { plainToClass, Transform, Type } from "class-transformer";
-import {
-  MonitoringUnifiedTtl,
-  MonitoringUnifiedLimitsConfig,
-} from "./unified";
-
+import { MonitoringUnifiedTtl, MonitoringUnifiedLimitsConfig } from "./unified";
 
 /**
  * 监控配置缓存部分的验证类
@@ -62,7 +58,6 @@ export class MonitoringCacheConfig {
   @Max(100)
   @Transform(({ value }) => parseInt(value, 10) || 10)
   fallbackThreshold: number = 10;
-
 
   /** 监控数据批处理大小
    * 用途：批量处理监控数据时的批次大小，影响处理效率和内存使用
@@ -189,7 +184,6 @@ export interface MonitoringConfig {
     /** 回退次数告警阈值 - 连续回退多少次后触发告警 */
     fallbackThreshold: number;
 
-
     /** 监控数据批处理大小 - 批量处理监控数据时的批次大小 */
     batchSize: number;
   };
@@ -233,10 +227,14 @@ export interface MonitoringConfig {
 // 核心环境变量获取 - 简化版，完整配置请使用 MonitoringUnifiedTtl
 const getCoreEnvValues = () => {
   const defaultTtl = parseInt(process.env.MONITORING_DEFAULT_TTL) || 300;
-  const defaultBatchSize = parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
-  const apiResponseGood = parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
-  const cacheHitThreshold = parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
-  const errorRateThreshold = parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
+  const defaultBatchSize =
+    parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
+  const apiResponseGood =
+    parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
+  const cacheHitThreshold =
+    parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
+  const errorRateThreshold =
+    parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
   const autoAnalysis = process.env.MONITORING_AUTO_ANALYSIS !== "false";
   const eventRetry = parseInt(process.env.MONITORING_EVENT_RETRY) || 3;
   const namespace = process.env.MONITORING_NAMESPACE || "monitoring";
@@ -244,7 +242,7 @@ const getCoreEnvValues = () => {
   return {
     defaultTtl,
     defaultBatchSize,
-    apiResponseGood, 
+    apiResponseGood,
     cacheHitThreshold,
     errorRateThreshold,
     autoAnalysis,
@@ -268,7 +266,6 @@ export const DEFAULT_MONITORING_CONFIG: MonitoringConfig = {
 
     // 回退告警阈值 - 保持固定值，不需要环境变量控制
     fallbackThreshold: 10,
-
 
     // 使用核心环境变量 MONITORING_DEFAULT_BATCH_SIZE
     batchSize: coreEnv.defaultBatchSize,
@@ -322,7 +319,6 @@ export function validateMonitoringConfig(
   if (validated.cache.batchSize < 1) {
     throw new Error("监控缓存批处理大小必须大于0");
   }
-
 
   // 验证性能阈值 - 确保百分比值在有效范围内
   if (

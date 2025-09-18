@@ -71,14 +71,14 @@ export class CacheConfigResponse {
   @ApiProperty({ example: "缓存配置获取成功" })
   message: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: "缓存配置信息",
     example: {
       defaultTtl: 3600,
       maxSize: 1048576,
       enabled: true,
-      serializer: "json"
-    }
+      serializer: "json",
+    },
   })
   data: {
     defaultTtl: number;

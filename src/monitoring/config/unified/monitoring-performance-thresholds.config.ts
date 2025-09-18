@@ -1942,4 +1942,3 @@ export type SystemResourceType =
   | "disk"
   | "connection"
   | "fd";
-

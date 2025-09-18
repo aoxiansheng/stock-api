@@ -1,12 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNumber, IsOptional, IsBoolean, IsEnum } from "class-validator";
 import { BaseQueryDto } from "@common/dto/base-query.dto";
-import type {
-  SerializerType,
-} from "../../constants/cache.constants";
-import {
-  SERIALIZER_TYPE_VALUES,
-} from "../../constants/cache.constants";
+import type { SerializerType } from "../../constants/cache.constants";
+import { SERIALIZER_TYPE_VALUES } from "../../constants/cache.constants";
 
 import {
   CacheConfigSizeInfo,

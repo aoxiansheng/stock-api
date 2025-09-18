@@ -154,7 +154,6 @@ export class PresenterController {
     return this.presenterService.getEndpointMetrics(query);
   }
 
-
   /**
    * 获取数据库指标
    */

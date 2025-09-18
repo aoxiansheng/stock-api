@@ -33,7 +33,9 @@ export class MonitoringEventBridgeService
     private readonly metricsRegistry: MetricsRegistryService,
     private readonly configService: ConfigService,
   ) {
-    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>(
+      "monitoringUnifiedLimits",
+    );
     this.batcher = new EventBatcher(
       200, // Fast interval - could be configurable
       limitsConfig?.dataProcessingBatch?.standard || 10,

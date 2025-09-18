@@ -252,9 +252,18 @@ class MonitoringConfigPerformanceBenchmark {
       "常量访问性能",
       () => {
         // 访问TTL配置值
-        const ttlDefaults = MonitoringTtlUtils.getRecommendedTtl("health", "development");
-        const ttlProduction = MonitoringTtlUtils.getRecommendedTtl("trend", "production");
-        const ttlTest = MonitoringTtlUtils.getRecommendedTtl("performance", "test");
+        const ttlDefaults = MonitoringTtlUtils.getRecommendedTtl(
+          "health",
+          "development",
+        );
+        const ttlProduction = MonitoringTtlUtils.getRecommendedTtl(
+          "trend",
+          "production",
+        );
+        const ttlTest = MonitoringTtlUtils.getRecommendedTtl(
+          "performance",
+          "test",
+        );
 
         // 访问批量限制配置值
         const limitsConfig = monitoringUnifiedLimitsConfig();

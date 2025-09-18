@@ -24,19 +24,19 @@ const AUTH_VALIDATION_LIMITS = {
   // 用户名限制
   USERNAME_MIN_LENGTH: 3,
   USERNAME_MAX_LENGTH: 32,
-  
+
   // 密码限制
   PASSWORD_MIN_LENGTH: 8,
   PASSWORD_MAX_LENGTH: 128,
-  
+
   // API Key限制
   API_KEY_LENGTH: 32,
   ACCESS_TOKEN_LENGTH: 64,
-  
+
   // 会话限制
   SESSION_TIMEOUT_MIN: 300, // 5分钟
   SESSION_TIMEOUT_MAX: 86400, // 24小时
-  
+
   // 权限限制
   ROLE_NAME_MAX_LENGTH: 50,
   PERMISSION_NAME_MAX_LENGTH: 100,
@@ -77,8 +77,12 @@ export function IsValidUsername(validationOptions?: ValidationOptions) {
           }
 
           // 不能以下划线或连字符开头/结尾
-          if (value.startsWith("_") || value.startsWith("-") || 
-              value.endsWith("_") || value.endsWith("-")) {
+          if (
+            value.startsWith("_") ||
+            value.startsWith("-") ||
+            value.endsWith("_") ||
+            value.endsWith("-")
+          ) {
             return false;
           }
 
@@ -100,7 +104,8 @@ export function IsStrongPassword(validationOptions?: ValidationOptions) {
       target: object.constructor,
       propertyName: propertyName,
       options: {
-        message: "密码必须是8-128个字符，包含至少一个大写字母、一个小写字母、一个数字",
+        message:
+          "密码必须是8-128个字符，包含至少一个大写字母、一个小写字母、一个数字",
         ...validationOptions,
       },
       validator: {
@@ -124,8 +129,13 @@ export function IsStrongPassword(validationOptions?: ValidationOptions) {
           const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
 
           // 至少包含三种字符类型
-          const typesCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length;
-          
+          const typesCount = [
+            hasUpperCase,
+            hasLowerCase,
+            hasNumbers,
+            hasSpecialChar,
+          ].filter(Boolean).length;
+
           return typesCount >= 3;
         },
       },

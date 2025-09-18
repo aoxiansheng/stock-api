@@ -45,14 +45,12 @@ export class SessionManagementService {
 
       // 更新用户最后登录时间（异步执行，不影响响应时间）
       setImmediate(() => {
-        this.userAuthService
-          .updateLastLoginTime(user.id)
-          .catch((error) =>
-            this.logger.error("更新最后登录时间失败", {
-              userId: user.id,
-              error: error.message,
-            }),
-          );
+        this.userAuthService.updateLastLoginTime(user.id).catch((error) =>
+          this.logger.error("更新最后登录时间失败", {
+            userId: user.id,
+            error: error.message,
+          }),
+        );
       });
 
       this.logger.log("用户会话创建成功", {

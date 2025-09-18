@@ -13,10 +13,10 @@
  */
 export enum AlertCacheKeyType {
   ACTIVE_ALERT = "active",
-  COOLDOWN = "cooldown", 
+  COOLDOWN = "cooldown",
   TIMESERIES = "timeseries",
   STATS = "stats",
-  BATCH_OPERATION = "batch"
+  BATCH_OPERATION = "batch",
 }
 
 /**
@@ -38,7 +38,7 @@ const DEFAULT_KEY_CONFIG: AlertCacheKeyConfig = {
   cooldownPrefix: "alert:cooldown",
   timeseriesPrefix: "alert:timeseries",
   statsPrefix: "alert:stats",
-  batchPrefix: "alert:batch"
+  batchPrefix: "alert:batch",
 } as const;
 
 /**
@@ -173,7 +173,7 @@ export class AlertCacheKeys {
     const patterns = [
       new RegExp(`^${this.config.activeAlertPrefix}:(.+)$`),
       new RegExp(`^${this.config.cooldownPrefix}:(.+)$`),
-      new RegExp(`^${this.config.timeseriesPrefix}:(.+)$`)
+      new RegExp(`^${this.config.timeseriesPrefix}:(.+)$`),
     ];
 
     for (const pattern of patterns) {
@@ -206,7 +206,7 @@ export class AlertCacheKeys {
    */
   getKeyType(cacheKey: string): AlertCacheKeyType | null {
     const types = Object.values(AlertCacheKeyType) as AlertCacheKeyType[];
-    
+
     for (const type of types) {
       if (this.isKeyOfType(cacheKey, type)) {
         return type;
@@ -226,7 +226,7 @@ export class AlertCacheKeys {
    * @returns 缓存键列表
    */
   batchActiveAlerts(ruleIds: string[]): string[] {
-    return ruleIds.map(ruleId => this.activeAlert(ruleId));
+    return ruleIds.map((ruleId) => this.activeAlert(ruleId));
   }
 
   /**
@@ -235,7 +235,7 @@ export class AlertCacheKeys {
    * @returns 缓存键列表
    */
   batchCooldowns(ruleIds: string[]): string[] {
-    return ruleIds.map(ruleId => this.cooldown(ruleId));
+    return ruleIds.map((ruleId) => this.cooldown(ruleId));
   }
 
   /**
@@ -244,7 +244,7 @@ export class AlertCacheKeys {
    * @returns 缓存键列表
    */
   batchTimeseries(ruleIds: string[]): string[] {
-    return ruleIds.map(ruleId => this.timeseries(ruleId));
+    return ruleIds.map((ruleId) => this.timeseries(ruleId));
   }
 
   // =================================
@@ -280,7 +280,13 @@ export class AlertCacheKeys {
     }
 
     // 对于需要规则ID的键类型，验证规则ID的存在
-    if ([AlertCacheKeyType.ACTIVE_ALERT, AlertCacheKeyType.COOLDOWN, AlertCacheKeyType.TIMESERIES].includes(keyType)) {
+    if (
+      [
+        AlertCacheKeyType.ACTIVE_ALERT,
+        AlertCacheKeyType.COOLDOWN,
+        AlertCacheKeyType.TIMESERIES,
+      ].includes(keyType)
+    ) {
       const ruleId = this.extractRuleId(cacheKey);
       if (!ruleId) {
         return { valid: false, error: "无法从缓存键中提取规则ID" };
@@ -309,15 +315,15 @@ export class AlertCacheKeys {
         activeAlert: this.activeAlertPattern(),
         cooldown: this.cooldownPattern(),
         timeseries: this.timeseriesPattern(),
-        allAlert: this.allAlertKeysPattern()
+        allAlert: this.allAlertKeysPattern(),
       },
       sampleKeys: {
         activeAlert: this.activeAlert(sampleRuleId),
         cooldown: this.cooldown(sampleRuleId),
         timeseries: this.timeseries(sampleRuleId),
         stats: this.stats("general"),
-        batchOperation: this.batchOperation(sampleOperationId)
-      }
+        batchOperation: this.batchOperation(sampleOperationId),
+      },
     };
   }
 }
@@ -333,6 +339,8 @@ export const alertCacheKeys = new AlertCacheKeys();
  * @param config 自定义配置
  * @returns Alert缓存键实例
  */
-export function createAlertCacheKeys(config?: Partial<AlertCacheKeyConfig>): AlertCacheKeys {
+export function createAlertCacheKeys(
+  config?: Partial<AlertCacheKeyConfig>,
+): AlertCacheKeys {
   return new AlertCacheKeys(config);
 }

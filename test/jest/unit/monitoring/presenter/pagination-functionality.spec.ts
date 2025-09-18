@@ -38,19 +38,23 @@ describe("监控组件分页功能单元测试（修复版）", () => {
         {
           provide: PaginationService,
           useValue: {
-            createPaginatedResponse: jest.fn().mockImplementation((items, page, limit, total) => ({
-              items,
-              pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNext: page < Math.ceil(total / limit),
-                hasPrev: page > 1,
-              },
-            })),
+            createPaginatedResponse: jest
+              .fn()
+              .mockImplementation((items, page, limit, total) => ({
+                items,
+                pagination: {
+                  page,
+                  limit,
+                  total,
+                  totalPages: Math.ceil(total / limit),
+                  hasNext: page < Math.ceil(total / limit),
+                  hasPrev: page > 1,
+                },
+              })),
             createPaginatedResponseFromQuery: jest.fn(),
-            validatePaginationParams: jest.fn().mockReturnValue({ isValid: true }),
+            validatePaginationParams: jest
+              .fn()
+              .mockReturnValue({ isValid: true }),
             normalizePaginationQuery: jest.fn().mockImplementation((query) => ({
               page: query.page || 1,
               limit: query.limit || 10,
@@ -64,23 +68,25 @@ describe("监控组件分页功能单元测试（修复版）", () => {
             getEndpointMetrics: jest
               .fn()
               .mockResolvedValue(mockRawEndpointData),
-            getEndpointMetricsWithPagination: jest.fn().mockImplementation((page, limit) => {
-              // 检查是否有特殊的数据集用于测试
-              if ((global as any).__testEmptyData) {
+            getEndpointMetricsWithPagination: jest
+              .fn()
+              .mockImplementation((page, limit) => {
+                // 检查是否有特殊的数据集用于测试
+                if ((global as any).__testEmptyData) {
+                  return Promise.resolve({
+                    items: [],
+                    total: 0,
+                  });
+                }
+
+                const start = (page - 1) * limit;
+                const end = start + limit;
+                const items = mockRawEndpointData.slice(start, end);
                 return Promise.resolve({
-                  items: [],
-                  total: 0,
+                  items,
+                  total: mockRawEndpointData.length,
                 });
-              }
-              
-              const start = (page - 1) * limit;
-              const end = start + limit;
-              const items = mockRawEndpointData.slice(start, end);
-              return Promise.resolve({
-                items,
-                total: mockRawEndpointData.length,
-              });
-            }),
+              }),
           },
         },
       ],
@@ -284,13 +290,13 @@ describe("监控组件分页功能单元测试（修复版）", () => {
 
       // 设置全局标志以触发空数据集处理
       (global as any).__testEmptyData = true;
-      
+
       const result = await presenterService.getEndpointMetrics(dto);
 
       expect(result.items).toHaveLength(0);
       expect(result.pagination.total).toBe(0);
       expect(result.pagination.totalPages).toBe(0);
-      
+
       // 清除全局标志
       (global as any).__testEmptyData = false;
     });
@@ -455,7 +461,7 @@ describe("监控组件分页功能单元测试（修复版）", () => {
         customMockData,
         1,
         10,
-        customMockData.length
+        customMockData.length,
       );
     });
   });

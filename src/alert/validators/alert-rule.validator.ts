@@ -24,14 +24,19 @@ export class AlertRuleValidator {
 
   constructor(
     private readonly configService: ConfigService,
-    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
+    @Inject("cacheUnified")
+    private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {}
 
   /**
    * 通用ObjectId验证辅助方法
    * 减少重复的try-catch代码
    */
-  private validateObjectId(id: string, errors: string[], fieldName: string): boolean {
+  private validateObjectId(
+    id: string,
+    errors: string[],
+    fieldName: string,
+  ): boolean {
     try {
       DatabaseValidationUtils.validateObjectId(id, fieldName);
       return true;
@@ -133,7 +138,9 @@ export class AlertRuleValidator {
 
     // 验证通知渠道
     if (!rule.channels || rule.channels.length === 0) {
-      errors.push(`${BUSINESS_ERROR_MESSAGES.REQUIRED_FIELD_MISSING}: 通知渠道`);
+      errors.push(
+        `${BUSINESS_ERROR_MESSAGES.REQUIRED_FIELD_MISSING}: 通知渠道`,
+      );
     } else {
       // 验证每个渠道的配置
       rule.channels.forEach((channel, index) => {
@@ -237,11 +244,9 @@ export class AlertRuleValidator {
     return {
       operator: ">",
       duration:
-        alertConfig?.validation?.duration?.min ||
-        this.cacheConfig.defaultTtl,
+        alertConfig?.validation?.duration?.min || this.cacheConfig.defaultTtl,
       cooldown:
-        alertConfig?.validation?.cooldown?.min ||
-        this.cacheConfig.defaultTtl,
+        alertConfig?.validation?.cooldown?.min || this.cacheConfig.defaultTtl,
       severity: "warning",
       enabled: true,
       tags: {},
@@ -262,12 +267,8 @@ export class AlertRuleValidator {
     return {
       supportedOperators: this.getSupportedOperators(),
       validSeverities: this.getValidSeverities(), // 使用统一常量
-      defaultDuration:
-        defaultConfig.duration ||
-        this.cacheConfig.defaultTtl,
-      defaultCooldown:
-        defaultConfig.cooldown ||
-        this.cacheConfig.defaultTtl,
+      defaultDuration: defaultConfig.duration || this.cacheConfig.defaultTtl,
+      defaultCooldown: defaultConfig.cooldown || this.cacheConfig.defaultTtl,
     };
   }
 }

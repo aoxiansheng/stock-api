@@ -355,4 +355,3 @@ export type BusinessScenario = keyof typeof CIRCUIT_BREAKER_BUSINESS_SCENARIOS;
 export type PerformanceLevel = keyof typeof CIRCUIT_BREAKER_PERFORMANCE_LEVELS;
 export type Environment = keyof typeof CIRCUIT_BREAKER_ENVIRONMENT_CONFIGS;
 export type KeyType = keyof typeof CIRCUIT_BREAKER_KEY_CONFIG.TYPES;
-

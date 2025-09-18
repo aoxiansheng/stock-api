@@ -59,7 +59,8 @@ describe("Cache Configuration Consistency", () => {
 
     configService = module.get<ConfigService>(ConfigService);
     cacheService = module.get<CacheService>(CacheService);
-    unifiedConfig = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+    unifiedConfig =
+      configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
   });
 
   afterAll(async () => {
@@ -330,7 +331,10 @@ describe("Cache Configuration Consistency", () => {
       const startTime = Date.now();
 
       for (let i = 0; i < 1000; i++) {
-        const config = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+        const config =
+          configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+            "cacheUnified",
+          );
         expect(config.defaultTtl).toBeDefined();
       }
 
@@ -343,8 +347,14 @@ describe("Cache Configuration Consistency", () => {
 
     it("应该避免配置对象重复创建", () => {
       // 验证配置对象引用一致性
-      const config1 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
-      const config2 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+      const config1 =
+        configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+          "cacheUnified",
+        );
+      const config2 =
+        configService.get<ConfigType<typeof cacheUnifiedConfig>>(
+          "cacheUnified",
+        );
 
       // ConfigService应该缓存配置对象
       expect(config1).toBe(config2);

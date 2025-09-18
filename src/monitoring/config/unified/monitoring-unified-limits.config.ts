@@ -333,7 +333,6 @@ export const monitoringUnifiedLimitsConfig = registerAs(
       config.dataCleanupBatch.small = Math.max(10, defaultBatchSize * 10); // 10.0x
     }
 
-
     // 根据环境调整配置
     config.adjustForEnvironment();
 
@@ -406,4 +405,3 @@ export class MonitoringLimitsUtils {
 export type MonitoringUnifiedLimitsType = MonitoringUnifiedLimitsConfig;
 export type BatchSizeType = "small" | "medium" | "large" | "max";
 export type ProcessingType = "alert" | "data" | "cleanup" | "analysis";
-

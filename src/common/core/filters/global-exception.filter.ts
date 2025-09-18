@@ -372,10 +372,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (isSecurityException(exception)) {
       // 安全异常有自己的getErrorCode方法，直接使用
       const securityException = exception as any;
-      if (typeof securityException.getErrorCode === 'function') {
+      if (typeof securityException.getErrorCode === "function") {
         return securityException.getErrorCode();
       }
-      
+
       // 备用：根据构造器名称返回错误码
       switch (securityException.constructor.name) {
         case "EnhancedPayloadTooLargeException":

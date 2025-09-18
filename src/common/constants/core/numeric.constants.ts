@@ -103,4 +103,3 @@ export const NUMERIC_CONSTANTS = Object.freeze({
 
 // 类型导出
 export type NumericConstantsType = typeof NUMERIC_CONSTANTS;
-

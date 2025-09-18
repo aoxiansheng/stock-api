@@ -15,7 +15,10 @@ import { ScheduleModule } from "@nestjs/schedule";
 
 // 通用组件导入
 import { GlobalExceptionFilter } from "@common/core/filters/global-exception.filter";
-import { ResponseInterceptor, RequestTrackingInterceptor } from "@common/core/interceptors";
+import {
+  ResponseInterceptor,
+  RequestTrackingInterceptor,
+} from "@common/core/interceptors";
 import { createLogger } from "@common/logging/index";
 
 import { DatabaseModule } from "../../database/database.module";

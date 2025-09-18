@@ -46,9 +46,7 @@ import type {
 } from "../services/notification-template.service";
 import { TemplateQueryDto } from "../dto/template-query.dto";
 
-import {
-  NOTIFICATION_MESSAGES,
-} from "../constants/notification.constants";
+import { NOTIFICATION_MESSAGES } from "../constants/notification.constants";
 
 // 现代化验证限制 - 使用合理的默认值替代硬编码常量
 const VALIDATION_LIMITS = {

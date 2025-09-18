@@ -5,22 +5,22 @@ import { Public } from "@auth/decorators/public.decorator";
 import { CacheService } from "../services/cache.service";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
-import { 
+import {
   ApiSuccessResponse,
   ApiStandardResponses,
-  ApiHealthResponse 
+  ApiHealthResponse,
 } from "@common/core/decorators/swagger-responses.decorator";
-import { 
+import {
   CacheHealthResponse,
   CacheStatsResponse,
-  CacheConfigResponse 
+  CacheConfigResponse,
 } from "../dto/responses/cache-api-responses.dto";
 import { CACHE_STATUS } from "../constants/status/cache-status.constants";
-import { 
+import {
   CacheKeyPatternAnalysisQueryDto,
   CacheKeyPatternAnalysisDto,
   CachePerformanceMonitoringQueryDto,
-  CachePerformanceMonitoringDto 
+  CachePerformanceMonitoringDto,
 } from "../dto/cache-internal.dto";
 
 /**
@@ -46,21 +46,21 @@ export class CacheStatusController {
   @Get("health")
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "获取缓存健康状态",
-    description: "检查Redis连接状态和基本健康指标"
+    description: "检查Redis连接状态和基本健康指标",
   })
   @ApiHealthResponse()
   @ApiStandardResponses()
   async getHealth() {
     const startTime = Date.now();
-    
+
     try {
       // 简单的健康检查 - ping Redis
       await this.cacheService.set("health-check", "ok", { ttl: 10 });
       const result = await this.cacheService.get("health-check");
       const latency = Date.now() - startTime;
-      
+
       return {
         status: result === "ok" ? CACHE_STATUS.HEALTHY : CACHE_STATUS.DEGRADED,
         latency,
@@ -90,9 +90,9 @@ export class CacheStatusController {
   @Get("stats")
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "获取缓存统计信息",
-    description: "获取缓存性能指标和使用统计"
+    description: "获取缓存性能指标和使用统计",
   })
   @ApiSuccessResponse({
     description: "缓存统计信息获取成功",
@@ -132,9 +132,9 @@ export class CacheStatusController {
   @Get("config")
   @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: "获取缓存配置信息",
-    description: "获取当前缓存配置参数"
+    description: "获取当前缓存配置参数",
   })
   @ApiSuccessResponse({
     description: "缓存配置获取成功",
@@ -171,8 +171,9 @@ export class CacheStatusController {
     @Query() query: CacheKeyPatternAnalysisQueryDto,
   ): Promise<PaginatedDataDto<CacheKeyPatternAnalysisDto>> {
     // 模拟查询参数处理
-    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
-    
+    const { page, limit } =
+      this.paginationService.normalizePaginationQuery(query);
+
     // 模拟生成键模式分析数据
     const mockData: CacheKeyPatternAnalysisDto[] = [
       {
@@ -195,7 +196,7 @@ export class CacheStatusController {
         pattern: "session:*",
         hits: 3200,
         misses: 800,
-        hitRate: 0.80,
+        hitRate: 0.8,
         totalRequests: 4000,
         lastAccessTime: Date.now() - 300000,
       },
@@ -204,14 +205,12 @@ export class CacheStatusController {
     // 应用过滤条件
     let filteredData = mockData;
     if (query.pattern) {
-      filteredData = mockData.filter(item => 
-        item.pattern.includes(query.pattern)
+      filteredData = mockData.filter((item) =>
+        item.pattern.includes(query.pattern),
       );
     }
     if (query.minHits) {
-      filteredData = filteredData.filter(item => 
-        item.hits >= query.minHits
-      );
+      filteredData = filteredData.filter((item) => item.hits >= query.minHits);
     }
 
     // 分页处理
@@ -248,8 +247,9 @@ export class CacheStatusController {
     @Query() query: CachePerformanceMonitoringQueryDto,
   ): Promise<PaginatedDataDto<CachePerformanceMonitoringDto>> {
     // 模拟查询参数处理
-    const { page, limit } = this.paginationService.normalizePaginationQuery(query);
-    
+    const { page, limit } =
+      this.paginationService.normalizePaginationQuery(query);
+
     // 模拟生成性能监控数据
     const mockData: CachePerformanceMonitoringDto[] = [
       {
@@ -281,25 +281,23 @@ export class CacheStatusController {
     // 应用过滤条件
     let filteredData = mockData;
     if (query.operation) {
-      filteredData = mockData.filter(item => 
-        item.operation === query.operation
+      filteredData = mockData.filter(
+        (item) => item.operation === query.operation,
       );
     }
     if (query.slowOperationsOnly) {
-      filteredData = filteredData.filter(item => 
-        item.isSlowOperation
-      );
+      filteredData = filteredData.filter((item) => item.isSlowOperation);
     }
     if (query.startTime) {
       const startTimestamp = new Date(query.startTime).getTime();
-      filteredData = filteredData.filter(item => 
-        item.timestamp >= startTimestamp
+      filteredData = filteredData.filter(
+        (item) => item.timestamp >= startTimestamp,
       );
     }
     if (query.endTime) {
       const endTimestamp = new Date(query.endTime).getTime();
-      filteredData = filteredData.filter(item => 
-        item.timestamp <= endTimestamp
+      filteredData = filteredData.filter(
+        (item) => item.timestamp <= endTimestamp,
       );
     }
 

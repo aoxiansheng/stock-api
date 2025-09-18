@@ -343,7 +343,6 @@ export class AlertController {
     );
   }
 
-
   // ==================== 手动触发 ====================
 
   @Post("trigger")
@@ -395,7 +394,9 @@ export class AlertController {
     // 频率限制现在由 @Throttle 装饰器和 ThrottlerGuard 处理
 
     // Enhanced security: Get secure client identifier for audit logging
-    const clientIdentifier = req ? HttpHeadersUtil.getSecureClientIdentifier(req) : 'unknown';
+    const clientIdentifier = req
+      ? HttpHeadersUtil.getSecureClientIdentifier(req)
+      : "unknown";
     this.logger.log(`告警评估触发请求来自客户端: ${clientIdentifier}`);
 
     // Use orchestrator service for evaluation
@@ -419,7 +420,7 @@ export class AlertController {
 
     // 🔧 Simplified message generation - let ResponseInterceptor handle formatting
     const message = this.generateEvaluationMessage(triggerDto);
-    
+
     return { message };
   }
 
@@ -431,11 +432,11 @@ export class AlertController {
     if (triggerDto?.ruleId) {
       return `告警规则 ${triggerDto.ruleId} 评估已触发`;
     }
-    
+
     if (triggerDto?.metrics?.length) {
       return `告警评估已触发，处理了 ${triggerDto.metrics.length} 个指标`;
     }
-    
+
     return "告警评估已触发";
   }
 
@@ -461,11 +462,14 @@ export class AlertController {
   ): Promise<{ succeeded: string[]; failed: string[] }> {
     // Use orchestrator service for batch acknowledgment
     const results = await this.processBatchOperation(
-      body.alertIds, 
-      'acknowledge',
+      body.alertIds,
+      "acknowledge",
       async (alertId) => {
-        await this.alertOrchestrator.acknowledgeAlert(alertId, body.acknowledgedBy);
-      }
+        await this.alertOrchestrator.acknowledgeAlert(
+          alertId,
+          body.acknowledgedBy,
+        );
+      },
     );
 
     return results;
@@ -497,8 +501,8 @@ export class AlertController {
 
     // Use orchestrator service for batch resolution
     const results = await this.processBatchOperation(
-      body.alertIds, 
-      'resolve',
+      body.alertIds,
+      "resolve",
       async (alertId) => {
         const alert = alertMap.get(alertId);
         if (!alert) {
@@ -510,7 +514,7 @@ export class AlertController {
           body.resolvedBy,
           alert.ruleId,
         );
-      }
+      },
     );
 
     return results;
@@ -522,8 +526,8 @@ export class AlertController {
    */
   private async processBatchOperation(
     alertIds: string[],
-    operationType: 'acknowledge' | 'resolve',
-    operation: (alertId: string) => Promise<void>
+    operationType: "acknowledge" | "resolve",
+    operation: (alertId: string) => Promise<void>,
   ): Promise<{ succeeded: string[]; failed: string[] }> {
     const succeeded: string[] = [];
     const failed: string[] = [];
@@ -536,13 +540,13 @@ export class AlertController {
         } catch (error) {
           // 标准化错误日志格式
           this.logger.error(
-            `批量${operationType === 'acknowledge' ? '确认' : '解决'}告警失败`,
+            `批量${operationType === "acknowledge" ? "确认" : "解决"}告警失败`,
             {
               alertId,
               operationType,
               error: error.message,
               stack: error.stack,
-            }
+            },
           );
           failed.push(alertId);
         }
@@ -551,13 +555,13 @@ export class AlertController {
 
     // 记录批量操作结果
     this.logger.log(
-      `批量${operationType === 'acknowledge' ? '确认' : '解决'}告警完成`,
+      `批量${operationType === "acknowledge" ? "确认" : "解决"}告警完成`,
       {
         total: alertIds.length,
         succeeded: succeeded.length,
         failed: failed.length,
         operationType,
-      }
+      },
     );
 
     return { succeeded, failed };

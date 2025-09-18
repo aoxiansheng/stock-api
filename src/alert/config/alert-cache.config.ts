@@ -220,4 +220,3 @@ export interface AlertCacheConfigInterface {
   maxCacheMemoryMB: number;
   maxKeyLength: number;
 }
-

@@ -1323,7 +1323,6 @@ export const monitoringEventsConfig = registerAs(
       config.enableAutoAnalysis = env.MONITORING_AUTO_ANALYSIS !== "false";
     }
 
-
     // 根据环境调整配置
     config.adjustForEnvironment();
 
@@ -1531,4 +1530,3 @@ export class MonitoringEventsUtils {
  */
 export type MonitoringEventsType = MonitoringEventsConfig;
 export type DataRetentionType = "realtime" | "hourly" | "daily" | "monthly";
-

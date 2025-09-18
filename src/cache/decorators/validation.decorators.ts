@@ -19,14 +19,14 @@ import { REDIS_KEY_CONSTRAINTS } from "@common/constants/domain/redis-specific.c
 /**
  * 配置迁移注释:
  * 🔄 缓存验证装饰器配置迁移
- * 
+ *
  * 迁移目标:
- * - CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS → commonConstantsConfig.cache.minTtlSeconds  
+ * - CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS → commonConstantsConfig.cache.minTtlSeconds
  * - CACHE_VALIDATION_LIMITS.TTL_MAX_SECONDS → commonConstantsConfig.cache.maxTtlSeconds
  * - CACHE_VALIDATION_LIMITS.CACHE_KEY_MAX_LENGTH → commonConstantsConfig.cache.maxKeyLength
- * 
+ *
  * 装饰器重构将在Phase 3完成，使用注入的配置服务
- **/ 
+ **/
 
 /**
  * 验证Cache键格式和Redis兼容性
@@ -50,7 +50,10 @@ export function IsValidCacheKey(validationOptions?: ValidationOptions) {
           }
 
           // 长度检查
-          if (value.length === 0 || value.length > REDIS_KEY_CONSTRAINTS.MAX_KEY_LENGTH) {
+          if (
+            value.length === 0 ||
+            value.length > REDIS_KEY_CONSTRAINTS.MAX_KEY_LENGTH
+          ) {
             return false;
           }
 
@@ -91,7 +94,10 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
           }
 
           // 基本范围检查：使用通用缓存常量
-          if (value < CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS || value > CACHE_VALIDATION_LIMITS.TTL_MAX_SECONDS) {
+          if (
+            value < CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS ||
+            value > CACHE_VALIDATION_LIMITS.TTL_MAX_SECONDS
+          ) {
             return false;
           }
 
@@ -115,4 +121,3 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
 // ✅ CACHE_VALIDATION_LIMITS 现在从 @common/constants/validation.constants 导入
 // ✅ REDIS_KEY_CONSTRAINTS 现在从 @common/constants/domain/redis-specific.constants 导入
 // ✅ 消除了常量重复定义，复用通用组件库
-

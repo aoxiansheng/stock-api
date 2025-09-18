@@ -4,9 +4,7 @@
  * 🎯 基于Semantic层构建，专注于具体业务领域逻辑
  */
 
-export {
-  OPERATION_LIMITS,
-} from "./operation-limits.constants";
+export { OPERATION_LIMITS } from "./operation-limits.constants";
 export type {
   OperationType,
   DataVolume as OperationDataVolume,
@@ -31,9 +29,7 @@ export type {
   ApiCacheStrategy,
 } from "./api-operations.constants";
 
-import {
-  OPERATION_LIMITS,
-} from "./operation-limits.constants";
+import { OPERATION_LIMITS } from "./operation-limits.constants";
 
 import { REFERENCE_DATA } from "./reference-data.constants";
 

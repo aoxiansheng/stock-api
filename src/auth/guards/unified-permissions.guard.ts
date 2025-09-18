@@ -48,7 +48,9 @@ import { MESSAGE_SEMANTICS } from "@common/constants/semantic/message-semantics.
  */
 @Injectable()
 export class UnifiedPermissionsGuard implements CanActivate {
-  private readonly logger = AuthLoggingUtil.createOptimizedLogger(UnifiedPermissionsGuard.name);
+  private readonly logger = AuthLoggingUtil.createOptimizedLogger(
+    UnifiedPermissionsGuard.name,
+  );
 
   constructor(
     @Optional() private readonly permissionService: PermissionService,

@@ -16,13 +16,8 @@ import {
   OPERATION_TIMEOUTS,
   DATA_RETENTION,
 } from "./timeouts.constants";
-import {
-  RULE_LIMITS,
-  RETRY_LIMITS,
-} from "./limits.constants";
-import {
-  ALERT_DEFAULTS,
-} from "./defaults.constants";
+import { RULE_LIMITS, RETRY_LIMITS } from "./limits.constants";
+import { ALERT_DEFAULTS } from "./defaults.constants";
 
 // ================================
 // 核心常量导出 - 新的简化架构
@@ -41,32 +36,19 @@ export type {
 } from "./timeouts.constants";
 
 // 容量和限制配置
-export {
-  RULE_LIMITS,
-  RETRY_LIMITS,
-} from "./limits.constants";
-export type {
-  RuleLimits,
-  RetryLimits,
-} from "./limits.constants";
+export { RULE_LIMITS, RETRY_LIMITS } from "./limits.constants";
+export type { RuleLimits, RetryLimits } from "./limits.constants";
 
 // 默认值配置
-export {
-  ALERT_DEFAULTS,
-} from "./defaults.constants";
-export type {
-  AlertDefaults,
-} from "./defaults.constants";
+export { ALERT_DEFAULTS } from "./defaults.constants";
+export type { AlertDefaults } from "./defaults.constants";
 
 // ================================
 // 业务枚举和消息导出（保留原有）
 // ================================
 
 // 枚举定义（AlertSeverity和AlertStatus已迁移到alert.types.ts）
-export {
-  AlertType,
-  NotificationChannel,
-} from "./enums";
+export { AlertType, NotificationChannel } from "./enums";
 
 // 消息模板（通知相关已迁移）
 export {
@@ -108,7 +90,6 @@ export type Operator = (typeof VALID_OPERATORS)[number];
 // ================================
 // 工具函数
 // ================================
-
 
 // ================================
 // 默认导出（简化架构）

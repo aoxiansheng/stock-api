@@ -44,7 +44,6 @@ export {
   mapToBasicStatus as mapInternalToExternalStatus,
 } from "./status/unified-health-status.constants";
 
-
 // 重新导出数据格式常量和类型
 export { CACHE_DATA_FORMATS, SERIALIZER_TYPE_VALUES };
 
@@ -55,9 +54,11 @@ export const CACHE_CONSTANTS = Object.freeze({
 
   // 配置项访问指南
   CONFIG_ACCESS: {
-    unified: "Use @Inject('cacheUnified') ConfigType<typeof cacheUnifiedConfig>",
+    unified:
+      "Use @Inject('cacheUnified') ConfigType<typeof cacheUnifiedConfig>",
     legacy: "Use CacheService.getTtlByTimeliness() for compatibility",
-    migration: "Legacy compatibility files have been removed - use unified config",
+    migration:
+      "Legacy compatibility files have been removed - use unified config",
   },
 });
 

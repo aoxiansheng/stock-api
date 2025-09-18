@@ -5,7 +5,7 @@
  * ✅ 现代配置系统：
  * TTL配置已迁移到统一配置系统：monitoring-unified-ttl.config.ts
  * 批量配置已迁移到统一配置系统：monitoring-unified-limits.config.ts
- * 
+ *
  * ✅ 零抽象纯粹架构：
  * - system-resources.constants.ts: CPU、内存、磁盘监控阈值
  * - error-tracking.constants.ts: 错误率、成功率阈值

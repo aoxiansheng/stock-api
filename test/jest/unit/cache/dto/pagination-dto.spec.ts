@@ -33,7 +33,7 @@ describe("Cache模块分页DTO测试", () => {
     it("应该正确继承BaseQueryDto", () => {
       const queryDto = new CacheKeyPatternAnalysisQueryDto();
       expect(queryDto).toBeInstanceOf(BaseQueryDto);
-      
+
       // 验证继承的分页属性
       expect(queryDto.page).toBeDefined();
       expect(queryDto.limit).toBeDefined();
@@ -47,9 +47,12 @@ describe("Cache模块分页DTO测试", () => {
         minHits: 100,
       };
 
-      const queryDto = plainToClass(CacheKeyPatternAnalysisQueryDto, validQueryData);
+      const queryDto = plainToClass(
+        CacheKeyPatternAnalysisQueryDto,
+        validQueryData,
+      );
       const errors = await validate(queryDto);
-      
+
       expect(errors).toHaveLength(0);
       expect(queryDto.page).toBe(1);
       expect(queryDto.limit).toBe(10);
@@ -64,16 +67,19 @@ describe("Cache模块分页DTO测试", () => {
         minHits: "invalid", // 无效：应该是数字
       };
 
-      const queryDto = plainToClass(CacheKeyPatternAnalysisQueryDto, invalidQueryData);
+      const queryDto = plainToClass(
+        CacheKeyPatternAnalysisQueryDto,
+        invalidQueryData,
+      );
       const errors = await validate(queryDto);
-      
+
       expect(errors.length).toBeGreaterThan(0);
-      
+
       // 验证具体的错误类型
-      const pageErrors = errors.find(error => error.property === "page");
+      const pageErrors = errors.find((error) => error.property === "page");
       expect(pageErrors).toBeDefined();
-      
-      const limitErrors = errors.find(error => error.property === "limit");
+
+      const limitErrors = errors.find((error) => error.property === "limit");
       expect(limitErrors).toBeDefined();
     });
 
@@ -83,9 +89,12 @@ describe("Cache模块分页DTO测试", () => {
         limit: 20,
       };
 
-      const queryDto = plainToClass(CacheKeyPatternAnalysisQueryDto, minimalQueryData);
+      const queryDto = plainToClass(
+        CacheKeyPatternAnalysisQueryDto,
+        minimalQueryData,
+      );
       const errors = await validate(queryDto);
-      
+
       expect(errors).toHaveLength(0);
       expect(queryDto.page).toBe(2);
       expect(queryDto.limit).toBe(20);
@@ -110,9 +119,12 @@ describe("Cache模块分页DTO测试", () => {
         slowOperationsOnly: true,
       };
 
-      const queryDto = plainToClass(CachePerformanceMonitoringQueryDto, validQueryData);
+      const queryDto = plainToClass(
+        CachePerformanceMonitoringQueryDto,
+        validQueryData,
+      );
       const errors = await validate(queryDto);
-      
+
       expect(errors).toHaveLength(0);
       expect(queryDto.operation).toBe("get");
       expect(queryDto.startTime).toBe("2023-12-01T00:00:00Z");
@@ -128,12 +140,17 @@ describe("Cache模块分页DTO测试", () => {
         endTime: "2023-13-32T25:70:70Z", // 无效的日期时间
       };
 
-      const queryDto = plainToClass(CachePerformanceMonitoringQueryDto, invalidQueryData);
+      const queryDto = plainToClass(
+        CachePerformanceMonitoringQueryDto,
+        invalidQueryData,
+      );
       const errors = await validate(queryDto);
-      
+
       expect(errors.length).toBeGreaterThan(0);
-      
-      const startTimeErrors = errors.find(error => error.property === "startTime");
+
+      const startTimeErrors = errors.find(
+        (error) => error.property === "startTime",
+      );
       expect(startTimeErrors).toBeDefined();
     });
   });
@@ -163,7 +180,7 @@ describe("Cache模块分页DTO测试", () => {
         mockAnalysisData,
         1,
         10,
-        25
+        25,
       );
 
       expect(paginatedResponse).toBeInstanceOf(PaginatedDataDto);
@@ -181,7 +198,7 @@ describe("Cache模块分页DTO测试", () => {
           pattern: "user:*",
           hits: 1250,
           hitRate: 0.89,
-        })
+        }),
       );
     });
 
@@ -201,7 +218,7 @@ describe("Cache模块分页DTO测试", () => {
         mockPerformanceData,
         2,
         5,
-        12
+        12,
       );
 
       expect(paginatedResponse).toBeInstanceOf(PaginatedDataDto);
@@ -219,7 +236,7 @@ describe("Cache模块分页DTO测试", () => {
           operation: "get",
           processingTimeMs: 2.5,
           isSlowOperation: false,
-        })
+        }),
       );
     });
 
@@ -230,7 +247,7 @@ describe("Cache模块分页DTO测试", () => {
         emptyData,
         1,
         10,
-        0
+        0,
       );
 
       expect(paginatedResponse.items).toHaveLength(0);
@@ -252,7 +269,8 @@ describe("Cache模块分页DTO测试", () => {
 
     it("应该正确处理无效的分页参数", () => {
       const invalidQuery = { page: -1, limit: 0 };
-      const normalized = paginationService.normalizePaginationQuery(invalidQuery);
+      const normalized =
+        paginationService.normalizePaginationQuery(invalidQuery);
 
       expect(normalized.page).toBe(1); // 默认值
       expect(normalized.limit).toBeGreaterThan(0); // 使用默认值

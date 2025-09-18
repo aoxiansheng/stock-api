@@ -8,11 +8,15 @@ import {
 import type { Request, Response } from "express";
 import { createLogger } from "@common/logging/index";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
-import { SecurityExceptionFactory, EnhancedRateLimitException, isSecurityException } from "../exceptions/security.exceptions";
+import {
+  SecurityExceptionFactory,
+  EnhancedRateLimitException,
+  isSecurityException,
+} from "../exceptions/security.exceptions";
 
 /**
  * 频率限制异常过滤器 - 异常增强模式
- * 
+ *
  * 重构策略：
  * - 不再直接构造响应，而是抛出增强的异常
  * - 让GlobalExceptionFilter统一处理所有异常，确保响应格式一致
@@ -37,7 +41,10 @@ export class RateLimitExceptionFilter implements ExceptionFilter {
     // 如果已经是增强的安全异常，直接重新抛出让GlobalExceptionFilter处理
     if (isSecurityException(exception)) {
       // 仍然设置Retry-After头，这是速率限制特有的逻辑
-      this.setRetryAfterHeader(exception as EnhancedRateLimitException, response);
+      this.setRetryAfterHeader(
+        exception as EnhancedRateLimitException,
+        response,
+      );
       throw exception;
     }
 
@@ -56,13 +63,13 @@ export class RateLimitExceptionFilter implements ExceptionFilter {
     const details = exceptionResponse?.details || {};
     const enhancedException = SecurityExceptionFactory.createRateLimitException(
       details.limit || 0,
-      details.current || 0, 
+      details.current || 0,
       details.remaining || 0,
       details.resetTime || 0,
       details.retryAfter || 0,
       request,
       HttpHeadersUtil.getHeader(request, "x-app-key"),
-      exception
+      exception,
     );
 
     // 设置Retry-After头（速率限制特有的逻辑）
@@ -76,7 +83,10 @@ export class RateLimitExceptionFilter implements ExceptionFilter {
    * 设置Retry-After响应头
    * 这是速率限制特有的逻辑，需要在异常抛出前设置
    */
-  private setRetryAfterHeader(exception: EnhancedRateLimitException, response: Response): void {
+  private setRetryAfterHeader(
+    exception: EnhancedRateLimitException,
+    response: Response,
+  ): void {
     try {
       if (exception.retryAfter > 0) {
         response.setHeader("Retry-After", exception.retryAfter);

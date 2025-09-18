@@ -28,7 +28,7 @@ export class SecurityMiddleware implements NestMiddleware {
       if (this.isRequestTooLarge(req)) {
         const contentLength = HttpHeadersUtil.getContentLength(req);
         const maxAllowed = this.authConfigService.getMaxPayloadSizeString();
-        
+
         this.logger.warn(`请求体过大被拒绝: ${req.method} ${req.url}`, {
           contentLength,
           maxAllowed,
@@ -37,12 +37,12 @@ export class SecurityMiddleware implements NestMiddleware {
         // 使用异常增强模式替代直接响应构造
         const actualSize = parseInt(contentLength || "0", 10);
         const maxSizeBytes = this.authConfigService.getMaxPayloadSizeBytes();
-        
+
         throw SecurityExceptionFactory.createPayloadTooLargeException(
           actualSize,
           maxSizeBytes,
           maxAllowed,
-          req
+          req,
         );
       }
 
@@ -50,7 +50,7 @@ export class SecurityMiddleware implements NestMiddleware {
       const contentTypeResult = this.validateContentTypeSecurity(req);
       if (!contentTypeResult.isValid) {
         const contentType = HttpHeadersUtil.getContentType(req);
-        
+
         this.logger.warn(`不安全的内容类型被拒绝: ${req.method} ${req.url}`, {
           contentType,
           reason: contentTypeResult.reason,
@@ -60,7 +60,7 @@ export class SecurityMiddleware implements NestMiddleware {
         throw SecurityExceptionFactory.createUnsupportedMediaTypeException(
           contentType || "unknown",
           contentTypeResult.reason || "Content type security violation",
-          req
+          req,
         );
       }
 
@@ -76,7 +76,7 @@ export class SecurityMiddleware implements NestMiddleware {
         throw SecurityExceptionFactory.createInputSecurityViolationException(
           validationResult.reason || "Input security violation",
           validationResult.details || {},
-          req
+          req,
         );
       }
 
@@ -102,7 +102,7 @@ export class SecurityMiddleware implements NestMiddleware {
         "security-middleware",
         `安全中间件处理失败: ${error.message}`,
         req,
-        error
+        error,
       );
     }
   }
@@ -730,7 +730,9 @@ export class CSRFMiddleware implements NestMiddleware {
 
         res.status(HttpStatus.FORBIDDEN).json({
           statusCode: HttpStatus.FORBIDDEN,
-          message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.FORBIDDEN || "请求被拒绝: CSRF保护",
+          message:
+            CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.FORBIDDEN ||
+            "请求被拒绝: CSRF保护",
           data: null,
           timestamp: new Date().toISOString(),
           error: {
@@ -868,7 +870,9 @@ export class RateLimitByIPMiddleware implements NestMiddleware {
 
       res.status(429).json({
         statusCode: 429,
-        message: CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.HTTP_TOO_MANY_REQUESTS || "请求过于频繁，请稍后重试",
+        message:
+          CONSTANTS.SEMANTIC.HTTP_ERROR_MESSAGES.HTTP_TOO_MANY_REQUESTS ||
+          "请求过于频繁，请稍后重试",
         data: null,
         timestamp: new Date().toISOString(),
         error: {

@@ -28,6 +28,5 @@ export const ALERT_DEFAULTS = {
   // DESCRIPTION_MAX_LENGTH: 500,     // 删除 - 已在validation.constants.ts
 } as const;
 
-
 // 类型定义
 export type AlertDefaults = typeof ALERT_DEFAULTS;

@@ -26,15 +26,15 @@ import { ALERT_VALIDATION_LIMITS } from "../constants/validation.constants";
 /**
  * 配置迁移注释:
  * 🔄 正在将硬编码常量迁移到配置系统
- * 
+ *
  * 迁移目标:
  * - ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH → commonConstantsConfig.validation.nameMaxLength
- * - ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH → commonConstantsConfig.validation.descriptionMaxLength  
+ * - ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH → commonConstantsConfig.validation.descriptionMaxLength
  * - ALERT_VALIDATION_LIMITS.DURATION_MIN/MAX → commonConstantsConfig.validation.durationMin/Max
  * - ALERT_VALIDATION_LIMITS.COOLDOWN_MIN/MAX → commonConstantsConfig.validation.cooldownMin/Max
  * - ALERT_VALIDATION_LIMITS.RETRIES_MIN/MAX → commonConstantsConfig.retry.minRetryAttempts/maxRetryAttempts
  * - ALERT_VALIDATION_LIMITS.TIMEOUT_MIN/MAX → commonConstantsConfig.timeouts.quickTimeoutMs/longTimeoutMs
- * 
+ *
  * 注入配置服务的DTO重构将在Phase 3完成
  **/
 

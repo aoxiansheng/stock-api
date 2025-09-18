@@ -31,11 +31,15 @@ export {
 
 // 类型检查工具
 export const isCacheException = (error: unknown): boolean => {
-  return error instanceof Error && error.constructor.name.includes('CacheException');
+  return (
+    error instanceof Error && error.constructor.name.includes("CacheException")
+  );
 };
 
 // 异常信息提取工具
-export const getCacheExceptionOperation = (error: unknown): string | undefined => {
+export const getCacheExceptionOperation = (
+  error: unknown,
+): string | undefined => {
   if (isCacheException(error)) {
     return (error as any).operation;
   }
@@ -51,21 +55,34 @@ export const getCacheExceptionKey = (error: unknown): string | undefined => {
 
 // 异常工厂类
 export class CacheExceptionFactory {
-  static connection(operation: string, cacheKey?: string, originalError?: Error): CacheConnectionException {
+  static connection(
+    operation: string,
+    cacheKey?: string,
+    originalError?: Error,
+  ): CacheConnectionException {
     return new CacheConnectionException(operation, cacheKey, originalError);
   }
 
-  static operation(operation: string, cacheKey?: string, originalError?: Error): CacheOperationException {
+  static operation(
+    operation: string,
+    cacheKey?: string,
+    originalError?: Error,
+  ): CacheOperationException {
     return new CacheOperationException(operation, cacheKey, originalError);
   }
 
   static serialization(
-    operation: string, 
-    serializationType: string, 
-    cacheKey?: string, 
-    originalError?: Error
+    operation: string,
+    serializationType: string,
+    cacheKey?: string,
+    originalError?: Error,
   ): CacheSerializationException {
-    return new CacheSerializationException(operation, serializationType, cacheKey, originalError);
+    return new CacheSerializationException(
+      operation,
+      serializationType,
+      cacheKey,
+      originalError,
+    );
   }
 
   static validation(
@@ -73,21 +90,36 @@ export class CacheExceptionFactory {
     validationType: string,
     validationMessage: string,
     cacheKey?: string,
-    originalError?: Error
+    originalError?: Error,
   ): CacheValidationException {
-    return new CacheValidationException(operation, validationType, validationMessage, cacheKey, originalError);
+    return new CacheValidationException(
+      operation,
+      validationType,
+      validationMessage,
+      cacheKey,
+      originalError,
+    );
   }
 
   static timeout(
     operation: string,
     timeoutMs: number,
     cacheKey?: string,
-    originalError?: Error
+    originalError?: Error,
   ): CacheTimeoutException {
-    return new CacheTimeoutException(operation, timeoutMs, cacheKey, originalError);
+    return new CacheTimeoutException(
+      operation,
+      timeoutMs,
+      cacheKey,
+      originalError,
+    );
   }
 
-  static lock(operation: string, lockKey: string, originalError?: Error): CacheLockException {
+  static lock(
+    operation: string,
+    lockKey: string,
+    originalError?: Error,
+  ): CacheLockException {
     return new CacheLockException(operation, lockKey, originalError);
   }
 
@@ -97,34 +129,52 @@ export class CacheExceptionFactory {
     message: string,
     status: any,
     maxAllowed?: number,
-    originalError?: Error
+    originalError?: Error,
   ): CacheBatchException {
-    return new CacheBatchException(operation, batchSize, message, status, maxAllowed, originalError);
+    return new CacheBatchException(
+      operation,
+      batchSize,
+      message,
+      status,
+      maxAllowed,
+      originalError,
+    );
   }
 
-  static fromError(operation: string, error: Error, cacheKey?: string): CacheException {
+  static fromError(
+    operation: string,
+    error: Error,
+    cacheKey?: string,
+  ): CacheException {
     const errorMessage = error.message.toLowerCase();
-    
+
     // 检测连接错误
-    if (errorMessage.includes('connection') || errorMessage.includes('econnrefused')) {
+    if (
+      errorMessage.includes("connection") ||
+      errorMessage.includes("econnrefused")
+    ) {
       return this.connection(operation, cacheKey, error);
     }
-    
+
     // 检测超时错误
-    if (errorMessage.includes('timeout')) {
+    if (errorMessage.includes("timeout")) {
       return this.timeout(operation, 5000, cacheKey, error);
     }
-    
+
     // 检测序列化错误
-    if (errorMessage.includes('json') || errorMessage.includes('parse') || errorMessage.includes('serialize')) {
-      return this.serialization(operation, 'json', cacheKey, error);
+    if (
+      errorMessage.includes("json") ||
+      errorMessage.includes("parse") ||
+      errorMessage.includes("serialize")
+    ) {
+      return this.serialization(operation, "json", cacheKey, error);
     }
-    
+
     // 检测锁错误
-    if (errorMessage.includes('lock')) {
-      return this.lock(operation, cacheKey || 'unknown', error);
+    if (errorMessage.includes("lock")) {
+      return this.lock(operation, cacheKey || "unknown", error);
     }
-    
+
     // 默认返回操作异常
     return this.operation(operation, cacheKey, error);
   }

@@ -40,10 +40,11 @@ export class AuthFacadeService {
    */
   private getRequestTrackingInfo() {
     return {
-      requestId: (this.request as any).requestId || 'unknown',
-      correlationId: (this.request as any).correlationId || 'unknown',
-      userAgent: this.request.headers['user-agent'] || 'unknown',
-      clientIP: this.request.ip || this.request.connection?.remoteAddress || 'unknown',
+      requestId: (this.request as any).requestId || "unknown",
+      correlationId: (this.request as any).correlationId || "unknown",
+      userAgent: this.request.headers["user-agent"] || "unknown",
+      clientIP:
+        this.request.ip || this.request.connection?.remoteAddress || "unknown",
     };
   }
 
@@ -52,10 +53,10 @@ export class AuthFacadeService {
    */
   async register(createUserDto: CreateUserDto): Promise<User> {
     const trackingInfo = this.getRequestTrackingInfo();
-    
-    this.logger.log("开始用户注册流程", { 
+
+    this.logger.log("开始用户注册流程", {
       username: createUserDto.username,
-      ...trackingInfo
+      ...trackingInfo,
     });
 
     try {
@@ -74,7 +75,7 @@ export class AuthFacadeService {
       this.logger.log("用户注册成功", {
         userId: user.id,
         username: user.username,
-        ...trackingInfo
+        ...trackingInfo,
       });
       return user;
     } catch (error) {
@@ -84,7 +85,7 @@ export class AuthFacadeService {
       // 发送失败通知
       await this.notificationService.sendRegistrationFailureEvent(
         createUserDto,
-        error
+        error,
       );
 
       throw error;

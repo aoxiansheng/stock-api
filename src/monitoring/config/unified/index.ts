@@ -17,7 +17,7 @@
  *
  * 🎯 统一配置系统优势：
  * - 消除配置重复和冲突
- * - 类型安全的配置验证  
+ * - 类型安全的配置验证
  * - 环境变量统一管理
  * - 基于倍数的自动计算
  *
@@ -43,9 +43,7 @@ export {
 } from "./monitoring-unified-ttl.config";
 
 // 统一限制配置
-import {
-  MonitoringUnifiedLimitsConfig,
-} from "./monitoring-unified-limits.config";
+import { MonitoringUnifiedLimitsConfig } from "./monitoring-unified-limits.config";
 
 export {
   MonitoringUnifiedLimitsConfig,
@@ -121,7 +119,7 @@ export {
  *
  * # 统一批处理配置
  * MONITORING_DEFAULT_BATCH_SIZE=50        # 统一批处理大小
- * 
+ *
  * # 其他配置
  * MONITORING_AUTO_ANALYSIS=true           # 自动分析开关
  * ```
@@ -219,4 +217,3 @@ export class MonitoringUnifiedConfigUtils {
     };
   }
 }
-

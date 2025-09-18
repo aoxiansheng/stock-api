@@ -531,7 +531,7 @@ export class MonitoringCoreEnvUtils {
     return {
       coreVariables: [
         "MONITORING_DEFAULT_TTL",
-        "MONITORING_DEFAULT_BATCH_SIZE", 
+        "MONITORING_DEFAULT_BATCH_SIZE",
         "MONITORING_AUTO_ANALYSIS",
       ],
       totalReduced: 3, // 从多个变量简化为3个核心变量
@@ -685,4 +685,3 @@ MONITORING_AUTO_ANALYSIS=${config.autoAnalysis}
  * 监控核心环境变量配置类型导出
  */
 export type MonitoringCoreEnvType = MonitoringCoreEnvConfig;
-

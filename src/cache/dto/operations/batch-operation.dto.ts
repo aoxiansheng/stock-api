@@ -41,7 +41,11 @@ export class BatchCacheOperationDto<T = any>
     maximum: 1000,
     example: 50,
   })
-  @IsNumberInRange({ min: 1, max: 1000, message: "批量操作大小必须在 1 到 1000 之间" })
+  @IsNumberInRange({
+    min: 1,
+    max: 1000,
+    message: "批量操作大小必须在 1 到 1000 之间",
+  })
   batchSize: number;
 
   @ApiProperty({ description: "操作配置", required: false })

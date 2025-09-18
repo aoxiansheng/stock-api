@@ -1,7 +1,7 @@
 /**
  * 通用验证工具类
  * 🎯 提供编程式验证方法，可在任何地方使用
- * 
+ *
  * @description 从 validation.constants.ts 迁移的通用验证工具类
  */
 
@@ -68,7 +68,7 @@ export class ValidationLimitsUtil {
    */
   static validateEmailFormat(
     email: string,
-    fieldName: string = "邮箱"
+    fieldName: string = "邮箱",
   ): { valid: boolean; error?: string } {
     if (!email || typeof email !== "string") {
       return {
@@ -112,10 +112,10 @@ export class ValidationLimitsUtil {
   /**
    * 验证URL格式（复用验证器逻辑）
    * 🎯 提供编程式URL验证，复用装饰器中的验证逻辑
-   */  
+   */
   static validateUrlFormat(
     url: string,
-    fieldName: string = "URL"
+    fieldName: string = "URL",
   ): { valid: boolean; error?: string } {
     if (!url || typeof url !== "string") {
       return {
@@ -153,7 +153,8 @@ export class ValidationLimitsUtil {
       }
 
       // 基本格式验证（与 @IsValidUrl 装饰器保持一致）
-      const urlPattern = /^https?:\/\/[\w\-]+(\.[\w\-]+)+([\\w\-\.,@?^=%&:\/~\+#]*[\w\-\@?^=%&\/~\+#])?$/;
+      const urlPattern =
+        /^https?:\/\/[\w\-]+(\.[\w\-]+)+([\\w\-\.,@?^=%&:\/~\+#]*[\w\-\@?^=%&\/~\+#])?$/;
       if (!urlPattern.test(url)) {
         return {
           valid: false,

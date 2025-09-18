@@ -11,7 +11,7 @@
  */
 
 import { Injectable, Inject } from "@nestjs/common";
-import  type { ConfigType } from "@nestjs/config";
+import type { ConfigType } from "@nestjs/config";
 import environmentConfig, {
   Environment,
   LogLevel,

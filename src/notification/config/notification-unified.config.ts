@@ -198,7 +198,7 @@ export class NotificationUnifiedConfigValidation {
   // 渠道配置使用简化配置模式
   @IsObject()
   channelTemplates: Record<string, any> = {};
-  
+
   @IsObject()
   channelDefaults: Record<string, any> = {};
 }
@@ -282,10 +282,15 @@ export default registerAs(
     });
 
     if (errors.length > 0) {
-      const errorMessages = errors.map(error =>
-        `${error.property}: ${Object.values(error.constraints || {}).join(', ')}`
-      ).join('; ');
-      throw new Error(`Notification configuration validation failed: ${errorMessages}`);
+      const errorMessages = errors
+        .map(
+          (error) =>
+            `${error.property}: ${Object.values(error.constraints || {}).join(", ")}`,
+        )
+        .join("; ");
+      throw new Error(
+        `Notification configuration validation failed: ${errorMessages}`,
+      );
     }
 
     return config;

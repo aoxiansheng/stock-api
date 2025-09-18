@@ -377,7 +377,7 @@ export class RuleEvaluator {
       supportedOperators: [...VALID_OPERATORS],
       operatorSymbols: { ...OPERATOR_SYMBOLS },
       totalEvaluations: this.totalEvaluations,
-      successfulEvaluations: this.successfulEvaluations
+      successfulEvaluations: this.successfulEvaluations,
     };
   }
 }

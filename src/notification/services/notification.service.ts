@@ -409,8 +409,6 @@ export class NotificationService {
     return results;
   }
 
-
-
   /**
    * 批量发送通知
    */
@@ -562,11 +560,6 @@ export class NotificationService {
       return false;
     }
   }
-
-
-
-
-
 
   /**
    * 获取支持的渠道类型

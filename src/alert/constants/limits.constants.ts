@@ -16,7 +16,6 @@ export const RULE_LIMITS = {
   // 固定规则内容限制（不可配置的业务常量）
   MAX_ACTIONS_PER_RULE: 5, // 5个 - 单规则最大动作数
   MAX_TAGS_PER_ENTITY: 10, // 10个 - 单实体最大标签数
-
 } as const;
 
 // ❌ 删除：字符串长度限制（已在@common/constants/validation.constants.ts）

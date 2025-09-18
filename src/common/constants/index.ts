@@ -72,11 +72,10 @@ export const CONSTANTS = {
  */
 export default CONSTANTS;
 
-
 /**
  * 配置系统导出 (推荐使用)
  * 🎯 现代化配置管理替代方案
- * 
+ *
  * 使用方式:
  * ```typescript
  * import { ConfigService } from '@nestjs/config';

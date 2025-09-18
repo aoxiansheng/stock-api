@@ -61,7 +61,7 @@ export class PermissionService {
 
   constructor(
     private readonly cacheService: CacheService,
-    @Inject('authUnified')
+    @Inject("authUnified")
     private readonly authConfig: AuthUnifiedConfigInterface,
   ) {}
 

@@ -1,10 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import {
-  IsNumber,
-  IsBoolean,
-  IsArray,
-} from "class-validator";
-
+import { IsNumber, IsBoolean, IsArray } from "class-validator";
 
 /**
  * 告警查询结果DTO
@@ -74,4 +69,3 @@ export class AlertStatisticsDto {
   @ApiProperty({ description: "统计时间" })
   statisticsTime: Date;
 }
-

@@ -865,9 +865,9 @@ export type ConfigSummary = {
  */
 export const MONITORING_ENHANCED_CONFIG_ENV_MAPPING = {
   // 核心统一环境变量 (优先级最高)
-  "ttl.default": "MONITORING_DEFAULT_TTL",              // 基础TTL，其他TTL按倍数计算
-  "limits.defaultBatchSize": "MONITORING_DEFAULT_BATCH_SIZE",  // 基础批处理大小，其他批处理按倍数计算
-  "events.enableAutoAnalysis": "MONITORING_AUTO_ANALYSIS",     // 自动分析开关
+  "ttl.default": "MONITORING_DEFAULT_TTL", // 基础TTL，其他TTL按倍数计算
+  "limits.defaultBatchSize": "MONITORING_DEFAULT_BATCH_SIZE", // 基础批处理大小，其他批处理按倍数计算
+  "events.enableAutoAnalysis": "MONITORING_AUTO_ANALYSIS", // 自动分析开关
 
   // 环境标识配置
   "environment.environment": "NODE_ENV",

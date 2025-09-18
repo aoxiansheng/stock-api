@@ -3,13 +3,4 @@
  */
 
 // 权限控制语义常量重导出
-export {
-  PERMISSION_LEVELS,
-  PERMISSION_SUBJECTS,
-  PERMISSION_CHECK_STATUS,
-  PERMISSION_VALIDATION,
-  PERMISSION_GROUPS,
-  PERMISSION_CHECK_OPTIONS,
-  PERMISSION_INHERITANCE,
-  PERMISSION_CONFIG,
-} from "./auth-semantic.constants";
+export { PERMISSION_CONFIG } from "./auth-semantic.constants";

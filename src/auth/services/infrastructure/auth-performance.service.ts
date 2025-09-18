@@ -71,7 +71,6 @@ export class AuthPerformanceService {
         skipReason: data.skipReason,
         cacheHit: data.cacheHit,
       });
-
     } catch (error) {
       this.logger.error("记录认证流程性能失败", {
         guardName: data.guardName,
@@ -143,7 +142,9 @@ export class AuthPerformanceService {
             method: data.method,
             authenticated: data.authenticated,
             authType: data.authType,
-            efficiency: Math.round((data.skippedGuards / data.totalGuards) * 100),
+            efficiency: Math.round(
+              (data.skippedGuards / data.totalGuards) * 100,
+            ),
           },
         });
       });

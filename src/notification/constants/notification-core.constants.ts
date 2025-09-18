@@ -146,5 +146,5 @@ export const NOTIFICATION_ERROR_TEMPLATES = Object.freeze({
 
 // 📝 配置相关常量已移至统一配置系统
 // 模板配置 → NotificationTemplateConfig
-// 渠道配置 → NotificationChannelConfig  
+// 渠道配置 → NotificationChannelConfig
 // 验证限制 → NotificationValidationConfig

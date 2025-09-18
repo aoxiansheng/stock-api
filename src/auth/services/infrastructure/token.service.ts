@@ -25,7 +25,7 @@ export class TokenService {
 
   constructor(
     private readonly jwtService: JwtService,
-    @Inject('authUnified')
+    @Inject("authUnified")
     private readonly authConfig: AuthUnifiedConfigInterface,
   ) {}
 
@@ -33,7 +33,8 @@ export class TokenService {
   private get sessionConfig() {
     return {
       jwtDefaultExpiry: this.authConfig.cache.jwtDefaultExpiry,
-      refreshTokenDefaultExpiry: this.authConfig.cache.refreshTokenDefaultExpiry,
+      refreshTokenDefaultExpiry:
+        this.authConfig.cache.refreshTokenDefaultExpiry,
     };
   }
 

@@ -1,19 +1,19 @@
 /**
  * Cache 模块简化异常类
- * 
+ *
  * 基于通用组件库优化，移除重复实现，保留Cache业务特定的异常类型
  * 与 GlobalExceptionFilter 无缝集成，减少维护成本
  */
 
-import { 
-  BadRequestException, 
-  ServiceUnavailableException, 
+import {
+  BadRequestException,
+  ServiceUnavailableException,
   RequestTimeoutException,
   ConflictException,
   InternalServerErrorException,
   PayloadTooLargeException,
   HttpException,
-  HttpStatus
+  HttpStatus,
 } from "@nestjs/common";
 
 /**
@@ -28,13 +28,12 @@ export abstract class CacheException extends HttpException {
     status: HttpStatus,
     operation: string,
     cacheKey?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, status);
     this.operation = operation;
     this.cacheKey = cacheKey;
   }
-
 }
 
 /**
@@ -83,7 +82,12 @@ export class CacheSerializationException extends BadRequestException {
   public readonly originalError?: Error;
   public readonly serializationType: string;
 
-  constructor(operation: string, serializationType: string, cacheKey?: string, originalError?: Error) {
+  constructor(
+    operation: string,
+    serializationType: string,
+    cacheKey?: string,
+    originalError?: Error,
+  ) {
     const message = `缓存序列化失败: ${operation} (type: ${serializationType})${cacheKey ? ` (key: ${cacheKey})` : ""}`;
     super(message);
     this.operation = operation;
@@ -95,7 +99,7 @@ export class CacheSerializationException extends BadRequestException {
 
 /**
  * Cache 验证异常 - 参数验证失败
- * 对应 HTTP 400 Bad Request  
+ * 对应 HTTP 400 Bad Request
  */
 export class CacheValidationException extends BadRequestException {
   public readonly operation: string;
@@ -104,11 +108,11 @@ export class CacheValidationException extends BadRequestException {
   public readonly validationType: string;
 
   constructor(
-    operation: string, 
-    validationType: string, 
+    operation: string,
+    validationType: string,
     validationMessage: string,
-    cacheKey?: string, 
-    originalError?: Error
+    cacheKey?: string,
+    originalError?: Error,
   ) {
     const message = `缓存参数验证失败: ${validationMessage}`;
     super(message);
@@ -147,7 +151,12 @@ export class CacheTimeoutException extends RequestTimeoutException {
   public readonly originalError?: Error;
   public readonly timeoutMs: number;
 
-  constructor(operation: string, timeoutMs: number, cacheKey?: string, originalError?: Error) {
+  constructor(
+    operation: string,
+    timeoutMs: number,
+    cacheKey?: string,
+    originalError?: Error,
+  ) {
     const message = `缓存操作超时: ${operation} (timeout: ${timeoutMs}ms)${cacheKey ? ` (key: ${cacheKey})` : ""}`;
     super(message);
     this.operation = operation;
@@ -194,7 +203,7 @@ export class CacheBatchException extends BadRequestException {
     message: string,
     status: HttpStatus = HttpStatus.BAD_REQUEST,
     maxAllowed?: number,
-    originalError?: Error
+    originalError?: Error,
   ) {
     const fullMessage = `缓存批量操作异常: ${message} (operation: ${operation}, size: ${batchSize}${maxAllowed ? `, max: ${maxAllowed}` : ""})`;
     super(fullMessage);
@@ -212,10 +221,9 @@ export class CacheBatchException extends BadRequestException {
     operation: string,
     batchSize: number,
     maxAllowed: number,
-    originalError?: Error
+    originalError?: Error,
   ): PayloadTooLargeException {
     const message = `缓存批量操作数据过大: ${operation} (size: ${batchSize}, max: ${maxAllowed})`;
     return new PayloadTooLargeException(message);
   }
 }
-

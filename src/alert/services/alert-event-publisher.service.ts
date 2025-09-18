@@ -56,7 +56,8 @@ export class AlertEventPublisher {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
-    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
+    @Inject("cacheUnified")
+    private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
     // 获取alert配置
     this.alertConfig = this.configService.get("alert", {
@@ -492,8 +493,7 @@ export class AlertEventPublisher {
       operator: "gt",
       threshold: alert.threshold || 0,
       duration: this.alertConfig.defaultCooldown,
-      cooldown:
-        this.cacheConfig.defaultTtl,
+      cooldown: this.cacheConfig.defaultTtl,
       enabled: true,
       channels: [],
       tags: alert.tags,

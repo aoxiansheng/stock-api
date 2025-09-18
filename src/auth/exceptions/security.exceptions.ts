@@ -1,6 +1,6 @@
 /**
  * Auth模块安全异常类
- * 
+ *
  * 设计理念：
  * - 继承标准NestJS HttpException，与GlobalExceptionFilter无缝集成
  * - 提供丰富的上下文信息用于日志记录和调试
@@ -34,7 +34,7 @@ export abstract class SecurityException extends HttpException {
     requestPath?: string,
     clientIp?: string,
     userAgent?: string,
-    public readonly originalError?: Error
+    public readonly originalError?: Error,
   ) {
     super(message, status);
     this.securityType = securityType;
@@ -45,9 +45,9 @@ export abstract class SecurityException extends HttpException {
 
   getResponse(): string | object {
     const response = super.getResponse();
-    
+
     // 如果已经是对象格式，增强其内容
-    if (typeof response === 'object' && response !== null) {
+    if (typeof response === "object" && response !== null) {
       const responseObj = response as Record<string, any>;
       return {
         ...responseObj,
@@ -58,7 +58,9 @@ export abstract class SecurityException extends HttpException {
             ...(this.requestPath && { path: this.requestPath }),
             ...(this.clientIp && { clientIp: this.clientIp }),
             ...(this.userAgent && { userAgent: this.userAgent }),
-            ...(this.originalError && { originalError: this.originalError.message }),
+            ...(this.originalError && {
+              originalError: this.originalError.message,
+            }),
           },
         },
       };
@@ -92,10 +94,10 @@ export class EnhancedPayloadTooLargeException extends SecurityException {
     requestPath?: string,
     clientIp?: string,
     userAgent?: string,
-    originalError?: Error
+    originalError?: Error,
   ) {
     const message = `请求体过大，实际大小: ${actualSize} bytes，最大允许: ${maxAllowedSizeString}`;
-    
+
     super(
       message,
       HttpStatus.PAYLOAD_TOO_LARGE,
@@ -103,7 +105,7 @@ export class EnhancedPayloadTooLargeException extends SecurityException {
       requestPath,
       clientIp,
       userAgent,
-      originalError
+      originalError,
     );
 
     this.actualSize = actualSize;
@@ -116,12 +118,12 @@ export class EnhancedPayloadTooLargeException extends SecurityException {
 
   getResponse(): string | object {
     const baseResponse = super.getResponse();
-    
-    if (typeof baseResponse === 'object' && baseResponse !== null) {
+
+    if (typeof baseResponse === "object" && baseResponse !== null) {
       const responseObj = baseResponse as Record<string, any>;
       const errorObj = responseObj.error as Record<string, any>;
       const detailsObj = errorObj?.details as Record<string, any>;
-      
+
       return {
         ...responseObj,
         error: {
@@ -154,10 +156,10 @@ export class EnhancedUnsupportedMediaTypeException extends SecurityException {
     requestPath?: string,
     clientIp?: string,
     userAgent?: string,
-    originalError?: Error
+    originalError?: Error,
   ) {
     const message = `不支持的媒体类型: ${contentType} (原因: ${reason})`;
-    
+
     super(
       message,
       HttpStatus.UNSUPPORTED_MEDIA_TYPE,
@@ -165,7 +167,7 @@ export class EnhancedUnsupportedMediaTypeException extends SecurityException {
       requestPath,
       clientIp,
       userAgent,
-      originalError
+      originalError,
     );
 
     this.contentType = contentType;
@@ -178,12 +180,12 @@ export class EnhancedUnsupportedMediaTypeException extends SecurityException {
 
   getResponse(): string | object {
     const baseResponse = super.getResponse();
-    
-    if (typeof baseResponse === 'object' && baseResponse !== null) {
+
+    if (typeof baseResponse === "object" && baseResponse !== null) {
       const responseObj = baseResponse as Record<string, any>;
       const errorObj = responseObj.error as Record<string, any>;
       const detailsObj = errorObj?.details as Record<string, any>;
-      
+
       return {
         ...responseObj,
         error: {
@@ -216,10 +218,10 @@ export class InputSecurityViolationException extends SecurityException {
     requestPath?: string,
     clientIp?: string,
     userAgent?: string,
-    originalError?: Error
+    originalError?: Error,
   ) {
     const message = `检测到恶意输入: ${violationType}`;
-    
+
     super(
       message,
       HttpStatus.BAD_REQUEST,
@@ -227,7 +229,7 @@ export class InputSecurityViolationException extends SecurityException {
       requestPath,
       clientIp,
       userAgent,
-      originalError
+      originalError,
     );
 
     this.violationType = violationType;
@@ -240,12 +242,12 @@ export class InputSecurityViolationException extends SecurityException {
 
   getResponse(): string | object {
     const baseResponse = super.getResponse();
-    
-    if (typeof baseResponse === 'object' && baseResponse !== null) {
+
+    if (typeof baseResponse === "object" && baseResponse !== null) {
       const responseObj = baseResponse as Record<string, any>;
       const errorObj = responseObj.error as Record<string, any>;
       const detailsObj = errorObj?.details as Record<string, any>;
-      
+
       return {
         ...responseObj,
         error: {
@@ -277,10 +279,10 @@ export class SecurityMiddlewareException extends SecurityException {
     requestPath?: string,
     clientIp?: string,
     userAgent?: string,
-    originalError?: Error
+    originalError?: Error,
   ) {
     const fullMessage = `安全中间件处理失败 [${middlewareComponent}]: ${message}`;
-    
+
     super(
       fullMessage,
       HttpStatus.INTERNAL_SERVER_ERROR,
@@ -288,7 +290,7 @@ export class SecurityMiddlewareException extends SecurityException {
       requestPath,
       clientIp,
       userAgent,
-      originalError
+      originalError,
     );
 
     this.middlewareComponent = middlewareComponent;
@@ -300,12 +302,12 @@ export class SecurityMiddlewareException extends SecurityException {
 
   getResponse(): string | object {
     const baseResponse = super.getResponse();
-    
-    if (typeof baseResponse === 'object' && baseResponse !== null) {
+
+    if (typeof baseResponse === "object" && baseResponse !== null) {
       const responseObj = baseResponse as Record<string, any>;
       const errorObj = responseObj.error as Record<string, any>;
       const detailsObj = errorObj?.details as Record<string, any>;
-      
+
       return {
         ...responseObj,
         error: {
@@ -344,10 +346,10 @@ export class EnhancedRateLimitException extends SecurityException {
     clientIp?: string,
     userAgent?: string,
     appKey?: string,
-    originalError?: Error
+    originalError?: Error,
   ) {
     const message = "请求过于频繁，请稍后再试";
-    
+
     super(
       message,
       HttpStatus.TOO_MANY_REQUESTS,
@@ -355,7 +357,7 @@ export class EnhancedRateLimitException extends SecurityException {
       requestPath,
       clientIp,
       userAgent,
-      originalError
+      originalError,
     );
 
     this.limit = limit;
@@ -371,12 +373,12 @@ export class EnhancedRateLimitException extends SecurityException {
 
   getResponse(): string | object {
     const baseResponse = super.getResponse();
-    
-    if (typeof baseResponse === 'object' && baseResponse !== null) {
+
+    if (typeof baseResponse === "object" && baseResponse !== null) {
       const responseObj = baseResponse as Record<string, any>;
       const errorObj = responseObj.error as Record<string, any>;
       const detailsObj = errorObj?.details as Record<string, any>;
-      
+
       return {
         ...responseObj,
         error: {
@@ -414,7 +416,7 @@ export class SecurityExceptionFactory {
     return {
       requestPath: request?.url || request?.originalUrl,
       clientIp: request?.ip || request?.connection?.remoteAddress,
-      userAgent: request?.headers?.['user-agent'],
+      userAgent: request?.headers?.["user-agent"],
     };
   }
 
@@ -426,10 +428,10 @@ export class SecurityExceptionFactory {
     maxAllowedSize: number,
     maxAllowedSizeString: string,
     request?: any,
-    originalError?: Error
+    originalError?: Error,
   ): EnhancedPayloadTooLargeException {
     const context = request ? this.extractSecurityContext(request) : {};
-    
+
     return new EnhancedPayloadTooLargeException(
       actualSize,
       maxAllowedSize,
@@ -437,7 +439,7 @@ export class SecurityExceptionFactory {
       context.requestPath,
       context.clientIp,
       context.userAgent,
-      originalError
+      originalError,
     );
   }
 
@@ -448,17 +450,17 @@ export class SecurityExceptionFactory {
     contentType: string,
     reason: string,
     request?: any,
-    originalError?: Error
+    originalError?: Error,
   ): EnhancedUnsupportedMediaTypeException {
     const context = request ? this.extractSecurityContext(request) : {};
-    
+
     return new EnhancedUnsupportedMediaTypeException(
       contentType,
       reason,
       context.requestPath,
       context.clientIp,
       context.userAgent,
-      originalError
+      originalError,
     );
   }
 
@@ -469,17 +471,17 @@ export class SecurityExceptionFactory {
     violationType: string,
     violationDetails: any,
     request?: any,
-    originalError?: Error
+    originalError?: Error,
   ): InputSecurityViolationException {
     const context = request ? this.extractSecurityContext(request) : {};
-    
+
     return new InputSecurityViolationException(
       violationType,
       violationDetails,
       context.requestPath,
       context.clientIp,
       context.userAgent,
-      originalError
+      originalError,
     );
   }
 
@@ -490,17 +492,17 @@ export class SecurityExceptionFactory {
     middlewareComponent: string,
     message: string,
     request?: any,
-    originalError?: Error
+    originalError?: Error,
   ): SecurityMiddlewareException {
     const context = request ? this.extractSecurityContext(request) : {};
-    
+
     return new SecurityMiddlewareException(
       middlewareComponent,
       message,
       context.requestPath,
       context.clientIp,
       context.userAgent,
-      originalError
+      originalError,
     );
   }
 
@@ -515,10 +517,10 @@ export class SecurityExceptionFactory {
     retryAfter: number,
     request?: any,
     appKey?: string,
-    originalError?: Error
+    originalError?: Error,
   ): EnhancedRateLimitException {
     const context = request ? this.extractSecurityContext(request) : {};
-    
+
     return new EnhancedRateLimitException(
       limit,
       current,
@@ -529,7 +531,7 @@ export class SecurityExceptionFactory {
       context.clientIp,
       context.userAgent,
       appKey,
-      originalError
+      originalError,
     );
   }
 }
@@ -538,7 +540,9 @@ export class SecurityExceptionFactory {
  * 异常类型检查工具
  * 用于GlobalExceptionFilter中识别安全异常
  */
-export function isSecurityException(exception: unknown): exception is SecurityException {
+export function isSecurityException(
+  exception: unknown,
+): exception is SecurityException {
   return exception instanceof SecurityException;
 }
 

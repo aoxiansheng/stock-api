@@ -6,11 +6,11 @@ import type { Request, Response } from "express";
 import { SecurityMiddleware } from "../../../../../src/auth/middleware/security.middleware";
 import { GlobalExceptionFilter } from "../../../../../src/common/core/filters/global-exception.filter";
 import { AuthConfigService } from "../../../../../src/auth/services/infrastructure/auth-config.service";
-import { 
+import {
   EnhancedPayloadTooLargeException,
   EnhancedUnsupportedMediaTypeException,
   InputSecurityViolationException,
-  SecurityMiddlewareException
+  SecurityMiddlewareException,
 } from "../../../../../src/auth/exceptions/security.exceptions";
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 
@@ -87,7 +87,7 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
       headers: {
         "user-agent": "Test Browser",
         "x-app-key": "test-api-key",
-        "x-correlation-id": "test-correlation-id", 
+        "x-correlation-id": "test-correlation-id",
         "x-request-id": "test-request-id",
       },
     };
@@ -107,25 +107,35 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
 
     // Setup HttpHeadersUtil mocks
     (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("500");
-    (HttpHeadersUtil.getContentType as jest.Mock).mockReturnValue("application/json");
+    (HttpHeadersUtil.getContentType as jest.Mock).mockReturnValue(
+      "application/json",
+    );
     (HttpHeadersUtil.getClientIP as jest.Mock).mockReturnValue("192.168.1.1");
     (HttpHeadersUtil.getUserAgent as jest.Mock).mockReturnValue("Test Browser");
     (HttpHeadersUtil.getSafeHeaders as jest.Mock).mockReturnValue({
       "user-agent": "Test Browser",
       "x-app-key": "test-api-key",
     });
-    (HttpHeadersUtil.setSecurityHeaders as jest.Mock).mockImplementation(() => {});
+    (HttpHeadersUtil.setSecurityHeaders as jest.Mock).mockImplementation(
+      () => {},
+    );
   });
 
   describe("异常处理流程集成", () => {
     it("应该从SecurityMiddleware抛出增强异常，然后由GlobalExceptionFilter正确处理", () => {
       // 设置会触发PayloadTooLarge异常的条件
-      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("2097152"); // 2MB
+      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue(
+        "2097152",
+      ); // 2MB
 
       let thrownException: EnhancedPayloadTooLargeException;
-      
+
       try {
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          jest.fn(),
+        );
       } catch (exception) {
         thrownException = exception as EnhancedPayloadTooLargeException;
       }
@@ -140,7 +150,9 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
       globalFilter.catch(thrownException, mockArgumentsHost as ArgumentsHost);
 
       // 验证GlobalExceptionFilter生成了标准化响应
-      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.PAYLOAD_TOO_LARGE);
+      expect(mockResponse.status).toHaveBeenCalledWith(
+        HttpStatus.PAYLOAD_TOO_LARGE,
+      );
       expect(mockResponse.json).toHaveBeenCalledWith({
         statusCode: 413,
         message: expect.any(String),
@@ -163,12 +175,18 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
 
     it("应该处理UnsupportedMediaType异常的详细信息传递", () => {
       mockRequest.method = "POST";
-      (HttpHeadersUtil.getContentType as jest.Mock).mockReturnValue("text/javascript");
+      (HttpHeadersUtil.getContentType as jest.Mock).mockReturnValue(
+        "text/javascript",
+      );
 
       let thrownException: EnhancedUnsupportedMediaTypeException;
-      
+
       try {
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          jest.fn(),
+        );
       } catch (exception) {
         thrownException = exception as EnhancedUnsupportedMediaTypeException;
       }
@@ -206,9 +224,13 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
       mockRequest.originalUrl = "/test/../../../etc/passwd";
 
       let thrownException: InputSecurityViolationException;
-      
+
       try {
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          jest.fn(),
+        );
       } catch (exception) {
         thrownException = exception as InputSecurityViolationException;
       }
@@ -241,14 +263,20 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
 
     it("应该处理SecurityMiddleware内部错误", () => {
       const originalError = new Error("Test middleware error");
-      (HttpHeadersUtil.setSecurityHeaders as jest.Mock).mockImplementation(() => {
-        throw originalError;
-      });
+      (HttpHeadersUtil.setSecurityHeaders as jest.Mock).mockImplementation(
+        () => {
+          throw originalError;
+        },
+      );
 
       let thrownException: SecurityMiddlewareException;
-      
+
       try {
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          jest.fn(),
+        );
       } catch (exception) {
         thrownException = exception as SecurityMiddlewareException;
       }
@@ -282,12 +310,18 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
 
   describe("响应格式一致性", () => {
     it("应该保持响应格式的一致性", () => {
-      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("2097152");
+      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue(
+        "2097152",
+      );
 
       let thrownException: EnhancedPayloadTooLargeException;
-      
+
       try {
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          jest.fn(),
+        );
       } catch (exception) {
         thrownException = exception as EnhancedPayloadTooLargeException;
       }
@@ -297,20 +331,20 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
 
       // 验证响应格式符合标准
       const responseCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
-      
+
       // 检查必需的字段
       expect(responseCall).toHaveProperty("statusCode", 413);
       expect(responseCall).toHaveProperty("message");
       expect(responseCall).toHaveProperty("data", null);
       expect(responseCall).toHaveProperty("timestamp");
       expect(responseCall).toHaveProperty("error");
-      
+
       // 检查error对象结构
       expect(responseCall.error).toHaveProperty("code");
       expect(responseCall.error).toHaveProperty("details");
       expect(responseCall.error.details).toHaveProperty("type");
       expect(responseCall.error.details).toHaveProperty("path");
-      
+
       // 检查追踪信息
       expect(responseCall.error.details).toHaveProperty("correlationId");
       expect(responseCall.error.details).toHaveProperty("requestId");
@@ -336,7 +370,7 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
       testCases.forEach((testCase) => {
         // 重置mocks
         jest.clearAllMocks();
-        
+
         // 设置测试用的headers
         (mockRequest as any).headers = {
           ...mockRequest.headers,
@@ -344,12 +378,18 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
           "x-request-id": testCase.requestId,
         };
 
-        (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("2097152");
+        (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue(
+          "2097152",
+        );
 
         let thrownException: EnhancedPayloadTooLargeException;
-        
+
         try {
-          securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+          securityMiddleware.use(
+            mockRequest as Request,
+            mockResponse as Response,
+            jest.fn(),
+          );
         } catch (exception) {
           thrownException = exception as EnhancedPayloadTooLargeException;
         }
@@ -357,17 +397,22 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
         globalFilter.catch(thrownException, mockArgumentsHost as ArgumentsHost);
 
         const responseCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
-        
+
         // 验证追踪信息正确传递
         if (testCase.correlationId) {
-          expect(responseCall.error.details.correlationId).toBe(testCase.correlationId);
+          expect(responseCall.error.details.correlationId).toBe(
+            testCase.correlationId,
+          );
         } else {
           expect(responseCall.error.details.correlationId).toBeUndefined();
         }
-        
+
         if (testCase.requestId) {
           expect(responseCall.error.details.requestId).toBe(testCase.requestId);
-          expect(mockResponse.setHeader).toHaveBeenCalledWith("x-request-id", testCase.requestId);
+          expect(mockResponse.setHeader).toHaveBeenCalledWith(
+            "x-request-id",
+            testCase.requestId,
+          );
         }
       });
     });
@@ -376,22 +421,28 @@ describe("SecurityMiddleware 与 GlobalExceptionFilter 集成测试", () => {
   describe("性能和兼容性", () => {
     it("重构后的异常处理不应该显著影响性能", () => {
       const startTime = Date.now();
-      
-      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue("2097152");
+
+      (HttpHeadersUtil.getContentLength as jest.Mock).mockReturnValue(
+        "2097152",
+      );
 
       let thrownException: EnhancedPayloadTooLargeException;
-      
+
       try {
-        securityMiddleware.use(mockRequest as Request, mockResponse as Response, jest.fn());
+        securityMiddleware.use(
+          mockRequest as Request,
+          mockResponse as Response,
+          jest.fn(),
+        );
       } catch (e) {
         thrownException = e as EnhancedPayloadTooLargeException;
       }
 
       globalFilter.catch(thrownException, mockArgumentsHost as ArgumentsHost);
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // 异常处理应该在合理时间内完成（通常<10ms）
       expect(duration).toBeLessThan(50);
     });
