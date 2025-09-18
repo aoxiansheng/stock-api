@@ -3,19 +3,9 @@
  * 🎯 提供跨模块共享的验证限制常量
  *
  * @description 从Alert模块迁移出的通用验证常量，避免模块间硬依赖
- * @author Claude Code Assistant
- * @date 2025-09-10
  */
 
-/**
- * ❌ 基础时间常量已迁移到统一TTL配置
- * 🎯 这些是可调节的时间参数，不应作为常量
- *
- * @deprecated 使用 @appcore/config/unified-ttl.config.ts 替代
- * - COOLDOWN_PERIOD: 300 → unifiedTtl.defaultTtl
- * - BATCH_OPERATION: 3600 → unifiedTtl.transformerResultTtl
- */
-// 时间常量已迁移到配置文件
+
 
 /**
  * 基础数量限制
@@ -40,21 +30,6 @@ const BASE_STRING_LENGTHS = {
   EMAIL_MAX: 254,
 } as const;
 
-/**
- * ❌ 超时常量已迁移到通用配置
- * 🎯 这些是可调节的性能参数，不应作为常量
- *
- * @deprecated 使用 @common/config/common-constants.config.ts 替代
- */
-// 超时常量已迁移到配置文件
-
-/**
- * ❌ 重试限制已迁移到通用配置
- * 🎯 这些是可调节的网络参数，不应作为常量
- *
- * @deprecated 使用 @common/config/common-constants.config.ts 替代
- */
-// 重试限制已迁移到配置文件
 
 /**
  * 通用验证限制常量
@@ -87,15 +62,6 @@ export const VALIDATION_LIMITS = Object.freeze({
   TIMEOUT_MIN: 1000, // 1000毫秒 - 最小超时时间
   TIMEOUT_MAX: 60000, // 60000毫秒 - 最大超时时间
 
-  // ❌ 其他时间、超时、重试限制已迁移到配置文件
-  // 🎯 这些参数现在从配置服务获取，不再作为常量定义
-
-  /**
-   * @deprecated 超时限制已迁移到 @common/config/common-constants.config.ts
-   * @deprecated 重试限制已迁移到 @common/config/common-constants.config.ts
-   */
-  // HTTP_TIMEOUT_MIN, HTTP_TIMEOUT_MAX → 通用配置
-  // RETRIES_DEFAULT → 通用配置
 });
 
 /**
@@ -137,16 +103,6 @@ export const NOTIFICATION_VALIDATION_LIMITS = Object.freeze({
   MAX_BATCH_SIZE: BASE_QUANTITIES.MEDIUM_BATCH, // 50 - 最大批量操作大小
   PHONE_MAX_LENGTH: 20, // 20 - 手机号最大长度
 
-  // ❌ 批量、超时、重试配置已迁移到通知组件配置
-
-  /**
-   * @deprecated 批量配置已迁移到 @notification/config/notification.config.ts
-   * @deprecated 超时配置已迁移到 @notification/config/notification.config.ts
-   * @deprecated 重试配置已迁移到 @notification/config/notification.config.ts
-   */
-  // BATCH_SIZE_MIN, BATCH_SIZE_MAX → 通知配置
-  // SEND_TIMEOUT_MIN, SEND_TIMEOUT_MAX, SEND_TIMEOUT_DEFAULT → 通知配置
-  // SEND_RETRIES_MIN, SEND_RETRIES_MAX, SEND_RETRIES_DEFAULT → 通知配置
 });
 
 /**

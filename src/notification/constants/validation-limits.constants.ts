@@ -6,11 +6,17 @@
  * @see docs/代码审查文档/配置文件标准/四层配置体系标准规则与开发指南.md
  * @author Claude Code Assistant
  * @date 2025-09-17
+ * 
+ * 🎯 过时代码清理注释:
+ * ✅ 此文件已经是独立的模块化常量，不依赖@common/constants
+ * ✅ 与新的notification-unified.config.ts完全对齐
+ * ✅ 不需要迁移，符合配置分离原则
  */
 
 /**
  * 通知验证限制常量
  * 🔒 这些限制值对应NotificationUnifiedConfig中的配置
+ * 📋 替代过时的@common/constants/validation.constants中的NOTIFICATION_VALIDATION_LIMITS
  */
 export const NOTIFICATION_VALIDATION_LIMITS = {
   // 重试次数限制

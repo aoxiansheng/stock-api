@@ -19,7 +19,24 @@ import { IsNumberInRange } from "@common/validators";
 
 import { AlertSeverity } from "../types/alert.types";
 import { VALID_OPERATORS, type Operator, ALERT_DEFAULTS } from "../constants";
+
+// 🎯 过时代码清理: 逐步迁移到配置系统
 import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
+
+/**
+ * 配置迁移注释:
+ * 🔄 正在将硬编码常量迁移到配置系统
+ * 
+ * 迁移目标:
+ * - VALIDATION_LIMITS.NAME_MAX_LENGTH → commonConstantsConfig.validation.nameMaxLength
+ * - VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH → commonConstantsConfig.validation.descriptionMaxLength  
+ * - VALIDATION_LIMITS.DURATION_MIN/MAX → commonConstantsConfig.validation.durationMin/Max
+ * - VALIDATION_LIMITS.COOLDOWN_MIN/MAX → commonConstantsConfig.validation.cooldownMin/Max
+ * - VALIDATION_LIMITS.RETRIES_MIN/MAX → commonConstantsConfig.retry.minRetryAttempts/maxRetryAttempts
+ * - VALIDATION_LIMITS.TIMEOUT_MIN/MAX → commonConstantsConfig.timeouts.quickTimeoutMs/longTimeoutMs
+ * 
+ * 注入配置服务的DTO重构将在Phase 3完成
+ **/
 
 /**
  * Alert模块的通知渠道类型枚举

@@ -31,21 +31,18 @@
 import { performance } from "perf_hooks";
 import {
   MonitoringUnifiedTtlConfig,
-
+  MonitoringUnifiedTtl,
   MonitoringTtlUtils,
-  MONITORING_UNIFIED_TTL_CONSTANTS,
 } from "../../src/monitoring/config/unified/monitoring-unified-ttl.config";
 
 import {
   MonitoringUnifiedLimitsConfig,
   monitoringUnifiedLimitsConfig,
-  MONITORING_UNIFIED_LIMITS_CONSTANTS,
 } from "../../src/monitoring/config/unified/monitoring-unified-limits.config";
 
 import {
   MonitoringCoreEnvConfig,
   monitoringCoreEnvConfig,
-  MONITORING_CORE_ENV_CONSTANTS,
 } from "../../src/monitoring/config/unified/monitoring-core-env.config";
 
 import { MonitoringConfigValidator } from "../../src/monitoring/config/monitoring-config.validator";
@@ -254,23 +251,21 @@ class MonitoringConfigPerformanceBenchmark {
     return this.runPerformanceTest(
       "常量访问性能",
       () => {
-        // 访问TTL常量
-        const ttlDefaults = MONITORING_UNIFIED_TTL_CONSTANTS.DEFAULTS.HEALTH;
-        const ttlProduction = MONITORING_UNIFIED_TTL_CONSTANTS.PRODUCTION.TREND;
-        const ttlTest = MONITORING_UNIFIED_TTL_CONSTANTS.TEST.PERFORMANCE;
+        // 访问TTL配置值
+        const ttlDefaults = MonitoringTtlUtils.getRecommendedTtl("health", "development");
+        const ttlProduction = MonitoringTtlUtils.getRecommendedTtl("trend", "production");
+        const ttlTest = MonitoringTtlUtils.getRecommendedTtl("performance", "test");
 
-        // 访问批量限制常量
-        const alertBatch =
-          MONITORING_UNIFIED_LIMITS_CONSTANTS.ALERT_BATCH.MEDIUM;
-        const dataBatch =
-          MONITORING_UNIFIED_LIMITS_CONSTANTS.DATA_BATCH.STANDARD;
-        const cleanupBatch =
-          MONITORING_UNIFIED_LIMITS_CONSTANTS.CLEANUP_BATCH.STANDARD;
+        // 访问批量限制配置值
+        const limitsConfig = monitoringUnifiedLimitsConfig();
+        const alertBatch = limitsConfig.alertBatch.medium;
+        const dataBatch = limitsConfig.dataProcessingBatch.standard;
+        const cleanupBatch = limitsConfig.dataCleanupBatch.standard;
 
-        // 访问核心环境常量
-        const defaultTtl = MONITORING_CORE_ENV_CONSTANTS.DEFAULTS.DEFAULT_TTL;
-        const defaultBatch =
-          MONITORING_CORE_ENV_CONSTANTS.DEFAULTS.DEFAULT_BATCH_SIZE;
+        // 访问核心环境配置值
+        const coreEnvConfig = monitoringCoreEnvConfig();
+        const defaultTtl = coreEnvConfig.defaultTtl;
+        const defaultBatch = coreEnvConfig.defaultBatchSize;
 
         // 防止编译器优化 - 使用值但不返回
         void (
@@ -300,7 +295,7 @@ class MonitoringConfigPerformanceBenchmark {
     const result = await this.runPerformanceTest(
       "环境变量解析性能",
       () => {
-        const ttlConfig = monitoringUnifiedTtlConfig();
+        const ttlConfig = MonitoringUnifiedTtl();
         const limitsConfig = monitoringUnifiedLimitsConfig();
         const coreEnvConfig = monitoringCoreEnvConfig();
 

@@ -1,22 +1,6 @@
 /**
  * 监控组件配置接口和默认值
  *
- * ⚠️ 配置系统重构通知：
- * ==========================================
- * 本配置文件正在迁移到统一配置系统：
- *
- * 🔄 已迁移的配置：
- * - TTL配置 → MonitoringUnifiedTtl
- * - 批量处理配置 → MonitoringUnifiedLimitsConfig
- *
- * 📋 推荐使用方式：
- * ```typescript
- * import {
- *   MonitoringUnifiedTtl,
- *   monitoringUnifiedLimitsConfig
- * } from './unified';
- * ```
- *
  * 职责边界：
  * - 专门负责监控数据的缓存管理（区别于缓存统计替换功能）
  * - 监控事件处理和性能指标阈值配置
@@ -38,8 +22,6 @@ import {
   MonitoringUnifiedLimitsConfig,
 } from "./unified";
 
-// TTL配置已迁移到统一配置系统：MonitoringUnifiedTtl
-// 请使用: import { MonitoringUnifiedTtl } from './unified/monitoring-unified-ttl.config';
 
 /**
  * 监控配置缓存部分的验证类
@@ -81,22 +63,6 @@ export class MonitoringCacheConfig {
   @Transform(({ value }) => parseInt(value, 10) || 10)
   fallbackThreshold: number = 10;
 
-  /** 监控数据TTL配置已迁移到统一配置系统
-   * @deprecated 请使用 MonitoringUnifiedTtl 替代
-   * @see MonitoringUnifiedTtl */
-  ttl: {
-    health: number;
-    trend: number;
-    performance: number;
-    alert: number;
-    cacheStats: number;
-  } = {
-    health: 300,
-    trend: 600,
-    performance: 180,
-    alert: 60,
-    cacheStats: 120,
-  };
 
   /** 监控数据批处理大小
    * 用途：批量处理监控数据时的批次大小，影响处理效率和内存使用
@@ -223,14 +189,6 @@ export interface MonitoringConfig {
     /** 回退次数告警阈值 - 连续回退多少次后触发告警 */
     fallbackThreshold: number;
 
-    /** @deprecated TTL配置已迁移到统一配置系统 - MonitoringUnifiedTtl */
-    ttl: {
-      health: number;
-      trend: number; 
-      performance: number;
-      alert: number;
-      cacheStats: number;
-    };
 
     /** 监控数据批处理大小 - 批量处理监控数据时的批次大小 */
     batchSize: number;
@@ -311,14 +269,6 @@ export const DEFAULT_MONITORING_CONFIG: MonitoringConfig = {
     // 回退告警阈值 - 保持固定值，不需要环境变量控制
     fallbackThreshold: 10,
 
-    /** @deprecated TTL配置已迁移，使用 MonitoringUnifiedTtl 获取当前值 */
-    ttl: {
-      health: coreEnv.defaultTtl,
-      trend: Math.floor(coreEnv.defaultTtl * 2.0),
-      performance: Math.floor(coreEnv.defaultTtl * 0.6),
-      alert: Math.floor(coreEnv.defaultTtl * 0.2),
-      cacheStats: Math.floor(coreEnv.defaultTtl * 0.4),
-    },
 
     // 使用核心环境变量 MONITORING_DEFAULT_BATCH_SIZE
     batchSize: coreEnv.defaultBatchSize,
@@ -373,12 +323,6 @@ export function validateMonitoringConfig(
     throw new Error("监控缓存批处理大小必须大于0");
   }
 
-  // TTL配置验证已迁移到 MonitoringUnifiedTtl
-  Object.entries(validated.cache.ttl).forEach(([key, value]) => {
-    if (value <= 0) {
-      throw new Error(`监控缓存TTL配置 ${key} 必须大于0秒`);
-    }
-  });
 
   // 验证性能阈值 - 确保百分比值在有效范围内
   if (
@@ -418,14 +362,6 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
         ...DEFAULT_MONITORING_CONFIG,
         cache: {
           ...DEFAULT_MONITORING_CONFIG.cache,
-          /** @deprecated TTL配置已迁移，使用环境特定的 MonitoringUnifiedTtl */
-          ttl: {
-            health: 600,
-            trend: 1200,
-            performance: 300,
-            alert: 120,
-            cacheStats: 240,
-          },
           batchSize: 20, // 生产环境增大批处理，提高吞吐量
         },
         performance: {
@@ -441,14 +377,6 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
         ...DEFAULT_MONITORING_CONFIG,
         cache: {
           ...DEFAULT_MONITORING_CONFIG.cache,
-          /** @deprecated TTL配置已迁移，使用环境特定的 MonitoringUnifiedTtl */
-          ttl: {
-            health: 10,
-            trend: 20,
-            performance: 10,
-            alert: 5,
-            cacheStats: 10,
-          },
           batchSize: 3, // 测试环境小批次处理，减少资源占用
         },
         events: {
@@ -492,10 +420,6 @@ export const monitoringConfigValidated = registerAs(
         keyIndexPrefix: process.env.MONITORING_KEY_INDEX_PREFIX,
         compressionThreshold: process.env.MONITORING_COMPRESSION_THRESHOLD,
         fallbackThreshold: process.env.MONITORING_FALLBACK_THRESHOLD,
-        /** @deprecated TTL配置已迁移到统一配置系统 */
-        ttl: {
-          default: process.env.MONITORING_DEFAULT_TTL,
-        },
         batchSize: process.env.MONITORING_BATCH_SIZE,
       },
       events: {

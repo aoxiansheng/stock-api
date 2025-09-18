@@ -23,10 +23,15 @@ import alertPerformanceConfig, {
 // Note: alert-validation.config has been consolidated into other config files
 // during the unified cache configuration migration
 
-// 常量导入
-import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
+// 新配置系统导入 (替代过时常量)
+import { ConfigType } from '@nestjs/config';
+import unifiedTtlConfig from '@appcore/config/unified-ttl.config';
+import commonConstantsConfig from '@common/config/common-constants.config';
 import { ALERT_DEFAULTS } from "@alert/constants/defaults.constants";
 import { RETRY_LIMITS } from "@alert/constants/limits.constants";
+
+// 过时常量的向后兼容导入 (将逐步移除)
+import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
 
 describe("Alert配置一致性测试", () => {
   let configService: ConfigService;
@@ -36,7 +41,13 @@ describe("Alert配置一致性测试", () => {
     module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({
-          load: [alertConfig, alertCacheConfig, alertPerformanceConfig],
+          load: [
+            alertConfig, 
+            alertCacheConfig, 
+            alertPerformanceConfig,
+            unifiedTtlConfig,
+            commonConstantsConfig
+          ],
           isGlobal: true,
         }),
       ],
@@ -364,6 +375,55 @@ describe("Alert配置一致性测试", () => {
       // 验证cache对象
       expect(alertConfigData.cache.cooldownPrefix).toBeDefined();
       expect(alertConfigData.cache.activeAlertPrefix).toBeDefined();
+    });
+  });
+
+  describe("配置迁移验证 (过时代码清理)", () => {
+    it("新的统一TTL配置应该可用", () => {
+      const unifiedTtlConfigData = configService.get("unifiedTtl");
+      expect(unifiedTtlConfigData).toBeDefined();
+      expect(unifiedTtlConfigData.defaultTtl).toBeDefined();
+      expect(unifiedTtlConfigData.authTtl).toBeDefined();
+      expect(unifiedTtlConfigData.monitoringTtl).toBeDefined();
+    });
+
+    it("新的通用常量配置应该可用", () => {
+      const commonConstantsConfigData = configService.get("commonConstants");
+      expect(commonConstantsConfigData).toBeDefined();
+      expect(commonConstantsConfigData.defaultBatchSize).toBeDefined();
+      expect(commonConstantsConfigData.maxRetryAttempts).toBeDefined();
+      expect(commonConstantsConfigData.defaultTimeoutMs).toBeDefined();
+    });
+
+    it("新配置值应该与过时常量保持兼容", () => {
+      const commonConstantsConfigData = configService.get("commonConstants");
+      
+      // 验证新配置提供的值与过时常量在合理范围内
+      expect(commonConstantsConfigData.maxRetryAttempts).toBeGreaterThanOrEqual(
+        VALIDATION_LIMITS.RETRIES_MIN
+      );
+      expect(commonConstantsConfigData.maxRetryAttempts).toBeLessThanOrEqual(
+        VALIDATION_LIMITS.RETRIES_MAX
+      );
+      
+      expect(commonConstantsConfigData.defaultTimeoutMs).toBeGreaterThanOrEqual(
+        VALIDATION_LIMITS.TIMEOUT_MIN
+      );
+      expect(commonConstantsConfigData.defaultTimeoutMs).toBeLessThanOrEqual(
+        VALIDATION_LIMITS.TIMEOUT_MAX
+      );
+    });
+
+    it("过时常量仍应可用 (向后兼容)", () => {
+      // 这些测试确保在迁移期间过时常量仍然可用
+      expect(VALIDATION_LIMITS.DURATION_MIN).toBeDefined();
+      expect(VALIDATION_LIMITS.DURATION_MAX).toBeDefined();
+      expect(VALIDATION_LIMITS.COOLDOWN_MIN).toBeDefined();
+      expect(VALIDATION_LIMITS.COOLDOWN_MAX).toBeDefined();
+      expect(VALIDATION_LIMITS.RETRIES_MIN).toBeDefined();
+      expect(VALIDATION_LIMITS.RETRIES_MAX).toBeDefined();
+      expect(VALIDATION_LIMITS.TIMEOUT_MIN).toBeDefined();
+      expect(VALIDATION_LIMITS.TIMEOUT_MAX).toBeDefined();
     });
   });
 });

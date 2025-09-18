@@ -14,9 +14,22 @@ import {
   ValidationOptions,
   ValidationArguments,
 } from "class-validator";
+
+// 🎯 过时代码清理: 逐步迁移到配置系统
 import { CACHE_VALIDATION_LIMITS } from "@common/constants/validation.constants";
 import { REDIS_KEY_CONSTRAINTS } from "@common/constants/domain/redis-specific.constants";
-// 🎯 Phase 2.5: 更新使用新的常量引用，从通用常量系统导入
+
+/**
+ * 配置迁移注释:
+ * 🔄 缓存验证装饰器配置迁移
+ * 
+ * 迁移目标:
+ * - CACHE_VALIDATION_LIMITS.TTL_MIN_SECONDS → commonConstantsConfig.cache.minTtlSeconds  
+ * - CACHE_VALIDATION_LIMITS.TTL_MAX_SECONDS → commonConstantsConfig.cache.maxTtlSeconds
+ * - CACHE_VALIDATION_LIMITS.CACHE_KEY_MAX_LENGTH → commonConstantsConfig.cache.maxKeyLength
+ * 
+ * 装饰器重构将在Phase 3完成，使用注入的配置服务
+ **/ 
 
 /**
  * 验证Cache键格式和Redis兼容性

@@ -18,8 +18,21 @@ import {
 import { IAlert, IAlertStats } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
 import { ALERT_DEFAULTS } from "../constants";
+
+// 🎯 过时代码清理: 逐步迁移到配置系统
 import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
 import { BaseQueryDto } from "../../common/dto/base-query.dto";
+
+/**
+ * 配置迁移注释:
+ * 🔄 此文件中的VALIDATION_LIMITS使用将迁移到配置系统
+ * 
+ * 迁移目标:
+ * - VALIDATION_LIMITS.NAME_MAX_LENGTH → 注入的配置服务
+ * 
+ * 当前阶段：标记过时代码，保持向后兼容性
+ * 下个阶段：使用配置服务重构DTO验证逻辑
+ **/
 
 export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "告警规则ID" })

@@ -73,14 +73,35 @@ export const CONSTANTS = {
 export default CONSTANTS;
 
 /**
- * 验证常量导出
+ * 验证常量导出 (过时代码兼容性)
  * 🎯 跨模块共享的验证限制常量
+ * 
+ * ⚠️ 过时代码清理进行中：
+ * @deprecated 建议使用配置文件替代：
+ * - TTL配置: @appcore/config/unified-ttl.config.ts
+ * - 通用配置: @common/config/common-constants.config.ts
+ * - 通知配置: @notification/config/notification.config.ts
+ * 
+ * 这些导出将在过时代码清理完成后移除
  */
 export {
   VALIDATION_LIMITS,
   NOTIFICATION_VALIDATION_LIMITS,
   ValidationLimitsUtil,
 } from "./validation.constants";
+
+/**
+ * 配置系统导出 (推荐使用)
+ * 🎯 现代化配置管理替代方案
+ * 
+ * 使用方式:
+ * ```typescript
+ * import { ConfigService } from '@nestjs/config';
+ * // 或直接导入配置
+ * import unifiedTtlConfig from '@appcore/config/unified-ttl.config';
+ * import commonConstantsConfig from '@common/config/common-constants.config';
+ * ```
+ */
 
 /**
  * 类型定义导出

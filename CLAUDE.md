@@ -558,7 +558,12 @@ src/
 ```
 
 **Recent Architecture Changes:**
-- **Monitoring Cache Unification (Latest)**: Major refactoring completed - removed internal MonitoringCacheService (970 lines) and unified to use general CacheService
+- **🆕 Compatibility Code Cleanup (Latest)**: Major cleanup of legacy compatibility code completed
+  - Removed ~250 lines of compatibility constants and comments across monitoring configuration files
+  - Eliminated duplicate constant exports: `MONITORING_UNIFIED_TTL_CONSTANTS`, `MONITORING_EVENTS_CONSTANTS`, `MONITORING_UNIFIED_LIMITS_CONSTANTS`
+  - Updated 8 files to use modern class-based configuration instead of compatibility constants
+  - Achieved "zero legacy baggage" goal with cleaner, maintainable architecture
+- **Monitoring Cache Unification**: Major refactoring completed - removed internal MonitoringCacheService (970 lines) and unified to use general CacheService
   - Replaced with: `MonitoringCacheKeys` utility class and `MONITORING_CACHE_TTL` constants
   - Added fault-tolerant cache methods: `safeGet`, `safeSet`, `safeGetOrSet` in CacheService
   - 87% code reduction while maintaining full functionality and improving fault tolerance
@@ -677,6 +682,29 @@ await this.cacheService.safeGetOrSet<HealthReportDto>(
 **TTL Configuration**: `src/monitoring/constants/cache-ttl.constants.ts`
 **Key Management**: `src/monitoring/utils/monitoring-cache-keys.ts`
 
+### Monitoring Configuration Best Practices (Post-Cleanup)
+After the recent compatibility code cleanup, monitoring configuration follows these patterns:
+
+```typescript
+// ✅ Correct - Use class-based configuration with ConfigService injection
+import { ConfigService } from '@nestjs/config';
+import { MonitoringUnifiedLimitsConfig } from '@monitoring/config/unified/monitoring-unified-limits.config';
+
+@Injectable()
+export class MonitoringService {
+  constructor(private readonly configService: ConfigService) {}
+
+  getBatchSize() {
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
+    return limitsConfig?.alertBatch?.small || 10; // Always provide fallback
+  }
+}
+
+// ❌ Deprecated - Compatibility constants removed
+// import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from '@monitoring/config/unified';
+// const batchSize = MONITORING_UNIFIED_LIMITS_CONSTANTS.ALERT_BATCH.SMALL;
+```
+
 ### Performance Monitoring Fault Tolerance
 Performance monitoring is treated as **non-critical functionality**:
 - Redis failures in metrics collection don't crash the application
@@ -729,6 +757,7 @@ monitoring:cache_stats:hit_rate_metrics
 - WebSocket server overrides (check initialization order)  
 - Provider registration loops (consolidation needed)
 - Auto-init 409 conflicts (normal, but monitor frequency)
+- **Duplicate function implementations in stream-data-fetcher.service.ts** (known issue - requires refactoring)
 ## TypeScript File Checking
 
 To check a single TypeScript file for compilation errors (critical for development workflow):
@@ -918,6 +947,36 @@ bun run test:unit:auth
 - `test/auth/config/` - Comprehensive test suite
 
 This unified configuration system represents a **major architectural improvement** that eliminates configuration chaos while maintaining perfect backward compatibility.
+
+## Code Quality and Maintenance Principles
+
+### Configuration Architecture Philosophy
+The project follows a **zero legacy baggage** principle:
+- **Class-based Configuration**: All configuration uses validated TypeScript classes instead of constants
+- **Dependency Injection**: ConfigService pattern with proper fallback values
+- **No Compatibility Layers**: Legacy compatibility constants have been systematically removed
+- **Type Safety**: Full TypeScript validation with class-validator decorators
+
+### Clean Architecture Practices
+```typescript
+// ✅ Modern configuration access pattern
+const config = this.configService.get<ConfigType>('configKey');
+const value = config?.section?.property || defaultValue;
+
+// ✅ Fault-tolerant cache operations
+await this.cacheService.safeGetOrSet(key, factory, options);
+
+// ✅ Proper error handling with specific exception types
+if (!Types.ObjectId.isValid(id)) {
+  throw new BadRequestException(`无效的ID格式: ${id}`);
+}
+```
+
+### Development Workflow Best Practices
+- **Single File Type Checking**: Always use `DISABLE_AUTO_INIT=true npm run typecheck:file -- <file>`
+- **Environment Isolation**: Use `DISABLE_AUTO_INIT=true` for testing to prevent side effects
+- **Configuration Testing**: Test configuration changes with dedicated type checking commands
+- **Gradual Migration**: When refactoring, maintain backward compatibility until full migration is complete
 
 ## Critical Troubleshooting Guide
 
