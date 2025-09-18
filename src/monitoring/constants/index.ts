@@ -7,9 +7,6 @@
  * 批量配置已迁移到统一配置系统：monitoring-unified-limits.config.ts
  *
  * ✅ 零抽象纯粹架构：
- * - system-resources.constants.ts: CPU、内存、磁盘监控阈值
- * - error-tracking.constants.ts: 错误率、成功率阈值
- * - monitoring-algorithmic.constants.ts: 固定算法和技术标准常量
  * - business.ts: 业务常量（零抽象架构）
  * - config/: 系统配置
  * - status/: 状态常量
@@ -23,49 +20,8 @@
 // ========================= ✅ 零抽象纯粹架构 - 直观优先常量 =========================
 // 推荐使用：数值直观可见，业务语义清晰，就近原则组织
 
-// 系统资源监控常量
-export * from "./system-resources.constants";
-
-// 错误跟踪监控常量
-export * from "./error-tracking.constants";
-
-// 算法和技术标准常量（固定值）
-export * from "./monitoring-algorithmic.constants";
-
-// 零抽象架构类型导出
-export type {
-  SystemResourceThresholds,
-  SystemResourceType,
-  SystemResourceLevel,
-} from "./system-resources.constants";
-
-export type {
-  ErrorTrackingThresholds,
-  ErrorType,
-  ErrorSeverity,
-  ErrorLevel,
-  HttpStatusCategory,
-} from "./error-tracking.constants";
-
-export type {
-  PerformanceLevel,
-  HealthLevel,
-  AlertSeverity,
-  CacheOperation,
-  DatabaseOperation,
-  AlgorithmicThresholds,
-} from "./monitoring-algorithmic.constants";
-
 // ========================= 零抽象纯粹的业务常量 =========================
-// 已重构为零抽象架构，所有数值直观可见
-export * from "./business";
-export {
-  MONITORING_BUSINESS,
-  MonitoringBusinessUtil,
-  type DataVolume,
-  type SamplingConfig,
-  type MonitoringBusinessConstants,
-} from "./business";
+// 已重构为零抽象架构，所有数值直观可见，business.ts 已删除 - 常量已就近定义
 
 // ========================= 配置层常量 =========================
 export {
@@ -149,8 +105,8 @@ export type {
  *    - 正确: 0.05 // 5% 错误率
  *
  * ✅ 就近性：相关常量组织在一起，减少导入复杂度
- *    - 系统资源监控阈值 → system-resources.constants.ts
- *    - 响应性能阈值 → response-performance.constants.ts
+ *    - 业务常量 → business.ts
+ *    - 配置常量 → config/
  *
  * ✅ 纯粹性：简洁的架构设计
  *    - 移除：core/base-thresholds.constants.ts
@@ -158,19 +114,14 @@ export type {
  *    - 移除：core/monitoring-scenarios.constants.ts
  *
  * ✅ 简洁性：单一真相来源，每个常量只有一个定义位置
- *    - 系统资源 → system-resources.constants.ts
- *    - 响应性能 → response-performance.constants.ts
- *    - 错误跟踪 → error-tracking.constants.ts
- *    - 数据库性能 → database-performance.constants.ts
- *    - 算法和技术标准 → monitoring-algorithmic.constants.ts
  *    - 业务常量 → business.ts
+ *    - 配置常量 → config/
+ *    - 状态常量 → status/
+ *    - 消息常量 → messages/
  *
  * 🚀 使用方式：
  * ```typescript
- * // 直接导入使用
- * import { CPU_USAGE_CRITICAL_THRESHOLD } from '@/monitoring/constants';
- *
- * // 或按类型导入
- * import { CPU_USAGE_CRITICAL_THRESHOLD } from '@/monitoring/constants/system-resources.constants';
+ * // 零抽象架构：常量就近定义，直接使用数值
+ * const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
  * ```
  */

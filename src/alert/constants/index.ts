@@ -53,8 +53,6 @@ export { AlertType, NotificationChannel } from "./enums";
 // 消息模板（通知相关已迁移）
 export {
   ALERT_MESSAGES,
-  ALERT_HISTORY_MESSAGES,
-  AlertMessageUtil,
   ALERT_OPERATIONS,
   ALERT_METRICS,
   OPERATOR_SYMBOLS,

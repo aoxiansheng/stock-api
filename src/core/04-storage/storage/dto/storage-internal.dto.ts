@@ -7,7 +7,7 @@ import {
   IsObject,
 } from "class-validator";
 
-export class CacheResultDto {
+export class StorageCacheResultDto {
   @ApiProperty({ description: "缓存数据" })
   data: any;
 

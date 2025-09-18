@@ -44,7 +44,7 @@ export const MONITORING_SYSTEM_LIMITS = {
    * 慢查询阈值 - 零抽象架构
    * @description 数据库查询超过此值视为慢查询
    */
-  SLOW_QUERY_THRESHOLD_MS: 500, // 500ms - 数据库查询慢查询阈值
+  SLOW_QUERY_THRESHOLD_MS: 1000, // 1000ms - 数据库查询慢查询阈值
 
   /**
    * 慢请求阈值 - 零抽象架构
@@ -56,7 +56,7 @@ export const MONITORING_SYSTEM_LIMITS = {
    * 缓存响应阈值 - 零抽象架构
    * @description 缓存操作超过此值需要优化
    */
-  CACHE_RESPONSE_THRESHOLD_MS: 50, // 50ms - 缓存操作响应时间阈值
+  CACHE_RESPONSE_THRESHOLD_MS: 100, // 100ms - 缓存操作响应时间阈值
 
   /**
    * API响应时间阈值 - 零抽象架构
@@ -76,6 +76,20 @@ export const MONITORING_SYSTEM_LIMITS = {
    * @description 缓存键名最大长度限制
    */
   MAX_KEY_LENGTH: 100 as const,
+
+  /**
+   * 最大缓冲区大小
+   * @description 事件收集器的最大缓冲区容量
+   * @note 已迁移到统一配置，此处保留用于测试兼容性
+   */
+  MAX_BUFFER_SIZE: 1000 as const,
+
+  /**
+   * 最大队列大小
+   * @description 事件处理队列的最大容量
+   * @note 已迁移到统一配置，此处保留用于测试兼容性
+   */
+  MAX_QUEUE_SIZE: 10000 as const,
 
   /**
    * 操作时间记录最大数量
@@ -129,6 +143,20 @@ export const MONITORING_SYSTEM_LIMITS = {
   FULL_SCORE: 100 as const,
 
   // ========================= 批处理配置（非重复配置） =========================
+  /**
+   * 默认批处理大小
+   * @description 默认批处理操作数量
+   * @note 已迁移到统一配置，此处保留用于测试兼容性
+   */
+  DEFAULT_BATCH_SIZE: 100 as const,
+
+  /**
+   * 默认刷新时间间隔
+   * @description 默认刷新时间间隔（毫秒）
+   * @note 已迁移到统一配置，此处保留用于测试兼容性
+   */
+  DEFAULT_FLUSH_INTERVAL_MS: 100 as const,
+
   /**
    * 事件计数器阈值
    * @description 触发刷新的事件计数阈值

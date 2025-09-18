@@ -815,25 +815,26 @@ AuthUnifiedConfig
 
 **New Unified System:**
 ```
-src/auth/config/
-├── auth-cache.config.ts          # Cache TTL configurations
-├── auth-limits.config.ts         # Numeric limits and thresholds  
-├── auth-unified.config.ts        # Unified config entry point
-└── compatibility-wrapper.ts      # 100% backward compatibility layer
-```
+ New Unified System (实际存在):
+  src/auth/config/
+  ├── auth-cache.config.ts          
+  ├── auth-limits.config.ts         
+  ├── auth-unified.config.ts        
 
-**Legacy Files (Still Supported):**
-```
-src/auth/config/
-├── auth-configuration.ts         # Existing config (unchanged)
-└── security.config.ts            # Existing security config (unchanged)
 
-src/auth/constants/               # Constant files (will be refactored)
-├── api-security.constants.ts     # API Key constants
-├── rate-limiting.constants.ts    # Rate limiting constants  
-├── permission-control.constants.ts # Permission constants
-├── validation-limits.constants.ts # Validation constants
-└── user-operations.constants.ts  # User operation constants
+  Legacy Files (实际存在):
+  src/auth/config/
+  ├── auth-configuration.ts         
+  └── security.config.ts            
+
+  Constants Files (实际情况):
+  src/auth/constants/
+  ├── auth-semantic.constants.ts    
+  ├── permission-control.constants.ts 
+  (重导出语义常量)
+  ├── rate-limiting.constants.ts    
+  ├── user-operations.constants.ts  
+  └── index.ts                       
 ```
 
 ### Environment Variables
