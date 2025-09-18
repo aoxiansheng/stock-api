@@ -22,7 +22,8 @@
  * @author Claude Code
  */
 
-import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
+// Note: MONITORING_UNIFIED_LIMITS_CONSTANTS has been replaced with MonitoringUnifiedLimitsConfig class
+// Import removed as this file should only contain non-duplicate constants
 
 export const MONITORING_SYSTEM_LIMITS = {
   // ========================= HTTP状态码阈值 =========================
@@ -65,7 +66,7 @@ export const MONITORING_SYSTEM_LIMITS = {
 
   // ========================= 系统限制（非重复配置） =========================
   /**
-   * 最大批量大小 - 保留用于向后兼容
+   * 最大批量大小
    * @description 批处理操作的最大数量
    */
   MAX_BATCH_SIZE: 100 as const,

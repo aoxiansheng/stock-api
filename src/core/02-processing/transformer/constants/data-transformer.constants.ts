@@ -19,11 +19,6 @@ import {
 } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 import type { TransformationType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 
-/**
- * @deprecated 使用 TRANSFORMATION_TYPES 替代，保持向后兼容
- * 转换操作类型常量（重新导出 data-mapper 的常量）
- */
-export const TRANSFORM_TYPES = TRANSFORMATION_TYPES;
 
 /**
  * 转换错误消息常量

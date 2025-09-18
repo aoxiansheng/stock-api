@@ -14,7 +14,8 @@ import type {
 } from "../contracts/events/system-status.events";
 import { CollectorRepository } from "./collector.repository";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
-import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../config/unified/monitoring-unified-limits.config";
+import { MonitoringUnifiedLimitsConfig } from "../config/unified/monitoring-unified-limits.config";
+import { ConfigService } from "@nestjs/config";
 import os from "os";
 import v8 from "v8";
 import { v4 as uuidv4 } from "uuid";
@@ -30,12 +31,15 @@ export class CollectorService
 {
   private readonly logger = createLogger(CollectorService.name);
   private readonly metricsBuffer: RawMetric[] = [];
-  private readonly maxBufferSize = MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE;
+  private readonly maxBufferSize: number;
 
   constructor(
     private readonly repository: CollectorRepository,
     private readonly eventBus: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
+    this.maxBufferSize = limitsConfig?.systemLimits?.maxBufferSize || 1000;
     this.logger.log(
       "CollectorService initialized - 纯事件驱动数据收集服务已启动",
     );

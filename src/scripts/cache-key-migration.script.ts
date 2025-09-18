@@ -9,10 +9,11 @@
  * @usage: bun run script:cache-migration
  */
 
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import type { ConfigType } from "@nestjs/config";
 import { CacheService } from "../cache/services/cache.service";
-import { UnifiedTtlConfig } from "../cache/config/unified-ttl.config";
+import cacheUnifiedConfig from "../cache/config/cache-unified.config";
 
 interface CacheKeyMigrationResult {
   totalKeysScanned: number;
@@ -25,54 +26,54 @@ interface CacheKeyMigrationResult {
 interface CacheKeyPattern {
   pattern: string;
   description: string;
-  newTtlProperty: keyof UnifiedTtlConfig;
+  newTtlProperty: keyof ConfigType<typeof cacheUnifiedConfig>;
   legacyTtl?: number;
 }
 
 @Injectable()
 export class CacheKeyMigrationScript {
   private readonly logger = new Logger("CacheKeyMigrationScript");
-  private readonly ttlConfig: UnifiedTtlConfig;
 
   /**
    * Alert组件缓存键模式映射
    * 定义旧缓存键模式到新TTL配置的映射关系
+   * 注意：所有Alert相关TTL现在都使用统一的defaultTtl
    */
   private readonly migrationPatterns: CacheKeyPattern[] = [
     {
       pattern: "alert:active:*",
       description: "Alert活跃数据缓存",
-      newTtlProperty: "alertActiveDataTtl",
+      newTtlProperty: "defaultTtl",
       legacyTtl: 86400, // 旧配置：24小时
     },
     {
       pattern: "alert:cooldown:*",
       description: "Alert冷却期缓存",
-      newTtlProperty: "alertCooldownTtl",
+      newTtlProperty: "defaultTtl",
       legacyTtl: 300, // 旧配置：5分钟
     },
     {
       pattern: "alert:timeseries:*",
       description: "Alert时序数据缓存",
-      newTtlProperty: "alertHistoricalDataTtl",
+      newTtlProperty: "defaultTtl",
       legacyTtl: 86400, // 旧配置：24小时
     },
     {
       pattern: "alert:config:*",
       description: "Alert配置缓存",
-      newTtlProperty: "alertConfigCacheTtl",
+      newTtlProperty: "defaultTtl",
       legacyTtl: 1800, // 旧配置：30分钟
     },
     {
       pattern: "alert:stats:*",
       description: "Alert统计缓存",
-      newTtlProperty: "alertStatsCacheTtl",
+      newTtlProperty: "defaultTtl",
       legacyTtl: 3600, // 旧配置：1小时
     },
     {
       pattern: "alert:archived:*",
       description: "Alert归档数据缓存",
-      newTtlProperty: "alertArchivedDataTtl",
+      newTtlProperty: "defaultTtl",
       legacyTtl: 86400, // 旧配置：24小时
     },
   ];
@@ -80,12 +81,11 @@ export class CacheKeyMigrationScript {
   constructor(
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
-    // 获取统一TTL配置
-    this.ttlConfig = this.configService.get<UnifiedTtlConfig>("unifiedTtl");
-    if (!this.ttlConfig) {
+    if (!this.cacheConfig) {
       throw new Error(
-        "统一TTL配置未找到，请确保unified-ttl.config.ts已正确注册",
+        "统一缓存配置未找到，请确保cache-unified.config.ts已正确注册",
       );
     }
   }
@@ -101,7 +101,7 @@ export class CacheKeyMigrationScript {
 
     this.logger.log(`开始缓存键迁移${dryRun ? " (模拟模式)" : ""}`);
     this.logger.log(
-      `统一TTL配置值: ${JSON.stringify(this.ttlConfig, null, 2)}`,
+      `统一缓存配置值: ${JSON.stringify(this.cacheConfig, null, 2)}`,
     );
 
     const result: CacheKeyMigrationResult = {
@@ -177,7 +177,7 @@ export class CacheKeyMigrationScript {
       }
 
       // 获取新的TTL值
-      const newTtl = this.ttlConfig[pattern.newTtlProperty];
+      const newTtl = this.cacheConfig[pattern.newTtlProperty];
       if (typeof newTtl !== "number" || newTtl <= 0) {
         result.errors.push(
           `无效的TTL值: ${pattern.newTtlProperty} = ${newTtl}`,
@@ -321,7 +321,7 @@ export class CacheKeyMigrationScript {
 
     for (const pattern of this.migrationPatterns) {
       const keys = await this.scanKeys(pattern.pattern);
-      const expectedTtl = Number(this.ttlConfig[pattern.newTtlProperty]);
+      const expectedTtl = Number(this.cacheConfig[pattern.newTtlProperty]);
 
       const summary = {
         total: keys.length,

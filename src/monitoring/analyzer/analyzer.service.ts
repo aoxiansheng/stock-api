@@ -1,6 +1,7 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
+import type { ConfigType } from "@nestjs/config";
 
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
 import {
@@ -25,7 +26,7 @@ import { HealthAnalyzerService } from "./analyzer-health.service";
 import { TrendAnalyzerService } from "./analyzer-trend.service";
 import { CacheService } from "@cache/services/cache.service";
 import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
-import { MONITORING_CACHE_TTL } from "../constants/cache-ttl.constants";
+import { MonitoringUnifiedTtl, MonitoringUnifiedTtlConfig } from "../config/unified/monitoring-unified-ttl.config";
 import {
   MONITORING_SYSTEM_LIMITS,
   MonitoringSystemLimitUtils,
@@ -63,6 +64,8 @@ export class AnalyzerService
     private readonly trendAnalyzer: TrendAnalyzerService,
     private readonly cacheService: CacheService, // 替换为通用缓存服务
     private readonly eventBus: EventEmitter2,
+    @Inject(MonitoringUnifiedTtl.KEY)
+    private readonly ttlConfig: ConfigType<typeof MonitoringUnifiedTtl>,
   ) {
     this.logger.log("AnalyzerService initialized - 事件驱动分析器服务已启动");
   }
@@ -318,7 +321,7 @@ export class AnalyzerService
 
           return healthScore;
         },
-        { ttl: MONITORING_CACHE_TTL.HEALTH },
+        { ttl: this.ttlConfig.health },
       );
     } catch (error) {
       this.logger.error("健康分获取失败", error.stack);
@@ -367,7 +370,7 @@ export class AnalyzerService
             period,
           );
         },
-        { ttl: MONITORING_CACHE_TTL.TREND },
+        { ttl: this.ttlConfig.trend },
       );
     } catch (error) {
       this.logger.error("趋势分析失败", error.stack);
@@ -519,7 +522,7 @@ export class AnalyzerService
       await this.cacheService.safeSet(
         MonitoringCacheKeys.performance(cacheKey),
         suggestions,
-        { ttl: MONITORING_CACHE_TTL.PERFORMANCE },
+        { ttl: this.ttlConfig.performance },
       );
 
       this.logger.debug("Analyzer: 优化建议生成完成", {

@@ -2,10 +2,9 @@
  * 监控常量统一导出入口 - 零抽象纯粹架构
  * 🎯 提供监控模块所有常量的集中式导出，简化导入路径
  *
- * ⚠️  DEPRECATION NOTICE:
- * Some legacy constant files are deprecated since v1.1.0:
- * - cache-ttl.constants.ts (removed in v1.2.0) → Use monitoring-unified-ttl.config.ts
- * - Any direct imports from deprecated files will show warnings
+ * ✅ 现代配置系统：
+ * TTL配置已迁移到统一配置系统：monitoring-unified-ttl.config.ts
+ * 批量配置已迁移到统一配置系统：monitoring-unified-limits.config.ts
  * 
  * ✅ 零抽象纯粹架构：
  * - system-resources.constants.ts: CPU、内存、磁盘监控阈值
@@ -153,12 +152,10 @@ export type {
  *    - 系统资源监控阈值 → system-resources.constants.ts
  *    - 响应性能阈值 → response-performance.constants.ts
  *
- * ✅ 纯粹性：彻底移除所有抽象层和兼容层
+ * ✅ 纯粹性：简洁的架构设计
  *    - 移除：core/base-thresholds.constants.ts
  *    - 移除：core/time-constants.ts
  *    - 移除：core/monitoring-scenarios.constants.ts
- *    - 移除：compatibility-mapping.constants.ts
- *    - 移除：index-new-architecture.ts
  *
  * ✅ 简洁性：单一真相来源，每个常量只有一个定义位置
  *    - 系统资源 → system-resources.constants.ts

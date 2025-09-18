@@ -10,7 +10,7 @@
 
 /**
  * 通知验证限制常量
- * 🔒 这些限制值对应NotificationEnhancedConfig中的配置
+ * 🔒 这些限制值对应NotificationUnifiedConfig中的配置
  */
 export const NOTIFICATION_VALIDATION_LIMITS = {
   // 重试次数限制
@@ -32,6 +32,17 @@ export const NOTIFICATION_VALIDATION_LIMITS = {
   // 标题和内容长度限制
   TITLE_MAX_LENGTH: 500,
   CONTENT_MAX_LENGTH: 5000,
+  CONTENT_MAX_LENGTH_EXTENDED: 10000,
+
+  // URL和联系方式长度限制
+  WEBHOOK_URL_MAX_LENGTH: 2000,
+  EMAIL_MAX_LENGTH: 320,
+  PHONE_MAX_LENGTH: 20,
+
+  // 数组大小限制
+  MAX_RECIPIENTS: 100,
+  MAX_TAGS: 20,
+  MAX_BATCH_SIZE: 100,
 } as const;
 
 /**

@@ -10,8 +10,8 @@ import { securityConfig } from "../../auth/config/security.config";
 import authUnifiedConfig from "../../auth/config/auth-unified.config";
 import cacheUnifiedConfig from "../../cache/config/cache-unified.config";
 import commonConstantsConfig from "../../common/config/common-constants.config";
-// notificationConfig已从旧文件迁移至notification-enhanced.config.ts
-// 由NotificationModule直接处理配置注册
+// 通知配置由NotificationModule直接处理配置注册
+// notification-enhanced.config.ts已被删除，改用统一配置系统
 
 /**
  * ConfigurationModule - 配置管理核心模块

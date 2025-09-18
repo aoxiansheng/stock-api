@@ -13,7 +13,7 @@
 | 配置文件 | 职责 | 特点 | 使用场景 |
 |---------|------|------|----------|
 | `monitoring.config.ts` | 监控业务数据缓存 | 可配置、环境差异化 | 健康检查、趋势分析、性能监控 |
-| `cache-ttl.constants.ts` | 缓存统计替换功能 | 固定常量、算法导向 | 缓存命中率统计、替换策略 |
+| `monitoring-unified-ttl.config.ts` | 统一TTL配置 | 类型安全、环境变量支持 | 所有监控组件的TTL管理 |
 
 ### 为什么要分离？
 
@@ -84,7 +84,7 @@ export class MonitoringService {
 
 ```typescript
 // 环境变量字符串自动转换为数字
-MONITORING_TTL_HEALTH=300 // string -> number
+MONITORING_DEFAULT_TTL=300 // string -> number
 
 // 布尔值智能解析
 MONITORING_AUTO_ANALYSIS=false // string -> boolean
@@ -115,29 +115,17 @@ Error: 监控配置验证失败: health must not be less than 1, hitRateThreshol
 
 | 环境变量 | 类型 | 默认值 | 描述 |
 |---------|------|--------|------|
-| `MONITORING_CACHE_NAMESPACE` | string | "monitoring" | Redis命名空间 |
-| `MONITORING_TTL_HEALTH` | number | 300 | 健康数据TTL（秒） |
-| `MONITORING_TTL_TREND` | number | 600 | 趋势数据TTL（秒） |
-| `MONITORING_TTL_PERFORMANCE` | number | 180 | 性能数据TTL（秒） |
-| `MONITORING_TTL_ALERT` | number | 60 | 告警数据TTL（秒） |
-| `MONITORING_TTL_CACHE_STATS` | number | 120 | 缓存统计TTL（秒） |
-| `MONITORING_BATCH_SIZE` | number | 10 | 批处理大小 |
-| `MONITORING_AUTO_ANALYSIS` | boolean | true | 是否启用自动分析 |
-| `MONITORING_EVENT_RETRY` | number | 3 | 事件重试次数 |
-| `MONITORING_P95_WARNING` | number | 200 | P95延迟告警阈值（ms） |
-| `MONITORING_P99_CRITICAL` | number | 500 | P99延迟严重阈值（ms） |
-| `MONITORING_HIT_RATE_THRESHOLD` | number | 0.8 | 缓存命中率阈值 |
-| `MONITORING_ERROR_RATE_THRESHOLD` | number | 0.1 | 错误率阈值 |
+| `MONITORING_DEFAULT_TTL` | number | 300 | 基础TTL值（秒），其他TTL按倍数计算 |
+| `MONITORING_DEFAULT_BATCH_SIZE` | number | 50 | 基础批处理大小，其他批处理按倍数计算 |
+| `MONITORING_AUTO_ANALYSIS` | boolean | true | 是否启用自动分析功能 |
 
 ### .env.development 示例
 
 ```bash
-# 监控组件配置 - 开发环境
-MONITORING_CACHE_NAMESPACE=monitoring_dev
-MONITORING_TTL_HEALTH=150
-MONITORING_AUTO_ANALYSIS=true
-MONITORING_P95_WARNING=300
-MONITORING_ERROR_RATE_THRESHOLD=0.15
+# 监控组件统一配置 - 开发环境
+MONITORING_DEFAULT_TTL=150                # 基础TTL，健康检查=150s，趋势分析=300s，性能指标=90s
+MONITORING_DEFAULT_BATCH_SIZE=25          # 基础批处理大小，小批量=2，中批量=5，大批量=10，最大=25
+MONITORING_AUTO_ANALYSIS=true             # 启用自动性能分析
 ```
 
 ## 🎯 使用场景示例
@@ -209,17 +197,17 @@ export const testConfig = {
 config.cache.ttl.health = 600;
 
 // ✅ 正确：通过环境变量覆盖
-process.env.MONITORING_TTL_HEALTH = '600';
+process.env.MONITORING_DEFAULT_TTL = '600';    // 基础TTL=600s，健康检查=600s，趋势分析=1200s
 const config = monitoringConfigValidated();
 ```
 
 #### 2. 验证失败？
 ```typescript
 // ❌ 错误：值超出范围
-MONITORING_TTL_HEALTH=0 // 小于最小值1
+MONITORING_DEFAULT_TTL=0 // 小于最小值1
 
 // ✅ 正确：检查范围限制
-MONITORING_TTL_HEALTH=300 // 1-3600之间的有效值
+MONITORING_DEFAULT_TTL=300 // 1-3600之间的有效值
 ```
 
 #### 3. 类型不匹配？

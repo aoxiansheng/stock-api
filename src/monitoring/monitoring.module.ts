@@ -19,6 +19,7 @@
 import { Module } from "@nestjs/common";
 import { APP_INTERCEPTOR, APP_FILTER } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
+import { ConfigModule } from "@nestjs/config";
 import { CacheModule } from "@cache/module/cache.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
 import { RequestTrackingInterceptor } from "@common/core/interceptors/request-tracking.interceptor";
@@ -29,10 +30,12 @@ import { CollectorModule } from "./collector/collector.module";
 import { AnalyzerModule } from "./analyzer/analyzer.module";
 import { PresenterModule } from "./presenter/presenter.module";
 import { HealthModule } from "./health/health.module";
+import { MonitoringUnifiedTtl } from "./config/unified/monitoring-unified-ttl.config";
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(), // Import EventEmitter for ResponseInterceptor
+    ConfigModule.forFeature(MonitoringUnifiedTtl), // 统一TTL配置
     CacheModule, // 导入通用缓存模块替代MonitoringCacheModule
     PaginationModule, // 🆕 导入通用分页模块
     InfrastructureModule,

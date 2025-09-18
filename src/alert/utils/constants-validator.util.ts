@@ -44,9 +44,7 @@ export class AlertConstantsValidator {
         errors.push("默认比较操作符不能为空");
       }
 
-      // 3. 验证关键数值合理性
-      // RETRY_COUNT已迁移到alert.config.ts的maxRetries配置
-      // 此处不再需要验证已迁移的配置项
+      // 3. 验证关键数值合理性 - 保持基础验证逻辑
     } catch (error) {
       errors.push(`验证异常: ${error.message}`);
     }

@@ -154,45 +154,6 @@ export class PresenterController {
     return this.presenterService.getEndpointMetrics(query);
   }
 
-  /**
-   * 获取端点指标 (Legacy兼容端点)
-   * @deprecated 使用 GET /endpoints 替代
-   */
-  @Auth([UserRole.ADMIN])
-  @Get("endpoints/legacy")
-  @ApiOperation({
-    summary: "获取端点性能指标 (Legacy)",
-    description: "Legacy兼容端点，建议使用 GET /endpoints",
-    deprecated: true,
-  })
-  @ApiQuery({
-    name: "limit",
-    required: false,
-    description: "返回结果数量限制",
-    example: 50,
-  })
-  @ApiSuccessResponse({
-    description: "端点指标获取成功",
-    schema: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          endpoint: { type: "string" },
-          method: { type: "string" },
-          totalOperations: { type: "number" },
-          responseTimeMs: { type: "number" },
-          errorRate: { type: "number" },
-          lastUsed: { type: "string", format: "date-time" },
-        },
-      },
-    },
-  })
-  @ApiStandardResponses()
-  @JwtAuthResponses()
-  async getEndpointMetricsLegacy(@Query("limit") limit?: string) {
-    return this.presenterService.getEndpointMetricsLegacy(limit);
-  }
 
   /**
    * 获取数据库指标

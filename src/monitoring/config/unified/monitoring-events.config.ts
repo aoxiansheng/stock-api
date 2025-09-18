@@ -1318,32 +1318,11 @@ export const monitoringEventsConfig = registerAs(
         config.alertEscalation.level1EscalationMinutes = parsed;
     }
 
-    // Phase 4: Environment Variable Optimization - 使用核心环境变量
-    // 1. 优先检查新的核心环境变量
+    // 应用统一核心环境变量配置
     if (env.MONITORING_AUTO_ANALYSIS) {
       config.enableAutoAnalysis = env.MONITORING_AUTO_ANALYSIS !== "false";
     }
 
-    if (env.MONITORING_EVENT_RETRY) {
-      const parsed = parseInt(env.MONITORING_EVENT_RETRY, 10);
-      if (!isNaN(parsed)) {
-        config.eventRetry.maxRetryAttempts = parsed;
-      }
-    }
-
-    // 2. 其他配置（向后兼容）
-    if (env.MONITORING_AUTO_ANALYSIS_ENABLED) {
-      config.enableAutoAnalysis =
-        env.MONITORING_AUTO_ANALYSIS_ENABLED !== "false";
-      console.warn(
-        "[DEPRECATED] MONITORING_AUTO_ANALYSIS_ENABLED is deprecated. Use MONITORING_AUTO_ANALYSIS instead.",
-      );
-    }
-
-    if (env.MONITORING_EVENT_PROCESSING_CONCURRENCY) {
-      const parsed = parseInt(env.MONITORING_EVENT_PROCESSING_CONCURRENCY, 10);
-      if (!isNaN(parsed)) config.processingConcurrency = parsed;
-    }
 
     // 根据环境调整配置
     config.adjustForEnvironment();
@@ -1553,64 +1532,3 @@ export class MonitoringEventsUtils {
 export type MonitoringEventsType = MonitoringEventsConfig;
 export type DataRetentionType = "realtime" | "hourly" | "daily" | "monthly";
 
-/**
- * 常量导出（兼容性支持）
- * 📦 为需要常量形式的代码提供兼容性支持
- */
-export const MONITORING_EVENTS_CONSTANTS = {
-  /** 告警频率限制 */
-  ALERT_FREQUENCY: {
-    MAX_ALERTS_PER_MINUTE: 5,
-    MAX_ALERTS_PER_HOUR: 60,
-    MAX_ALERTS_PER_DAY: 500,
-    COOLDOWN_EMERGENCY: 60,
-    COOLDOWN_CRITICAL: 300,
-    COOLDOWN_WARNING: 900,
-    COOLDOWN_INFO: 1800,
-    CONSECUTIVE_THRESHOLD: 3,
-  },
-
-  /** 事件重试配置 */
-  EVENT_RETRY: {
-    MAX_RETRY_ATTEMPTS: 3,
-    INITIAL_RETRY_DELAY_MS: 1000,
-    BACKOFF_MULTIPLIER: 2.0,
-    MAX_RETRY_DELAY_MS: 30000,
-    RETRY_TIMEOUT_MS: 60000,
-    JITTER_RANGE: 0.1,
-  },
-
-  /** 事件收集间隔（秒） */
-  COLLECTION_INTERVALS: {
-    REALTIME: 1,
-    HIGH_FREQUENCY: 5,
-    NORMAL: 30,
-    LOW_FREQUENCY: 300,
-  },
-
-  /** 事件数据保留时间（小时） */
-  DATA_RETENTION: {
-    REALTIME: 1,
-    HOURLY: 168, // 7天
-    DAILY: 720, // 30天
-    MONTHLY: 8760, // 365天
-  },
-
-  /** 告警升级时间（分钟） */
-  ESCALATION: {
-    LEVEL_1_MINUTES: 15,
-    LEVEL_2_MINUTES: 30,
-    LEVEL_3_MINUTES: 60,
-    MAX_LEVELS: 3,
-    AUTO_RESOLVE_HOURS: 24,
-  },
-
-  /** 通知配置 */
-  NOTIFICATION: {
-    TIMEOUT_MS: 10000,
-    RETRY_ATTEMPTS: 2,
-    TEMPLATE_CACHE_SECONDS: 3600,
-    QUIET_HOURS_START: 22,
-    QUIET_HOURS_END: 8,
-  },
-} as const;

@@ -4,7 +4,8 @@ import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
 import { GetEndpointMetricsDto } from "../contracts/dto/queries/get-endpoint-metrics.dto";
 import { AnalyzerService } from "../analyzer/analyzer.service";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
-import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../config/unified/monitoring-unified-limits.config";
+import { MonitoringUnifiedLimitsConfig } from "../config/unified/monitoring-unified-limits.config";
+import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@common/logging/index";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 
@@ -20,6 +21,7 @@ export class PresenterService {
   constructor(
     private readonly analyzer: AnalyzerService,
     private readonly paginationService: PaginationService,
+    private readonly configService: ConfigService,
   ) {
     this.logger.log("PresenterService initialized - 展示层业务服务已启动");
   }
@@ -122,47 +124,6 @@ export class PresenterService {
     return paginatedResponse;
   }
 
-  /**
-   * 获取端点指标 (Legacy兼容方法)
-   * @deprecated Since v1.1.0. Use getEndpointMetrics(query) instead. 
-   * This method will be removed in v2.0.0. 
-   * See migration guide: docs/monitoring-deprecation-migration-guide.md
-   * @param limit 返回结果数量限制
-   * @returns 端点指标数组 (非分页格式，向后兼容)
-   */
-  async getEndpointMetricsLegacy(limit?: string) {
-    // Issue deprecation warning
-    console.warn(
-      '⚠️  DEPRECATION WARNING: getEndpointMetricsLegacy() is deprecated since v1.1.0 and will be removed in v2.0.0. ' +
-      'Please migrate to getEndpointMetrics(query) for better type safety and pagination support. ' +
-      'See docs/monitoring-deprecation-migration-guide.md for migration instructions.'
-    );
-
-    let limitNum: number | undefined;
-
-    if (limit) {
-      limitNum = parseInt(limit, 10);
-      // 如果解析失败或超出范围，则忽略limit参数，保持向后兼容
-      if (
-        isNaN(limitNum) ||
-        limitNum < 1 ||
-        limitNum > MONITORING_SYSTEM_LIMITS.MAX_QUERY_LIMIT
-      ) {
-        limitNum = undefined;
-      }
-    }
-
-    // 调用原有方法保持向后兼容
-    const metrics = await this.analyzer.getEndpointMetrics(limitNum);
-
-    this.logger.debug("端点指标获取成功(Legacy)", {
-      count: metrics.length,
-      limit: limitNum,
-      deprecationWarning: 'Method deprecated, migrate to getEndpointMetrics(query)'
-    });
-
-    return metrics;
-  }
 
   /**
    * 获取数据库指标
@@ -470,7 +431,7 @@ export class PresenterService {
         tasksCleared: Math.floor(Math.random() * 10),
         avgExecutionTime: Math.random() * 500 + 200,
         totalTasks:
-          Math.floor(Math.random() * MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE) +
+          Math.floor(Math.random() * (this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits')?.systemLimits?.maxBufferSize || 1000)) +
           500,
         dynamicMaxConcurrency: Math.floor(Math.random() * 8) + 4,
         originalMaxConcurrency: 10,

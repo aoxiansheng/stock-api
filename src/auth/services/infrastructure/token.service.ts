@@ -1,9 +1,8 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { createLogger } from "@common/modules/logging";
-import { securityConfig } from "@auth/config/security.config";
-// 🆕 引入新的统一配置系统 - 与现有配置并存
-import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
+// 使用统一配置系统
+import type { AuthUnifiedConfigInterface } from "../../config/auth-unified.config";
 import { UserRole } from "../../enums/user-role.enum";
 import { User } from "../../schemas/user.schema";
 
@@ -23,45 +22,19 @@ export interface JwtPayload {
 @Injectable()
 export class TokenService {
   private readonly logger = createLogger(TokenService.name);
-  // 🎯 使用集中化的配置 - 保留原有配置作为后备
-  private readonly legacySessionConfig = securityConfig.session;
 
   constructor(
     private readonly jwtService: JwtService,
-    // 🆕 可选注入新配置系统 - 如果可用则使用，否则回退到原配置
-    private readonly authConfig?: AuthConfigCompatibilityWrapper,
+    @Inject('authUnified')
+    private readonly authConfig: AuthUnifiedConfigInterface,
   ) {}
 
-  // 🆕 统一配置访问方法 - 优先使用新配置，回退到原配置
+  // 统一配置访问方法
   private get sessionConfig() {
-    if (this.authConfig) {
-      // 使用新的统一配置系统
-      const newConfig = {
-        jwtDefaultExpiry:
-          this.authConfig.SECURITY_CONFIG.session.jwtDefaultExpiry,
-        refreshTokenDefaultExpiry:
-          this.authConfig.SECURITY_CONFIG.session.refreshTokenDefaultExpiry,
-      };
-
-      // 🔍 调试日志：记录使用新配置系统
-      this.logger.debug("TokenService: 使用新统一配置系统", {
-        configSource: "AuthConfigCompatibilityWrapper",
-        jwtDefaultExpiry: newConfig.jwtDefaultExpiry,
-        refreshTokenDefaultExpiry: newConfig.refreshTokenDefaultExpiry,
-      });
-
-      return newConfig;
-    }
-
-    // 回退到原有配置
-    this.logger.debug("TokenService: 回退到原有配置系统", {
-      configSource: "securityConfig.session",
-      jwtDefaultExpiry: this.legacySessionConfig.jwtDefaultExpiry,
-      refreshTokenDefaultExpiry:
-        this.legacySessionConfig.refreshTokenDefaultExpiry,
-    });
-
-    return this.legacySessionConfig;
+    return {
+      jwtDefaultExpiry: this.authConfig.cache.jwtDefaultExpiry,
+      refreshTokenDefaultExpiry: this.authConfig.cache.refreshTokenDefaultExpiry,
+    };
   }
 
   /**

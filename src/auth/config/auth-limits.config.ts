@@ -229,6 +229,17 @@ export class AuthLimitsConfigValidation {
     process.env.AUTH_PASSWORD_MAX_LENGTH || "128",
   );
 
+  /**
+   * Bcrypt加密盐值轮数
+   * 密码哈希加密的安全强度配置
+   */
+  @IsNumber()
+  @Min(10, { message: "Bcrypt盐值轮数不能少于10轮" })
+  @Max(15, { message: "Bcrypt盐值轮数不能超过15轮" })
+  bcryptSaltRounds: number = parseInt(
+    process.env.AUTH_BCRYPT_SALT_ROUNDS || "12",
+  );
+
   // ==================== 会话管理限制 ====================
 
   /**

@@ -15,14 +15,13 @@ export {
   NOTIFICATION_ERROR_TEMPLATES,
 } from "./notification-core.constants";
 
-// ✅ 直接导出通用常量，避免重复实现
-export { NOTIFICATION_VALIDATION_LIMITS } from '@common/constants/validation.constants';
+// 注意：NOTIFICATION_VALIDATION_LIMITS 由 validation-limits.constants.ts 定义和导出
 
 /**
- * 通知验证常量（向后兼容性保持）
+ * 通知验证常量
  * 🎯 提供通知验证相关的常量，使用通用常量避免重复
  */
-import { NOTIFICATION_VALIDATION_LIMITS } from '@common/constants/validation.constants';
+import { NOTIFICATION_VALIDATION_LIMITS } from './validation-limits.constants';
 
 export const NOTIFICATION_VALIDATION = Object.freeze({
   // ✅ 使用通用验证限制常量
@@ -173,7 +172,7 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
       },
     },
     from: "",
-    // timeout配置已迁移到NotificationEnhancedConfig
+    // timeout配置已迁移到NotificationUnifiedConfig
   },
 
   SMS: {
@@ -182,14 +181,14 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     accessKeySecret: "",
     signName: "",
     templateCode: "",
-    // timeout配置已迁移到NotificationEnhancedConfig
+    // timeout配置已迁移到NotificationUnifiedConfig
   },
 
   WEBHOOK: {
     url: "",
     method: "POST",
     headers: {},
-    // timeout配置已迁移到NotificationEnhancedConfig
+    // timeout配置已迁移到NotificationUnifiedConfig
     verifySSL: true,
   },
 
@@ -198,12 +197,12 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     channel: "",
     username: "AlertBot",
     iconEmoji: ":warning:",
-    // timeout配置已迁移到NotificationEnhancedConfig
+    // timeout配置已迁移到NotificationUnifiedConfig
   },
 
   DINGTALK: {
     webhook: "",
     secret: "",
-    // timeout配置已迁移到NotificationEnhancedConfig
+    // timeout配置已迁移到NotificationUnifiedConfig
   },
 });

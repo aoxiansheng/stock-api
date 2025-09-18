@@ -35,7 +35,6 @@ export const CACHE_CORE_OPERATIONS = Object.freeze({
  * 包含模式删除、统计、健康检查等扩展功能
  */
 export const CACHE_EXTENDED_OPERATIONS = Object.freeze({
-  GET_OR_SET: "getOrSet", // 获取或设置（缓存未命中时执行回调）
   DELETE_BY_PATTERN: "delByPattern", // 模式删除缓存
   RELEASE_LOCK: "releaseLock", // 释放分布式锁
 } as const);

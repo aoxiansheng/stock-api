@@ -6,17 +6,6 @@
  * @author Alert常量重构任务
  * @created 2025-01-10
  * @refactored 2025-01-10
- *
- * ⚠️ 重要迁移说明：
- * TTL配置已迁移至统一TTL配置管理：
- * - 冷却期TTL → unified-ttl.config.ts (alertCooldownTtl)
- * - 活跃数据TTL → unified-ttl.config.ts (alertActiveDataTtl)
- * - 配置缓存TTL → unified-ttl.config.ts (alertConfigCacheTtl)
- * - 统计缓存TTL → unified-ttl.config.ts (alertStatsCacheTtl)
- * - 历史数据TTL → unified-ttl.config.ts (alertHistoricalDataTtl)
- * - 归档数据TTL → unified-ttl.config.ts (alertArchivedDataTtl)
- *
- * 本文件仅保留固定业务时间常量（不可配置的业务规则）
  */
 
 /**

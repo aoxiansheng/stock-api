@@ -231,10 +231,6 @@ export interface NotificationLog {
   metadata?: Record<string, any>;
 }
 
-// 注意: AlertStats 和 AlertRuleStats 接口已移除
-// 实际使用中请参考 IAlertStats (src/alert/interfaces/alert.interface.ts)
-// 如需扩展统计功能，建议基于 IAlertStats 创建新的扩展接口
-
 /**
  * 告警查询接口
  */

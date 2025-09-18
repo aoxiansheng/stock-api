@@ -16,12 +16,10 @@
  */
 
 import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ConfigModule, ConfigService, ConfigType } from "@nestjs/config";
 
 // 导入统一配置和兼容性模块
-import cacheUnifiedConfig, {
-  CacheUnifiedConfig,
-} from "@cache/config/cache-unified.config";
+import cacheUnifiedConfig from "@cache/config/cache-unified.config";
 import { CacheModule } from "@cache/module/cache.module";
 import { CacheService } from "@cache/services/cache.service";
 import { CACHE_CORE_CONSTANTS } from "@cache/constants/cache-core.constants";
@@ -36,7 +34,7 @@ describe("Cache Configuration Consistency", () => {
   let module: TestingModule;
   let configService: ConfigService;
   let cacheService: CacheService;
-  let unifiedConfig: CacheUnifiedConfig;
+  let unifiedConfig: ConfigType<typeof cacheUnifiedConfig>;
 
   beforeAll(async () => {
     // 设置测试环境变量
@@ -61,7 +59,7 @@ describe("Cache Configuration Consistency", () => {
 
     configService = module.get<ConfigService>(ConfigService);
     cacheService = module.get<CacheService>(CacheService);
-    unifiedConfig = configService.get<CacheUnifiedConfig>("cacheUnified");
+    unifiedConfig = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
   });
 
   afterAll(async () => {
@@ -332,7 +330,7 @@ describe("Cache Configuration Consistency", () => {
       const startTime = Date.now();
 
       for (let i = 0; i < 1000; i++) {
-        const config = configService.get<CacheUnifiedConfig>("cacheUnified");
+        const config = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
         expect(config.defaultTtl).toBeDefined();
       }
 
@@ -345,8 +343,8 @@ describe("Cache Configuration Consistency", () => {
 
     it("应该避免配置对象重复创建", () => {
       // 验证配置对象引用一致性
-      const config1 = configService.get<CacheUnifiedConfig>("cacheUnified");
-      const config2 = configService.get<CacheUnifiedConfig>("cacheUnified");
+      const config1 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
+      const config2 = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
 
       // ConfigService应该缓存配置对象
       expect(config1).toBe(config2);

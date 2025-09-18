@@ -17,14 +17,12 @@
  */
 
 import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ConfigModule, ConfigService, ConfigType } from "@nestjs/config";
 
 // 导入Cache模块和服务
 import { CacheModule } from "@cache/module/cache.module";
 import { CacheService } from "@cache/services/cache.service";
-import cacheUnifiedConfig, {
-  CacheUnifiedConfig,
-} from "@cache/config/cache-unified.config";
+import cacheUnifiedConfig from "@cache/config/cache-unified.config";
 
 // 导入核心常量
 import { CACHE_CORE_CONSTANTS } from "@cache/constants/cache-core.constants";
@@ -36,7 +34,7 @@ describe("Cache Component Boundary Verification", () => {
   let module: TestingModule;
   let cacheService: CacheService;
   let configService: ConfigService;
-  let cacheConfig: CacheUnifiedConfig;
+  let cacheConfig: ConfigType<typeof cacheUnifiedConfig>;
 
   beforeAll(async () => {
     // 设置测试环境
@@ -57,7 +55,7 @@ describe("Cache Component Boundary Verification", () => {
 
     cacheService = module.get<CacheService>(CacheService);
     configService = module.get<ConfigService>(ConfigService);
-    cacheConfig = configService.get<CacheUnifiedConfig>("cacheUnified");
+    cacheConfig = configService.get<ConfigType<typeof cacheUnifiedConfig>>("cacheUnified");
   });
 
   afterAll(async () => {

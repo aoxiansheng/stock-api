@@ -12,7 +12,7 @@
 
 import { registerAs } from "@nestjs/config";
 import { IsNumber, IsBoolean, Min, Max, validateSync } from "class-validator";
-import { plainToClass } from "class-transformer";
+import { plainToInstance } from "class-transformer";
 
 /**
  * Cache统一配置验证类
@@ -268,7 +268,7 @@ export default registerAs("cacheUnified", (): CacheUnifiedConfigValidation => {
   };
 
   // 转换为验证类实例
-  const config = plainToClass(CacheUnifiedConfigValidation, rawConfig);
+  const config = plainToInstance(CacheUnifiedConfigValidation, rawConfig);
 
   // 执行验证
   const errors = validateSync(config, {
@@ -288,29 +288,3 @@ export default registerAs("cacheUnified", (): CacheUnifiedConfigValidation => {
   return config;
 });
 
-/**
- * 导出配置类型供其他模块使用
- */
-export type CacheUnifiedConfig = CacheUnifiedConfigValidation;
-
-/**
- * 兼容性接口 - 保持与原有接口的兼容性
- */
-export interface CacheTtlConfig {
-  defaultTtl: number;
-  strongTimelinessTtl: number;
-  realtimeTtl: number;
-  monitoringTtl: number;
-  authTtl: number;
-  transformerTtl: number;
-  suggestionTtl: number;
-  longTermTtl: number;
-}
-
-export interface CacheLimitsConfig {
-  maxBatchSize: number;
-  maxCacheSize: number;
-  lruSortBatchSize: number;
-  smartCacheMaxBatch: number;
-  maxCacheSizeMB: number;
-}

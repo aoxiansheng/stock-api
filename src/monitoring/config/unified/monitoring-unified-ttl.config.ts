@@ -20,9 +20,9 @@
  * - 使用class-validator进行验证
  * - 提供完整的TypeScript类型支持
  *
- * ❌ 替换的重复配置：
- * - cache-ttl.constants.ts 中的 MONITORING_CACHE_TTL
- * - monitoring.config.ts 中的 ttl 配置部分
+ * ✅ 重构前后对比：
+ * - 重构前：13个独立TTL环境变量
+ * - 重构后：1个基础TTL变量，自动倍数计算
  *
  * @version 1.0.0
  * @since 2025-09-16
@@ -51,7 +51,7 @@ export class MonitoringUnifiedTtlConfig {
    * - 测试环境：10-30秒（快速验证）
    * - 生产环境：300-600秒
    *
-   * 环境变量：MONITORING_TTL_HEALTH
+   * 环境变量：MONITORING_DEFAULT_TTL (health = base × 1.0)
    */
   @IsNumber({}, { message: "健康检查TTL必须是数字" })
   @Min(1, { message: "健康检查TTL最小值为1秒" })
@@ -75,7 +75,7 @@ export class MonitoringUnifiedTtlConfig {
    * - 测试环境：20-60秒
    * - 生产环境：600-1200秒
    *
-   * 环境变量：MONITORING_TTL_TREND
+   * 环境变量：MONITORING_DEFAULT_TTL (trend = base × 2.0)
    */
   @IsNumber({}, { message: "趋势分析TTL必须是数字" })
   @Min(1, { message: "趋势分析TTL最小值为1秒" })
@@ -99,7 +99,7 @@ export class MonitoringUnifiedTtlConfig {
    * - 测试环境：10-30秒
    * - 生产环境：180-300秒
    *
-   * 环境变量：MONITORING_TTL_PERFORMANCE
+   * 环境变量：MONITORING_DEFAULT_TTL (performance = base × 0.6)
    */
   @IsNumber({}, { message: "性能指标TTL必须是数字" })
   @Min(1, { message: "性能指标TTL最小值为1秒" })
@@ -123,7 +123,7 @@ export class MonitoringUnifiedTtlConfig {
    * - 测试环境：5-10秒
    * - 生产环境：60-120秒
    *
-   * 环境变量：MONITORING_TTL_ALERT
+   * 环境变量：MONITORING_DEFAULT_TTL (alert = base × 0.2)
    */
   @IsNumber({}, { message: "告警数据TTL必须是数字" })
   @Min(1, { message: "告警数据TTL最小值为1秒" })
@@ -147,7 +147,7 @@ export class MonitoringUnifiedTtlConfig {
    * - 测试环境：10-30秒
    * - 生产环境：120-240秒
    *
-   * 环境变量：MONITORING_TTL_CACHE_STATS
+   * 环境变量：MONITORING_DEFAULT_TTL (cacheStats = base × 0.4)
    */
   @IsNumber({}, { message: "缓存统计TTL必须是数字" })
   @Min(1, { message: "缓存统计TTL最小值为1秒" })
@@ -274,7 +274,7 @@ export class MonitoringUnifiedTtlConfig {
  * ```typescript
  * // 在模块中导入
  * @Module({
- *   imports: [ConfigModule.forFeature(monitoringUnifiedTtlConfig)]
+ *   imports: [ConfigModule.forFeature(MonitoringUnifiedTtl)]
  * })
  *
  * // 在服务中注入
@@ -284,7 +284,7 @@ export class MonitoringUnifiedTtlConfig {
  * ) {}
  * ```
  */
-export const monitoringUnifiedTtlConfig = registerAs(
+export const MonitoringUnifiedTtl = registerAs(
   "monitoringUnifiedTtl",
   (): MonitoringUnifiedTtlConfig => {
     // Phase 4: Environment Variable Optimization
@@ -295,76 +295,16 @@ export const monitoringUnifiedTtlConfig = registerAs(
       ? parseInt(process.env.MONITORING_DEFAULT_TTL, 10)
       : 300;
 
-    // 2. 后备：检查旧的具体环境变量（向后兼容）
-    const legacyConfig = {
-      health: process.env.MONITORING_TTL_HEALTH,
-      trend: process.env.MONITORING_TTL_TREND,
-      performance: process.env.MONITORING_TTL_PERFORMANCE,
-      alert: process.env.MONITORING_TTL_ALERT,
-      cacheStats: process.env.MONITORING_TTL_CACHE_STATS,
-    };
-
     // 创建配置实例
     const config = new MonitoringUnifiedTtlConfig();
 
-    // 3. 应用核心环境变量的倍数逻辑
+    // 应用核心环境变量的倍数逻辑
     if (!isNaN(defaultTtl)) {
       config.health = defaultTtl; // 1.0x
       config.trend = Math.floor(defaultTtl * 2.0); // 2.0x
       config.performance = Math.floor(defaultTtl * 0.6); // 0.6x
       config.alert = Math.floor(defaultTtl * 0.2); // 0.2x
       config.cacheStats = Math.floor(defaultTtl * 0.4); // 0.4x
-    }
-
-    // 4. 允许旧环境变量覆盖（向后兼容，但会在控制台显示弃用警告）
-    if (legacyConfig.health) {
-      const parsed = parseInt(legacyConfig.health, 10);
-      if (!isNaN(parsed)) {
-        config.health = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_TTL_HEALTH is deprecated. Use MONITORING_DEFAULT_TTL instead.",
-        );
-      }
-    }
-
-    if (legacyConfig.trend) {
-      const parsed = parseInt(legacyConfig.trend, 10);
-      if (!isNaN(parsed)) {
-        config.trend = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_TTL_TREND is deprecated. Use MONITORING_DEFAULT_TTL instead.",
-        );
-      }
-    }
-
-    if (legacyConfig.performance) {
-      const parsed = parseInt(legacyConfig.performance, 10);
-      if (!isNaN(parsed)) {
-        config.performance = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_TTL_PERFORMANCE is deprecated. Use MONITORING_DEFAULT_TTL instead.",
-        );
-      }
-    }
-
-    if (legacyConfig.alert) {
-      const parsed = parseInt(legacyConfig.alert, 10);
-      if (!isNaN(parsed)) {
-        config.alert = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_TTL_ALERT is deprecated. Use MONITORING_DEFAULT_TTL instead.",
-        );
-      }
-    }
-
-    if (legacyConfig.cacheStats) {
-      const parsed = parseInt(legacyConfig.cacheStats, 10);
-      if (!isNaN(parsed)) {
-        config.cacheStats = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_TTL_CACHE_STATS is deprecated. Use MONITORING_DEFAULT_TTL instead.",
-        );
-      }
     }
 
     return config;
@@ -452,7 +392,7 @@ export class MonitoringTtlUtils {
 /**
  * 监控TTL配置类型导出
  */
-export type MonitoringUnifiedTtlType = MonitoringUnifiedTtlConfig;
+
 export type TtlDataType =
   | "health"
   | "trend"
@@ -461,45 +401,3 @@ export type TtlDataType =
   | "cacheStats";
 export type EnvironmentType = "development" | "test" | "production";
 
-/**
- * 常量导出（兼容性支持）
- * 📦 为需要常量形式的代码提供兼容性支持
- */
-export const MONITORING_UNIFIED_TTL_CONSTANTS = {
-  /** 默认TTL值（秒） */
-  DEFAULTS: {
-    HEALTH: 300,
-    TREND: 600,
-    PERFORMANCE: 180,
-    ALERT: 60,
-    CACHE_STATS: 120,
-  },
-
-  /** 生产环境TTL值（秒） */
-  PRODUCTION: {
-    HEALTH: 600,
-    TREND: 1200,
-    PERFORMANCE: 300,
-    ALERT: 120,
-    CACHE_STATS: 240,
-  },
-
-  /** 测试环境TTL值（秒） */
-  TEST: {
-    HEALTH: 10,
-    TREND: 20,
-    PERFORMANCE: 10,
-    ALERT: 5,
-    CACHE_STATS: 10,
-  },
-
-  /** TTL验证限制 */
-  LIMITS: {
-    MIN_TTL: 1,
-    MAX_HEALTH_TTL: 3600,
-    MAX_TREND_TTL: 3600,
-    MAX_PERFORMANCE_TTL: 1800,
-    MAX_ALERT_TTL: 600,
-    MAX_CACHE_STATS_TTL: 600,
-  },
-} as const;

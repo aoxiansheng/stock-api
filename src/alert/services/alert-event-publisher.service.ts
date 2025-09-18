@@ -7,11 +7,12 @@
  * @date 2025-09-10
  */
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import type { ConfigType } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { v4 as uuidv4 } from "uuid";
-import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
+import cacheUnifiedConfig from "../../cache/config/cache-unified.config";
 
 import { createLogger } from "@common/logging/index";
 import { IAlert, IAlertRule } from "../interfaces";
@@ -55,6 +56,7 @@ export class AlertEventPublisher {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly configService: ConfigService,
+    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
     // 获取alert配置
     this.alertConfig = this.configService.get("alert", {
@@ -491,7 +493,7 @@ export class AlertEventPublisher {
       threshold: alert.threshold || 0,
       duration: this.alertConfig.defaultCooldown,
       cooldown:
-        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+        this.cacheConfig.defaultTtl,
       enabled: true,
       channels: [],
       tags: alert.tags,

@@ -144,9 +144,7 @@ export const NOTIFICATION_ERROR_TEMPLATES = Object.freeze({
   CHANNEL_NOT_FOUND: "通知渠道未找到: {channelId}",
 } as const);
 
-// ❌ 以下内容已迁移到配置文件
-// - DEFAULT_TEXT_TEMPLATE → NotificationTemplateConfig.defaultTextTemplate
-// - DEFAULT_EMAIL_SUBJECT_TEMPLATE → NotificationTemplateConfig.defaultEmailSubjectTemplate
-// - DEFAULT_NOTIFICATION_TEMPLATES → 配置文件中的模板配置
-// - DEFAULT_CHANNEL_CONFIGS → 配置文件中的渠道配置
-// - 所有数值限制常量 → NotificationValidationConfig
+// 📝 配置相关常量已移至统一配置系统
+// 模板配置 → NotificationTemplateConfig
+// 渠道配置 → NotificationChannelConfig  
+// 验证限制 → NotificationValidationConfig

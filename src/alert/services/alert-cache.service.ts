@@ -7,9 +7,10 @@
  * @date 2025-09-10
  */
 
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
+import cacheUnifiedConfig from "../../cache/config/cache-unified.config";
+import type { ConfigType } from "@nestjs/config";
 
 import { createLogger } from "@common/logging/index";
 import { CacheService } from "../../cache/services/cache.service";
@@ -24,18 +25,15 @@ export class AlertCacheService implements OnModuleInit {
   private readonly config: {
     maxTimeseriesLength: number;
   };
-  private readonly ttlConfig: UnifiedTtlConfig;
-
   constructor(
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly alertHistoryRepository: AlertHistoryRepository,
+    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
     this.config = {
       maxTimeseriesLength: 1000,
     };
-    // 获取统一TTL配置
-    this.ttlConfig = this.configService.get<UnifiedTtlConfig>("unifiedTtl");
   }
 
   async onModuleInit() {
@@ -59,7 +57,7 @@ export class AlertCacheService implements OnModuleInit {
       const cacheKey = alertCacheKeys.activeAlert(ruleId);
 
       await this.cacheService.safeSet(cacheKey, alert, {
-        ttl: this.ttlConfig.alertActiveDataTtl,
+        ttl: this.cacheConfig.defaultTtl,
       });
 
       // 同时缓存到时序数据
@@ -375,7 +373,7 @@ export class AlertCacheService implements OnModuleInit {
       // 设置TTL
       await this.cacheService.expire(
         timeseriesKey,
-        this.ttlConfig.alertHistoricalDataTtl,
+        this.cacheConfig.defaultTtl,
       );
 
       this.logger.debug("时序数据添加成功", {
@@ -513,7 +511,7 @@ export class AlertCacheService implements OnModuleInit {
           );
           await this.cacheService.expire(
             timeseriesKey,
-            this.ttlConfig.alertHistoricalDataTtl,
+            this.cacheConfig.defaultTtl,
           );
         }
 
@@ -570,7 +568,7 @@ export class AlertCacheService implements OnModuleInit {
             // TTL为-1表示没有过期时间，重新设置TTL
             await this.cacheService.expire(
               key,
-              this.ttlConfig.alertHistoricalDataTtl,
+              this.cacheConfig.defaultTtl,
             );
           }
           cleanedKeys++;
@@ -738,7 +736,7 @@ export class AlertCacheService implements OnModuleInit {
           timeseriesKeysResult.status === "fulfilled"
             ? timeseriesKeysResult.value
             : 0,
-        cacheHitRate: 0, // TODO: 需要在CacheService中实现命中率统计
+        cacheHitRate: 0, // 命中率统计需要底层CacheService支持，暂时使用默认值
         lastUpdated: new Date(),
       };
 

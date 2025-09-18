@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { Test, TestingModule } from "@nestjs/testing";
 
 import { SecurityMiddleware } from "../../../../../src/auth/middleware/security.middleware";

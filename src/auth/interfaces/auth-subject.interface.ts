@@ -1,7 +1,7 @@
 import { Permission, UserRole } from "../enums/user-role.enum";
 import { AuthSubjectType } from "../../common/types/enums/auth.enum";
 
-// 重新导出以保持向后兼容
+// 重新导出通用类型
 export { AuthSubjectType };
 
 /**

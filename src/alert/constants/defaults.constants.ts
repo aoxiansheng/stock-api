@@ -20,8 +20,7 @@ export const ALERT_DEFAULTS = {
   severity: AlertSeverity.WARNING, // 默认严重程度（业务标准）
   enabled: true, // 默认启用状态（业务标准）
 
-  // ⚠️ 临时保留：向后兼容（TODO: 迁移引用后删除）
-  duration: 60, // 60秒 - 默认持续时间（临时保留）
+  duration: 60, // 60秒 - 默认持续时间
 
   // ❌ 删除：重复定义（已在其他地方定义）
   // MAX_CONDITIONS: 10,              // 删除 - 已在alert.config.ts
@@ -29,11 +28,6 @@ export const ALERT_DEFAULTS = {
   // DESCRIPTION_MAX_LENGTH: 500,     // 删除 - 已在validation.constants.ts
 } as const;
 
-// ❌ 删除整个对象（已迁移到alert-presets.config.ts）
-// export const ALERT_CONFIG_PRESETS = { ... };  // 删除整个对象
-
-// ❌ 删除环境配置（已迁移到环境变量）
-// export const ALERT_ENV_CONFIG = { ... };  // 删除整个对象
 
 // 类型定义
 export type AlertDefaults = typeof ALERT_DEFAULTS;

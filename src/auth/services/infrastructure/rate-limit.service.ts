@@ -2,10 +2,6 @@ import { Injectable, BadRequestException } from "@nestjs/common";
 
 import { createLogger } from "@common/modules/logging";
 import { CacheService } from "../../../cache/services/cache.service";
-
-import { securityConfig } from "@auth/config/security.config";
-// 🆕 引入新的统一配置系统 - 与现有配置并存
-import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
 import {
   RateLimitOperation,
   RateLimitMessage,
@@ -30,43 +26,18 @@ import { ApiKey } from "../../schemas/apikey.schema";
 @Injectable()
 export class RateLimitService {
   private readonly logger = createLogger(RateLimitService.name);
-  // 🎯 使用集中化的配置 - 保留原有配置作为后备
-  private readonly legacyConfig = securityConfig.rateLimit;
   private readonly luaScriptsService = new RateLimitLuaScriptsService();
 
   constructor(
     private readonly cacheService: CacheService,
-    // 🆕 可选注入新配置系统 - 如果可用则使用，否则回退到原配置
-    private readonly authConfig?: AuthConfigCompatibilityWrapper,
   ) {}
 
-  // 🆕 统一配置访问方法 - 优先使用新配置，回退到原配置
+  // 统一配置访问方法
   private get config() {
-    if (this.authConfig) {
-      // 使用新的统一配置系统
-      const newConfig = {
-        luaExpireBufferSeconds: 10, // 固定值，无需配置化
-        redisPrefix: "rl", // 固定值，与原配置一致
-      };
-
-      // 🔍 调试日志：记录使用新配置系统
-      this.logger.debug("RateLimitService: 使用新统一配置系统", {
-        configSource: "AuthConfigCompatibilityWrapper",
-        luaExpireBufferSeconds: newConfig.luaExpireBufferSeconds,
-        redisPrefix: newConfig.redisPrefix,
-      });
-
-      return newConfig;
-    }
-
-    // 回退到原有配置
-    this.logger.debug("RateLimitService: 回退到原有配置系统", {
-      configSource: "securityConfig.rateLimit",
-      luaExpireBufferSeconds: this.legacyConfig.luaExpireBufferSeconds,
-      redisPrefix: this.legacyConfig.redisPrefix,
-    });
-
-    return this.legacyConfig;
+    return {
+      luaExpireBufferSeconds: 10, // 固定值，无需配置化
+      redisPrefix: "rl", // 固定值，与原配置一致
+    };
   }
 
   /**

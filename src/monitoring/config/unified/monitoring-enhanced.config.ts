@@ -50,8 +50,8 @@ import { registerAs } from "@nestjs/config";
 
 // 导入已创建的统一配置类
 import {
+  MonitoringUnifiedTtl,
   MonitoringUnifiedTtlConfig,
-  monitoringUnifiedTtlConfig,
   MonitoringTtlUtils,
 } from "./monitoring-unified-ttl.config";
 import {
@@ -539,17 +539,12 @@ export class MonitoringEnhancedConfig {
 export const monitoringEnhancedConfig = registerAs(
   "monitoringEnhanced",
   (): MonitoringEnhancedConfig => {
+    // 使用统一环境变量系统
     const rawConfig = {
       base: {
-        namespace: process.env.MONITORING_CACHE_NAMESPACE,
-        keyIndexPrefix: process.env.MONITORING_KEY_INDEX_PREFIX,
-        compressionThreshold: process.env.MONITORING_COMPRESSION_THRESHOLD,
-        fallbackThreshold: process.env.MONITORING_FALLBACK_THRESHOLD,
         enabled: process.env.MONITORING_ENABLED,
         debugEnabled: process.env.MONITORING_DEBUG_ENABLED,
         version: process.env.MONITORING_VERSION,
-        configCheckIntervalSeconds:
-          process.env.MONITORING_CONFIG_CHECK_INTERVAL_SEC,
       },
       environment: {
         environment: process.env.NODE_ENV,
@@ -566,7 +561,7 @@ export const monitoringEnhancedConfig = registerAs(
 
     // 加载子配置
     try {
-      config.ttl = monitoringUnifiedTtlConfig() as MonitoringUnifiedTtlConfig;
+      config.ttl = MonitoringUnifiedTtl() as MonitoringUnifiedTtlConfig;
       config.limits =
         monitoringUnifiedLimitsConfig() as MonitoringUnifiedLimitsConfig;
       config.performanceThresholds =
@@ -865,53 +860,23 @@ export type ConfigSummary = {
 };
 
 /**
- * 所有环境变量映射表
- * 📋 完整的环境变量配置文档
+ * 统一环境变量映射表
+ * 📋 使用统一环境变量系统简化配置管理
  */
 export const MONITORING_ENHANCED_CONFIG_ENV_MAPPING = {
-  // 基础配置
-  "base.namespace": "MONITORING_CACHE_NAMESPACE",
-  "base.keyIndexPrefix": "MONITORING_KEY_INDEX_PREFIX",
-  "base.compressionThreshold": "MONITORING_COMPRESSION_THRESHOLD",
-  "base.fallbackThreshold": "MONITORING_FALLBACK_THRESHOLD",
-  "base.enabled": "MONITORING_ENABLED",
-  "base.debugEnabled": "MONITORING_DEBUG_ENABLED",
-  "base.version": "MONITORING_VERSION",
-  "base.configCheckIntervalSeconds": "MONITORING_CONFIG_CHECK_INTERVAL_SEC",
+  // 核心统一环境变量 (优先级最高)
+  "ttl.default": "MONITORING_DEFAULT_TTL",              // 基础TTL，其他TTL按倍数计算
+  "limits.defaultBatchSize": "MONITORING_DEFAULT_BATCH_SIZE",  // 基础批处理大小，其他批处理按倍数计算
+  "events.enableAutoAnalysis": "MONITORING_AUTO_ANALYSIS",     // 自动分析开关
 
-  // 环境配置
+  // 环境标识配置
   "environment.environment": "NODE_ENV",
   "environment.environmentId": "MONITORING_ENVIRONMENT_ID",
   "environment.datacenterId": "MONITORING_DATACENTER_ID",
   "environment.instanceId": "MONITORING_INSTANCE_ID",
 
-  // TTL配置 (继承自MonitoringUnifiedTtlConfig)
-  "ttl.health": "MONITORING_TTL_HEALTH",
-  "ttl.trend": "MONITORING_TTL_TREND",
-  "ttl.performance": "MONITORING_TTL_PERFORMANCE",
-  "ttl.alert": "MONITORING_TTL_ALERT",
-  "ttl.cacheStats": "MONITORING_TTL_CACHE_STATS",
-
-  // 限制配置 (继承自MonitoringUnifiedLimitsConfig)
-  "limits.alertBatch.small": "MONITORING_ALERT_BATCH_SMALL",
-  "limits.alertBatch.medium": "MONITORING_ALERT_BATCH_MEDIUM",
-  "limits.alertBatch.large": "MONITORING_ALERT_BATCH_LARGE",
-  "limits.dataProcessingBatch.standard": "MONITORING_DATA_BATCH_STANDARD",
-  "limits.systemLimits.maxQueueSize": "MONITORING_MAX_QUEUE_SIZE",
-
-  // 性能阈值配置 (继承自MonitoringPerformanceThresholdsConfig)
-  "performanceThresholds.apiResponse.apiExcellentMs":
-    "MONITORING_API_RESPONSE_EXCELLENT_MS",
-  "performanceThresholds.cachePerformance.redisHitRateExcellent":
-    "MONITORING_REDIS_HIT_RATE_EXCELLENT",
-  "performanceThresholds.systemResource.cpuUsageHigh":
-    "MONITORING_CPU_USAGE_HIGH",
-
-  // 事件配置 (继承自MonitoringEventsConfig)
-  "events.alertFrequency.maxAlertsPerMinute":
-    "MONITORING_MAX_ALERTS_PER_MINUTE",
-  "events.eventRetry.maxRetryAttempts": "MONITORING_EVENT_MAX_RETRY_ATTEMPTS",
-  "events.eventNotification.emailEnabled":
-    "MONITORING_NOTIFICATION_EMAIL_ENABLED",
-  "events.enableAutoAnalysis": "MONITORING_AUTO_ANALYSIS_ENABLED",
+  // 可选配置（有合理默认值）
+  "base.enabled": "MONITORING_ENABLED",
+  "base.debugEnabled": "MONITORING_DEBUG_ENABLED",
+  "base.version": "MONITORING_VERSION",
 } as const;

@@ -6,7 +6,7 @@
  *
  * 使用指南：
  * - 键前缀：使用CACHE_KEYS.PREFIXES定义的标准前缀
- * - 配置获取：通过CacheUnifiedConfig或CacheService.getTtlByTimeliness()
+ * - 配置获取：通过CacheUnifiedConfigValidation或CacheService.getTtlByTimeliness()
  * - 命名规范：{module}:{category}:{specific_key}
  */
 

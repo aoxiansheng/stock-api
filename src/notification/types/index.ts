@@ -7,7 +7,7 @@
  * @date 2025-09-10
  */
 
-// 原有通知类型（保持向后兼容）
+// 标准通知类型
 export * from "./notification.types";
 
 // 独立警告类型（替代Alert模块依赖）

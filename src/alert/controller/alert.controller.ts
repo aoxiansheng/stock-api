@@ -343,26 +343,6 @@ export class AlertController {
     );
   }
 
-  // ==================== 通知渠道测试 ====================
-  // NOTE: Notification channel testing has been moved to the NotificationController
-  // Use POST /notifications/test with { channelType, config } body instead
-
-  // @Post("channels/test")
-  // @Auth([UserRole.ADMIN])
-  // @ApiOperation({ summary: "测试通知渠道 - 已迁移到NotificationController" })
-  // @ApiSuccessResponse()
-  // @JwtAuthResponses()
-  // async testNotificationChannel(
-  //   @Body()
-  //   testDto: TestNotificationChannelDto & {
-  //     type: NotificationChannelType;
-  //     config: Record<string, any>;
-  //   },
-  // ): Promise<{ success: boolean }> {
-  //   // This endpoint has been moved to NotificationController
-  //   // Use POST /notifications/test instead
-  //   throw new Error("This endpoint has been moved to NotificationController. Use POST /notifications/test instead.");
-  // }
 
   // ==================== 手动触发 ====================
 

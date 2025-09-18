@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
@@ -7,10 +7,11 @@ import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
 import { CacheService } from "@cache/services/cache.service";
 import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
-import { MONITORING_CACHE_TTL } from "../constants/cache-ttl.constants";
+import { MonitoringUnifiedTtl } from "../config/unified/monitoring-unified-ttl.config";
 import { MONITORING_HEALTH_STATUS } from "../constants";
 import type { ExtendedHealthStatus } from "../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
+import type { ConfigType } from "@nestjs/config";
 
 /**
  * 健康分析服务
@@ -24,6 +25,8 @@ export class HealthAnalyzerService {
     private readonly healthScoreCalculator: AnalyzerHealthScoreCalculator,
     private readonly cacheService: CacheService, // 替换为通用缓存服务
     private readonly eventBus: EventEmitter2,
+    @Inject(MonitoringUnifiedTtl.KEY)
+    private readonly ttlConfig: ConfigType<typeof MonitoringUnifiedTtl>,
   ) {
     this.logger.log("HealthAnalyzerService initialized - 健康分析服务已启动");
   }
@@ -204,7 +207,7 @@ export class HealthAnalyzerService {
             });
             return report;
           },
-          { ttl: MONITORING_CACHE_TTL.HEALTH },
+          { ttl: this.ttlConfig.health },
         );
 
       // 发射缓存命中或回填完成事件

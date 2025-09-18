@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ArgumentsHost, HttpStatus } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 
 import { SecurityMiddleware } from "../../../../../src/auth/middleware/security.middleware";
 import { GlobalExceptionFilter } from "../../../../../src/common/core/filters/global-exception.filter";

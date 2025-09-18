@@ -15,12 +15,11 @@
  * - 系统限制（队列大小、缓冲区大小、重试次数等）
  * - 动态环境调整
  *
- * 🔄 替换的原配置文件：
- * - cache-ttl.constants.ts → MonitoringUnifiedTtlConfig
- * - alert-control.constants.ts（批量部分） → MonitoringUnifiedLimitsConfig.alertBatch
- * - data-lifecycle.constants.ts（批量部分） → MonitoringUnifiedLimitsConfig.dataCleanupBatch
- * - business.ts（批量部分） → MonitoringUnifiedLimitsConfig.dataProcessingBatch
- * - monitoring-system.constants.ts（系统限制部分） → MonitoringUnifiedLimitsConfig.systemLimits
+ * 🎯 统一配置系统优势：
+ * - 消除配置重复和冲突
+ * - 类型安全的配置验证  
+ * - 环境变量统一管理
+ * - 基于倍数的自动计算
  *
  * @version 1.0.0
  * @since 2025-09-16
@@ -29,18 +28,16 @@
 
 // 统一TTL配置
 import {
+  MonitoringUnifiedTtl,
   MonitoringUnifiedTtlConfig,
-  MONITORING_UNIFIED_TTL_CONSTANTS,
   type TtlDataType,
   type EnvironmentType,
 } from "./monitoring-unified-ttl.config";
 
 export {
+  MonitoringUnifiedTtl,
   MonitoringUnifiedTtlConfig,
-  monitoringUnifiedTtlConfig,
   MonitoringTtlUtils,
-  MONITORING_UNIFIED_TTL_CONSTANTS,
-  type MonitoringUnifiedTtlType,
   type TtlDataType,
   type EnvironmentType,
 } from "./monitoring-unified-ttl.config";
@@ -48,7 +45,6 @@ export {
 // 统一限制配置
 import {
   MonitoringUnifiedLimitsConfig,
-  MONITORING_UNIFIED_LIMITS_CONSTANTS,
 } from "./monitoring-unified-limits.config";
 
 export {
@@ -59,7 +55,6 @@ export {
   SystemLimitsConfig,
   monitoringUnifiedLimitsConfig,
   MonitoringLimitsUtils,
-  MONITORING_UNIFIED_LIMITS_CONSTANTS,
   type MonitoringUnifiedLimitsType,
   type BatchSizeType,
   type ProcessingType,
@@ -70,7 +65,6 @@ export {
   MonitoringCoreEnvConfig,
   monitoringCoreEnvConfig,
   MonitoringCoreEnvUtils,
-  MONITORING_CORE_ENV_CONSTANTS,
   type MonitoringCoreEnvType,
 } from "./monitoring-core-env.config";
 
@@ -81,13 +75,13 @@ export {
  * ```typescript
  * import { ConfigModule } from '@nestjs/config';
  * import {
- *   monitoringUnifiedTtlConfig,
+ *   MonitoringUnifiedTtl,
  *   monitoringUnifiedLimitsConfig
  * } from './config/unified';
  *
  * @Module({
  *   imports: [
- *     ConfigModule.forFeature(monitoringUnifiedTtlConfig),
+ *     ConfigModule.forFeature(MonitoringUnifiedTtl),
  *     ConfigModule.forFeature(monitoringUnifiedLimitsConfig),
  *   ]
  * })
@@ -122,19 +116,14 @@ export {
  *
  * 📋 环境变量配置：
  * ```bash
- * # TTL配置
- * MONITORING_TTL_HEALTH=300
- * MONITORING_TTL_TREND=600
- * MONITORING_TTL_PERFORMANCE=180
- * MONITORING_TTL_ALERT=60
- * MONITORING_TTL_CACHE_STATS=120
+ * # 统一TTL配置
+ * MONITORING_DEFAULT_TTL=300              # 基础TTL，其他值自动计算倍数
  *
- * # 批量限制配置
- * MONITORING_ALERT_BATCH_SMALL=5
- * MONITORING_ALERT_BATCH_MEDIUM=10
- * MONITORING_DATA_BATCH_STANDARD=10
- * MONITORING_CLEANUP_BATCH_STANDARD=1000
- * MONITORING_MAX_QUEUE_SIZE=10000
+ * # 统一批处理配置
+ * MONITORING_DEFAULT_BATCH_SIZE=50        # 统一批处理大小
+ * 
+ * # 其他配置
+ * MONITORING_AUTO_ANALYSIS=true           # 自动分析开关
  * ```
  */
 
@@ -161,19 +150,21 @@ export class MonitoringUnifiedConfigUtils {
    * 验证TTL配置值
    */
   static validateTtlValue(value: number, type: TtlDataType): boolean {
-    const limits = MONITORING_UNIFIED_TTL_CONSTANTS.LIMITS;
+    // 使用基本的合理范围验证，不再依赖常量
+    const MIN_TTL = 1;
+    const MAX_TTL = 3600;
 
     switch (type) {
       case "health":
-        return value >= limits.MIN_TTL && value <= limits.MAX_HEALTH_TTL;
+        return value >= MIN_TTL && value <= MAX_TTL;
       case "trend":
-        return value >= limits.MIN_TTL && value <= limits.MAX_TREND_TTL;
+        return value >= MIN_TTL && value <= MAX_TTL * 2; // 趋势数据可以更长
       case "performance":
-        return value >= limits.MIN_TTL && value <= limits.MAX_PERFORMANCE_TTL;
+        return value >= MIN_TTL && value <= MAX_TTL;
       case "alert":
-        return value >= limits.MIN_TTL && value <= limits.MAX_ALERT_TTL;
+        return value >= MIN_TTL && value <= 600; // 告警数据较短
       case "cacheStats":
-        return value >= limits.MIN_TTL && value <= limits.MAX_CACHE_STATS_TTL;
+        return value >= MIN_TTL && value <= MAX_TTL;
       default:
         return false;
     }
@@ -229,11 +220,3 @@ export class MonitoringUnifiedConfigUtils {
   }
 }
 
-/**
- * 配置常量快速访问
- * 📦 为常用配置提供快速访问路径
- */
-export const MONITORING_CONFIG_CONSTANTS = {
-  TTL: MONITORING_UNIFIED_TTL_CONSTANTS,
-  LIMITS: MONITORING_UNIFIED_LIMITS_CONSTANTS,
-} as const;

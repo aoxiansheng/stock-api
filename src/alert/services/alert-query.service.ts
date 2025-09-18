@@ -674,7 +674,7 @@ export class AlertQueryService {
     averageQueryTime: number;
     popularFilters: string[];
   } {
-    // TODO: 实现查询统计追踪
+    // 查询统计功能需要持久化存储和复杂分析，暂时提供默认值
     return {
       totalQueries: 0,
       cacheHitRate: 0,

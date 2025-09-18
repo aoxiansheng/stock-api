@@ -7,9 +7,10 @@
  * @date 2025-09-10
  */
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { UnifiedTtlConfig } from "../../cache/config/unified-ttl.config";
+import type { ConfigType } from "@nestjs/config";
+import cacheUnifiedConfig from "../../cache/config/cache-unified.config";
 
 import { createLogger } from "@common/logging/index";
 import { DatabaseValidationUtils } from "@common/utils/database.utils";
@@ -21,7 +22,10 @@ import { VALID_OPERATORS, type Operator, AlertRuleUtil } from "../constants";
 export class AlertRuleValidator {
   private readonly logger = createLogger("AlertRuleValidator");
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject('cacheUnified') private readonly cacheConfig: ConfigType<typeof cacheUnifiedConfig>,
+  ) {}
 
   /**
    * 通用ObjectId验证辅助方法
@@ -234,10 +238,10 @@ export class AlertRuleValidator {
       operator: ">",
       duration:
         alertConfig?.validation?.duration?.min ||
-        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+        this.cacheConfig.defaultTtl,
       cooldown:
         alertConfig?.validation?.cooldown?.min ||
-        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+        this.cacheConfig.defaultTtl,
       severity: "warning",
       enabled: true,
       tags: {},
@@ -260,10 +264,10 @@ export class AlertRuleValidator {
       validSeverities: this.getValidSeverities(), // 使用统一常量
       defaultDuration:
         defaultConfig.duration ||
-        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+        this.cacheConfig.defaultTtl,
       defaultCooldown:
         defaultConfig.cooldown ||
-        this.configService.get<UnifiedTtlConfig>("unifiedTtl").alertCooldownTtl,
+        this.cacheConfig.defaultTtl,
     };
   }
 }

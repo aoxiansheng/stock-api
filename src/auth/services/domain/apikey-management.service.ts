@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -16,8 +17,8 @@ import { RolePermissions, Permission } from "../../enums/user-role.enum";
 import { OperationStatus } from "@common/types/enums/shared-base.enum";
 import { DatabaseValidationUtils } from "../../../common/utils/database.utils";
 import { createLogger } from "@common/modules/logging";
-// Dynamic configuration now comes from AuthConfigCompatibilityWrapper only
-import { AuthConfigCompatibilityWrapper } from "../../config/compatibility-wrapper";
+// Direct configuration access using unified config system
+import type { AuthUnifiedConfigInterface } from "../../config/auth-unified.config";
 import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-messages.constants";
 import { CacheService } from "../../../cache/services/cache.service";
 import { AuthLoggingUtil } from "../../utils/auth-logging.util";
@@ -35,7 +36,7 @@ export class ApiKeyManagementService {
     @InjectModel(ApiKey.name)
     private readonly apiKeyModel: Model<ApiKeyDocument>,
     private readonly userRepository: UserRepository,
-    private readonly authConfig: AuthConfigCompatibilityWrapper,
+    @Inject('authUnified') private readonly authConfig: AuthUnifiedConfigInterface,
     private readonly cacheService: CacheService,
   ) {}
 
@@ -52,11 +53,20 @@ export class ApiKeyManagementService {
   }
 
   private get apiKeyOperations() {
-    return this.authConfig.API_KEY_OPERATIONS;
+    return {
+      CACHE_TTL_SECONDS: this.authConfig.cache.apiKeyCacheTtl,
+      MAX_KEYS_PER_USER: this.authConfig.limits.maxApiKeysPerUser,
+      DEFAULT_RATE_LIMIT: this.authConfig.limits.globalRateLimit,
+      VALIDATE_PER_SECOND: this.authConfig.limits.apiKeyValidatePerSecond,
+    };
   }
 
   private get apiKeyValidation() {
-    return this.authConfig.VALIDATION_LIMITS;
+    return {
+      STRING_LIMIT: this.authConfig.limits.maxStringLength,
+      TIMEOUT: this.authConfig.limits.timeoutMs,
+      API_KEY_LENGTH: this.authConfig.limits.apiKeyLength,
+    };
   }
 
   // API Key缓存配置

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { RawMetricsDto } from "../contracts/interfaces/collector.interface";
@@ -7,7 +7,7 @@ import { SYSTEM_STATUS_EVENTS } from "../contracts/events/system-status.events";
 import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { CacheService } from "@cache/services/cache.service";
 import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
-import { MONITORING_CACHE_TTL } from "../constants/cache-ttl.constants";
+import { MonitoringUnifiedTtlConfig } from "../config/unified/monitoring-unified-ttl.config";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
@@ -27,6 +27,8 @@ export class TrendAnalyzerService {
     private readonly metricsCalculator: AnalyzerMetricsCalculator,
     private readonly cacheService: CacheService,
     private readonly eventBus: EventEmitter2,
+    @Inject('monitoringUnifiedTtl')
+    private readonly ttlConfig: MonitoringUnifiedTtlConfig,
   ) {
     this.logger.log("TrendAnalyzerService initialized - 趋势分析服务已启动");
   }
@@ -99,7 +101,7 @@ export class TrendAnalyzerService {
           });
           return enhancedTrends;
         },
-        { ttl: MONITORING_CACHE_TTL.TREND },
+        { ttl: this.ttlConfig.trend },
       );
 
       // 发射缓存命中或回填完成事件

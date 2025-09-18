@@ -17,7 +17,7 @@ import { SecurityExceptionFactory, EnhancedRateLimitException, isSecurityExcepti
  * - 不再直接构造响应，而是抛出增强的异常
  * - 让GlobalExceptionFilter统一处理所有异常，确保响应格式一致
  * - 保留特殊的速率限制日志记录和Retry-After头设置逻辑
- * - 向后兼容：如果接收到已经是增强异常，直接重新抛出
+ * - 增强异常处理：如果接收到已经是增强异常，直接重新抛出
  */
 @Catch(HttpException)
 export class RateLimitExceptionFilter implements ExceptionFilter {

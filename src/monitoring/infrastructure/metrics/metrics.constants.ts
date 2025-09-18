@@ -2,7 +2,8 @@
  * 🎯 基础设施指标常量定义
  */
 
-import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
+// Note: MONITORING_UNIFIED_LIMITS_CONSTANTS has been replaced with MonitoringUnifiedLimitsConfig class
+// Static constants should use default values rather than importing config
 
 // Prometheus 指标名称前缀
 export const METRICS_PREFIX = "newstock_";
@@ -51,7 +52,7 @@ export const HISTOGRAM_BUCKETS = {
     100,
     250,
     500,
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE,
+    1000, // Default max buffer size - should be obtained from config at runtime
     2500,
   ],
   DURATION_SECONDS: [0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5],

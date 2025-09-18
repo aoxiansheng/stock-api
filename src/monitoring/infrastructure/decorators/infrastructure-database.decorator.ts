@@ -26,7 +26,6 @@ export interface PerformanceOptions {
  * 避免全局依赖，使用标准EventEmitter进行事件发送
  */
 function createDecoratorEventEmitter() {
-  // 兼容保留：返回模块级总线，避免每次新建实例
   return performanceDecoratorBus;
 }
 

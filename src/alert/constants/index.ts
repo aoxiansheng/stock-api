@@ -19,13 +19,9 @@ import {
 import {
   RULE_LIMITS,
   RETRY_LIMITS,
-  // STRING_LIMITS - 已删除，迁移到@common/constants/validation.constants.ts
-  // PERFORMANCE_LIMITS - 已删除，迁移到alert-performance.config.ts
 } from "./limits.constants";
 import {
   ALERT_DEFAULTS,
-  // ALERT_CONFIG_PRESETS - 已删除，迁移到alert-presets.config.ts
-  // ALERT_ENV_CONFIG - 已删除，迁移到环境变量
 } from "./defaults.constants";
 
 // ================================
@@ -48,26 +44,18 @@ export type {
 export {
   RULE_LIMITS,
   RETRY_LIMITS,
-  // STRING_LIMITS - 已删除，使用@common/constants/validation.constants.ts
-  // PERFORMANCE_LIMITS - 已删除，使用alert-performance.config.ts
 } from "./limits.constants";
 export type {
   RuleLimits,
   RetryLimits,
-  // StringLimits - 已删除
-  // PerformanceLimits - 已删除
 } from "./limits.constants";
 
 // 默认值配置
 export {
   ALERT_DEFAULTS,
-  // ALERT_CONFIG_PRESETS - 已删除，迁移到alert-presets.config.ts
-  // ALERT_ENV_CONFIG - 已删除，迁移到环境变量
 } from "./defaults.constants";
 export type {
   AlertDefaults,
-  // AlertConfigPresets - 已删除
-  // AlertEnvConfig - 已删除
 } from "./defaults.constants";
 
 // ================================
@@ -121,11 +109,6 @@ export type Operator = (typeof VALID_OPERATORS)[number];
 // 工具函数
 // ================================
 
-// ===================================
-// 工具函数已迁移到配置文件中
-// ===================================
-// getAlertConfigForEnvironment - 已迁移到环境变量配置
-// getAlertPresetConfig - 已迁移到alert-presets.config.ts
 
 // ================================
 // 默认导出（简化架构）
@@ -139,10 +122,4 @@ export default {
   RULE_LIMITS,
   RETRY_LIMITS,
   ALERT_DEFAULTS,
-  // STRING_LIMITS - 已删除，使用@common/constants/validation.constants.ts
-  // PERFORMANCE_LIMITS - 已删除，使用alert-performance.config.ts
-  // ALERT_CONFIG_PRESETS - 已删除，迁移到alert-presets.config.ts
-  // ALERT_ENV_CONFIG - 已删除，迁移到环境变量
-
-  // 工具函数已迁移到配置文件中
 };

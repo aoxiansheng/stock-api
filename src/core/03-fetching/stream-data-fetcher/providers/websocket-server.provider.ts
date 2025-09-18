@@ -24,7 +24,7 @@ export class WebSocketServerProvider {
    */
   setGatewayServer(server: Server): void {
     this.gatewayServer = server;
-    this.server = server; // 兼容现有API
+    this.server = server;
     this.isInitialized = true;
 
     this.logger.log("Gateway服务器已集成到Provider", {
@@ -36,7 +36,7 @@ export class WebSocketServerProvider {
   }
 
   /**
-   * 设置WebSocket服务器实例（Legacy方式，保持向后兼容）
+   * 设置WebSocket服务器实例
    * @param server Socket.IO服务器实例
    */
   setServer(server: Server): void {
@@ -53,10 +53,10 @@ export class WebSocketServerProvider {
       this.server = server;
       this.isInitialized = true;
 
-      this.logger.log("WebSocket服务器实例已设置 (Legacy模式)", {
+      this.logger.log("WebSocket服务器实例已设置", {
         hasServer: !!server,
         serverPath: server?.path(),
-        source: "legacy",
+        source: "direct",
         engineConnectionCount: server?.engine?.clientsCount || 0,
       });
     }
@@ -87,7 +87,7 @@ export class WebSocketServerProvider {
     connectedClients: number;
     serverPath: string;
     namespaces: any[];
-    serverSource: "gateway" | "legacy" | "none";
+    serverSource: "gateway" | "direct" | "none";
   } {
     const activeServer = this.getServer();
 
@@ -110,7 +110,7 @@ export class WebSocketServerProvider {
       connectedClients: activeServer.engine?.clientsCount || 0,
       serverPath: activeServer.path(),
       namespaces,
-      serverSource: this.gatewayServer ? "gateway" : "legacy",
+      serverSource: this.gatewayServer ? "gateway" : "direct",
     };
   }
 
@@ -132,7 +132,7 @@ export class WebSocketServerProvider {
       this.logger.warn("WebSocket服务器不可用，无法发送消息", {
         clientId,
         event,
-        serverSource: this.gatewayServer ? "gateway" : "legacy",
+        serverSource: this.gatewayServer ? "gateway" : "direct",
       });
       return false;
     }
@@ -156,7 +156,7 @@ export class WebSocketServerProvider {
         clientId,
         event,
         error: error.message,
-        serverSource: this.gatewayServer ? "gateway" : "legacy",
+        serverSource: this.gatewayServer ? "gateway" : "direct",
       });
       return false;
     }
@@ -180,7 +180,7 @@ export class WebSocketServerProvider {
       this.logger.warn("WebSocket服务器不可用，无法广播消息", {
         room,
         event,
-        serverSource: this.gatewayServer ? "gateway" : "legacy",
+        serverSource: this.gatewayServer ? "gateway" : "direct",
       });
       return false;
     }
@@ -192,7 +192,7 @@ export class WebSocketServerProvider {
         room,
         event,
         dataSize: JSON.stringify(data).length,
-        serverSource: this.gatewayServer ? "gateway" : "legacy",
+        serverSource: this.gatewayServer ? "gateway" : "direct",
       });
 
       return true;
@@ -201,7 +201,7 @@ export class WebSocketServerProvider {
         room,
         event,
         error: error.message,
-        serverSource: this.gatewayServer ? "gateway" : "legacy",
+        serverSource: this.gatewayServer ? "gateway" : "direct",
       });
       return false;
     }
@@ -245,7 +245,7 @@ export class WebSocketServerProvider {
         details: {
           reason: "Server not fully initialized",
           hasServer: !!activeServer,
-          serverSource: this.gatewayServer ? "gateway" : "legacy",
+          serverSource: this.gatewayServer ? "gateway" : "direct",
         },
       };
     }

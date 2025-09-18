@@ -1,5 +1,5 @@
 import { registerAs } from "@nestjs/config";
-import { IsNumber, Min, Max, validateSync } from "class-validator";
+import { IsNumber, IsString, Min, Max, validateSync } from "class-validator";
 
 /**
  * Auth缓存配置验证类
@@ -64,6 +64,20 @@ export class AuthCacheConfigValidation {
   sessionCacheTtl: number = parseInt(
     process.env.AUTH_SESSION_CACHE_TTL || "3600",
   );
+
+  /**
+   * JWT访问令牌默认过期时间
+   * JWT令牌的默认有效期设置
+   */
+  @IsString()
+  jwtDefaultExpiry: string = process.env.AUTH_JWT_DEFAULT_EXPIRY || "15m";
+
+  /**
+   * 刷新令牌默认过期时间
+   * 刷新令牌的默认有效期设置
+   */
+  @IsString()
+  refreshTokenDefaultExpiry: string = process.env.AUTH_REFRESH_TOKEN_DEFAULT_EXPIRY || "7d";
 }
 
 /**

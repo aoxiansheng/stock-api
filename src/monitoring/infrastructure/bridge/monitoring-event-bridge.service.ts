@@ -10,7 +10,8 @@ import {
   MONITORING_SYSTEM_LIMITS,
   MonitoringSystemLimitUtils,
 } from "../../constants/config/monitoring-system.constants";
-import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
+import { MonitoringUnifiedLimitsConfig } from "../../config/unified/monitoring-unified-limits.config";
+import { ConfigService } from "@nestjs/config";
 
 /**
  * 🎯 监控事件桥接层服务
@@ -25,16 +26,20 @@ export class MonitoringEventBridgeService
   private readonly logger = createLogger(MonitoringEventBridgeService.name);
   private eventCounter = 0;
   private lastFlush = Date.now();
-  private readonly batcher = new EventBatcher(
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.BATCH_INTERVALS.FAST,
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.DATA_BATCH.STANDARD,
-    MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_QUEUE_SIZE,
-  ); // 使用统一配置系统的批处理参数
+  private readonly batcher: EventBatcher;
 
   constructor(
     private readonly eventBus: EventEmitter2,
     private readonly metricsRegistry: MetricsRegistryService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
+    this.batcher = new EventBatcher(
+      200, // Fast interval - could be configurable
+      limitsConfig?.dataProcessingBatch?.standard || 10,
+      limitsConfig?.systemLimits?.maxQueueSize || 10000,
+    );
+  }
 
   async onModuleDestroy() {
     this.logger.log("监控事件桥接层正在关闭...");

@@ -64,7 +64,7 @@ export abstract class SecurityException extends HttpException {
       };
     }
 
-    // 兼容字符串格式响应
+    // 支持字符串格式响应
     return response;
   }
 
@@ -543,8 +543,7 @@ export function isSecurityException(exception: unknown): exception is SecurityEx
 }
 
 /**
- * 导出兼容的异常类型
- * 确保与现有代码的兼容性
+ * 导出通用异常类型别名
  */
 export {
   NestPayloadTooLargeException as PayloadTooLargeException,

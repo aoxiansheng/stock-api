@@ -24,7 +24,6 @@ import {
   NotificationAlert,
   NotificationAlertRule,
   NotificationAlertContext,
-  NotificationSeverity,
 } from "../types/notification-alert.types";
 import { NotificationTemplateService } from "./notification-template.service";
 
@@ -410,37 +409,7 @@ export class NotificationService {
     return results;
   }
 
-  // ==================== Legacy方法（向后兼容） ====================
 
-  /**
-   * 发送单个通知
-   * @private
-   */
-  private async sendSingleNotification(
-    alert: NotificationAlert,
-    rule: NotificationAlertRule,
-    context: NotificationAlertContext,
-    channel: NotificationChannel,
-  ): Promise<NotificationResult> {
-    const startTime = Date.now();
-
-    this.logger.debug("发送单个通知", {
-      alertId: alert.id,
-      channelId: channel.id,
-      channelType: channel.type,
-    });
-
-    const duration = Date.now() - startTime;
-    return {
-      success: false,
-      channelId: channel.id || "unknown",
-      channelType: channel.type,
-      message: "兼容层方法已移除",
-      error: "Legacy method removed during cleanup",
-      sentAt: new Date(),
-      duration,
-    };
-  }
 
   /**
    * 批量发送通知
@@ -594,143 +563,10 @@ export class NotificationService {
     }
   }
 
-  /**
-   * 发送解决通知（独立类型接口）
-   */
-  async sendResolutionNotifications(
-    alert: NotificationAlert,
-    resolvedAt: Date,
-    resolvedBy?: string,
-    comment?: string,
-  ): Promise<NotificationResult[]> {
-    return [
-      {
-        success: false,
-        channelId: "legacy",
-        channelType: NotificationChannelType.LOG,
-        message: "兼容层方法已移除",
-        error: "AdapterService removed during cleanup",
-        sentAt: new Date(),
-        duration: 0,
-      },
-    ];
-  }
 
-  /**
-   * 发送确认通知（独立类型接口）
-   */
-  async sendAcknowledgmentNotifications(
-    alert: NotificationAlert,
-    acknowledgedBy: string,
-    acknowledgedAt: Date,
-    comment?: string,
-  ): Promise<NotificationResult[]> {
-    return [
-      {
-        success: false,
-        channelId: "legacy",
-        channelType: NotificationChannelType.LOG,
-        message: "兼容层方法已移除",
-        error: "AdapterService removed during cleanup",
-        sentAt: new Date(),
-        duration: 0,
-      },
-    ];
-  }
 
-  /**
-   * 发送抑制通知（独立类型接口）
-   */
-  async sendSuppressionNotifications(
-    alert: NotificationAlert,
-    suppressedBy: string,
-    suppressedAt: Date,
-    suppressionDuration: number,
-    reason?: string,
-  ): Promise<NotificationResult[]> {
-    return [
-      {
-        success: false,
-        channelId: "legacy",
-        channelType: NotificationChannelType.LOG,
-        message: "兼容层方法已移除",
-        error: "AdapterService removed during cleanup",
-        sentAt: new Date(),
-        duration: 0,
-      },
-    ];
-  }
 
-  /**
-   * 发送升级通知（独立类型接口）
-   */
-  async sendEscalationNotifications(
-    alert: NotificationAlert,
-    previousSeverity: NotificationSeverity,
-    newSeverity: NotificationSeverity,
-    escalatedAt: Date,
-    escalationReason?: string,
-  ): Promise<NotificationResult[]> {
-    return [
-      {
-        success: false,
-        channelId: "legacy",
-        channelType: NotificationChannelType.LOG,
-        message: "兼容层方法已移除",
-        error: "AdapterService removed during cleanup",
-        sentAt: new Date(),
-        duration: 0,
-      },
-    ];
-  }
 
-  /**
-   * 检测是否为独立类型
-   * 通过检查对象的特征属性来判断类型
-   */
-  private isIndependentType(
-    alert: NotificationAlert | NotificationAlert,
-    rule: NotificationAlertRule | NotificationAlertRule,
-    context: NotificationAlertContext | NotificationAlertContext,
-  ): boolean {
-    // 检查NotificationAlert的特征属性
-    const isNotificationAlert =
-      alert &&
-      typeof alert === "object" &&
-      "severity" in alert &&
-      // NotificationSeverity是字符串枚举
-      typeof (alert as any).severity === "string" &&
-      ["LOW", "MEDIUM", "HIGH", "CRITICAL"].includes((alert as any).severity);
-
-    // 检查NotificationAlertRule的特征属性
-    const isNotificationRule =
-      rule &&
-      typeof rule === "object" &&
-      "channels" in rule &&
-      Array.isArray(rule.channels) &&
-      rule.channels.length > 0 &&
-      // 检查channels的结构是否符合NotificationAlertChannel
-      rule.channels.every(
-        (channel: any) =>
-          channel &&
-          typeof channel === "object" &&
-          "id" in channel &&
-          "type" in channel &&
-          "enabled" in channel &&
-          "config" in channel,
-      );
-
-    // 检查NotificationAlertContext的特征属性
-    const isNotificationContext =
-      context &&
-      typeof context === "object" &&
-      "metricValue" in context &&
-      "threshold" in context &&
-      "evaluatedAt" in context &&
-      (context as any).evaluatedAt instanceof Date;
-
-    return isNotificationAlert && isNotificationRule && isNotificationContext;
-  }
 
   /**
    * 获取支持的渠道类型
@@ -1662,20 +1498,14 @@ export class NotificationService {
     details: any;
   }> {
     try {
-      const adapterHealth = {
-        status: "removed",
-        message: "AdapterService removed during cleanup",
-      };
-
       return {
-        status: adapterHealth.status === "healthy" ? "healthy" : "unhealthy",
+        status: "healthy",
         details: {
           serviceName: "NotificationService",
-          legacySenders: {
+          senders: {
             count: this.senders.size,
             types: this.getSupportedChannelTypes(),
           },
-          adapterService: adapterHealth,
           lastHealthCheck: new Date().toISOString(),
         },
       };

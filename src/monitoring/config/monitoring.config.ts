@@ -6,13 +6,13 @@
  * 本配置文件正在迁移到统一配置系统：
  *
  * 🔄 已迁移的配置：
- * - TTL配置 → MonitoringUnifiedTtlConfig
+ * - TTL配置 → MonitoringUnifiedTtl
  * - 批量处理配置 → MonitoringUnifiedLimitsConfig
  *
  * 📋 推荐使用方式：
  * ```typescript
  * import {
- *   monitoringUnifiedTtlConfig,
+ *   MonitoringUnifiedTtl,
  *   monitoringUnifiedLimitsConfig
  * } from './unified';
  * ```
@@ -34,66 +34,12 @@ import {
 } from "class-validator";
 import { plainToClass, Transform, Type } from "class-transformer";
 import {
-  MonitoringUnifiedTtlConfig,
+  MonitoringUnifiedTtl,
   MonitoringUnifiedLimitsConfig,
-  MONITORING_UNIFIED_TTL_CONSTANTS,
 } from "./unified";
 
-/**
- * @deprecated 使用 MonitoringUnifiedTtlConfig 替代
- * 监控配置TTL部分的验证类 - 兼容性支持
- */
-export class MonitoringTtlConfig {
-  /** 健康检查数据缓存生存时间（秒）
-   * 用途：控制系统健康状态数据在Redis中的缓存时间
-   * 影响：较短的TTL提供更及时的健康状态，较长的TTL减少数据库查询频率
-   * 推荐值：开发环境150-300秒，生产环境300-600秒 */
-  @IsNumber()
-  @Min(1)
-  @Max(3600)
-  @Transform(({ value }) => parseInt(value, 10) || 300)
-  health: number = 300;
-
-  /** 趋势分析数据缓存生存时间（秒）
-   * 用途：控制性能趋势分析报告数据的缓存时间
-   * 影响：趋势数据变化较慢，可以使用较长的TTL来优化性能
-   * 推荐值：开发环境600秒，生产环境600-1200秒 */
-  @IsNumber()
-  @Min(1)
-  @Max(3600)
-  @Transform(({ value }) => parseInt(value, 10) || 600)
-  trend: number = 600;
-
-  /** 性能指标数据缓存生存时间（秒）
-   * 用途：控制实时性能指标（响应时间、吞吐量等）的缓存时间
-   * 影响：性能指标需要较高的时效性，TTL不宜过长
-   * 推荐值：开发环境180秒，生产环境180-300秒 */
-  @IsNumber()
-  @Min(1)
-  @Max(1800)
-  @Transform(({ value }) => parseInt(value, 10) || 180)
-  performance: number = 180;
-
-  /** 告警数据缓存生存时间（秒）
-   * 用途：控制告警状态和历史告警数据的缓存时间
-   * 影响：告警数据需要快速更新，使用较短的TTL确保及时性
-   * 推荐值：开发环境60秒，生产环境60-120秒 */
-  @IsNumber()
-  @Min(1)
-  @Max(600)
-  @Transform(({ value }) => parseInt(value, 10) || 60)
-  alert: number = 60;
-
-  /** 缓存统计数据缓存生存时间（秒）
-   * 用途：控制缓存命中率、缓存性能等元统计信息的缓存时间
-   * 影响：统计数据可以容忍一定的延迟，用于生成缓存性能报告
-   * 推荐值：开发环境120秒，生产环境120-240秒 */
-  @IsNumber()
-  @Min(1)
-  @Max(600)
-  @Transform(({ value }) => parseInt(value, 10) || 120)
-  cacheStats: number = 120;
-}
+// TTL配置已迁移到统一配置系统：MonitoringUnifiedTtl
+// 请使用: import { MonitoringUnifiedTtl } from './unified/monitoring-unified-ttl.config';
 
 /**
  * 监控配置缓存部分的验证类
@@ -135,10 +81,22 @@ export class MonitoringCacheConfig {
   @Transform(({ value }) => parseInt(value, 10) || 10)
   fallbackThreshold: number = 10;
 
-  /** 监控数据TTL配置对象
-   * 用途：定义不同类型监控数据的缓存生存时间，控制数据时效性和缓存性能 */
-  @Type(() => MonitoringTtlConfig)
-  ttl: MonitoringTtlConfig = new MonitoringTtlConfig();
+  /** 监控数据TTL配置已迁移到统一配置系统
+   * @deprecated 请使用 MonitoringUnifiedTtl 替代
+   * @see MonitoringUnifiedTtl */
+  ttl: {
+    health: number;
+    trend: number;
+    performance: number;
+    alert: number;
+    cacheStats: number;
+  } = {
+    health: 300,
+    trend: 600,
+    performance: 180,
+    alert: 60,
+    cacheStats: 120,
+  };
 
   /** 监控数据批处理大小
    * 用途：批量处理监控数据时的批次大小，影响处理效率和内存使用
@@ -265,21 +223,12 @@ export interface MonitoringConfig {
     /** 回退次数告警阈值 - 连续回退多少次后触发告警 */
     fallbackThreshold: number;
 
-    /** 监控数据TTL配置 - 不同类型监控数据的缓存生存时间（秒） */
+    /** @deprecated TTL配置已迁移到统一配置系统 - MonitoringUnifiedTtl */
     ttl: {
-      /** 健康检查数据TTL（秒） - 系统健康状态数据的缓存时间 */
       health: number;
-
-      /** 趋势数据TTL（秒） - 性能趋势分析数据的缓存时间 */
-      trend: number;
-
-      /** 性能指标数据TTL（秒） - 实时性能指标数据的缓存时间 */
+      trend: number; 
       performance: number;
-
-      /** 告警数据TTL（秒） - 告警状态和历史数据的缓存时间 */
       alert: number;
-
-      /** 缓存统计数据TTL（秒） - 缓存命中率等统计信息的缓存时间 */
       cacheStats: number;
     };
 
@@ -323,18 +272,13 @@ export interface MonitoringConfig {
  * - 所有环境变量均有合理的默认值，确保在无环境变量时也能正常工作
  * - 环境变量命名遵循 MONITORING_功能_属性 的规范
  */
-// Phase 4: Environment Variable Optimization - 使用8个核心环境变量
-// 核心环境变量获取和计算
+// 核心环境变量获取 - 简化版，完整配置请使用 MonitoringUnifiedTtl
 const getCoreEnvValues = () => {
   const defaultTtl = parseInt(process.env.MONITORING_DEFAULT_TTL) || 300;
-  const defaultBatchSize =
-    parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
-  const apiResponseGood =
-    parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
-  const cacheHitThreshold =
-    parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
-  const errorRateThreshold =
-    parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
+  const defaultBatchSize = parseInt(process.env.MONITORING_DEFAULT_BATCH_SIZE) || 10;
+  const apiResponseGood = parseInt(process.env.MONITORING_API_RESPONSE_GOOD) || 300;
+  const cacheHitThreshold = parseFloat(process.env.MONITORING_CACHE_HIT_THRESHOLD) || 0.8;
+  const errorRateThreshold = parseFloat(process.env.MONITORING_ERROR_RATE_THRESHOLD) || 0.1;
   const autoAnalysis = process.env.MONITORING_AUTO_ANALYSIS !== "false";
   const eventRetry = parseInt(process.env.MONITORING_EVENT_RETRY) || 3;
   const namespace = process.env.MONITORING_NAMESPACE || "monitoring";
@@ -342,7 +286,7 @@ const getCoreEnvValues = () => {
   return {
     defaultTtl,
     defaultBatchSize,
-    apiResponseGood,
+    apiResponseGood, 
     cacheHitThreshold,
     errorRateThreshold,
     autoAnalysis,
@@ -367,13 +311,13 @@ export const DEFAULT_MONITORING_CONFIG: MonitoringConfig = {
     // 回退告警阈值 - 保持固定值，不需要环境变量控制
     fallbackThreshold: 10,
 
+    /** @deprecated TTL配置已迁移，使用 MonitoringUnifiedTtl 获取当前值 */
     ttl: {
-      // 基于核心环境变量 MONITORING_DEFAULT_TTL 的倍数计算
-      health: coreEnv.defaultTtl, // 1.0x
-      trend: Math.floor(coreEnv.defaultTtl * 2.0), // 2.0x
-      performance: Math.floor(coreEnv.defaultTtl * 0.6), // 0.6x
-      alert: Math.floor(coreEnv.defaultTtl * 0.2), // 0.2x
-      cacheStats: Math.floor(coreEnv.defaultTtl * 0.4), // 0.4x
+      health: coreEnv.defaultTtl,
+      trend: Math.floor(coreEnv.defaultTtl * 2.0),
+      performance: Math.floor(coreEnv.defaultTtl * 0.6),
+      alert: Math.floor(coreEnv.defaultTtl * 0.2),
+      cacheStats: Math.floor(coreEnv.defaultTtl * 0.4),
     },
 
     // 使用核心环境变量 MONITORING_DEFAULT_BATCH_SIZE
@@ -429,7 +373,7 @@ export function validateMonitoringConfig(
     throw new Error("监控缓存批处理大小必须大于0");
   }
 
-  // 验证TTL配置 - 确保所有TTL值为正数
+  // TTL配置验证已迁移到 MonitoringUnifiedTtl
   Object.entries(validated.cache.ttl).forEach(([key, value]) => {
     if (value <= 0) {
       throw new Error(`监控缓存TTL配置 ${key} 必须大于0秒`);
@@ -474,12 +418,13 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
         ...DEFAULT_MONITORING_CONFIG,
         cache: {
           ...DEFAULT_MONITORING_CONFIG.cache,
+          /** @deprecated TTL配置已迁移，使用环境特定的 MonitoringUnifiedTtl */
           ttl: {
-            health: 600, // 10分钟 - 生产环境延长健康检查缓存，减少检查频率
-            trend: 1200, // 20分钟 - 趋势数据在生产环境变化更稳定
-            performance: 300, // 5分钟 - 适当延长性能数据缓存
-            alert: 120, // 2分钟 - 告警数据允许稍长的缓存时间
-            cacheStats: 240, // 4分钟 - 统计数据缓存时间延长
+            health: 600,
+            trend: 1200,
+            performance: 300,
+            alert: 120,
+            cacheStats: 240,
           },
           batchSize: 20, // 生产环境增大批处理，提高吞吐量
         },
@@ -496,12 +441,13 @@ export function getMonitoringConfigForEnvironment(): MonitoringConfig {
         ...DEFAULT_MONITORING_CONFIG,
         cache: {
           ...DEFAULT_MONITORING_CONFIG.cache,
+          /** @deprecated TTL配置已迁移，使用环境特定的 MonitoringUnifiedTtl */
           ttl: {
-            health: 10, // 10秒 - 测试时需要快速更新状态
-            trend: 20, // 20秒 - 快速验证趋势分析功能
-            performance: 10, // 10秒 - 快速反映性能变化
-            alert: 5, // 5秒 - 告警测试需要即时响应
-            cacheStats: 10, // 10秒 - 统计功能快速验证
+            health: 10,
+            trend: 20,
+            performance: 10,
+            alert: 5,
+            cacheStats: 10,
           },
           batchSize: 3, // 测试环境小批次处理，减少资源占用
         },
@@ -546,12 +492,9 @@ export const monitoringConfigValidated = registerAs(
         keyIndexPrefix: process.env.MONITORING_KEY_INDEX_PREFIX,
         compressionThreshold: process.env.MONITORING_COMPRESSION_THRESHOLD,
         fallbackThreshold: process.env.MONITORING_FALLBACK_THRESHOLD,
+        /** @deprecated TTL配置已迁移到统一配置系统 */
         ttl: {
-          health: process.env.MONITORING_TTL_HEALTH,
-          trend: process.env.MONITORING_TTL_TREND,
-          performance: process.env.MONITORING_TTL_PERFORMANCE,
-          alert: process.env.MONITORING_TTL_ALERT,
-          cacheStats: process.env.MONITORING_TTL_CACHE_STATS,
+          default: process.env.MONITORING_DEFAULT_TTL,
         },
         batchSize: process.env.MONITORING_BATCH_SIZE,
       },

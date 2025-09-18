@@ -46,9 +46,9 @@ import { plainToClass, Transform } from "class-transformer";
 
 // 导入所有统一配置类
 import {
+  MonitoringUnifiedTtl,
   MonitoringUnifiedTtlConfig,
   MonitoringTtlUtils,
-  MONITORING_UNIFIED_TTL_CONSTANTS,
   type TtlDataType,
   type EnvironmentType,
 } from "./unified/monitoring-unified-ttl.config";
@@ -59,14 +59,12 @@ import {
   DataProcessingBatchConfig,
   DataCleanupBatchConfig,
   SystemLimitsConfig,
-  MONITORING_UNIFIED_LIMITS_CONSTANTS,
   type BatchSizeType,
   type ProcessingType,
 } from "./unified/monitoring-unified-limits.config";
 
 import {
   MonitoringCoreEnvConfig,
-  MONITORING_CORE_ENV_CONSTANTS,
   type MonitoringCoreEnvType,
 } from "./unified/monitoring-core-env.config";
 
@@ -102,7 +100,6 @@ export interface EnvironmentValidationResult {
   isValid: boolean;
   missing: string[];
   invalid: string[];
-  deprecated: string[];
   recommendations: string[];
 }
 
@@ -164,7 +161,7 @@ class MonitoringConfigValidator {
         totalErrors: errors.length,
         totalWarnings: warnings.length,
         validatedFields,
-        configurationName: "MonitoringUnifiedTtlConfig",
+        configurationName: "MonitoringUnifiedTtl",
       },
     };
   }
@@ -301,7 +298,6 @@ class MonitoringConfigValidator {
   static validateEnvironmentVariables(): EnvironmentValidationResult {
     const missing: string[] = [];
     const invalid: string[] = [];
-    const deprecated: string[] = [];
     const recommendations: string[] = [];
 
     // 核心环境变量检查
@@ -348,70 +344,9 @@ class MonitoringConfigValidator {
       }
     }
 
-    // 检查弃用的环境变量
-    const deprecatedVars = [
-      {
-        old: "MONITORING_TTL_HEALTH",
-        new: "MONITORING_DEFAULT_TTL + MONITORING_HEALTH_TTL_OVERRIDE"
-      },
-      {
-        old: "MONITORING_TTL_TREND",
-        new: "MONITORING_DEFAULT_TTL + MONITORING_TREND_TTL_OVERRIDE"
-      },
-      {
-        old: "MONITORING_TTL_PERFORMANCE",
-        new: "MONITORING_DEFAULT_TTL + MONITORING_PERFORMANCE_TTL_OVERRIDE"
-      },
-      {
-        old: "MONITORING_TTL_ALERT",
-        new: "MONITORING_DEFAULT_TTL + MONITORING_ALERT_TTL_OVERRIDE"
-      },
-      {
-        old: "MONITORING_TTL_CACHE_STATS",
-        new: "MONITORING_DEFAULT_TTL + MONITORING_CACHE_STATS_TTL_OVERRIDE"
-      },
-      {
-        old: "MONITORING_ALERT_BATCH_SMALL",
-        new: "MONITORING_DEFAULT_BATCH_SIZE"
-      },
-      {
-        old: "MONITORING_ALERT_BATCH_MEDIUM",
-        new: "MONITORING_ALERT_BATCH_SIZE"
-      },
-      {
-        old: "MONITORING_ALERT_BATCH_LARGE",
-        new: "MONITORING_ALERT_BATCH_SIZE"
-      },
-      {
-        old: "MONITORING_DATA_BATCH_STANDARD",
-        new: "MONITORING_DATA_PROCESSING_BATCH_SIZE"
-      },
-      {
-        old: "MONITORING_CLEANUP_BATCH_STANDARD",
-        new: "MONITORING_CLEANUP_BATCH_SIZE"
-      },
-    ];
-
-    for (const deprecatedVar of deprecatedVars) {
-      if (process.env[deprecatedVar.old]) {
-        deprecated.push(deprecatedVar.old);
-        
-        // Issue deprecation warning with migration guidance
-        console.warn(
-          `⚠️  DEPRECATION WARNING: Environment variable '${deprecatedVar.old}' is deprecated since v1.1.0 and will be removed in v1.2.0.\n` +
-          `Please migrate to: ${deprecatedVar.new}\n` +
-          `See docs/monitoring-deprecation-migration-guide.md for detailed migration instructions.`
-        );
-      }
-    }
-
     // 生成建议
     if (missing.length > 0) {
       recommendations.push("设置缺失的必需环境变量以获得最佳性能");
-    }
-
-    if (deprecated.length > 0) {
-      recommendations.push("迁移到新的统一环境变量系统以简化配置管理");
     }
 
     if (invalid.length === 0 && missing.length === 0) {
@@ -422,7 +357,6 @@ class MonitoringConfigValidator {
       isValid: missing.length === 0 && invalid.length === 0,
       missing,
       invalid,
-      deprecated,
       recommendations,
     };
   }
@@ -440,44 +374,20 @@ class MonitoringConfigValidator {
     const overlaps: string[] = [];
     const resolutions: string[] = [];
 
-    // 检查是否仍有旧的配置文件或常量
-    const potentialLegacyFiles = [
-      "src/monitoring/constants/cache-ttl.constants.ts",
-      "src/monitoring/constants/alert-control.constants.ts",
-      "src/monitoring/constants/data-lifecycle.constants.ts",
-      "src/monitoring/constants/business.ts",
-    ];
-
-    // 这里我们假设这些文件已经被清理，如果存在则标记为重复
-    // 在实际实现中，可以使用 fs 模块检查文件是否存在
-
-    // 检查环境变量重复
-    const newEnvVars = [
+    // 统一配置系统已完成，所有配置都已迁移到统一配置类
+    // 验证环境变量是否符合新的统一标准
+    const unifiedEnvVars = [
       "MONITORING_DEFAULT_TTL",
       "MONITORING_DEFAULT_BATCH_SIZE",
-      "MONITORING_API_RESPONSE_GOOD",
-      "MONITORING_CACHE_HIT_THRESHOLD",
-      "MONITORING_ERROR_RATE_THRESHOLD",
       "MONITORING_AUTO_ANALYSIS",
-      "MONITORING_EVENT_RETRY",
-      "MONITORING_NAMESPACE",
-    ];
-    const legacyEnvVars = [
-      "MONITORING_TTL_HEALTH",
-      "MONITORING_TTL_TREND",
-      "MONITORING_TTL_PERFORMANCE",
-      "MONITORING_TTL_ALERT",
-      "MONITORING_TTL_CACHE_STATS",
     ];
 
-    for (const legacyVar of legacyEnvVars) {
-      if (process.env[legacyVar]) {
-        overlaps.push(
-          `环境变量冲突: ${legacyVar} 应使用 MONITORING_DEFAULT_TTL 替代`,
-        );
-        resolutions.push(
-          `移除 ${legacyVar}，使用 MONITORING_DEFAULT_TTL 设置基础TTL值`,
-        );
+    // 检查是否有遗留的旧环境变量仍在使用
+    const legacyEnvPattern = /^MONITORING_(TTL_|BATCH_|ALERT_BATCH_|DATA_BATCH_)/;
+    for (const envVar in process.env) {
+      if (legacyEnvPattern.test(envVar)) {
+        overlaps.push(`检测到废弃环境变量: ${envVar} - 应使用统一环境变量替代`);
+        resolutions.push(`将 ${envVar} 迁移到统一环境变量系统`);
       }
     }
 
@@ -540,8 +450,7 @@ class MonitoringConfigValidator {
     const totalWarnings =
       ttlResult.summary.totalWarnings +
       limitsResult.summary.totalWarnings +
-      coreEnvResult.summary.totalWarnings +
-      environmentResult.deprecated.length;
+      coreEnvResult.summary.totalWarnings;
 
     const totalConfigurations = 3; // TTL, Limits, CoreEnv
 
@@ -562,10 +471,6 @@ class MonitoringConfigValidator {
 
     if (totalWarnings > 5) {
       recommendations.push(`关注 ${totalWarnings} 个配置警告以优化系统性能`);
-    }
-
-    if (environmentResult.deprecated.length > 0) {
-      recommendations.push("迁移弃用的环境变量以简化配置管理");
     }
 
     if (overlapResult.hasOverlaps) {
@@ -711,12 +616,6 @@ class MonitoringConfigValidator {
       });
     }
 
-    if (results.environment.deprecated.length > 0) {
-      report += "\n⚠️ 弃用环境变量:\n";
-      results.environment.deprecated.forEach((deprecated) => {
-        report += `  • ${deprecated}\n`;
-      });
-    }
 
     // 配置重复检测结果
     report +=

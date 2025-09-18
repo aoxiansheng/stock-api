@@ -4,13 +4,12 @@
  */
 
 import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigService } from "@nestjs/config";
+import { ConfigService, ConfigType } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import Redis from "ioredis";
 import * as msgpack from "msgpack-lite";
 
 import { CacheService } from "../../../../../src/cache/services/cache.service";
-import { CacheUnifiedConfig } from "../../../../../src/cache/config/cache-unified.config";
 import cacheUnifiedConfig from "../../../../../src/cache/config/cache-unified.config";
 import { CACHE_DATA_FORMATS } from "../../../../../src/cache/constants/config/data-formats.constants";
 
@@ -19,7 +18,7 @@ describe("CacheService msgpack Serialization", () => {
   let redisClient: jest.Mocked<Redis>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
-  const mockUnifiedConfig: CacheUnifiedConfig = {
+  const mockUnifiedConfig: ConfigType<typeof cacheUnifiedConfig> = {
     defaultTtl: 300,
     strongTimelinessTtl: 5,
     realtimeTtl: 30,

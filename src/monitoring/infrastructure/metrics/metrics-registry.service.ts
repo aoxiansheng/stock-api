@@ -18,7 +18,8 @@ import {
 import { MONITORING_HEALTH_STATUS } from "../../constants";
 import type { ExtendedHealthStatus } from "../../constants/status/monitoring-status.constants";
 import { MONITORING_SYSTEM_LIMITS } from "../../constants/config/monitoring-system.constants";
-import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from "../../config/unified/monitoring-unified-limits.config";
+import { MonitoringUnifiedLimitsConfig } from "../../config/unified/monitoring-unified-limits.config";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
@@ -116,9 +117,15 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
   public readonly streamRecoveryHealthStatus: Gauge<string>;
   public readonly streamRecoveryWorkerStatus: Gauge<string>;
 
-  constructor(private readonly featureFlags: FeatureFlags) {
+  constructor(
+    private readonly featureFlags: FeatureFlags,
+    private readonly configService: ConfigService,
+  ) {
     // 创建专用的指标注册表
     this.registry = new Registry();
+    
+    // Get limits configuration
+    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
 
     // 🎯 初始化流处理指标
     this.streamRecoveryJobsTotal = new Counter({
@@ -189,7 +196,7 @@ export class MetricsRegistryService implements OnModuleInit, OnModuleDestroy {
         100,
         250,
         500,
-        MONITORING_UNIFIED_LIMITS_CONSTANTS.SYSTEM_LIMITS.MAX_BUFFER_SIZE,
+        limitsConfig?.systemLimits?.maxBufferSize || 1000,
         2500,
       ],
       registers: [this.registry],

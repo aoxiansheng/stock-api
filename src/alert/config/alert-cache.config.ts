@@ -3,10 +3,6 @@
  * 🎯 从Cache模块迁移Alert特定的缓存配置，实现模块边界清晰化
  * ✅ 遵循四层配置体系，支持环境变量覆盖和配置验证
  *
- * 迁移来源：
- * - src/cache/config/cache-unified.config.ts（Alert相关配置）
- * - src/cache/config/cache-limits.config.ts（Alert批处理配置）
- * - src/cache/config/unified-ttl.config.ts（Alert TTL配置）
  */
 
 import { registerAs } from "@nestjs/config";
@@ -225,38 +221,3 @@ export interface AlertCacheConfigInterface {
   maxKeyLength: number;
 }
 
-/**
- * 迁移指南常量
- */
-export const ALERT_CACHE_MIGRATION_GUIDE = {
-  fromCacheModule: {
-    "cache-unified.config.ts": [
-      "alertActiveDataTtl → activeDataTtl",
-      "alertHistoricalDataTtl → historicalDataTtl",
-      "alertCooldownTtl → cooldownTtl",
-      "alertConfigCacheTtl → configCacheTtl",
-      "alertStatsCacheTtl → statsCacheTtl",
-      "alertBatchSize → batchSize",
-      "alertMaxBatchProcessing → maxBatchProcessing",
-      "alertLargeBatchSize → largeBatchSize",
-      "alertMaxActiveAlerts → maxActiveAlerts",
-    ],
-    "cache-limits.config.ts": [
-      "所有Alert相关的批处理配置已迁移",
-      "环境变量保持兼容，支持新旧格式",
-    ],
-    "unified-ttl.config.ts": [
-      "所有Alert相关的TTL配置已迁移",
-      "新环境变量格式：ALERT_CACHE_* 替代 CACHE_ALERT_*",
-    ],
-  },
-  environmentVariables: {
-    newFormat: "ALERT_CACHE_*",
-    oldFormat: "CACHE_ALERT_* (已移除，使用ALERT_前缀)",
-    examples: [
-      "ALERT_CACHE_ACTIVE_TTL=300",
-      "ALERT_CACHE_HISTORICAL_TTL=3600",
-      "ALERT_BATCH_SIZE=100",
-    ],
-  },
-} as const;

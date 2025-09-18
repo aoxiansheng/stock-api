@@ -1153,7 +1153,7 @@ export class StreamDataFetcherService
       if (!tieredEnabled) {
         // 回退到传统批量检查
         operationSuccess = true;
-        return this.legacyBatchHealthCheck(options);
+        return this.fallbackBatchHealthCheck(options);
       }
 
       const startTime = Date.now();
@@ -1503,7 +1503,7 @@ export class StreamDataFetcherService
   /**
    * 传统批量健康检查 (回退方案)
    */
-  private async legacyBatchHealthCheck(options: {
+  private async fallbackBatchHealthCheck(options: {
     timeoutMs?: number;
     concurrency?: number;
     retries?: number;

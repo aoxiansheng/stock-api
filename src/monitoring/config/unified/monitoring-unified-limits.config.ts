@@ -22,12 +22,9 @@
  * - 支持通过环境变量覆盖默认值
  * - 提供生产/开发/测试环境的不同默认值
  *
- * ❌ 替换的重复配置：
- * - alert-control.constants.ts 中的批量大小配置
- * - data-lifecycle.constants.ts 中的清理批量配置
- * - monitoring-system.constants.ts 中的批量处理配置
- * - business.ts 中的批量大小配置
- * - monitoring.config.ts 中的 batchSize 配置
+ * ✅ 重构前后对比：
+ * - 重构前：分散在多个文件的批量配置
+ * - 重构后：1个基础批量变量，统一倍数计算
  *
  * @version 1.0.0
  * @since 2025-09-16
@@ -46,7 +43,7 @@ export class AlertBatchConfig {
   /**
    * 小批量告警大小
    * 用途：轻量级告警批量处理，减少延迟
-   * 环境变量：MONITORING_ALERT_BATCH_SMALL
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (small = base ÷ 10)
    */
   @IsNumber({}, { message: "告警小批量大小必须是数字" })
   @Min(1, { message: "告警小批量大小最小值为1" })
@@ -57,7 +54,7 @@ export class AlertBatchConfig {
   /**
    * 中等批量告警大小
    * 用途：常规告警批量处理，平衡效率和延迟
-   * 环境变量：MONITORING_ALERT_BATCH_MEDIUM
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (medium = base ÷ 5)
    */
   @IsNumber({}, { message: "告警中批量大小必须是数字" })
   @Min(5, { message: "告警中批量大小最小值为5" })
@@ -68,7 +65,7 @@ export class AlertBatchConfig {
   /**
    * 大批量告警大小
    * 用途：高吞吐量告警处理，优化系统效率
-   * 环境变量：MONITORING_ALERT_BATCH_LARGE
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (large = base ÷ 2.5)
    */
   @IsNumber({}, { message: "告警大批量大小必须是数字" })
   @Min(10, { message: "告警大批量大小最小值为10" })
@@ -79,7 +76,7 @@ export class AlertBatchConfig {
   /**
    * 最大批量告警大小
    * 用途：系统负载高时的最大批量处理能力
-   * 环境变量：MONITORING_ALERT_BATCH_MAX
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (max = base × 1.0)
    */
   @IsNumber({}, { message: "告警最大批量大小必须是数字" })
   @Min(20, { message: "告警最大批量大小最小值为20" })
@@ -96,7 +93,7 @@ export class DataProcessingBatchConfig {
   /**
    * 数据收集标准批量大小
    * 用途：常规监控数据的批量收集
-   * 环境变量：MONITORING_DATA_BATCH_STANDARD
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (standard = base ÷ 5)
    */
   @IsNumber({}, { message: "数据收集批量大小必须是数字" })
   @Min(1, { message: "数据收集批量大小最小值为1" })
@@ -107,7 +104,7 @@ export class DataProcessingBatchConfig {
   /**
    * 数据收集高频批量大小
    * 用途：高频监控数据的批量收集，提高吞吐量
-   * 环境变量：MONITORING_DATA_BATCH_HIGH_FREQUENCY
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (highFrequency = base × 2.0)
    */
   @IsNumber({}, { message: "高频数据批量大小必须是数字" })
   @Min(5, { message: "高频数据批量大小最小值为5" })
@@ -118,7 +115,7 @@ export class DataProcessingBatchConfig {
   /**
    * 数据分析批量大小
    * 用途：趋势分析和复杂计算的批量处理
-   * 环境变量：MONITORING_DATA_BATCH_ANALYSIS
+   * 环境变量：MONITORING_DEFAULT_BATCH_SIZE (analysis = base × 4.0)
    */
   @IsNumber({}, { message: "数据分析批量大小必须是数字" })
   @Min(10, { message: "数据分析批量大小最小值为10" })
@@ -336,117 +333,6 @@ export const monitoringUnifiedLimitsConfig = registerAs(
       config.dataCleanupBatch.small = Math.max(10, defaultBatchSize * 10); // 10.0x
     }
 
-    // 3. 应用环境变量覆盖（向后兼容，但显示弃用警告）
-    const env = process.env;
-
-    // 告警批量配置
-    if (env.MONITORING_ALERT_BATCH_SMALL) {
-      const parsed = parseInt(env.MONITORING_ALERT_BATCH_SMALL, 10);
-      if (!isNaN(parsed)) {
-        config.alertBatch.small = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_ALERT_BATCH_SMALL is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    if (env.MONITORING_ALERT_BATCH_MEDIUM) {
-      const parsed = parseInt(env.MONITORING_ALERT_BATCH_MEDIUM, 10);
-      if (!isNaN(parsed)) {
-        config.alertBatch.medium = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_ALERT_BATCH_MEDIUM is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    if (env.MONITORING_ALERT_BATCH_LARGE) {
-      const parsed = parseInt(env.MONITORING_ALERT_BATCH_LARGE, 10);
-      if (!isNaN(parsed)) {
-        config.alertBatch.large = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_ALERT_BATCH_LARGE is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    if (env.MONITORING_ALERT_BATCH_MAX) {
-      const parsed = parseInt(env.MONITORING_ALERT_BATCH_MAX, 10);
-      if (!isNaN(parsed)) {
-        config.alertBatch.max = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_ALERT_BATCH_MAX is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    // 数据处理批量配置
-    if (env.MONITORING_DATA_BATCH_STANDARD) {
-      const parsed = parseInt(env.MONITORING_DATA_BATCH_STANDARD, 10);
-      if (!isNaN(parsed)) {
-        config.dataProcessingBatch.standard = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_DATA_BATCH_STANDARD is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    if (env.MONITORING_DATA_BATCH_HIGH_FREQUENCY) {
-      const parsed = parseInt(env.MONITORING_DATA_BATCH_HIGH_FREQUENCY, 10);
-      if (!isNaN(parsed)) {
-        config.dataProcessingBatch.highFrequency = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_DATA_BATCH_HIGH_FREQUENCY is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    if (env.MONITORING_DATA_BATCH_ANALYSIS) {
-      const parsed = parseInt(env.MONITORING_DATA_BATCH_ANALYSIS, 10);
-      if (!isNaN(parsed)) {
-        config.dataProcessingBatch.analysis = parsed;
-        console.warn(
-          "[DEPRECATED] MONITORING_DATA_BATCH_ANALYSIS is deprecated. Use MONITORING_DEFAULT_BATCH_SIZE instead.",
-        );
-      }
-    }
-
-    // 数据清理批量配置
-    if (env.MONITORING_CLEANUP_BATCH_STANDARD) {
-      const parsed = parseInt(env.MONITORING_CLEANUP_BATCH_STANDARD, 10);
-      if (!isNaN(parsed)) config.dataCleanupBatch.standard = parsed;
-    }
-
-    if (env.MONITORING_CLEANUP_BATCH_LARGE) {
-      const parsed = parseInt(env.MONITORING_CLEANUP_BATCH_LARGE, 10);
-      if (!isNaN(parsed)) config.dataCleanupBatch.large = parsed;
-    }
-
-    if (env.MONITORING_CLEANUP_BATCH_SMALL) {
-      const parsed = parseInt(env.MONITORING_CLEANUP_BATCH_SMALL, 10);
-      if (!isNaN(parsed)) config.dataCleanupBatch.small = parsed;
-    }
-
-    // 系统限制配置
-    if (env.MONITORING_MAX_QUEUE_SIZE) {
-      const parsed = parseInt(env.MONITORING_MAX_QUEUE_SIZE, 10);
-      if (!isNaN(parsed)) config.systemLimits.maxQueueSize = parsed;
-    }
-
-    if (env.MONITORING_MAX_BUFFER_SIZE) {
-      const parsed = parseInt(env.MONITORING_MAX_BUFFER_SIZE, 10);
-      if (!isNaN(parsed)) config.systemLimits.maxBufferSize = parsed;
-    }
-
-    if (env.MONITORING_MAX_RETRY_ATTEMPTS) {
-      const parsed = parseInt(env.MONITORING_MAX_RETRY_ATTEMPTS, 10);
-      if (!isNaN(parsed)) config.systemLimits.maxRetryAttempts = parsed;
-    }
-
-    if (env.MONITORING_MAX_CONCURRENT_PROCESSING) {
-      const parsed = parseInt(env.MONITORING_MAX_CONCURRENT_PROCESSING, 10);
-      if (!isNaN(parsed)) config.systemLimits.maxConcurrentProcessing = parsed;
-    }
 
     // 根据环境调整配置
     config.adjustForEnvironment();
@@ -521,46 +407,3 @@ export type MonitoringUnifiedLimitsType = MonitoringUnifiedLimitsConfig;
 export type BatchSizeType = "small" | "medium" | "large" | "max";
 export type ProcessingType = "alert" | "data" | "cleanup" | "analysis";
 
-/**
- * 常量导出（兼容性支持）
- * 📦 为需要常量形式的代码提供兼容性支持
- */
-export const MONITORING_UNIFIED_LIMITS_CONSTANTS = Object.freeze({
-  /** 告警批量大小 */
-  ALERT_BATCH: Object.freeze({
-    SMALL: 5,
-    MEDIUM: 10,
-    LARGE: 20,
-    MAX: 50,
-  }),
-
-  /** 数据处理批量大小 */
-  DATA_BATCH: Object.freeze({
-    STANDARD: 10,
-    HIGH_FREQUENCY: 50,
-    ANALYSIS: 100,
-  }),
-
-  /** 数据清理批量大小 */
-  CLEANUP_BATCH: Object.freeze({
-    SMALL: 100,
-    STANDARD: 1000,
-    LARGE: 10000,
-  }),
-
-  /** 系统限制 */
-  SYSTEM_LIMITS: Object.freeze({
-    MAX_QUEUE_SIZE: 10000,
-    MAX_BUFFER_SIZE: 1000,
-    MAX_RETRY_ATTEMPTS: 3,
-    MAX_CONCURRENT_PROCESSING: 10,
-  }),
-
-  /** 批量处理间隔（毫秒） */
-  BATCH_INTERVALS: Object.freeze({
-    FAST: 100,
-    NORMAL: 200,
-    SLOW: 500,
-    VERY_SLOW: 1000,
-  }),
-});

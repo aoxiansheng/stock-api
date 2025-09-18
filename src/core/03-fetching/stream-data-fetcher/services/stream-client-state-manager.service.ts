@@ -89,7 +89,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
       lastSuccess: null as Date | null,
       lastFailure: null as Date | null,
     },
-    legacy: {
+    direct: {
       calls: 0,
       lastCall: null as Date | null,
     },
@@ -498,7 +498,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
     const totalAttempts = this.broadcastStats.total.attempts;
     const totalGateway =
       this.broadcastStats.gateway.success + this.broadcastStats.gateway.failure;
-    const totalLegacy = this.broadcastStats.legacy.calls;
+    const totalDirect = this.broadcastStats.direct.calls;
     const totalErrors = this.broadcastStats.errors.gatewayBroadcastErrors;
 
     // 计算Gateway使用率 (Gateway调用 / 总调用)
@@ -539,7 +539,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
         ...this.broadcastStats,
         // 深拷贝避免外部修改
         gateway: { ...this.broadcastStats.gateway },
-        legacy: { ...this.broadcastStats.legacy },
+        direct: { ...this.broadcastStats.direct },
         total: { ...this.broadcastStats.total },
         errors: { ...this.broadcastStats.errors },
       },
@@ -559,8 +559,8 @@ export class StreamClientStateManager implements OnModuleDestroy {
     this.broadcastStats.gateway.failure = 0;
     this.broadcastStats.gateway.lastSuccess = null;
     this.broadcastStats.gateway.lastFailure = null;
-    this.broadcastStats.legacy.calls = 0;
-    this.broadcastStats.legacy.lastCall = null;
+    this.broadcastStats.direct.calls = 0;
+    this.broadcastStats.direct.lastCall = null;
     this.broadcastStats.total.attempts = 0;
     this.broadcastStats.total.startTime = new Date();
     this.broadcastStats.errors.gatewayBroadcastErrors = 0;

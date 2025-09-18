@@ -13,7 +13,6 @@ import { PermissionModule } from "@auth/permission/permission.module";
 import authConfig from "../config/auth-configuration";
 // 🆕 新的分层配置系统
 import { authUnifiedConfig } from "../config/auth-unified.config";
-import { AuthConfigCompatibilityWrapper } from "../config/compatibility-wrapper";
 
 import { AuthController } from "../controller/auth.controller";
 import { RateLimitExceptionFilter } from "../filters/rate-limit.filter";
@@ -101,8 +100,6 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
       inject: [ConfigService],
     },
 
-    // 🆕 配置兼容包装器 - 确保现有代码无缝迁移
-    AuthConfigCompatibilityWrapper,
 
     // Passport策略
     JwtStrategy,
@@ -146,8 +143,6 @@ import { JwtStrategy } from "../strategies/jwt.strategy";
     TokenService,
     AuthPerformanceService,
 
-    // 🆕 配置兼容包装器 - 供其他模块使用新配置系统
-    AuthConfigCompatibilityWrapper,
 
     // 守卫 - 需要被AppModule使用
     JwtAuthGuard,

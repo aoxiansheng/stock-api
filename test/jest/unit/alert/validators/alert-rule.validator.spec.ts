@@ -32,11 +32,14 @@ describe("AlertRuleValidator - Enhanced Features", () => {
                   },
                 };
               }
-              if (key === "unifiedTtl") {
-                return { alertCooldownTtl: 300 };
-              }
               return null;
             }),
+          },
+        },
+        {
+          provide: 'cacheUnified',
+          useValue: {
+            defaultTtl: 300,
           },
         },
       ],

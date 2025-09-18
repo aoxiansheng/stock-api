@@ -17,11 +17,6 @@ export const RULE_LIMITS = {
   MAX_ACTIONS_PER_RULE: 5, // 5个 - 单规则最大动作数
   MAX_TAGS_PER_ENTITY: 10, // 10个 - 单实体最大标签数
 
-  // 注意：可配置参数已迁移到 alert.config.ts 的 AlertLimitsConfig:
-  // - MAX_CONDITIONS_PER_RULE → alert.config.ts:limits.maxConditionsPerRule
-  // - MAX_RULES_PER_USER → alert.config.ts:limits.maxRulesPerUser
-  // - DEFAULT_PAGE_SIZE → alert.config.ts:limits.defaultPageSize
-  // - MAX_QUERY_RESULTS → alert.config.ts:limits.maxQueryResults
 } as const;
 
 // ❌ 删除：字符串长度限制（已在@common/constants/validation.constants.ts）
@@ -45,19 +40,6 @@ export const RETRY_LIMITS = {
   VALIDATION_RETRIES: 1, // 1次 - 验证操作重试
 } as const;
 
-// ❌ 删除：性能限制（已迁移到alert-performance.config.ts）
-// export const PERFORMANCE_LIMITS = { ... };  // 删除整个对象
-
-/**
- * 验证限制配置
- * DTO验证使用的限制值
- *
- * ⚠️ 已迁移到 @common/constants/validation.constants.ts
- * 请使用: import { VALIDATION_LIMITS } from '@common/constants/validation.constants';
- */
-
 // 类型定义
 export type RuleLimits = typeof RULE_LIMITS;
 export type RetryLimits = typeof RETRY_LIMITS;
-// StringLimits - 已删除，使用 @common/constants/validation.constants.ts
-// PerformanceLimits - 已删除，使用 alert-performance.config.ts

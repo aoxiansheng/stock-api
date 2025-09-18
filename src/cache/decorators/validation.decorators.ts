@@ -106,14 +106,3 @@ export function IsValidCacheTTL(validationOptions?: ValidationOptions) {
 // ✅ REDIS_KEY_CONSTRAINTS 现在从 @common/constants/domain/redis-specific.constants 导入
 // ✅ 消除了常量重复定义，复用通用组件库
 
-/**
- * 导出常量供其他模块使用（向后兼容）
- * @deprecated 请直接从 @common/constants/validation.constants 导入 CACHE_VALIDATION_LIMITS
- */
-export { CACHE_VALIDATION_LIMITS } from "@common/constants/validation.constants";
-
-/**
- * 导出Redis特定常量供其他模块使用（向后兼容）
- * @deprecated 请直接从 @common/constants/domain/redis-specific.constants 导入 REDIS_KEY_CONSTRAINTS
- */
-export { REDIS_KEY_CONSTRAINTS } from "@common/constants/domain/redis-specific.constants";
