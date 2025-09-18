@@ -8,4 +8,4 @@
 
 export * from "./notification.constants";
 export * from "./notification-core.constants";
-export * from "./validation-limits.constants";
+// Legacy validation limits removed - validation now handled by unified config

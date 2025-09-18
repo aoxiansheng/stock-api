@@ -15,48 +15,23 @@ export {
   NOTIFICATION_ERROR_TEMPLATES,
 } from "./notification-core.constants";
 
-// 注意：NOTIFICATION_VALIDATION_LIMITS 由 validation-limits.constants.ts 定义和导出
-
 /**
- * 通知验证常量
- * 🎯 提供通知验证相关的常量，使用通用常量避免重复
+ * 通知模板变量定义
+ * 🎯 保留通知模块特有的业务逻辑常量
  */
-import { NOTIFICATION_VALIDATION_LIMITS } from './validation-limits.constants';
-
-export const NOTIFICATION_VALIDATION = Object.freeze({
-  // ✅ 使用通用验证限制常量
-  LIMITS: {
-    // 基础字符串长度限制（从通用常量获取）
-    TITLE_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.TITLE_MAX_LENGTH,
-    CONTENT_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.CONTENT_MAX_LENGTH_EXTENDED, // 使用扩展版本保持兼容
-    URL_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.WEBHOOK_URL_MAX_LENGTH,
-    EMAIL_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.EMAIL_MAX_LENGTH,
-    PHONE_MAX_LENGTH: NOTIFICATION_VALIDATION_LIMITS.PHONE_MAX_LENGTH,
-    // 数组大小限制（从通用常量获取）
-    MAX_RECIPIENTS: NOTIFICATION_VALIDATION_LIMITS.MAX_RECIPIENTS,
-    MAX_TAGS: NOTIFICATION_VALIDATION_LIMITS.MAX_TAGS,
-    // 批量操作限制（从通用常量获取）
-    MAX_BATCH_SIZE: NOTIFICATION_VALIDATION_LIMITS.MAX_BATCH_SIZE,
-  },
-
-  // ❌ 验证模式已移除 - 直接在验证器装饰器中使用
-  // @IsValidEmail, @IsValidUrl, @IsValidPhoneNumber 装饰器已提供相同功能
-
-  // 模板变量定义（保留，这是通知模块特有的业务逻辑）
-  VARIABLES: {
-    ALERT_ID: "alertId",
-    RULE_NAME: "ruleName",
-    METRIC: "metric",
-    VALUE: "value",
-    THRESHOLD: "threshold",
-    SEVERITY: "severity",
-    STATUS: "status",
-    MESSAGE: "message",
-    START_TIME: "startTime",
-    END_TIME: "endTime",
-    DURATION: "duration",
-    TAGS: "tags",
-  },
+export const NOTIFICATION_VARIABLES = Object.freeze({
+  ALERT_ID: "alertId",
+  RULE_NAME: "ruleName",
+  METRIC: "metric",
+  VALUE: "value",
+  THRESHOLD: "threshold",
+  SEVERITY: "severity",
+  STATUS: "status",
+  MESSAGE: "message",
+  START_TIME: "startTime",
+  END_TIME: "endTime",
+  DURATION: "duration",
+  TAGS: "tags",
 });
 
 /**
@@ -172,7 +147,7 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
       },
     },
     from: "",
-    // timeout配置已迁移到NotificationUnifiedConfig
+    // 超时配置已迁移到NotificationUnifiedConfig
   },
 
   SMS: {
@@ -181,14 +156,14 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     accessKeySecret: "",
     signName: "",
     templateCode: "",
-    // timeout配置已迁移到NotificationUnifiedConfig
+    // 超时配置已迁移到NotificationUnifiedConfig
   },
 
   WEBHOOK: {
     url: "",
     method: "POST",
     headers: {},
-    // timeout配置已迁移到NotificationUnifiedConfig
+    // 超时配置已迁移到NotificationUnifiedConfig
     verifySSL: true,
   },
 
@@ -197,12 +172,12 @@ export const DEFAULT_CHANNEL_CONFIGS = Object.freeze({
     channel: "",
     username: "AlertBot",
     iconEmoji: ":warning:",
-    // timeout配置已迁移到NotificationUnifiedConfig
+    // 超时配置已迁移到NotificationUnifiedConfig
   },
 
   DINGTALK: {
     webhook: "",
     secret: "",
-    // timeout配置已迁移到NotificationUnifiedConfig
+    // 超时配置已迁移到NotificationUnifiedConfig
   },
 });

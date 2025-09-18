@@ -27,8 +27,7 @@ import {
   NotificationStatus,
 } from "../types/notification.types";
 
-// 使用独立的验证限制常量
-import { NOTIFICATION_VALIDATION_LIMITS } from "../constants/validation-limits.constants";
+// 现代化配置验证 - 使用合理的默认值替代硬编码常量
 
 // 导入各类型通知配置DTO
 export * from "./channels";
@@ -75,15 +74,15 @@ export class NotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
-  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
+  @Min(1)
+  @Max(10)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（毫秒）", default: 30000 })
   @IsOptional()
   @IsNumber()
-  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
-  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
+  @Min(1000)
+  @Max(180000)
   timeout?: number;
 
   @ApiPropertyOptional({
@@ -122,15 +121,15 @@ export class CreateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数", default: 3 })
   @IsOptional()
   @IsNumber()
-  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
-  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
+  @Min(1)
+  @Max(10)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（毫秒）", default: 30000 })
   @IsOptional()
   @IsNumber()
-  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
-  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
+  @Min(1000)
+  @Max(180000)
   timeout?: number;
 
   @ApiPropertyOptional({
@@ -192,15 +191,15 @@ export class UpdateNotificationChannelDto {
   @ApiPropertyOptional({ description: "重试次数" })
   @IsOptional()
   @IsNumber()
-  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MIN)
-  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_RETRIES_MAX)
+  @Min(1)
+  @Max(10)
   retryCount?: number;
 
   @ApiPropertyOptional({ description: "超时时间（毫秒）" })
   @IsOptional()
   @IsNumber()
-  @Min(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MIN)
-  @Max(NOTIFICATION_VALIDATION_LIMITS.SEND_TIMEOUT_MAX)
+  @Min(1000)
+  @Max(180000)
   timeout?: number;
 
   @ApiPropertyOptional({

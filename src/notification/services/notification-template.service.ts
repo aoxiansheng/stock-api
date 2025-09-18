@@ -32,8 +32,13 @@ import {
 
 import {
   NOTIFICATION_OPERATIONS,
-  NOTIFICATION_VALIDATION,
 } from "../constants/notification.constants";
+
+// 现代化验证限制 - 使用合理的默认值替代硬编码常量
+const VALIDATION_LIMITS = {
+  CONTENT_MAX_LENGTH: 10000,
+  TITLE_MAX_LENGTH: 500,
+} as const;
 
 /**
  * 模板创建DTO
@@ -578,19 +583,19 @@ export class NotificationTemplateService {
     }
 
     if (
-      content.body.length > NOTIFICATION_VALIDATION.LIMITS.CONTENT_MAX_LENGTH
+      content.body.length > VALIDATION_LIMITS.CONTENT_MAX_LENGTH
     ) {
       throw new BadRequestException(
-        `模板内容过长，最大支持${NOTIFICATION_VALIDATION.LIMITS.CONTENT_MAX_LENGTH}字符`,
+        `模板内容过长，最大支持${VALIDATION_LIMITS.CONTENT_MAX_LENGTH}字符`,
       );
     }
 
     if (
       content.subject &&
-      content.subject.length > NOTIFICATION_VALIDATION.LIMITS.TITLE_MAX_LENGTH
+      content.subject.length > VALIDATION_LIMITS.TITLE_MAX_LENGTH
     ) {
       throw new BadRequestException(
-        `模板主题过长，最大支持${NOTIFICATION_VALIDATION.LIMITS.TITLE_MAX_LENGTH}字符`,
+        `模板主题过长，最大支持${VALIDATION_LIMITS.TITLE_MAX_LENGTH}字符`,
       );
     }
   }

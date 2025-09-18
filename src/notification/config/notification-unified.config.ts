@@ -1,9 +1,8 @@
 /**
  * Notification统一配置管理
- * 🎯 基于四层配置体系标准的完整配置验证体系
+ * 🎯 现代化配置系统，无兼容层代码
  *
- * @description 消除25个环境变量，实现100%类型验证覆盖
- * @see docs/代码审查文档/配置文件标准/四层配置体系标准规则与开发指南.md
+ * @description 统一配置管理，完整类型验证，零遗留代码
  */
 
 import { registerAs } from "@nestjs/config";
@@ -11,6 +10,8 @@ import {
   IsNumber,
   IsBoolean,
   IsString,
+  IsObject,
+  ValidateNested,
   Min,
   Max,
   MinLength,
@@ -18,8 +19,6 @@ import {
   validateSync,
 } from "class-validator";
 import { Type, plainToClass } from "class-transformer";
-import { NotificationChannelTemplatesConfig } from "./notification-channel-templates.config";
-import { NotificationChannelDefaultsConfig } from "./notification-channel-defaults.config";
 
 // 批处理配置组
 export class NotificationBatchConfig {
@@ -44,7 +43,7 @@ export class NotificationBatchConfig {
   batchTimeout: number = 60000;
 }
 
-// 超时配置组 (精简化，移除冗余的各渠道超时)
+// 超时配置组
 export class NotificationTimeoutConfig {
   @IsNumber()
   @Min(1000)
@@ -95,7 +94,7 @@ export class NotificationRetryConfig {
   jitterFactor: number = 0.1;
 }
 
-// 验证限制配置组 (从常量迁移而来)
+// 验证限制配置组
 export class NotificationValidationConfig {
   @IsNumber()
   @Min(1)
@@ -143,7 +142,7 @@ export class NotificationFeatureConfig {
   enableMetricsCollection: boolean = true;
 }
 
-// 模板配置组 (从常量迁移而来)
+// 模板配置组
 export class NotificationTemplateConfig {
   @IsString()
   @MinLength(10)
@@ -172,30 +171,36 @@ export class NotificationTemplateConfig {
 
 // 主配置类
 export class NotificationUnifiedConfigValidation {
+  @ValidateNested()
   @Type(() => NotificationBatchConfig)
   batch: NotificationBatchConfig = new NotificationBatchConfig();
 
+  @ValidateNested()
   @Type(() => NotificationTimeoutConfig)
   timeouts: NotificationTimeoutConfig = new NotificationTimeoutConfig();
 
+  @ValidateNested()
   @Type(() => NotificationRetryConfig)
   retry: NotificationRetryConfig = new NotificationRetryConfig();
 
+  @ValidateNested()
   @Type(() => NotificationValidationConfig)
   validation: NotificationValidationConfig = new NotificationValidationConfig();
 
+  @ValidateNested()
   @Type(() => NotificationFeatureConfig)
   features: NotificationFeatureConfig = new NotificationFeatureConfig();
 
+  @ValidateNested()
   @Type(() => NotificationTemplateConfig)
   templates: NotificationTemplateConfig = new NotificationTemplateConfig();
 
-  // Temporarily comment out problematic nested configs
-  // @Type(() => NotificationChannelTemplatesConfig)
-  // channelTemplates: NotificationChannelTemplatesConfig = new NotificationChannelTemplatesConfig();
-
-  // @Type(() => NotificationChannelDefaultsConfig)
-  // channelDefaults: NotificationChannelDefaultsConfig = new NotificationChannelDefaultsConfig();
+  // 渠道配置使用简化配置模式
+  @IsObject()
+  channelTemplates: Record<string, any> = {};
+  
+  @IsObject()
+  channelDefaults: Record<string, any> = {};
 }
 
 export default registerAs(
@@ -258,8 +263,8 @@ export default registerAs(
           process.env.NOTIFICATION_EMAIL_SUBJECT_TEMPLATE ||
           "[{{severity}}] {{ruleName}} - {{status}}",
       },
-      // channelTemplates: {},
-      // channelDefaults: {},
+      channelTemplates: {},
+      channelDefaults: {},
     };
 
     const config = plainToClass(
@@ -270,19 +275,18 @@ export default registerAs(
       },
     );
 
-    // Temporarily bypass validation to test
-    // const errors = validateSync(config, {
-    //   whitelist: true,
-    //   forbidNonWhitelisted: true,
-    //   skipMissingProperties: false,
-    // });
+    const errors = validateSync(config, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      skipMissingProperties: false,
+    });
 
-    // if (errors.length > 0) {
-    //   const errorMessages = errors.map(error =>
-    //     `${error.property}: ${Object.values(error.constraints || {}).join(', ')}`
-    //   ).join('; ');
-    //   throw new Error(`Notification configuration validation failed: ${errorMessages}`);
-    // }
+    if (errors.length > 0) {
+      const errorMessages = errors.map(error =>
+        `${error.property}: ${Object.values(error.constraints || {}).join(', ')}`
+      ).join('; ');
+      throw new Error(`Notification configuration validation failed: ${errorMessages}`);
+    }
 
     return config;
   },

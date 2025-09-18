@@ -14,8 +14,7 @@ import {
 
 // 导出类型以供外部使用
 export type { SerializerType };
-// 配置相关常量导入
-import { CACHE_KEYS as MODULAR_CACHE_KEYS } from "./config/cache-keys.constants";
+// 配置相关常量导入 - 直接导入不再重新导出
 import { CACHE_STATUS } from "./status/cache-status.constants";
 // 消息常量导入
 import { CACHE_MESSAGES } from "./messages/cache-messages.constants";
@@ -61,9 +60,6 @@ export const CACHE_CONSTANTS = Object.freeze({
     migration: "Legacy compatibility files have been removed - use unified config",
   },
 });
-
-// 向后兼容导出 - 重新导出缓存键值
-export { MODULAR_CACHE_KEYS as CACHE_KEYS };
 
 // 重新导出消息常量
 export { CACHE_MESSAGES };

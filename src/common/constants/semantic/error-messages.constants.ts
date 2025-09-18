@@ -199,7 +199,7 @@ export const HTTP_ERROR_MESSAGES = deepFreeze({
   HTTP_GATEWAY_TIMEOUT: "网关超时", // 重命名，避免与SYSTEM_ERROR_MESSAGES.GATEWAY_TIMEOUT重复
 });
 
-// 📢 统一的错误消息集合（向后兼容）
+// 📢 统一的错误消息集合
 export const ERROR_MESSAGES = deepFreeze({
   ...AUTH_ERROR_MESSAGES,
   ...BUSINESS_ERROR_MESSAGES,

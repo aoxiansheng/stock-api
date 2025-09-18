@@ -48,8 +48,13 @@ import { TemplateQueryDto } from "../dto/template-query.dto";
 
 import {
   NOTIFICATION_MESSAGES,
-  NOTIFICATION_VALIDATION,
 } from "../constants/notification.constants";
+
+// 现代化验证限制 - 使用合理的默认值替代硬编码常量
+const VALIDATION_LIMITS = {
+  CONTENT_MAX_LENGTH: 10000,
+  TITLE_MAX_LENGTH: 500,
+} as const;
 
 /**
  * 模板渲染请求DTO
@@ -319,10 +324,10 @@ export class TemplateController {
 
       if (
         validateDto.templateContent.length >
-        NOTIFICATION_VALIDATION.LIMITS.CONTENT_MAX_LENGTH
+        VALIDATION_LIMITS.CONTENT_MAX_LENGTH
       ) {
         throw new BadRequestException(
-          `模板内容过长，最大支持${NOTIFICATION_VALIDATION.LIMITS.CONTENT_MAX_LENGTH}字符`,
+          `模板内容过长，最大支持${VALIDATION_LIMITS.CONTENT_MAX_LENGTH}字符`,
         );
       }
 
