@@ -14,7 +14,6 @@ export {
   HTTP_METHOD_ARRAYS,
   HTTP_CONTENT_TYPES,
   HTTP_SUCCESS_MESSAGES,
-  HttpSemanticsUtil,
 } from "./http-semantics.constants";
 
 export {
@@ -23,7 +22,6 @@ export {
   CACHE_SIZE_SEMANTICS,
   CACHE_PERFORMANCE_SEMANTICS,
   CACHE_OPERATIONS,
-  CacheSemanticsUtil,
 } from "./cache-semantics.constants";
 
 export {
@@ -32,7 +30,6 @@ export {
   RETRY_STRATEGY_SEMANTICS,
   RETRYABLE_ERROR_SEMANTICS,
   RETRY_CONFIG_TEMPLATES,
-  RetrySemanticsUtil,
 } from "./retry-semantics.constants";
 
 export {
@@ -41,20 +38,17 @@ export {
   BATCH_TIMEOUT_SEMANTICS,
   BATCH_STRATEGY_SEMANTICS,
   BATCH_CONFIG_TEMPLATES,
-  BatchSemanticsUtil,
 } from "./batch-semantics.constants";
 
 export {
   HTTP_STATUS_SEMANTICS,
   STATUS_CODE_SEMANTICS,
-  StatusCodeSemanticsUtil,
 } from "./status-codes-semantics.constants";
 
 export {
   MESSAGE_SEMANTICS,
   MESSAGE_TEMPLATE_SEMANTICS,
   MESSAGE_FORMAT_SEMANTICS,
-  MessageSemanticsUtil,
 } from "./message-semantics.constants";
 
 export {
@@ -66,18 +60,10 @@ export {
   VALIDATION_TRANSLATIONS,
   SYSTEM_ERROR_MESSAGES,
   BUSINESS_ERROR_MESSAGES,
-  ErrorMessageUtil,
 } from "./error-messages.constants";
 
 // 导出类型定义
-// 导入所有工具类
-import { HttpSemanticsUtil } from "./http-semantics.constants";
-import { CacheSemanticsUtil } from "./cache-semantics.constants";
-import { RetrySemanticsUtil } from "./retry-semantics.constants";
-import { BatchSemanticsUtil } from "./batch-semantics.constants";
-import { StatusCodeSemanticsUtil } from "./status-codes-semantics.constants";
-import { MessageSemanticsUtil } from "./message-semantics.constants";
-import { ErrorMessageUtil } from "./error-messages.constants";
+// 导入用于对象定义的常量
 
 // 导入用于对象定义
 import {
@@ -175,18 +161,10 @@ export const SEMANTIC_CONSTANTS = Object.freeze({
  */
 export class SemanticUtils {
   /**
-   * 获取所有语义层工具类
+   * 获取所有语义层常量
    */
-  static getAllUtils() {
-    return {
-      Http: HttpSemanticsUtil,
-      Cache: CacheSemanticsUtil,
-      Retry: RetrySemanticsUtil,
-      Batch: BatchSemanticsUtil,
-      StatusCode: StatusCodeSemanticsUtil,
-      Message: MessageSemanticsUtil,
-      ErrorMessage: ErrorMessageUtil,
-    };
+  static getAllConstants() {
+    return SEMANTIC_CONSTANTS;
   }
 
   /**

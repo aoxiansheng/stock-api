@@ -10,7 +10,6 @@ import {
   ENVIRONMENT_FEATURES,
   ENVIRONMENT_RESOURCE_LIMITS,
   EnvironmentConfigManager,
-  EnvironmentConfigUtil,
 } from "./environment-config.constants";
 
 // 导入核心常量用于QUICK配置
@@ -41,7 +40,6 @@ export {
   ENVIRONMENT_FEATURES,
   ENVIRONMENT_RESOURCE_LIMITS,
   EnvironmentConfigManager,
-  EnvironmentConfigUtil,
 };
 
 // 导出类型定义

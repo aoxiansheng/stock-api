@@ -6,7 +6,6 @@
 
 export {
   OPERATION_LIMITS,
-  OperationLimitsUtil,
 } from "./operation-limits.constants";
 export type {
   OperationType,
@@ -34,7 +33,6 @@ export type {
 
 import {
   OPERATION_LIMITS,
-  OperationLimitsUtil,
 } from "./operation-limits.constants";
 
 import { REFERENCE_DATA } from "./reference-data.constants";

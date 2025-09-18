@@ -9,7 +9,6 @@ export { CORE_TIMEOUTS, CORE_TTL } from "./core-timeouts.constants";
 export {
   CORE_TIMEZONES,
   CORE_TRADING_TIMES,
-  TimezoneUtil,
 } from "./core-timezones.constants";
 export {
   PROCESSING_BASE_CONSTANTS,
