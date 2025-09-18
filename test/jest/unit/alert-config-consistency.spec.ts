@@ -30,8 +30,8 @@ import commonConstantsConfig from '@common/config/common-constants.config';
 import { ALERT_DEFAULTS } from "@alert/constants/defaults.constants";
 import { RETRY_LIMITS } from "@alert/constants/limits.constants";
 
-// 过时常量的向后兼容导入 (将逐步移除)
-import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
+// Alert 模块验证常量
+import { ALERT_VALIDATION_LIMITS } from "@alert/constants/validation.constants";
 
 describe("Alert配置一致性测试", () => {
   let configService: ConfigService;
@@ -172,15 +172,15 @@ describe("Alert配置一致性测试", () => {
     });
 
     describe("4. 常量文件层", () => {
-      it("VALIDATION_LIMITS应该包含Alert所需常量", () => {
-        expect(VALIDATION_LIMITS.DURATION_MIN).toBeDefined();
-        expect(VALIDATION_LIMITS.DURATION_MAX).toBeDefined();
-        expect(VALIDATION_LIMITS.COOLDOWN_MIN).toBeDefined();
-        expect(VALIDATION_LIMITS.COOLDOWN_MAX).toBeDefined();
-        expect(VALIDATION_LIMITS.RETRIES_MIN).toBeDefined();
-        expect(VALIDATION_LIMITS.RETRIES_MAX).toBeDefined();
-        expect(VALIDATION_LIMITS.TIMEOUT_MIN).toBeDefined();
-        expect(VALIDATION_LIMITS.TIMEOUT_MAX).toBeDefined();
+      it("ALERT_VALIDATION_LIMITS应该包含Alert所需常量", () => {
+        expect(ALERT_VALIDATION_LIMITS.DURATION_MIN).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.DURATION_MAX).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.COOLDOWN_MIN).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.COOLDOWN_MAX).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.RETRIES_MIN).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.RETRIES_MAX).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.TIMEOUT_MIN).toBeDefined();
+        expect(ALERT_VALIDATION_LIMITS.TIMEOUT_MAX).toBeDefined();
       });
 
       it("ALERT_DEFAULTS应该提供合理默认值", () => {
@@ -203,15 +203,15 @@ describe("Alert配置一致性测试", () => {
 
       // 验证持续时间限制一致性
       expect(alertConfigData.validation.duration.min).toBe(
-        VALIDATION_LIMITS.DURATION_MIN,
+        ALERT_VALIDATION_LIMITS.DURATION_MIN,
       );
       expect(alertConfigData.validation.duration.max).toBe(
-        VALIDATION_LIMITS.DURATION_MAX,
+        ALERT_VALIDATION_LIMITS.DURATION_MAX,
       );
 
       // 验证冷却时间限制一致性
       expect(alertConfigData.validation.cooldown.max).toBe(
-        VALIDATION_LIMITS.COOLDOWN_MAX,
+        ALERT_VALIDATION_LIMITS.COOLDOWN_MAX,
       );
     });
 
@@ -400,30 +400,30 @@ describe("Alert配置一致性测试", () => {
       
       // 验证新配置提供的值与过时常量在合理范围内
       expect(commonConstantsConfigData.maxRetryAttempts).toBeGreaterThanOrEqual(
-        VALIDATION_LIMITS.RETRIES_MIN
+        ALERT_VALIDATION_LIMITS.RETRIES_MIN
       );
       expect(commonConstantsConfigData.maxRetryAttempts).toBeLessThanOrEqual(
-        VALIDATION_LIMITS.RETRIES_MAX
+        ALERT_VALIDATION_LIMITS.RETRIES_MAX
       );
       
       expect(commonConstantsConfigData.defaultTimeoutMs).toBeGreaterThanOrEqual(
-        VALIDATION_LIMITS.TIMEOUT_MIN
+        ALERT_VALIDATION_LIMITS.TIMEOUT_MIN
       );
       expect(commonConstantsConfigData.defaultTimeoutMs).toBeLessThanOrEqual(
-        VALIDATION_LIMITS.TIMEOUT_MAX
+        ALERT_VALIDATION_LIMITS.TIMEOUT_MAX
       );
     });
 
     it("过时常量仍应可用 (向后兼容)", () => {
       // 这些测试确保在迁移期间过时常量仍然可用
-      expect(VALIDATION_LIMITS.DURATION_MIN).toBeDefined();
-      expect(VALIDATION_LIMITS.DURATION_MAX).toBeDefined();
-      expect(VALIDATION_LIMITS.COOLDOWN_MIN).toBeDefined();
-      expect(VALIDATION_LIMITS.COOLDOWN_MAX).toBeDefined();
-      expect(VALIDATION_LIMITS.RETRIES_MIN).toBeDefined();
-      expect(VALIDATION_LIMITS.RETRIES_MAX).toBeDefined();
-      expect(VALIDATION_LIMITS.TIMEOUT_MIN).toBeDefined();
-      expect(VALIDATION_LIMITS.TIMEOUT_MAX).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.DURATION_MIN).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.DURATION_MAX).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.COOLDOWN_MIN).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.COOLDOWN_MAX).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.RETRIES_MIN).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.RETRIES_MAX).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.TIMEOUT_MIN).toBeDefined();
+      expect(ALERT_VALIDATION_LIMITS.TIMEOUT_MAX).toBeDefined();
     });
   });
 });

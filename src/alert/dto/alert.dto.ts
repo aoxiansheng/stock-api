@@ -19,8 +19,8 @@ import { IAlert, IAlertStats } from "../interfaces";
 import { AlertSeverity, AlertStatus } from "../types/alert.types";
 import { ALERT_DEFAULTS } from "../constants";
 
-// 🎯 过时代码清理: 逐步迁移到配置系统
-import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
+// 🎯 使用 Alert 模块内部的验证常量
+import { ALERT_VALIDATION_LIMITS } from "../constants/validation.constants";
 import { BaseQueryDto } from "../../common/dto/base-query.dto";
 
 /**
@@ -38,8 +38,8 @@ export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "告警规则ID" })
   @IsOptional()
   @IsString({ message: "告警规则ID必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `告警规则ID长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `告警规则ID长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
     message: "规则ID只能包含字母、数字、横线和下划线",
@@ -75,8 +75,8 @@ export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "监控指标名称" })
   @IsOptional()
   @IsString({ message: "监控指标名称必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `监控指标名称长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `监控指标名称长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z][a-zA-Z0-9_\.]*$/, {
     message: "监控指标名称必须以字母开头，可包含字母、数字、下划线和点号",
@@ -86,8 +86,8 @@ export class AlertQueryDto extends BaseQueryDto {
   @ApiPropertyOptional({ description: "排序字段", default: "startTime" })
   @IsOptional()
   @IsString({ message: "排序字段必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `排序字段长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `排序字段长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z0-9_]+$/, { message: "排序字段只能包含字母、数字和下划线" })
   sortBy?: string = "startTime";
@@ -161,8 +161,8 @@ export class AlertStatsDto implements IAlertStats {
 class MetricDataDto {
   @ApiProperty({ description: "监控指标的名称", example: "cpu.usage" })
   @IsString({ message: "监控指标名称必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `监控指标名称长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `监控指标名称长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z][a-zA-Z0-9_\.]*$/, {
     message: "监控指标名称必须以字母开头，可包含字母、数字、下划线和点号",
@@ -193,8 +193,8 @@ export class TriggerAlertDto {
   @ApiPropertyOptional({ description: "指定触发的规则ID" })
   @IsOptional()
   @IsString({ message: "规则ID必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `规则ID长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `规则ID长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
     message: "规则ID只能包含字母、数字、横线和下划线",

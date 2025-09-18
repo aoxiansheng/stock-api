@@ -20,20 +20,20 @@ import { IsNumberInRange } from "@common/validators";
 import { AlertSeverity } from "../types/alert.types";
 import { VALID_OPERATORS, type Operator, ALERT_DEFAULTS } from "../constants";
 
-// 🎯 过时代码清理: 逐步迁移到配置系统
-import { VALIDATION_LIMITS } from "@common/constants/validation.constants";
+// 🎯 使用 Alert 模块内部的验证常量
+import { ALERT_VALIDATION_LIMITS } from "../constants/validation.constants";
 
 /**
  * 配置迁移注释:
  * 🔄 正在将硬编码常量迁移到配置系统
  * 
  * 迁移目标:
- * - VALIDATION_LIMITS.NAME_MAX_LENGTH → commonConstantsConfig.validation.nameMaxLength
- * - VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH → commonConstantsConfig.validation.descriptionMaxLength  
- * - VALIDATION_LIMITS.DURATION_MIN/MAX → commonConstantsConfig.validation.durationMin/Max
- * - VALIDATION_LIMITS.COOLDOWN_MIN/MAX → commonConstantsConfig.validation.cooldownMin/Max
- * - VALIDATION_LIMITS.RETRIES_MIN/MAX → commonConstantsConfig.retry.minRetryAttempts/maxRetryAttempts
- * - VALIDATION_LIMITS.TIMEOUT_MIN/MAX → commonConstantsConfig.timeouts.quickTimeoutMs/longTimeoutMs
+ * - ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH → commonConstantsConfig.validation.nameMaxLength
+ * - ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH → commonConstantsConfig.validation.descriptionMaxLength  
+ * - ALERT_VALIDATION_LIMITS.DURATION_MIN/MAX → commonConstantsConfig.validation.durationMin/Max
+ * - ALERT_VALIDATION_LIMITS.COOLDOWN_MIN/MAX → commonConstantsConfig.validation.cooldownMin/Max
+ * - ALERT_VALIDATION_LIMITS.RETRIES_MIN/MAX → commonConstantsConfig.retry.minRetryAttempts/maxRetryAttempts
+ * - ALERT_VALIDATION_LIMITS.TIMEOUT_MIN/MAX → commonConstantsConfig.timeouts.quickTimeoutMs/longTimeoutMs
  * 
  * 注入配置服务的DTO重构将在Phase 3完成
  **/
@@ -67,7 +67,7 @@ export class AlertNotificationChannelDto {
 
   @ApiProperty({ description: "渠道名称" })
   @IsString()
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH)
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH)
   name: string;
 
   @ApiProperty({
@@ -94,9 +94,9 @@ export class AlertNotificationChannelDto {
   @IsOptional()
   @IsNumber()
   @IsNumberInRange({
-    min: VALIDATION_LIMITS.RETRIES_MIN,
-    max: VALIDATION_LIMITS.RETRIES_MAX,
-    message: `重试次数必须在${VALIDATION_LIMITS.RETRIES_MIN}-${VALIDATION_LIMITS.RETRIES_MAX}之间`,
+    min: ALERT_VALIDATION_LIMITS.RETRIES_MIN,
+    max: ALERT_VALIDATION_LIMITS.RETRIES_MAX,
+    message: `重试次数必须在${ALERT_VALIDATION_LIMITS.RETRIES_MIN}-${ALERT_VALIDATION_LIMITS.RETRIES_MAX}之间`,
   })
   retryCount?: number;
 
@@ -104,9 +104,9 @@ export class AlertNotificationChannelDto {
   @IsOptional()
   @IsNumber()
   @IsNumberInRange({
-    min: VALIDATION_LIMITS.TIMEOUT_MIN,
-    max: VALIDATION_LIMITS.TIMEOUT_MAX,
-    message: `超时时间必须在${VALIDATION_LIMITS.TIMEOUT_MIN}-${VALIDATION_LIMITS.TIMEOUT_MAX}毫秒之间`,
+    min: ALERT_VALIDATION_LIMITS.TIMEOUT_MIN,
+    max: ALERT_VALIDATION_LIMITS.TIMEOUT_MAX,
+    message: `超时时间必须在${ALERT_VALIDATION_LIMITS.TIMEOUT_MIN}-${ALERT_VALIDATION_LIMITS.TIMEOUT_MAX}毫秒之间`,
   })
   timeout?: number;
 }
@@ -114,8 +114,8 @@ export class AlertNotificationChannelDto {
 export class CreateAlertRuleDto {
   @ApiProperty({ description: "告警规则名称" })
   @IsString({ message: "告警规则名称必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `告警规则名称长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `告警规则名称长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[\u4e00-\u9fa5a-zA-Z0-9_\-\s]+$/, {
     message: "告警规则名称只能包含中英文字符、数字、下划线、短横线和空格",
@@ -125,15 +125,15 @@ export class CreateAlertRuleDto {
   @ApiPropertyOptional({ description: "告警规则描述" })
   @IsOptional()
   @IsString({ message: "告警规则描述必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH, {
-    message: `告警规则描述长度不能超过${VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH, {
+    message: `告警规则描述长度不能超过${ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH}个字符`,
   })
   description?: string;
 
   @ApiProperty({ description: "监控指标名称" })
   @IsString({ message: "监控指标名称必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `监控指标名称长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `监控指标名称长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z][a-zA-Z0-9_\.]*$/, {
     message: "监控指标名称必须以字母开头，可包含字母、数字、下划线和点号",
@@ -161,9 +161,9 @@ export class CreateAlertRuleDto {
   })
   @IsNumber()
   @IsNumberInRange({
-    min: VALIDATION_LIMITS.DURATION_MIN,
-    max: VALIDATION_LIMITS.DURATION_MAX,
-    message: `持续时间必须在${VALIDATION_LIMITS.DURATION_MIN}-${VALIDATION_LIMITS.DURATION_MAX}秒之间`,
+    min: ALERT_VALIDATION_LIMITS.DURATION_MIN,
+    max: ALERT_VALIDATION_LIMITS.DURATION_MAX,
+    message: `持续时间必须在${ALERT_VALIDATION_LIMITS.DURATION_MIN}-${ALERT_VALIDATION_LIMITS.DURATION_MAX}秒之间`,
   })
   duration: number;
 
@@ -196,9 +196,9 @@ export class CreateAlertRuleDto {
   })
   @IsNumber({}, { message: "冷却时间必须是数字" })
   @IsNumberInRange({
-    min: VALIDATION_LIMITS.COOLDOWN_MIN,
-    max: VALIDATION_LIMITS.COOLDOWN_MAX,
-    message: `冷却时间必须在${VALIDATION_LIMITS.COOLDOWN_MIN}-${VALIDATION_LIMITS.COOLDOWN_MAX}秒之间`,
+    min: ALERT_VALIDATION_LIMITS.COOLDOWN_MIN,
+    max: ALERT_VALIDATION_LIMITS.COOLDOWN_MAX,
+    message: `冷却时间必须在${ALERT_VALIDATION_LIMITS.COOLDOWN_MIN}-${ALERT_VALIDATION_LIMITS.COOLDOWN_MAX}秒之间`,
   })
   cooldown: number;
 
@@ -215,8 +215,8 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "告警规则名称" })
   @IsOptional()
   @IsString({ message: "告警规则名称必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `告警规则名称长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `告警规则名称长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[\u4e00-\u9fa5a-zA-Z0-9_\-\s]+$/, {
     message: "告警规则名称只能包含中英文字符、数字、下划线、短横线和空格",
@@ -226,16 +226,16 @@ export class UpdateAlertRuleDto {
   @ApiPropertyOptional({ description: "告警规则描述" })
   @IsOptional()
   @IsString({ message: "告警规则描述必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH, {
-    message: `告警规则描述长度不能超过${VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH, {
+    message: `告警规则描述长度不能超过${ALERT_VALIDATION_LIMITS.DESCRIPTION_MAX_LENGTH}个字符`,
   })
   description?: string;
 
   @ApiPropertyOptional({ description: "监控指标名称" })
   @IsOptional()
   @IsString({ message: "监控指标名称必须是字符串" })
-  @MaxLength(VALIDATION_LIMITS.NAME_MAX_LENGTH, {
-    message: `监控指标名称长度不能超过${VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
+  @MaxLength(ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH, {
+    message: `监控指标名称长度不能超过${ALERT_VALIDATION_LIMITS.NAME_MAX_LENGTH}个字符`,
   })
   @Matches(/^[a-zA-Z][a-zA-Z0-9_\.]*$/, {
     message: "监控指标名称必须以字母开头，可包含字母、数字、下划线和点号",
@@ -262,9 +262,9 @@ export class UpdateAlertRuleDto {
   @IsOptional()
   @IsNumber()
   @IsNumberInRange({
-    min: VALIDATION_LIMITS.DURATION_MIN,
-    max: VALIDATION_LIMITS.DURATION_MAX,
-    message: `持续时间必须在${VALIDATION_LIMITS.DURATION_MIN}-${VALIDATION_LIMITS.DURATION_MAX}秒之间`,
+    min: ALERT_VALIDATION_LIMITS.DURATION_MIN,
+    max: ALERT_VALIDATION_LIMITS.DURATION_MAX,
+    message: `持续时间必须在${ALERT_VALIDATION_LIMITS.DURATION_MIN}-${ALERT_VALIDATION_LIMITS.DURATION_MAX}秒之间`,
   })
   duration?: number;
 
@@ -295,9 +295,9 @@ export class UpdateAlertRuleDto {
   @IsOptional()
   @IsNumber({}, { message: "冷却时间必须是数字" })
   @IsNumberInRange({
-    min: VALIDATION_LIMITS.COOLDOWN_MIN,
-    max: VALIDATION_LIMITS.COOLDOWN_MAX,
-    message: `冷却时间必须在${VALIDATION_LIMITS.COOLDOWN_MIN}-${VALIDATION_LIMITS.COOLDOWN_MAX}秒之间`,
+    min: ALERT_VALIDATION_LIMITS.COOLDOWN_MIN,
+    max: ALERT_VALIDATION_LIMITS.COOLDOWN_MAX,
+    message: `冷却时间必须在${ALERT_VALIDATION_LIMITS.COOLDOWN_MIN}-${ALERT_VALIDATION_LIMITS.COOLDOWN_MAX}秒之间`,
   })
   cooldown?: number;
 

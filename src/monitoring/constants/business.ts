@@ -1,30 +1,4 @@
 /**
- * Monitoring 业务算法常量 - Phase 3 清理后版本
- * 🎯 仅保留真正的算法常量和工具类，90%已迁移到统一配置系统
- *
- * ✅ Phase 3 Constants File Cleanup 完成：
- *
- * 📌 保留内容（10% 真正常量）：
- * - ✅ 核心采样算法常量：数据处理的固定算法参数
- * - ✅ 工具类方法：基于算法逻辑的业务判断函数
- * - ✅ 语义类型定义：算法分类的类型定义
- *
- * 📌 已迁移内容（90% 业务参数）：
- * - 🔄 错误率阈值 → config.performanceThresholds.errorRates.*
- * - 🔄 变化检测阈值 → config.performanceThresholds.changeDetection.*
- * - 🔄 性能评分阈值 → config.performanceThresholds.performanceBenchmarks.*
- * - 🔄 健康检查阈值 → config.performanceThresholds.systemResources.*
- * - 🔄 告警频率配置 → config.events.alertFrequency.*
- * - 🔄 趋势分析配置 → config.events.trendAnalysis.*
- * - 🔄 数据收集配置 → config.events.eventCollection.* + config.ttl.*
- * - 🔄 系统资源阈值 → config.performanceThresholds.systemResources.*
- *
- * 🎯 迁移路径：import { MonitoringEnhancedConfig } from '../config/unified'
- *
- * ✅ 算法原则：只保留固定的算法参数，不依赖业务配置
- * ✅ 语义原则：只保留算法分类和判断逻辑
- * ✅ 工具原则：只保留基于算法的计算方法
- *
  * @version 3.0.0 - Phase 3 Constants File Cleanup
  * @since 2025-09-16 (Phase 3: Constants File Cleanup)
  * @author Claude Code

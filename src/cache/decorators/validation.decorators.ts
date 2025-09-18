@@ -4,9 +4,6 @@
  * ✅ 替代手动验证方法，符合NestJS最佳实践
  * 🔄 与GlobalExceptionFilter统一异常处理
  *
- * 🎯 Phase 2.3: 重构后只保留Cache特定的业务验证器
- * - 通用验证逻辑已迁移到 @common/validators
- * - 保留Cache业务特定的验证器
  */
 
 import {
@@ -15,8 +12,8 @@ import {
   ValidationArguments,
 } from "class-validator";
 
-// 🎯 过时代码清理: 逐步迁移到配置系统
-import { CACHE_VALIDATION_LIMITS } from "@common/constants/validation.constants";
+// 🎯 使用 Cache 模块内部的验证常量
+import { CACHE_VALIDATION_LIMITS } from "../constants/validation.constants";
 import { REDIS_KEY_CONSTRAINTS } from "@common/constants/domain/redis-specific.constants";
 
 /**
