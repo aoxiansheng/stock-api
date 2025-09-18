@@ -14,8 +14,8 @@ export type {
   CacheDataType,
 } from "./operation-limits.constants";
 
-export { REFERENCE_DATA, ReferenceDataUtil } from "./reference-data.constants";
-export { API_OPERATIONS, ApiOperationsUtil } from "./api-operations.constants";
+export { REFERENCE_DATA } from "./reference-data.constants";
+export { API_OPERATIONS } from "./api-operations.constants";
 
 // 🎯 Phase 2.4: Redis特定常量导出
 export {
@@ -23,16 +23,6 @@ export {
   REDIS_DATA_CONSTRAINTS,
   REDIS_CONNECTION_CONSTRAINTS,
   REDIS_COMMAND_CATEGORIES,
-  RedisValidationUtil,
-} from "./redis-specific.constants";
-export type {
-  RedisKeyConstraints,
-  RedisDataConstraints,
-  RedisConnectionConstraints,
-  RedisCommandCategories,
-  RedisPrefixType,
-  RedisDataType,
-  RedisMemoryStatus,
 } from "./redis-specific.constants";
 export type {
   ApiDataType,
@@ -47,9 +37,9 @@ import {
   OperationLimitsUtil,
 } from "./operation-limits.constants";
 
-import { REFERENCE_DATA, ReferenceDataUtil } from "./reference-data.constants";
+import { REFERENCE_DATA } from "./reference-data.constants";
 
-import { API_OPERATIONS, ApiOperationsUtil } from "./api-operations.constants";
+import { API_OPERATIONS } from "./api-operations.constants";
 
 import {
   REDIS_KEY_CONSTRAINTS,

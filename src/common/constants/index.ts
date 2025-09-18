@@ -72,16 +72,6 @@ export const CONSTANTS = {
  */
 export default CONSTANTS;
 
-/**
- * 通用验证工具导出
- * 🎯 通用验证工具类，供所有模块使用
- * 
- * ✅ 验证常量已拆分到各模块内部：
- * - Alert 验证常量: @alert/constants/validation.constants
- * - Cache 验证常量: @cache/constants/validation.constants
- * - 通用验证工具: @common/utils/validation-limits.util
- */
-export { ValidationLimitsUtil } from "../utils/validation-limits.util";
 
 /**
  * 配置系统导出 (推荐使用)

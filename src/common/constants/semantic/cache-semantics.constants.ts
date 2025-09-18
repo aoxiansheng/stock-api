@@ -186,21 +186,6 @@ export class CacheSemanticsUtil {
   }
 }
 
-/**
- * 缓存连接语义配置
- * 🎯 整合Redis连接和重试配置
- */
-export const CACHE_CONNECTION_SEMANTICS = Object.freeze({
-  // Redis连接配置
-  REDIS: {
-    MAX_RETRIES: NUMERIC_CONSTANTS.N_3, // 3 - 最大重试次数
-    RETRY_DELAY_MS: CORE_TIMEOUTS.RETRY.INITIAL_DELAY_MS, // 1000ms - 重试延迟
-    CONNECTION_TIMEOUT_MS: CORE_TIMEOUTS.CONNECTION.ESTABLISH_MS, // 5000ms - 连接超时
-  },
-
-  // 连接池配置
-  POOL: {},
-});
 
 /**
  * 缓存监控语义配置
@@ -370,7 +355,6 @@ export class EnhancedCacheSemanticsUtil {
  */
 export type CacheKeySemantics = typeof CACHE_KEY_SEMANTICS;
 export type CacheStrategySemantics = typeof CACHE_STRATEGY_SEMANTICS;
-export type CacheConnectionSemantics = typeof CACHE_CONNECTION_SEMANTICS;
 export type CacheMonitoringSemantics = typeof CACHE_MONITORING_SEMANTICS;
 export type CacheKeyPrefixSemantics = typeof CACHE_KEY_PREFIX_SEMANTICS;
 export type CacheAdvancedStrategySemantics =

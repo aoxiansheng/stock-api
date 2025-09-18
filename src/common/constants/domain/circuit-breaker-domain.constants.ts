@@ -356,10 +356,3 @@ export type PerformanceLevel = keyof typeof CIRCUIT_BREAKER_PERFORMANCE_LEVELS;
 export type Environment = keyof typeof CIRCUIT_BREAKER_ENVIRONMENT_CONFIGS;
 export type KeyType = keyof typeof CIRCUIT_BREAKER_KEY_CONFIG.TYPES;
 
-/**
- * 断路器常量集合
- * 🎯 保持与原Unified层的API兼容性
- */
-export const CIRCUIT_BREAKER_CONSTANTS = Object.freeze({
-  BUSINESS_SCENARIOS: CIRCUIT_BREAKER_BUSINESS_SCENARIOS,
-});

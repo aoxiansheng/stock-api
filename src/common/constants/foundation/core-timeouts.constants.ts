@@ -81,5 +81,4 @@ export const CORE_TTL = Object.freeze({
 /**
  * 类型定义
  */
-export type CoreTimeouts = typeof CORE_TIMEOUTS;
 export type CoreTTL = typeof CORE_TTL;

@@ -21,7 +21,6 @@ export {
 } from "./processing-base.constants";
 // 导出类型定义
 // Sizes类型已移除，使用CORE_VALUES.QUANTITIES替代
-export type { CoreTimeouts } from "./core-timeouts.constants";
 // 导入用于对象定义
 import { NUMERIC_CONSTANTS } from "../core";
 import { CORE_VALUES } from "./core-values.constants";
