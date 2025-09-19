@@ -17,17 +17,6 @@ export interface StreamDataPoint {
   cp?: number; // change percent
 }
 
-/**
- * 流缓存统计信息
- */
-export interface StreamCacheStats {
-  hotCacheHits: number;
-  hotCacheMisses: number;
-  warmCacheHits: number;
-  warmCacheMisses: number;
-  totalSize: number;
-  compressionRatio: number;
-}
 
 /**
  * 流缓存配置 - 新版本，继承基础配置
@@ -74,8 +63,4 @@ export interface IStreamCache {
    */
   clearAll(): Promise<void>;
 
-  /**
-   * 获取缓存统计信息
-   */
-  getCacheStats(): StreamCacheStats;
 }
