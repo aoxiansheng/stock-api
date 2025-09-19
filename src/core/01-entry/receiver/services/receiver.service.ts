@@ -738,7 +738,7 @@ export class ReceiverService {
       const storageRequest: StoreDataDto = {
         key: `stock_data_${provider}_${request.receiverType}_${requestId}`,
         data: transformedResult.transformedData,
-        storageType: StorageType.BOTH, // 既缓存又持久化
+        storageType: StorageType.PERSISTENT, // 存储到数据库持久化
         storageClassification: this.mapReceiverTypeToStorageClassification(
           request.receiverType,
         ),

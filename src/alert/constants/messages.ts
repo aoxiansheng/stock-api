@@ -59,8 +59,6 @@ export const ALERT_MESSAGES = Object.freeze({
   },
 });
 
-
-
 /**
  * 通知操作常量
  * 🎯 通知服务操作标识
@@ -108,4 +106,3 @@ export const OPERATOR_SYMBOLS = Object.freeze({
 
 // NOTE: 通知相关常量已迁移到 notification/constants/notification.constants.ts
 // 包括: NOTIFICATION_CONSTANTS, NOTIFICATION_ERROR_TEMPLATES, NOTIFICATION_MESSAGES
-

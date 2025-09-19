@@ -503,16 +503,6 @@ export class StorageService {
         return null; // Corrupted data
       }
     }
-    // Legacy format: Check nested compressed flag for backward compatibility
-    else if (data && typeof data === "object" && data.compressed === true) {
-      try {
-        const buffer = Buffer.from(data.data, "base64");
-        data = JSON.parse((await gunzip(buffer)).toString());
-      } catch (error) {
-        this.logger.warn("解压持久数据失败 (兼容格式)", error);
-        return null; // Corrupted data
-      }
-    }
 
     const processingTime = Date.now() - startTime;
 

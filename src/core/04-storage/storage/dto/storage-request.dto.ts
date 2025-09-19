@@ -56,9 +56,9 @@ export class StoreDataDto {
   data: any;
 
   @ApiProperty({
-    description: "Storage type",
+    description: "Storage type (only PERSISTENT supported)",
     enum: StorageType,
-    example: StorageType.STORAGETYPECACHE,
+    example: StorageType.PERSISTENT,
   })
   @IsEnum(StorageType)
   storageType: StorageType;
@@ -92,9 +92,10 @@ export class RetrieveDataDto {
   key: string;
 
   @ApiPropertyOptional({
-    description: "Preferred storage type to check first",
+    description:
+      "Preferred storage type to check first (only PERSISTENT supported)",
     enum: StorageType,
-    default: StorageType.STORAGETYPECACHE,
+    default: StorageType.PERSISTENT,
   })
   @IsOptional()
   @IsEnum(StorageType)

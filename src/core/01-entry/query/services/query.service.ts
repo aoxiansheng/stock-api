@@ -203,7 +203,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-
   /**
    * executeSymbolBasedQuery - 向后兼容方法
    *

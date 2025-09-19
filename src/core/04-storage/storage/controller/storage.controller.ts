@@ -299,7 +299,7 @@ export class StorageController {
 
     const request: RetrieveDataDto = {
       key,
-      preferredType: (preferredType as StorageType) || StorageType.BOTH, // 支持缓存回退到数据库
+      preferredType: (preferredType as StorageType) || StorageType.PERSISTENT, // 仅支持数据库存储
     };
 
     return this.retrieveData(request);
@@ -367,19 +367,19 @@ export class StorageController {
   ) {
     this.logger.log(`API Request: Delete data`, {
       key,
-      storageType: (storageType as StorageType) || StorageType.BOTH,
+      storageType: (storageType as StorageType) || StorageType.PERSISTENT,
     });
 
     try {
       const deleted = await this.storageService.deleteData(
         key,
-        (storageType as StorageType) || StorageType.BOTH,
+        (storageType as StorageType) || StorageType.PERSISTENT,
       );
 
       this.logger.log(`API Success: Data deletion completed`, {
         key,
         deleted,
-        storageType: storageType || StorageType.BOTH,
+        storageType: storageType || StorageType.PERSISTENT,
       });
 
       // 遵循控制器编写规范：让拦截器自动处理响应格式化

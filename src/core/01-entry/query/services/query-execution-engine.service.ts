@@ -999,7 +999,7 @@ export class QueryExecutionEngine implements OnModuleInit {
       await this.storageService.storeData({
         key: storageKey,
         data: standardizedData,
-        storageType: StorageType.BOTH,
+        storageType: StorageType.PERSISTENT,
         storageClassification: (this.fieldMappingService.filterToClassification(
           request.queryTypeFilter as any,
         ) ?? StorageClassification.GENERAL) as StorageClassification,

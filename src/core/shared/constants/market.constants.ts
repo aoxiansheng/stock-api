@@ -112,14 +112,29 @@ export const MARKET_CACHE_CONFIG = Object.freeze({
  * 🎯 基于Semantic层HTTP超时，针对市场API特化
  */
 export const MARKET_API_TIMEOUTS = Object.freeze({
-  // 实时数据API超时
-  REALTIME: {},
+  // 实时数据API超时 (强时效性要求)
+  REALTIME: {
+    QUOTE_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS, // 5秒 - 股价查询
+    MARKET_STATUS_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS, // 5秒 - 市场状态
+    STREAM_CONNECT_TIMEOUT_MS: HTTP_TIMEOUTS.CONNECTION.ESTABLISH_MS, // 10秒 - 流连接
+    STREAM_HEARTBEAT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS, // 5秒 - 心跳检测
+  },
 
-  // 历史数据API超时
-  HISTORICAL: {},
+  // 历史数据API超时 (中等时效性要求)
+  HISTORICAL: {
+    KLINE_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 30秒 - K线数据
+    DAILY_DATA_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 30秒 - 日度数据
+    FINANCIAL_REPORT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS, // 60秒 - 财务报告
+    COMPANY_INFO_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 30秒 - 公司信息
+  },
 
-  // 批量操作超时
-  BATCH: {},
+  // 批量操作超时 (弱时效性要求，但数据量大)
+  BATCH: {
+    BULK_QUOTE_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS, // 60秒 - 批量股价查询
+    SYMBOL_LOOKUP_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 30秒 - 股票代码查询
+    MARKET_OVERVIEW_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS, // 60秒 - 市场概览
+    DATA_SYNC_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.SLOW_MS, // 60秒 - 数据同步
+  },
 });
 
 /**
@@ -134,11 +149,21 @@ export const MARKET_BATCH_CONFIG = Object.freeze({
     KLINE_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH, // 50 - K线数据批量
   },
 
-  // 市场概览批量处理
-  MARKET_OVERVIEW: {},
+  // 市场概览批量处理 (大规模数据获取和聚合)
+  MARKET_OVERVIEW: {
+    SECTOR_ANALYSIS_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH, // 100 - 板块分析批量
+    TOP_MOVERS_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH, // 50 - 涨跌榜批量
+    MARKET_INDEX_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.SMALL_BATCH, // 20 - 市场指数批量
+    VOLUME_LEADERS_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH, // 50 - 成交量排行批量
+  },
 
-  // 数据同步批量处理
-  DATA_SYNC: {},
+  // 数据同步批量处理 (后台批量同步和更新)
+  DATA_SYNC: {
+    COMPANY_INFO_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH, // 100 - 公司信息批量同步
+    FINANCIAL_DATA_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.MEDIUM_BATCH, // 50 - 财务数据批量同步
+    HISTORICAL_PRICE_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH, // 100 - 历史价格批量同步
+    SYMBOL_MAPPING_BATCH_SIZE: BATCH_SIZE_SEMANTICS.SCENARIO.DATABASE_INSERT, // 50 - 股票代码映射批量同步 (适用于数据库插入)
+  },
 });
 
 /**
@@ -373,14 +398,77 @@ export const CHANGE_DETECTION_THRESHOLDS = Object.freeze({
  * 🎯 数据质量检查和验证标准
  */
 export const MARKET_DATA_QUALITY = Object.freeze({
-  // 数据完整性检查
-  COMPLETENESS: {},
+  // 数据完整性检查 (必需字段和数据结构验证)
+  COMPLETENESS: {
+    // 股价数据完整性要求
+    QUOTE_REQUIRED_FIELDS: ["symbol", "lastPrice", "timestamp"] as const,
+    QUOTE_OPTIONAL_FIELDS: [
+      "bid",
+      "ask",
+      "volume",
+      "change",
+      "changePercent",
+    ] as const,
+    QUOTE_MIN_FIELD_COUNT: 3, // 最少必须有3个字段
 
-  // 数据时效性检查
-  TIMELINESS: {},
+    // 公司信息完整性要求
+    COMPANY_REQUIRED_FIELDS: ["symbol", "name", "market"] as const,
+    COMPANY_OPTIONAL_FIELDS: [
+      "sector",
+      "industry",
+      "marketCap",
+      "currency",
+    ] as const,
+    COMPANY_MIN_FIELD_COUNT: 3, // 最少必须有3个字段
 
-  // 数据准确性检查
-  ACCURACY: {},
+    // K线数据完整性要求
+    KLINE_REQUIRED_FIELDS: [
+      "symbol",
+      "timestamp",
+      "open",
+      "high",
+      "low",
+      "close",
+    ] as const,
+    KLINE_OPTIONAL_FIELDS: ["volume", "amount", "turnoverRate"] as const,
+    KLINE_MIN_FIELD_COUNT: 6, // OHLC + symbol + timestamp
+  },
+
+  // 数据时效性检查 (数据新鲜度和延迟验证)
+  TIMELINESS: {
+    // 实时数据时效性要求 (毫秒)
+    REALTIME_MAX_DELAY_MS: 30000, // 30秒 - 实时数据最大延迟
+    QUOTE_MAX_STALENESS_MS: 60000, // 1分钟 - 股价数据最大过期时间
+    STREAM_MAX_HEARTBEAT_INTERVAL_MS: 30000, // 30秒 - 流数据心跳最大间隔
+
+    // 历史数据时效性要求 (小时)
+    HISTORICAL_MAX_DELAY_HOURS: 24, // 24小时 - 历史数据最大延迟
+    DAILY_DATA_MAX_STALENESS_HOURS: 48, // 48小时 - 日度数据最大过期时间
+
+    // 基础信息时效性要求 (天)
+    COMPANY_INFO_MAX_STALENESS_DAYS: 7, // 7天 - 公司信息最大过期时间
+    SYMBOL_MAPPING_MAX_STALENESS_DAYS: 30, // 30天 - 股票代码映射最大过期时间
+  },
+
+  // 数据准确性检查 (数据范围和逻辑验证)
+  ACCURACY: {
+    // 价格数据准确性验证
+    PRICE_MIN_VALUE: 0.001, // 最小价格值 (排除0价格异常)
+    PRICE_MAX_CHANGE_PERCENT: 0.5, // 单次最大变化幅度 50%
+    PRICE_PRECISION_DECIMAL_PLACES: 4, // 价格精度 (最多4位小数)
+
+    // 成交量数据准确性验证
+    VOLUME_MIN_VALUE: 0, // 最小成交量 (可以为0)
+    VOLUME_MAX_SPIKE_MULTIPLIER: 100, // 成交量异常倍数 (不超过平均值100倍)
+
+    // 时间戳准确性验证
+    TIMESTAMP_MIN_YEAR: 2020, // 最早年份 (过滤历史异常数据)
+    TIMESTAMP_MAX_FUTURE_MINUTES: 5, // 最大未来时间 5分钟 (容忍时差)
+
+    // 市场数据逻辑验证
+    BID_ASK_SPREAD_MAX_PERCENT: 0.1, // 买卖价差最大比例 10%
+    OHLC_LOGICAL_VALIDATION: true, // 开高低收价格逻辑验证 (high >= max(open,close), low <= min(open,close))
+  },
 });
 
 /**

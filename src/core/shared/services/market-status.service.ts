@@ -220,27 +220,246 @@ export class MarketStatusService implements OnModuleDestroy {
   }
 
   /**
-   * 从Provider获取实时市场状态  todo 预留接口
+   * 从Provider获取实时市场状态
+   * 🎯 增强依赖检查和故障容错的Provider集成
    */
   private async getProviderMarketStatus(
     market: Market,
   ): Promise<ProviderMarketStatus | null> {
-    try {
-      // TODO: 集成Provider的市场状态能力
-      // const capability = await this.capabilityRegistry.getCapability('get-market-status');
-      // if (capability) {
-      //   return await capability.execute({ market });
-      // }
+    const startTime = Date.now();
 
-      // 暂时返回null，表示Provider能力未就绪
+    try {
+      // Phase 2.6: Enhanced dependency checking
+      if (!this.isProviderIntegrationAvailable()) {
+        this.logger.debug("Provider集成服务未可用，跳过Provider状态查询", {
+          market,
+        });
+        return null;
+      }
+
+      // Get timeout configuration based on market and operation type
+      const timeout = this.getProviderTimeout("market-status", market);
+
+      // Create timeout promise utility
+      const timeoutPromise = this.createTimeoutPromise(timeout);
+
+      // Attempt to get provider capability with enhanced error handling
+      const providerResult = await Promise.race([
+        this.executeProviderMarketStatusQuery(market),
+        timeoutPromise,
+      ]);
+
+      if (providerResult) {
+        // ✅ Provider success monitoring
+        this.emitRequestEvent(
+          "provider_market_status_success",
+          200,
+          Date.now() - startTime,
+          {
+            market,
+            provider_available: true,
+            has_result: true,
+          },
+        );
+
+        return providerResult;
+      }
+
+      // Provider available but no result
+      this.emitRequestEvent(
+        "provider_market_status_no_result",
+        204,
+        Date.now() - startTime,
+        {
+          market,
+          provider_available: true,
+          has_result: false,
+        },
+      );
+
       return null;
     } catch (error) {
-      this.logger.warn("Provider市场状态获取失败", {
+      const isTimeout = error.message?.includes("timeout");
+
+      // ✅ Provider error monitoring with detailed categorization
+      this.emitRequestEvent(
+        isTimeout
+          ? "provider_market_status_timeout"
+          : "provider_market_status_error",
+        isTimeout ? 408 : 500,
+        Date.now() - startTime,
+        {
+          market,
+          error: error.message,
+          error_type: isTimeout ? "timeout" : "provider_error",
+          provider_available: this.isProviderIntegrationAvailable(),
+        },
+      );
+
+      this.logger.warn("Provider市场状态获取失败，优雅降级到本地计算", {
+        market,
+        error: error.message,
+        errorType: isTimeout ? "timeout" : "provider_error",
+        duration: Date.now() - startTime,
+      });
+
+      return null;
+    }
+  }
+
+  /**
+   * 检查Provider集成服务是否可用
+   * 🎯 防止在依赖服务不可用时尝试Provider调用
+   */
+  private isProviderIntegrationAvailable(): boolean {
+    try {
+      // Check if capability registry service is available
+      // This would be injected in constructor in real implementation
+      // For now, return false to indicate graceful degradation
+
+      // TODO: Inject EnhancedCapabilityRegistryService when available
+      // return this.capabilityRegistry?.getTotalCapabilitiesCount() > 0;
+
+      return false; // Graceful degradation until Provider integration is ready
+    } catch (error) {
+      this.logger.debug("Provider集成可用性检查失败", { error: error.message });
+      return false;
+    }
+  }
+
+  /**
+   * 获取Provider操作超时配置
+   * 🎯 基于市场和操作类型的动态超时配置
+   */
+  private getProviderTimeout(
+    operation: "market-status" | "quote" | "kline",
+    market: Market,
+  ): number {
+    // Import timeout configuration from market constants
+    const { MARKET_API_TIMEOUTS } = require("../constants/market.constants");
+
+    switch (operation) {
+      case "market-status":
+        return MARKET_API_TIMEOUTS.REALTIME.MARKET_STATUS_TIMEOUT_MS || 5000;
+      case "quote":
+        return MARKET_API_TIMEOUTS.REALTIME.QUOTE_TIMEOUT_MS || 5000;
+      case "kline":
+        return MARKET_API_TIMEOUTS.HISTORICAL.KLINE_TIMEOUT_MS || 30000;
+      default:
+        return 5000; // Default 5s timeout
+    }
+  }
+
+  /**
+   * 创建超时Promise工具函数
+   * 🎯 Provider查询的统一超时处理
+   */
+  private createTimeoutPromise(timeoutMs: number): Promise<never> {
+    return new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Provider query timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
+  }
+
+  /**
+   * 执行Provider市场状态查询
+   * 🎯 实际的Provider API调用逻辑
+   */
+  private async executeProviderMarketStatusQuery(
+    market: Market,
+  ): Promise<ProviderMarketStatus | null> {
+    try {
+      // TODO: Replace with actual Provider integration when available
+      // Example implementation structure:
+
+      // const bestProvider = this.capabilityRegistry.getBestProvider('get-market-status', market);
+      // if (!bestProvider) {
+      //   this.logger.debug("没有可用的市场状态Provider", { market });
+      //   return null;
+      // }
+
+      // const capability = this.capabilityRegistry.getCapability(bestProvider, 'get-market-status');
+      // if (!capability) {
+      //   this.logger.debug("Provider能力未找到", { provider: bestProvider, market });
+      //   return null;
+      // }
+
+      // const result = await capability.execute({ market: market.toString() });
+      // return this.transformProviderResponse(result);
+
+      // For now, return null to indicate Provider integration not ready
+      return null;
+    } catch (error) {
+      this.logger.debug("Provider查询执行失败", {
         market,
         error: error.message,
       });
+      throw error; // Re-throw to be handled by caller
+    }
+  }
+
+  /**
+   * 转换Provider响应格式
+   * 🎯 标准化不同Provider的响应格式
+   */
+  private transformProviderResponse(
+    providerData: any,
+  ): ProviderMarketStatus | null {
+    if (!providerData) return null;
+
+    try {
+      // Standardize provider response format
+      return {
+        market: providerData.market || providerData.symbol?.split(".")[1] || "",
+        status: this.normalizeProviderStatus(
+          providerData.status || providerData.marketStatus,
+        ),
+        tradingDate:
+          providerData.tradingDate ||
+          providerData.date ||
+          new Date().toISOString().split("T")[0],
+        nextTradingDate: providerData.nextTradingDate,
+        holidays: providerData.holidays || [],
+      };
+    } catch (error) {
+      this.logger.warn("Provider响应格式转换失败", {
+        error: error.message,
+        providerData: JSON.stringify(providerData),
+      });
       return null;
     }
+  }
+
+  /**
+   * 标准化Provider状态值
+   * 🎯 处理不同Provider的状态命名差异
+   */
+  private normalizeProviderStatus(
+    status: string,
+  ): "OPEN" | "CLOSED" | "PRE_OPEN" | "POST_CLOSE" | "HOLIDAY" {
+    if (!status) return "CLOSED";
+
+    const normalizedStatus = status.toUpperCase().trim();
+
+    // Handle common provider status variations
+    const statusMap: Record<
+      string,
+      "OPEN" | "CLOSED" | "PRE_OPEN" | "POST_CLOSE" | "HOLIDAY"
+    > = {
+      OPEN: "OPEN",
+      TRADING: "OPEN",
+      MARKET_OPEN: "OPEN",
+      CLOSED: "CLOSED",
+      MARKET_CLOSED: "CLOSED",
+      PRE_MARKET: "PRE_OPEN",
+      PRE_OPEN: "PRE_OPEN",
+      AFTER_HOURS: "POST_CLOSE",
+      POST_CLOSE: "POST_CLOSE",
+      HOLIDAY: "HOLIDAY",
+    };
+
+    return statusMap[normalizedStatus] || "CLOSED";
   }
 
   /**
