@@ -31,26 +31,6 @@ export interface ISymbolTransformer {
     direction: "to_standard" | "from_standard",
   ): Promise<string>;
 
-  /**
-   * 向后兼容方法 - mapSymbols
-   * @param provider 提供商名称
-   * @param symbols 符号字符串或符号数组
-   * @returns 转换结果
-   * @deprecated 使用 transformSymbols 替代
-   */
-  mapSymbols(
-    provider: string,
-    symbols: string | string[],
-  ): Promise<SymbolTransformResult>;
-
-  /**
-   * 向后兼容方法 - mapSymbol
-   * @param provider 提供商名称
-   * @param symbol 符号字符串
-   * @returns 转换后的符号
-   * @deprecated 使用 transformSingleSymbol 替代
-   */
-  mapSymbol(provider: string, symbol: string): Promise<string>;
 }
 
 /**
@@ -205,15 +185,3 @@ export interface ISymbolTransformerFactory {
   registerProvider(provider: string, transformer: ISymbolTransformer): void;
 }
 
-/**
- * Token定义（从集中化的injection-tokens导入）
- * @deprecated 直接使用这些Token已弃用，请使用 INJECTION_TOKENS 对象
- */
-export {
-  SYMBOL_TRANSFORMER_TOKEN,
-  SYMBOL_FORMAT_VALIDATOR_TOKEN,
-  SYMBOL_TRANSFORM_CACHE_TOKEN,
-  SYMBOL_TRANSFORM_MONITOR_TOKEN,
-  SYMBOL_TRANSFORM_CONFIG_TOKEN,
-  SYMBOL_TRANSFORMER_FACTORY_TOKEN,
-} from "../constants/injection-tokens.constants";

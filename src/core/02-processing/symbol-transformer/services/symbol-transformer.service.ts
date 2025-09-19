@@ -223,27 +223,6 @@ export class SymbolTransformerService {
     return response;
   }
 
-  /**
-   * 向后兼容的方法名 - mapSymbols
-   */
-  async mapSymbols(provider: string, symbols: string | string[]) {
-    return await this.transformSymbols(
-      provider,
-      symbols,
-      MappingDirection.TO_STANDARD,
-    );
-  }
-
-  /**
-   * 向后兼容的方法名 - mapSymbol
-   */
-  async mapSymbol(provider: string, symbol: string) {
-    return await this.transformSingleSymbol(
-      provider,
-      symbol,
-      MappingDirection.TO_STANDARD,
-    );
-  }
 
   /**
    * 输入验证和安全检查
