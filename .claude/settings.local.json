@@ -57,7 +57,8 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest --config test/config/jest.unit.config.js test/jest/unit/cache/services/cache-config.spec.ts --verbose)",
       "Bash(DISABLE_AUTO_INIT=true bun run test:unit:auth)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/services/apikey-management.service.spec.ts --testTimeout=30000)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/decorators/validation.decorator.spec.ts --testTimeout=30000)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/decorators/validation.decorator.spec.ts --testTimeout=30000)",
+      "mcp__serena__think_about_task_adherence"
     ],
     "deny": [],
     "ask": []
