@@ -24,6 +24,7 @@ import {
   // MarketStatusResult,
 } from "../../../shared/services/market-status.service";
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
+import { SymbolTransformForProviderResult } from "../../../02-processing/symbol-transformer/interfaces/symbol-transform-result.interface";
 import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/smart-cache-orchestrator.service";
 import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
 import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
@@ -43,7 +44,6 @@ import {
   ResponseMetadataDto,
   FailureDetailDto,
 } from "../dto/data-response.dto";
-import { SymbolTransformationResultDto } from "../dto/receiver-internal.dto";
 import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
 import { StoreDataDto } from "../../../04-storage/storage/dto/storage-request.dto";
 import { StorageType } from "../../../04-storage/storage/enums/storage-type.enum";
@@ -201,29 +201,12 @@ export class ReceiverService {
       }
 
       // 4. 传统数据流 - 转换股票代码
-      const mappingResult =
-        await this.symbolTransformerService.transformSymbols(
+      const mappedSymbols =
+        await this.symbolTransformerService.transformSymbolsForProvider(
           provider,
           request.symbols,
-          MappingDirection.FROM_STANDARD,
+          requestId,
         );
-
-      // 转换为兼容的格式
-      const mappedSymbols = {
-        transformedSymbols: mappingResult.mappedSymbols,
-        mappingResults: {
-          transformedSymbols: mappingResult.mappingDetails,
-          failedSymbols: mappingResult.failedSymbols,
-          metadata: {
-            provider: mappingResult.metadata.provider,
-            totalSymbols: mappingResult.metadata.totalSymbols,
-            successfulTransformations: mappingResult.metadata.successCount,
-            failedTransformations: mappingResult.metadata.failedCount,
-            processingTime: mappingResult.metadata.processingTimeMs,
-            hasPartialFailures: mappingResult.metadata.failedCount > 0,
-          },
-        },
-      };
 
       // 5. 执行数据获取（移除缓存逻辑，统一到Storage组件处理）
       const responseData = await this.executeDataFetching(
@@ -635,28 +618,11 @@ export class ReceiverService {
     );
 
     // 2. 符号映射
-    const mappingResult = await this.symbolTransformerService.transformSymbols(
+    const mappedSymbols = await this.symbolTransformerService.transformSymbolsForProvider(
       provider,
       request.symbols,
-      MappingDirection.FROM_STANDARD,
+      requestId,
     );
-
-    // 转换为兼容的格式
-    const mappedSymbols = {
-      transformedSymbols: mappingResult.mappedSymbols,
-      mappingResults: {
-        transformedSymbols: mappingResult.mappingDetails,
-        failedSymbols: mappingResult.failedSymbols,
-        metadata: {
-          provider: mappingResult.metadata.provider,
-          totalSymbols: mappingResult.metadata.totalSymbols,
-          successfulTransformations: mappingResult.metadata.successCount,
-          failedTransformations: mappingResult.metadata.failedCount,
-          processingTime: mappingResult.metadata.processingTimeMs,
-          hasPartialFailures: mappingResult.metadata.failedCount > 0,
-        },
-      },
-    };
 
     // 3. 执行数据获取流程
     const response = await this.executeDataFetching(
@@ -676,7 +642,7 @@ export class ReceiverService {
   private async executeDataFetching(
     request: DataRequestDto,
     provider: string,
-    mappedSymbols: SymbolTransformationResultDto,
+    mappedSymbols: SymbolTransformForProviderResult,
     requestId: string,
   ): Promise<DataResponseDto> {
     const startTime = Date.now();
@@ -770,7 +736,7 @@ export class ReceiverService {
 
       // 🎯 计算部分成功的信息
       const hasPartialFailures =
-        mappedSymbols.mappingResults.metadata.hasPartialFailures;
+        mappedSymbols.mappingResults.metadata.failedTransformations > 0;
       const totalRequested = mappedSymbols.mappingResults.metadata.totalSymbols;
       const successfullyProcessed =
         mappedSymbols.mappingResults.metadata.successfulTransformations;
@@ -803,7 +769,7 @@ export class ReceiverService {
         metadata,
       );
       if (
-        mappedSymbols.mappingResults.metadata.hasPartialFailures &&
+        mappedSymbols.mappingResults.metadata.failedTransformations > 0 &&
         mappedSymbols.mappingResults.failedSymbols?.length > 0
       ) {
         response.failures = mappedSymbols.mappingResults.failedSymbols.map(
