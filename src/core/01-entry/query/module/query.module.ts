@@ -15,9 +15,6 @@ import { QueryStatisticsService } from "../services/query-statistics.service";
 import { QueryConfigService } from "../config/query.config";
 import { QueryMemoryMonitorService } from "../services/query-memory-monitor.service";
 import { QueryExecutionEngine } from "../services/query-execution-engine.service";
-import { QueryExecutorFactory } from "../factories/query-executor.factory";
-import { SymbolQueryExecutor } from "../factories/executors/symbol-query.executor";
-import { MarketQueryExecutor } from "../factories/executors/market-query.executor";
 
 @Module({
   imports: [
@@ -33,14 +30,10 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
   providers: [
     QueryConfigService,
     QueryMemoryMonitorService,
-    QueryExecutionEngine, // ✅ 新增: 查询执行引擎，解决循环依赖
+    QueryExecutionEngine, // ✅ 查询执行引擎，简化调用链
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,
-    // ✅ Phase 3.2: 查询执行器工厂模式
-    QueryExecutorFactory,
-    SymbolQueryExecutor,
-    MarketQueryExecutor,
   ],
   exports: [
     QueryConfigService,
@@ -49,8 +42,6 @@ import { MarketQueryExecutor } from "../factories/executors/market-query.executo
     QueryService,
     QueryStatisticsService,
     QueryResultProcessorService,
-    // ✅ Phase 3.2: 导出工厂以供其他模块使用
-    QueryExecutorFactory,
   ],
 })
 export class QueryModule {

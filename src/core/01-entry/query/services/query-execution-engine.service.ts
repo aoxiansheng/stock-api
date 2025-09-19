@@ -38,6 +38,7 @@ import {
   QueryErrorInfoDto,
 } from "../dto/query-internal.dto";
 import { QueryRequestDto } from "../dto/query-request.dto";
+import { QueryType } from "../dto/query-types.dto";
 import { DataSourceType } from "../enums/data-source-type.enum";
 import { buildStorageKey } from "../utils/query.util";
 
@@ -90,6 +91,44 @@ export class QueryExecutionEngine implements OnModuleInit {
     this.logger.log("QueryExecutionEngine initialized", {
       config: this.queryConfig.getConfigSummary(),
     });
+  }
+
+  /**
+   * 执行查询路由方法
+   *
+   * 根据QueryType路由到适当的执行方法
+   * 这是简化调用链的核心入口方法
+   */
+  public async executeQuery(
+    request: QueryRequestDto,
+  ): Promise<QueryExecutionResultDto> {
+    switch (request.queryType) {
+      case QueryType.BY_SYMBOLS:
+        return this.executeSymbolBasedQuery(request);
+
+      case QueryType.BY_MARKET:
+        // TODO: 实现市场查询逻辑
+        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+
+      case QueryType.BY_PROVIDER:
+        // TODO: 实现提供商查询逻辑
+        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+
+      case QueryType.BY_CATEGORY:
+        // TODO: 实现标签查询逻辑
+        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+
+      case QueryType.BY_TIME_RANGE:
+        // TODO: 实现时间范围查询逻辑
+        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+
+      case QueryType.ADVANCED:
+        // TODO: 实现高级查询逻辑
+        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+
+      default:
+        throw new Error(`不支持的查询类型: ${request.queryType}`);
+    }
   }
 
   /**

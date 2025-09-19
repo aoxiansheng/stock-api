@@ -11,7 +11,6 @@ import { StringUtils } from "../../../shared/utils/string.util";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 import { QueryConfigService } from "../config/query.config";
-import { QueryExecutorFactory } from "../factories/query-executor.factory";
 import { QueryExecutionEngine } from "./query-execution-engine.service";
 
 import {
@@ -51,8 +50,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     private readonly resultProcessorService: QueryResultProcessorService,
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
     private readonly queryConfig: QueryConfigService,
-    private readonly queryExecutorFactory: QueryExecutorFactory,
-    private readonly executionEngine: QueryExecutionEngine, // 用于向后兼容
+    private readonly executionEngine: QueryExecutionEngine,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -98,8 +96,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     );
 
     try {
-      // 使用工厂模式执行查询
-      const executionResult = await this.performQueryExecution(request);
+      // 直接使用QueryExecutionEngine执行查询
+      const executionResult = await this.executionEngine.executeQuery(request);
 
       // 处理查询结果
       const processedResult = this.resultProcessorService.process(
@@ -205,27 +203,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * 使用工厂模式执行查询
-   *
-   * 核心改进：
-   * - 不再直接处理查询逻辑
-   * - 使用工厂创建合适的执行器
-   * - 执行器不再依赖QueryService，避免循环依赖
-   */
-  private async performQueryExecution(
-    request: QueryRequestDto,
-  ): Promise<QueryExecutionResultDto> {
-    try {
-      const executor = this.queryExecutorFactory.create(request.queryType);
-      return await executor.execute(request);
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new BadRequestException(`查询执行器创建失败: ${error.message}`);
-    }
-  }
 
   /**
    * executeSymbolBasedQuery - 向后兼容方法
