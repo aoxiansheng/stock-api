@@ -3,7 +3,6 @@
  * 🎯 统一定义股票代码映射相关的常量，确保系统一致性
  */
 
-import { NUMERIC_CONSTANTS } from "@common/constants/core";
 import {
   HTTP_TIMEOUTS,
   BATCH_SIZE_SEMANTICS,
@@ -89,7 +88,6 @@ export const SYMBOL_MAPPER_PERFORMANCE_CONFIG = Object.freeze({
   SLOW_MAPPING_THRESHOLD_MS: 100, // 慢映射阈值（毫秒）
   MAX_SYMBOLS_PER_BATCH: 1000, // 单批次最大股票数量
   LOG_SYMBOLS_LIMIT: 5, // 日志中显示的股票数量限制
-  MIN_PROCESSING_TIME_MS: 1, // 最小处理时间（测试兼容性）
   LARGE_BATCH_THRESHOLD: 500, // 大批量处理阈值
   PERFORMANCE_SAMPLE_SIZE: 100, // 性能样本大小
   MAX_CONCURRENT_MAPPINGS: 10, // 最大并发映射数
@@ -135,7 +133,6 @@ export const SYMBOL_MAPPER_STATUS = Object.freeze({
   PROCESSING: "processing",
   COMPLETED: "completed",
   FAILED: "failed",
-  DEPRECATED: "deprecated",
 } as const);
 
 /**

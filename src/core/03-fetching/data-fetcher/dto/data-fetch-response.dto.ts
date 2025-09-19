@@ -59,13 +59,13 @@ export class DataFetchResponseDto {
     data: any[],
     provider: string,
     capability: string,
-    processingTime: number,
+    processingTimeMs: number,
     symbolsProcessed: number,
   ): DataFetchResponseDto {
     const metadata = new DataFetchMetadataDto(
       provider,
       capability,
-      processingTime,
+      processingTimeMs,
       symbolsProcessed,
     );
 
@@ -79,7 +79,7 @@ export class DataFetchResponseDto {
     data: any[],
     provider: string,
     capability: string,
-    processingTime: number,
+    processingTimeMs: number,
     symbolsProcessed: number,
     failedSymbols: string[],
     errors: string[],
@@ -87,7 +87,7 @@ export class DataFetchResponseDto {
     const metadata = new DataFetchMetadataDto(
       provider,
       capability,
-      processingTime,
+      processingTimeMs,
       symbolsProcessed,
       failedSymbols,
       errors,

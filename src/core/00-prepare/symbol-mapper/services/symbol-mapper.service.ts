@@ -1108,7 +1108,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
    * 手动清理所有缓存（委派给缓存服务）
    */
   clearCache(): void {
-    // 🗑️ 移除兼容性检查，直接调用
     this.symbolMapperCacheService.clearAllCaches();
     this.logger.log("符号映射规则缓存已清理");
   }
@@ -1124,7 +1123,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     maxSize: number;
     pendingQueries: number;
   } {
-    // 🗑️ 移除可用性检查，直接使用缓存服务
     const newStats = this.symbolMapperCacheService.getCacheStats();
 
     // 转换为兼容格式

@@ -18,8 +18,15 @@ export interface DataFetchParams {
   symbols: string[];
 
   /**
-   * API类型 ('rest' | 'stream')
+   * API类型 ('rest' | 'stream') - 智能调度机制配置
+   *
+   * 🎯 用户体验价值：自动选择最优的数据获取方式
+   * ✅ 智能调度：系统根据数据类型自动选择REST或WebSocket
+   * ✅ 性能优化：实时数据使用stream，历史数据使用rest
+   * ✅ 透明切换：用户无需了解底层技术细节，系统自动优化
+   *
    * @deprecated 后端已拆分REST与流式能力，请使用专用的stream-data-fetcher服务处理流式数据
+   * 新架构中，调度逻辑由上层Receiver组件统一处理，提供更好的用户体验
    */
   apiType?: "rest" | "stream";
 
@@ -48,8 +55,8 @@ export interface RawDataResult {
     /** 能力名称 */
     capability: string;
 
-    /** 处理时间戳 */
-    processingTime: number;
+    /** 处理时间（毫秒） */
+    processingTimeMs: number;
 
     /** 成功处理的股票代码数量 */
     symbolsProcessed: number;
@@ -59,6 +66,12 @@ export interface RawDataResult {
 
     /** 错误信息 */
     errors?: string[];
+
+    /**
+     * @deprecated 使用 processingTimeMs 替代
+     * 为保持向后兼容性而保留的处理时间字段
+     */
+    get processingTime(): number;
   };
 }
 
