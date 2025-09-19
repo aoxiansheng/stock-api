@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@common/logging/index";
+import { StreamConfigDefaults } from './stream-config-defaults.constants';
 
 /**
  * 流数据获取器配置接口
@@ -182,132 +183,65 @@ export class StreamConfigService {
 
   /**
    * 从环境变量加载配置
+   * 完全使用 StreamConfigDefaults 统一管理默认值
+   * 简化环境变量处理，消除分散的硬编码默认值
    * @private
    */
   private loadConfiguration(): StreamDataFetcherConfig {
+    const fullDefaults = StreamConfigDefaults.getFullConfig();
+
     return {
       connections: {
-        maxGlobal: this.getEnvNumber("STREAM_MAX_CONNECTIONS_GLOBAL", 1000),
-        maxPerKey: this.getEnvNumber("STREAM_MAX_CONNECTIONS_PER_KEY", 100),
-        maxPerIP: this.getEnvNumber("STREAM_MAX_CONNECTIONS_PER_IP", 50),
-        timeoutMs: this.getEnvNumber("STREAM_CONNECTION_TIMEOUT_MS", 10000),
+        maxGlobal: fullDefaults.connections.maxGlobal,
+        maxPerKey: fullDefaults.connections.maxPerKey,
+        maxPerIP: fullDefaults.connections.maxPerIP,
+        timeoutMs: fullDefaults.connections.timeout,
       },
 
       healthCheck: {
-        concurrency: this.getEnvNumber("HEALTHCHECK_CONCURRENCY", 10),
-        timeoutMs: this.getEnvNumber("HEALTHCHECK_TIMEOUT_MS", 5000),
-        retries: this.getEnvNumber("HEALTHCHECK_RETRIES", 1),
-        skipUnresponsive: this.getEnvBoolean(
-          "HEALTHCHECK_SKIP_UNRESPONSIVE",
-          true,
-        ),
-        healthRateThreshold: this.getEnvNumber(
-          "HEALTHCHECK_RATE_THRESHOLD",
-          50,
-        ),
+        concurrency: StreamConfigDefaults.getEnvValue("HEALTHCHECK_CONCURRENCY", 10),
+        timeoutMs: StreamConfigDefaults.getEnvValue("HEALTHCHECK_TIMEOUT_MS", 5000),
+        retries: StreamConfigDefaults.getEnvValue("HEALTHCHECK_RETRIES", 1),
+        skipUnresponsive: StreamConfigDefaults.getEnvValue("HEALTHCHECK_SKIP_UNRESPONSIVE", true),
+        healthRateThreshold: StreamConfigDefaults.getEnvValue("HEALTHCHECK_RATE_THRESHOLD", 50),
       },
 
       performance: {
-        slowResponseMs: this.getEnvNumber("STREAM_SLOW_RESPONSE_MS", 2000),
-        maxTimePerSymbolMs: this.getEnvNumber(
-          "STREAM_MAX_TIME_PER_SYMBOL_MS",
-          500,
-        ),
-        maxSymbolsPerBatch: this.getEnvNumber(
-          "STREAM_MAX_SYMBOLS_PER_BATCH",
-          50,
-        ),
-        logSymbolsLimit: this.getEnvNumber("STREAM_LOG_SYMBOLS_LIMIT", 10),
-        batchConcurrency: this.getEnvNumber("STREAM_BATCH_CONCURRENCY", 10),
+        slowResponseMs: StreamConfigDefaults.getEnvValue("STREAM_SLOW_RESPONSE_MS", 2000),
+        maxTimePerSymbolMs: StreamConfigDefaults.getEnvValue("STREAM_MAX_TIME_PER_SYMBOL_MS", 500),
+        maxSymbolsPerBatch: fullDefaults.fetching.batchSize,
+        logSymbolsLimit: StreamConfigDefaults.getEnvValue("STREAM_LOG_SYMBOLS_LIMIT", 10),
+        batchConcurrency: StreamConfigDefaults.getEnvValue("STREAM_BATCH_CONCURRENCY", 10),
       },
 
       polling: {
-        intervalMs: this.getEnvNumber("STREAM_POLLING_INTERVAL_MS", 100),
-        connectionIntervalMs: this.getEnvNumber(
-          "STREAM_CONNECTION_POLLING_INTERVAL_MS",
-          100,
-        ),
+        intervalMs: StreamConfigDefaults.getEnvValue("STREAM_POLLING_INTERVAL_MS", 100),
+        connectionIntervalMs: StreamConfigDefaults.getEnvValue("STREAM_CONNECTION_POLLING_INTERVAL_MS", 100),
       },
 
       security: {
         http: {
-          rateLimitTtl: this.getEnvNumber("STREAM_HTTP_RATE_LIMIT_TTL", 60),
-          rateLimitCount: this.getEnvNumber(
-            "STREAM_HTTP_RATE_LIMIT_COUNT",
-            100,
-          ),
-          burstLimit: this.getEnvNumber("STREAM_HTTP_BURST_LIMIT", 20),
+          rateLimitTtl: StreamConfigDefaults.getEnvValue("STREAM_HTTP_RATE_LIMIT_TTL", 60),
+          rateLimitCount: StreamConfigDefaults.getEnvValue("STREAM_HTTP_RATE_LIMIT_COUNT", 100),
+          burstLimit: StreamConfigDefaults.getEnvValue("STREAM_HTTP_BURST_LIMIT", 20),
         },
         websocket: {
-          maxConnectionsPerIP: this.getEnvNumber(
-            "WS_MAX_CONNECTIONS_PER_IP",
-            10,
-          ),
-          maxConnectionsPerUser: this.getEnvNumber(
-            "WS_MAX_CONNECTIONS_PER_USER",
-            5,
-          ),
-          messagesPerMinute: this.getEnvNumber("WS_MESSAGES_PER_MINUTE", 120),
-          maxSubscriptionsPerConnection: this.getEnvNumber(
-            "WS_MAX_SUBSCRIPTIONS_PER_CONNECTION",
-            50,
-          ),
-          burstMessages: this.getEnvNumber("WS_BURST_MESSAGES", 20),
+          maxConnectionsPerIP: fullDefaults.connections.maxPerIP,
+          maxConnectionsPerUser: fullDefaults.connections.maxPerUser,
+          messagesPerMinute: fullDefaults.rateLimiting.messagesPerMinute,
+          maxSubscriptionsPerConnection: fullDefaults.rateLimiting.maxSubscriptionsPerConnection,
+          burstMessages: fullDefaults.rateLimiting.burstMessages,
         },
       },
 
       monitoring: {
-        enableVerboseLogging: this.getEnvBoolean(
-          "STREAM_VERBOSE_LOGGING",
-          false,
-        ),
-        metricsCollectionInterval: this.getEnvNumber(
-          "STREAM_METRICS_COLLECTION_INTERVAL",
-          30000,
-        ),
-        poolStatsReportInterval: this.getEnvNumber(
-          "STREAM_POOL_STATS_REPORT_INTERVAL",
-          300000,
-        ),
+        enableVerboseLogging: fullDefaults.monitoring.enabled,
+        metricsCollectionInterval: fullDefaults.monitoring.interval,
+        poolStatsReportInterval: StreamConfigDefaults.getEnvValue("STREAM_POOL_STATS_REPORT_INTERVAL", 300000),
       },
     };
   }
 
-  /**
-   * 从环境变量获取数字值
-   * @private
-   */
-  private getEnvNumber(key: string, defaultValue: number): number {
-    const value = this.configService.get<string>(key);
-    if (value === undefined || value === null || value === "") {
-      return defaultValue;
-    }
-
-    const parsed = parseInt(value, 10);
-    if (isNaN(parsed)) {
-      this.logger.warn(`环境变量 ${key} 值无效，使用默认值`, {
-        providedValue: value,
-        defaultValue,
-      });
-      return defaultValue;
-    }
-
-    return parsed;
-  }
-
-  /**
-   * 从环境变量获取布尔值
-   * @private
-   */
-  private getEnvBoolean(key: string, defaultValue: boolean): boolean {
-    const value = this.configService.get<string>(key);
-    if (value === undefined || value === null || value === "") {
-      return defaultValue;
-    }
-
-    const normalized = value.toLowerCase().trim();
-    return normalized === "true" || normalized === "1" || normalized === "yes";
-  }
 
   /**
    * 配置验证
@@ -441,55 +375,4 @@ export class StreamConfigService {
     return updated;
   }
 
-  /**
-   * 获取环境特定的配置建议
-   */
-  getEnvironmentRecommendations(): {
-    environment: string;
-    recommendations: Array<{
-      setting: string;
-      currentValue: any;
-      recommendedValue: any;
-      reason: string;
-    }>;
-  } {
-    const env = this.configService.get<string>("NODE_ENV", "development");
-    const recommendations = [];
-
-    if (env === "production") {
-      // 生产环境建议
-      if (this.config.monitoring.enableVerboseLogging) {
-        recommendations.push({
-          setting: "monitoring.enableVerboseLogging",
-          currentValue: true,
-          recommendedValue: false,
-          reason: "生产环境应关闭详细日志以提升性能",
-        });
-      }
-
-      if (this.config.healthCheck.concurrency < 5) {
-        recommendations.push({
-          setting: "healthCheck.concurrency",
-          currentValue: this.config.healthCheck.concurrency,
-          recommendedValue: 10,
-          reason: "生产环境建议提高健康检查并发度",
-        });
-      }
-    } else if (env === "development") {
-      // 开发环境建议
-      if (!this.config.monitoring.enableVerboseLogging) {
-        recommendations.push({
-          setting: "monitoring.enableVerboseLogging",
-          currentValue: false,
-          recommendedValue: true,
-          reason: "开发环境建议启用详细日志便于调试",
-        });
-      }
-    }
-
-    return {
-      environment: env,
-      recommendations,
-    };
-  }
 }

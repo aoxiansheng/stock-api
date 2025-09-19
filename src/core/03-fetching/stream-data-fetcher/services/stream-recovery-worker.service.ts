@@ -224,29 +224,17 @@ export class StreamRecoveryWorkerService
    * 设置WebSocket服务器实例 - Phase 3 Critical Fix
    * 由WebSocket Gateway在初始化时调用
    */
+  /**
+   * 设置WebSocket服务器实例（Legacy模式已移除）
+   * @param server Socket.IO服务器实例
+   * @deprecated Legacy模式已移除，WebSocket服务器应通过Gateway自动集成
+   */
   setWebSocketServer(server: Server): void {
-    // 检查是否已经有Gateway服务器，避免覆盖
-    if (this.webSocketProvider.isServerAvailable()) {
-      this.logger.debug(
-        "WebSocket服务器已通过Gateway设置，跳过Recovery Worker设置",
-        {
-          hasServer: !!server,
-          existingServerAvailable: this.webSocketProvider.isServerAvailable(),
-          serverStats: this.webSocketProvider.getServerStats(),
-        },
-      );
-      return;
-    }
-
-    // 如果没有Gateway服务器，则使用Legacy模式
-    this.webSocketProvider.setServer(server);
-    this.logger.log(
-      "WebSocket服务器实例已设置到StreamRecoveryWorker (Legacy模式)",
-      {
-        hasServer: !!server,
-        serverAvailable: this.webSocketProvider.isServerAvailable(),
-      },
-    );
+    this.logger.error("🚫 StreamRecoveryWorker Legacy模式已移除", {
+      ignoredServerPath: server.path(),
+      recommendation: "WebSocket服务器应通过Gateway模式自动集成",
+      migrationInfo: "Gateway模式会自动提供WebSocket服务器实例",
+    });
   }
 
   /**

@@ -24,22 +24,20 @@ import { createLogger } from "@common/logging/index";
 export class ErrorSanitizerInterceptor implements NestInterceptor {
   private readonly logger = createLogger(ErrorSanitizerInterceptor.name);
 
-  // 需要脱敏的敏感信息正则表达式
+  // 核心敏感信息脱敏规则（简化版）
   private readonly sensitivePatterns = [
-    // 文件路径
-    /\/[^\/\s]+\/[^\/\s]+/g,
-    // 数据库连接信息
+    // 数据库连接字符串
     /mongodb:\/\/[^\s]+/g,
     /redis:\/\/[^\s]+/g,
-    // API密钥片段
+    // API密钥和令牌（长字符串）
     /[a-zA-Z0-9]{32,}/g,
-    // IP地址（内网）
+    // 内网IP地址
     /192\.168\.\d+\.\d+/g,
     /10\.\d+\.\d+\.\d+/g,
     /172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+/g,
-    // 端口号
-    /:\d{4,5}/g,
-    // 错误堆栈中的具体行号和文件信息
+    // 文件系统路径
+    /\/[^\/\s]+\/[^\/\s]+/g,
+    // 错误堆栈信息
     /at\s+[^\s]+\s+\([^)]+:\d+:\d+\)/g,
   ];
 
@@ -69,6 +67,7 @@ export class ErrorSanitizerInterceptor implements NestInterceptor {
 
   /**
    * 错误信息脱敏处理
+   * 简化后的5种核心错误类型
    */
   private sanitizeError(error: any): HttpException {
     let sanitizedMessage = error.message || "未知错误";
@@ -78,28 +77,30 @@ export class ErrorSanitizerInterceptor implements NestInterceptor {
       sanitizedMessage = sanitizedMessage.replace(pattern, "[REDACTED]");
     }
 
-    // 根据错误类型返回适当的HTTP状态和消息
-    if (error instanceof ServiceUnavailableException) {
-      return new ServiceUnavailableException(
-        this.getGenericMessage("service_unavailable"),
-      );
+    // 1. 客户端错误 (合并 bad_request + permission_denied)
+    if (
+      error instanceof BadRequestException ||
+      sanitizedMessage.includes("permission") ||
+      sanitizedMessage.includes("unauthorized") ||
+      sanitizedMessage.includes("权限") ||
+      sanitizedMessage.includes("invalid") ||
+      sanitizedMessage.includes("参数")
+    ) {
+      return new BadRequestException(this.getGenericMessage("client_error"));
     }
 
-    if (error instanceof BadRequestException) {
-      return new BadRequestException(this.getGenericMessage("bad_request"));
-    }
-
-    // 连接相关错误
+    // 2. 连接错误 (保留独立分类)
     if (
       sanitizedMessage.includes("connection") ||
-      sanitizedMessage.includes("连接")
+      sanitizedMessage.includes("连接") ||
+      sanitizedMessage.includes("connect")
     ) {
       return new ServiceUnavailableException(
         this.getGenericMessage("connection_error"),
       );
     }
 
-    // 超时错误
+    // 3. 超时错误 (保留独立分类)
     if (
       sanitizedMessage.includes("timeout") ||
       sanitizedMessage.includes("超时")
@@ -107,57 +108,35 @@ export class ErrorSanitizerInterceptor implements NestInterceptor {
       return new ServiceUnavailableException(this.getGenericMessage("timeout"));
     }
 
-    // 权限相关错误
-    if (
-      sanitizedMessage.includes("permission") ||
-      sanitizedMessage.includes("unauthorized") ||
-      sanitizedMessage.includes("权限")
-    ) {
-      return new BadRequestException(
-        this.getGenericMessage("permission_denied"),
-      );
-    }
-
-    // 配置错误
-    if (
-      sanitizedMessage.includes("config") ||
-      sanitizedMessage.includes("配置")
-    ) {
-      return new ServiceUnavailableException(
-        this.getGenericMessage("configuration_error"),
-      );
-    }
-
-    // Provider相关错误
+    // 4. 提供商错误 (保留独立分类)
     if (
       sanitizedMessage.includes("provider") ||
-      sanitizedMessage.includes("提供商")
+      sanitizedMessage.includes("提供商") ||
+      sanitizedMessage.includes("data source") ||
+      sanitizedMessage.includes("数据源")
     ) {
-      return new BadRequestException(this.getGenericMessage("provider_error"));
+      return new ServiceUnavailableException(this.getGenericMessage("provider_error"));
     }
 
-    // 默认处理：返回通用错误信息
+    // 5. 服务器错误 (合并 service_unavailable + internal_error + configuration_error)
     return new ServiceUnavailableException(
-      this.getGenericMessage("internal_error"),
+      this.getGenericMessage("server_error"),
     );
   }
 
   /**
-   * 获取通用错误消息（中文）
+   * 获取通用错误消息（简化后的5种核心类型）
    */
   private getGenericMessage(errorType: string): string {
     const messages = {
-      service_unavailable: "服务暂时不可用，请稍后重试",
-      bad_request: "请求参数有误，请检查后重试",
+      client_error: "请求参数有误或权限不足，请检查后重试",
       connection_error: "连接服务失败，请稍后重试",
       timeout: "请求超时，请稍后重试",
-      permission_denied: "权限不足，请检查认证信息",
-      configuration_error: "服务配置异常，请联系管理员",
       provider_error: "数据提供商服务异常，请稍后重试",
-      internal_error: "系统内部错误，请稍后重试",
+      server_error: "服务暂时不可用，请稍后重试",
     };
 
-    return messages[errorType] || messages.internal_error;
+    return messages[errorType] || messages.server_error;
   }
 
   /**
@@ -181,21 +160,13 @@ export class ErrorSanitizerInterceptor implements NestInterceptor {
   }
 
   /**
-   * 检查是否为敏感错误（用于额外告警）
+   * 检查是否为敏感错误（简化版）
+   * 用于额外的安全监控和告警
    */
   private isSensitiveError(error: any): boolean {
     const sensitiveKeywords = [
-      "password",
-      "secret",
-      "token",
-      "key",
-      "密码",
-      "密钥",
-      "令牌",
-      "database",
-      "connection string",
-      "数据库",
-      "连接字符串",
+      "password", "secret", "token", "key", "密码", "密钥", "令牌",
+      "database", "connection", "数据库", "连接字符串"
     ];
 
     const message = (error.message || "").toLowerCase();

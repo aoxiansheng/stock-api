@@ -2,22 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 import { createLogger } from "@common/logging/index";
-
-/**
- * WebSocket连接速率限制配置
- */
-interface WebSocketRateLimitConfig {
-  /** 连接数限制 - 每IP */
-  maxConnectionsPerIP: number;
-  /** 连接数限制 - 每用户 */
-  maxConnectionsPerUser: number;
-  /** 消息速率限制 - 每分钟 */
-  messagesPerMinute: number;
-  /** 订阅限制 - 每连接 */
-  maxSubscriptionsPerConnection: number;
-  /** 突发消息限制 - 10秒内 */
-  burstMessages: number;
-}
+import { WebSocketRateLimitConfig } from "../interfaces/rate-limit.interfaces";
 
 /**
  * WebSocket DoS防护Guard
@@ -35,6 +20,9 @@ export class WebSocketRateLimitGuard {
 
   // 默认配置
   private readonly config: WebSocketRateLimitConfig = {
+    enabled: true,
+    limit: parseInt(process.env.WS_MAX_CONNECTIONS_PER_IP || "10"),
+    windowMs: 60 * 1000, // 1分钟窗口
     maxConnectionsPerIP: parseInt(
       process.env.WS_MAX_CONNECTIONS_PER_IP || "10",
     ),

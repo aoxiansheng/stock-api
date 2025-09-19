@@ -8,22 +8,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { createLogger } from "@common/logging/index";
-
-/**
- * DoS防护参数配置接口
- */
-interface ApiRateLimitConfig {
-  /** 时间窗口（秒） */
-  ttl: number;
-  /** 请求数量限制 */
-  limit: number;
-  /** 突发请求数量限制 */
-  burst?: number;
-  /** IP级别限制 */
-  perIP?: boolean;
-  /** 用户级别限制 */
-  perUser?: boolean;
-}
+import { HttpRateLimitConfig } from "../interfaces/rate-limit.interfaces";
 
 /**
  * 速率限制装饰器
@@ -31,7 +16,7 @@ interface ApiRateLimitConfig {
 import { SetMetadata } from "@nestjs/common";
 
 export const STREAM_RATE_LIMIT_KEY = "streamRateLimit";
-export const StreamRateLimit = (config: ApiRateLimitConfig) =>
+export const StreamRateLimit = (config: HttpRateLimitConfig) =>
   SetMetadata(STREAM_RATE_LIMIT_KEY, config);
 
 /**
@@ -66,9 +51,11 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   private isDestroyed = false;
 
   // 默认配置
-  private readonly defaultConfig: ApiRateLimitConfig = {
-    ttl: 60, // 1分钟窗口
+  private readonly defaultConfig: HttpRateLimitConfig = {
+    enabled: true,
     limit: OPERATION_LIMITS.BATCH_SIZES.DEFAULT_PAGE_SIZE, // 每分钟100次请求
+    windowMs: 60 * 1000, // 1分钟窗口
+    ttl: 60, // 向后兼容：时间窗口（秒）
     burst: 20, // 突发请求上限20次
     perIP: true,
     perUser: true,
@@ -201,7 +188,7 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
   private checkRateLimit(
     type: "ip" | "user",
     identifier: string,
-    config: ApiRateLimitConfig,
+    config: HttpRateLimitConfig,
   ): boolean {
     if (this.isDestroyed) return false;
 
@@ -236,7 +223,7 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
    */
   private checkBurstLimit(
     clientIP: string,
-    config: ApiRateLimitConfig,
+    config: HttpRateLimitConfig,
   ): boolean {
     if (!config.burst || this.isDestroyed) return true;
 

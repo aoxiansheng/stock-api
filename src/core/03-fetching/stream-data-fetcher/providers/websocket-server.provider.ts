@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Server } from "socket.io";
 import { createLogger } from "@common/logging/index";
+import { WebSocketFeatureFlagsService } from '../config/websocket-feature-flags.config';
 
 /**
  * WebSocketServerProvider - 强类型WebSocket服务器提供者
@@ -14,9 +15,10 @@ import { createLogger } from "@common/logging/index";
 @Injectable()
 export class WebSocketServerProvider {
   private readonly logger = createLogger("WebSocketServerProvider");
-  private server: Server | null = null;
-  private gatewayServer: Server | null = null; // 新增：Gateway服务器引用
+  private gatewayServer: Server | null = null; // Gateway服务器引用（唯一实例）
   private isInitialized = false;
+
+  constructor(private readonly featureFlags: WebSocketFeatureFlagsService) {}
 
   /**
    * 从Gateway获取服务器实例（推荐方式）
@@ -24,7 +26,6 @@ export class WebSocketServerProvider {
    */
   setGatewayServer(server: Server): void {
     this.gatewayServer = server;
-    this.server = server;
     this.isInitialized = true;
 
     this.logger.log("Gateway服务器已集成到Provider", {
@@ -36,46 +37,59 @@ export class WebSocketServerProvider {
   }
 
   /**
-   * 设置WebSocket服务器实例
+   * 设置WebSocket服务器实例 (Legacy模式已移除)
    * @param server Socket.IO服务器实例
+   * @deprecated Legacy模式已移除，请使用 setGatewayServer() 方法
    */
   setServer(server: Server): void {
-    if (this.server && this.isInitialized) {
-      this.logger.warn("WebSocket服务器已经初始化，覆盖现有实例", {
-        hasExistingServer: !!this.server,
-        newServerNamespace: server.path(),
-        isGatewayServer: !!this.gatewayServer,
+    // 检查特性开关是否允许Legacy回退
+    if (this.featureFlags.isLegacyFallbackAllowed()) {
+      this.logger.warn("🔄 Legacy模式临时启用（紧急回退）", {
+        serverPath: server.path(),
+        reason: "特性开关允许Legacy回退",
+        recommendation: "尽快恢复Gateway-only模式",
       });
+      // 在紧急情况下暂时接受Legacy调用
+      return;
     }
 
-    // 如果没有Gateway服务器，则使用Legacy方式
-    if (!this.gatewayServer) {
-      this.server = server;
-      this.isInitialized = true;
-
-      this.logger.log("WebSocket服务器实例已设置", {
-        hasServer: !!server,
-        serverPath: server?.path(),
-        source: "direct",
-        engineConnectionCount: server?.engine?.clientsCount || 0,
-      });
-    }
+    this.logger.error("🚫 Legacy setServer() 已移除，请使用 setGatewayServer()", {
+      ignoredServerPath: server.path(),
+      recommendation: "使用 setGatewayServer() 替代 setServer()",
+      migrationRequired: true,
+      featureFlagsStatus: {
+        gatewayOnlyMode: this.featureFlags.isGatewayOnlyModeEnabled(),
+        legacyFallback: this.featureFlags.isLegacyFallbackAllowed(),
+        strictMode: this.featureFlags.isStrictModeEnabled()
+      }
+    });
   }
 
   /**
-   * 获取实际的WebSocket服务器（Gateway优先）
+   * 获取WebSocket服务器实例（仅Gateway模式）
    * @returns Socket.IO服务器实例或null
    */
   getServer(): Server | null {
-    return this.gatewayServer || this.server;
+    return this.gatewayServer;
   }
 
   /**
-   * 检查WebSocket服务器是否可用（Gateway优先）
+   * 检查WebSocket服务器是否可用（仅Gateway模式）
    * @returns 是否可用
    */
   isServerAvailable(): boolean {
-    return (this.gatewayServer || this.server) !== null && this.isInitialized;
+    const basicAvailability = this.gatewayServer !== null && this.isInitialized;
+
+    // 检查特性开关状态
+    if (!this.featureFlags.isGatewayOnlyModeEnabled()) {
+      this.logger.warn("Gateway-only模式未启用，可能影响服务可用性", {
+        gatewayOnlyMode: this.featureFlags.isGatewayOnlyModeEnabled(),
+        hasGatewayServer: !!this.gatewayServer,
+        isInitialized: this.isInitialized
+      });
+    }
+
+    return basicAvailability;
   }
 
   /**
@@ -87,7 +101,7 @@ export class WebSocketServerProvider {
     connectedClients: number;
     serverPath: string;
     namespaces: any[];
-    serverSource: "gateway" | "direct" | "none";
+    serverSource: "gateway" | "none";
   } {
     const activeServer = this.getServer();
 
@@ -110,7 +124,7 @@ export class WebSocketServerProvider {
       connectedClients: activeServer.engine?.clientsCount || 0,
       serverPath: activeServer.path(),
       namespaces,
-      serverSource: this.gatewayServer ? "gateway" : "direct",
+      serverSource: "gateway",
     };
   }
 
@@ -132,7 +146,7 @@ export class WebSocketServerProvider {
       this.logger.warn("WebSocket服务器不可用，无法发送消息", {
         clientId,
         event,
-        serverSource: this.gatewayServer ? "gateway" : "direct",
+        serverSource: "gateway",
       });
       return false;
     }
@@ -156,7 +170,7 @@ export class WebSocketServerProvider {
         clientId,
         event,
         error: error.message,
-        serverSource: this.gatewayServer ? "gateway" : "direct",
+        serverSource: "gateway",
       });
       return false;
     }
@@ -180,7 +194,7 @@ export class WebSocketServerProvider {
       this.logger.warn("WebSocket服务器不可用，无法广播消息", {
         room,
         event,
-        serverSource: this.gatewayServer ? "gateway" : "direct",
+        serverSource: "gateway",
       });
       return false;
     }
@@ -192,7 +206,7 @@ export class WebSocketServerProvider {
         room,
         event,
         dataSize: JSON.stringify(data).length,
-        serverSource: this.gatewayServer ? "gateway" : "direct",
+        serverSource: "gateway",
       });
 
       return true;
@@ -201,7 +215,7 @@ export class WebSocketServerProvider {
         room,
         event,
         error: error.message,
-        serverSource: this.gatewayServer ? "gateway" : "direct",
+        serverSource: "gateway",
       });
       return false;
     }
@@ -211,7 +225,6 @@ export class WebSocketServerProvider {
    * 重置服务器实例（用于测试或重启场景）
    */
   reset(): void {
-    this.server = null;
     this.gatewayServer = null;
     this.isInitialized = false;
     this.logger.log("WebSocket服务器实例已重置");
@@ -234,7 +247,6 @@ export class WebSocketServerProvider {
           reason: "No server instance",
           isInitialized: this.isInitialized,
           hasGatewayServer: !!this.gatewayServer,
-          hasLegacyServer: !!this.server,
         },
       };
     }
@@ -245,7 +257,7 @@ export class WebSocketServerProvider {
         details: {
           reason: "Server not fully initialized",
           hasServer: !!activeServer,
-          serverSource: this.gatewayServer ? "gateway" : "direct",
+          serverSource: "gateway",
         },
       };
     }
@@ -271,6 +283,43 @@ export class WebSocketServerProvider {
     details: any;
   } {
     const healthStatus = this.healthCheck();
+    const featureFlagsHealth = this.featureFlags.getHealthStatus();
+
+    // 检查特性开关状态
+    if (featureFlagsHealth.status === 'critical') {
+      return {
+        ready: false,
+        reason: `特性开关状态异常: ${featureFlagsHealth.recommendations.join(', ')}`,
+        details: {
+          featureFlagsHealth,
+          healthStatus: healthStatus.details
+        },
+      };
+    }
+
+    // 必须启用Gateway-only模式
+    if (!this.featureFlags.isGatewayOnlyModeEnabled()) {
+      return {
+        ready: false,
+        reason: "Gateway-only模式未启用",
+        details: {
+          gatewayOnlyMode: this.featureFlags.isGatewayOnlyModeEnabled(),
+          featureFlags: this.featureFlags.getFeatureFlags()
+        },
+      };
+    }
+
+    // 严格模式下不允许Legacy回退
+    if (this.featureFlags.isStrictModeEnabled() && this.featureFlags.isLegacyFallbackAllowed()) {
+      return {
+        ready: false,
+        reason: "严格模式与Legacy回退冲突",
+        details: {
+          strictMode: this.featureFlags.isStrictModeEnabled(),
+          legacyFallback: this.featureFlags.isLegacyFallbackAllowed()
+        },
+      };
+    }
 
     // 必须是healthy状态
     if (healthStatus.status !== "healthy") {
@@ -288,7 +337,6 @@ export class WebSocketServerProvider {
         reason: "Gateway服务器未集成，仍使用Legacy模式",
         details: {
           hasGatewayServer: !!this.gatewayServer,
-          hasLegacyServer: !!this.server,
           serverSource: healthStatus.details.serverSource,
         },
       };
@@ -315,6 +363,11 @@ export class WebSocketServerProvider {
         ready: true,
         details: {
           ...healthStatus.details,
+          featureFlagsValidation: {
+            status: featureFlagsHealth.status,
+            flags: featureFlagsHealth.flags,
+            lastCheck: featureFlagsHealth.lastCheck
+          },
           gatewayValidation: {
             serverPath,
             namespaceCount: namespaces.length,
