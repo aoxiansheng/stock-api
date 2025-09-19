@@ -623,68 +623,23 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
    */
   private compressData(data: any[]): StreamDataPoint[] {
     const now = Date.now();
-    let fallbackTimestampCount = 0;
 
-    const result = data.map((item, index) => {
+    return data.map((item, index) => {
       // 根据数据结构进行压缩映射
       if (typeof item === "object" && item !== null) {
-        let timestamp = item.timestamp || item.t;
-
-        // 时间戳兜底策略优化
-        if (!timestamp) {
-          // 使用递增的时间戳避免乱序，而不是所有都用 Date.now()
-          timestamp = now + index; // 每个项目递增1ms
-          fallbackTimestampCount++;
-
-          this.logger.warn("数据缺失时间戳，使用兜底策略", {
-            symbol: item.symbol || item.s || "unknown",
-            originalTimestamp: item.timestamp,
-            fallbackTimestamp: timestamp,
-            index,
-            source: "compressData",
-          });
-        }
-
         return {
           s: item.symbol || item.s || "",
           p: item.price || item.lastPrice || item.p || 0,
           v: item.volume || item.v || 0,
-          t: timestamp,
+          t: item.timestamp || item.t || now + index, // 简单fallback，保持递增
           c: item.change || item.c,
           cp: item.changePercent || item.cp,
         };
       }
       return item;
     });
-
-    // 监控时间戳回退使用情况
-    if (fallbackTimestampCount > 0) {
-      this.recordTimestampFallbackMetrics(fallbackTimestampCount, data.length);
-    }
-
-    return result;
   }
 
-  /**
-   * 记录时间戳回退指标
-   */
-  private recordTimestampFallbackMetrics(
-    fallbackCount: number,
-    totalCount: number,
-  ): void {
-    try {
-      const fallbackRate = fallbackCount / totalCount;
-
-      this.logger.warn("时间戳回退统计", {
-        fallbackCount,
-        totalCount,
-        fallbackRate: Math.round(fallbackRate * 10000) / 100 + "%",
-        recommendation: fallbackRate > 0.1 ? "check_data_source" : "normal",
-      });
-    } catch (error) {
-      this.logger.debug("时间戳回退指标记录失败", { error: error.message });
-    }
-  }
 
   /**
    * LRU 清理最少使用的条目

@@ -2,11 +2,11 @@
  * 缓存键值常量 - 统一配置体系
  * 🎯 符合开发规范指南 - 统一缓存键命名规范
  * ✅ 提供标准化的缓存键模板和前缀定义
- * 🔄 配合cache-unified.config.ts使用，确保键值和配置的一致性
+ * ✅ 配合cache-unified.config.ts使用，确保键值和配置的一致性
  *
  * 使用指南：
  * - 键前缀：使用CACHE_KEYS.PREFIXES定义的标准前缀
- * - 配置获取：通过CacheUnifiedConfigValidation或CacheService.getTtlByTimeliness()
+ * - 配置获取：通过CacheUnifiedConfigValidation统一配置
  * - 命名规范：{module}:{category}:{specific_key}
  */
 
@@ -22,10 +22,8 @@ export const CACHE_KEYS = Object.freeze({
     LOCK: "cache:lock:",
     CONFIG: "cache:config:",
 
-    // 新增：与统一配置对应的前缀
+    // 统一配置对应的前缀
     UNIFIED: "cache:unified:",
-    COMPATIBILITY: "cache:compat:",
-    MIGRATION: "cache:migration:",
   },
 
   /**
@@ -38,15 +36,6 @@ export const CACHE_KEYS = Object.freeze({
     PERFORMANCE_CONFIG: (metric: string) => `cache:config:perf:${metric}`,
   },
 
-  /**
-   * 兼容性键值
-   * 🔄 用于配置迁移期间的键值映射
-   */
-  LEGACY: {
-    DEFAULT_TTL: "cache:ttl:default", // 映射到unified.defaultTtl
-    STRONG_TTL: "cache:ttl:strong", // 映射到unified.strongTimelinessTtl
-    BATCH_SIZE: "cache:limits:batch", // 映射到unified.maxBatchSize
-  },
 } as const);
 
 /**

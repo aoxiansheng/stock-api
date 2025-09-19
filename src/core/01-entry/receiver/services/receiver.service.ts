@@ -35,9 +35,9 @@ import { StorageService } from "../../../04-storage/storage/services/storage.ser
 import {
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,
-  RECEIVER_PERFORMANCE_THRESHOLDS,
-  RECEIVER_OPERATIONS,
-} from "../constants/receiver.constants";
+} from "../constants/messages.constants";
+import { RECEIVER_PERFORMANCE_THRESHOLDS } from "../constants/validation.constants";
+import { RECEIVER_OPERATIONS } from "../constants/operations.constants";
 import { DataRequestDto } from "../dto/data-request.dto";
 import {
   DataResponseDto,

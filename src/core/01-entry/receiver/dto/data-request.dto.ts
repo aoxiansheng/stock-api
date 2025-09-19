@@ -15,10 +15,8 @@ import {
   IsIn,
 } from "class-validator";
 
-import {
-  SUPPORTED_CAPABILITY_TYPES,
-  RECEIVER_VALIDATION_RULES,
-} from "../constants/receiver.constants";
+import { SUPPORTED_CAPABILITY_TYPES } from "../constants/operations.constants";
+import { RECEIVER_VALIDATION_RULES } from "../constants/validation.constants";
 import { IsValidSymbolFormat } from "@common/validators/symbol-format.validator";
 import { BaseRequestOptionsDto } from "./common/base-request-options.dto";
 import { StorageMode, StorageModeUtils } from "../enums/storage-mode.enum";

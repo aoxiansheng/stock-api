@@ -4,7 +4,7 @@ import { Market } from "../../core/shared/constants/market.constants";
 import {
   MARKET_RECOGNITION_RULES,
   RECEIVER_VALIDATION_RULES,
-} from "../../core/01-entry/receiver/constants/receiver.constants";
+} from "../../core/01-entry/receiver/constants/validation.constants";
 
 /**
  * 统一的股票代码验证工具类

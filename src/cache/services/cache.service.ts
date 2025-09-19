@@ -21,10 +21,9 @@ import Redis from "ioredis";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../monitoring/contracts/events/system-status.events";
-// 统一配置类型已移除导入
+// 导入统一配置
 import cacheUnifiedConfig from "../config/cache-unified.config";
 import type { ConfigType } from "@nestjs/config";
-// CacheLimitsProvider 已移除，限制配置通过统一配置获取
 
 // Import modern structured constants directly
 import { CACHE_MESSAGES } from "../constants/messages/cache-messages.constants";
@@ -38,30 +37,30 @@ import type { SerializerType } from "../constants/config/data-formats.constants"
 
 import { CACHE_DATA_FORMATS } from "../constants/config/data-formats.constants";
 
-// 🎯 Gzip 压缩/解压缩
+// Gzip 压缩/解压缩工具
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
-// 🎯 使用统一的压缩前缀常量，替代硬编码魔法字符串
+// 压缩工具函数
 
-// 🎯 使用内部 DTO 类型替换原始接口定义
+// DTO 类型导入
 import {
   CacheConfigDto,
   RedisCacheRuntimeStatsDto,
   CacheHealthCheckResultDto,
 } from "../dto/cache-internal.dto";
 
-// 🎯 为了向后兼容，保留类型别名
+// 类型别名
 export type CacheStats = RedisCacheRuntimeStatsDto;
 
 @Injectable()
 export class CacheService {
-  // 🎯 使用 common 模块的日志配置
+  // 日志记录器
   private readonly logger = createLogger(CacheService.name);
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    private readonly eventBus: EventEmitter2, // 🎯 事件驱动监控
+    private readonly eventBus: EventEmitter2, // 事件总线
     private readonly configService: ConfigService,
-    // 🎯 统一配置 - 移除冗余配置支持
+    // 统一配置注入
     @Inject("cacheUnified")
     private readonly CacheUnifiedConfig: ConfigType<typeof cacheUnifiedConfig>,
   ) {
@@ -94,7 +93,7 @@ export class CacheService {
   }
 
   /**
-   * 🎯 获取默认TTL - 使用统一配置
+   * 获取默认TTL
    */
   private getDefaultTtl(): number {
     return this.CacheUnifiedConfig.defaultTtl;
@@ -116,7 +115,7 @@ export class CacheService {
 
   /**
    * 根据时效性获取TTL
-   * 🎯 新增方法：提供基于业务场景的TTL获取
+   * 提供基于业务场景的TTL获取
    */
   getTtlByTimeliness(
     timeliness:
@@ -159,7 +158,7 @@ export class CacheService {
     value: T,
     options: CacheConfigDto = { ttl: this.getDefaultTtl() },
   ): Promise<boolean> {
-    // 🎯 重构: 键长度验证已移至DTO层面，使用@IsValidCacheKey装饰器
+    // 键长度验证在DTO层面进行
 
     const startTime = Date.now();
     try {
@@ -186,7 +185,7 @@ export class CacheService {
 
       const result = await this.redis.setex(key, options.ttl, compressedValue);
 
-      // 🎯 事件驱动监控
+      // 发送监控事件
       this.emitCacheEvent("set", key, startTime, {
         ttl: options.ttl,
         compressed: compressedValue !== serializedValue,
@@ -205,7 +204,7 @@ export class CacheService {
 
       return result === "OK";
     } catch (error) {
-      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(CACHE_CORE_OPERATIONS.SET, key);
       }
@@ -219,19 +218,19 @@ export class CacheService {
    * 智能缓存获取
    */
   async get<T>(key: string, deserializer?: SerializerType): Promise<T | null> {
-    // 🎯 重构: 键长度验证已移至DTO层面，使用@IsValidCacheKey装饰器
+    // 键长度验证在DTO层面进行
 
     const startTime = Date.now();
     try {
       const value = await this.redis.get(key);
 
       if (value === null) {
-        // 🎯 事件驱动监控 - 缓存未命中
+        // 发送监控事件 - 缓存未命中
         this.emitCacheEvent("get_miss", key, startTime);
         return null;
       }
 
-      // 🎯 事件驱动监控 - 缓存命中
+      // 发送监控事件 - 缓存命中
       this.emitCacheEvent("get_hit", key, startTime, {
         compressed: this.isCompressed(value),
       });
@@ -264,9 +263,9 @@ export class CacheService {
 
       return this.deserialize(decompressedValue, deserializer);
     } catch (error) {
-      // 🎯 事件驱动监控 - 错误导致未命中
+      // 发送监控事件 - 错误导致未命中
       this.emitCacheEvent("get_miss", key, startTime, { error: error.message });
-      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(CACHE_CORE_OPERATIONS.GET, key);
       }
@@ -337,7 +336,7 @@ export class CacheService {
         return await callback();
       }
     } catch (error) {
-      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(
           CACHE_CORE_OPERATIONS.GET_OR_SET,
@@ -359,7 +358,7 @@ export class CacheService {
         ...(Array.isArray(values) ? values : [values]),
       );
     } catch (error) {
-      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("listPush", key);
       }
@@ -373,7 +372,7 @@ export class CacheService {
     try {
       return await this.redis.ltrim(key, start, stop);
     } catch (error) {
-      // 🔧 简化异常处理: 使用标准NestJS异常替代自定义工厂
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("listTrim", key);
       }
@@ -413,8 +412,8 @@ export class CacheService {
         ...(Array.isArray(members) ? members : [members]),
       );
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用Cache专用异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("setAdd", key);
       }
@@ -470,8 +469,8 @@ export class CacheService {
         ...(Array.isArray(members) ? members : [members]),
       );
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用Cache专用异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("setRemove", key);
       }
@@ -491,8 +490,8 @@ export class CacheService {
     try {
       return await this.redis.hincrby(key, field, value);
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用Cache专用异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("hashIncrementBy", key);
       }
@@ -506,8 +505,8 @@ export class CacheService {
     try {
       return await this.redis.hset(key, field, value);
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用Cache专用异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("hashSet", key);
       }
@@ -542,8 +541,8 @@ export class CacheService {
     try {
       return (await this.redis.expire(key, seconds)) === 1;
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用Cache专用异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("expire", key);
       }
@@ -564,7 +563,7 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.CacheUnifiedConfig.maxBatchSize;
     if (keys.length > maxBatchSize) {
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用标准异常处理
       throw new BadRequestException(
         `批量获取超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`,
       );
@@ -579,7 +578,7 @@ export class CacheService {
         const value = values[i];
 
         if (value !== null) {
-          // 🎯 事件驱动监控 - mget 命中
+          // 发送监控事件 - mget 命中
           this.emitCacheEvent("get_hit", key, startTime, {
             compressed: this.isCompressed(value),
             batch: true,
@@ -589,7 +588,7 @@ export class CacheService {
             : value;
           result.set(key, this.deserialize(decompressedValue));
         } else {
-          // 🎯 事件驱动监控 - mget 未命中
+          // 发送监控事件 - mget 未命中
           this.emitCacheEvent("get_miss", key, startTime, { batch: true });
         }
       }
@@ -605,7 +604,7 @@ export class CacheService {
         });
       }
     } catch (error) {
-      // 🎯 事件驱动监控 - mget 错误导致未命中
+      // 发送监控事件 - mget 错误导致未命中
       keys.forEach((key) =>
         this.emitCacheEvent("get_miss", key, startTime, {
           error: error.message,
@@ -639,7 +638,7 @@ export class CacheService {
     // 检查批量大小
     const maxBatchSize = this.CacheUnifiedConfig.maxBatchSize;
     if (entries.size > maxBatchSize) {
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用标准异常处理
       throw new BadRequestException(
         `批量设置超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`,
       );
@@ -652,7 +651,7 @@ export class CacheService {
       for (const [key, value] of entries) {
         const serializedValue = this.serialize(value);
         pipeline.setex(key, ttl, serializedValue);
-        // 🎯 事件驱动监控 - mset 操作
+        // 发送监控事件 - mset 操作
         this.emitCacheEvent("mset", key, startTime, { ttl, batch: true });
       }
 
@@ -693,9 +692,9 @@ export class CacheService {
         return await this.redis.del(key);
       }
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
+      // 使用Cache专用异常
       const cacheKey = Array.isArray(key) ? key.join(",") : key;
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(
           CACHE_CORE_OPERATIONS.DELETE,
@@ -718,8 +717,8 @@ export class CacheService {
       if (keys.length === 0) return 0;
       return await this.redis.del(...keys);
     } catch (error) {
-      // 🔧 重构: 使用 Cache 专用异常替代手动异常处理
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用Cache专用异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException(
           CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
@@ -781,7 +780,7 @@ export class CacheService {
   // 私有辅助方法
 
   /**
-   * 使用SCAN替代KEYS - 简洁版本
+   * 使用SCAN扫描匹配的键
    */
   private async scanKeys(pattern: string): Promise<string[]> {
     let cursor = "0";
@@ -883,7 +882,7 @@ export class CacheService {
   private async compress(value: string): Promise<string> {
     try {
       const compressedBuffer = await gzip(value);
-      // 🎯 添加前缀以标识压缩数据
+      // 添加压缩标识前缀
       return (
         CACHE_DATA_FORMATS.COMPRESSION_PREFIX +
         compressedBuffer.toString("base64")
@@ -906,7 +905,7 @@ export class CacheService {
 
   private async decompress(value: string): Promise<string> {
     try {
-      // 🎯 移除前缀并解压
+      // 移除前缀并解压
       const compressedData = value.substring(
         CACHE_DATA_FORMATS.COMPRESSION_PREFIX.length,
       );
@@ -930,7 +929,7 @@ export class CacheService {
   }
 
   private isCompressed(value: string): boolean {
-    // 🎯 通过前缀判断是否压缩
+    // 通过前缀判断是否压缩
     return value.startsWith(CACHE_DATA_FORMATS.COMPRESSION_PREFIX);
   }
 
@@ -974,7 +973,7 @@ export class CacheService {
   }
 
   /**
-   * 🎯 事件驱动监控 - 替代内部统计系统
+   * 发送缓存监控事件
    */
   private emitCacheEvent(
     operation: "set" | "get_hit" | "get_miss" | "del" | "mget" | "mset",
@@ -1035,11 +1034,7 @@ export class CacheService {
    * 清理不再使用的缓存键统计信息
    */
 
-  /**
-   * 验证缓存键长度
-   */
-  // 🗑️ 已移除: validateKeyLength方法已被@IsValidCacheKey装饰器替代
-  // 键长度验证现在在DTO层面进行，符合NestJS最佳实践
+  // 键长度验证已迁移至DTO层面，使用@IsValidCacheKey装饰器
 
   // ==================== 容错方法 (为监控组件重构添加) ====================
 
@@ -1147,7 +1142,7 @@ export class CacheService {
     try {
       return await this.redis.eval(script, numKeys, ...args);
     } catch (error) {
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("eval", args[0] || "lua_script");
       }
@@ -1213,7 +1208,7 @@ export class CacheService {
     try {
       return await this.redis.incr(key);
     } catch (error) {
-      // 🔧 简化异常处理: 使用标准NestJS异常
+      // 使用标准异常处理
       if (this.isConnectionError(error)) {
         throw new CacheConnectionException("incr", key);
       }

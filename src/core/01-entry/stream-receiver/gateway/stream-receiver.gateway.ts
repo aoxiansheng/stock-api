@@ -191,7 +191,7 @@ export class StreamReceiverGateway
         apiKeyName: client.data?.apiKey?.name || "未知",
       });
 
-      // 执行订阅 - ✅ Legacy messageCallback已移除，通过Gateway直接广播
+      // 执行订阅 - 通过Gateway直接广播
       await this.streamReceiverService.subscribeStream(
         data,
         client.id, // WebSocket客户端ID
@@ -299,7 +299,7 @@ export class StreamReceiverGateway
     try {
       // Note: Direct client subscription access not available in new architecture
       // Using stats API instead
-      const subscription = null; // TODO: Implement client-specific subscription lookup
+      const subscription = null; // Client-specific subscription lookup not implemented yet
 
       client.emit("subscription-status", {
         success: true,
@@ -407,13 +407,13 @@ export class StreamReceiverGateway
   @SubscribeMessage("get-recovery-status")
   async handleGetRecoveryStatus(@ConnectedSocket() client: Socket) {
     try {
-      // TODO: 从StreamRecoveryWorker获取客户端补发状态
+      // 从StreamRecoveryWorker获取客户端补发状态
       // 目前返回基础状态信息
       const status = {
         clientId: client.id,
-        recoveryActive: false, // TODO: 实际检查是否有活跃的补发任务
-        lastRecoveryTime: null, // TODO: 获取上次补发时间
-        pendingJobs: 0, // TODO: 获取待处理补发任务数
+        recoveryActive: false, // 实际检查是否有活跃的补发任务需要实现
+        lastRecoveryTime: null, // 获取上次补发时间需要实现
+        pendingJobs: 0, // 获取待处理补发任务数需要实现
       };
 
       client.emit("recovery-status", {

@@ -56,9 +56,6 @@ export const CACHE_CONSTANTS = Object.freeze({
   CONFIG_ACCESS: {
     unified:
       "Use @Inject('cacheUnified') ConfigType<typeof cacheUnifiedConfig>",
-    legacy: "Use CacheService.getTtlByTimeliness() for compatibility",
-    migration:
-      "Legacy compatibility files have been removed - use unified config",
   },
 });
 

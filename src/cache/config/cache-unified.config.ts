@@ -3,11 +3,10 @@
  * 🎯 遵循四层配置体系标准，消除配置重叠
  * ✅ 支持环境变量覆盖和配置验证
  *
- * 📋 本文件合并了以下配置，消除重叠：
- * - cache.config.ts（保留：压缩、大小限制、操作配置）
- * - cache-ttl.config.ts（整合：所有TTL配置）
- * - cache-limits.config.ts（整合：所有限制配置）
- * - simplified-ttl-config.constants.ts（替换：硬编码TTL常量）
+ * 📋 统一管理Cache模块所有配置项，消除配置重叠：
+ * - TTL配置：所有缓存生存时间设置
+ * - 性能配置：压缩、大小限制、操作配置
+ * - 限制配置：批量操作、缓存大小限制
  */
 
 import { registerAs } from "@nestjs/config";
@@ -20,16 +19,13 @@ import { plainToInstance } from "class-transformer";
  */
 export class CacheUnifiedConfigValidation {
   // ========================================
-  // TTL配置（替换cache-ttl.config.ts）
+  // TTL配置（缓存生存时间）
   // ========================================
 
   /**
    * 默认缓存TTL（秒）
    * 替换所有模块中的300秒默认TTL定义
-   * 原位置:
-   * - cache.config.ts:36 defaultTtl (deprecated)
-   * - cache-ttl.config.ts:40 defaultTtl
-   * - simplified-ttl-config.constants.ts:45 GENERAL
+   * 统一所有模块中的默认TTL配置
    */
   @IsNumber()
   @Min(1)
@@ -39,7 +35,7 @@ export class CacheUnifiedConfigValidation {
   /**
    * 强时效性TTL（秒）
    * 用于实时数据如股票报价
-   * 替换: simplified-ttl-config.constants.ts:17,18 STOCK_QUOTE, INDEX_QUOTE
+   * 用于实时股票数据缓存
    */
   @IsNumber()
   @Min(1)
@@ -57,7 +53,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 监控数据TTL（秒）
-   * 替换: cache-ttl.config.ts:69 monitoringTtl
+   * 用于系统监控数据缓存
    */
   @IsNumber()
   @Min(60)
@@ -66,7 +62,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 认证和权限TTL（秒）
-   * 替换: cache-ttl.config.ts:78 authTtl
+   * 用于认证相关数据缓存
    */
   @IsNumber()
   @Min(60)
@@ -75,7 +71,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 数据转换器结果TTL（秒）
-   * 替换: cache-ttl.config.ts:87 transformerTtl
+   * 用于数据转换结果缓存
    */
   @IsNumber()
   @Min(60)
@@ -84,7 +80,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 数据映射器建议TTL（秒）
-   * 替换: cache-ttl.config.ts:96 suggestionTtl
+   * 用于数据映射建议缓存
    */
   @IsNumber()
   @Min(60)
@@ -94,7 +90,7 @@ export class CacheUnifiedConfigValidation {
   /**
    * 长期缓存TTL（秒）
    * 用于配置、规则等较少变化的数据
-   * 替换: simplified-ttl-config.constants.ts:26,27 STOCK_INFO, MARKET_CONFIG
+   * 用于配置和规则等长期数据缓存
    */
   @IsNumber()
   @Min(300)
@@ -102,7 +98,7 @@ export class CacheUnifiedConfigValidation {
   longTermTtl: number = 3600;
 
   // ========================================
-  // 性能配置（保留自cache.config.ts）
+  // 性能配置（压缩和大小限制）
   // ========================================
 
   /**
@@ -141,7 +137,7 @@ export class CacheUnifiedConfigValidation {
   maxValueSizeMB: number = 10;
 
   // ========================================
-  // 操作配置（保留自cache.config.ts）
+  // 操作配置（性能和锁定）
   // ========================================
 
   /**
@@ -160,19 +156,19 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 分布式锁TTL（秒）
-   * 替换: simplified-ttl-config.constants.ts:35,72,73 DISTRIBUTED_LOCK, LOCK, LOCK_TTL
+   * 用于分布式锁定机制
    */
   @IsNumber()
   @Min(1)
   lockTtl: number = 30;
 
   // ========================================
-  // 限制配置（替换cache-limits.config.ts）
+  // 限制配置（批量和大小限制）
   // ========================================
 
   /**
    * 最大批量操作大小
-   * 替换: cache-limits.config.ts:39 maxBatchSize
+   * 控制批量操作的最大大小
    */
   @IsNumber()
   @Min(1)
@@ -181,7 +177,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 最大缓存大小（条目数）
-   * 替换: cache-limits.config.ts:48 maxCacheSize
+   * 控制缓存总条目数限制
    */
   @IsNumber()
   @Min(1000)
@@ -190,7 +186,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * LRU排序批量大小
-   * 替换: cache-limits.config.ts:57 lruSortBatchSize
+   * LRU算法的批处理大小
    */
   @IsNumber()
   @Min(100)
@@ -199,7 +195,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * Smart Cache最大批量大小
-   * 替换: cache-limits.config.ts:66 smartCacheMaxBatch
+   * Smart Cache系统的最大批处理大小
    */
   @IsNumber()
   @Min(10)
@@ -208,7 +204,7 @@ export class CacheUnifiedConfigValidation {
 
   /**
    * 缓存内存限制（MB）
-   * 替换: cache-limits.config.ts:75 maxCacheSizeMB
+   * 控制缓存内存使用限制
    */
   @IsNumber()
   @Min(64)
