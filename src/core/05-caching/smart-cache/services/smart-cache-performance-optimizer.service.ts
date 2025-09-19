@@ -29,7 +29,6 @@ export class SmartCachePerformanceOptimizer {
     SMART_CACHE_CONSTANTS.INTERVALS_MS.MEMORY_CHECK_INTERVAL_MS;
   private cpuCheckInterval =
     SMART_CACHE_CONSTANTS.INTERVALS_MS.CPU_CHECK_INTERVAL_MS;
-  private lastCpuCheck = 0;
 
   /** 动态配置管理 */
   private dynamicMaxConcurrency: number;

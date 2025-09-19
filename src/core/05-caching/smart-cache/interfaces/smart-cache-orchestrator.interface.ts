@@ -97,36 +97,6 @@ export interface CacheOrchestratorResult<T> {
   error?: string;
 }
 
-/**
- * 数据提供者结果接口
- * 标准化的数据获取结果
- */
-export interface DataProviderResult<T> {
-  /** 返回的数据 */
-  data: T;
-
-  /** 操作是否成功 */
-  success: boolean;
-
-  /** 错误信息（如有） */
-  error?: string;
-
-  /** 数据时间戳 */
-  timestamp: string;
-
-  /** 数据来源 */
-  source?: string;
-
-  /** 元数据 */
-  metadata?: {
-    /** 市场信息 */
-    market?: Market;
-    /** 请求耗时（毫秒） */
-    duration?: number;
-    /** 其他信息 */
-    [key: string]: any;
-  };
-}
 
 /**
  * 后台更新任务接口

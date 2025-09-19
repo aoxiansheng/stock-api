@@ -1,8 +1,5 @@
 # Symbol Mapper Cache 组件
 
-> **最后更新**: 2025-09-19 - 兼容层清理完成
-> **配置系统**: 已迁移至统一配置系统 (CacheUnifiedConfig)
-
 这是一个从 `symbol-mapper` 模块中独立出来的专用缓存组件，提供高性能的三层缓存架构。
 
 ## 功能特性
@@ -24,7 +21,7 @@
 
 ### 模块导入
 ```typescript
-import { SymbolMapperCacheModule } from '@core/05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module';
+import { SymbolMapperCacheModule } from '@core/public/symbol-mapper-cache/module/symbol-mapper-cache.module';
 
 @Module({
   imports: [
@@ -38,7 +35,7 @@ export class YourModule {}
 
 ### 服务注入
 ```typescript
-import { SymbolMapperCacheService } from '@core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
+import { SymbolMapperCacheService } from '@core/public/symbol-mapper-cache/services/symbol-mapper-cache.service';
 
 @Injectable()
 export class YourService {
@@ -60,31 +57,31 @@ import {
   SymbolMappingResult,
   BatchMappingResult,
   CacheStatsDto
-} from '@core/05-caching/symbol-mapper-cache/interfaces/cache-stats.interface';
+} from '@core/public/symbol-mapper-cache/interfaces/cache-stats.interface';
 ```
 
 ## 配置
 
-缓存配置通过 **统一配置系统** 管理：
+缓存配置通过 `FeatureFlags` 管理：
 
 ```typescript
-// 使用 CacheUnifiedConfig 统一配置
-const config = this.configService.get<CacheUnifiedConfigValidation>('cacheUnified');
-const batchSize = config?.lruSortBatchSize || 1000;
-const maxSize = config?.maxSize || 10000;
-const ttl = config?.defaultTtl || 300;
+// L1: 规则缓存配置
+ruleCacheMaxSize: number;
+ruleCacheTtl: number;
 
-// 环境变量支持
-CACHE_LRU_SORT_BATCH_SIZE=1000
-CACHE_DEFAULT_TTL=300
-CACHE_MAX_SIZE=10000
+// L2: 符号映射缓存配置  
+symbolCacheMaxSize: number;
+symbolCacheTtl: number;
+
+// L3: 批量结果缓存配置
+batchResultCacheMaxSize: number;
+batchResultCacheTtl: number;
 ```
 
 ## 依赖关系
 
 - `SymbolMappingRepository` - 数据访问层
-- `CacheUnifiedConfig` - 统一配置系统
-- `ConfigService` - NestJS配置服务
+- `FeatureFlags` - 配置管理
 - `EventEmitter2` - 事件驱动架构的事件总线 (符合项目监控规范)
 - `DatabaseModule` - 统一数据库模块
 
@@ -94,16 +91,16 @@ CACHE_MAX_SIZE=10000
 
 ```bash
 # 单元测试
-bun run test:unit:cache:symbol-mapper
+npm test test/jest/unit/core/public/symbol-mapper-cache/
 
-# 集成测试
-bun run test:integration:cache
+# 集成测试  
+npm test test/jest/integration/core/public/symbol-mapper-cache/
 
 # 性能测试
-bun run test:perf:cache
+npm test test/jest/performance/core/public/symbol-mapper-cache/
 
 # E2E测试
-bun run test:e2e:cache
+npm test test/jest/e2e/core/public/symbol-mapper-cache/
 ```
 
 ## 设计原则
@@ -123,11 +120,11 @@ bun run test:e2e:cache
 3. 缓存相关接口从新位置导入
 
 ```typescript
-// ❌ 旧的导入 (已废弃 - 2025-09-19)
+// 旧的导入 (已废弃)
 import { SymbolMapperCacheService } from '@core/public/symbol-mapper/services/symbol-mapper-cache.service';
 
-// ✅ 新的导入（统一配置系统）
-import { SymbolMapperCacheService } from '@core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service';
+// 新的导入（事件驱动架构）
+import { SymbolMapperCacheService } from '@core/public/symbol-mapper-cache/services/symbol-mapper-cache.service';
 
 ## 监控集成说明
 

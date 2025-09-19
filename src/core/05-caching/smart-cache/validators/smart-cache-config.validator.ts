@@ -97,44 +97,7 @@ export class SmartCacheConfigValidator {
     return errors;
   }
 
-  /**
-   * 验证批次大小
-   * @param batchSize 批次大小
-   * @returns 验证错误数组
-   */
-  static validateBatchSize(batchSize: number): string[] {
-    const errors: string[] = [];
-    const { MIN_BATCH_SIZE_COUNT, MAX_BATCH_SIZE_COUNT } =
-      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS;
 
-    if (batchSize < MIN_BATCH_SIZE_COUNT || batchSize > MAX_BATCH_SIZE_COUNT) {
-      errors.push(
-        `批次大小必须在${MIN_BATCH_SIZE_COUNT}-${MAX_BATCH_SIZE_COUNT}之间，当前值: ${batchSize}`,
-      );
-    }
-
-    return errors;
-  }
-
-  /**
-   * 验证内存阈值
-   * @param memoryThreshold 内存阈值比例 (0-1)
-   * @returns 验证错误数组
-   */
-  static validateMemoryThreshold(memoryThreshold: number): string[] {
-    const errors: string[] = [];
-
-    if (memoryThreshold < 0 || memoryThreshold > 1) {
-      errors.push(`内存阈值必须在0-1之间，当前值: ${memoryThreshold}`);
-    }
-
-    // 内存阈值不应该设置得太低，建议至少50%
-    if (memoryThreshold < 0.5) {
-      errors.push(`内存阈值设置过低，建议至少0.5，当前值: ${memoryThreshold}`);
-    }
-
-    return errors;
-  }
 
   /**
    * 验证自适应策略TTL范围

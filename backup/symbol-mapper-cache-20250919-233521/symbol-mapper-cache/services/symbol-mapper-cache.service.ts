@@ -4,12 +4,10 @@ import {
   OnModuleDestroy,
   Inject,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { LRUCache } from "lru-cache";
 import crypto from "crypto";
 import { FeatureFlags } from "@config/feature-flags.config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { CacheUnifiedConfigValidation } from "../../../../cache/config/cache-unified.config";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { SymbolMappingRepository } from "../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository";
 import { SymbolMappingRule } from "../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema";
@@ -67,7 +65,6 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动：仅注入事件总线
-    private readonly configService: ConfigService, // ✅ 统一配置：注入配置服务
   ) {
     this.initializeCaches();
     this.initializeStats();
@@ -644,36 +641,20 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     this.cacheStats.l1.misses++;
     this.recordCacheMetrics("l1", false); // 记录L1未命中
 
-    try {
-      // 查询数据库获取规则
-      const mappingConfig = await this.repository.findByDataSource(provider);
-      const rules = mappingConfig?.SymbolMappingRule || [];
+    // 查询数据库获取规则
+    const mappingConfig = await this.repository.findByDataSource(provider);
+    const rules = mappingConfig?.SymbolMappingRule || [];
 
-      // 存入L1缓存，使用统一键
-      this.providerRulesCache.set(rulesKey, rules);
+    // 存入L1缓存，使用统一键
+    this.providerRulesCache.set(rulesKey, rules);
 
-      this.logger.debug("Provider rules loaded and cached", {
-        provider: provider.toLowerCase(),
-        rulesKey,
-        rulesCount: rules.length,
-      });
+    this.logger.debug("Provider rules loaded and cached", {
+      provider: provider.toLowerCase(),
+      rulesKey,
+      rulesCount: rules.length,
+    });
 
-      return rules;
-    } catch (error) {
-      // 数据库查询失败时返回空数组作为默认值
-      this.logger.error("Database query failed, returning empty rules as fallback", {
-        provider: provider.toLowerCase(),
-        rulesKey,
-        error: error.message,
-        fallbackStrategy: "empty_rules_array",
-      });
-
-      // 缓存空规则以避免重复查询失败的数据库
-      const emptyRules = [];
-      this.providerRulesCache.set(rulesKey, emptyRules);
-
-      return emptyRules;
-    }
+    return rules;
   }
 
   /**
@@ -1075,8 +1056,8 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 🎯 Provider缓存失效策略 (简化版2级策略)
-   * 直接智能失效指定provider的缓存，失败时记录错误但不影响服务
+   * 🎯 Provider缓存失效策略
+   * 智能失效受影响provider的所有缓存层级
    */
   private async invalidateProviderCache(
     provider: string,
@@ -1085,7 +1066,20 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     try {
       const normalizedProvider = provider.toLowerCase();
 
-      // 统一智能失效：清理指定provider的所有缓存层级
+      // 保守策略：清空所有缓存（如果 provider 为 '*'）
+      if (provider === "*") {
+        this.logger.warn(
+          "Using conservative invalidation: clearing all caches",
+          {
+            operationType,
+            reason: "cannot_determine_provider",
+          },
+        );
+        this.clearAllCaches();
+        return;
+      }
+
+      // 智能失效：仅影响指定provider的缓存
       let invalidatedItems = 0;
 
       // L1: 清理provider规则缓存
@@ -1100,8 +1094,9 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       const symbolPrefix = `symbol:${normalizedProvider}:`;
       const symbolKeysToDelete = [];
 
-      // 直接使用现代LRU缓存的entries()方法
-      const symbolCacheIterator = this.symbolMappingCache.entries();
+      // 版本兼容性处理：优先使用 entries()，回退到 keys()
+      const symbolCacheIterator =
+        this.symbolMappingCache.entries?.() || this.symbolMappingCache.keys();
 
       for (const entry of symbolCacheIterator) {
         const key = Array.isArray(entry) ? entry[0] : entry;
@@ -1117,8 +1112,9 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       const batchPrefix = `batch:${normalizedProvider}:`;
       const batchKeysToDelete = [];
 
-      // 直接使用现代LRU缓存的entries()方法
-      const batchCacheIterator = this.batchResultCache.entries();
+      // 版本兼容性处理：优先使用 entries()，回退到 keys()
+      const batchCacheIterator =
+        this.batchResultCache.entries?.() || this.batchResultCache.keys();
 
       for (const entry of batchCacheIterator) {
         const key = Array.isArray(entry) ? entry[0] : entry;
@@ -1141,15 +1137,22 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         },
       });
     } catch (error) {
-      // 简化版失败处理：记录错误但不影响服务正常运行
-      this.logger.error("Provider cache invalidation failed, cache may be stale", {
+      this.logger.error("Provider cache invalidation failed", {
         provider,
         operationType,
         error: error.message,
-        fallbackStrategy: "continue_service_with_stale_cache",
       });
 
-      // 缓存失效失败不应该中断服务，让后续查询通过缓存未命中自然更新
+      this.logger.warn(
+        "Precise cache invalidation failed, will fallback to provider-wide invalidation",
+        {
+          provider,
+          fallbackAction: "clear_all_caches",
+        },
+      );
+
+      // 失效失败时使用保守策略
+      this.clearAllCaches();
     }
   }
 
@@ -1346,7 +1349,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       allEntries.reverse();
 
       // 分批处理以避免大数据集性能问题
-      const batchSize = this.configService.get<CacheUnifiedConfigValidation>('cacheUnified')?.lruSortBatchSize || 1000;
+      const batchSize = CACHE_CLEANUP.LRU_SORT_BATCH_SIZE;
       let deletedCount = 0;
 
       for (
@@ -1391,7 +1394,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
           deletionRate: (deletedCount / (processingTimeMs || 1)) * 1000, // 每秒删除条目数
           memoryFreedRatio: deletedCount / currentSize,
           batchProcessingEnabled:
-            toDeleteCount > (this.configService.get<CacheUnifiedConfigValidation>('cacheUnified')?.lruSortBatchSize || 1000),
+            toDeleteCount > CACHE_CLEANUP.LRU_SORT_BATCH_SIZE,
         },
       });
     } catch (error) {
@@ -1409,239 +1412,16 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         },
       );
 
-      // 失败时回退到智能清理策略
-      this.performIntelligentCleanup(currentSize, keepCount, cleanupStartTime);
+      // 失败时回退到简单策略
+      this.symbolMappingCache.clear();
 
       // 记录回退策略的完成情况
-      this.logger.log("Intelligent fallback cleanup completed", {
+      this.logger.log("Fallback cleanup completed", {
         originalSize: currentSize,
         finalSize: this.symbolMappingCache.size,
         totalProcessingTimeMs: Date.now() - cleanupStartTime,
-        strategy: "intelligent_cleanup_fallback",
+        strategy: "simple_clear_fallback",
       });
     }
-  }
-
-  /**
-   * 🎯 智能清理策略 - 基于访问频率和时间衰减
-   *
-   * 清理策略优先级：
-   * 1. 最老且最少访问的条目
-   * 2. 超过TTL的条目
-   * 3. 低价值条目（基于缓存命中率）
-   *
-   * @param originalSize 原始缓存大小
-   * @param keepCount 需要保留的条目数量
-   * @param startTime 清理开始时间
-   * @private
-   */
-  private performIntelligentCleanup(originalSize: number, keepCount: number, startTime: number): void {
-    const config = this.configService.get<CacheUnifiedConfigValidation>('cacheUnified');
-    const batchSize = config?.lruSortBatchSize || 1000;
-    const maxCleanupTime = config?.slowOperationMs || 100; // 限制清理时间
-
-    try {
-      // 如果缓存太大，使用分批智能清理
-      if (originalSize > batchSize) {
-        this.performBatchedIntelligentCleanup(originalSize, keepCount, startTime, batchSize, maxCleanupTime);
-      } else {
-        // 小缓存直接智能清理
-        this.performDirectIntelligentCleanup(originalSize, keepCount, startTime);
-      }
-    } catch (error) {
-      this.logger.warn("Intelligent cleanup failed, using emergency clear", {
-        error: error.message,
-        originalSize,
-        keepCount,
-        fallbackStrategy: "emergency_clear"
-      });
-
-      // 紧急情况下才使用clear()
-      this.symbolMappingCache.clear();
-    }
-  }
-
-  /**
-   * 🔄 分批智能清理 - 避免性能影响
-   *
-   * @param originalSize 原始缓存大小
-   * @param keepCount 需要保留的条目数量
-   * @param startTime 清理开始时间
-   * @param batchSize 批处理大小
-   * @param maxCleanupTime 最大清理时间（毫秒）
-   * @private
-   */
-  private performBatchedIntelligentCleanup(
-    originalSize: number,
-    keepCount: number,
-    startTime: number,
-    batchSize: number,
-    maxCleanupTime: number
-  ): void {
-    const toDeleteCount = originalSize - keepCount;
-    let deletedCount = 0;
-    let batchIndex = 0;
-
-    // 获取所有缓存条目
-    const allEntries = Array.from(this.symbolMappingCache.entries());
-
-    // 智能排序：优先删除价值最低的条目
-    const sortedEntries = this.sortEntriesByDeletionPriority(allEntries);
-
-    // 分批处理
-    while (deletedCount < toDeleteCount && (Date.now() - startTime) < maxCleanupTime) {
-      const batchStart = batchIndex * batchSize;
-      const batchEnd = Math.min(batchStart + batchSize, sortedEntries.length);
-
-      if (batchStart >= sortedEntries.length) break;
-
-      const batch = sortedEntries.slice(batchStart, batchEnd);
-
-      // 删除这一批条目
-      for (const [key] of batch) {
-        if (deletedCount >= toDeleteCount) break;
-        if (this.symbolMappingCache.delete(key)) {
-          deletedCount++;
-        }
-      }
-
-      batchIndex++;
-
-      // 记录批处理进度
-      this.logger.debug("Intelligent cleanup batch completed", {
-        batchIndex,
-        deletedInBatch: Math.min(batch.length, toDeleteCount - (deletedCount - batch.length)),
-        totalDeleted: deletedCount,
-        remainingToDelete: toDeleteCount - deletedCount,
-        elapsedTimeMs: Date.now() - startTime
-      });
-    }
-
-    this.logger.log("Batched intelligent cleanup completed", {
-      originalSize,
-      targetKeepCount: keepCount,
-      actualSize: this.symbolMappingCache.size,
-      deletedCount,
-      batchesProcessed: batchIndex,
-      cleanupEfficiency: (deletedCount / toDeleteCount * 100).toFixed(1) + '%',
-      processingTimeMs: Date.now() - startTime
-    });
-  }
-
-  /**
-   * ⚡ 直接智能清理 - 小缓存快速处理
-   *
-   * @param originalSize 原始缓存大小
-   * @param keepCount 需要保留的条目数量
-   * @param startTime 清理开始时间
-   * @private
-   */
-  private performDirectIntelligentCleanup(originalSize: number, keepCount: number, startTime: number): void {
-    const toDeleteCount = originalSize - keepCount;
-    const allEntries = Array.from(this.symbolMappingCache.entries());
-
-    // 智能排序：优先删除价值最低的条目
-    const sortedEntries = this.sortEntriesByDeletionPriority(allEntries);
-
-    // 删除指定数量的最低价值条目
-    let deletedCount = 0;
-    for (let i = 0; i < Math.min(toDeleteCount, sortedEntries.length); i++) {
-      const [key] = sortedEntries[i];
-      if (this.symbolMappingCache.delete(key)) {
-        deletedCount++;
-      }
-    }
-
-    this.logger.log("Direct intelligent cleanup completed", {
-      originalSize,
-      targetKeepCount: keepCount,
-      actualSize: this.symbolMappingCache.size,
-      deletedCount,
-      cleanupEfficiency: (deletedCount / toDeleteCount * 100).toFixed(1) + '%',
-      processingTimeMs: Date.now() - startTime
-    });
-  }
-
-  /**
-   * 🧠 智能排序 - 基于访问频率和时间衰减确定删除优先级
-   *
-   * 删除优先级算法：
-   * - 时间衰减因子：越老的条目分数越高（优先删除）
-   * - 访问频率：模拟访问频率（基于LRU位置）
-   * - 数据价值：某些关键符号映射优先保留
-   *
-   * @param entries 缓存条目数组
-   * @returns 按删除优先级排序的条目数组（优先删除的在前）
-   * @private
-   */
-  private sortEntriesByDeletionPriority(entries: [string, any][]): [string, any][] {
-    const now = Date.now();
-    const config = this.configService.get<CacheUnifiedConfigValidation>('cacheUnified');
-    const defaultTtl = (config?.defaultTtl || 300) * 1000; // 转换为毫秒
-
-    // 为每个条目计算删除优先级分数（分数越高越优先删除）
-    const entriesWithScore = entries.map(([key, value], index) => {
-      // 1. 时间衰减因子 (0-1, 越老分数越高)
-      const approximateAge = index * (defaultTtl / entries.length); // 基于LRU位置估算年龄
-      const timeDecayScore = Math.min(approximateAge / defaultTtl, 1);
-
-      // 2. 访问频率因子 (0-1, 访问频率越低分数越高)
-      // LRU缓存中，index越大表示越少被访问
-      const accessFrequencyScore = index / entries.length;
-
-      // 3. 数据价值因子 (0-1, 价值越低分数越高)
-      let dataValueScore = 0.5; // 默认中等价值
-
-      // 关键符号映射（如港股主板）优先保留
-      if (key.includes('.HK') || key.includes('.SZ') || key.includes('.SS')) {
-        dataValueScore = 0.2; // 降低删除优先级
-      }
-
-      // 美股和其他市场的映射
-      if (key.includes('.US') || key.includes('.NASDAQ') || key.includes('.NYSE')) {
-        dataValueScore = 0.3; // 中等删除优先级
-      }
-
-      // 临时或测试数据优先删除
-      if (key.includes('test') || key.includes('temp') || key.includes('debug')) {
-        dataValueScore = 0.9; // 高删除优先级
-      }
-
-      // 4. 综合分数计算（权重分配）
-      const finalScore =
-        timeDecayScore * 0.4 +        // 时间衰减权重40%
-        accessFrequencyScore * 0.4 +  // 访问频率权重40%
-        dataValueScore * 0.2;         // 数据价值权重20%
-
-      return {
-        key,
-        value,
-        score: finalScore,
-        debugInfo: {
-          timeDecayScore: timeDecayScore.toFixed(3),
-          accessFrequencyScore: accessFrequencyScore.toFixed(3),
-          dataValueScore: dataValueScore.toFixed(3),
-          finalScore: finalScore.toFixed(3)
-        }
-      };
-    });
-
-    // 按分数降序排序（分数高的优先删除）
-    entriesWithScore.sort((a, b) => b.score - a.score);
-
-    // 记录智能排序的前几个条目（用于调试）
-    if (entriesWithScore.length > 0) {
-      const topCandidates = entriesWithScore.slice(0, Math.min(5, entriesWithScore.length));
-      this.logger.debug("Intelligent cleanup priorities (top deletion candidates)", {
-        totalEntries: entriesWithScore.length,
-        topCandidates: topCandidates.map(entry => ({
-          key: entry.key,
-          ...entry.debugInfo
-        }))
-      });
-    }
-
-    // 返回排序后的条目数组
-    return entriesWithScore.map(entry => [entry.key, entry.value]);
   }
 }
