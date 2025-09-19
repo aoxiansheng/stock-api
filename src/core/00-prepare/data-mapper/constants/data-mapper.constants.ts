@@ -310,12 +310,12 @@ export const API_TYPE_VALUES = Object.values(API_TYPES);
  * @see {@link CreateFlexibleMappingRuleDto} - 创建映射规则时使用
  * @see {@link FlexibleMappingRuleService} - 规则处理中使用
  *
- * @note INDEX_FIELDS类型保留用于完整字段集合，使用前需确认系统支持情况
+ * @note INDEX_FIELDS已在生产环境中使用，支持get-index-quote端点
  */
 export const RULE_LIST_TYPES = Object.freeze({
   QUOTE_FIELDS: "quote_fields",
   BASIC_INFO_FIELDS: "basic_info_fields",
-  INDEX_FIELDS: "index_fields", // 保留完整字段集合，但需要在使用时确认是否支持
+  INDEX_FIELDS: "index_fields", // 生产就绪 - 支持指数行情查询 (get-index-quote)
 } as const);
 
 /**
@@ -335,9 +335,49 @@ export type RuleListType =
 export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
 
 /**
- * 常用规则列表类型（不包含 index_fields，用于向后兼容）
+ * 生产环境规则类型使用状态映射
  *
- * @description 常用的规则列表类型子集，排除了可能不完全支持的index_fields类型
+ * @description 定义各规则类型在生产环境中的使用状态和支持的端点
+ * @usage 用于验证规则类型的生产就绪状态和获取支持的端点列表
+ *
+ * @example
+ * ```typescript
+ * import { RULE_TYPE_USAGE_STATUS } from './constants/data-mapper.constants';
+ *
+ * // 检查规则类型是否生产就绪
+ * const isReady = RULE_TYPE_USAGE_STATUS['index_fields'].status === 'production';
+ *
+ * // 获取支持的端点
+ * const endpoints = RULE_TYPE_USAGE_STATUS['quote_fields'].endpoints;
+ * ```
+ *
+ * @since 1.0.0
+ */
+export const RULE_TYPE_USAGE_STATUS = Object.freeze({
+  quote_fields: {
+    status: 'production' as const,
+    endpoints: ['get-stock-realtime', 'get-stock-history'],
+    riskLevel: 'low' as const,
+    description: '股票实时和历史行情数据'
+  },
+  basic_info_fields: {
+    status: 'production' as const,
+    endpoints: ['get-stock-basic-info'],
+    riskLevel: 'low' as const,
+    description: '股票基础信息数据'
+  },
+  index_fields: {
+    status: 'production' as const, // 已确认在生产环境使用
+    endpoints: ['get-index-quote'],
+    riskLevel: 'low' as const,
+    description: '指数行情数据'
+  }
+} as const);
+
+/**
+ * 常用规则列表类型（向后兼容别名）
+ *
+ * @description 常用的规则列表类型子集，为向后兼容而保留
  * @usage 在需要确保兼容性的场景中使用，特别是在DTO验证和前端展示中
  *
  * @example
@@ -353,11 +393,12 @@ export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
  * ```
  *
  * @see {@link AnalyzeDataSourceDto} - 在数据源分析中使用
- * @see {@link RULE_LIST_TYPES} - 完整的规则类型列表
+ * @see {@link RULE_LIST_TYPES} - 完整的规则类型列表（包含生产就绪的index_fields）
+ * @deprecated 推荐使用 RULE_LIST_TYPES，本常量仅为向后兼容而保留
  */
 export const COMMON_RULE_LIST_TYPES = Object.freeze({
-  QUOTE_FIELDS: "quote_fields",
-  BASIC_INFO_FIELDS: "basic_info_fields",
+  QUOTE_FIELDS: RULE_LIST_TYPES.QUOTE_FIELDS,
+  BASIC_INFO_FIELDS: RULE_LIST_TYPES.BASIC_INFO_FIELDS,
 } as const);
 
 /**
@@ -374,15 +415,7 @@ export const COMMON_RULE_LIST_TYPE_VALUES = Object.values(
  * 转换默认值常量
  *
  * @description 定义数据转换操作的默认参数值
- * @usage 当前未完全实施，建议用于：
- * - 转换规则创建时的默认值填充
- * - 转换操作执行时的缺省参数处理
- * - DTO 验证中的默认值设定
- *
- * @todo 建议在以下地方实施：
- * - FlexibleMappingRuleService 中使用这些默认值进行转换计算
- * - TransformRuleDto 中使用默认值进行参数初始化
- * - 转换操作工具类中使用这些常量作为缺省值
+ * @usage 在转换规则创建和执行时提供标准默认值
  */
 export const TRANSFORMATION_DEFAULTS = Object.freeze({
   MULTIPLY_VALUE: 1,
@@ -393,102 +426,9 @@ export const TRANSFORMATION_DEFAULTS = Object.freeze({
   VALUE_PLACEHOLDER: "{value}",
 } as const);
 
-/**
- * 数据映射性能阈值常量
- *
- * @description 用于性能监控和告警的阈值配置
- * @usage 这些常量可以用于：
- * - 映射操作执行时间监控
- * - 数据集大小检查和警告
- * - 内存使用量监控
- * - 超时处理和告警
- *
- * @todo 当前未完全实施，建议在以下场景中使用：
- * - FlexibleMappingRuleService 中的映射操作性能监控
- * - DataSourceAnalyzerService 中的数据分析性能跟踪
- * - 大数据集处理时的警告和降级策略
- */
-export const DATA_MAPPER_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_MAPPING_MS: 1000, // 慢映射操作阈值（1秒）
-  LARGE_DATASET_SIZE: 1000, // 大数据集阈值
-  HIGH_MEMORY_USAGE_MB: 100, // 高内存使用阈值（100MB）
-  MAX_PROCESSING_TIME_MS: 60000, // 最大处理时间（60秒）
-  SIMILARITY_CALCULATION_TIMEOUT_MS: 5000, // 相似度计算超时（5秒）
-} as const);
 
-/**
- * 数据映射指标常量
- *
- * @description 定义数据映射系统的性能和统计指标键名
- * @usage 当前未完全实施，可用于以下场景：
- * - MetricsService 中的数据映射相关指标收集
- * - FlexibleMappingRuleService 中的规则处理统计
- * - 性能监控和报表生成
- *
- * @todo 建议在以下地方实施：
- * - src/metrics/ 模块中集成数据映射指标
- * - src/monitoring/ 模块中添加映射性能监控
- * - 映射规则服务中添加指标埋点
- */
-export const DATA_MAPPER_METRICS = Object.freeze({
-  RULES_PROCESSED: "rules_processed",
-  FIELDS_MAPPED: "fields_mapped",
-  TRANSFORMATIONS_APPLIED: "transformations_applied",
-  PROCESSING_TIME_MS: "processing_time_ms",
-  SUCCESS_RATE: "success_rate",
-  ERROR_RATE: "error_rate",
-  SIMILARITY_SCORE: "similarity_score",
-  CACHE_HIT_RATE: "cache_hit_rate",
-} as const);
 
-/**
- * 数据映射状态常量
- *
- * @description 定义映射规则和模板的生命周期状态
- * @usage 当前未完全实施，建议用于：
- * - FlexibleMappingRule Schema 中的 status 字段枚举值
- * - DataSourceTemplate Schema 中的状态管理
- * - 规则状态切换和生命周期管理
- *
- * @todo 在以下文件中实施：
- * - flexible-mapping-rule.schema.ts: status 字段使用这些常量
- * - data-source-template.schema.ts: 模板状态管理
- * - 相关服务层的状态验证和切换逻辑
- */
-export const DATA_MAPPER_STATUS = Object.freeze({
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  DRAFT: "draft",
-  TESTING: "testing",
-  DEPRECATED: "deprecated",
-  ERROR: "error",
-} as const);
 
-/**
- * 数据映射事件常量
- *
- * @description 定义数据映射系统的事件类型，用于事件驱动架构
- * @usage 当前未完全实施，建议用于：
- * - 映射规则 CRUD 操作的事件发布
- * - 审计日志记录
- * - 实时通知和监控告警
- *
- * @todo 集成到以下系统：
- * - src/alert/ 模块：映射规则变更通知
- * - 映射规则服务：操作完成后发布相应事件
- * - 审计服务：记录映射规则的操作历史
- */
-export const DATA_MAPPER_EVENTS = Object.freeze({
-  RULE_CREATED: "data_mapper.rule_created",
-  RULE_UPDATED: "data_mapper.rule_updated",
-  RULE_DELETED: "data_mapper.rule_deleted",
-  RULE_ACTIVATED: "data_mapper.rule_activated",
-  RULE_DEACTIVATED: "data_mapper.rule_deactivated",
-  MAPPING_APPLIED: "data_mapper.mapping_applied",
-  TRANSFORMATION_APPLIED: "data_mapper.transformation_applied",
-  FIELD_SUGGESTION_GENERATED: "data_mapper.field_suggestion_generated",
-  PERFORMANCE_WARNING: "data_mapper.performance_warning",
-} as const);
 
 /**
  * 数据映射默认值常量
@@ -496,7 +436,6 @@ export const DATA_MAPPER_EVENTS = Object.freeze({
 export const DATA_MAPPER_DEFAULTS = Object.freeze({
   PAGE_NUMBER: 1,
   PAGE_SIZE: 10,
-  RULE_STATUS: DATA_MAPPER_STATUS.ACTIVE,
   SIMILARITY_THRESHOLD: FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD,
   MAX_SUGGESTIONS: FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS,
   TIMEOUT_MS: DATA_MAPPER_CONFIG.DEFAULT_TIMEOUT_MS,
@@ -505,50 +444,7 @@ export const DATA_MAPPER_DEFAULTS = Object.freeze({
   LOG_LEVEL: "info",
 } as const);
 
-/**
- * 数据类型处理常量
- *
- * @description 定义数据映射过程中不同数据类型的处理规则和识别模式
- * @usage 当前未完全实施，建议用于：
- * - DataSourceAnalyzerService 中的字段类型自动识别
- * - 路径解析器中的嵌套结构处理
- * - 字段映射时的类型兼容性检查
- *
- * @todo 建议在以下地方实施：
- * - data-source-analyzer.service.ts: 使用 ARRAY_FIELDS/OBJECT_FIELDS 进行类型识别
- * - 路径解析工具中使用 NESTED_SEPARATORS 和 PATH_DELIMITERS
- * - 字段映射验证时使用 PRIMITIVE_FIELDS 进行类型检查
- */
-export const DATA_TYPE_HANDLERS = Object.freeze({
-  ARRAY_FIELDS: ["secu_quote", "basic_info", "data", "items"],
-  OBJECT_FIELDS: ["metadata", "config", "settings"],
-  PRIMITIVE_FIELDS: ["string", "number", "boolean", "date"],
-  NESTED_SEPARATORS: [".", "[", "]"],
-  PATH_DELIMITERS: /[.\[\]]/,
-} as const);
 
-/**
- * 数据映射字段验证规则常量
- *
- * @description 定义映射规则字段的验证模式和必填字段要求
- * @usage 当前未完全实施，建议用于：
- * - 映射规则创建时的字段验证
- * - DTO 层的自定义验证器
- * - 字段格式和命名约定检查
- *
- * @todo 建议在以下地方实施：
- * - flexible-mapping-rule.dto.ts: 使用正则表达式进行字段格式验证
- * - 自定义验证装饰器中使用这些模式
- * - 映射规则服务中的数据完整性检查
- */
-export const DATA_MAPPER_FIELD_VALIDATION_RULES = Object.freeze({
-  REQUIRED_FIELDS: ["name", "provider", "transDataRuleListType"],
-  OPTIONAL_FIELDS: ["description", "tags", "metadata"],
-  FIELD_NAME_PATTERN: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
-  PATH_PATTERN: /^[a-zA-Z_][a-zA-Z0-9_.\[\]]*$/,
-  PROVIDER_PATTERN: /^[a-zA-Z][a-zA-Z0-9_-]*$/,
-  RULE_LIST_TYPE_PATTERN: /^[a-zA-Z][a-zA-Z0-9_-]*$/,
-} as const);
 
 /**
  * 缓存配置常量
@@ -561,68 +457,5 @@ export const DATA_MAPPER_CACHE_CONFIG = Object.freeze({
   CACHE_KEY_PREFIX: "data_mapper:", // 缓存键前缀
 } as const);
 
-/**
- * 统计信息配置常量
- *
- * @description 定义数据映射系统的统计信息收集和维护配置
- * @usage 当前未完全实施，建议用于：
- * - 映射规则使用统计的定期刷新
- * - 性能指标的历史数据保留策略
- * - 错误率统计的时间窗口控制
- *
- * @todo 建议在以下地方实施：
- * - src/monitoring/ 模块中集成数据映射统计
- * - FlexibleMappingRuleService 中添加统计信息收集
- * - 定期清理任务中使用这些配置
- */
-export const DATA_MAPPER_STATS_CONFIG = Object.freeze({
-  STATS_REFRESH_INTERVAL_MS: 60000, // 统计刷新间隔（1分钟）
-  METRICS_RETENTION_DAYS: 30, // 指标保留天数
-  PERFORMANCE_SAMPLE_SIZE: 100, // 性能样本大小
-  ERROR_TRACKING_WINDOW_HOURS: 24, // 错误跟踪窗口（24小时）
-} as const);
 
-/**
- * 数据映射质量指标常量
- *
- * @description 定义数据映射质量评估的各项指标维度
- * @usage 当前未完全实施，建议用于：
- * - 映射规则质量评估和评分
- * - 数据质量监控和告警
- * - 映射结果的质量分析报告
- *
- * @todo 建议在以下地方实施：
- * - FlexibleMappingRuleService 中添加质量评估逻辑
- * - 质量监控服务中使用这些指标维度
- * - 映射结果的质量报告生成
- */
-export const DATA_MAPPER_QUALITY_METRICS = Object.freeze({
-  COMPLETENESS: "completeness", // 完整性
-  ACCURACY: "accuracy", // 准确性
-  CONSISTENCY: "consistency", // 一致性
-  VALIDITY: "validity", // 有效性
-  TIMELINESS: "timeliness", // 及时性
-  COVERAGE: "coverage", // 覆盖率
-} as const);
 
-/**
- * 路径解析配置常量
- *
- * @description 定义JSON路径解析和字段提取的配置参数
- * @usage 当前未完全实施，建议用于：
- * - DataSourceAnalyzerService 中的字段路径解析
- * - 嵌套对象和数组的路径处理
- * - 字段映射时的路径转换和验证
- *
- * @todo 建议在以下地方实施：
- * - data-source-analyzer.service.ts: 使用这些配置进行路径解析
- * - 字段映射工具中使用路径深度限制和格式转换
- * - 路径解析异常处理中使用回退策略
- */
-export const PATH_RESOLUTION_CONFIG = Object.freeze({
-  MAX_PATH_DEPTH: 10, // 最大路径深度
-  ARRAY_INDEX_PATTERN: /^\d+$/, // 数组索引模式
-  CAMEL_CASE_CONVERSION: true, // 启用驼峰命名转换
-  CASE_SENSITIVE: false, // 路径大小写敏感
-  FALLBACK_TO_ORIGINAL: true, // 回退到原始值
-} as const);
