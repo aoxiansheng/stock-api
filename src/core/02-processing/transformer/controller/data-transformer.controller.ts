@@ -57,7 +57,7 @@ export class DataTransformerController {
           metadata: {
             recordsProcessed: 1,
             fieldsTransformed: 4,
-            processingTime: 25,
+            processingTimeMs: 25,
             dataMapperRuleId: "rule_123",
             ruleName: "LongPort股票行情映射",
             timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
@@ -88,7 +88,7 @@ export class DataTransformerController {
         success: true,
         recordsProcessed: result.metadata.recordsProcessed,
         fieldsTransformed: result.metadata.fieldsTransformed,
-        processingTime: result.metadata.processingTimeMs,
+        processingTimeMs: result.metadata.processingTimeMs,
         dataMapperRuleId: result.metadata.ruleId,
         ruleName: result.metadata.ruleName,
       });
@@ -127,12 +127,12 @@ export class DataTransformerController {
                 lastPrice: 385.6,
               },
             ],
-            metadata: { recordsProcessed: 1, processingTime: 25 },
+            metadata: { recordsProcessed: 1, processingTimeMs: 25 },
           },
           {
             success: true,
             transformedData: [{ symbol: "AAPL.US", lastPrice: 195.89 }],
-            metadata: { recordsProcessed: 1, processingTime: 28 },
+            metadata: { recordsProcessed: 1, processingTimeMs: 28 },
           },
         ],
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,

@@ -117,28 +117,28 @@ export abstract class BaseFetcherService {
 
   /**
    * 检查性能阈值并记录警告
-   * @param processingTime 处理时间
+   * @param processingTimeMs 处理时间（毫秒）
    * @param symbolsCount 符号数量
    * @param requestId 请求ID
    * @param operation 操作名称
    * @param slowThresholdMs 慢响应阈值
    */
   protected checkPerformanceThreshold(
-    processingTime: number,
+    processingTimeMs: number,
     symbolsCount: number,
     requestId: string,
     operation: string,
     slowThresholdMs: number = 5000,
   ): void {
-    const timePerSymbol = symbolsCount > 0 ? processingTime / symbolsCount : 0;
+    const timePerSymbol = symbolsCount > 0 ? processingTimeMs / symbolsCount : 0;
 
-    if (processingTime > slowThresholdMs) {
+    if (processingTimeMs > slowThresholdMs) {
       this.logger.warn(
         `检测到慢响应`,
         sanitizeLogData({
           requestId,
           operation,
-          processingTime,
+          processingTimeMs,
           symbolsCount,
           timePerSymbol: Math.round(timePerSymbol * 100) / 100,
           threshold: slowThresholdMs,
@@ -146,7 +146,7 @@ export abstract class BaseFetcherService {
       );
 
       // ✅ 事件化慢响应监控
-      this.emitPerformanceEvent(`${operation}_slow_response`, processingTime, {
+      this.emitPerformanceEvent(`${operation}_slow_response`, processingTimeMs, {
         operation: operation,
         provider: "external_api",
         call_type: "slow_response_detection",

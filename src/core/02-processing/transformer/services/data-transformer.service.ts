@@ -133,7 +133,7 @@ export class DataTransformerService {
         transformMappingRule,
       );
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       const metadata = new DataTransformationMetadataDto(
         transformMappingRule.id,
@@ -142,14 +142,14 @@ export class DataTransformerService {
         request.transDataRuleListType,
         stats.recordsProcessed,
         stats.fieldsTransformed,
-        processingTime,
+        processingTimeMs,
         request.options?.includeMetadata
           ? stats.transformationsApplied
           : undefined,
       );
 
       const logLevel =
-        processingTime >
+        processingTimeMs >
         DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
           ? "warn"
           : "log";
@@ -159,7 +159,7 @@ export class DataTransformerService {
           dataMapperRuleId: transformMappingRule.id,
           recordsProcessed: stats.recordsProcessed,
           fieldsTransformed: stats.fieldsTransformed,
-          processingTime,
+          processingTimeMs,
         }),
       );
 
@@ -170,7 +170,7 @@ export class DataTransformerService {
           source: "data_transformer",
           metricType: "business",
           metricName: "transformation_completed",
-          metricValue: processingTime,
+          metricValue: processingTimeMs,
           tags: {
             operation: "data-transformation",
             provider: request.provider,
@@ -187,19 +187,19 @@ export class DataTransformerService {
       });
 
       if (
-        processingTime >
+        processingTimeMs >
         DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
       ) {
-        this.logger.warn(`数据转换性能警告: ${processingTime}ms`, {
+        this.logger.warn(`数据转换性能警告: ${processingTimeMs}ms`, {
           provider: request.provider,
           transDataRuleListType: request.transDataRuleListType,
-          processingTime,
+          processingTimeMs,
         });
       }
 
       return new DataTransformResponseDto(finalData, metadata);
     } catch (error: any) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件化错误监控
       setImmediate(() => {
@@ -208,7 +208,7 @@ export class DataTransformerService {
           source: "data_transformer",
           metricType: "business",
           metricName: "transformation_failed",
-          metricValue: processingTime,
+          metricValue: processingTimeMs,
           tags: {
             operation: "data-transformation",
             provider: request.provider,
@@ -227,7 +227,7 @@ export class DataTransformerService {
           transDataRuleListType: request.transDataRuleListType,
           error: error.message,
           stack: error.stack,
-          processingTime,
+          processingTimeMs,
         }),
       );
 
@@ -350,7 +350,7 @@ export class DataTransformerService {
       }
     });
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
 
     // ✅ 事件化批量操作监控
     setImmediate(() => {
@@ -359,7 +359,7 @@ export class DataTransformerService {
         source: "data_transformer",
         metricType: "business",
         metricName: "batch_transformation_completed",
-        metricValue: processingTime,
+        metricValue: processingTimeMs,
         tags: {
           operation: "batch-data-transformation",
           batchSize: requests.length,
@@ -414,7 +414,7 @@ export class DataTransformerService {
         transformedData,
         transformMappingRule,
       );
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       const metadata = new DataTransformationMetadataDto(
         transformMappingRule.id,
@@ -423,14 +423,14 @@ export class DataTransformerService {
         request.transDataRuleListType,
         stats.recordsProcessed,
         stats.fieldsTransformed,
-        processingTime,
+        processingTimeMs,
         request.options?.includeMetadata
           ? stats.transformationsApplied
           : undefined,
       );
 
       const logLevel =
-        processingTime >
+        processingTimeMs >
         DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
           ? "warn"
           : "log";
@@ -439,17 +439,17 @@ export class DataTransformerService {
         sanitizeLogData({
           dataMapperRuleId: transformMappingRule.id,
           recordsProcessed: stats.recordsProcessed,
-          processingTime,
+          processingTimeMs,
         }),
       );
 
       if (
-        processingTime >
+        processingTimeMs >
         DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
       ) {
-        this.logger.warn(`单次数据转换性能警告: ${processingTime}ms`, {
+        this.logger.warn(`单次数据转换性能警告: ${processingTimeMs}ms`, {
           dataMapperRuleId: transformMappingRule.id,
-          processingTime,
+          processingTimeMs,
         });
       }
 

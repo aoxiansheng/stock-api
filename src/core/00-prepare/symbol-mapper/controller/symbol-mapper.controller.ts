@@ -170,7 +170,7 @@ export class SymbolMapperController {
       this.logger.log(`API响应: 代码转换成功`, {
         dataSourceName: transformDto.dataSourceName,
         inputCount: transformDto.symbols.length,
-        processingTime: result.metadata.processingTimeMs + "ms",
+        processingTimeMs: result.metadata.processingTimeMs + "ms",
       });
 
       // Controller层适配返回结构为 TransformSymbolsResponseDto

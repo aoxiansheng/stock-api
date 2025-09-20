@@ -22,7 +22,7 @@ export class ResponseMetadataDto {
   requestId: string;
 
   @ApiProperty({ description: "处理时间(毫秒)" })
-  processingTime: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "是否存在部分失败", required: false })
   hasPartialFailures?: boolean;
@@ -37,7 +37,7 @@ export class ResponseMetadataDto {
     provider: string,
     capability: string,
     requestId: string,
-    processingTime: number,
+    processingTimeMs: number,
     hasPartialFailures?: boolean,
     totalRequested?: number,
     successfullyProcessed?: number,
@@ -46,7 +46,7 @@ export class ResponseMetadataDto {
     this.capability = capability;
     this.timestamp = new Date().toISOString();
     this.requestId = requestId;
-    this.processingTime = processingTime;
+    this.processingTimeMs = processingTimeMs;
     this.hasPartialFailures = hasPartialFailures;
     this.totalRequested = totalRequested;
     this.successfullyProcessed = successfullyProcessed;

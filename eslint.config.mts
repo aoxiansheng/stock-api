@@ -97,26 +97,34 @@ export default defineConfig([
   {
     name: "time-fields-standardization",
     files: ["src/**/*.{ts,js}"],
-    ignores: ["**/constants/**/*.{ts,js}", "**/*.constants.{ts,js}", "**/migration/**/*.{ts,js}", "**/legacy/**/*.{ts,js}"],
+    ignores: ["**/constants/**/*.{ts,js}", "**/*.constants.{ts,js}", "**/migration/**/*.{ts,js}", "**/legacy/**/*.{ts,js}", "**/test/**/*.{ts,js}", "**/*.spec.{ts,js}", "**/*.test.{ts,js}"],
     rules: {
-      // 时间字段标准化规则
+      // 时间字段标准化规则 - 检测废弃字段使用
       "no-restricted-syntax": [
         "error",
         {
           selector: "Property[key.name='responseTime'][value.type!='TSTypeReference']",
-          message: "使用 responseTimeMs 代替 responseTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+          message: "⚠️ DEPRECATED: 使用 responseTimeMs 代替 responseTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
         },
         {
           selector: "Property[key.name='averageResponseTime'][value.type!='TSTypeReference']",
-          message: "使用 averageResponseTimeMs 代替 averageResponseTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+          message: "⚠️ DEPRECATED: 使用 averageResponseTimeMs 代替 averageResponseTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
         },
         {
           selector: "Property[key.name='averageQueryTime'][value.type!='TSTypeReference']",
-          message: "使用 queryTimeMs 代替 averageQueryTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+          message: "⚠️ DEPRECATED: 使用 queryTimeMs 代替 averageQueryTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
         },
         {
           selector: "Property[key.name='processingTime'][value.type!='TSTypeReference']",
-          message: "使用 processingTimeMs 代替 processingTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移"
+          message: "⚠️ DEPRECATED: 使用 processingTimeMs 代替 processingTime 以明确时间单位。可使用 common/utils/time-fields-migration.util.ts 中的工具函数进行迁移。详见: 阶段2废弃通知"
+        },
+        {
+          selector: "TSPropertySignature[key.name='processingTime']:not([key.name='processingTime'] ~ Comment)",
+          message: "⚠️ DEPRECATED: processingTime 字段已废弃，请使用 processingTimeMs。需要添加 @deprecated 注释并迁移到新字段"
+        },
+        {
+          selector: "Parameter[name='processingTime']:not([typeAnnotation.typeAnnotation.typeName.name='ProcessingTimeFields'])",
+          message: "⚠️ DEPRECATED: processingTime 参数已废弃，请使用 processingTimeMs 或实现 ProcessingTimeFields 接口"
         }
       ]
     }
@@ -136,6 +144,36 @@ export default defineConfig([
         {
           selector: "TSInterfaceDeclaration:has(TSPropertySignature[key.name='processingTimeMs']):not(:has(TSExpressionWithTypeArguments[expression.name='ProcessingTimeFields']))",
           message: "考虑继承 ProcessingTimeFields 接口以获得标准化的时间字段定义。导入路径: 'common/interfaces/time-fields.interface'"
+        }
+      ]
+    }
+  },
+  {
+    name: "deprecated-processing-time-detection",
+    files: ["src/**/*.{ts,js}"],
+    ignores: ["**/test/**/*.{ts,js}", "**/*.spec.{ts,js}", "**/*.test.{ts,js}", "**/migration/**/*.{ts,js}", "**/legacy/**/*.{ts,js}"],
+    rules: {
+      // 专门检测 processingTime 废弃字段的使用
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[property.name='processingTime']:not(MemberExpression[object.name='timeFields']):not(MemberExpression[object.name='legacyObj']):not(MemberExpression[object.name='metadata'])",
+          message: "⚠️ DEPRECATED (阶段2): processingTime 字段已废弃，请使用 processingTimeMs。当前处于废弃警告期，将在阶段3移除"
+        },
+        {
+          selector: "Property[key.name='processingTime']:not(Property[key.name='processingTime'] ~ Property[key.name='processingTimeMs'])",
+          message: "⚠️ DEPRECATED (阶段2): 单独使用 processingTime 已废弃，必须同时提供 processingTimeMs 字段或迁移到新字段"
+        },
+        {
+          selector: "VariableDeclarator[id.name='processingTime']:not([init.type='MemberExpression'][init.property.name='processingTime'])",
+          message: "⚠️ DEPRECATED (阶段2): processingTime 变量命名已废弃，请使用 processingTimeMs"
+        }
+      ],
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "processingTime",
+          message: "⚠️ DEPRECATED (阶段2): 全局 processingTime 已废弃，请使用 processingTimeMs"
         }
       ]
     }

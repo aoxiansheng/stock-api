@@ -123,7 +123,7 @@ export class ReceiverController {
           metadata: {
             requestId: "req_realtime_1704110400123",
             provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-            processingTime: 23, // 超快响应时间
+            processingTimeMs: 23, // 超快响应时间
             cacheUsed: false, // 强时效优先获取最新数据
             cacheTTL: 1, // 1秒缓存
             marketAware: true, // 市场感知
@@ -153,7 +153,7 @@ export class ReceiverController {
         requestId: result.metadata.requestId,
         success: isFullySuccessful,
         provider: result.metadata.provider,
-        processingTime: result.metadata.processingTime,
+        processingTimeMs: result.metadata.processingTimeMs,
         totalRequested: result.metadata.totalRequested,
         successfullyProcessed: result.metadata.successfullyProcessed,
         hasPartialFailures: result.metadata.hasPartialFailures,

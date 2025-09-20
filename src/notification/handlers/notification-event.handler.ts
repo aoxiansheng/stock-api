@@ -75,7 +75,7 @@ export class NotificationEventHandler {
   };
 
   // 处理时间记录（用于计算平均值）
-  private processingTimes: number[] = [];
+  private handlingTimes: number[] = [];
 
   constructor(private readonly historyService: NotificationHistoryService) {
     this.logger.debug("NotificationEventHandler 已初始化");
@@ -608,18 +608,18 @@ export class NotificationEventHandler {
    * 更新处理时间统计
    */
   private updateProcessingTime(startTime: number): void {
-    const processingTime = Date.now() - startTime;
-    this.processingTimes.push(processingTime);
+    const handlingTime = Date.now() - startTime;
+    this.handlingTimes.push(handlingTime);
 
     // 只保留最近100次的处理时间记录
-    if (this.processingTimes.length > 100) {
-      this.processingTimes.shift();
+    if (this.handlingTimes.length > 100) {
+      this.handlingTimes.shift();
     }
 
     // 计算平均处理时间
     this.statistics.averageProcessingTime =
-      this.processingTimes.reduce((a, b) => a + b, 0) /
-      this.processingTimes.length;
+      this.handlingTimes.reduce((a, b) => a + b, 0) /
+      this.handlingTimes.length;
   }
 
   /**
@@ -637,7 +637,7 @@ export class NotificationEventHandler {
     this.statistics.errorEvents = 0;
     this.statistics.successEvents = 0;
     this.statistics.averageProcessingTime = 0;
-    this.processingTimes = [];
+    this.handlingTimes = [];
 
     Object.keys(this.statistics.eventsByType).forEach((key) => {
       this.statistics.eventsByType[key as NotificationEventType] = 0;
@@ -663,7 +663,7 @@ export class NotificationEventHandler {
         errorRate: errorRate.toFixed(3),
         healthCheck: {
           errorRateThreshold: "< 10%",
-          processingTimeThreshold: "< 1000ms",
+          handlingTimeThreshold: "< 1000ms",
           currentErrorRate: `${(errorRate * 100).toFixed(1)}%`,
           currentAvgProcessingTime: `${this.statistics.averageProcessingTime.toFixed(1)}ms`,
         },

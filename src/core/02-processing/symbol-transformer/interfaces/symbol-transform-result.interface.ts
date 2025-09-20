@@ -26,7 +26,7 @@ export interface SymbolTransformResult {
     /** 失败转换数 */
     failedCount: number;
 
-    /** 处理时间（毫秒） - 注意：使用 processingTimeMs 而非 processingTime */
+ 
     processingTimeMs: number;
   };
 }
@@ -53,8 +53,8 @@ export interface SymbolTransformForProviderResult {
       totalSymbols: number;
       successfulTransformations: number;
       failedTransformations: number;
-      /** 注意：这里使用 processingTime 而非 processingTimeMs */
-      processingTime: number;
+      /** 处理时间（毫秒） */
+      processingTimeMs: number;
     };
   };
 }

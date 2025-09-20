@@ -7,8 +7,7 @@ export * from "./stream-client-state-manager.service";
 export * from "./stream-recovery-worker.service";
 //export * from './stream-metrics.service';
 
-// 连接实现
-export * from "./stream-connection.impl";
+
 
 // 注意: 内部实现细节不导出，保持模块封装性
 // - 不导出私有方法和内部类型

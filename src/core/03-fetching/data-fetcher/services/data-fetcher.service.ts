@@ -139,7 +139,7 @@ export class DataFetcherService implements IDataFetcher {
       // 4. 处理返回数据格式
       const processedData = this.processRawData(rawData);
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // 💡 系统级性能监控由 src/monitoring/ 全局监控组件统一处理
       // 📁 不得在业务组件中重复实现系统级监控功能
@@ -152,13 +152,13 @@ export class DataFetcherService implements IDataFetcher {
           source: "data_fetcher",
           metricType: "business",
           metricName: "data_processing_completed",
-          metricValue: processingTime,
+          metricValue: processingTimeMs,
           tags: {
             provider,
             capability,
             symbolsCount: symbols.length,
             timePerSymbol:
-              symbols.length > 0 ? processingTime / symbols.length : 0,
+              symbols.length > 0 ? processingTimeMs / symbols.length : 0,
             componentType: "data_fetcher",
             requestId,
           },
@@ -171,7 +171,7 @@ export class DataFetcherService implements IDataFetcher {
         metadata: {
           provider,
           capability,
-          processingTimeMs: processingTime,
+          processingTimeMs: processingTimeMs,
           symbolsProcessed: symbols.length,
         },
       };
@@ -182,7 +182,7 @@ export class DataFetcherService implements IDataFetcher {
           requestId,
           provider,
           capability,
-          processingTime,
+          processingTimeMs,
           symbolsProcessed: symbols.length,
           dataCount: processedData.length,
           operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
@@ -191,7 +191,7 @@ export class DataFetcherService implements IDataFetcher {
 
       return result;
     } catch (error) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // 记录失败的外部API调用 - 事件驱动方式
       setImmediate(() => {
@@ -201,7 +201,7 @@ export class DataFetcherService implements IDataFetcher {
             source: "data_fetcher",
             metricType: "external_api",
             metricName: "api_call_failed",
-            metricValue: processingTime,
+            metricValue: processingTimeMs,
             tags: {
               provider,
               capability,
@@ -223,7 +223,7 @@ export class DataFetcherService implements IDataFetcher {
           provider,
           capability,
           error: error.message,
-          processingTime,
+          processingTimeMs,
           symbolsCount: symbols.length,
           operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
         }),

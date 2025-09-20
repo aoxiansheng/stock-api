@@ -16,7 +16,7 @@ export interface SymbolMappingResult {
   provider: string;
   direction: MappingDirection;
   cacheHit?: boolean;
-  processingTime?: number;
+  processingTimeMs?: number;
 }
 
 /**

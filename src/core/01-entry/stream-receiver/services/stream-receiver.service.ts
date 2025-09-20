@@ -2814,7 +2814,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private async updateBatchStatsThreadSafe(
     batchSize: number,
-    processingTime: number,
+    processingTimeMs: number,
   ): Promise<void> {
     const lockKey = "batchStats";
 
@@ -2828,7 +2828,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 原子性更新统计数据
       this.batchProcessingStats.totalBatches++;
       this.batchProcessingStats.totalQuotes += batchSize;
-      this.batchProcessingStats.batchProcessingTime += processingTime;
+      this.batchProcessingStats.batchProcessingTime += processingTimeMs;
 
       // 立即释放锁
       setImmediate(() => {
@@ -2922,23 +2922,23 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     await Promise.all(processingPromises);
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
 
     // 🔒 线程安全地更新统计数据
-    await this.updateBatchStatsThreadSafe(batch.length, processingTime);
+    await this.updateBatchStatsThreadSafe(batch.length, processingTimeMs);
 
     // ✅ 记录批处理监控指标
     const primaryProvider =
       Object.keys(groupedBatch)[0]?.split(":")[0] || "unknown";
     this.recordBatchProcessingMetrics(
       batch.length,
-      processingTime,
+      processingTimeMs,
       primaryProvider,
     );
 
     this.logger.debug("批量处理完成", {
       batchSize: batch.length,
-      processingTime,
+      processingTimeMs,
       groups: Object.keys(groupedBatch).length,
     });
   }
@@ -3269,28 +3269,28 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private recordBatchProcessingMetrics(
     batchSize: number,
-    processingTime: number,
+    processingTimeMs: number,
     provider: string,
   ): void {
     try {
       // ✅ 事件化监控 - 批处理性能事件
-      this.emitMonitoringEvent("batch_processed", processingTime, {
+      this.emitMonitoringEvent("batch_processed", processingTimeMs, {
         batchSize,
         provider,
-        avgTimePerQuote: batchSize > 0 ? processingTime / batchSize : 0,
+        avgTimePerQuote: batchSize > 0 ? processingTimeMs / batchSize : 0,
         quotesPerSecond:
           batchSize > 0
             ? Math.round(
                 (batchSize *
                   STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS) /
-                  processingTime,
+                  processingTimeMs,
               )
             : 0,
       });
     } catch (error) {
       this.logger.warn(`批处理监控事件发送失败: ${error.message}`, {
         batchSize,
-        processingTime,
+        processingTimeMs,
       });
     }
   }
@@ -3381,14 +3381,14 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private async updateBatchStatsWithFallbackInfo(
     batchSize: number,
-    processingTime: number,
+    processingTimeMs: number,
     reason: string,
     analyzeResult: any,
     partialRecoveryResult: any,
   ): Promise<void> {
     try {
       // 保持原有的线程安全统计更新
-      await this.updateBatchStatsThreadSafe(batchSize, processingTime);
+      await this.updateBatchStatsThreadSafe(batchSize, processingTimeMs);
 
       // 额外记录降级相关统计
       this.batchProcessingStats.totalFallbacks =

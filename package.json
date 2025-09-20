@@ -212,7 +212,17 @@
     "analyze:constants-usage": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts",
     "analyze:constants-usage:report": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts docs",
     "analyze:constants-usage:custom": "bun run tools/constants-usage-analysis/constants-usage-analyzer.ts",
-    "remove:unused-constants": "bun run tools/unused-delete/remove-unused-constants-advanced.ts"
+    "remove:unused-constants": "bun run tools/unused-delete/remove-unused-constants-advanced.ts",
+    "// ========== 字段迁移检测工具 ==========": "",
+    "check:processing-time-migration": "node scripts/check-processing-time-migration.js",
+    "migration:progress": "node scripts/check-processing-time-migration.js",
+    "migration:verify": "npm run check:processing-time-migration && npm run lint && npm run test:unit",
+    "lint:deprecated-fields": "echo 'Checking for deprecated processingTime field usage...' && grep -r --include='*.ts' --exclude-dir=node_modules --exclude-dir=test --exclude-dir=migration --exclude-dir=legacy 'processingTime' src/ || echo 'No deprecated processingTime usage found'",
+    "lint:deprecated-warnings": "echo 'Scanning for @deprecated warnings...' && grep -r --include='*.ts' --exclude-dir=node_modules '@deprecated.*processingTime' src/ || echo 'No @deprecated processingTime warnings found'",
+    "check:deprecated-fields": "npm run check:processing-time-migration",
+    "monitor:deprecation-status": "node scripts/monitor-deprecation-status.js",
+    "monitor:deprecation-watch": "nodemon --watch src --ext ts,js --exec 'npm run monitor:deprecation-status'",
+    "monitor:team-progress": "npm run monitor:deprecation-status && echo 'Team progress monitoring completed'"
   },
   "overrides": {
     "form-data": "^4.0.0"

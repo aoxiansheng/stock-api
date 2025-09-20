@@ -71,7 +71,7 @@ export class SymbolTransformationResultDto {
       totalSymbols: number;
       successfulTransformations: number;
       failedTransformations: number;
-      processingTime: number;
+      processingTimeMs: number;
       hasPartialFailures: boolean;
     };
   };
@@ -133,18 +133,12 @@ export class ReceiverPerformanceDto {
   @IsString()
   requestId: string;
 
-  @ApiProperty({ description: "处理时间（毫秒）" })
-  /** @deprecated 使用 processingTimeMs 替代 */
-  @IsNumber()
-  processingTime: number;
-
   @ApiProperty({
-    description: "Transformer组件处理耗时字段（毫秒，推荐使用此字段）",
+    description: "处理时间（毫秒）",
     example: 150,
   })
   @IsNumber()
-  @IsOptional() // 过渡期设为可选
-  processingTimeMs?: number;
+  processingTimeMs: number;
 
   @ApiProperty({ description: "股票代码数量" })
   @IsNumber()

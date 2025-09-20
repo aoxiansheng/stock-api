@@ -12,6 +12,7 @@ import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
 } from "../providers/websocket-server.provider";
+import { WebSocketFeatureFlagsService } from "../config/websocket-feature-flags.config";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 import { ProvidersModule } from "../../../../providers/module/providers-sg.module";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
@@ -45,6 +46,8 @@ import { StreamCacheModule } from "../../../05-caching/stream-cache/module/strea
     ErrorSanitizerInterceptor, // 错误信息脱敏
     StreamConfigService, // 配置管理服务
     StreamRecoveryConfigService,
+    // WebSocket特性开关服务 - 修复依赖注入问题
+    WebSocketFeatureFlagsService,
     // 强类型WebSocket服务器提供者 - 替代forwardRef
     WebSocketServerProvider,
     {

@@ -163,14 +163,14 @@ export class ReceiverService {
             orchestratorRequest,
           );
 
-        const processingTime = Date.now() - startTime;
+        const processingTimeMs = Date.now() - startTime;
 
         // ✅ 事件化监控 - 记录成功请求
         this.emitRequestMetrics(
           "/api/v1/receiver/data", // endpoint
           "POST", // method
           200, // statusCode
-          processingTime, // duration
+          processingTimeMs, // duration
           {
             // metadata
             requestId,
@@ -179,7 +179,7 @@ export class ReceiverService {
             symbolsCount: request.symbols.length,
             avgTimePerSymbol:
               request.symbols.length > 0
-                ? processingTime / request.symbols.length
+                ? processingTimeMs / request.symbols.length
                 : 0,
             componentType: "receiver",
             market: this.extractMarketFromSymbols(request.symbols),
@@ -192,7 +192,7 @@ export class ReceiverService {
             provider,
             request.receiverType,
             requestId,
-            processingTime,
+            processingTimeMs,
             false, // hasPartialFailures
             request.symbols.length, // totalRequested
             request.symbols.length, // successfullyProcessed
@@ -216,14 +216,14 @@ export class ReceiverService {
         requestId,
       );
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件化监控 - 记录成功请求
       this.emitRequestMetrics(
         "/api/v1/receiver/data", // endpoint
         "POST", // method
         200, // statusCode
-        processingTime, // duration
+        processingTimeMs, // duration
         {
           // metadata
           requestId,
@@ -232,7 +232,7 @@ export class ReceiverService {
           symbolsCount: request.symbols.length,
           avgTimePerSymbol:
             request.symbols.length > 0
-              ? processingTime / request.symbols.length
+              ? processingTimeMs / request.symbols.length
               : 0,
           componentType: "receiver",
           market: this.extractMarketFromSymbols(request.symbols),
@@ -245,7 +245,7 @@ export class ReceiverService {
         sanitizeLogData({
           requestId,
           provider,
-          processingTime,
+          processingTimeMs,
           symbolsCount: request.symbols.length,
           operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
         }),
@@ -253,14 +253,14 @@ export class ReceiverService {
 
       return responseData;
     } catch (error) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件化监控 - 记录失败请求
       this.emitRequestMetrics(
         "/api/v1/receiver/data", // endpoint
         "POST", // method
         500, // statusCode
-        processingTime, // duration
+        processingTimeMs, // duration
         {
           // metadata
           requestId,
@@ -278,7 +278,7 @@ export class ReceiverService {
           requestId,
           error: error.message,
           stack: error.stack,
-          processingTime,
+          processingTimeMs,
           operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
           inputData: {
             symbolsCount: request.symbols?.length || 0,
@@ -812,7 +812,7 @@ export class ReceiverService {
     endpoint: string,
     method: string,
     statusCode: number,
-    processingTime: number,
+    processingTimeMs: number,
     metadata: Record<string, any>,
   ): void {
     // ✅ 使用 setImmediate 确保异步处理，不阻塞业务逻辑
@@ -822,7 +822,7 @@ export class ReceiverService {
         source: "receiver",
         metricType: "api",
         metricName: "request_processed",
-        metricValue: processingTime,
+        metricValue: processingTimeMs,
         tags: {
           endpoint,
           method,

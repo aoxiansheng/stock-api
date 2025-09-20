@@ -27,7 +27,6 @@ import {
   SubscriptionResult,
   UnsubscriptionResult,
 } from "../interfaces";
-import { StreamConnectionImpl } from "./stream-connection.impl";
 import { StreamCacheService } from "../../../05-caching/stream-cache/services/stream-cache.service";
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { ConnectionPoolManager } from "./connection-pool-manager.service";
@@ -1324,15 +1323,15 @@ export class StreamDataFetcherService
       return { key, connection, passed: true, suspicious: false };
     });
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
     this.logger.debug("Tier1快速状态检查完成", {
       processed: connections.length,
       passed: results.filter((r) => r.passed).length,
       suspicious: results.filter((r) => r.suspicious).length,
       failed: results.filter((r) => !r.passed && !r.suspicious).length,
-      processingTime,
+      processingTimeMs,
       avgTimePerConnection:
-        (processingTime / connections.length).toFixed(2) + "ms",
+        (processingTimeMs / connections.length).toFixed(2) + "ms",
     });
 
     return results;
@@ -1403,14 +1402,14 @@ export class StreamDataFetcherService
       }
     });
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
     this.logger.debug("Tier2心跳验证完成", {
       candidates: candidates.length,
       passed: finalResults.filter((r) => r.passed).length,
       failed: finalResults.filter((r) => !r.passed).length,
-      processingTime,
+      processingTimeMs,
       avgTimePerConnection:
-        (processingTime / candidates.length).toFixed(2) + "ms",
+        (processingTimeMs / candidates.length).toFixed(2) + "ms",
     });
 
     return finalResults;
@@ -1462,14 +1461,14 @@ export class StreamDataFetcherService
       }
     });
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
     this.logger.debug("Tier3完整健康检查完成", {
       candidates: candidates.length,
       passed: finalResults.filter((r) => r.passed).length,
       failed: finalResults.filter((r) => !r.passed).length,
-      processingTime,
+      processingTimeMs,
       avgTimePerConnection:
-        (processingTime / candidates.length).toFixed(2) + "ms",
+        (processingTimeMs / candidates.length).toFixed(2) + "ms",
     });
 
     return finalResults;
@@ -1908,14 +1907,14 @@ export class StreamDataFetcherService
       }
     }
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
 
     // 记录清理结果
     if (cleanedConnections > 0 || cleanedMappings > 0) {
       this.logger.log("Map定期清理完成", {
         cleanedConnections,
         cleanedMappings,
-        processingTime,
+        processingTimeMs,
         remainingConnections: this.activeConnections.size,
         remainingMappings: this.connectionIdToKey.size,
       });
@@ -1930,7 +1929,7 @@ export class StreamDataFetcherService
       }
     } else {
       this.logger.debug("Map定期清理完成，无需清理项目", {
-        processingTime,
+        processingTimeMs,
         activeConnections: this.activeConnections.size,
         mappings: this.connectionIdToKey.size,
       });

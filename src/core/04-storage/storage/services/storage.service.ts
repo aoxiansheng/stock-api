@@ -116,10 +116,10 @@ export class StorageService {
         success: !!storedDocument,
       });
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：数据存储成功
-      this.emitDatabaseOperationEvent("upsert", processingTime, true, {
+      this.emitDatabaseOperationEvent("upsert", processingTimeMs, true, {
         storage_type: "persistent",
         data_size: dataSize,
         compressed: compressed,
@@ -138,19 +138,19 @@ export class StorageService {
         request.provider,
         request.market,
         dataSize,
-        processingTime,
+        processingTimeMs,
         compressed,
         request.options?.tags,
         expiresAt?.toISOString(),
       );
 
-      this.logStorageSuccess(processingTime, request.key, dataSize, compressed);
+      this.logStorageSuccess(processingTimeMs, request.key, dataSize, compressed);
       return new StorageResponseDto(request.data, metadata);
     } catch (error: any) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：数据存储失败
-      this.emitDatabaseOperationEvent("upsert", processingTime, false, {
+      this.emitDatabaseOperationEvent("upsert", processingTimeMs, false, {
         storage_type: "persistent",
         error_type: error.constructor.name,
         classification: request.storageClassification,
@@ -164,7 +164,7 @@ export class StorageService {
         sanitizeLogData({
           error: error.message,
           stack: error.stack,
-          processingTime,
+          processingTimeMs,
         }),
       );
       throw new BadRequestException(
@@ -227,10 +227,10 @@ export class StorageService {
         `${STORAGE_ERROR_MESSAGES.DATA_NOT_FOUND}: ${request.key}`,
       );
     } catch (error: any) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：数据检索失败
-      this.emitDatabaseOperationEvent("findOne", processingTime, false, {
+      this.emitDatabaseOperationEvent("findOne", processingTimeMs, false, {
         storage_type: "persistent",
         error_type: error.constructor.name,
         key_pattern: this.extractKeyPattern(request.key),
@@ -243,7 +243,7 @@ export class StorageService {
         sanitizeLogData({
           error: error.message,
           stack: error.stack,
-          processingTime,
+          processingTimeMs,
         }),
       );
 
@@ -290,10 +290,10 @@ export class StorageService {
         deletedCount: persistentResult.deletedCount,
       });
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：数据删除成功
-      this.emitDatabaseOperationEvent("deleteOne", processingTime, true, {
+      this.emitDatabaseOperationEvent("deleteOne", processingTimeMs, true, {
         storage_type: "persistent",
         deleted_count: persistentResult.deletedCount,
         actually_deleted: deleted,
@@ -303,15 +303,15 @@ export class StorageService {
 
       this.logger.log(`数据库删除完成: ${key}`, {
         deleted,
-        processingTime,
+        processingTimeMs,
       });
 
       return deleted;
     } catch (error: any) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：数据删除失败
-      this.emitDatabaseOperationEvent("deleteOne", processingTime, false, {
+      this.emitDatabaseOperationEvent("deleteOne", processingTimeMs, false, {
         storage_type: "persistent",
         error_type: error.constructor.name,
         key_pattern: this.extractKeyPattern(key),
@@ -323,7 +323,7 @@ export class StorageService {
         sanitizeLogData({
           error: error.message,
           stack: error.stack,
-          processingTime,
+          processingTimeMs,
         }),
       );
 
@@ -420,10 +420,10 @@ export class StorageService {
         total,
       );
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：分页查询成功
-      this.emitDatabaseOperationEvent("findPaginated", processingTime, true, {
+      this.emitDatabaseOperationEvent("findPaginated", processingTimeMs, true, {
         storage_type: "persistent",
         page: query.page || 1,
         limit: query.limit || 10,
@@ -437,15 +437,15 @@ export class StorageService {
       this.logger.log(`分页数据检索完成`, {
         totalItems: total,
         pageItems: responseItems.length,
-        processingTime,
+        processingTimeMs,
       });
 
       return result;
     } catch (error) {
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       // ✅ 事件驱动监控：分页查询失败
-      this.emitDatabaseOperationEvent("findPaginated", processingTime, false, {
+      this.emitDatabaseOperationEvent("findPaginated", processingTimeMs, false, {
         storage_type: "persistent",
         error_type: error.constructor.name,
         page: query.page || 1,
@@ -458,7 +458,7 @@ export class StorageService {
         sanitizeLogData({
           query,
           error: error.message,
-          processingTime,
+          processingTimeMs,
         }),
       );
       throw new BadRequestException(
@@ -504,9 +504,9 @@ export class StorageService {
       }
     }
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
 
-    this.logRetrievalSuccess(processingTime, request.key, "persistent");
+    this.logRetrievalSuccess(processingTimeMs, request.key, "persistent");
 
     const responseMetadata = new StorageMetadataDto(
       document.key,
@@ -515,7 +515,7 @@ export class StorageService {
       document.provider,
       document.market,
       document.dataSize,
-      processingTime,
+      processingTimeMs,
       document.compressed,
       document.tags,
       undefined,

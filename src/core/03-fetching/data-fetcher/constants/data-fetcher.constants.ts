@@ -35,7 +35,7 @@ export const DATA_FETCHER_ERROR_MESSAGES = {
  * 数据获取警告消息
  */
 export const DATA_FETCHER_WARNING_MESSAGES = {
-  SLOW_RESPONSE: "数据获取响应较慢，处理时间: {processingTime}ms",
+  SLOW_RESPONSE: "数据获取响应较慢，处理时间: {processingTimeMs}ms",
   PARTIAL_SUCCESS: "数据获取部分成功，失败数量: {failedCount}",
   CONTEXT_SERVICE_WARNING: "提供商上下文服务警告: {warning}",
 } as const;

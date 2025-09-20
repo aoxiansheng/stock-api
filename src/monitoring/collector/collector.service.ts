@@ -108,7 +108,7 @@ export class CollectorService
         data: responseData,
         dataSize,
         metadata: {
-          processingTime: Date.now() - eventData.timestamp.getTime(),
+          processingTimeMs: Date.now() - eventData.timestamp.getTime(),
         },
       };
 

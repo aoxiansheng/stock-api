@@ -66,7 +66,7 @@ export class SymbolTransformerService {
         requestId,
       );
 
-      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      const processingTimeMs = Number(process.hrtime.bigint() - startTime) / 1e6;
 
       // 转换为统一返回格式（严格对齐现有格式）
       const response: SymbolTransformResult = {
@@ -78,7 +78,7 @@ export class SymbolTransformerService {
           totalSymbols: symbolArray.length,
           successCount: Object.keys(result.mappingDetails).length,
           failedCount: result.failedSymbols.length,
-          processingTimeMs: processingTime, // 注意：使用 processingTimeMs
+          processingTimeMs: processingTimeMs, // 使用标准字段名
         },
       };
 
@@ -86,7 +86,7 @@ export class SymbolTransformerService {
       this.emitMonitoringEvent("symbol_transformation_completed", {
         provider,
         direction,
-        duration: processingTime,
+        duration: processingTimeMs,
         totalSymbols: symbolArray.length,
         successCount: response.metadata.successCount,
         failedCount: response.metadata.failedCount,
@@ -102,13 +102,13 @@ export class SymbolTransformerService {
 
       return response;
     } catch (error) {
-      const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+      const processingTimeMs = Number(process.hrtime.bigint() - startTime) / 1e6;
 
       // ✅ 事件驱动错误监控
       this.emitMonitoringEvent("symbol_transformation_failed", {
         provider,
         direction,
-        duration: processingTime,
+        duration: processingTimeMs,
         totalSymbols: symbolArray.length,
         error: error.message,
         errorType: error.constructor.name,
@@ -118,7 +118,7 @@ export class SymbolTransformerService {
         requestId,
         provider,
         error: error.message,
-        processingTimeMs: processingTime,
+        processingTimeMs: processingTimeMs,
       });
 
       // 返回失败结果（与现有实现保持一致）
@@ -131,7 +131,7 @@ export class SymbolTransformerService {
           totalSymbols: symbolArray.length,
           successCount: 0,
           failedCount: symbolArray.length,
-          processingTimeMs: processingTime,
+          processingTimeMs: processingTimeMs,
         },
       };
     }
@@ -195,7 +195,7 @@ export class SymbolTransformerService {
       mappingResult.transformedSymbols[symbol] = symbol;
     });
 
-    const processingTime = Number(process.hrtime.bigint() - startTime) / 1e6;
+    const processingTimeMs = Number(process.hrtime.bigint() - startTime) / 1e6;
 
     // 返回与现有实现完全一致的格式
     const response: SymbolTransformForProviderResult = {
@@ -210,7 +210,7 @@ export class SymbolTransformerService {
             mappingResult.transformedSymbols,
           ).length,
           failedTransformations: mappingResult.failedSymbols.length,
-          processingTime: processingTime, // 注意：这里使用 processingTime（不带Ms）
+          processingTimeMs: processingTimeMs, // 使用标准字段名
         },
       },
     };

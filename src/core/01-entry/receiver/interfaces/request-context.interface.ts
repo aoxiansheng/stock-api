@@ -14,7 +14,7 @@ export interface RequestContext {
   provider?: string;
 
   /** 处理时长(毫秒) */
-  processingTime?: number;
+  processingTimeMs?: number;
 
   /** 是否使用智能缓存 */
   useSmartCache: boolean;

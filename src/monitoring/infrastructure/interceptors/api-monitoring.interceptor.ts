@@ -66,7 +66,7 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
                 response.get("content-length") ||
                 this.estimateResponseSize(data),
               cacheHit: response.get("x-cache-hit") === "true",
-              processingTime: duration,
+              processingTimeMs: duration,
             },
           });
         });
@@ -93,7 +93,7 @@ export class ApiMonitoringInterceptor implements NestInterceptor {
                 process.env.NODE_ENV === "development"
                   ? error.stack
                   : undefined,
-              processingTime: duration,
+              processingTimeMs: duration,
             },
           });
         });

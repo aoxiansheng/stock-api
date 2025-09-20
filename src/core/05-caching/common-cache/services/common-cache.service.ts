@@ -952,13 +952,13 @@ export class CommonCacheService {
                   data: processedData,
                   ttl: finalTTL,
                   compressed: isCompressed,
-                  processingTime: Date.now() - entryStartTime,
+                  processingTimeMs: Date.now() - entryStartTime,
                 };
               } catch (processingError) {
                 return {
                   key,
                   error: processingError.message,
-                  processingTime: Date.now() - entryStartTime,
+                  processingTimeMs: Date.now() - entryStartTime,
                 };
               }
             }),
@@ -992,7 +992,7 @@ export class CommonCacheService {
                 metadata: this.normalizeMetadata({
                   batchIndex,
                   entryIndex: i,
-                  processingTime: processed.processingTime || 0,
+                  processingTimeMs: processed.processingTimeMs || 0,
                 }),
               });
             } else {
@@ -1010,7 +1010,7 @@ export class CommonCacheService {
                   entryIndex: i,
                   compressed: processed.compressed,
                   ttl: processed.ttl,
-                  processingTime: processed.processingTime || 0,
+                  processingTimeMs: processed.processingTimeMs || 0,
                 }),
               });
 

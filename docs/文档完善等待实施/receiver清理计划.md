@@ -5,22 +5,6 @@
 
 ## 分析结果
 
-### 发现的废弃代码
-
-#### 1. @deprecated 标记字段
-
-**文件路径**: `src/core/01-entry/receiver/dto/receiver-internal.dto.ts:137`
-```typescript
-/** @deprecated 使用 processingTimeMs 替代 */
-@IsNumber()
-processingTime: number;
-```
-
-**详细信息**:
-- **行号**: 137-139
-- **类型**: 废弃的性能字段
-- **替代方案**: `processingTimeMs` 字段 (行 147)
-- **状态**: 新字段已存在，标记为 `@IsOptional()` 处于过渡期
 
 ### 发现的核心业务方法 (审核后重新分类)
 
@@ -63,15 +47,6 @@ private async executeOriginalDataFlow(
 
 ## 移除计划
 
-### 阶段1: 废弃字段移除 ⚠️ 复杂度高于预期
-**目标**: 移除 `processingTime` 废弃字段
-- **文件**: `src/core/01-entry/receiver/dto/receiver-internal.dto.ts`
-- **操作**:
-  - 分阶段迁移：先并存，后废弃，最后移除
-  - 影响范围：50+文件使用此字段
-  - 需要制定渐进式迁移计划
-- **风险**: **中等风险** (系统性影响)
-- **预估时间**: **2-3周** (需要分阶段执行)
 
 ### 阶段2: 核心方法重新分类 ✅ 已完成审核
 **目标**: `executeDataFetching` 方法重新分类
@@ -104,10 +79,10 @@ private async executeOriginalDataFlow(
 
 ### 高优先级 (立即修正)
 1. **重新分类核心方法**: `executeDataFetching` 保持现状 ✅ 已完成
-2. **制定废弃字段迁移计划**: `processingTime` 渐进式迁移方案
+
 
 ### 中优先级 (2-3周内)
-3. **执行分阶段迁移**: `processingTime` → `processingTimeMs` 系统性迁移
+
 4. **跨团队协调**: 与缓存编排器团队讨论 `executeOriginalDataFlow` 迁移方案
 
 ### 低优先级 (后续跟进)
@@ -122,21 +97,7 @@ private async executeOriginalDataFlow(
 | executeDataFetching | **无风险** | 保持现状 | 重新分类为核心方法 |
 | executeOriginalDataFlow | 中等 | 缓存编排器 | 跨团队协调，版本化迁移 |
 
-## 优化建议 (审核后新增)
 
-### 渐进式迁移方案
-```typescript
-// 阶段1: 同时支持两个字段
-processingTime: number;     // 保持兼容
-processingTimeMs?: number;  // 新增标准字段
-
-// 阶段2: 标记废弃警告
-/** @deprecated 请使用 processingTimeMs */
-processingTime: number;
-
-// 阶段3: 移除废弃字段
-processingTimeMs: number;   // 最终状态
-```
 
 ### 系统性改进建议
 1. **建立字段命名标准**: 统一时间字段命名规范 (`*TimeMs` 格式)
@@ -146,7 +107,6 @@ processingTimeMs: number;   // 最终状态
 ## 修正后的成功标准
 
 1. **方法分类准确**: 核心方法与兼容层明确区分 ✅ 已完成
-2. **分阶段迁移**: `processingTime` 字段安全迁移
 3. **测试通过**: 所有单元测试和集成测试通过
 4. **性能保持**: 清理后性能不下降
 5. **文档同步**: API文档与代码保持一致
@@ -161,10 +121,30 @@ processingTimeMs: number;   // 最终状态
 
 **主要发现**:
 - ✅ `executeDataFetching` 重新分类为核心业务方法
-- ⚠️ `processingTime` 字段影响范围比预期大 (50+文件)
 - ✅ `executeOriginalDataFlow` 分析正确
 
 **关键修正**:
 - 工期调整: 30分钟 → 2-3周 (废弃字段迁移)
 - 风险评估: 低风险 → 中等风险 (系统性影响)
 - 纯净度得分: 70/100 → 80/100 (方法重新分类)
+
+
+⚠️ 阶段2: 废弃警告 (任务12-15)
+
+  - 添加 @deprecated 标记
+  - 配置自动化检测和团队通知
+
+  🗑️ 阶段3: 完全移除 (任务16-17)
+
+  - 彻底清理废弃字段
+  - 处理所有遗留引用
+
+  🤝 跨团队协调 (任务18-20)
+
+  - 缓存编排器团队协调
+  - 新接口方案设计
+
+  ✅ 验证和文档 (任务21-24)
+
+  - 全面测试验证
+  - 文档更新和标准制定

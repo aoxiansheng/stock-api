@@ -85,7 +85,7 @@ export interface StatsMetadata {
   // 性能指标
   performance?: {
     queryTime?: number;
-    processingTime?: number;
+    processingTimeMs?: number;
     totalTime?: number;
   };
   // 额外的自定义字段

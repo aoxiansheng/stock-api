@@ -410,16 +410,16 @@ export class QueryExecutionEngine implements OnModuleInit {
       }
 
       // 记录批量处理效率监控指标
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
       const symbolsPerSecond =
         totalSymbolsCount /
         Math.max(
-          processingTime / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND,
+          processingTimeMs / CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND,
           0.001,
         );
       this.recordBatchProcessingMetrics(
         totalSymbolsCount,
-        processingTime,
+        processingTimeMs,
         this.inferMarketFromSymbols(validSymbols),
         symbolsPerSecond,
       );
@@ -599,12 +599,12 @@ export class QueryExecutionEngine implements OnModuleInit {
         marketErrors.push(...marketResult.marketErrors);
       }
 
-      const processingTime = Date.now() - startTime;
+      const processingTimeMs = Date.now() - startTime;
 
       this.logger.debug(`市场${market}批量处理完成`, {
         queryId,
         market,
-        processingTime,
+        processingTimeMs,
         resultsCount: results.length,
         cacheHits,
         realtimeHits,
@@ -850,7 +850,7 @@ export class QueryExecutionEngine implements OnModuleInit {
                 request.queryTypeFilter || CAPABILITY_NAMES.GET_STOCK_QUOTE,
               timestamp: new Date().toISOString(),
               requestId: queryId,
-              processingTime: 0,
+              processingTimeMs: 0,
             },
           }).catch((error) => {
             this.logger.warn(
@@ -1176,7 +1176,7 @@ export class QueryExecutionEngine implements OnModuleInit {
    */
   private recordBatchProcessingMetrics(
     batchSize: number,
-    processingTime: number,
+    processingTimeMs: number,
     market: string,
     efficiency: number,
   ): void {
@@ -1187,12 +1187,12 @@ export class QueryExecutionEngine implements OnModuleInit {
           source: "query_execution_engine",
           metricType: "performance",
           metricName: "batch_processing",
-          metricValue: processingTime,
+          metricValue: processingTimeMs,
           tags: {
             batchSize,
             market,
             efficiency,
-            avgTimePerBatch: batchSize > 0 ? processingTime / batchSize : 0,
+            avgTimePerBatch: batchSize > 0 ? processingTimeMs / batchSize : 0,
             operation: "batch_processing",
             componentType: "query",
           },

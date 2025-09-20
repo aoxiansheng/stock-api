@@ -26,7 +26,7 @@ export interface BatchProcessResult<T, R = T> {
     totalItems: number;
     successCount: number;
     failureCount: number;
-    processingTime: number;
+    processingTimeMs: number;
     memoryUsed: number;
     avgItemSize: number;
   };
@@ -246,7 +246,7 @@ export class BatchMemoryOptimizerService {
       });
     }
 
-    const processingTime = Date.now() - startTime;
+    const processingTimeMs = Date.now() - startTime;
     const avgItemSize = totalMemoryUsed / Math.max(1, successful.length);
 
     // 更新统计
@@ -263,7 +263,7 @@ export class BatchMemoryOptimizerService {
         totalItems: items.length,
         successCount: successful.length,
         failureCount: failed.length,
-        processingTime,
+        processingTimeMs,
         memoryUsed: totalMemoryUsed,
         avgItemSize,
       },
