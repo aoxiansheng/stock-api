@@ -697,68 +697,6 @@ export class AlertCacheService implements OnModuleInit {
     }
   }
 
-  /**
-   * 获取缓存服务统计
-   */
-  async getCacheStats(): Promise<{
-    activeAlerts: number;
-    cooldownRules: number;
-    timeseriesKeys: number;
-    cacheHitRate: number;
-    lastUpdated: Date;
-  }> {
-    const operation = "GET_CACHE_STATS";
-
-    this.logger.debug("获取缓存统计", { operation });
-
-    try {
-      // 使用Promise.allSettled以防单个统计获取失败
-      const [activeAlertsResult, cooldownRulesResult, timeseriesKeysResult] =
-        await Promise.allSettled([
-          this.countKeysByPattern(alertCacheKeys.activeAlertPattern()),
-          this.countKeysByPattern(alertCacheKeys.cooldownPattern()),
-          this.countKeysByPattern(alertCacheKeys.timeseriesPattern()),
-        ]);
-
-      const stats = {
-        activeAlerts:
-          activeAlertsResult.status === "fulfilled"
-            ? activeAlertsResult.value
-            : 0,
-        cooldownRules:
-          cooldownRulesResult.status === "fulfilled"
-            ? cooldownRulesResult.value
-            : 0,
-        timeseriesKeys:
-          timeseriesKeysResult.status === "fulfilled"
-            ? timeseriesKeysResult.value
-            : 0,
-        cacheHitRate: 0, // 命中率统计需要底层CacheService支持，暂时使用默认值
-        lastUpdated: new Date(),
-      };
-
-      this.logger.debug("缓存统计获取完成", {
-        operation,
-        stats,
-      });
-
-      return stats;
-    } catch (error) {
-      this.logger.error("获取缓存统计失败", {
-        operation,
-        error: error.message,
-      });
-
-      // 返回默认值
-      return {
-        activeAlerts: 0,
-        cooldownRules: 0,
-        timeseriesKeys: 0,
-        cacheHitRate: 0,
-        lastUpdated: new Date(),
-      };
-    }
-  }
 
   /**
    * 按模式统计键数量（容错处理）

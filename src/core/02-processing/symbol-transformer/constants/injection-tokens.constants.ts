@@ -48,11 +48,6 @@ export const INJECTION_TOKENS = {
    */
   CIRCUIT_BREAKER: Symbol(`${SYMBOL_TRANSFORMER_NAMESPACE}:ICircuitBreaker`),
 
-  /**
-   * 监控器Token
-   * @deprecated 监控功能已由事件驱动模式替代
-   */
-  MONITOR: Symbol(`${SYMBOL_TRANSFORMER_NAMESPACE}:ISymbolTransformMonitor`),
 
   /**
    * 配置服务Token
@@ -99,7 +94,6 @@ export const TOKEN_DESCRIPTIONS = {
   [INJECTION_TOKENS.TRANSFORMATION_CACHE.toString()]: "转换结果缓存服务",
   [INJECTION_TOKENS.PATTERN_MATCHER.toString()]: "符号模式匹配服务",
   [INJECTION_TOKENS.CIRCUIT_BREAKER.toString()]: "断路器保护服务",
-  [INJECTION_TOKENS.MONITOR.toString()]: "监控指标收集服务",
   [INJECTION_TOKENS.CONFIG.toString()]: "配置管理服务",
   [INJECTION_TOKENS.FACTORY.toString()]: "转换器工厂服务",
   [INJECTION_TOKENS.ERROR_HANDLER.toString()]: "错误处理服务",

@@ -405,12 +405,6 @@ export class AlertOrchestratorService implements OnModuleInit {
     return { timeseriesCleanup };
   }
 
-  /**
-   * 获取缓存统计
-   */
-  async getCacheStats() {
-    return await this.cacheService.getCacheStats();
-  }
 
   // ==================== 健康检查和监控 ====================
 
@@ -430,7 +424,7 @@ export class AlertOrchestratorService implements OnModuleInit {
       const serviceChecks = {
         ruleService: this.ruleService.getRuleStats(),
         queryService: this.queryService.getQueryStats(),
-        cacheService: this.cacheService.getCacheStats(),
+        // Note: cacheService stats removed - monitoring should be handled by monitoring module
         evaluationService: this.evaluationService.getEvaluationStats(),
         lifecycleService: this.lifecycleService.getLifecycleStats(),
         eventPublisher: this.eventPublisher.getPublisherStats(),
@@ -509,17 +503,17 @@ export class AlertOrchestratorService implements OnModuleInit {
   async getServiceOverview(): Promise<{
     rules: { total: number; enabled: number; disabled: number };
     alerts: { active: number; resolved: number; acknowledged: number };
-    cache: { hitRate: number; activeAlerts: number };
+    // Note: cache property removed - monitoring should be handled by monitoring module
     performance: { lastEvaluation: Date | null; averageResponseTime: number };
   }> {
     const operation = "SERVICE_OVERVIEW";
 
     try {
-      const [ruleStats, alertStats, cacheStats, evaluationStats] =
+      const [ruleStats, alertStats, evaluationStats] =
         await Promise.all([
           this.ruleService.getRuleStats(),
           this.queryService.getAlertStatistics(),
-          this.cacheService.getCacheStats(),
+          // Note: cacheStats removed - monitoring should be handled by monitoring module
           this.evaluationService.getEvaluationStats(),
         ]);
 
@@ -534,10 +528,7 @@ export class AlertOrchestratorService implements OnModuleInit {
           resolved: alertStats.resolvedAlertsToday,
           acknowledged: 0, // TODO: 添加确认告警统计
         },
-        cache: {
-          hitRate: cacheStats.cacheHitRate,
-          activeAlerts: cacheStats.activeAlerts,
-        },
+        // Note: cache section removed - monitoring should be handled by monitoring module
         performance: {
           lastEvaluation: evaluationStats.lastEvaluationTime,
           averageResponseTime: 0, // TODO: 添加响应时间统计

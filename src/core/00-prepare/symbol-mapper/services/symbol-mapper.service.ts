@@ -1112,34 +1112,4 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     this.logger.log("符号映射规则缓存已清理");
   }
 
-  /**
-   * 获取缓存统计信息
-   */
-  getCacheStats(): {
-    cacheHits: number;
-    cacheMisses: number;
-    hitRate: string;
-    cacheSize: number;
-    maxSize: number;
-    pendingQueries: number;
-  } {
-    const newStats = this.symbolMapperCacheService.getCacheStats();
-
-    // 转换为兼容格式
-    const totalL2Hits = newStats.layerStats.l2.hits;
-    const totalL2Misses = newStats.layerStats.l2.misses;
-    const totalL2Accesses = totalL2Hits + totalL2Misses;
-
-    return {
-      cacheHits: totalL2Hits,
-      cacheMisses: totalL2Misses,
-      hitRate:
-        totalL2Accesses > 0
-          ? ((totalL2Hits / totalL2Accesses) * 100).toFixed(2) + "%"
-          : "0%",
-      cacheSize: newStats.cacheSize.l2, // L2 符号缓存大小
-      maxSize: this.featureFlags.symbolCacheMaxSize,
-      pendingQueries: 0, // 新缓存服务中的并发控制不暴露计数
-    };
-  }
 }

@@ -66,15 +66,8 @@ export class StreamReceiverGateway
       this.logger.warn("⚠️ WebSocketServerProvider未注入，Gateway集成失败");
     }
 
-    // Phase 3 Critical Fix: 注入WebSocket服务器到StreamRecoveryWorker
-    if (
-      this.streamRecoveryWorker &&
-      typeof (this.streamRecoveryWorker as any).setWebSocketServer ===
-        "function"
-    ) {
-      (this.streamRecoveryWorker as any).setWebSocketServer(server);
-      this.logger.log("WebSocket服务器已注入到StreamRecoveryWorker");
-    }
+    // StreamRecoveryWorker now uses WebSocketServerProvider automatically
+    // No manual injection needed - deprecated setWebSocketServer method removed
 
     // 添加认证中间件，在连接建立前进行认证检查
     server.use(async (socket, next) => {

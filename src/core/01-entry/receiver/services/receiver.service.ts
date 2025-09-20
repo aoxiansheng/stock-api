@@ -153,8 +153,21 @@ export class ReceiverService {
           queryId: requestId,
           marketStatus,
           strategy: CacheStrategy.STRONG_TIMELINESS, // Receiver 强时效策略
-          executeOriginalDataFlow: () =>
-            this.executeOriginalDataFlow(request, requestId),
+          executeOriginalDataFlow: async () => {
+            // 内联原始数据流逻辑，移除包装器方法
+            const mappedSymbols = await this.symbolTransformerService.transformSymbolsForProvider(
+              provider,
+              request.symbols,
+              requestId,
+            );
+            const response = await this.executeDataFetching(
+              request,
+              provider,
+              mappedSymbols,
+              requestId,
+            );
+            return response.data;
+          },
         });
 
         // 使用编排器获取数据
@@ -601,43 +614,7 @@ export class ReceiverService {
   }
 
   /**
-   * 🔑 原始数据流执行方法 - 供智能缓存编排器调用
-   * 封装了完整的数据获取、转换和存储流程
-   */
-  private async executeOriginalDataFlow(
-    request: DataRequestDto,
-    requestId: string,
-  ): Promise<any> {
-    // 1. 提供商选择
-    const provider = await this.determineOptimalProvider(
-      request.symbols,
-      request.receiverType,
-      request.options?.preferredProvider,
-      request.options?.market,
-      requestId,
-    );
-
-    // 2. 符号映射
-    const mappedSymbols = await this.symbolTransformerService.transformSymbolsForProvider(
-      provider,
-      request.symbols,
-      requestId,
-    );
-
-    // 3. 执行数据获取流程
-    const response = await this.executeDataFetching(
-      request,
-      provider,
-      mappedSymbols,
-      requestId,
-    );
-
-    // 4. 返回数据（编排器期望的格式）
-    return response.data;
-  }
-
-  /**
-   * 执行数据获取 (原有方法，保持兼容性)
+   * 执行数据获取 (核心业务逻辑)
    */
   private async executeDataFetching(
     request: DataRequestDto,

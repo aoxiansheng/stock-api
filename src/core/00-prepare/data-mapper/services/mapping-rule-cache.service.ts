@@ -318,34 +318,6 @@ export class MappingRuleCacheService {
   }
 
   /**
-   * 获取缓存统计信息
-   *
-   * @returns Promise<CacheStats> 缓存统计对象
-   *
-   * @description 获取映射规则缓存的详细统计信息，用于监控和性能分析
-   *
-   * @example
-   * ```typescript
-   * const stats = await cacheService.getCacheStats();
-   * console.log(`最佳规则缓存: ${stats.bestRuleCacheSize} 条`);
-   * console.log(`规则ID缓存: ${stats.ruleByIdCacheSize} 条`);
-   * console.log(`提供商缓存: ${stats.providerRulesCacheSize} 条`);
-   * console.log(`总缓存大小: ${stats.totalCacheSize} 条`);
-   * ```
-   *
-   * @throws 不抛出异常 - 获取失败时返回零值并记录警告日志
-   * @since 1.0.0
-   */
-  async getCacheStats(): Promise<{
-    bestRuleCacheSize: number;
-    ruleByIdCacheSize: number;
-    providerRulesCacheSize: number;
-    totalCacheSize: number;
-  }> {
-    return await this.dataMapperCacheService.getCacheStats();
-  }
-
-  /**
    * 预热缓存 - 缓存常用规则
    *
    * @param commonRules 常用规则列表

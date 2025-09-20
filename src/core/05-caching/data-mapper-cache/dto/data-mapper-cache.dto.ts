@@ -28,61 +28,6 @@ export class DataMapperCacheConfigDto {
   enableMetrics?: boolean;
 }
 
-/**
- * DataMapper 缓存统计 DTO
- */
-export class DataMapperRedisCacheRuntimeStatsDto {
-  @ApiProperty({
-    description: "最佳规则缓存数量",
-    example: 25,
-  })
-  @IsNumber()
-  bestRuleCacheSize: number;
-
-  @ApiProperty({
-    description: "规则ID缓存数量",
-    example: 150,
-  })
-  @IsNumber()
-  ruleByIdCacheSize: number;
-
-  @ApiProperty({
-    description: "提供商规则列表缓存数量",
-    example: 8,
-  })
-  @IsNumber()
-  providerRulesCacheSize: number;
-
-  @ApiProperty({
-    description: "总缓存数量",
-    example: 183,
-  })
-  @IsNumber()
-  totalCacheSize: number;
-
-  @ApiProperty({
-    description: "缓存命中率 (0-1)",
-    example: 0.87,
-    minimum: 0,
-    maximum: 1,
-    required: false,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(1)
-  hitRate?: number;
-
-  @ApiProperty({
-    description: "平均响应时间 (毫秒)",
-    example: 15.5,
-    required: false,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  avgResponseTime?: number;
-}
 
 /**
  * 缓存预热配置 DTO

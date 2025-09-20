@@ -36,34 +36,6 @@ export class WebSocketServerProvider {
     });
   }
 
-  /**
-   * 设置WebSocket服务器实例 (Legacy模式已移除)
-   * @param server Socket.IO服务器实例
-   * @deprecated Legacy模式已移除，请使用 setGatewayServer() 方法
-   */
-  setServer(server: Server): void {
-    // 检查特性开关是否允许Legacy回退
-    if (this.featureFlags.isLegacyFallbackAllowed()) {
-      this.logger.warn("🔄 Legacy模式临时启用（紧急回退）", {
-        serverPath: server.path(),
-        reason: "特性开关允许Legacy回退",
-        recommendation: "尽快恢复Gateway-only模式",
-      });
-      // 在紧急情况下暂时接受Legacy调用
-      return;
-    }
-
-    this.logger.error("🚫 Legacy setServer() 已移除，请使用 setGatewayServer()", {
-      ignoredServerPath: server.path(),
-      recommendation: "使用 setGatewayServer() 替代 setServer()",
-      migrationRequired: true,
-      featureFlagsStatus: {
-        gatewayOnlyMode: this.featureFlags.isGatewayOnlyModeEnabled(),
-        legacyFallback: this.featureFlags.isLegacyFallbackAllowed(),
-        strictMode: this.featureFlags.isStrictModeEnabled()
-      }
-    });
-  }
 
   /**
    * 获取WebSocket服务器实例（仅Gateway模式）

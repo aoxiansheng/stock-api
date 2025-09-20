@@ -54,15 +54,7 @@ export interface IDataMapperCache {
   clearAllRuleCache(): Promise<void>;
 
   /**
-   * 🔥 缓存预热和统计
+   * 🔥 缓存预热
    */
   warmupCache(commonRules: FlexibleMappingRuleResponseDto[]): Promise<void>;
-  getCacheStats(): Promise<{
-    bestRuleCacheSize: number;
-    ruleByIdCacheSize: number;
-    providerRulesCacheSize: number;
-    totalCacheSize: number;
-    hitRate?: number;
-    avgResponseTime?: number;
-  }>;
 }

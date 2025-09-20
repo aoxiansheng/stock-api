@@ -447,14 +447,4 @@ export class ConventionScanner {
     ConventionScanner.logger.debug("扫描缓存已清除");
   }
 
-  /**
-   * 获取缓存统计信息
-   */
-  static getCacheStats() {
-    return {
-      cacheSize: ConventionScanner.scanCache.size,
-      lastScanTime: ConventionScanner.lastScanTime,
-      cacheKeys: Array.from(ConventionScanner.scanCache.keys()),
-    };
-  }
 }

@@ -10,7 +10,6 @@ import {
   DataMapperCacheOperation,
   DataMapperCacheMetrics,
 } from "../constants/data-mapper-cache.constants";
-import { DataMapperRedisCacheRuntimeStatsDto } from "../dto/data-mapper-cache.dto";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 /**
@@ -648,76 +647,6 @@ export class DataMapperCacheService implements IDataMapperCache {
     // ✅ 预热操作监控已通过事件驱动记录
   }
 
-  /**
-   * 📊 获取缓存统计 (优化版 - 使用SCAN替代KEYS)
-   */
-  async getCacheStats(): Promise<DataMapperRedisCacheRuntimeStatsDto> {
-    const startTime = Date.now();
-
-    try {
-      // 获取各类型缓存的数量 - 使用SCAN替代KEYS
-      const [bestRuleKeys, ruleByIdKeys, providerRulesKeys] = await Promise.all(
-        [
-          this.scanKeysWithTimeout(
-            `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.BEST_RULE}:*`,
-            DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.STATS_SCAN_MS,
-          ),
-          this.scanKeysWithTimeout(
-            `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.RULE_BY_ID}:*`,
-            DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.STATS_SCAN_MS,
-          ),
-          this.scanKeysWithTimeout(
-            `${DATA_MAPPER_CACHE_CONSTANTS.CACHE_KEYS.PROVIDER_RULES}:*`,
-            DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS.STATS_SCAN_MS,
-          ),
-        ],
-      );
-
-      // 事件化监控：缓存统计扫描成功
-      this.emitMonitoringEvent(
-        "cache_stats_scan_success",
-        Date.now() - startTime,
-        {
-          cacheType: "redis",
-          operation: "scan",
-          scannedKeys:
-            bestRuleKeys.length +
-            ruleByIdKeys.length +
-            providerRulesKeys.length,
-          status: "success",
-        },
-      );
-
-      // ✅ 统计数据现在由事件驱动监控提供，这里只返回缓存大小信息
-      return {
-        bestRuleCacheSize: bestRuleKeys.length,
-        ruleByIdCacheSize: ruleByIdKeys.length,
-        providerRulesCacheSize: providerRulesKeys.length,
-        totalCacheSize:
-          bestRuleKeys.length + ruleByIdKeys.length + providerRulesKeys.length,
-        hitRate: 0, // ✅ 由事件驱动监控提供统计数据
-        avgResponseTime: 0, // ✅ 由事件驱动监控提供性能数据
-      };
-    } catch (error) {
-      // 事件化监控：统计获取失败
-      this.emitMonitoringEvent("cache_stats_error", Date.now() - startTime, {
-        cacheType: "redis",
-        operation: "scan",
-        status: "error",
-        error: error.message,
-      });
-
-      this.logger.error("获取缓存统计失败", { error: error.message });
-      return {
-        bestRuleCacheSize: 0,
-        ruleByIdCacheSize: 0,
-        providerRulesCacheSize: 0,
-        totalCacheSize: 0,
-        hitRate: 0,
-        avgResponseTime: 0,
-      };
-    }
-  }
 
   // ===== 私有方法 =====
 

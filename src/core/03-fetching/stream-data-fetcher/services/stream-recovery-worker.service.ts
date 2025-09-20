@@ -220,22 +220,6 @@ export class StreamRecoveryWorkerService
     this.logger.log("StreamRecoveryWorker 已关闭");
   }
 
-  /**
-   * 设置WebSocket服务器实例 - Phase 3 Critical Fix
-   * 由WebSocket Gateway在初始化时调用
-   */
-  /**
-   * 设置WebSocket服务器实例（Legacy模式已移除）
-   * @param server Socket.IO服务器实例
-   * @deprecated Legacy模式已移除，WebSocket服务器应通过Gateway自动集成
-   */
-  setWebSocketServer(server: Server): void {
-    this.logger.error("🚫 StreamRecoveryWorker Legacy模式已移除", {
-      ignoredServerPath: server.path(),
-      recommendation: "WebSocket服务器应通过Gateway模式自动集成",
-      migrationInfo: "Gateway模式会自动提供WebSocket服务器实例",
-    });
-  }
 
   /**
    * 获取WebSocket服务器实例

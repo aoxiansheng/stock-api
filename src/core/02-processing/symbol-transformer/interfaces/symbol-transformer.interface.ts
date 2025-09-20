@@ -93,39 +93,6 @@ export interface ISymbolTransformCache {
   clear(): Promise<void>;
 }
 
-/**
- * 符号转换监控接口
- * @deprecated 监控功能已由事件驱动模式替代，该接口将在下个版本移除
- * 请使用 EventEmitter2 和 SYSTEM_STATUS_EVENTS.METRIC_COLLECTED 事件
- */
-export interface ISymbolTransformMonitor {
-  /**
-   * 记录转换请求指标
-   * @param provider 提供商
-   * @param symbolCount 符号数量
-   * @param duration 处理时间
-   * @param success 是否成功
-   */
-  recordTransformation(
-    provider: string,
-    symbolCount: number,
-    duration: number,
-    success: boolean,
-  ): void;
-
-  /**
-   * 记录缓存命中指标
-   * @param hitRate 命中率
-   */
-  recordCacheHit(hitRate: number): void;
-
-  /**
-   * 记录错误指标
-   * @param errorType 错误类型
-   * @param provider 提供商
-   */
-  recordError(errorType: string, provider: string): void;
-}
 
 /**
  * 符号转换配置接口

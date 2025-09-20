@@ -60,7 +60,9 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/auth/decorators/validation.decorator.spec.ts --testTimeout=30000)",
       "mcp__serena__think_about_task_adherence",
       "Bash(DISABLE_AUTO_INIT=true bun run test:integration:core)",
-      "Bash(mongosh:*)"
+      "Bash(mongosh:*)",
+      "mcp__serena__insert_after_symbol",
+      "mcp__serena__replace_symbol_body"
     ],
     "deny": [],
     "ask": []

@@ -366,48 +366,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * 🔍 缓存统计信息 - 使用层内总次数作为分母，避免比例异常
-   */
-  getCacheStats(): RedisCacheRuntimeStatsDto {
-    const l1Total = this.cacheStats.l1.hits + this.cacheStats.l1.misses;
-    const l2Total = this.cacheStats.l2.hits + this.cacheStats.l2.misses;
-    const l3Total = this.cacheStats.l3.hits + this.cacheStats.l3.misses;
 
-    return {
-      totalQueries: this.cacheStats.totalQueries,
-
-      // 各层命中率：使用层内总次数作为分母
-      l1HitRatio: l1Total > 0 ? (this.cacheStats.l1.hits / l1Total) * 100 : 0,
-      l2HitRatio: l2Total > 0 ? (this.cacheStats.l2.hits / l2Total) * 100 : 0,
-      l3HitRatio: l3Total > 0 ? (this.cacheStats.l3.hits / l3Total) * 100 : 0,
-
-      // 详细计数
-      layerStats: {
-        l1: {
-          hits: this.cacheStats.l1.hits,
-          misses: this.cacheStats.l1.misses,
-          total: l1Total,
-        },
-        l2: {
-          hits: this.cacheStats.l2.hits,
-          misses: this.cacheStats.l2.misses,
-          total: l2Total,
-        },
-        l3: {
-          hits: this.cacheStats.l3.hits,
-          misses: this.cacheStats.l3.misses,
-          total: l3Total,
-        },
-      },
-
-      cacheSize: {
-        l1: this.providerRulesCache.size, // L1: 规则缓存
-        l2: this.symbolMappingCache.size, // L2: 符号映射缓存
-        l3: this.batchResultCache.size, // L3: 批量结果缓存
-      },
-    };
-  }
 
   /**
    * 🧹 清理所有缓存层 - 统一清理入口
@@ -1220,11 +1179,11 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
       const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
 
-      const cacheStats = this.getCacheStats();
+      // 直接计算缓存项数量，避免调用已删除的getCacheStats方法
       const totalCacheItems =
-        cacheStats.cacheSize.l1 +
-        cacheStats.cacheSize.l2 +
-        cacheStats.cacheSize.l3;
+        this.providerRulesCache.size +
+        this.symbolMappingCache.size +
+        this.batchResultCache.size;
 
       this.logger.debug("Memory usage check", {
         heapUsedMB,
@@ -1259,7 +1218,14 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
    */
   private performGradualCleanup(): void {
     const gradualCleanupStartTime = Date.now();
-    const beforeStats = this.getCacheStats();
+    // 记录清理前的缓存大小
+    const beforeStats = {
+      cacheSize: {
+        l1: this.providerRulesCache.size,
+        l2: this.symbolMappingCache.size,
+        l3: this.batchResultCache.size,
+      }
+    };
 
     // 阶段1：清理L3批量结果缓存（影响最小）
     const l3CleanupStart = Date.now();
@@ -1277,7 +1243,14 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     }
     const l2CleanupTime = Date.now() - l2CleanupStart;
 
-    const afterStats = this.getCacheStats();
+    // 记录清理后的缓存大小
+    const afterStats = {
+      cacheSize: {
+        l1: this.providerRulesCache.size,
+        l2: this.symbolMappingCache.size,
+        l3: this.batchResultCache.size,
+      }
+    };
     const totalCleanupTime = Date.now() - gradualCleanupStartTime;
 
     // 计算清理效率指标
@@ -1305,7 +1278,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         cleanupStrategy: CACHE_CLEANUP.CLEANUP_STRATEGY,
       },
       hitRatioImpactEstimate: {
-        beforeHitRatio: beforeStats.l2HitRatio,
+        note: "命中率数据已迁移到事件驱动监控",
         expectedImprovementPercent: Math.round(
           (1 - CACHE_CLEANUP.RETENTION_RATIO) * 10,
         ), // 预估命中率改善

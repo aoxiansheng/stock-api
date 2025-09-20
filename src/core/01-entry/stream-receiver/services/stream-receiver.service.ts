@@ -1457,24 +1457,34 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 获取客户端统计信息
    */
+  /**
+   * 获取客户端统计信息
+   * Note: Cache stats are now provided through event-driven monitoring
+   */
   getClientStats() {
     const clientStats = this.streamDataFetcher
       .getClientStateManager()
       .getClientStateStats();
-    const cacheStats = this.streamDataFetcher
-      .getStreamDataCache()
-      .getCacheStats();
+    
+    // ✅ Cache stats are now provided through MonitoringService via event-driven monitoring
+ 
     const connectionStats =
       this.streamDataFetcher.getConnectionStatsByProvider("all");
 
     return {
       clients: clientStats,
-      cache: cacheStats,
+      cache: {
+        // Placeholder - actual cache stats are provided by MonitoringService
+        info: "Cache statistics are available through MonitoringService",
+      },
       connections: connectionStats,
       batchProcessing: this.batchProcessingStats,
     };
   }
 
+  /**
+   * 健康检查
+   */
   /**
    * 健康检查
    */
@@ -1490,14 +1500,9 @@ export class StreamReceiverService implements OnModuleDestroy {
       Object.values(connectionHealth).filter(Boolean).length;
     const totalConnections = Object.keys(connectionHealth).length;
 
-    const cacheHitRate =
-      stats.cache.hotCacheHits + stats.cache.warmCacheHits > 0
-        ? (stats.cache.hotCacheHits + stats.cache.warmCacheHits) /
-          (stats.cache.hotCacheHits +
-            stats.cache.warmCacheHits +
-            stats.cache.hotCacheMisses +
-            stats.cache.warmCacheMisses)
-        : 0;
+    // ✅ Cache hit rate is now provided through MonitoringService
+    // Setting to 0 as placeholder - actual metrics available via monitoring endpoints
+    const cacheHitRate = 0; 
 
     return {
       status: healthyConnections === totalConnections ? "healthy" : "degraded",

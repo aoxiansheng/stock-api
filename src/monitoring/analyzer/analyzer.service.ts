@@ -591,7 +591,7 @@ export class AnalyzerService
   }
 
   /**
-   * 获取缓存统计
+   * 获取缓存统计 - 使用事件驱动架构
    */
   async getCacheStats(): Promise<{
     hitRate: number;
@@ -600,54 +600,49 @@ export class AnalyzerService
     totalMisses: number;
   }> {
     try {
-      // 使用通用缓存服务进行健康检查（简化实现）
-      const testKey = MonitoringCacheKeys.health("test");
-      const testValue = { timestamp: Date.now() };
+      // 使用事件驱动方式获取原始缓存指标数据
+      const rawMetrics = await this.requestRawMetrics();
 
-      // 测试缓存读写
-      await this.cacheService.safeSet(testKey, testValue, { ttl: 10 });
-      const retrieved = await this.cacheService.safeGet(testKey);
+      // 过滤缓存操作指标
+      const cacheMetrics = rawMetrics.filter(
+        (metric: any) => metric.type === 'cache'
+      );
 
-      const healthCheck = {
-        status: retrieved ? "healthy" : ("degraded" as const),
-        metrics: {
-          hitRate: 0.9, // 简化指标
-          errorRate: 0.1,
-          totalOperations: 100,
-          uptime: Date.now() - this.startTime,
-          latency: { p50: 10, p95: 50, p99: 100, avg: 20 },
-        },
-      };
+      if (cacheMetrics.length === 0) {
+        this.logger.warn("暂无缓存操作数据");
+        return {
+          hitRate: 0,
+          totalOperations: 0,
+          totalHits: 0,
+          totalMisses: 0,
+        };
+      }
 
-      const stats = {
-        operations: {
-          total: 100,
-          hits: 90,
-          misses: 10,
-          errors: 1,
-          hitRate: 0.9,
-          errorRate: 0.01,
-        },
-        latency: { p50: 10, p95: 50, p99: 100, avg: 20 },
-        uptime: Date.now() - this.startTime,
-        status: "healthy" as const,
-      };
+      // 计算缓存统计
+      const totalOperations = cacheMetrics.length;
+      const totalHits = cacheMetrics.filter(
+        (metric: any) => metric.metadata?.hit === true
+      ).length;
+      const totalMisses = totalOperations - totalHits;
+      const hitRate = totalOperations > 0 ? totalHits / totalOperations : 0;
 
-      // 从实际统计中获取命中率
-      const totalRequests = stats.operations.total;
-      const totalHits = stats.operations.hits;
-      const totalMisses = stats.operations.misses;
-      const hitRate = totalRequests > 0 ? totalHits / totalRequests : 0;
-
-      return {
-        hitRate:
-          Math.round(
-            hitRate * MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
-          ) / MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
-        totalOperations: totalRequests,
+      const result = {
+        hitRate: Math.round(
+          hitRate * MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
+        ) / MONITORING_SYSTEM_LIMITS.DECIMAL_PRECISION_FACTOR,
+        totalOperations,
         totalHits,
         totalMisses,
       };
+
+      this.logger.debug("缓存统计计算完成", {
+        totalOperations,
+        totalHits,
+        totalMisses,
+        hitRate: result.hitRate,
+      });
+
+      return result;
     } catch (error) {
       this.logger.error("缓存统计获取失败", error.stack);
       return {
