@@ -374,42 +374,6 @@ export const RULE_TYPE_USAGE_STATUS = Object.freeze({
   }
 } as const);
 
-/**
- * 常用规则列表类型（向后兼容别名）
- *
- * @description 常用的规则列表类型子集，为向后兼容而保留
- * @usage 在需要确保兼容性的场景中使用，特别是在DTO验证和前端展示中
- *
- * @example
- * ```typescript
- * import { COMMON_RULE_LIST_TYPES } from './constants/data-mapper.constants';
- *
- * // 在需要向后兼容的DTO中使用
- * @IsEnum(COMMON_RULE_LIST_TYPE_VALUES)
- * dataType?: "quote_fields" | "basic_info_fields";
- *
- * // 在前端选项列表中使用
- * const supportedTypes = Object.values(COMMON_RULE_LIST_TYPES);
- * ```
- *
- * @see {@link AnalyzeDataSourceDto} - 在数据源分析中使用
- * @see {@link RULE_LIST_TYPES} - 完整的规则类型列表（包含生产就绪的index_fields）
- * @deprecated 推荐使用 RULE_LIST_TYPES，本常量仅为向后兼容而保留
- */
-export const COMMON_RULE_LIST_TYPES = Object.freeze({
-  QUOTE_FIELDS: RULE_LIST_TYPES.QUOTE_FIELDS,
-  BASIC_INFO_FIELDS: RULE_LIST_TYPES.BASIC_INFO_FIELDS,
-} as const);
-
-/**
- * 常用规则列表类型数组（用于需要排除 index_fields 的场景）
- *
- * @description 从COMMON_RULE_LIST_TYPES导出的数组，用于向后兼容的验证场景
- * @usage 在DTO验证中使用 @IsEnum(COMMON_RULE_LIST_TYPE_VALUES)
- */
-export const COMMON_RULE_LIST_TYPE_VALUES = Object.values(
-  COMMON_RULE_LIST_TYPES,
-);
 
 /**
  * 转换默认值常量

@@ -24,7 +24,7 @@ export default defineConfig([
         },
         {
           selector: "ArrayExpression:has(Literal[value='quote_fields'], Literal[value='basic_info_fields'], Literal[value='index_fields'])",
-          message: "请使用 RULE_LIST_TYPE_VALUES 或 COMMON_RULE_LIST_TYPE_VALUES 常量而不是硬编码规则类型数组。导入路径: '../constants/data-mapper.constants'"
+          message: "请使用 RULE_LIST_TYPE_VALUES 常量而不是硬编码规则类型数组。导入路径: '../constants/data-mapper.constants'"
         },
         {
           selector: "Literal[value='multiply']:not(:has(~ ImportSpecifier[imported.name='TRANSFORMATION_TYPES']))",

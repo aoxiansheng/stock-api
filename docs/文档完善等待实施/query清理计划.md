@@ -82,10 +82,11 @@ public async executeSymbolBasedQuery(
 1. **空的常量对象** (`query.constants.ts:206-209`)
 2. **向后兼容委托方法** (`query.service.ts:207-217`)
 3. **迁移完成的注释** (`query.constants.ts` 多处)
+4. **废弃的统计方法** - 需确认是否已完全替换为Prometheus
 
-### 4.2 需要评估的项目
+### 4.2 维持当前状态的项目
 1. **TODO标记的功能** - 需确认是否为规划中功能还是废弃需求
-2. **废弃的统计方法** - 需确认是否已完全替换为Prometheus
+
 
 ### 4.3 清理优先级
 **高优先级** (立即清理):

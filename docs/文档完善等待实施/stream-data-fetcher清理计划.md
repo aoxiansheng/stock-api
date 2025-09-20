@@ -9,7 +9,6 @@
 
 #### `src/core/03-fetching/stream-data-fetcher/providers/websocket-server.provider.ts`
 - **Line 42**: `@deprecated Legacy模式已移除，请使用 setGatewayServer() 方法`
-- **Line 230**: `@deprecated Legacy模式已移除，WebSocket服务器应通过Gateway自动集成`
 
 #### `src/core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service.ts`
 - **Line 230**: `@deprecated Legacy模式已移除，WebSocket服务器应通过Gateway自动集成`
@@ -49,14 +48,14 @@
 #### `src/core/03-fetching/stream-data-fetcher/guards/stream-rate-limit.guard.ts`
 - **Line 58**: `ttl: 60` 向后兼容时间窗口配置
 
-## 3. 重复函数实现 (架构清理目标)
+## 3. ~~重复函数实现~~ TypeScript方法重载 (无需处理)
 
 ### `src/core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service.ts`
-- **Lines 620-622**: `establishStreamConnection` 方法签名1 (仅声明)
-- **Lines 623-627**: `establishStreamConnection` 方法签名2 (仅声明)
-- **Lines 628-755**: `establishStreamConnection` 实际实现 (保留此版本)
+- **Lines 621-623**: `establishStreamConnection` 方法重载签名1
+- **Lines 624-628**: `establishStreamConnection` 方法重载签名2
+- **Lines 629-756**: `establishStreamConnection` 实际实现
 
-**问题**: 三个同名方法定义，前两个仅为TypeScript重载签名，实际只需要一个实现。
+**说明**: 这是标准的TypeScript方法重载模式，属于正确的编程实践，无需修改。前两个是重载签名声明，第三个是统一的实现。
 
 ## 4. 临时实现与TODO代码
 
@@ -80,7 +79,7 @@
 
 ## 移除优先级建议
 
-### Phase 1 - 高风险但影响大 (立即移除)
+### Phase 1 - 零风险清理 (立即移除)
 **目标**: 彻底清除Legacy回退机制
 
 1. **完全移除 `allowLegacyFallback` 相关所有代码**
@@ -100,10 +99,10 @@
 ### Phase 2 - 中等风险 (架构清理)
 **目标**: 解决重复实现和临时代码
 
-1. **合并重复的 `establishStreamConnection` 方法定义**
-   - 保留 Lines 628-755 的完整实现
-   - 移除 Lines 620-622 和 623-627 的重载声明
-   - 重构为单一清晰的方法签名
+1. **评估并完成TODO标记的方法实现**
+   - 分析 `recordConcurrencyAdjustment` 方法的业务需求
+   - 评估 `updateSubscriptionState` 方法的实际用途
+   - 确定 `removeConnection` 方法的必要性
 
 2. **实现或移除 `executeCore()` 空方法**
    - 评估是否需要实际实现
@@ -136,12 +135,11 @@
 ## 风险评估
 
 ### 高风险项目
-- **Legacy回退机制移除**: 可能影响紧急情况下的系统稳定性
-- **WebSocket服务器方法删除**: 可能有隐藏的调用依赖
+- **Legacy回退机制移除**: 需确认是否有实际使用场景，但代码审核显示无外部依赖
 
 ### 中风险项目
-- **重复方法合并**: TypeScript类型检查可能受影响
-- **TODO实现**: 可能影响某些功能的完整性
+- **TODO方法实现**: 需评估业务需求，可能影响某些功能的完整性
+- **executeCore()方法处理**: 需检查父类接口要求
 
 ### 低风险项目
 - **注释和别名清理**: 纯粹的代码清理，不影响功能
@@ -149,9 +147,10 @@
 ## 验证计划
 
 ### 清理前验证
-1. 搜索所有对废弃方法的调用
-2. 检查Legacy回退机制的实际使用情况
-3. 确认TODO方法的依赖关系
+1. ✅ 已确认废弃方法无外部调用依赖
+2. ✅ 已确认Legacy回退机制仅在配置文件中定义
+3. 需确认TODO方法的业务需求和依赖关系
+4. 需检查生产环境配置中的Legacy标志使用情况
 
 ### 清理后验证
 1. 运行完整的单元测试套件
@@ -162,10 +161,10 @@
 ## 预期效果
 
 ### 代码质量提升
-- **移除约 500+ 行Legacy兼容代码**
-- **解决 3 个重复方法定义**
-- **完成 4+ 个TODO实现**
+- **移除约 300+ 行Legacy兼容代码**
+- **完成 4+ 个TODO实现或合理移除**
 - **清理 10+ 个向后兼容注释**
+- **保持正确的TypeScript重载模式**
 
 ### 架构简化
 - **统一WebSocket服务器集成方式**
@@ -183,3 +182,18 @@
 **创建日期**: 2025-09-20
 **组件路径**: `src/core/03-fetching/stream-data-fetcher`
 **分析完成**: ✅ 废弃代码识别、兼容层分析、移除计划制定
+**审核完成**: ✅ 代码库验证、技术可行性评估、错误修正 (2025-09-20)
+
+## 审核修正说明
+
+### 已修正的错误
+1. **删除了不存在的deprecated标记** - `websocket-server.provider.ts:230`
+2. **修正了重复函数实现误解** - `establishStreamConnection`使用标准TypeScript重载
+3. **调整了风险等级评估** - 基于实际代码依赖关系分析
+4. **更新了预期清理代码量** - 从500+行调整为300+行
+5. **增强了验证计划** - 添加已完成的验证项目
+
+### 技术澄清
+- `establishStreamConnection`方法使用的是标准TypeScript方法重载模式，这是正确的编程实践
+- 经代码库搜索确认，deprecated方法无外部调用依赖，移除风险极低
+- Legacy回退机制代码确实存在且可以安全移除

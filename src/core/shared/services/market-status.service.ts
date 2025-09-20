@@ -313,13 +313,6 @@ export class MarketStatusService implements OnModuleDestroy {
    */
   private isProviderIntegrationAvailable(): boolean {
     try {
-      // Check if capability registry service is available
-      // This would be injected in constructor in real implementation
-      // For now, return false to indicate graceful degradation
-
-      // TODO: Inject EnhancedCapabilityRegistryService when available
-      // return this.capabilityRegistry?.getTotalCapabilitiesCount() > 0;
-
       return false; // Graceful degradation until Provider integration is ready
     } catch (error) {
       this.logger.debug("Provider集成可用性检查失败", { error: error.message });
@@ -370,26 +363,7 @@ export class MarketStatusService implements OnModuleDestroy {
     market: Market,
   ): Promise<ProviderMarketStatus | null> {
     try {
-      // TODO: Replace with actual Provider integration when available
-      // Example implementation structure:
-
-      // const bestProvider = this.capabilityRegistry.getBestProvider('get-market-status', market);
-      // if (!bestProvider) {
-      //   this.logger.debug("没有可用的市场状态Provider", { market });
-      //   return null;
-      // }
-
-      // const capability = this.capabilityRegistry.getCapability(bestProvider, 'get-market-status');
-      // if (!capability) {
-      //   this.logger.debug("Provider能力未找到", { provider: bestProvider, market });
-      //   return null;
-      // }
-
-      // const result = await capability.execute({ market: market.toString() });
-      // return this.transformProviderResponse(result);
-
-      // For now, return null to indicate Provider integration not ready
-      return null;
+      return null; // Provider integration not ready
     } catch (error) {
       this.logger.debug("Provider查询执行失败", {
         market,

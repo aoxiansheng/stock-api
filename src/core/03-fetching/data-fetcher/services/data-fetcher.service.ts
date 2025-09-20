@@ -27,7 +27,7 @@ import {
 } from "../constants/data-fetcher.constants";
 
 /**
- * 遗留原始数据类型定义 - 向后兼容
+ * 原始数据类型定义
  *
  * 🎯 用户体验价值：支持多Provider格式的数据源
  * - 允许用户使用统一的字段名（如"symbol"）而不必了解每个Provider的特定格式
@@ -40,15 +40,15 @@ import {
  * - 扁平数组: [...]
  * - 单个对象: { symbol: "AAPL", price: 150 }
  */
-interface LegacyRawData {
+interface RawData {
   [key: string]: any;
 }
 
 /**
  * processRawData方法的输入类型联合
- * 支持通用对象格式和向后兼容的遗留格式，通过智能字段检测实现格式自适应
+ * 支持通用对象格式，通过智能字段检测实现格式自适应
  */
-type ProcessRawDataInput = LegacyRawData | any[];
+type ProcessRawDataInput = RawData | any[];
 
 /**
  * 数据获取服务
@@ -173,10 +173,6 @@ export class DataFetcherService implements IDataFetcher {
           capability,
           processingTimeMs: processingTime,
           symbolsProcessed: symbols.length,
-          // 向后兼容性支持
-          get processingTime() {
-            return this.processingTimeMs;
-          },
         },
       };
 
@@ -500,7 +496,7 @@ export class DataFetcherService implements IDataFetcher {
    *    - 用户配置：symbol, price, volume
    *    - 而非：secu_quote[0].symbol, secu_quote[0].last_done, secu_quote[0].volume
    * ✅ 多Provider支持：自动适配不同Provider的数据格式，用户无需关心技术差异
-   * ✅ 向后兼容：保护用户现有配置投资，无需修改已有的字段映射规则
+   * ✅ 配置保护：保护用户现有配置投资，无需修改已有的字段映射规则
    * ✅ 错误容忍：智能处理异常数据格式，降低系统集成复杂度
    *
    * 支持的数据格式转换：

@@ -7,7 +7,7 @@ import {
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { CommonCacheService } from "../../common-cache/services/common-cache.service"; // Phase 5.2 重构：直接使用CommonCacheService
+import { CommonCacheService } from "../../common-cache/services/common-cache.service";
 import { DataChangeDetectorService } from "../../../shared/services/data-change-detector.service";
 import {
   MarketStatusService,
@@ -47,19 +47,13 @@ import {
 } from "../constants/smart-cache.component.constants";
 
 /**
- * 智能缓存编排器服务 - Phase 5.2 重构版
+ * 智能缓存编排器服务
  *
  * 核心功能：
  * - 统一Receiver与Query的缓存调用骨架
  * - 策略映射：将CacheStrategy转换为CommonCacheService可识别的参数
  * - 后台更新调度：TTL节流、去重、优先级计算
  * - 生命周期管理：初始化和优雅关闭
- *
- * Phase 5.2重构改进：
- * - 直接使用CommonCacheService进行缓存操作
- * - 简化策略映射逻辑，使用CommonCacheService.calculateOptimalTTL
- * - 优化后台任务处理性能
- * - 保持API兼容性，内部实现完全重构
  *
  * 设计原则：
  * - 保持现有API接口不变
@@ -99,7 +93,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     @Inject(SMART_CACHE_ORCHESTRATOR_CONFIG)
     private readonly rawConfig: SmartCacheOrchestratorConfig,
 
-    private readonly commonCacheService: CommonCacheService, // Phase 5.2 重构：直接使用CommonCacheService
+    private readonly commonCacheService: CommonCacheService,
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly backgroundTaskService: BackgroundTaskService,
@@ -417,7 +411,6 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 执行后台更新任务
-   * Phase 5.2重构：直接使用CommonCacheService，提高性能
    */
   private async executeBackgroundUpdate(
     task: BackgroundUpdateTask,
@@ -451,7 +444,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       // 执行数据获取
       const freshData = await task.fetchFn();
 
-      // Phase 5.2 重构：直接使用CommonCacheService计算TTL
+      // 使用CommonCacheService计算TTL
       const symbol = task.symbols?.[0] || "unknown";
       const dataType = this.inferDataTypeFromKey(task.cacheKey);
 
@@ -657,12 +650,12 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   // ===================
   // 公共接口方法
-  // Phase 5.2重构：直接使用CommonCacheService实现
+  // 基于CommonCacheService实现
   // ===================
 
   /**
    * 获取单个数据的智能缓存
-   * Phase 5.2重构：基于CommonCacheService实现，简化策略映射
+   * 基于CommonCacheService实现的智能缓存获取
    */
   async getDataWithSmartCache<T>(
     request: CacheOrchestratorRequest<T>,
@@ -685,7 +678,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         };
       }
 
-      // Phase 5.2重构：直接使用CommonCacheService计算TTL
+      // 使用CommonCacheService计算TTL
       const symbol = request.symbols?.[0] || "unknown";
       const dataType = this.inferDataTypeFromKey(request.cacheKey);
 
@@ -804,7 +797,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 批量获取数据的智能缓存
-   * Phase 5.2重构：直接使用CommonCacheService的mget功能
+   * 使用CommonCacheService的mget功能进行批量获取
    */
   async batchGetDataWithSmartCache<T>(
     requests: CacheOrchestratorRequest<T>[],
@@ -899,7 +892,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 处理批量缓存组（按策略分组）
-   * Phase 5.2重构：使用CommonCacheService的mget进行批量优化
+   * 使用CommonCacheService的mget进行批量优化
    */
   private async processBatchGroup<T>(
     strategy: CacheStrategy,
@@ -951,7 +944,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
     // 对于其他策略，使用CommonCacheService的批量API
     try {
-      // Phase 5.2重构：直接使用CommonCacheService.mget
+      // 使用CommonCacheService.mget
       const keys = requests.map((req) => req.cacheKey);
       const cacheResults = await this.commonCacheService.mget<T>(keys);
 
@@ -1027,7 +1020,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 处理缓存未命中的查询
-   * Phase 5.2重构：优化并发处理，直接写入CommonCacheService
+   * 优化并发处理，直接写入CommonCacheService
    */
   private async handleMissedQueries<T>(
     missedQueries: Array<{
@@ -1045,7 +1038,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         try {
           const data = await request.fetchFn();
 
-          // Phase 5.2重构：计算智能TTL并直接写入CommonCacheService
+          // 计算智能TTL并直接写入CommonCacheService
           const symbol = request.symbols?.[0] || "unknown";
           const dataType = this.inferDataTypeFromKey(request.cacheKey);
 
@@ -1589,12 +1582,12 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   // ===================
   // 辅助方法和策略映射
-  // Phase 5.2重构：简化逻辑，直接使用CommonCacheService功能
+  // 辅助方法和策略映射
   // ===================
 
   /**
    * 将缓存策略映射到新鲜度要求
-   * Phase 5.2重构：简化策略映射，移除复杂的SmartCacheOptionsDto转换
+   * 将缓存策略映射到新鲜度要求
    */
   private mapStrategyToFreshnessRequirement(
     strategy: CacheStrategy,
@@ -1770,7 +1763,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 从缓存键推断数据类型
-   * Phase 5.2重构：简化数据类型推断
+   * 从缓存键推断数据类型
    */
   private inferDataTypeFromKey(key: string): string {
     const keyLower = key.toLowerCase();

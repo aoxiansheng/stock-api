@@ -39,13 +39,3 @@ export class BatchCacheRequestDto {
   keys: string[];
 }
 
-/**
- * 缓存回源请求DTO
- */
-export class CacheFallbackRequestDto extends CacheRequestDto {
-  @ApiPropertyOptional({ description: "回源超时时间（毫秒）", default: 30000 })
-  @IsOptional()
-  @IsNumber()
-  @Min(1000)
-  fetchTimeout?: number;
-}

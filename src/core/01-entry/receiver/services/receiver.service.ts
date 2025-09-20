@@ -670,7 +670,7 @@ export class ReceiverService {
         provider,
         receiverType: request.receiverType,
         rawDataCount: rawData.length,
-        fetchTime: fetchResult.metadata.processingTime,
+        fetchTime: fetchResult.metadata.processingTimeMs,
       });
 
       this.logger.debug(`Raw data for transformation`, {
@@ -756,7 +756,7 @@ export class ReceiverService {
         provider,
         receiverType: request.receiverType,
         totalProcessingTime: Date.now() - startTime,
-        fetchTime: fetchResult.metadata.processingTime,
+        fetchTime: fetchResult.metadata.processingTimeMs,
         rawDataCount: rawData.length,
         transformedDataCount: Array.isArray(transformedResult.transformedData)
           ? transformedResult.transformedData.length

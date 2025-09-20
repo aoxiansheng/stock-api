@@ -485,14 +485,6 @@ export class DataChangeDetectorService {
    */
   private async getRedisSnapshot(symbol: string): Promise<DataSnapshot | null> {
     try {
-      // TODO: Inject CacheService when available in this shared module
-      // For now, return null to indicate Redis integration not ready
-
-      // Implementation structure for when CacheService is available:
-      // const cacheKey = this.buildSnapshotCacheKey(symbol);
-      // const cachedData = await this.cacheService.safeGet<DataSnapshot>(cacheKey);
-      // return cachedData || null;
-
       return null; // Graceful degradation until CacheService integration
     } catch (error) {
       this.logger.debug("Redis快照获取失败", { symbol, error: error.message });
@@ -509,11 +501,6 @@ export class DataChangeDetectorService {
     snapshot: DataSnapshot,
   ): Promise<void> {
     try {
-      // TODO: Implement when CacheService is available
-      // const cacheKey = this.buildSnapshotCacheKey(symbol);
-      // const ttl = this.getSnapshotCacheTTL(symbol);
-      // await this.cacheService.safeSet(cacheKey, snapshot, { ttl });
-
       this.logger.debug("Redis同步跳过 - CacheService未集成", { symbol });
     } catch (error) {
       // Silent failure for async sync - don't impact main flow
@@ -599,11 +586,6 @@ export class DataChangeDetectorService {
     snapshot: DataSnapshot,
   ): Promise<void> {
     try {
-      // TODO: Implement when CacheService is available
-      // const cacheKey = this.buildSnapshotCacheKey(symbol);
-      // const ttl = this.getSnapshotCacheTTL(symbol);
-      // await this.cacheService.safeSet(cacheKey, snapshot, { ttl });
-
       this.logger.debug("Redis保存跳过 - CacheService未集成", { symbol });
     } catch (error) {
       // Silent failure for async save - don't impact main flow

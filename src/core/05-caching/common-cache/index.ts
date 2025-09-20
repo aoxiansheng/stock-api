@@ -28,7 +28,6 @@ export type {
 export {
   CacheRequestDto,
   BatchCacheRequestDto,
-  CacheFallbackRequestDto,
 } from "./dto/cache-request.dto";
 export {
   CacheResultDto,

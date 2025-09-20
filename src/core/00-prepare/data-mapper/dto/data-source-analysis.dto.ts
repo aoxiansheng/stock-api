@@ -16,7 +16,7 @@ import { Type } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
 import {
   API_TYPE_VALUES,
-  COMMON_RULE_LIST_TYPE_VALUES,
+  RULE_LIST_TYPE_VALUES,
   DATA_MAPPER_CONFIG,
 } from "../constants/data-mapper.constants";
 import type { ApiType } from "../constants/data-mapper.constants";
@@ -72,12 +72,12 @@ export class AnalyzeDataSourceDto {
   @ApiProperty({
     description: "数据类型",
     example: "quote_fields",
-    enum: COMMON_RULE_LIST_TYPE_VALUES,
+    enum: RULE_LIST_TYPE_VALUES,
     required: false,
   })
-  @IsEnum(COMMON_RULE_LIST_TYPE_VALUES)
+  @IsEnum(RULE_LIST_TYPE_VALUES)
   @IsOptional()
-  dataType?: "quote_fields" | "basic_info_fields" = "quote_fields";
+  dataType?: "quote_fields" | "basic_info_fields" | "index_fields" = "quote_fields";
 
   @ApiProperty({
     description: "是否保存为模板",

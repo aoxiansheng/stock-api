@@ -36,7 +36,8 @@ export class RedisValueUtils {
   }
 
   /**
-   * ✅ 统一解析：避免多处重复解析逻辑
+   * ✅ 统一解析：现代 envelope 格式解析
+   * 仅支持包含 data 字段的 envelope 结构，历史格式已移除
    * @param value Redis中存储的字符串值
    * @returns 解析结果
    */
@@ -53,7 +54,7 @@ export class RedisValueUtils {
     try {
       const parsed = JSON.parse(value);
 
-      // 新格式：包含元数据的envelope
+      // 现代统一格式：包含元数据的envelope
       if (parsed.data !== undefined && typeof parsed === "object") {
         return {
           data: parsed.data,
@@ -63,12 +64,8 @@ export class RedisValueUtils {
         };
       }
 
-      // 历史格式：直接业务数据（兼容处理）
-      return {
-        data: parsed,
-        storedAt: Date.now(), // 历史数据缺失时间戳，使用当前时间
-        compressed: false,
-      };
+      // 不支持的数据格式
+      throw new Error("Unsupported Redis value format. Expected envelope structure with 'data' field.");
     } catch (error) {
       throw new Error(`Failed to parse Redis value: ${error.message}`);
     }

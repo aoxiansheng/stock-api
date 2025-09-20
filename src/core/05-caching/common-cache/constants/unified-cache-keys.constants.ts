@@ -157,25 +157,6 @@ export const CACHE_KEY_GENERATORS = {
     `${UNIFIED_CACHE_KEY_PREFIXES.API_RATE_LIMIT_DATA}:${endpoint}:${identifier}`,
 };
 
-/**
- * 向后兼容性映射
- * 将旧的键前缀映射到新的统一前缀
- */
-export const LEGACY_KEY_MAPPING = {
-  // 旧的 stream-cache 前缀
-  "stream_cache:": UNIFIED_CACHE_KEY_PREFIXES.STREAM_CACHE_WARM,
-  "hot:": UNIFIED_CACHE_KEY_PREFIXES.STREAM_CACHE_HOT,
-  "stream_lock:": UNIFIED_CACHE_KEY_PREFIXES.STREAM_CACHE_LOCK,
-
-  // 旧的 common-cache 前缀
-  stock_quote: UNIFIED_CACHE_KEY_PREFIXES.STOCK_QUOTE_DATA,
-  market_status: UNIFIED_CACHE_KEY_PREFIXES.MARKET_STATUS_DATA,
-  symbol_mapping: UNIFIED_CACHE_KEY_PREFIXES.SYMBOL_MAPPING_DATA,
-
-  // 旧的 data-mapper 前缀
-  "dm:best_rule": UNIFIED_CACHE_KEY_PREFIXES.DATA_MAPPER_BEST_RULE,
-  "dm:rule_by_id": UNIFIED_CACHE_KEY_PREFIXES.DATA_MAPPER_RULE_DETAIL,
-} as const;
 
 /**
  * 类型定义

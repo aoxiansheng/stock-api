@@ -203,18 +203,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * executeSymbolBasedQuery - 向后兼容方法
-   *
-   * 保留此方法以确保向后兼容性
-   * 实际执行已委托给QueryExecutionEngine
-   */
-  public async executeSymbolBasedQuery(
-    request: QueryRequestDto,
-  ): Promise<QueryExecutionResultDto> {
-    // 直接委托给执行引擎
-    return await this.executionEngine.executeSymbolBasedQuery(request);
-  }
 
   /**
    * 并行执行批量查询

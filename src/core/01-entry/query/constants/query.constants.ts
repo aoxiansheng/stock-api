@@ -74,7 +74,6 @@ export const QUERY_SUCCESS_MESSAGES = Object.freeze({
  */
 export const QUERY_PERFORMANCE_CONFIG = Object.freeze({
   SLOW_QUERY_THRESHOLD_MS: 1000, // 慢查询阈值（毫秒）
-  // 缓存TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
   DEFAULT_QUERY_LIMIT: 100, // 默认查询限制
   /**
    * 单次查询支持的最大股票代码数量
@@ -91,7 +90,6 @@ export const QUERY_PERFORMANCE_CONFIG = Object.freeze({
    * 注意：每个子查询仍受MAX_SYMBOLS_PER_QUERY限制，两者独立生效
    */
   MAX_BULK_QUERIES: CONSTANTS.SEMANTIC.BATCH.SIZES.PERFORMANCE.LARGE_BATCH,
-  // 超时配置已移动到 QUERY_TIMEOUT_CONFIG
 } as const);
 
 /**
@@ -159,7 +157,6 @@ export const QUERY_OPERATIONS = Object.freeze({
   BUILD_QUERY_PARAMS_SUMMARY: "buildQueryParamsSummary",
   RECORD_QUERY_PERFORMANCE: "recordQueryPerformance",
   GET_QUERY_STATS: "getQueryStats",
-  CALCULATE_QUERIES_PER_SECOND: "calculateQueriesPerSecond",
 } as const);
 
 /**
@@ -198,15 +195,6 @@ export const QUERY_STATUS = Object.freeze({
   CANCELLED: "cancelled",
 } as const);
 
-/**
- * 查询数据源类型常量
- * 注意：CACHE、PERSISTENT、REALTIME 已移到 DataSourceType 枚举中
- * 这里只保留枚举中没有的类型
- */
-export const QUERY_DATA_SOURCE_TYPES = Object.freeze({
-  // HYBRID 已移动到 DataSourceType 枚举中，此常量将被废弃
-  // 请使用 DataSourceType.HYBRID 替代
-} as const);
 
 /**
  * 统一超时配置常量
@@ -234,8 +222,6 @@ export const QUERY_CACHE_TTL_CONFIG = Object.freeze({
 export const QUERY_DEFAULTS = Object.freeze({
   PAGE_SIZE: CONSTANTS.SEMANTIC.BATCH.SIZES.PERFORMANCE.LARGE_BATCH,
   PAGE_OFFSET: 0,
-  // 缓存TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
-  // TIMEOUT_MS 已移动到 QUERY_TIMEOUT_CONFIG.QUERY_MS
   RETRY_ATTEMPTS: CONSTANTS.SEMANTIC.RETRY.COUNTS.BASIC.DEFAULT,
   LOG_LEVEL: "info",
   ENABLE_CACHING: true,
@@ -268,7 +254,6 @@ export const QUERY_EVENTS = Object.freeze({
  * 查询缓存配置常量
  */
 export const QUERY_CACHE_CONFIG = Object.freeze({
-  // TTL配置已移动到 QUERY_CACHE_TTL_CONFIG
   CACHE_KEY_PREFIX: "query:", // 缓存键前缀
   CACHE_TAG_SEPARATOR: ":", // 缓存标签分隔符
   MAX_CACHE_KEY_LENGTH: 250, // 最大缓存键长度
@@ -280,7 +265,6 @@ export const QUERY_CACHE_CONFIG = Object.freeze({
  */
 export const QUERY_HEALTH_CONFIG = Object.freeze({
   CHECK_INTERVAL_MS: CONSTANTS.SEMANTIC.HTTP.TIMEOUTS.CONNECTION.KEEP_ALIVE_MS, // 健康检查间隔
-  // TIMEOUT_MS 已移动到 QUERY_TIMEOUT_CONFIG.HEALTH_CHECK_MS
   MAX_FAILURES: CONSTANTS.SEMANTIC.RETRY.COUNTS.BASIC.DEFAULT, // 最大失败次数
   RECOVERY_THRESHOLD: CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE, // 恢复阈值
   METRICS_WINDOW_SIZE: CONSTANTS.SEMANTIC.BATCH.SIZES.PERFORMANCE.LARGE_BATCH, // 指标窗口大小

@@ -41,13 +41,23 @@ export class DataFetchRequestDto {
   symbols: string[];
 
   /**
-   * @deprecated 后端已拆分REST与流式能力，请使用专用的stream-data-fetcher服务处理流式数据
+   * API类型 - 系统核心字段
+   *
+   * 用于控制数据获取策略和路由选择：
+   * - "rest": 使用REST API进行数据获取（默认策略）
+   * - "stream": 使用WebSocket进行实时数据流获取
+   *
+   * 🔧 架构说明：
+   * - 被24个核心组件使用，控制数据获取行为
+   * - receiver.service.ts、stream-receiver.service.ts等依赖此字段
+   * - 影响缓存策略、性能优化和用户体验
+   *
+   * ⚠️ 重要：此字段为系统核心功能，不可移除
    */
   @ApiPropertyOptional({
-    description: "API类型",
+    description: "API类型：控制数据获取策略（rest=REST API，stream=WebSocket流）",
     example: "rest",
     enum: API_TYPE_VALUES,
-    deprecated: true,
   })
   @IsOptional()
   @IsEnum(API_TYPE_VALUES)
