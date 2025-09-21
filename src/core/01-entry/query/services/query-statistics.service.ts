@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
@@ -18,10 +18,35 @@ import { QueryType } from "../dto/query-types.dto";
  * 负责收集、计算和提供所有与查询相关的性能和使用统计数据。
  */
 @Injectable()
-export class QueryStatisticsService {
+export class QueryStatisticsService implements OnModuleDestroy {
   private readonly logger = createLogger(QueryStatisticsService.name);
 
   constructor(private readonly eventBus: EventEmitter2) {} // ✅ 事件驱动监控
+
+  /**
+   * 模块销毁时清理资源
+   */
+  async onModuleDestroy(): Promise<void> {
+    this.logger.log("QueryStatisticsService模块正在关闭");
+
+    // 发送关闭事件通知其他组件
+    try {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: "query_statistics",
+        metricType: "system",
+        metricName: "service_shutdown",
+        metricValue: 1,
+        tags: {
+          operation: "module_destroy",
+          componentType: "query_statistics",
+        },
+      });
+      this.logger.log("QueryStatisticsService关闭事件已发送");
+    } catch (error) {
+      this.logger.warn(`QueryStatisticsService关闭事件发送失败: ${error.message}`);
+    }
+  }
 
   // 旧版内存统计已废弃，所有数据直接从 Prometheus 获取
 

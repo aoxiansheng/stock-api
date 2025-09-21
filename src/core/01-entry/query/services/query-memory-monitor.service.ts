@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
@@ -33,7 +33,7 @@ export interface MemoryCheckResult {
  * - 无状态设计：每次检查都基于当前系统状态
  */
 @Injectable()
-export class QueryMemoryMonitorService {
+export class QueryMemoryMonitorService implements OnModuleDestroy {
   private readonly logger = createLogger(QueryMemoryMonitorService.name);
 
   constructor(
@@ -41,6 +41,35 @@ export class QueryMemoryMonitorService {
     private readonly queryConfig: QueryConfigService,
     private readonly metricsRegistry: MetricsRegistryService, // 🔄 复用现有指标注册
   ) {}
+
+  /**
+   * 模块销毁时清理资源
+   *
+   * 注意：虽然当前服务只发送事件不监听事件，但作为生命周期管理的最佳实践，
+   * 仍然实现 onModuleDestroy 方法以备将来扩展
+   */
+  async onModuleDestroy(): Promise<void> {
+    this.logger.log("QueryMemoryMonitorService模块正在关闭");
+
+    // 发送最终的监控状态事件
+    setImmediate(() => {
+      try {
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: "query_memory_monitor",
+          metricType: "system",
+          metricName: "service_shutdown",
+          metricValue: 1,
+          tags: {
+            operation: "module_destroy",
+            componentType: "query",
+          },
+        });
+      } catch (error) {
+        this.logger.warn(`服务关闭事件发送失败: ${error.message}`);
+      }
+    });
+  }
 
   /**
    * 在批量处理前检查内存状况
@@ -56,20 +85,16 @@ export class QueryMemoryMonitorService {
     const startTime = Date.now();
 
     try {
-      // ❗ 暂时使用默认值，实际应从监控系统获取
-      // TODO: 实现从事件驱动监控系统获取系统指标的方法
-      const memoryPercentage = 0.5; // 暂时使用固定值
-      const systemMetrics: SystemMetricsDto = {
-        memory: { used: 0, total: 0, percentage: memoryPercentage },
-        cpu: { usage: 0 },
-        uptime: 0,
-        timestamp: new Date(),
-      };
+      // ✅ 使用 Node.js 原生 API 获取真实系统指标
+      const systemMetrics = await this.getCurrentSystemMetrics();
 
       let canProcess = true;
       let recommendation: "proceed" | "reduce_batch" | "defer" = "proceed";
       let suggestedBatchSize: number | undefined;
       let pressureLevel: "normal" | "warning" | "critical" = "normal";
+
+      // 获取内存使用百分比
+      const memoryPercentage = systemMetrics.memory.percentage;
 
       // 🎯 内存压力等级评估
       if (memoryPercentage >= this.queryConfig.memoryCriticalThreshold) {
@@ -310,13 +335,8 @@ export class QueryMemoryMonitorService {
     });
 
     try {
-      // 暂时使用默认值，实际应从事件驱动监控系统获取
-      const currentMemory: SystemMetricsDto = {
-        memory: { used: 0, total: 0, percentage: 0.5 },
-        cpu: { usage: 0 },
-        uptime: 0,
-        timestamp: new Date(),
-      };
+      // ✅ 使用真实的系统指标
+      const currentMemory = await this.getCurrentSystemMetrics();
 
       return {
         enabled: true,
@@ -338,6 +358,129 @@ export class QueryMemoryMonitorService {
         },
         lastCheckTime: new Date(),
       };
+    }
+  }
+
+  /**
+   * 获取当前真实的系统指标
+   *
+   * 使用 Node.js 原生 API 替代硬编码值
+   *
+   * @returns Promise<SystemMetricsDto> 包含真实内存、CPU 和运行时间的系统指标
+   */
+  private async getCurrentSystemMetrics(): Promise<SystemMetricsDto> {
+    try {
+      // 使用 Node.js 原生 API 获取内存使用情况
+      const memoryUsage = process.memoryUsage();
+
+      // 获取系统总内存（仅在支持的平台上可用）
+      let totalMemory: number;
+      let usedMemory: number;
+
+      if (typeof process.memoryUsage.rss === 'function') {
+        // 使用 RSS (Resident Set Size) 作为进程已使用内存
+        usedMemory = memoryUsage.rss;
+
+        // 尝试获取系统总内存
+        try {
+          const os = await import('os');
+          totalMemory = os.totalmem();
+        } catch {
+          // 如果无法获取系统总内存，使用进程堆内存限制作为基准
+          totalMemory = memoryUsage.rss + memoryUsage.heapUsed + memoryUsage.external;
+        }
+      } else {
+        // 回退到堆内存统计
+        usedMemory = memoryUsage.heapUsed;
+        totalMemory = memoryUsage.heapTotal;
+      }
+
+      // 计算内存使用百分比
+      const memoryPercentage = totalMemory > 0 ? usedMemory / totalMemory : 0;
+
+      // 获取进程运行时间
+      const uptime = process.uptime();
+
+      // CPU 使用率需要通过采样计算，这里提供一个简化版本
+      const cpuUsage = await this.getCpuUsage();
+
+      const systemMetrics: SystemMetricsDto = {
+        memory: {
+          used: usedMemory,
+          total: totalMemory,
+          percentage: Math.min(memoryPercentage, 1), // 确保不超过 100%
+        },
+        cpu: {
+          usage: cpuUsage,
+        },
+        uptime: uptime,
+        timestamp: new Date(),
+      };
+
+      this.logger.debug("系统指标获取成功", {
+        memoryUsedMB: Math.round(usedMemory / 1024 / 1024),
+        memoryTotalMB: Math.round(totalMemory / 1024 / 1024),
+        memoryPercentage: (memoryPercentage * 100).toFixed(1) + "%",
+        cpuUsage: (cpuUsage * 100).toFixed(1) + "%",
+        uptimeSeconds: Math.round(uptime),
+      });
+
+      return systemMetrics;
+    } catch (error) {
+      this.logger.warn("获取系统指标失败，使用默认值", {
+        error: error.message,
+      });
+
+      // 发生错误时返回安全的默认值
+      return {
+        memory: {
+          used: process.memoryUsage().heapUsed,
+          total: process.memoryUsage().heapTotal,
+          percentage: 0.3, // 保守的默认值
+        },
+        cpu: {
+          usage: 0.1, // 保守的默认CPU使用率
+        },
+        uptime: process.uptime(),
+        timestamp: new Date(),
+      };
+    }
+  }
+
+  /**
+   * 获取 CPU 使用率
+   *
+   * 使用进程 CPU 时间采样来估算 CPU 使用率
+   *
+   * @returns Promise<number> CPU 使用率 (0-1)
+   */
+  private async getCpuUsage(): Promise<number> {
+    try {
+      // 获取进程 CPU 时间
+      const cpuUsageBefore = process.cpuUsage();
+      const timeBefore = Date.now();
+
+      // 短暂等待以获得采样
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const cpuUsageAfter = process.cpuUsage(cpuUsageBefore);
+      const timeAfter = Date.now();
+
+      // 计算 CPU 使用率
+      const timeDiff = timeAfter - timeBefore;
+      const totalCpuTime = (cpuUsageAfter.user + cpuUsageAfter.system) / 1000; // 转换为毫秒
+
+      const cpuUsagePercentage = timeDiff > 0 ? totalCpuTime / timeDiff : 0;
+
+      // 限制在合理范围内
+      return Math.min(Math.max(cpuUsagePercentage, 0), 1);
+    } catch (error) {
+      this.logger.debug("CPU使用率获取失败，使用默认值", {
+        error: error.message,
+      });
+
+      // 返回保守的默认值
+      return 0.1;
     }
   }
 }

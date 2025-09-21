@@ -13,6 +13,7 @@ import {
 
 // 导入缓存服务
 import { SymbolMapperCacheService } from "../services/symbol-mapper-cache.service";
+import { SymbolMapperCacheMonitoringService } from "../services/symbol-mapper-cache-monitoring.service";
 
 /**
  * Symbol Mapper Cache 独立模块
@@ -23,7 +24,7 @@ import { SymbolMapperCacheService } from "../services/symbol-mapper-cache.servic
  * - LRU内存缓存管理
  * - 并发控制和防重复查询
  * - 内存水位监控和自动清理
- * - 使用事件驱动架构进行监控数据收集
+ * - 监听者模式监控数据收集
  */
 @Module({
   imports: [
@@ -34,13 +35,14 @@ import { SymbolMapperCacheService } from "../services/symbol-mapper-cache.servic
     // EventEmitterModule 在 AppModule 中全局配置，此处无需导入
   ],
   providers: [
-    SymbolMapperCacheService,
-    SymbolMappingRepository, // 缓存服务需要访问数据库
-    FeatureFlags, // 缓存配置参数
-    // ✅ 事件驱动架构：不再需要 CollectorService，使用 EventEmitter2 进行事件发送
+    SymbolMapperCacheService,           // 核心缓存服务
+    SymbolMapperCacheMonitoringService, // 监控服务
+    SymbolMappingRepository,            // 数据库访问
+    FeatureFlags,                       // 配置参数
   ],
   exports: [
-    SymbolMapperCacheService, // 导出缓存服务供其他模块使用
+    SymbolMapperCacheService,           // 只导出缓存服务
+    // 不导出监控服务，保持监控逻辑内部化
   ],
 })
 export class SymbolMapperCacheModule {}

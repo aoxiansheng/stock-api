@@ -7,10 +7,9 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { LRUCache } from "lru-cache";
 import crypto from "crypto";
+import { EventEmitter } from 'events';
 import { FeatureFlags } from "@config/feature-flags.config";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CacheUnifiedConfigValidation } from "../../../../cache/config/cache-unified.config";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { SymbolMappingRepository } from "../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository";
 import { SymbolMappingRule } from "../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema";
 import { createLogger } from "@common/logging/index";
@@ -24,6 +23,7 @@ import {
   MEMORY_MONITORING,
   MappingDirection,
 } from "../constants/cache.constants";
+import { CACHE_EVENTS, CacheEventType, CacheHitEvent, CacheMissEvent, CacheOperationStartEvent, CacheOperationCompleteEvent, CacheOperationErrorEvent, CacheDisabledEvent } from '../interfaces/cache-events.interface';
 
 /**
  * Symbol Mapper 统一缓存服务
@@ -46,6 +46,9 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   // 🔒 并发控制
   private readonly pendingQueries: Map<string, Promise<any>>;
 
+  // 📡 事件发射器 - 内部事件通信
+  private readonly cacheEventEmitter = new EventEmitter();
+
   // 📡 变更监听
   private changeStream: any; // Change Stream 实例
   private reconnectAttempts: number = 0; // 重连尝试次数
@@ -56,23 +59,28 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   private memoryCheckTimer: NodeJS.Timeout | null = null; // 内存检查定时器
   private lastMemoryCleanup: Date = new Date(); // 上次清理时间
 
-  // 📊 缓存统计 - 按层级分别统计
-  private cacheStats: {
-    l1: { hits: number; misses: number };
-    l2: { hits: number; misses: number };
-    l3: { hits: number; misses: number };
-    totalQueries: number;
-  };
 
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly featureFlags: FeatureFlags,
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动：仅注入事件总线
-    private readonly configService: ConfigService, // ✅ 统一配置：注入配置服务
+    private readonly configService: ConfigService,
   ) {
     this.initializeCaches();
-    this.initializeStats();
     this.pendingQueries = new Map();
+  }
+
+  /**
+   * 事件监听器注册方法
+   */
+  onCacheEvent(event: CacheEventType, listener: (...args: any[]) => void): void {
+    this.cacheEventEmitter.on(event, listener);
+  }
+
+  /**
+   * 事件监听器移除方法
+   */
+  offCacheEvent(event: CacheEventType, listener: (...args: any[]) => void): void {
+    this.cacheEventEmitter.off(event, listener);
   }
 
   /**
@@ -133,17 +141,6 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  /**
-   * 📊 初始化统计计数器
-   */
-  private initializeStats(): void {
-    this.cacheStats = {
-      l1: { hits: 0, misses: 0 },
-      l2: { hits: 0, misses: 0 },
-      l3: { hits: 0, misses: 0 },
-      totalQueries: 0,
-    };
-  }
 
   /**
    * 🎯 缓存初始化：从FeatureFlags读取现有字段，L3使用新增字段
@@ -208,6 +205,15 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     const isBatch = symbolArray.length > 1;
     const startTime = Date.now();
 
+    // ✅ 发射操作开始事件 (替代 this.cacheStats.totalQueries++)
+    this.cacheEventEmitter.emit(CACHE_EVENTS.OPERATION_START, {
+      provider,
+      symbolCount: symbolArray.length,
+      direction,
+      timestamp: startTime,
+      isBatch,
+    } as CacheOperationStartEvent);
+
     // 🛡️ 服务内开关兜底：即使外层已检查，这里再次确认缓存是否启用
     if (!this.featureFlags.symbolMappingCacheEnabled) {
       this.logger.warn(
@@ -219,8 +225,12 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         },
       );
 
-      // 记录缓存禁用情况，使用专用方法
-      this.recordCacheDisabled();
+      // ✅ 发射缓存禁用事件 (替代 this.recordCacheDisabled())
+      this.cacheEventEmitter.emit(CACHE_EVENTS.DISABLED, {
+        reason: "feature_flag_disabled",
+        provider,
+        timestamp: Date.now(),
+      } as CacheDisabledEvent);
 
       // 直接执行数据库查询，不使用任何缓存
       const results = await this.executeUncachedQuery(
@@ -239,8 +249,6 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    this.cacheStats.totalQueries++;
-
     try {
       // 🎯 Level 3: 批量结果缓存检查
       if (isBatch) {
@@ -251,13 +259,22 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         );
         const batchCached = this.batchResultCache.get(batchKey);
         if (batchCached) {
-          this.cacheStats.l3.hits++;
-          this.recordCacheMetrics("l3", true);
+          // ✅ 发射L3命中事件 (替代 this.recordCacheMetrics("l3", true))
+          this.cacheEventEmitter.emit(CACHE_EVENTS.HIT, {
+            layer: 'l3',
+            provider,
+            timestamp: Date.now(),
+          } as CacheHitEvent);
+
           return this.cloneResult(batchCached);
         }
-        // L3 未命中计数
-        this.cacheStats.l3.misses++;
-        this.recordCacheMetrics("l3", false);
+
+        // ✅ 发射L3未命中事件 (替代 this.recordCacheMetrics("l3", false))
+        this.cacheEventEmitter.emit(CACHE_EVENTS.MISS, {
+          layer: 'l3',
+          provider,
+          timestamp: Date.now(),
+        } as CacheMissEvent);
       }
 
       // 🎯 Level 2: 单符号缓存检查
@@ -269,12 +286,22 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         const cached = this.symbolMappingCache.get(symbolKey);
         if (cached) {
           cacheHits.set(symbol, cached);
-          this.cacheStats.l2.hits++;
-          this.recordCacheMetrics("l2", true);
+          // ✅ 发射L2命中事件 (替代 this.recordCacheMetrics("l2", true))
+          this.cacheEventEmitter.emit(CACHE_EVENTS.HIT, {
+            layer: 'l2',
+            provider,
+            symbol,
+            timestamp: Date.now(),
+          } as CacheHitEvent);
         } else {
           uncachedSymbols.push(symbol);
-          this.cacheStats.l2.misses++; // L2 未命中计数
-          this.recordCacheMetrics("l2", false);
+          // ✅ 发射L2未命中事件 (替代 this.recordCacheMetrics("l2", false))
+          this.cacheEventEmitter.emit(CACHE_EVENTS.MISS, {
+            layer: 'l2',
+            provider,
+            symbol,
+            timestamp: Date.now(),
+          } as CacheMissEvent);
         }
       }
 
@@ -353,16 +380,27 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         });
       }
 
-      // 📊 记录性能指标
-      this.recordPerformanceMetrics(
+      // ✅ 发射操作完成事件 (替代 this.recordPerformanceMetrics())
+      this.cacheEventEmitter.emit(CACHE_EVENTS.OPERATION_COMPLETE, {
         provider,
-        symbolArray.length,
-        Date.now() - startTime,
-        cacheHits.size,
-      );
+        symbolCount: symbolArray.length,
+        cacheHits: cacheHits.size,
+        processingTime: Date.now() - startTime,
+        direction,
+        success: true,
+      } as CacheOperationCompleteEvent);
 
       return finalResult;
     } catch (error) {
+      // ✅ 发射错误事件
+      this.cacheEventEmitter.emit(CACHE_EVENTS.OPERATION_ERROR, {
+        provider,
+        error: error.message,
+        processingTime: Date.now() - startTime,
+        operation: 'mapSymbols',
+        symbolCount: symbolArray.length,
+      } as CacheOperationErrorEvent);
+
       // Use unified error handling for symbol mapping failures
       throw UniversalExceptionFactory.createFromError(
         error as Error,
@@ -390,10 +428,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     this.batchResultCache.clear(); // L3: 批量结果缓存
     this.pendingQueries.clear(); // 清理待处理查询
 
-    // 重置统计信息
-    this.initializeStats();
-
-    this.logger.log("All caches cleared (L1/L2/L3) and statistics reset");
+    this.logger.log("All caches cleared (L1/L2/L3)");
   }
 
   // =============================================================================
@@ -513,91 +548,6 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     return `rules:${normalizedProvider}`;
   }
 
-  /**
-   * 📊 事件驱动监控指标记录 - 符合项目规范
-   */
-  private recordCacheMetrics(level: "l1" | "l2" | "l3", isHit: boolean): void {
-    // ✅ 事件驱动：异步发送监控事件
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "symbol_mapper_cache",
-        metricType: "cache",
-        metricName: `cache_${isHit ? "hit" : "miss"}`,
-        metricValue: 1,
-        tags: {
-          layer: level,
-          cacheType: "symbol-mapper",
-          operation: isHit ? "hit" : "miss",
-          level: level,
-        },
-      });
-    });
-  }
-
-  /**
-   * 缓存禁用事件记录 - 事件驱动模式
-   */
-  private recordCacheDisabled(): void {
-    this.logger.warn("Symbol mapping cache disabled by feature flag", {
-      reason: "feature_flag_disabled",
-      provider: "symbol_mapper",
-      timestamp: new Date().toISOString(),
-    });
-
-    // ✅ 事件驱动：发送缓存禁用事件
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "symbol_mapper_cache",
-        metricType: "cache",
-        metricName: "cache_disabled",
-        metricValue: 1,
-        tags: {
-          reason: "feature_flag_disabled",
-          cacheType: "symbol-mapper",
-        },
-      });
-    });
-  }
-
-  private recordPerformanceMetrics(
-    provider: string,
-    symbolsCount: number,
-    processingTimeMs: number,
-    cacheHits: number,
-  ): void {
-    const hitRatio = (cacheHits / symbolsCount) * 100;
-    const cacheEfficiency =
-      hitRatio > 80 ? "high" : hitRatio > 50 ? "medium" : "low";
-
-    // 日志记录
-    this.logger.log("Symbol mapping performance", {
-      provider: provider.toLowerCase(),
-      symbolsCount,
-      processingTimeMs,
-      hitRatio,
-      cacheEfficiency,
-    });
-
-    // ✅ 事件驱动：发送性能指标事件
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "symbol_mapper_cache",
-        metricType: "performance",
-        metricName: "mapping_performance",
-        metricValue: processingTimeMs,
-        tags: {
-          provider: provider.toLowerCase(),
-          symbolsCount: symbolsCount.toString(),
-          hitRatio: Math.round(hitRatio).toString(),
-          cacheEfficiency,
-          cacheType: "symbol-mapper",
-        },
-      });
-    });
-  }
 
   /**
    * 🎯 统一规则获取（带缓存）- 键一致性修正
@@ -608,13 +558,21 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     const rulesKey = this.getProviderRulesKey(provider); // 使用统一键生成
     const cached = this.providerRulesCache.get(rulesKey);
     if (cached) {
-      this.cacheStats.l1.hits++; // L1是规则缓存
-      this.recordCacheMetrics("l1", true); // 记录L1命中
+      // ✅ 发射L1命中事件 (替代 this.recordCacheMetrics("l1", true))
+      this.cacheEventEmitter.emit(CACHE_EVENTS.HIT, {
+        layer: 'l1',
+        provider,
+        timestamp: Date.now(),
+      } as CacheHitEvent);
       return cached;
     }
 
-    this.cacheStats.l1.misses++;
-    this.recordCacheMetrics("l1", false); // 记录L1未命中
+    // ✅ 发射L1未命中事件 (替代 this.recordCacheMetrics("l1", false))
+    this.cacheEventEmitter.emit(CACHE_EVENTS.MISS, {
+      layer: 'l1',
+      provider,
+      timestamp: Date.now(),
+    } as CacheMissEvent);
 
     try {
       // 查询数据库获取规则

@@ -67,6 +67,26 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     this.logger.log("QueryService模块正在关闭");
+
+    // 注意：QueryService 主要发送事件而不是监听事件
+    // EventEmitter2 实例由 NestJS 管理，会在模块销毁时自动清理
+    // 这里只需要发送一个关闭事件通知其他组件
+    try {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: "query_service",
+        metricType: "system",
+        metricName: "service_shutdown",
+        metricValue: 1,
+        tags: {
+          operation: "module_destroy",
+          componentType: "query",
+        },
+      });
+      this.logger.log("QueryService关闭事件已发送");
+    } catch (error) {
+      this.logger.warn(`QueryService关闭事件发送失败: ${error.message}`);
+    }
   }
 
   /**

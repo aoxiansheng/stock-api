@@ -99,6 +99,25 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy(): Promise<void> {
     this.logger.log("QueryExecutionEngine模块正在关闭");
+
+    // 发送关闭事件通知其他组件
+    try {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: "query_execution_engine",
+        metricType: "system",
+        metricName: "service_shutdown",
+        metricValue: 1,
+        tags: {
+          operation: "module_destroy",
+          componentType: "query",
+        },
+      });
+      this.logger.log("QueryExecutionEngine关闭事件已发送");
+    } catch (error) {
+      this.logger.warn(`QueryExecutionEngine关闭事件发送失败: ${error.message}`);
+    }
+
     // 可以在这里添加任何需要清理的资源
   }
 
