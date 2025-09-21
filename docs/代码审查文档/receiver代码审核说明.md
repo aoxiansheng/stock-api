@@ -35,16 +35,7 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 }
 ```
 
-
-## 3. 日志记录的规范性
-
-### ⚠️ 日志改进建议
-
-**日志量控制**：
-- 在高频场景下，日志量可能过大
-- 建议增加日志采样或动态日志级别控制
-
-## 5. 模块边界问题
+## 4. 模块边界问题
 
 ### ⚠️ 边界模糊点
 
@@ -53,7 +44,7 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 - 位置：`src/core/01-entry/query/services/query-execution-engine.service.ts:66,957`
 - 建议考虑共同抽象层或事件驱动模式
 
-## 6. 内存泄漏风险
+## 5. 内存泄漏风险
 
 ### ⚠️ 内存泄漏风险点
 
@@ -61,7 +52,7 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 - EventEmitter2 的事件监听器可能存在泄漏风险
 - 建议添加监听器清理机制
 
-## 7. 通用组件复用
+## 6. 通用组件复用
 
 ### ⚠️ 复用改进建议
 
@@ -88,10 +79,9 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 
 ### 📋 低优先级改进
 
-4. **配置硬编码清理**：TTL计算中存在魔法数字 ✅已验证
-5. **日志量控制**：高频场景下日志量过大
-6. **监控指标补充**：缺少缓存命中率等业务指标
-7. **分页组件缺失**：批量查询场景中缺少分页功能
+3. **配置硬编码清理**：TTL计算中存在魔法数字 ✅已验证
+4. **监控指标补充**：缺少缓存命中率等业务指标
+5. **分页组件缺失**：批量查询场景中缺少分页功能
 
 ## 推荐行动计划
 

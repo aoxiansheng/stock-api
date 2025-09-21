@@ -78,8 +78,11 @@ export class StreamReceiverGateway
 
     // 添加认证中间件，在连接建立前进行认证检查
     server.use(async (socket, next) => {
+      const authStartTime = Date.now();
+      
       try {
         const authResult = await this.authenticateConnection(socket);
+        const authDuration = Date.now() - authStartTime;
 
         if (!authResult.success) {
           this.logger.warn({
@@ -87,6 +90,14 @@ export class StreamReceiverGateway
             clientId: socket.id,
             reason: authResult.reason,
           });
+
+          // ✅ 记录认证失败的连接质量监控
+          this.streamReceiverService.recordWebSocketConnectionQuality(
+            socket.id,
+            authDuration,
+            'failed',
+            authResult.reason
+          );
 
           // 创建认证错误并阻止连接
           const authError = UniversalExceptionFactory.createBusinessException({
@@ -103,19 +114,37 @@ export class StreamReceiverGateway
           return next(authError);
         }
 
+        // ✅ 记录认证成功的连接质量监控
+        this.streamReceiverService.recordWebSocketConnectionQuality(
+          socket.id,
+          authDuration,
+          'success'
+        );
+
         this.logger.log({
           message: "WebSocket 连接认证成功（中间件）",
           clientId: socket.id,
           apiKeyName: authResult.apiKey?.name,
+          authDuration: `${authDuration}ms`
         });
 
         next();
       } catch (error) {
+        const authDuration = Date.now() - authStartTime;
+        
         this.logger.error({
           message: "WebSocket 认证中间件处理失败",
           clientId: socket.id,
           error: error.message,
         });
+
+        // ✅ 记录认证错误的连接质量监控
+        this.streamReceiverService.recordWebSocketConnectionQuality(
+          socket.id,
+          authDuration,
+          'failed',
+          `Middleware processing error: ${error.message}`
+        );
 
         const authError = UniversalExceptionFactory.createBusinessException({
           component: ComponentIdentifier.STREAM_RECEIVER,
@@ -137,12 +166,29 @@ export class StreamReceiverGateway
    * 客户端连接处理
    * 认证已在中间件中完成，这里只处理连接成功后的逻辑
    */
+  /**
+   * 客户端连接处理
+   * 认证已在中间件中完成，这里只处理连接成功后的逻辑
+   */
   async handleConnection(client: Socket) {
+    const connectionStartTime = Date.now();
+    
     this.logger.log({
       message: "WebSocket 客户端连接",
       clientId: client.id,
       remoteAddress: client.handshake.address,
     });
+
+    // ✅ 发送连接监控事件到 StreamReceiverService
+    this.streamReceiverService.recordWebSocketConnection(
+      client.id, 
+      true, // 连接状态
+      {
+        remoteAddress: client.handshake.address,
+        userAgent: client.handshake.headers['user-agent'],
+        apiKeyName: client.data?.apiKey?.name
+      }
+    );
 
     // 发送连接成功消息
     client.emit("connected", StreamResponses.connected(client.id));
@@ -151,11 +197,24 @@ export class StreamReceiverGateway
   /**
    * 客户端断开连接处理
    */
+  /**
+   * 客户端断开连接处理
+   */
   async handleDisconnect(client: Socket) {
     this.logger.log({
       message: "WebSocket 客户端断开连接",
       clientId: client.id,
     });
+
+    // ✅ 发送断开连接监控事件到 StreamReceiverService
+    this.streamReceiverService.recordWebSocketConnection(
+      client.id, 
+      false, // 断开连接状态
+      {
+        remoteAddress: client.handshake.address,
+        apiKeyName: client.data?.apiKey?.name
+      }
+    );
 
     // 清理客户端订阅
     try {

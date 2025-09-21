@@ -76,25 +76,6 @@ private readonly symbolMarketCache = new LRU<string, Market>({ max: 5000 });
    - 环境变量重复使用于不同配置项
    - 部分映射关系不直观
 
-
-## 4. 日志记录的规范性
-
-### ✅ 日志优点
-- **统一日志器**: 使用`@common/logging`的`createLogger`
-- **结构化日志**: 使用对象参数提供上下文信息
-
-### ⚠️ 日志问题
-**中英文混用**:
-```typescript
-// 中文日志
-this.logger.log(`开始缓存预热: ${hotQueries.length} 个查询`);
-this.logger.debug(`缓存预热完成: ${query.key} (${duration}ms)`);
-
-// 英文日志
-this.logger.log("SmartCacheOrchestrator service initializing...");
-this.logger.debug(`Executing background update for cache key: ${task.cacheKey}`);
-```
-
 ## 5. 模块边界问题
 
 ### ✅ 边界优点
@@ -136,10 +117,6 @@ this.logger.debug(`Executing background update for cache key: ${task.cacheKey}`)
 1. **优化内存管理**: 使用LRU缓存替代当前的Map+手动清理方案
 
 #### ⚠️ 中优先级
-2. **统一日志语言**: 避免中英文混用，建议统一使用英文
-3. **减少硬编码**: 将魔术数字提取为常量
-4. **优化模块依赖**: 使用路径别名替代相对路径
+2. **减少硬编码**: 将魔术数字提取为常量
+3. **优化模块依赖**: 使用路径别名替代相对路径
 
-### 结论
-
-smart-cache组件整体架构合理，具有良好的缓存策略设计和性能优化机制。主要问题集中在日志规范和内存优化方面，这些都是可以通过渐进式改进解决的问题。组件的核心功能和架构设计是健康的。

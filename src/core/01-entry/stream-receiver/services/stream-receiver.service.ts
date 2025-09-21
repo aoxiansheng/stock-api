@@ -238,6 +238,129 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
+   * 记录 WebSocket 连接监控事件
+   * 与现有事件驱动架构兼容的连接监控方法
+   */
+  recordWebSocketConnection(
+    clientId: string,
+    connected: boolean,
+    metadata?: {
+      remoteAddress?: string;
+      userAgent?: string;
+      apiKeyName?: string;
+    }
+  ): void {
+    try {
+      // 连接状态指标
+      this.emitMonitoringEvent(
+        "websocket_connection_events",
+        1,
+        {
+          action: connected ? "connect" : "disconnect",
+          clientId,
+          remoteAddress: metadata?.remoteAddress || "unknown",
+          apiKeyName: metadata?.apiKeyName || "unknown"
+        }
+      );
+
+      // 连接计数指标 - 更新活跃连接数
+      const currentConnections = connected 
+        ? this.activeConnections.size + 1 
+        : Math.max(0, this.activeConnections.size - 1);
+      
+      this.emitMonitoringEvent(
+        "websocket_connections_total",
+        currentConnections,
+        {
+          action: connected ? "increment" : "decrement",
+          clientId
+        }
+      );
+
+      // 业务监控事件
+      this.emitBusinessEvent(
+        "websocket_client_lifecycle",
+        1,
+        {
+          event: connected ? "client_connected" : "client_disconnected",
+          clientId,
+          totalConnections: currentConnections,
+          timestamp: Date.now()
+        }
+      );
+
+      this.logger.debug(`WebSocket 连接监控事件已记录: ${connected ? '连接' : '断开'}`, {
+        clientId,
+        currentConnections,
+        action: connected ? "connect" : "disconnect"
+      });
+
+    } catch (error) {
+      this.logger.warn("WebSocket 连接监控事件发送失败", {
+        clientId,
+        connected,
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * 记录 WebSocket 连接质量监控事件
+   * 用于监控连接建立时间、认证状态等
+   */
+  recordWebSocketConnectionQuality(
+    clientId: string,
+    connectionTime: number,
+    authStatus: 'success' | 'failed',
+    errorReason?: string
+  ): void {
+    try {
+      // 连接建立时间监控
+      this.emitMonitoringEvent(
+        "websocket_connection_establishment_time",
+        connectionTime,
+        {
+          clientId,
+          latencyCategory: this.categorizeLatency(connectionTime),
+          authStatus
+        }
+      );
+
+      // 认证状态监控
+      this.emitMonitoringEvent(
+        "websocket_authentication_events",
+        1,
+        {
+          clientId,
+          status: authStatus,
+          errorReason: errorReason || "none"
+        }
+      );
+
+      // 如果认证失败，记录错误监控
+      if (authStatus === 'failed') {
+        this.emitMonitoringEvent(
+          "websocket_connection_errors",
+          1,
+          {
+            clientId,
+            errorType: "authentication_failed",
+            errorReason: errorReason || "unknown"
+          }
+        );
+      }
+
+    } catch (error) {
+      this.logger.warn("WebSocket 连接质量监控事件发送失败", {
+        clientId,
+        connectionTime,
+        authStatus,
+        error: error.message,
+      });
+    }
+  }
+
+  /**
    * 🎯 业务监控事件发送
    */
   private emitBusinessEvent(
@@ -2256,7 +2379,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       });
     }
 
-    // ✅ 使用CollectorService记录流数据延迟指标
+    // ✅ 使用事件驱动监控记录流数据延迟指标
     this.recordStreamLatencyMetrics(symbol, latencyMs);
   }
 
