@@ -32,27 +32,6 @@ src/core/shared/
     └── base-fetcher.service.ts
 ```
 
-## 1. 现存问题分析
-
-### ✅ 已解决问题 (文档过时)
-
-#### ~~CacheService 集成缺失~~ - **已完成集成** ✅
-**位置**: `src/core/shared/services/data-change-detector.service.ts:494-507`
-```typescript
-// ✅ 实际代码：已完整集成CacheService
-private async getRedisSnapshot(symbol: string): Promise<DataSnapshot | null> {
-  try {
-    const cacheKey = this.buildSnapshotCacheKey(symbol);
-    return await this.cacheService.safeGet<DataSnapshot>(cacheKey);
-  } catch (error) {
-    this.logger.debug("Redis快照获取失败", { symbol, error });
-    return null; // 仅在异常时降级
-  }
-}
-```
-
-**现状**: ✅ **已完整集成** - 使用容错方法 `cacheService.safeGet()`，支持分布式缓存
-**文档错误**: 原文档声称返回null，实际已实现完整的Redis缓存功能
 
 ### ❌ 待解决问题 (唯一真实问题)
 

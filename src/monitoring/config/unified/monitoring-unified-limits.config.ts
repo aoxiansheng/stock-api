@@ -122,6 +122,17 @@ export class DataProcessingBatchConfig {
   @Max(500, { message: "数据分析批量大小最大值为500" })
   @Transform(({ value }) => parseInt(value, 10) || 100)
   analysis: number = 100;
+
+  /**
+   * 最近指标采样数量
+   * 用途：动态批处理统计中保留的最近指标样本数量
+   * 环境变量：MONITORING_RECENT_METRICS_COUNT
+   */
+  @IsNumber({}, { message: "最近指标采样数量必须是数字" })
+  @Min(1, { message: "最近指标采样数量最小值为1" })
+  @Max(20, { message: "最近指标采样数量最大值为20" })
+  @Transform(({ value }) => parseInt(value, 10) || 5)
+  recentMetrics: number = 5;
 }
 
 /**

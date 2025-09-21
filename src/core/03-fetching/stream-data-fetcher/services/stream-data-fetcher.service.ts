@@ -1,11 +1,11 @@
-// 定义采样配置常量
-const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
+// RECENT_METRICS_COUNT 已移动到监控配置中，通过 configService 动态获取
 import { OPERATION_LIMITS } from "@common/constants/domain";
 import {
   Injectable,
   OnModuleDestroy,
   Inject,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 import { v4 as uuidv4 } from "uuid";
 import { Subject, fromEvent, race, timer } from "rxjs";
@@ -146,6 +146,8 @@ export class StreamDataFetcherService
     private readonly connectionPoolManager: ConnectionPoolManager,
     // ✅ 事件化驱动监控 - 仅注入事件总线
     protected readonly eventBus: EventEmitter2,
+    // 添加配置服务以支持动态配置获取
+    private readonly configService: ConfigService,
   ) {
     super(eventBus);
 
@@ -581,6 +583,10 @@ export class StreamDataFetcherService
    * 获取自适应并发控制统计信息
    */
   getAdaptiveConcurrencyStats() {
+    // 通过配置服务获取最近指标采样数量
+    const monitoringLimits = this.configService.get('monitoringUnifiedLimits');
+    const recentMetricsCount = monitoringLimits?.dataProcessingBatch?.recentMetrics || 5;
+
     return {
       currentConcurrency: this.concurrencyControl.currentConcurrency,
       concurrencyRange: {
@@ -603,7 +609,7 @@ export class StreamDataFetcherService
         recoveryDelay: this.concurrencyControl.circuitBreaker.recoveryDelay,
       },
       recentAdjustments:
-        this.performanceMetrics.concurrencyHistory.slice(-RECENT_METRICS_COUNT),
+        this.performanceMetrics.concurrencyHistory.slice(-recentMetricsCount),
       lastUpdate: new Date(
         this.performanceMetrics.lastMetricsUpdate,
       ).toISOString(),

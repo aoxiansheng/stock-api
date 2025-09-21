@@ -18,12 +18,14 @@ import { TrendAnalyzerService } from "./analyzer-trend.service";
 import { AnalyzerHealthScoreCalculator } from "./analyzer-score.service";
 import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { MonitoringUnifiedTtl } from "../config/unified/monitoring-unified-ttl.config";
+import { monitoringUnifiedLimitsConfig } from "../config/unified/monitoring-unified-limits.config";
 
 @Module({
   imports: [
     CollectorModule,
     CacheModule, // 导入通用缓存模块替代MonitoringCacheModule
     ConfigModule.forFeature(MonitoringUnifiedTtl),
+    ConfigModule.forFeature(monitoringUnifiedLimitsConfig),
   ],
   providers: [
     AnalyzerService,
@@ -37,6 +39,12 @@ import { MonitoringUnifiedTtl } from "../config/unified/monitoring-unified-ttl.c
         configService.get("monitoringUnifiedTtl"),
       inject: [ConfigService],
     },
+    {
+      provide: "monitoringUnifiedLimits",
+      useFactory: (configService: ConfigService) =>
+        configService.get("monitoringUnifiedLimits"),
+      inject: [ConfigService],
+    },
   ],
   exports: [
     AnalyzerService,
@@ -45,6 +53,7 @@ import { MonitoringUnifiedTtl } from "../config/unified/monitoring-unified-ttl.c
     AnalyzerHealthScoreCalculator,
     AnalyzerMetricsCalculator,
     "monitoringUnifiedTtl",
+    "monitoringUnifiedLimits",
   ],
 })
 export class AnalyzerModule {}

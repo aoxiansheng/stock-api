@@ -57,71 +57,6 @@ class SmartCircuitBreakerManager {
 | 清理策略 | 仅时间过期 | LRU + 时间过期 | ✅ 智能管理 |
 | 内存效率 | 基础 | 高效 | ✅ 减少长期内存占用 |
 
-### 1.2 模块边界问题 ⚠️ **[已验证]**
-
-**代码位置**:
-- `src/core/02-processing/symbol-transformer/services/symbol-transformer.service.ts`
-- `src/core/00-prepare/symbol-mapper/services/symbol-mapper.service.ts`
-
-**边界不清晰:**
-- **职责重叠**: ✅ 验证确认 - 与 SymbolMapperService 功能重叠
-- **功能迁移**: ✅ 验证确认 - 注释显示从 SymbolMapperService 迁移而来，但未完全替代
-- **依赖混乱**: 两服务都依赖 `SymbolMapperCacheService`，职责边界模糊
-
-**🆕 渐进式重构方案 (推荐):**
-
-**阶段1: 接口隔离** ⭐⭐⭐⭐⭐
-```typescript
-// 明确接口职责，避免功能混淆
-interface ISymbolRuleManager {
-  // 仅规则管理相关
-  createDataSourceMapping(): Promise<SymbolMappingResponseDto>;
-  updateSymbolMapping(): Promise<SymbolMappingResponseDto>;
-  deleteSymbolMapping(): Promise<SymbolMappingResponseDto>;
-  getSymbolMappingRule(): Promise<ISymbolMappingRule[]>;
-}
-
-interface ISymbolTransformer {
-  // 仅转换执行相关
-  transformSymbols(): Promise<SymbolTransformResult>;
-  transformSingleSymbol(): Promise<string>;
-  transformSymbolsForProvider(): Promise<SymbolTransformForProviderResult>;
-}
-```
-
-**阶段2: 适配器模式** ⭐⭐⭐⭐
-```typescript
-// 提供兼容层，确保现有调用不受影响
-@Injectable()
-class SymbolMapperCompatibilityAdapter {
-  constructor(
-    private ruleManager: ISymbolRuleManager,
-    private transformer: ISymbolTransformer
-  ) {}
-
-  // 保持原有API，内部委派给专门的服务
-  async mapSymbols(...args) {
-    return this.transformer.transformSymbols(...args);
-  }
-
-  // 规则管理API保持不变
-  async createDataSourceMapping(...args) {
-    return this.ruleManager.createDataSourceMapping(...args);
-  }
-}
-```
-
-**阶段3: 逐步迁移** ⭐⭐⭐
-- 新功能使用新接口
-- 老功能通过适配器过渡
-- 逐步替换老调用方
-
-**原方案 vs 优化方案对比:**
-| 特性 | 原文档方案 | 🆕 渐进式方案 | 优势 |
-|------|------------|---------------|------|
-| 重构风险 | 一次性重构 | 分阶段进行 | ✅ 降低业务中断风险 |
-| 兼容性 | 可能破坏现有API | 完全向后兼容 | ✅ 平滑过渡 |
-| 实施难度 | 高 | 中等 | ✅ 可控的复杂度 |
 
 ## 2. 修复优先级 (基于审核分析更新)
 
@@ -135,18 +70,13 @@ class SymbolMapperCompatibilityAdapter {
 
 ### 🟡 中期规划（架构优化）
 
-**2. 模块边界问题** - 采用渐进式重构
-- **优先级**: 🟡 中期规划
-- **实施难度**: 🟡 中等
-- **业务价值**: ⭐⭐⭐⭐ 长期架构收益
-- **理由**: 分阶段降低风险，确保业务连续性
 
 ## 3. 技术可行性评估 (审核验证结果)
 
 | 修复项目 | 原方案难度 | 🆕 优化方案难度 | 实施风险 | 时间估算 | 推荐度 |
 |---------|------------|----------------|----------|----------|-------|
 | **内存清理** | 🟡 中等 | 🟢 **低** | 🟢 极低风险 | **1天** | ⭐⭐⭐⭐⭐ |
-| **模块边界** | 🔴 高 | 🟡 **中等** | 🟡 中风险 | **2-3周** | ⭐⭐⭐⭐⭐ |
+
 
 **✅ 审核验证要点:**
 - 所有问题在代码库中得到确认
@@ -167,10 +97,7 @@ class SymbolMapperCompatibilityAdapter {
 - ✅ 智能管理（LRU + 时间过期 vs 仅时间过期）
 - ✅ 更高效率（减少长期内存占用）
 
-**模块重构优化价值:**
-- ✅ 降低业务中断风险（分阶段 vs 一次性重构）
-- ✅ 完全向后兼容（适配器模式）
-- ✅ 可控复杂度（渐进式迁移）
+
 
 ### 📋 实施路线图
 ```
@@ -178,22 +105,9 @@ Phase 1: 内存泄漏修复 (1天)
 ├── 实施智能自清理管理器
 └── 验证自动清理机制
 
-Phase 2: 接口隔离 (1周)
-├── 定义明确的接口边界
-└── 创建接口实现
-
-Phase 3: 适配器实现 (1周)
-├── 构建兼容层
-└── 确保API向后兼容
-
-Phase 4: 渐进迁移 (1周)
-├── 新功能使用新接口
-└── 逐步替换现有调用
-```
 
 **成功指标:**
 - ✅ 内存使用稳定（无泄漏风险）
-- ✅ 模块职责清晰（接口隔离）
 - ✅ API兼容性100%（零破坏性变更）
 - ✅ 代码质量提升（通过所有质量门控）
 

@@ -8,12 +8,12 @@ import { AnalyzerMetricsCalculator } from "./analyzer-metrics.service";
 import { CacheService } from "@cache/services/cache.service";
 import { MonitoringCacheKeys } from "../utils/monitoring-cache-keys";
 import { MonitoringUnifiedTtlConfig } from "../config/unified/monitoring-unified-ttl.config";
+import { MonitoringUnifiedLimitsConfig } from "../config/unified/monitoring-unified-limits.config";
 import { MonitoringSerializer } from "../utils/monitoring-serializer";
 import { MONITORING_SYSTEM_LIMITS } from "../constants/config/monitoring-system.constants";
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
 
-// 定义采样配置常量
-const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
+// RECENT_METRICS_COUNT 已移动到监控配置中，通过 limitsConfig 动态获取
 
 /**
  * 趋势分析服务
@@ -29,6 +29,8 @@ export class TrendAnalyzerService {
     private readonly eventBus: EventEmitter2,
     @Inject("monitoringUnifiedTtl")
     private readonly ttlConfig: MonitoringUnifiedTtlConfig,
+    @Inject("monitoringUnifiedLimits")
+    private readonly limitsConfig: MonitoringUnifiedLimitsConfig,
   ) {
     this.logger.log("TrendAnalyzerService initialized - 趋势分析服务已启动");
   }
@@ -536,7 +538,9 @@ export class TrendAnalyzerService {
     throughput: { value: number; confidence: number };
   } {
     // 简化实现：基于最近的趋势进行线性外推
-    const recentMetrics = historicalMetrics.slice(-RECENT_METRICS_COUNT); // 使用最近5个数据点
+    // 通过配置获取最近指标采样数量
+    const recentMetricsCount = this.limitsConfig?.dataProcessingBatch?.recentMetrics || 5;
+    const recentMetrics = historicalMetrics.slice(-recentMetricsCount); // 使用配置的数据点数量
 
     if (recentMetrics.length < 2) {
       const latest = historicalMetrics[historicalMetrics.length - 1];

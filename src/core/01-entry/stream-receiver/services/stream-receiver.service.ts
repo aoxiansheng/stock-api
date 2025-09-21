@@ -1,5 +1,4 @@
-// 定义采样配置常量
-const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
+// RECENT_METRICS_COUNT 已移动到监控配置中，通过 configService 动态获取
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { API_OPERATIONS } from "@common/constants/domain";
 import {
@@ -871,6 +870,10 @@ export class StreamReceiverService implements OnModuleDestroy {
       return { enabled: false };
     }
 
+    // 通过配置服务获取最近指标采样数量
+    const monitoringLimits = this.configService.get('monitoringUnifiedLimits');
+    const recentMetricsCount = monitoringLimits?.dataProcessingBatch?.recentMetrics || 5;
+
     return {
       enabled: true,
       currentInterval: this.dynamicBatchingState.currentInterval,
@@ -878,7 +881,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         isHighLoad: this.dynamicBatchingState.isHighLoad,
         isLowLoad: this.dynamicBatchingState.isLowLoad,
         recentLoadSamples:
-          this.dynamicBatchingState.loadSamples.slice(-RECENT_METRICS_COUNT),
+          this.dynamicBatchingState.loadSamples.slice(-recentMetricsCount),
       },
       metrics: {
         totalAdjustments: this.dynamicBatchingMetrics.totalAdjustments,

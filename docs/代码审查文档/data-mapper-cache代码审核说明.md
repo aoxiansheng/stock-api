@@ -115,30 +115,8 @@ private serializeRule(rule: FlexibleMappingRuleResponseDto): string {
 
 ## 重构实施计划
 
-### 第一阶段：架构重构（已完成）
 
-**目标**: 消除功能重复，明确组件职责划分
-
-**实施内容**:
-1. **删除冗余服务**:
-   - 删除 `src/core/00-prepare/data-mapper/services/mapping-rule-cache.service.ts` 文件
-   - 移除 `MappingRuleCacheService` 类定义
-
-2. **更新依赖注入**:
-   - 修改 `FlexibleMappingRuleService` 构造函数，将 `MappingRuleCacheService` 替换为 `DataMapperCacheService`
-   - 更新导入语句：`import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";`
-
-3. **更新模块配置**:
-   - 修改 `DataMapperModule`，移除 `MappingRuleCacheService` 的导入和导出
-   - 添加 `DataMapperCacheService` 的导入和导出
-
-**验证结果**:
-- ✅ 成功删除冗余的 `MappingRuleCacheService` 服务
-- ✅ `FlexibleMappingRuleService` 现在直接使用 `DataMapperCacheService`
-- ✅ `DataMapperModule` 正确配置了服务依赖
-- ✅ 代码重复率从100%降至0%
-
-### 第二阶段：配置优化（计划中）
+### 第一阶段：配置优化（计划中）
 
 **目标**: 统一配置管理，增强环境变量支持
 
@@ -147,7 +125,7 @@ private serializeRule(rule: FlexibleMappingRuleResponseDto): string {
 2. 实现环境变量支持
 3. 更新现有配置引用
 
-### 第三阶段：性能优化（计划中）
+### 第二阶段：性能优化（计划中）
 
 **目标**: 优化缓存键验证和JSON序列化
 

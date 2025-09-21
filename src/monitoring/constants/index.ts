@@ -119,9 +119,5 @@ export type {
  *    - 状态常量 → status/
  *    - 消息常量 → messages/
  *
- * 🚀 使用方式：
- * ```typescript
- * // 零抽象架构：常量就近定义，直接使用数值
- * const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RECENT_METRICS_COUNT
  * ```
  */
