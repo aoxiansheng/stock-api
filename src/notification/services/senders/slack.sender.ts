@@ -9,11 +9,13 @@
 import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 import { NotificationConfigService } from "../notification-config.service";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { NOTIFICATION_ERROR_CODES } from "../../constants/notification-error-codes.constants";
 
 // 使用Notification模块的类型
 import {
@@ -54,9 +56,19 @@ export class SlackSender implements NotificationSender {
       channelConfig.webhook_url,
     );
     if (!urlValidation.valid) {
-      throw new BadRequestException(
-        `Slack Webhook URL安全检查失败: ${urlValidation.error}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Slack Webhook URL security validation failed: ${urlValidation.error}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'sendSlackNotification',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: channelConfig.webhook_url,
+          validationError: urlValidation.error,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'slack_url_security_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     try {
@@ -129,9 +141,19 @@ export class SlackSender implements NotificationSender {
     const urlValidation = URLSecurityValidator.validateURL(config.webhook_url);
     if (!urlValidation.valid) {
       this.logger.warn(`Slack测试URL安全检查失败: ${urlValidation.error}`);
-      throw new BadRequestException(
-        `Slack Webhook URL安全检查失败: ${urlValidation.error}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Slack Webhook URL security validation failed: ${urlValidation.error}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'testSlackConnection',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: config.webhook_url,
+          validationError: urlValidation.error,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'slack_url_security_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     try {

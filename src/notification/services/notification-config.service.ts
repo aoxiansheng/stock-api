@@ -8,6 +8,8 @@
 
 import { Injectable, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { NOTIFICATION_ERROR_CODES } from '../constants/notification-error-codes.constants';
 import {
   NotificationUnifiedConfig,
   NotificationBatchConfig,
@@ -30,7 +32,17 @@ export class NotificationConfigService {
     this.config =
       this.configService.get<NotificationUnifiedConfig>("notification");
     if (!this.config) {
-      throw new Error("Notification configuration not found");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.NOTIFICATION,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'initializeNotificationConfigService',
+        message: 'Notification configuration not found in ConfigService',
+        context: {
+          configKey: 'notification',
+          errorType: NOTIFICATION_ERROR_CODES.CONFIG_NOT_FOUND
+        },
+        retryable: false
+      });
     }
   }
 

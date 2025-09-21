@@ -11,6 +11,8 @@
  */
 
 import { BadRequestException, Logger } from '@nestjs/common';
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 import { RuleListType, RULE_LIST_TYPE_VALUES } from '../constants/data-mapper.constants';
 import {
   getProductionTypeConfig,
@@ -118,19 +120,42 @@ export function validateRuleType(
 
   // 基础类型检查
   if (!type || typeof type !== 'string') {
-    result.error = '类型参数必须是非空字符串';
-    logger.error(`类型验证失败: ${result.error}`, { providedType: type });
-    throw new BadRequestException(result.error);
+    result.error = 'Type parameter must be a non-empty string';
+    logger.error(`Type validation failed: ${result.error}`, { providedType: type });
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'validateRuleType',
+      message: result.error,
+      context: {
+        providedType: type,
+        expectedType: 'non-empty string',
+        errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_NAME
+      },
+      retryable: false
+    });
   }
 
   // 检查是否为支持的类型
   if (!RULE_LIST_TYPE_VALUES.includes(type as RuleListType)) {
-    result.error = `不支持的规则类型: ${type}`;
+    result.error = `Unsupported rule type: ${type}`;
     result.suggestions.push(
-      `支持的类型包括: ${RULE_LIST_TYPE_VALUES.join(', ')}`
+      `Supported types include: ${RULE_LIST_TYPE_VALUES.join(', ')}`
     );
-    logger.error(`不支持的类型: ${type}`);
-    throw new BadRequestException(result.error);
+    logger.error(`Unsupported type: ${type}`);
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'validateRuleType',
+      message: result.error,
+      context: {
+        providedType: type,
+        supportedTypes: RULE_LIST_TYPE_VALUES,
+        suggestions: result.suggestions,
+        errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_NAME
+      },
+      retryable: false
+    });
   }
 
   const ruleType = type as RuleListType;
@@ -139,9 +164,19 @@ export function validateRuleType(
   // 获取类型配置
   const config = getProductionTypeConfig(ruleType);
   if (!config) {
-    result.error = `未知的规则类型: ${type}`;
-    logger.error(`缺少类型配置: ${type}`);
-    throw new BadRequestException(result.error);
+    result.error = `Unknown rule type: ${type}`;
+    logger.error(`Missing type configuration: ${type}`);
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'validateRuleType',
+      message: result.error,
+      context: {
+        ruleType: type,
+        errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_NAME
+      },
+      retryable: false
+    });
   }
 
   // 检查是否启用
@@ -156,9 +191,21 @@ export function validateRuleType(
       fallbackResult.warnings.push(`已从禁用类型 ${type} 降级到 ${config.fallbackType}`);
       return fallbackResult;
     } else {
-      result.error = `类型 ${type} 当前已禁用`;
+      result.error = `Type ${type} is currently disabled`;
       logger.error(result.error);
-      throw new BadRequestException(result.error);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'validateRuleType',
+        message: result.error,
+        context: {
+          ruleType: type,
+          enabled: config.enabled,
+          fallbackType: config.fallbackType,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_APPLICATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -171,9 +218,22 @@ export function validateRuleType(
       fallbackResult.warnings.push(`严格模式下已从 ${type} 降级到 ${config.fallbackType}`);
       return fallbackResult;
     } else {
-      result.error = `严格模式下不允许使用非生产级别的类型: ${type}`;
+      result.error = `Non-production level type not allowed in strict mode: ${type}`;
       logger.error(result.error);
-      throw new BadRequestException(result.error);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'validateRuleType',
+        message: result.error,
+        context: {
+          ruleType: type,
+          supportLevel: config.supportLevel,
+          strictMode: true,
+          fallbackType: config.fallbackType,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_APPLICATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -190,12 +250,25 @@ export function validateRuleType(
         );
         return fallbackResult;
       } else {
-        result.error = `类型 ${type} 不支持端点 ${targetEndpoint}`;
+        result.error = `Type ${type} does not support endpoint ${targetEndpoint}`;
         result.suggestions.push(
-          `该类型支持的端点: ${supportedEndpoints.join(', ')}`
+          `Endpoints supported by this type: ${supportedEndpoints.join(', ')}`
         );
         logger.error(result.error);
-        throw new BadRequestException(result.error);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateRuleType',
+          message: result.error,
+          context: {
+            ruleType: type,
+            targetEndpoint,
+            supportedEndpoints,
+            suggestions: result.suggestions,
+            errorType: DATA_MAPPER_ERROR_CODES.INVALID_API_TYPE
+          },
+          retryable: false
+        });
       }
     }
   }

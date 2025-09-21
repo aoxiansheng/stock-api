@@ -40,6 +40,12 @@ import {
 } from "class-validator";
 import { Transform, plainToClass } from "class-transformer";
 import { registerAs } from "@nestjs/config";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { MONITORING_ERROR_CODES } from '../../constants/monitoring-error-codes.constants';
 
 /**
  * 监控核心环境变量配置类
@@ -480,7 +486,17 @@ export const monitoringCoreEnvConfig = registerAs(
         .map((error) => Object.values(error.constraints || {}).join(", "))
         .join("; ");
 
-      throw new Error(`监控核心环境变量配置验证失败: ${errorMessages}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'createValidated',
+        message: `Monitoring core environment variable configuration validation failed: ${errorMessages}`,
+        context: {
+          validationErrors: errors,
+          errorMessages,
+          errorType: MONITORING_ERROR_CODES.CORE_ENV_CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     // 根据环境调整配置
@@ -489,9 +505,17 @@ export const monitoringCoreEnvConfig = registerAs(
     // 验证最终配置的合理性
     const validation = config.validateConfiguration();
     if (!validation.isValid) {
-      throw new Error(
-        `监控核心环境变量配置不合理: ${validation.errors.join("; ")}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'createValidated',
+        message: `Monitoring core environment variable configuration is unreasonable: ${validation.errors.join("; ")}`,
+        context: {
+          validationResult: validation,
+          errors: validation.errors,
+          errorType: MONITORING_ERROR_CODES.CORE_ENV_CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     return config;

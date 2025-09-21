@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException, Inject } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { createLogger } from "@common/modules/logging";
 // 使用统一配置系统
 import type { AuthUnifiedConfigInterface } from "../../config/auth-unified.config";
 import { UserRole } from "../../enums/user-role.enum";
 import { User } from "../../schemas/user.schema";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
 export interface JwtPayload {
   sub: string;
@@ -100,7 +101,13 @@ export class TokenService {
       return payload;
     } catch (error) {
       this.logger.debug("访问令牌验证失败", { error: error.message });
-      throw new UnauthorizedException("访问令牌无效或已过期");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "访问令牌无效或已过期",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'verifyAccessToken',
+        component: ComponentIdentifier.AUTH,
+        context: { reason: 'invalid_access_token' }
+      });
     }
   }
 
@@ -122,7 +129,13 @@ export class TokenService {
       return payload;
     } catch (error) {
       this.logger.debug("刷新令牌验证失败", { error: error.message });
-      throw new UnauthorizedException("刷新令牌无效或已过期");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "刷新令牌无效或已过期",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'verifyRefreshToken',
+        component: ComponentIdentifier.AUTH,
+        context: { reason: 'invalid_refresh_token' }
+      });
     }
   }
 
@@ -214,7 +227,13 @@ export class TokenService {
       return payload;
     } catch (error) {
       this.logger.debug("自定义载荷令牌验证失败", { error: error.message });
-      throw new UnauthorizedException("自定义令牌无效或已过期");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "自定义令牌无效或已过期",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'verifyCustomPayload',
+        component: ComponentIdentifier.AUTH,
+        context: { reason: 'invalid_custom_token' }
+      });
     }
   }
 

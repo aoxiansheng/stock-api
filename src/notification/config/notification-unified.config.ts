@@ -19,6 +19,8 @@ import {
   validateSync,
 } from "class-validator";
 import { Type, plainToClass } from "class-transformer";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { NOTIFICATION_ERROR_CODES } from '../constants/notification-error-codes.constants';
 
 // 批处理配置组
 export class NotificationBatchConfig {
@@ -288,9 +290,17 @@ export default registerAs(
             `${error.property}: ${Object.values(error.constraints || {}).join(", ")}`,
         )
         .join("; ");
-      throw new Error(
-        `Notification configuration validation failed: ${errorMessages}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.NOTIFICATION,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateNotificationConfig',
+        message: `Notification configuration validation failed: ${errorMessages}`,
+        context: {
+          validationErrors: errors,
+          errorType: NOTIFICATION_ERROR_CODES.CONFIGURATION_VALIDATION_FAILED
+        },
+        retryable: false
+      });
     }
 
     return config;

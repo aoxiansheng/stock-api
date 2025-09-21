@@ -10,6 +10,8 @@ import {
   DataMapperCacheOperation,
   DataMapperCacheMetrics,
 } from "../constants/data-mapper-cache.constants";
+import { DATA_MAPPER_CACHE_ERROR_CODES } from "../constants/data-mapper-cache-error-codes.constants";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode, BusinessException, UniversalRetryHandler } from "@common/core/exceptions";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 /**
@@ -70,6 +72,18 @@ export class DataMapperCacheService implements IDataMapperCache {
     timeoutMs: number = DATA_MAPPER_CACHE_CONSTANTS.OPERATION_TIMEOUTS
       .DEFAULT_SCAN_MS,
   ): Promise<string[]> {
+    // 验证输入参数
+    if (!pattern) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'scanKeysWithTimeout',
+        message: 'Pattern is required',
+        context: { pattern },
+        retryable: false
+      });
+    }
+
     const keys: string[] = [];
     let cursor = "0";
     const startTime = Date.now();
@@ -78,12 +92,24 @@ export class DataMapperCacheService implements IDataMapperCache {
       do {
         // 检查超时
         if (Date.now() - startTime > timeoutMs) {
-          this.logger.warn("SCAN操作超时", {
+          this.logger.warn("SCAN operation timed out", {
             pattern,
             scannedKeys: keys.length,
             timeoutMs,
           });
-          break;
+          
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.DATA_MAPPER_CACHE,
+            errorCode: BusinessErrorCode.EXTERNAL_SERVICE_TIMEOUT,
+            operation: 'scanKeysWithTimeout',
+            message: 'SCAN operation timed out',
+            context: { 
+              pattern,
+              scannedKeys: keys.length,
+              timeoutMs
+            },
+            retryable: true
+          });
         }
 
         const result = await this.redis.scan(
@@ -103,9 +129,25 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       return keys;
     } catch (error) {
-      this.logger.error("SCAN操作失败", { pattern, error: error.message });
-      // 降级到空数组，而不是抛出异常
-      return [];
+      // 如果已经是BusinessException，则直接重新抛出
+      if (BusinessException.isBusinessException(error)) {
+        throw error;
+      }
+      
+      this.logger.error("SCAN operation failed", { pattern, error: error.message });
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'scanKeysWithTimeout',
+        message: 'SCAN operation failed',
+        context: { 
+          pattern,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -113,6 +155,18 @@ export class DataMapperCacheService implements IDataMapperCache {
    * 分批安全删除
    */
   private async batchDelete(keys: string[]): Promise<void> {
+    // 验证输入参数
+    if (!keys || !Array.isArray(keys)) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'batchDelete',
+        message: 'Keys must be an array',
+        context: { keys },
+        retryable: false
+      });
+    }
+
     if (keys.length === 0) return;
 
     const BATCH_SIZE =
@@ -135,9 +189,22 @@ export class DataMapperCacheService implements IDataMapperCache {
           ),
         );
       } catch (error) {
-        this.logger.warn("批量删除失败", {
+        this.logger.warn("Batch deletion failed", {
           batchSize: batch.length,
           error: error.message,
+        });
+        
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER_CACHE,
+          errorCode: BusinessErrorCode.CACHE_ERROR,
+          operation: 'batchDelete',
+          message: 'Batch deletion failed',
+          context: { 
+            batchSize: batch.length,
+            error: error.message
+          },
+          retryable: true,
+          originalError: error
         });
       }
     }
@@ -166,7 +233,7 @@ export class DataMapperCacheService implements IDataMapperCache {
         JSON.stringify(rule),
       );
 
-      this.logger.debug("最佳匹配规则已缓存", {
+      this.logger.debug("Cached best matching rule", {
         provider,
         apiType,
         transDataRuleListType,
@@ -184,7 +251,7 @@ export class DataMapperCacheService implements IDataMapperCache {
         status: "success",
       });
     } catch (error) {
-      this.logger.warn("缓存最佳匹配规则失败", {
+      this.logger.warn("Failed to cache best matching rule", {
         provider,
         apiType,
         transDataRuleListType,
@@ -201,7 +268,21 @@ export class DataMapperCacheService implements IDataMapperCache {
         error: error.message,
       });
 
-      throw error;
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'cacheBestMatchingRule',
+        message: 'Failed to cache best matching rule',
+        context: { 
+          provider,
+          apiType,
+          transDataRuleListType,
+          cacheKey,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -225,7 +306,7 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       if (cachedValue) {
         // ✅ 缓存命中已通过事件驱动记录
-        this.logger.debug("最佳匹配规则缓存命中", {
+        this.logger.debug("Best matching rule cache hit", {
           provider,
           apiType,
           transDataRuleListType,
@@ -255,7 +336,7 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       return null;
     } catch (error) {
-      this.logger.warn("获取最佳匹配规则缓存失败", {
+      this.logger.warn("Failed to get cached best matching rule", {
         provider,
         apiType,
         transDataRuleListType,
@@ -272,7 +353,21 @@ export class DataMapperCacheService implements IDataMapperCache {
         error: error.message,
       });
 
-      return null;
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'getCachedBestMatchingRule',
+        message: 'Failed to get cached best matching rule',
+        context: { 
+          provider,
+          apiType,
+          transDataRuleListType,
+          cacheKey,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -281,24 +376,46 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   async cacheRuleById(rule: FlexibleMappingRuleResponseDto): Promise<void> {
     if (!rule.id) {
-      this.logger.warn("尝试缓存没有ID的规则，已跳过", {
+      this.logger.warn("Attempting to cache rule without ID, skipped", {
         ruleName: rule.name,
         provider: rule.provider,
       });
-      return;
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'cacheRuleById',
+        message: 'Cannot cache rule without ID',
+        context: { 
+          ruleName: rule.name,
+          provider: rule.provider
+        },
+        retryable: false
+      });
     }
 
-    const startTime = Date.now();
     const cacheKey = this.buildRuleByIdKey(rule.id);
+    const serializedRule = JSON.stringify(rule);
 
     try {
-      await this.redis.setex(
-        cacheKey,
-        DATA_MAPPER_CACHE_CONSTANTS.TTL.RULE_BY_ID,
-        JSON.stringify(rule),
+      // 使用重试机制设置缓存
+      await UniversalRetryHandler.networkRetry(
+        async () => {
+          const startTime = Date.now();
+          
+          await this.redis.setex(
+            cacheKey,
+            DATA_MAPPER_CACHE_CONSTANTS.TTL.RULE_BY_ID,
+            serializedRule,
+          );
+          
+          return true;
+        },
+        'cacheRuleById',
+        ComponentIdentifier.DATA_MAPPER_CACHE
       );
 
-      this.logger.debug("规则内容已缓存", {
+      this.logger.debug("Rule content cached", {
         dataMapperRuleId: rule.id,
         ruleName: rule.name,
         provider: rule.provider,
@@ -306,11 +423,24 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       // ✅ 监控已通过CollectorService记录
     } catch (error) {
-      this.logger.warn("缓存规则内容失败", {
+      this.logger.warn("Failed to cache rule content", {
         dataMapperRuleId: rule.id,
         error: error.message,
       });
-      throw error;
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'cacheRuleById',
+        message: 'Failed to cache rule content',
+        context: { 
+          ruleId: rule.id, 
+          provider: rule.provider,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -320,15 +450,35 @@ export class DataMapperCacheService implements IDataMapperCache {
   async getCachedRuleById(
     dataMapperRuleId: string,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
-    const startTime = Date.now();
+    // 验证输入参数
+    if (!dataMapperRuleId) {
+      this.logger.warn("Rule ID is required for caching");
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getCachedRuleById',
+        message: 'Rule ID is required',
+        context: { dataMapperRuleId },
+        retryable: false
+      });
+    }
+
     const cacheKey = this.buildRuleByIdKey(dataMapperRuleId);
 
     try {
-      const cachedValue = await this.redis.get(cacheKey);
+      // 使用重试机制获取缓存
+      const cachedValue = await UniversalRetryHandler.quickRetry(
+        async () => {
+          return await this.redis.get(cacheKey);
+        },
+        'getCachedRuleById',
+        ComponentIdentifier.DATA_MAPPER_CACHE
+      );
 
       if (cachedValue) {
         // ✅ 缓存命中已通过事件驱动记录
-        this.logger.debug("规则内容缓存命中", { dataMapperRuleId });
+        this.logger.debug("Cache hit for rule content", { dataMapperRuleId });
 
         const rule = JSON.parse(cachedValue) as FlexibleMappingRuleResponseDto;
         // ✅ 监控已通过事件驱动记录
@@ -339,12 +489,24 @@ export class DataMapperCacheService implements IDataMapperCache {
       // ✅ 监控已通过CollectorService记录
       return null;
     } catch (error) {
-      this.logger.warn("获取规则内容缓存失败", {
+      this.logger.warn("Failed to get cached rule content", {
         dataMapperRuleId,
         error: error.message,
       });
+      
       // ✅ 缓存未命中已通过事件驱动记录
-      return null;
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'getCachedRuleById',
+        message: 'Failed to get cached rule content',
+        context: { 
+          dataMapperRuleId,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -356,6 +518,18 @@ export class DataMapperCacheService implements IDataMapperCache {
     apiType: "rest" | "stream",
     rules: FlexibleMappingRuleResponseDto[],
   ): Promise<void> {
+    // 验证输入参数
+    if (!provider) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'cacheProviderRules',
+        message: 'Provider is required',
+        context: { provider },
+        retryable: false
+      });
+    }
+
     const startTime = Date.now();
     const cacheKey = this.buildProviderRulesKey(provider, apiType);
 
@@ -366,7 +540,7 @@ export class DataMapperCacheService implements IDataMapperCache {
         JSON.stringify(rules),
       );
 
-      this.logger.debug("提供商规则列表已缓存", {
+      this.logger.debug("Provider rules list cached", {
         provider,
         apiType,
         rulesCount: rules.length,
@@ -374,12 +548,25 @@ export class DataMapperCacheService implements IDataMapperCache {
 
       // ✅ 监控已通过CollectorService记录
     } catch (error) {
-      this.logger.warn("缓存提供商规则列表失败", {
+      this.logger.warn("Failed to cache provider rules list", {
         provider,
         apiType,
         error: error.message,
       });
-      throw error;
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'cacheProviderRules',
+        message: 'Failed to cache provider rules list',
+        context: { 
+          provider,
+          apiType,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -390,6 +577,18 @@ export class DataMapperCacheService implements IDataMapperCache {
     provider: string,
     apiType: "rest" | "stream",
   ): Promise<FlexibleMappingRuleResponseDto[] | null> {
+    // 验证输入参数
+    if (!provider) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getCachedProviderRules',
+        message: 'Provider is required',
+        context: { provider },
+        retryable: false
+      });
+    }
+
     const startTime = Date.now();
     const cacheKey = this.buildProviderRulesKey(provider, apiType);
 
@@ -401,7 +600,7 @@ export class DataMapperCacheService implements IDataMapperCache {
         const rules = JSON.parse(
           cachedValue,
         ) as FlexibleMappingRuleResponseDto[];
-        this.logger.debug("提供商规则列表缓存命中", {
+        this.logger.debug("Provider rules list cache hit", {
           provider,
           apiType,
           rulesCount: rules.length,
@@ -415,13 +614,26 @@ export class DataMapperCacheService implements IDataMapperCache {
       // ✅ 监控已通过CollectorService记录
       return null;
     } catch (error) {
-      this.logger.warn("获取提供商规则列表缓存失败", {
+      this.logger.warn("Failed to get cached provider rules list", {
         provider,
         apiType,
         error: error.message,
       });
+      
       // ✅ 缓存未命中已通过事件驱动记录
-      return null;
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'getCachedProviderRules',
+        message: 'Failed to get cached provider rules list',
+        context: { 
+          provider,
+          apiType,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -432,6 +644,18 @@ export class DataMapperCacheService implements IDataMapperCache {
     dataMapperRuleId: string,
     rule?: FlexibleMappingRuleResponseDto,
   ): Promise<void> {
+    // 验证输入参数
+    if (!dataMapperRuleId) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'invalidateRuleCache',
+        message: 'Rule ID is required',
+        context: { dataMapperRuleId },
+        retryable: false
+      });
+    }
+
     try {
       const keysToDelete: string[] = [];
 
@@ -461,7 +685,7 @@ export class DataMapperCacheService implements IDataMapperCache {
       if (keysToDelete.length > 0) {
         await this.redis.del(...keysToDelete);
 
-        this.logger.log("规则相关缓存已失效", {
+        this.logger.log("Rule related cache invalidated", {
           dataMapperRuleId,
           invalidatedKeys: keysToDelete.length,
         });
@@ -469,11 +693,23 @@ export class DataMapperCacheService implements IDataMapperCache {
         // ✅ 删除操作监控已通过事件驱动记录
       }
     } catch (error) {
-      this.logger.error("失效规则缓存失败", {
+      this.logger.warn("Failed to invalidate rule cache", {
         dataMapperRuleId,
         error: error.message,
       });
-      throw error;
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'invalidateRuleCache',
+        message: 'Failed to invalidate rule cache',
+        context: { 
+          dataMapperRuleId,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -481,6 +717,18 @@ export class DataMapperCacheService implements IDataMapperCache {
    * 🧹 失效提供商相关缓存 (优化版 - 使用SCAN替代KEYS)
    */
   async invalidateProviderCache(provider: string): Promise<void> {
+    // 验证输入参数
+    if (!provider) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'invalidateProviderCache',
+        message: 'Provider is required',
+        context: { provider },
+        retryable: false
+      });
+    }
+
     const startTime = Date.now();
 
     try {
@@ -513,7 +761,7 @@ export class DataMapperCacheService implements IDataMapperCache {
         },
       );
 
-      this.logger.log("提供商缓存失效完成", {
+      this.logger.log("Provider cache invalidation completed", {
         provider,
         deletedKeys: totalDeleted,
       });
@@ -531,11 +779,23 @@ export class DataMapperCacheService implements IDataMapperCache {
         },
       );
 
-      this.logger.error("失效提供商缓存失败", {
+      this.logger.warn("Failed to invalidate provider cache", {
         provider,
         error: error.message,
       });
-      throw error;
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'invalidateProviderCache',
+        message: 'Failed to invalidate provider cache',
+        context: { 
+          provider,
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -569,7 +829,7 @@ export class DataMapperCacheService implements IDataMapperCache {
         },
       );
 
-      this.logger.log("所有规则缓存已清空", { deletedKeys: totalDeleted });
+      this.logger.log("All rule caches cleared", { deletedKeys: totalDeleted });
     } catch (error) {
       // 事件化监控：清空所有缓存失败
       this.emitMonitoringEvent(
@@ -583,8 +843,19 @@ export class DataMapperCacheService implements IDataMapperCache {
         },
       );
 
-      this.logger.error("清空规则缓存失败", { error: error.message });
-      throw error;
+      this.logger.warn("Failed to clear rule caches", { error: error.message });
+      
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.CACHE_ERROR,
+        operation: 'clearAllRuleCache',
+        message: 'Failed to clear rule caches',
+        context: { 
+          error: error.message
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -594,7 +865,19 @@ export class DataMapperCacheService implements IDataMapperCache {
   async warmupCache(
     commonRules: FlexibleMappingRuleResponseDto[],
   ): Promise<void> {
-    this.logger.log("开始规则缓存预热", { rulesCount: commonRules.length });
+    // 验证输入参数
+    if (!commonRules || !Array.isArray(commonRules)) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'warmupCache',
+        message: 'Common rules must be an array',
+        context: { commonRules },
+        retryable: false
+      });
+    }
+
+    this.logger.log("Starting rule cache warmup", { rulesCount: commonRules.length });
 
     const startTime = Date.now();
     let cached = 0;
@@ -604,7 +887,7 @@ export class DataMapperCacheService implements IDataMapperCache {
     for (const rule of commonRules) {
       if (!rule.id) {
         skipped++;
-        this.logger.warn("预热缓存时跳过没有ID的规则", {
+        this.logger.warn("Skipping rule without ID during cache warmup", {
           ruleName: rule.name,
           provider: rule.provider,
         });
@@ -628,15 +911,17 @@ export class DataMapperCacheService implements IDataMapperCache {
         cached++;
       } catch (error) {
         failed++;
-        this.logger.warn("预热规则缓存失败", {
+        this.logger.warn("Failed to warmup rule cache", {
           dataMapperRuleId: rule.id,
           error: error.message,
         });
+        
+        // 不抛出异常，继续处理其他规则
       }
     }
 
     const duration = Date.now() - startTime;
-    this.logger.log("规则缓存预热完成", {
+    this.logger.log("Rule cache warmup completed", {
       cached,
       failed,
       skipped,
@@ -656,20 +941,46 @@ export class DataMapperCacheService implements IDataMapperCache {
    */
   private validateCacheKey(key: string): void {
     if (!key || typeof key !== "string") {
-      throw new Error(
-        DATA_MAPPER_CACHE_CONSTANTS.ERROR_MESSAGES.INVALID_RULE_ID,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateCacheKey',
+        message: 'Invalid rule ID or key',
+        context: { key, errorType: DATA_MAPPER_CACHE_ERROR_CODES.INVALID_RULE_ID },
+        retryable: false
+      });
     }
 
     if (key.length > DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH) {
-      throw new Error(
-        `缓存键长度超过限制: ${key.length}/${DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateCacheKey',
+        message: `Cache key length exceeds limit: ${key.length}/${DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH}`,
+        context: { 
+          key, 
+          length: key.length, 
+          maxLength: DATA_MAPPER_CACHE_CONSTANTS.SIZE_LIMITS.MAX_KEY_LENGTH,
+          errorType: DATA_MAPPER_CACHE_ERROR_CODES.KEY_LENGTH_EXCEEDED 
+        },
+        retryable: false
+      });
     }
 
     // 检查键格式（不应包含空格或特殊字符）
     if (!/^[a-zA-Z0-9:_-]+$/.test(key)) {
-      throw new Error(`缓存键包含无效字符: ${key}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateCacheKey',
+        message: `Cache key contains invalid characters: ${key}`,
+        context: { 
+          key, 
+          pattern: '^[a-zA-Z0-9:_-]+$',
+          errorType: DATA_MAPPER_CACHE_ERROR_CODES.INVALID_KEY_FORMAT 
+        },
+        retryable: false
+      });
     }
   }
 

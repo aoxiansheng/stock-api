@@ -13,6 +13,12 @@ import {
   getEnvVar,
 } from "../constants/smart-cache.env-vars.constants";
 import { SMART_CACHE_COMPONENT } from "../constants/smart-cache.component.constants";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { SMART_CACHE_ERROR_CODES } from '../constants/smart-cache-error-codes.constants';
 
 /**
  * SmartCache配置工厂类
@@ -223,9 +229,16 @@ export class SmartCacheConfigFactory {
         `SmartCache configuration validation failed:`,
         validationErrors,
       );
-      throw new Error(
-        `SmartCache configuration validation failed: ${validationErrors.join(", ")}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.SMART_CACHE,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'createConfig',
+        message: `SmartCache configuration validation failed: ${validationErrors.join(", ")}`,
+        context: {
+          validationErrors,
+          errorType: SMART_CACHE_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     // 记录配置摘要（包含环境变量使用统计）

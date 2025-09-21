@@ -12,6 +12,13 @@
 import { deepFreeze } from "@common/utils/object-immutability.util";
 import { CONSTANTS } from "@common/constants";
 
+// Unified error handling constants
+export * from "./symbol-transformer-error-codes.constants";
+export {
+  SYMBOL_TRANSFORMER_ERROR_CODES,
+  type SymbolTransformerErrorCode,
+} from "./symbol-transformer-error-codes.constants";
+
 // Extract constants for backward compatibility
 const RETRY_CONSTANTS = CONSTANTS.SEMANTIC.RETRY;
 

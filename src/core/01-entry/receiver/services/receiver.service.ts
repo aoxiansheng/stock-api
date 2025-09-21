@@ -6,6 +6,10 @@ import {
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { RECEIVER_ERROR_CODES } from "../constants/receiver-error-codes.constants";
+
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
@@ -393,10 +397,17 @@ export class ReceiverService {
         }),
       );
 
-      throw new BadRequestException({
-        message: RECEIVER_ERROR_MESSAGES.VALIDATION_FAILED,
-        errors: validationResult.errors,
-        code: "VALIDATION_FAILED",
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateRequest',
+        message: 'Request validation failed',
+        context: {
+          errors: validationResult.errors,
+          warnings: validationResult.warnings,
+          symbols: request.symbols?.slice(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE),
+          validationFailure: true
+        }
       });
     }
 
@@ -504,7 +515,7 @@ export class ReceiverService {
             requestId,
             provider: bestProvider,
             receiverType,
-            market: inferredMarket,
+            market: market,
             symbolsCount: symbols.length,
             operation: "determineOptimalProvider",
           }),
@@ -512,12 +523,18 @@ export class ReceiverService {
         return bestProvider;
       }
 
-      throw new NotFoundException(
-        RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND.replace(
-          "{receiverType}",
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'determineOptimalProvider',
+        message: `No provider found for receiver type '${receiverType}' and market '${inferredMarket}'`,
+        context: {
           receiverType,
-        ).replace("{market}", inferredMarket),
-      );
+          market: market,
+          availableProviders: [],
+          providerSelectionFailed: true
+        }
+      });
     } catch (error) {
       this.logger.error(
         `数据提供商选择失败`,
@@ -538,9 +555,18 @@ export class ReceiverService {
         throw error;
       }
 
-      throw new BadRequestException(
-        RECEIVER_ERROR_MESSAGES.PROVIDER_SELECTION_FAILED,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'determineOptimalProvider',
+        message: 'Provider selection failed due to internal error',
+        context: {
+          originalError: error.message,
+          receiverType,
+          market: market,
+          symbols: symbols?.slice(0, 5) // 提供部分符号示例
+        }
+      });
     }
   }
 
@@ -570,12 +596,19 @@ export class ReceiverService {
         }),
       );
       // 关键修复：当找不到首选提供商时，直接抛出404异常
-      throw new NotFoundException(
-        RECEIVER_ERROR_MESSAGES.NO_PROVIDER_FOUND.replace(
-          "{receiverType}",
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'validatePreferredProvider',
+        message: `Preferred provider '${preferredProvider}' does not support receiver type '${receiverType}'`,
+        context: {
+          preferredProvider,
           receiverType,
-        ).replace("{market}", market || "any"),
-      );
+          market: market || "any",
+          capabilityName,
+          providerCapabilityMissing: true
+        }
+      });
     }
 
     // 检查市场支持
@@ -591,12 +624,19 @@ export class ReceiverService {
         }),
       );
       // 关键修复：当提供商不支持指定市场时，抛出404异常
-      throw new NotFoundException(
-        RECEIVER_WARNING_MESSAGES.PREFERRED_PROVIDER_NOT_SUPPORT_MARKET.replace(
-          "{provider}",
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'validatePreferredProvider',
+        message: `Preferred provider '${preferredProvider}' does not support market '${market}'`,
+        context: {
           preferredProvider,
-        ).replace("{market}", market),
-      );
+          market,
+          supportedMarkets: capability.supportedMarkets,
+          receiverType,
+          marketNotSupported: true
+        }
+      });
     }
 
     this.logger.debug(
@@ -772,12 +812,21 @@ export class ReceiverService {
         }),
       );
 
-      throw new BadRequestException(
-        RECEIVER_ERROR_MESSAGES.VALIDATION_FAILED.replace(
-          "{error}",
-          error.message,
-        ),
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: 'executeDataFetching',
+        message: `Data fetching validation failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          request: {
+            receiverType: request.receiverType,
+            symbols: request.symbols?.slice(0, 5),
+            preferredProvider: request.options?.preferredProvider
+          },
+          operation: 'executeDataFetching'
+        }
+      });
     }
   }
 

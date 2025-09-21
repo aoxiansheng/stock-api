@@ -18,6 +18,12 @@ import {
 } from "class-validator";
 import { plainToClass, Transform, Type } from "class-transformer";
 import { MonitoringUnifiedTtl, MonitoringUnifiedLimitsConfig } from "./unified";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { MONITORING_ERROR_CODES } from '../constants/monitoring-error-codes.constants';
 
 /**
  * 监控配置缓存部分的验证类
@@ -313,11 +319,30 @@ export function validateMonitoringConfig(
 
   // 验证缓存配置 - 确保缓存相关参数的合理性
   if (validated.cache.compressionThreshold < 0) {
-    throw new Error("监控缓存压缩阈值不能为负数");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.MONITORING,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: 'validateMonitoringConfig',
+      message: 'Monitoring cache compression threshold cannot be negative',
+      context: {
+        compressionThreshold: validated.cache.compressionThreshold,
+        errorType: MONITORING_ERROR_CODES.NEGATIVE_COMPRESSION_THRESHOLD
+      }
+    });
   }
 
   if (validated.cache.batchSize < 1) {
-    throw new Error("监控缓存批处理大小必须大于0");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.MONITORING,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: 'validateMonitoringConfig',
+      message: 'Monitoring cache batch size must be greater than 0',
+      context: {
+        batchSize: validated.cache.batchSize,
+        minBatchSize: 1,
+        errorType: MONITORING_ERROR_CODES.INVALID_BATCH_SIZE
+      }
+    });
   }
 
   // 验证性能阈值 - 确保百分比值在有效范围内
@@ -325,14 +350,34 @@ export function validateMonitoringConfig(
     validated.performance.hitRateThreshold < 0 ||
     validated.performance.hitRateThreshold > 1
   ) {
-    throw new Error("监控命中率阈值必须在0-1之间");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.MONITORING,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: 'validateMonitoringConfig',
+      message: 'Monitoring hit rate threshold must be between 0 and 1',
+      context: {
+        hitRateThreshold: validated.performance.hitRateThreshold,
+        validRange: '0-1',
+        errorType: MONITORING_ERROR_CODES.INVALID_HIT_RATE_THRESHOLD
+      }
+    });
   }
 
   if (
     validated.performance.errorRateThreshold < 0 ||
     validated.performance.errorRateThreshold > 1
   ) {
-    throw new Error("监控错误率阈值必须在0-1之间");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.MONITORING,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: 'validateMonitoringConfig',
+      message: 'Monitoring error rate threshold must be between 0 and 1',
+      context: {
+        errorRateThreshold: validated.performance.errorRateThreshold,
+        validRange: '0-1',
+        errorType: MONITORING_ERROR_CODES.INVALID_ERROR_RATE_THRESHOLD
+      }
+    });
   }
 
   return validated;
@@ -448,7 +493,17 @@ export const monitoringConfigValidated = registerAs(
         .map((error) => Object.values(error.constraints || {}).join(", "))
         .join("; ");
 
-      throw new Error(`监控配置验证失败: ${errorMessages}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'monitoringConfigValidated',
+        message: `Monitoring configuration validation failed: ${errorMessages}`,
+        context: {
+          validationErrors: errors,
+          errorMessages,
+          errorType: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     return config;

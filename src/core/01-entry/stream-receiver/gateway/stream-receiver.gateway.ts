@@ -27,6 +27,13 @@ import {
   STREAM_PERMISSIONS,
   hasStreamPermissions,
 } from "../constants/stream-permissions.constants";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { STREAM_RECEIVER_ERROR_CODES } from '../constants/stream-receiver-error-codes.constants';
+import { StreamResponses } from '../utils/stream-response.utils';
 
 @WebSocketGateway({
   cors: {
@@ -82,9 +89,18 @@ export class StreamReceiverGateway
           });
 
           // 创建认证错误并阻止连接
-          const error = new Error(authResult.reason);
-          error.name = "AuthenticationError";
-          return next(error);
+          const authError = UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.STREAM_RECEIVER,
+            errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+            operation: 'authenticateConnection',
+            message: authResult.reason || 'Authentication failed',
+            context: {
+              clientId: socket.id,
+              reason: authResult.reason,
+              errorType: STREAM_RECEIVER_ERROR_CODES.AUTHENTICATION_FAILED
+            }
+          });
+          return next(authError);
         }
 
         this.logger.log({
@@ -101,8 +117,17 @@ export class StreamReceiverGateway
           error: error.message,
         });
 
-        const authError = new Error("连接认证失败");
-        authError.name = "AuthenticationError";
+        const authError = UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_RECEIVER,
+          errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+          operation: 'authenticateConnection',
+          message: 'Connection authentication failed',
+          context: {
+            clientId: socket.id,
+            originalError: error.message,
+            errorType: STREAM_RECEIVER_ERROR_CODES.AUTHENTICATION_FAILED
+          }
+        });
         next(authError);
       }
     });
@@ -120,11 +145,7 @@ export class StreamReceiverGateway
     });
 
     // 发送连接成功消息
-    client.emit("connected", {
-      message: "连接成功",
-      clientId: client.id,
-      timestamp: Date.now(),
-    });
+    client.emit("connected", StreamResponses.connected(client.id));
   }
 
   /**
@@ -161,12 +182,11 @@ export class StreamReceiverGateway
       transform: true,
       whitelist: true,
       exceptionFactory: (errors) => {
-        return new WsException(
-          "数据验证失败: " +
-            errors
-              .map((e) => Object.values(e.constraints || {}).join(", "))
-              .join("; "),
-        );
+        const errorMessage = "Data validation failed: " +
+          errors
+            .map((e) => Object.values(e.constraints || {}).join(", "))
+            .join("; ");
+        return new WsException(errorMessage);
       },
     }),
   )
@@ -199,13 +219,7 @@ export class StreamReceiverGateway
       });
 
       // 发送订阅成功确认
-      client.emit("subscribe-ack", {
-        success: true,
-        message: "订阅成功",
-        symbols: data.symbols,
-        wsCapabilityType: data.wsCapabilityType,
-        timestamp: Date.now(),
-      });
+      client.emit("subscribe-ack", StreamResponses.subscribeSuccess(data.symbols, data.wsCapabilityType));
     } catch (error) {
       // 处理 WsException
       if (error instanceof WsException) {
@@ -215,11 +229,7 @@ export class StreamReceiverGateway
           error: error.getError(),
         });
 
-        client.emit("subscribe-error", {
-          success: false,
-          message: error.getError(),
-          timestamp: Date.now(),
-        });
+        client.emit("subscribe-error", StreamResponses.validationError(error.getError() as string));
         return;
       }
 
@@ -230,12 +240,10 @@ export class StreamReceiverGateway
       });
 
       // 发送错误消息
-      client.emit("subscribe-error", {
-        success: false,
-        message: error.message || "订阅处理失败",
-        symbols: data?.symbols || [],
-        timestamp: Date.now(),
-      });
+      client.emit("subscribe-error", StreamResponses.subscribeError(
+        error.message || "Subscription processing failed",
+        data?.symbols || []
+      ));
     }
   }
 
@@ -260,12 +268,7 @@ export class StreamReceiverGateway
       await this.streamReceiverService.unsubscribeStream(data, client.id);
 
       // 发送取消订阅成功确认
-      client.emit("unsubscribe-ack", {
-        success: true,
-        message: "取消订阅成功",
-        symbols: data.symbols,
-        timestamp: Date.now(),
-      });
+      client.emit("unsubscribe-ack", StreamResponses.unsubscribeSuccess(data.symbols));
     } catch (error) {
       this.logger.error({
         message: "WebSocket 取消订阅处理失败",
@@ -274,12 +277,7 @@ export class StreamReceiverGateway
       });
 
       // 发送错误消息
-      client.emit("unsubscribe-error", {
-        success: false,
-        message: error.message,
-        symbols: data.symbols,
-        timestamp: Date.now(),
-      });
+      client.emit("unsubscribe-error", StreamResponses.unsubscribeError(error.message, data.symbols));
     }
   }
 
@@ -294,17 +292,14 @@ export class StreamReceiverGateway
       // Using stats API instead
       const subscription = null; // Client-specific subscription lookup not implemented yet
 
-      client.emit("subscription-status", {
-        success: true,
-        data: subscription
-          ? {
-              symbols: Array.from(subscription.symbols),
-              wsCapabilityType: subscription.wsCapabilityType,
-              providerName: subscription.providerName,
-            }
-          : null,
-        timestamp: Date.now(),
-      });
+      const statusData = subscription
+        ? {
+            symbols: Array.from(subscription.symbols),
+            wsCapabilityType: subscription.wsCapabilityType,
+            providerName: subscription.providerName,
+          }
+        : null;
+      client.emit("subscription-status", StreamResponses.statusSuccess(statusData));
     } catch (error) {
       this.logger.error({
         message: "获取订阅状态失败",
@@ -312,11 +307,7 @@ export class StreamReceiverGateway
         error: error.message,
       });
 
-      client.emit("subscription-status", {
-        success: false,
-        message: error.message,
-        timestamp: Date.now(),
-      });
+      client.emit("subscription-status", StreamResponses.statusError(error.message));
     }
   }
 
@@ -352,11 +343,7 @@ export class StreamReceiverGateway
       const timeDiff = Date.now() - data.lastReceiveTimestamp;
       if (timeDiff > 86400000) {
         // 24小时
-        client.emit("recovery-error", {
-          type: "invalid_request",
-          message: "补发时间窗口过大，最多支持24小时内的数据补发",
-          timestamp: Date.now(),
-        });
+        client.emit("recovery-error", StreamResponses.recoveryWindowExceeded());
         return;
       }
 
@@ -370,15 +357,10 @@ export class StreamReceiverGateway
       });
 
       // 发送补发已启动的确认
-      client.emit("recovery-started", {
-        message: "数据补发已启动，请等待数据传输",
-        symbols: data.symbols,
-        estimatedDataPoints:
-          timeDiff < STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS
-            ? "< 1000"
-            : "可能较多",
-        timestamp: Date.now(),
-      });
+      const estimatedDataPoints = timeDiff < STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS
+        ? "< 1000"
+        : "possibly large";
+      client.emit("recovery-started", StreamResponses.recoveryStarted(data.symbols, estimatedDataPoints));
     } catch (error) {
       this.logger.error({
         message: "处理客户端补发请求失败",
@@ -386,11 +368,10 @@ export class StreamReceiverGateway
         error: error.message,
       });
 
-      client.emit("recovery-error", {
-        type: "processing_error",
-        message: "补发请求处理失败: " + error.message,
-        timestamp: Date.now(),
-      });
+      client.emit("recovery-error", StreamResponses.recoveryError(
+        "processing_error",
+        "Recovery request processing failed: " + error.message
+      ));
     }
   }
 
@@ -409,11 +390,7 @@ export class StreamReceiverGateway
         pendingJobs: 0, // 获取待处理补发任务数需要实现
       };
 
-      client.emit("recovery-status", {
-        success: true,
-        data: status,
-        timestamp: Date.now(),
-      });
+      client.emit("recovery-status", StreamResponses.statusSuccess(status));
     } catch (error) {
       this.logger.error({
         message: "获取补发状态失败",
@@ -421,11 +398,7 @@ export class StreamReceiverGateway
         error: error.message,
       });
 
-      client.emit("recovery-status", {
-        success: false,
-        message: error.message,
-        timestamp: Date.now(),
-      });
+      client.emit("recovery-status", StreamResponses.statusError(error.message));
     }
   }
 

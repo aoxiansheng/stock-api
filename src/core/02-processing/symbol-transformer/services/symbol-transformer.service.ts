@@ -16,6 +16,8 @@ import {
   MONITORING_CONFIG,
 } from "../constants/symbol-transformer-enhanced.constants";
 import { RequestIdUtils } from "../utils/request-id.utils";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { SYMBOL_TRANSFORMER_ERROR_CODES } from "../constants/symbol-transformer-enhanced.constants";
 
 /**
  * Symbol Transformer Service
@@ -238,42 +240,101 @@ export class SymbolTransformerService {
       typeof provider !== "string" ||
       provider.trim().length === 0
     ) {
-      throw new Error("Provider is required and must be a non-empty string");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: 'Provider is required and must be a non-empty string',
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateInput',
+        component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+        context: { provider, customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.INVALID_PROVIDER_FORMAT, reason: 'invalid_provider_format' },
+        retryable: false
+      });
     }
 
     // 符号数组验证 - 首先检查null/undefined
     if (!symbols || !Array.isArray(symbols)) {
-      throw new Error("Symbols array is required and must not be empty");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: 'Symbols array is required and must not be empty',
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateInput',
+        component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+        context: { symbols, customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.INVALID_SYMBOL_FORMAT, reason: 'invalid_symbols_array' },
+        retryable: false
+      });
     }
 
     if (symbols.length === 0) {
-      throw new Error("Symbols array is required and must not be empty");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: 'Symbols array is required and must not be empty',
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateInput',
+        component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+        context: { symbolsLength: symbols.length, customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.EMPTY_SYMBOLS_ARRAY, reason: 'empty_symbols_array' },
+        retryable: false
+      });
     }
 
     // 批量处理限制（防DoS攻击）
     if (symbols.length > CONFIG.MAX_BATCH_SIZE) {
-      throw new Error(
-        `Batch size exceeds maximum limit of ${CONFIG.MAX_BATCH_SIZE}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Batch size exceeds maximum limit of ${CONFIG.MAX_BATCH_SIZE}`,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'validateInput',
+        component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+        context: {
+          symbolsLength: symbols.length,
+          maxBatchSize: CONFIG.MAX_BATCH_SIZE,
+          customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.BATCH_SIZE_EXCEEDED,
+          reason: 'batch_size_exceeded'
+        },
+        retryable: false
+      });
     }
 
     // 方向验证
     if (!Object.values(TRANSFORM_DIRECTIONS).includes(direction)) {
-      throw new Error(
-        `Invalid direction: ${direction}. Must be '${TRANSFORM_DIRECTIONS.TO_STANDARD}' or '${TRANSFORM_DIRECTIONS.FROM_STANDARD}'`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Invalid direction: ${direction}. Must be '${TRANSFORM_DIRECTIONS.TO_STANDARD}' or '${TRANSFORM_DIRECTIONS.FROM_STANDARD}'`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateInput',
+        component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+        context: {
+          direction,
+          validDirections: Object.values(TRANSFORM_DIRECTIONS),
+          customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.INVALID_DIRECTION_FORMAT,
+          reason: 'invalid_direction_format'
+        },
+        retryable: false
+      });
     }
 
     // 符号长度验证（防DoS攻击）
     for (const symbol of symbols) {
       if (!symbol || typeof symbol !== "string") {
-        throw new Error("All symbols must be non-empty strings");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: 'All symbols must be non-empty strings',
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateInput',
+          component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+          context: { symbol, customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.INVALID_SYMBOL_FORMAT, reason: 'invalid_symbol_format' },
+          retryable: false
+        });
       }
 
       if (symbol.length > CONFIG.MAX_SYMBOL_LENGTH) {
-        throw new Error(
-          `Symbol length exceeds maximum limit of ${CONFIG.MAX_SYMBOL_LENGTH}: ${symbol}`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Symbol length exceeds maximum limit of ${CONFIG.MAX_SYMBOL_LENGTH}: ${symbol}`,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'validateInput',
+          component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+          context: {
+            symbol,
+            symbolLength: symbol.length,
+            maxSymbolLength: CONFIG.MAX_SYMBOL_LENGTH,
+            customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.SYMBOL_LENGTH_EXCEEDED,
+            reason: 'symbol_length_exceeded'
+          },
+          retryable: false
+        });
       }
     }
   }

@@ -9,15 +9,14 @@
 
 import {
   Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 
 import Handlebars from "handlebars";
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { NOTIFICATION_ERROR_CODES } from "../constants/notification-error-codes.constants";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { DatabaseValidationUtils } from "@common/utils/database.utils";
@@ -156,9 +155,19 @@ export class NotificationTemplateService {
       });
 
       if (existingTemplate) {
-        throw new ConflictException(
-          `模板ID已存在: ${createTemplateDto.templateId}`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Template ID already exists: ${createTemplateDto.templateId}`,
+          errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+          operation: 'createTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            templateId: createTemplateDto.templateId,
+            existingTemplate: existingTemplate._id,
+            customErrorCode: NOTIFICATION_ERROR_CODES.DUPLICATE_NOTIFICATION,
+            reason: 'template_id_already_exists'
+          },
+          retryable: false
+        });
       }
 
       // 验证模板内容
@@ -259,7 +268,19 @@ export class NotificationTemplateService {
       const template = await this.findTemplateById(templateId);
 
       if (template.templateType === "system") {
-        throw new BadRequestException("不能删除系统模板");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Cannot delete system template",
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'deleteTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            templateId,
+            templateType: template.templateType,
+            customErrorCode: NOTIFICATION_ERROR_CODES.SEND_NOTIFICATION_FAILED,
+            reason: 'system_template_deletion_not_allowed'
+          },
+          retryable: false
+        });
       }
 
       await this.templateModel.deleteOne({ templateId });
@@ -293,7 +314,18 @@ export class NotificationTemplateService {
     const template = await this.templateModel.findOne({ templateId });
 
     if (!template) {
-      throw new NotFoundException(`模板未找到: ${templateId}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Template not found: ${templateId}`,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'findTemplateById',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          templateId,
+          customErrorCode: NOTIFICATION_ERROR_CODES.CONFIG_NOT_FOUND,
+          reason: 'template_not_found'
+        },
+        retryable: false
+      });
     }
 
     return template;
@@ -393,9 +425,21 @@ export class NotificationTemplateService {
       // 验证变量
       const validation = template.validateVariables(context.variables);
       if (!validation.valid) {
-        throw new BadRequestException(
-          `模板变量验证失败: ${validation.errors.join(", ")}`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Template variable validation failed: ${validation.errors.join(", ")}`,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'renderTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            templateId: template.templateId,
+            channelType: context.channelType,
+            validationErrors: validation.errors,
+            variables: context.variables,
+            customErrorCode: NOTIFICATION_ERROR_CODES.TEMPLATE_VALIDATION_FAILED,
+            reason: 'template_variable_validation_failed'
+          },
+          retryable: false
+        });
       }
 
       // 获取渲染内容
@@ -404,7 +448,21 @@ export class NotificationTemplateService {
         : template.defaultContent;
 
       if (!content && context.channelType && !context.fallbackToDefault) {
-        throw new NotFoundException(`未找到渠道 ${context.channelType} 的模板`);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Template not found for channel: ${context.channelType}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'renderTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            templateId: template.templateId,
+            channelType: context.channelType,
+            availableChannels: Object.keys(template.channelTemplates || {}),
+            fallbackToDefault: context.fallbackToDefault,
+            customErrorCode: NOTIFICATION_ERROR_CODES.CONFIG_NOT_FOUND,
+            reason: 'channel_template_not_found'
+          },
+          retryable: false
+        });
       }
 
       const templateContent = content || template.defaultContent;
@@ -577,22 +635,53 @@ export class NotificationTemplateService {
    */
   private validateTemplateContent(content: TemplateContent): void {
     if (!content.body || content.body.trim().length === 0) {
-      throw new BadRequestException("模板内容不能为空");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Template content cannot be empty",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateTemplateContent',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          content: content.body,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_TEMPLATE_DATA,
+          reason: 'empty_template_content'
+        },
+        retryable: false
+      });
     }
 
     if (content.body.length > VALIDATION_LIMITS.CONTENT_MAX_LENGTH) {
-      throw new BadRequestException(
-        `模板内容过长，最大支持${VALIDATION_LIMITS.CONTENT_MAX_LENGTH}字符`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Template content too long, maximum ${VALIDATION_LIMITS.CONTENT_MAX_LENGTH} characters supported`,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'validateTemplateContent',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          contentLength: content.body.length,
+          maxLength: VALIDATION_LIMITS.CONTENT_MAX_LENGTH,
+          customErrorCode: NOTIFICATION_ERROR_CODES.TEMPLATE_VALIDATION_FAILED,
+          reason: 'template_content_too_long'
+        },
+        retryable: false
+      });
     }
 
     if (
       content.subject &&
       content.subject.length > VALIDATION_LIMITS.TITLE_MAX_LENGTH
     ) {
-      throw new BadRequestException(
-        `模板主题过长，最大支持${VALIDATION_LIMITS.TITLE_MAX_LENGTH}字符`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Template subject too long, maximum ${VALIDATION_LIMITS.TITLE_MAX_LENGTH} characters supported`,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'validateTemplateContent',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          subjectLength: content.subject.length,
+          maxLength: VALIDATION_LIMITS.TITLE_MAX_LENGTH,
+          customErrorCode: NOTIFICATION_ERROR_CODES.TEMPLATE_VALIDATION_FAILED,
+          reason: 'template_subject_too_long'
+        },
+        retryable: false
+      });
     }
   }
 
@@ -610,7 +699,19 @@ export class NotificationTemplateService {
       case "plain":
         return content;
       default:
-        throw new BadRequestException(`不支持的模板引擎: ${engine}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Unsupported template engine: ${engine}`,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'compileTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            engine,
+            supportedEngines: ['handlebars'],
+            customErrorCode: NOTIFICATION_ERROR_CODES.TEMPLATE_ENGINE_ERROR,
+            reason: 'unsupported_template_engine'
+          },
+          retryable: false
+        });
     }
   }
 

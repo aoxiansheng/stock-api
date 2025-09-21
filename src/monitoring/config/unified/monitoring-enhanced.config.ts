@@ -47,6 +47,8 @@ import {
 } from "class-validator";
 import { Transform, Type, plainToClass } from "class-transformer";
 import { registerAs } from "@nestjs/config";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { MONITORING_ERROR_CODES } from "../../constants/monitoring-error-codes.constants";
 
 // 导入已创建的统一配置类
 import {
@@ -450,7 +452,17 @@ export class MonitoringEnhancedConfig {
     // 验证配置
     const validation = this.validateConfiguration();
     if (!validation.isValid) {
-      throw new Error(`配置验证失败: ${validation.errors.join("; ")}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Configuration validation failed: ${validation.errors.join("; ")}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'reloadConfiguration',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED,
+          validationErrors: validation.errors,
+          warnings: validation.warnings
+        }
+      });
     }
 
     // 这里可以添加配置变更通知逻辑
@@ -577,7 +589,18 @@ export const monitoringEnhancedConfig = registerAs(
     // 执行验证
     const validation = config.validateConfiguration();
     if (!validation.isValid) {
-      throw new Error(`监控增强配置验证失败: ${validation.errors.join("; ")}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Monitoring enhanced configuration validation failed: ${validation.errors.join("; ")}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'monitoringEnhancedConfig',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED,
+          validationErrors: validation.errors,
+          warnings: validation.warnings,
+          environment: config.environment.environment
+        }
+      });
     }
 
     // 输出警告
@@ -622,7 +645,17 @@ export class MonitoringConfigFactory {
 
     const validation = config.validateConfiguration();
     if (!validation.isValid) {
-      throw new Error(`配置验证失败: ${validation.errors.join("; ")}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Configuration validation failed: ${validation.errors.join("; ")}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'createFromObject',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED,
+          validationErrors: validation.errors,
+          configObject: typeof configObject
+        }
+      });
     }
 
     return config;

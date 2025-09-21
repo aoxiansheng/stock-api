@@ -1,5 +1,4 @@
 import { registerAs } from "@nestjs/config";
-import { BadRequestException } from "@nestjs/common";
 import {
   IsNumber,
   Min,
@@ -10,6 +9,8 @@ import {
   ValidateNested,
 } from "class-validator";
 import { plainToClass, Type } from "class-transformer";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 /**
  * 导出配置接口以供其他模块使用
@@ -228,9 +229,18 @@ export default registerAs("alert", (): AlertConfig => {
       })
       .join(" | ");
 
-    throw new BadRequestException(
-      `Alert configuration validation failed: ${errorMessages}`,
-    );
+    throw UniversalExceptionFactory.createBusinessException({
+      message: `Alert configuration validation failed: ${errorMessages}`,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'validateAlertConfig',
+      component: ComponentIdentifier.ALERT,
+      context: {
+        validationErrors: errors,
+        customErrorCode: ALERT_ERROR_CODES.INVALID_ALERT_CONFIG,
+        reason: 'configuration_validation_failed'
+      },
+      retryable: false
+    });
   }
 
   // 返回完整配置（所有字段都经过验证）

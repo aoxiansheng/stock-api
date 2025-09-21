@@ -35,16 +35,8 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 }
 ```
 
-## 3. 错误处理的一致性
 
-### ⚠️ 错误处理改进点
-
-**错误分类不够细化** ✅已验证：
-- 缺少对不同类型错误的分类处理，大量使用通用异常类型
-- 7处错误处理都使用`BadRequestException`/`NotFoundException`
-- 建议添加自定义异常类型，如 `ProviderUnavailableException`、`CacheTimeoutException`
-
-## 4. 日志记录的规范性
+## 3. 日志记录的规范性
 
 ### ⚠️ 日志改进建议
 
@@ -77,14 +69,6 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 - 当前没有使用通用的分页组件
 - 建议在批量查询场景中集成分页功能
 
-## 8. 监控集成
-
-### ⚠️ 监控改进建议
-
-**业务指标补充**：
-- 建议添加缓存命中率监控
-- 添加市场状态变化监控
-- 添加Provider健康状态监控
 
 ## 关键问题汇总
 
@@ -98,11 +82,7 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 
 ### ⚠️ 中优先级问题
 
-2. **错误处理细化**：
-   - 缺少自定义异常类型分类 ✅已验证
-   - 错误堆栈信息可能暴露内部实现 ✅已验证
-
-3. **事件监听器管理**：
+2. **事件监听器管理**：
    - EventEmitter2 事件监听器可能泄漏
    - 建议添加监听器自动清理机制
 
@@ -119,11 +99,10 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 1. 重构 Query→Receiver 依赖关系
 
 **近期优化**：
-2. 细化错误处理分类
-3. 添加生产环境安全过滤
+2. 添加生产环境安全过滤
 
 **长期改进**：
-4. 完善配置管理和监控指标
+3. 完善配置管理和监控指标
 
 ## 验证修正说明
 
@@ -133,6 +112,5 @@ if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
 
 ### ✅ 确认属实的问题 (5项)
 1. Query组件反向依赖 - 位置已确认
-3. 配置硬编码问题 - 代码位置已确认
-4. 错误处理分类不足 - 异常类型已确认
-5. 生产环境安全风险 - 堆栈信息暴露已确认
+2. 配置硬编码问题 - 代码位置已确认
+3. 生产环境安全风险 - 堆栈信息暴露已确认

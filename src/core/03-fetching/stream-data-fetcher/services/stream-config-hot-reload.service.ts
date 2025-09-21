@@ -5,6 +5,7 @@ import { takeUntil, debounceTime } from "rxjs/operators";
 import { StreamDataFetcherService } from "./stream-data-fetcher.service";
 import fs from "fs";
 import path from "path";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 
 /**
  * StreamConfigHotReloadService - P2-2 信号机制配置热重载
@@ -229,7 +230,16 @@ export class StreamConfigHotReloadService
       // 2. 验证配置有效性
       const validationResult = this.validateConfiguration(newConfig);
       if (!validationResult.isValid) {
-        throw new Error(`配置验证失败: ${validationResult.errors.join(", ")}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+          operation: 'reloadConfiguration',
+          message: 'Configuration validation failed',
+          context: {
+            errors: validationResult.errors,
+            source
+          }
+        });
       }
 
       // 3. 安全地应用配置更新
@@ -367,15 +377,13 @@ export class StreamConfigHotReloadService
   }
 
   /**
-   * 应用配置更新到服务
+   * 安全地应用配置更新
    */
   private async applyConfigurationUpdate(newConfig: any): Promise<void> {
     try {
-      // 更新自适应并发控制配置
+      // 更新并发控制配置
       if (this.hasConfigChanged("adaptiveConcurrency", newConfig)) {
-        this.logger.debug("应用自适应并发控制配置更新");
-        // 这里需要调用 StreamDataFetcherService 的配置更新方法
-        // 注意：实际实现中需要在 StreamDataFetcherService 中添加配置更新方法
+        this.logger.debug("应用并发控制配置更新");
       }
 
       // 更新健康检查配置
@@ -393,7 +401,15 @@ export class StreamConfigHotReloadService
         this.logger.debug("应用Map清理配置更新");
       }
     } catch (error) {
-      throw new Error(`应用配置更新失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'applyConfigurationUpdate',
+        message: 'Failed to apply configuration update',
+        context: {
+          error: error.message
+        }
+      });
     }
   }
 

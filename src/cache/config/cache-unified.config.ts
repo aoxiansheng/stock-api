@@ -13,6 +13,9 @@ import { registerAs } from "@nestjs/config";
 import { IsNumber, IsBoolean, Min, Max, validateSync } from "class-validator";
 import { plainToInstance } from "class-transformer";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 /**
  * Cache统一配置验证类
  * 🎯 统一管理所有Cache相关配置，消除4处TTL重复定义
@@ -276,9 +279,20 @@ export default registerAs("cacheUnified", (): CacheUnifiedConfigValidation => {
     const errorMessages = errors
       .map((error) => Object.values(error.constraints || {}).join(", "))
       .join("; ");
-    throw new Error(
-      `Cache unified configuration validation failed: ${errorMessages}`,
-    );
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.COMMON_CACHE,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: 'validateConfig',
+      message: `Cache unified configuration validation failed: ${errorMessages}`,
+      context: {
+        validationErrors: errors.map(error => ({
+          property: error.property,
+          constraints: error.constraints,
+          value: error.value
+        })),
+        configType: 'CacheUnifiedConfig'
+      }
+    });
   }
 
   return config;

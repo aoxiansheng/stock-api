@@ -11,11 +11,13 @@ import crypto from "crypto";
 import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
 import { NotificationConfigService } from "../notification-config.service";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { NOTIFICATION_ERROR_CODES } from "../../constants/notification-error-codes.constants";
 
 // 使用Notification模块的类型
 import {
@@ -50,9 +52,19 @@ export class DingTalkSender implements NotificationSender {
       channelConfig.webhook,
     );
     if (!urlValidation.valid) {
-      throw new BadRequestException(
-        `钉钉 Webhook URL安全检查失败: ${urlValidation.error}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `DingTalk Webhook URL security validation failed: ${urlValidation.error}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'sendDingTalkNotification',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: channelConfig.webhook,
+          validationError: urlValidation.error,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'dingtalk_url_security_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     try {
@@ -132,9 +144,19 @@ export class DingTalkSender implements NotificationSender {
     const urlValidation = URLSecurityValidator.validateURL(config.webhook);
     if (!urlValidation.valid) {
       this.logger.warn(`钉钉测试URL安全检查失败: ${urlValidation.error}`);
-      throw new BadRequestException(
-        `钉钉 Webhook URL安全检查失败: ${urlValidation.error}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `DingTalk Webhook URL security validation failed: ${urlValidation.error}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'testDingTalkConnection',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: config.webhook,
+          validationError: urlValidation.error,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'dingtalk_url_security_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     try {

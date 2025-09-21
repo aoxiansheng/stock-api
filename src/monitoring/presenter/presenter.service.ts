@@ -1,4 +1,6 @@
 import { Injectable, Inject, BadRequestException } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { MONITORING_ERROR_CODES } from "../constants/monitoring-error-codes.constants";
 
 import { GetDbPerformanceQueryDto } from "./dto/presenter-query.dto";
 import { GetEndpointMetricsDto } from "../contracts/dto/queries/get-endpoint-metrics.dto";
@@ -79,9 +81,16 @@ export class PresenterService {
   async getTrends(period: string = "1h") {
     // 简单参数验证
     if (period && !/^(\d+)([smhd])$/.test(period)) {
-      throw new BadRequestException(
-        "无效的时间周期格式，支持格式：1s, 5m, 1h, 1d",
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid time period format, supported formats: 1s, 5m, 1h, 1d",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getPerformanceAnalysis',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          period,
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     const trends = await this.analyzer.calculateTrends(period);
@@ -771,16 +780,32 @@ export class PresenterService {
       typeof componentName !== "string" ||
       componentName.trim().length === 0
     ) {
-      throw new BadRequestException("组件名称不能为空且必须是有效字符串");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Component name cannot be empty and must be a valid string",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getCustomComponentMetrics',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          componentName,
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     // 标准化组件名称
     const normalizedComponentName = componentName.trim();
 
     if (!this.customMetricsConfig?.has(normalizedComponentName)) {
-      throw new BadRequestException(
-        `组件 ${normalizedComponentName} 的监控指标未找到`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Monitoring metrics not found for component: ${normalizedComponentName}`,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'getCustomComponentMetrics',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          componentName: normalizedComponentName,
+          monitoringErrorCode: MONITORING_ERROR_CODES.DATA_UNAVAILABLE
+        }
+      });
     }
 
     const componentConfig = this.customMetricsConfig.get(
@@ -810,11 +835,29 @@ export class PresenterService {
       typeof dashboardId !== "string" ||
       dashboardId.trim().length === 0
     ) {
-      throw new BadRequestException("仪表盘ID不能为空且必须是有效字符串");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Dashboard ID cannot be empty and must be a valid string",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'addDashboard',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          dashboardId,
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     if (!dashboardConfig || typeof dashboardConfig !== "object") {
-      throw new BadRequestException("仪表盘配置不能为空且必须是有效对象");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Dashboard configuration cannot be empty and must be a valid object",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'addDashboard',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          dashboardConfig,
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     if (
@@ -822,7 +865,16 @@ export class PresenterService {
       typeof dashboardConfig.title !== "string" ||
       dashboardConfig.title.trim().length === 0
     ) {
-      throw new BadRequestException("仪表盘标题不能为空且必须是有效字符串");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Dashboard title cannot be empty and must be a valid string",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'addDashboard',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          dashboardTitle: dashboardConfig.title,
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     // 标准化参数
@@ -830,7 +882,16 @@ export class PresenterService {
 
     // 检查是否已存在
     if (this.dashboardConfigs?.has(normalizedDashboardId)) {
-      throw new BadRequestException(`仪表盘 ${normalizedDashboardId} 已存在`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Dashboard ${normalizedDashboardId} already exists`,
+        errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+        operation: 'addDashboard',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          dashboardId: normalizedDashboardId,
+          monitoringErrorCode: MONITORING_ERROR_CODES.CONFIG_VALIDATION_FAILED
+        }
+      });
     }
 
     this.logger.log(`创建监控仪表盘: ${normalizedDashboardId}`, {
@@ -866,7 +927,16 @@ export class PresenterService {
    */
   async getDashboard(dashboardId: string) {
     if (!this.dashboardConfigs?.has(dashboardId)) {
-      throw new BadRequestException(`仪表盘 ${dashboardId} 未找到`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Dashboard ${dashboardId} not found`,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'getDashboard',
+        component: ComponentIdentifier.MONITORING,
+        context: {
+          dashboardId,
+          monitoringErrorCode: MONITORING_ERROR_CODES.DATA_UNAVAILABLE
+        }
+      });
     }
 
     const dashboard = this.dashboardConfigs.get(dashboardId);

@@ -18,10 +18,11 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  BadRequestException,
   UseInterceptors,
   UseFilters,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { NOTIFICATION_ERROR_CODES } from "../constants/notification-error-codes.constants";
 
 import { createLogger } from "@common/logging/index";
 
@@ -198,7 +199,19 @@ export class TemplateController {
     });
 
     if (!renderDto.templateId || !renderDto.variables) {
-      throw new BadRequestException("templateId和variables参数是必需的");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "templateId and variables parameters are required",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'renderTemplate',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          templateId: renderDto.templateId,
+          variables: renderDto.variables,
+          customErrorCode: NOTIFICATION_ERROR_CODES.MISSING_REQUIRED_FIELDS,
+          reason: 'missing_required_parameters'
+        },
+        retryable: false
+      });
     }
 
     const context: TemplateRenderContext = {
@@ -225,11 +238,34 @@ export class TemplateController {
     });
 
     if (!batchRenderDto.requests || batchRenderDto.requests.length === 0) {
-      throw new BadRequestException("requests参数不能为空");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "requests parameter cannot be empty",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'renderTemplatesBatch',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          requestsLength: batchRenderDto.requests?.length || 0,
+          customErrorCode: NOTIFICATION_ERROR_CODES.MISSING_REQUIRED_FIELDS,
+          reason: 'empty_requests_array'
+        },
+        retryable: false
+      });
     }
 
     if (batchRenderDto.requests.length > 50) {
-      throw new BadRequestException("单次批量渲染最多支持50个模板");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Batch rendering supports maximum 50 templates per request",
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'renderTemplatesBatch',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          requestsLength: batchRenderDto.requests.length,
+          maxAllowed: 50,
+          customErrorCode: NOTIFICATION_ERROR_CODES.QUEUE_CAPACITY_EXCEEDED,
+          reason: 'batch_size_exceeded'
+        },
+        retryable: false
+      });
     }
 
     const contexts: TemplateRenderContext[] = batchRenderDto.requests.map(
@@ -262,7 +298,19 @@ export class TemplateController {
     });
 
     if (!duplicateDto.newTemplateId) {
-      throw new BadRequestException("newTemplateId参数是必需的");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "newTemplateId parameter is required",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'duplicateTemplate',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          templateId,
+          newTemplateId: duplicateDto.newTemplateId,
+          customErrorCode: NOTIFICATION_ERROR_CODES.MISSING_REQUIRED_FIELDS,
+          reason: 'missing_new_template_id'
+        },
+        retryable: false
+      });
     }
 
     return await this.templateService.duplicateTemplate(
@@ -317,16 +365,37 @@ export class TemplateController {
         !validateDto.templateContent ||
         validateDto.templateContent.trim().length === 0
       ) {
-        throw new BadRequestException("模板内容不能为空");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Template content cannot be empty",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            templateContent: validateDto.templateContent,
+            customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_TEMPLATE_DATA,
+            reason: 'empty_template_content'
+          },
+          retryable: false
+        });
       }
 
       if (
         validateDto.templateContent.length >
         VALIDATION_LIMITS.CONTENT_MAX_LENGTH
       ) {
-        throw new BadRequestException(
-          `模板内容过长，最大支持${VALIDATION_LIMITS.CONTENT_MAX_LENGTH}字符`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Template content too long, maximum ${VALIDATION_LIMITS.CONTENT_MAX_LENGTH} characters supported`,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'validateTemplate',
+          component: ComponentIdentifier.NOTIFICATION,
+          context: {
+            contentLength: validateDto.templateContent.length,
+            maxLength: VALIDATION_LIMITS.CONTENT_MAX_LENGTH,
+            customErrorCode: NOTIFICATION_ERROR_CODES.TEMPLATE_VALIDATION_FAILED,
+            reason: 'template_content_too_long'
+          },
+          retryable: false
+        });
       }
 
       // 如果提供了变量，尝试渲染验证
@@ -372,11 +441,34 @@ export class TemplateController {
       !batchToggleDto.templateIds ||
       batchToggleDto.templateIds.length === 0
     ) {
-      throw new BadRequestException("templateIds不能为空");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "templateIds cannot be empty",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'batchToggleTemplates',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          templateIdsLength: batchToggleDto.templateIds?.length || 0,
+          customErrorCode: NOTIFICATION_ERROR_CODES.MISSING_REQUIRED_FIELDS,
+          reason: 'empty_template_ids'
+        },
+        retryable: false
+      });
     }
 
     if (batchToggleDto.templateIds.length > 100) {
-      throw new BadRequestException("单次批量操作最多支持100个模板");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Batch operation supports maximum 100 templates per request",
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'batchToggleTemplates',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          templateIdsLength: batchToggleDto.templateIds.length,
+          maxAllowed: 100,
+          customErrorCode: NOTIFICATION_ERROR_CODES.QUEUE_CAPACITY_EXCEEDED,
+          reason: 'batch_size_exceeded'
+        },
+        retryable: false
+      });
     }
 
     const results = await Promise.allSettled(
@@ -421,7 +513,18 @@ export class TemplateController {
     this.logger.debug("根据标签搜索模板", { tags });
 
     if (!tags) {
-      throw new BadRequestException("tags参数是必需的");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "tags parameter is required",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'searchTemplatesByTags',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          tags,
+          customErrorCode: NOTIFICATION_ERROR_CODES.MISSING_REQUIRED_FIELDS,
+          reason: 'missing_tags_parameter'
+        },
+        retryable: false
+      });
     }
 
     const tagArray = tags
@@ -430,7 +533,19 @@ export class TemplateController {
       .filter((tag) => tag);
 
     if (tagArray.length === 0) {
-      throw new BadRequestException("至少需要一个有效的标签");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "At least one valid tag is required",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'searchTemplatesByTags',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          originalTags: tags,
+          parsedTags: tagArray,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_TEMPLATE_DATA,
+          reason: 'no_valid_tags'
+        },
+        retryable: false
+      });
     }
 
     const templates = await this.templateService.queryTemplates({

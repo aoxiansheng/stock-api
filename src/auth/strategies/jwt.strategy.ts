@@ -1,4 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { AUTH_ERROR_CODES } from "../constants/auth-error-codes.constants";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
@@ -25,7 +27,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       const user = await this.sessionService.validateJwtPayload(payload);
       return user;
     } catch {
-      throw new UnauthorizedException("JWT令牌无效或用户不存在");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid JWT token or user does not exist",
+        errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+        operation: 'validate',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          authErrorCode: AUTH_ERROR_CODES.TOKEN_INVALID,
+          strategy: 'JwtStrategy',
+          userId: payload?.sub
+        }
+      });
     }
   }
 }

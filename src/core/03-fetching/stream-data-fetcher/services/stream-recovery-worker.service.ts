@@ -22,6 +22,9 @@ import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
 } from "../providers/websocket-server.provider";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { UniversalRetryHandler } from "@common/core/exceptions";
+import { STREAM_DATA_FETCHER_ERROR_CODES } from "../constants/stream-data-fetcher-error-codes.constants";
 
 /**
  * StreamRecoveryWorkerService - Phase 3 Worker线程池实现
@@ -392,7 +395,18 @@ export class StreamRecoveryWorkerService
     try {
       // 检查QPS限流
       if (!this.checkRateLimit(provider)) {
-        throw new Error("Rate limit exceeded");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+          operation: 'processRecoveryJob',
+          message: 'Rate limit exceeded for recovery operation',
+          context: {
+            provider,
+            clientId,
+            symbols,
+            operation: 'recovery_job'
+          }
+        });
       }
 
       // 获取缓存数据
@@ -509,245 +523,226 @@ export class StreamRecoveryWorkerService
   }
 
   /**
-   * 发送补发数据到客户端
-   */
-  /**
-   * 发送补发数据到客户端 - Phase 3 WebSocket Gateway Integration
+   * 向客户端发送补发数据
    */
   private async sendRecoveryDataToClient(
     clientId: string,
     data: StreamDataPoint[],
   ): Promise<void> {
-    // Phase 3 Critical Fix: 使用强类型WebSocket提供者
-    if (!this.webSocketProvider.isServerAvailable()) {
-      this.logger.error("WebSocket服务器不可用，无法发送补发数据", {
-        clientId,
-        serverStats: this.webSocketProvider.getServerStats(),
-      });
-      this.emitRecoveryEvent("error_occurred", {
-        operation: "send_recovery_data",
-        status: "error",
-        error_type: "networkErrors",
-        client_id: clientId,
-      });
-      return;
-    }
-
-    const webSocketServer = this.webSocketProvider.getServer()!;
-
-    // 获取客户端Socket连接
-    const clientSocket = webSocketServer.sockets.sockets.get(clientId);
-    if (!clientSocket) {
-      this.logger.warn("客户端Socket连接不存在，无法发送补发数据", {
-        clientId,
-      });
-      this.emitRecoveryEvent("error_occurred", {
-        operation: "send_recovery_data",
-        status: "error",
-        error_type: "networkErrors",
-        client_id: clientId,
-      });
-      return;
-    }
-
-    // 验证客户端连接状态
-    if (!clientSocket.connected) {
-      this.logger.warn("客户端Socket已断开，跳过补发数据发送", { clientId });
-      this.emitRecoveryEvent("error_occurred", {
-        operation: "send_recovery_data",
-        status: "error",
-        error_type: "connectionErrors",
-        client_id: clientId,
-      });
-      return;
-    }
-
-    // 按时间戳排序
-    const sortedData = data.sort((a, b) => a.t - b.t);
-
-    // 批量发送，避免一次性发送过多数据
-    const batchSize = this.config.recovery.batchSize;
-    const totalBatches = Math.ceil(sortedData.length / batchSize);
-
-    for (let i = 0; i < sortedData.length; i += batchSize) {
-      const batch = sortedData.slice(i, i + batchSize);
-      const batchIndex = Math.floor(i / batchSize) + 1;
-      const isLastBatch = i + batchSize >= sortedData.length;
-
-      try {
-        // Phase 3 Critical Fix: 发送recovery专用消息类型到WebSocket客户端
-        const recoveryMessage = {
-          type: "recovery",
-          data: batch,
-          metadata: {
-            recoveryBatch: batchIndex,
-            totalBatches,
-            timestamp: Date.now(),
-            isLastBatch,
-            clientId, // 添加clientId便于客户端校验
-            dataPointsCount: batch.length,
-          },
-        };
-
-        // 使用WebSocket服务器直接发送消息
-        clientSocket.emit("recovery-data", recoveryMessage);
-
-        // 记录批量发送指标
-        const batchBytes = JSON.stringify(recoveryMessage).length;
-        this.emitRecoveryEvent("batch_sent", {
-          operation: "send_batch",
-          status: "success",
-          data_points: batch.length,
-          bytes: batchBytes,
-          client_id: clientId,
-        });
-
-        this.logger.debug("补发数据批次发送成功", {
-          clientId,
-          batchIndex,
-          totalBatches,
-          dataPointsCount: batch.length,
-          batchBytes,
-          isLastBatch,
-        });
-      } catch (error) {
-        this.logger.error("发送补发数据失败", {
-          clientId,
-          batchIndex,
-          totalBatches,
-          error: error.message,
-        });
-        this.emitRecoveryEvent("error_occurred", {
-          operation: "send_batch",
-          status: "error",
-          error_type: "networkErrors",
-          client_id: clientId,
-        });
-
-        // 如果是最后一个批次失败，也要发送失败通知
-        if (isLastBatch) {
-          try {
-            clientSocket.emit("recovery-error", {
-              type: "recovery_failed",
-              message: "补发数据传输中断",
-              error: error.message,
-              timestamp: Date.now(),
-            });
-          } catch (notificationError) {
-            this.logger.error("发送补发失败通知也失败了", {
+    try {
+      await UniversalRetryHandler.networkRetry(
+        async () => {
+          // Phase 3 Critical Fix: 使用强类型WebSocket提供者
+          if (!this.webSocketProvider.isServerAvailable()) {
+            this.logger.error("WebSocket server is not available, cannot send recovery data", {
               clientId,
-              error: notificationError.message,
+              serverStats: this.webSocketProvider.getServerStats(),
+            });
+            this.emitRecoveryEvent("error_occurred", {
+              operation: "send_recovery_data",
+              status: "error",
+              error_type: "networkErrors",
+              client_id: clientId,
+            });
+            throw UniversalExceptionFactory.createBusinessException({
+              component: ComponentIdentifier.STREAM_DATA_FETCHER,
+              errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+              operation: 'sendRecoveryDataToClient',
+              message: 'WebSocket server is not available',
+              context: {
+                clientId,
+                serverStats: this.webSocketProvider.getServerStats()
+              }
             });
           }
-        }
 
-        // 批次失败时停止后续发送，避免连续错误
-        break;
-      }
+          const webSocketServer = this.webSocketProvider.getServer()!;
 
-      // 在批次间添加小延迟，避免过快发送
-      if (!isLastBatch) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-      }
-    }
+          // 获取客户端Socket连接
+          const clientSocket = webSocketServer.sockets.sockets.get(clientId);
+          if (!clientSocket) {
+            this.logger.warn("Client socket connection not found, cannot send recovery data", {
+              clientId,
+            });
+            this.emitRecoveryEvent("error_occurred", {
+              operation: "send_recovery_data",
+              status: "error",
+              error_type: "networkErrors",
+              client_id: clientId,
+            });
+            throw UniversalExceptionFactory.createBusinessException({
+              component: ComponentIdentifier.STREAM_DATA_FETCHER,
+              errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+              operation: 'sendRecoveryDataToClient',
+              message: 'Client socket connection not found',
+              context: { clientId }
+            });
+          }
 
-    // 发送补发完成通知
-    try {
-      clientSocket.emit("recovery-complete", {
-        type: "recovery_complete",
-        message: "数据补发完成",
-        totalDataPoints: sortedData.length,
-        totalBatches,
-        timestamp: Date.now(),
-      });
+          // 验证客户端连接状态
+          if (!clientSocket.connected) {
+            this.logger.warn("Client socket is disconnected, skipping recovery data sending", { clientId });
+            this.emitRecoveryEvent("error_occurred", {
+              operation: "send_recovery_data",
+              status: "error",
+              error_type: "connectionErrors",
+              client_id: clientId,
+            });
+            throw UniversalExceptionFactory.createBusinessException({
+              component: ComponentIdentifier.STREAM_DATA_FETCHER,
+              errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+              operation: 'sendRecoveryDataToClient',
+              message: 'Client socket is disconnected',
+              context: { clientId }
+            });
+          }
 
-      this.logger.log("补发数据发送完成", {
-        clientId,
-        totalDataPoints: sortedData.length,
-        totalBatches,
-      });
+          // 按时间戳排序
+          const sortedData = data.sort((a, b) => a.t - b.t);
+
+          // 批量发送，避免一次性发送过多数据
+          const batchSize = this.config.recovery.batchSize;
+          const totalBatches = Math.ceil(sortedData.length / batchSize);
+
+          for (let i = 0; i < sortedData.length; i += batchSize) {
+            const batch = sortedData.slice(i, i + batchSize);
+            const batchIndex = Math.floor(i / batchSize) + 1;
+            const isLastBatch = i + batchSize >= sortedData.length;
+
+            // Phase 3 Critical Fix: 发送recovery专用消息类型到WebSocket客户端
+            const recoveryMessage = {
+              type: "recovery",
+              data: batch,
+              metadata: {
+                recoveryBatch: batchIndex,
+                totalBatches,
+                timestamp: Date.now(),
+                isLastBatch,
+                clientId, // 添加clientId便于客户端校验
+                dataPointsCount: batch.length,
+              },
+            };
+
+            // 使用WebSocket服务器直接发送消息
+            clientSocket.emit("recovery-data", recoveryMessage);
+
+            // 记录批量发送指标
+            const batchBytes = JSON.stringify(recoveryMessage).length;
+            this.emitRecoveryEvent("batch_sent", {
+              operation: "send_batch",
+              status: "success",
+              data_points: batch.length,
+              bytes: batchBytes,
+              client_id: clientId,
+            });
+
+            this.logger.debug("Recovery data batch sent successfully", {
+              clientId,
+              batchIndex,
+              totalBatches,
+              dataPointsCount: batch.length,
+              batchBytes,
+              isLastBatch,
+            });
+          }
+
+          return true;
+        },
+        'sendRecoveryDataToClient',
+        ComponentIdentifier.STREAM_DATA_FETCHER
+      );
     } catch (error) {
-      this.logger.error("发送补发完成通知失败", {
+      this.logger.error("Failed to send recovery data", {
         clientId,
+        dataPointsCount: data.length,
         error: error.message,
+      });
+      
+      this.emitRecoveryEvent("error_occurred", {
+        operation: "send_recovery_data",
+        status: "error",
+        error_type: "sendErrors",
+        client_id: clientId
       });
     }
   }
 
   /**
-   * 处理补发失败降级
-   */
-  /**
-   * 处理补发失败降级 - Phase 3 WebSocket Gateway Integration
+   * 处理补发失败的降级策略
    */
   private async handleRecoveryFailure(
     clientId: string,
     symbols: string[],
   ): Promise<void> {
-    this.logger.warn("补发失败，执行降级策略", { clientId, symbols });
-
-    // Phase 3 Critical Fix: 使用强类型WebSocket提供者发送降级通知
-    if (!this.webSocketProvider.isServerAvailable()) {
-      this.logger.error("WebSocket服务器不可用，无法发送降级通知", {
-        clientId,
-        serverStats: this.webSocketProvider.getServerStats(),
-      });
-      return;
-    }
-
-    const webSocketServer = this.webSocketProvider.getServer()!;
-
-    // 获取客户端Socket连接
-    const clientSocket = webSocketServer.sockets.sockets.get(clientId);
-    if (!clientSocket) {
-      this.logger.warn("客户端Socket连接不存在，无法发送降级通知", {
-        clientId,
-      });
-      return;
-    }
-
-    // 验证客户端连接状态
-    if (!clientSocket.connected) {
-      this.logger.warn("客户端Socket已断开，跳过降级通知", { clientId });
-      return;
-    }
+    this.logger.warn("Recovery failed, executing fallback strategy", { clientId, symbols });
 
     try {
-      // 发送降级失败通知给WebSocket客户端
-      const failureNotification = {
+      // Phase 3 Critical Fix: 使用强类型WebSocket提供者
+      if (!this.webSocketProvider.isServerAvailable()) {
+        this.logger.error("WebSocket server is not available, cannot send fallback notification", {
+          clientId,
+          serverStats: this.webSocketProvider.getServerStats(),
+        });
+        return;
+      }
+
+      const webSocketServer = this.webSocketProvider.getServer()!;
+
+      // 获取客户端Socket连接
+      const clientSocket = webSocketServer.sockets.sockets.get(clientId);
+      if (!clientSocket) {
+        this.logger.warn("Client socket connection not found, cannot send fallback notification", {
+          clientId,
+        });
+        return;
+      }
+
+      // 验证客户端连接状态
+      if (!clientSocket.connected) {
+        this.logger.warn("Client socket is disconnected, skipping fallback notification", { clientId });
+        return;
+      }
+
+      // 发送降级通知
+      const fallbackMessage = {
         type: "recovery_failed",
-        message: "数据补发失败，请重新订阅获取最新数据",
-        symbols,
-        action: "resubscribe",
+        message: "Recovery data transmission failed",
         timestamp: Date.now(),
-        severity: "warning",
-        retryRecommended: true,
+        metadata: {
+          symbols,
+          clientId,
+          suggestion: "Please reconnect or request data through regular API",
+        },
       };
 
-      clientSocket.emit("recovery-failed", failureNotification);
+      // 使用WebSocket服务器直接发送消息
+      clientSocket.emit("recovery-error", fallbackMessage);
 
-      this.logger.log("补发失败降级通知已发送", {
+      this.logger.log("Recovery failure fallback notification sent", {
         clientId,
-        symbols: symbols.length,
-        action: "resubscribe",
+        symbolCount: symbols.length,
       });
     } catch (error) {
-      this.logger.error("发送降级通知失败", {
+      this.logger.error("Failed to send fallback notification", {
         clientId,
-        symbols,
         error: error.message,
       });
 
-      // 如果连发送降级通知都失败了，尝试发送更简单的错误消息
       try {
-        clientSocket.emit("error", {
-          message: "系统错误，请重新连接",
+        // 尝试发送简单错误通知
+        const simpleErrorMessage = {
+          type: "error",
+          message: "Recovery failed",
           timestamp: Date.now(),
-        });
-      } catch (simpleErrorSendFailed) {
-        this.logger.error("发送简单错误通知也失败了", {
+        };
+        const webSocketServer = this.webSocketProvider.getServer();
+        webSocketServer?.sockets.sockets
+          .get(clientId)
+          ?.emit("error", simpleErrorMessage);
+      } catch (notificationError) {
+        this.logger.error("Failed to send simple error notification", {
           clientId,
-          error: simpleErrorSendFailed.message,
+          error: notificationError.message,
         });
       }
     }
@@ -769,7 +764,21 @@ export class StreamRecoveryWorkerService
       !job.lastReceiveTimestamp ||
       job.lastReceiveTimestamp < Date.now() - 86400000
     ) {
-      throw new Error("Invalid lastReceiveTimestamp");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid lastReceiveTimestamp - timestamp is missing or too old (exceeds 24 hours)",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'submitRecoveryJob',
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        context: {
+          lastReceiveTimestamp: job.lastReceiveTimestamp,
+          maxAgeMs: 86400000,
+          timeDifference: job.lastReceiveTimestamp ? Date.now() - job.lastReceiveTimestamp : 'missing_timestamp',
+          clientId: job.clientId,
+          customErrorCode: STREAM_DATA_FETCHER_ERROR_CODES.INVALID_TIMESTAMP_FORMAT,
+          reason: 'recovery_job_timestamp_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     const jobOptions: JobsOptions = {
@@ -810,7 +819,12 @@ export class StreamRecoveryWorkerService
 
     for (const job of jobs) {
       try {
-        const jobId = await this.submitRecoveryJob(job);
+        // 使用重试机制提交任务
+        const jobId = await UniversalRetryHandler.standardRetry(
+          async () => await this.submitRecoveryJob(job),
+          'submitRecoveryJob',
+          ComponentIdentifier.STREAM_DATA_FETCHER
+        );
         jobIds.push(jobId);
       } catch (error) {
         this.logger.error("批量提交任务失败", {
@@ -830,14 +844,43 @@ export class StreamRecoveryWorkerService
   async scheduleRecovery(job: RecoveryJob): Promise<string> {
     // 验证任务参数
     if (!job.clientId || !job.symbols || job.symbols.length === 0) {
-      throw new Error("Invalid recovery job parameters");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid recovery job parameters - clientId or symbols missing or empty",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'scheduleRecovery',
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        context: {
+          clientId: job.clientId,
+          symbolsCount: job.symbols?.length || 0,
+          symbols: job.symbols,
+          priority: job.priority,
+          customErrorCode: STREAM_DATA_FETCHER_ERROR_CODES.MISSING_SYMBOLS_PARAM,
+          reason: 'recovery_job_parameters_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     // 验证时间窗口
     const timeDiff = Date.now() - job.lastReceiveTimestamp;
     if (timeDiff > 86400000) {
       // 24小时
-      throw new Error("Recovery window too large, data may be expired");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Recovery window too large, data may be expired - time difference exceeds 24 hours",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'scheduleRecovery',
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        context: {
+          timeDifferenceMs: timeDiff,
+          maxAllowedMs: 86400000,
+          lastReceiveTimestamp: job.lastReceiveTimestamp,
+          currentTimestamp: Date.now(),
+          clientId: job.clientId,
+          customErrorCode: STREAM_DATA_FETCHER_ERROR_CODES.RECOVERY_STATE_MISMATCH,
+          reason: 'recovery_window_time_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     // 检查是否已有相同客户端的任务在处理

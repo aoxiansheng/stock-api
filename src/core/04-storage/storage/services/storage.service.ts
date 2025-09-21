@@ -8,6 +8,10 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { STORAGE_ERROR_CODES } from "../constants/storage-error-codes.constants";
+
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
@@ -60,9 +64,17 @@ export class StorageService {
 
     // 🎯 重构后：仅支持数据库存储
     if (request.storageType !== StorageType.PERSISTENT) {
-      throw new BadRequestException(
-        `StorageService现在仅支持PERSISTENT存储类型。对于缓存操作，请使用CommonCacheService。`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'storeData',
+        message: 'StorageService only supports PERSISTENT storage type. Use CommonCacheService for cache operations.',
+        context: {
+          requestedStorageType: request.storageType,
+          supportedTypes: [StorageType.PERSISTENT],
+          alternativeService: 'CommonCacheService'
+        }
+      });
     }
 
     this.logger.log(
@@ -167,9 +179,19 @@ export class StorageService {
           processingTimeMs,
         }),
       );
-      throw new BadRequestException(
-        `${STORAGE_ERROR_MESSAGES.STORAGE_FAILED}: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: 'storeData',
+        message: `Database storage operation failed: ${error.message}`,
+        context: {
+          key: request.key,
+          storageType: request.storageType,
+          originalError: error.message,
+          processingTimeMs,
+          operation: 'database_store'
+        }
+      });
     }
   }
 
@@ -187,9 +209,17 @@ export class StorageService {
       request.preferredType &&
       request.preferredType !== StorageType.PERSISTENT
     ) {
-      throw new BadRequestException(
-        `StorageService现在仅支持PERSISTENT检索类型。对于缓存操作，请使用CommonCacheService。`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'retrieveData',
+        message: 'StorageService only supports PERSISTENT retrieval type. Use CommonCacheService for cache operations.',
+        context: {
+          requestedType: request.preferredType,
+          supportedTypes: [StorageType.PERSISTENT],
+          alternativeService: 'CommonCacheService'
+        }
+      });
     }
 
     this.logger.log(
@@ -221,11 +251,19 @@ export class StorageService {
       }
 
       this.logger.warn(
-        `${STORAGE_ERROR_MESSAGES.DATA_NOT_FOUND}: ${request.key}`,
+        `Data not found: ${request.key}`,
       );
-      throw new NotFoundException(
-        `${STORAGE_ERROR_MESSAGES.DATA_NOT_FOUND}: ${request.key}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'retrieveData',
+        message: `Requested data not found in storage: ${request.key}`,
+        context: {
+          key: request.key,
+          preferredType: request.preferredType,
+          operation: 'data_retrieval'
+        }
+      });
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
 
@@ -253,9 +291,17 @@ export class StorageService {
       ) {
         throw error;
       }
-      throw new BadRequestException(
-        `${STORAGE_ERROR_MESSAGES.RETRIEVAL_FAILED}: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: 'retrieveData',
+        message: `Data retrieval operation failed: ${error.message}`,
+        context: {
+          key: request.key,
+          originalError: error.message,
+          operation: 'database_retrieve'
+        }
+      });
     }
   }
 
@@ -274,9 +320,18 @@ export class StorageService {
 
     // 🎯 重构后：仅支持数据库删除
     if (storageType !== StorageType.PERSISTENT) {
-      throw new BadRequestException(
-        `StorageService现在仅支持PERSISTENT删除类型。对于缓存操作，请使用CommonCacheService。`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'deleteData',
+        message: 'StorageService only supports PERSISTENT delete type. Use CommonCacheService for cache operations.',
+        context: {
+          requestedStorageType: storageType,
+          supportedTypes: [StorageType.PERSISTENT],
+          alternativeService: 'CommonCacheService',
+          operation: 'delete_validation'
+        }
+      });
     }
 
     this.logger.log(`从数据库删除数据，键: ${key}`);
@@ -327,9 +382,18 @@ export class StorageService {
         }),
       );
 
-      throw new BadRequestException(
-        `${STORAGE_ERROR_MESSAGES.DELETE_FAILED}: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: 'deleteData',
+        message: `Data deletion operation failed: ${error.message}`,
+        context: {
+          key: key,
+          storageType: storageType,
+          originalError: error.message,
+          operation: 'database_delete'
+        }
+      });
     }
   }
 
@@ -366,9 +430,17 @@ export class StorageService {
       return stats;
     } catch (error: any) {
       this.logger.error("生成数据库存储统计信息失败", error);
-      throw new BadRequestException(
-        `生成数据库存储统计信息失败: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+        operation: 'getStorageStats',
+        message: `Database storage statistics generation failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          operation: 'statistics_generation',
+          errorType: 'persistent_stats_failure'
+        }
+      });
     }
   }
 
@@ -461,9 +533,19 @@ export class StorageService {
           processingTimeMs,
         }),
       );
-      throw new BadRequestException(
-        `${STORAGE_ERROR_MESSAGES.RETRIEVAL_FAILED}: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: 'findPaginated',
+        message: `Paginated data retrieval operation failed: ${error.message}`,
+        context: {
+          query: query,
+          page: query.page || 1,
+          limit: query.limit || 10,
+          originalError: error.message,
+          operation: 'database_paginated_query'
+        }
+      });
     }
   }
 

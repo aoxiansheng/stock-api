@@ -11,8 +11,9 @@ import {
   Injectable,
   OnModuleInit,
   Inject,
-  NotFoundException,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 import { ConfigService } from "@nestjs/config";
 import type { ConfigType } from "@nestjs/config";
 
@@ -97,7 +98,15 @@ export class AlertOrchestratorService implements OnModuleInit {
 
     const deleted = await this.ruleService.deleteRule(ruleId);
     if (!deleted) {
-      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'deleteRule',
+        message: 'Alert rule not found for deletion',
+        context: {
+          ruleId: ruleId
+        }
+      });
     }
   }
 
@@ -279,9 +288,19 @@ export class AlertOrchestratorService implements OnModuleInit {
 
     // 检查批量操作限制
     if (alertIds.length > this.alertCacheLimits.batchSize) {
-      throw new Error(
-        `批量操作数量超出限制，最大允许${this.alertCacheLimits.batchSize}个`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Batch operation size exceeds limit, maximum allowed: ${this.alertCacheLimits.batchSize}`,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'batchUpdateAlertStatus',
+        component: ComponentIdentifier.ALERT,
+        context: {
+          alertIdsCount: alertIds.length,
+          maxBatchSize: this.alertCacheLimits.batchSize,
+          customErrorCode: ALERT_ERROR_CODES.INVALID_PAGE_PARAMETERS,
+          reason: 'batch_size_exceeded'
+        },
+        retryable: false
+      });
     }
 
     return await this.lifecycleService.batchUpdateAlertStatus(
@@ -348,10 +367,18 @@ export class AlertOrchestratorService implements OnModuleInit {
    * 根据ID获取告警
    */
   async getAlertById(alertId: string): Promise<IAlert> {
-    DatabaseValidationUtils.validateObjectId(alertId, "告警ID");
+    DatabaseValidationUtils.validateObjectId(alertId, "Alert ID");
     const alerts = await this.queryService.getAlerts({ alertId });
     if (alerts.length === 0) {
-      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'getAlertById',
+        message: 'Alert not found',
+        context: {
+          alertId: alertId
+        }
+      });
     }
     return alerts[0];
   }

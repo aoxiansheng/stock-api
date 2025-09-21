@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 import { createLogger } from '@common/logging/index';
 
 /**
@@ -276,7 +277,16 @@ export class WebSocketFeatureFlagsService {
     }
 
     if (errors.length > 0) {
-      throw new Error(`WebSocket特性开关配置验证失败: ${errors.join(', ')}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validateConfig',
+        message: 'WebSocket feature flags configuration validation failed',
+        context: {
+          errors,
+          configType: 'websocket_feature_flags'
+        }
+      });
     }
   }
 

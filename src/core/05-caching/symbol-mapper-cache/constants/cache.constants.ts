@@ -2,6 +2,13 @@
  * Symbol Mapper Cache 相关常量
  */
 
+// Unified error handling constants
+export * from "./symbol-mapper-cache-error-codes.constants";
+export {
+  SYMBOL_MAPPER_CACHE_ERROR_CODES,
+  type SymbolMapperCacheErrorCode,
+} from "./symbol-mapper-cache-error-codes.constants";
+
 /**
  * 符号映射方向枚举
  * 按项目惯例创建枚举定义，提供类型安全的方向控制

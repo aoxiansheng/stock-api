@@ -1,6 +1,8 @@
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import {
@@ -23,7 +25,7 @@ import {
   CreateMappingRuleFromSuggestionsDto,
 } from "../dto/flexible-mapping-rule.dto";
 import { DataSourceTemplateService } from "./data-source-template.service";
-import { MappingRuleCacheService } from "./mapping-rule-cache.service";
+import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
 import { ObjectUtils } from "../../../shared/utils/object.util";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
@@ -42,7 +44,7 @@ export class FlexibleMappingRuleService {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     private readonly paginationService: PaginationService,
     private readonly templateService: DataSourceTemplateService,
-    private readonly mappingRuleCacheService: MappingRuleCacheService,
+    private readonly mappingRuleCacheService: DataMapperCacheService,
     private readonly eventBus: EventEmitter2,
   ) {}
 
@@ -61,9 +63,16 @@ export class FlexibleMappingRuleService {
           dto.sourceTemplateId,
         );
         if (!template) {
-          throw new BadRequestException(
-            `数据源模板不存在: ${dto.sourceTemplateId}`,
-          );
+          throw UniversalExceptionFactory.createBusinessException({
+            message: `Data source template not found: ${dto.sourceTemplateId}`,
+            errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+            operation: 'createRule',
+            component: ComponentIdentifier.DATA_MAPPER,
+            context: {
+              sourceTemplateId: dto.sourceTemplateId,
+              dataMapperErrorCode: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+            }
+          });
         }
       }
 
@@ -76,7 +85,19 @@ export class FlexibleMappingRuleService {
       });
 
       if (existing) {
-        throw new ConflictException(`映射规则已存在: ${dto.name}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+          operation: 'createRule',
+          message: `Mapping rule already exists: ${dto.name}`,
+          context: {
+            ruleName: dto.name,
+            provider: dto.provider,
+            apiType: dto.apiType,
+            errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_ALREADY_EXISTS
+          },
+          retryable: false
+        });
       }
 
       // 3. 如果设置为默认规则，取消其他默认规则
@@ -158,7 +179,18 @@ export class FlexibleMappingRuleService {
     // 2. 根据选中的建议索引构建字段映射
     const selectedSuggestions = dto.selectedSuggestionIndexes.map((index) => {
       if (index < 0 || index >= suggestions.length) {
-        throw new BadRequestException(`无效的建议索引: ${index}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'createRuleFromSuggestions',
+          message: `Invalid suggestion index: ${index}`,
+          context: {
+            index,
+            maxIndex: suggestions.length - 1,
+            errorType: DATA_MAPPER_ERROR_CODES.INVALID_SUGGESTION_INDEX
+          },
+          retryable: false
+        });
       }
       return suggestions[index];
     });
@@ -270,7 +302,17 @@ export class FlexibleMappingRuleService {
           success: false,
           error: "Document not found",
         });
-        throw new NotFoundException(`映射规则未找到: ${id}`);
+        throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'mappingRuleNotFound',
+        message: `Mapping rule not found: ${id}`,
+        context: {
+          ruleId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+        },
+        retryable: false
+      });
       }
 
       // ✅ 数据库查询成功监控 - 事件驱动
@@ -819,7 +861,17 @@ export class FlexibleMappingRuleService {
     // 1. 获取原规则信息用于缓存失效
     const oldRule = await this.ruleModel.findById(id);
     if (!oldRule) {
-      throw new NotFoundException(`映射规则未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'mappingRuleNotFound',
+        message: `Mapping rule not found: ${id}`,
+        context: {
+          ruleId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
     const oldRuleDto = FlexibleMappingRuleResponseDto.fromDocument(oldRule);
 
@@ -883,7 +935,17 @@ export class FlexibleMappingRuleService {
     // 1. 获取原规则信息用于缓存失效
     const oldRule = await this.ruleModel.findById(id);
     if (!oldRule) {
-      throw new NotFoundException(`映射规则未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'mappingRuleNotFound',
+        message: `Mapping rule not found: ${id}`,
+        context: {
+          ruleId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
     const oldRuleDto = FlexibleMappingRuleResponseDto.fromDocument(oldRule);
 
@@ -913,7 +975,17 @@ export class FlexibleMappingRuleService {
     // 1. 获取规则信息用于缓存失效
     const rule = await this.ruleModel.findById(id);
     if (!rule) {
-      throw new NotFoundException(`映射规则未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'mappingRuleNotFound',
+        message: `Mapping rule not found: ${id}`,
+        context: {
+          ruleId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
@@ -934,14 +1006,34 @@ export class FlexibleMappingRuleService {
   async getRuleDocumentById(id: string): Promise<FlexibleMappingRuleDocument> {
     // 参数验证
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`无效的规则ID格式: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'findRuleById',
+        message: `Invalid rule ID format: ${id}`,
+        context: {
+          ruleId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     try {
       // 直接查询数据库
       const rule = await this.ruleModel.findById(id);
       if (!rule) {
-        throw new NotFoundException(`映射规则未找到: ${id}`);
+        throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'mappingRuleNotFound',
+        message: `Mapping rule not found: ${id}`,
+        context: {
+          ruleId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+        },
+        retryable: false
+      });
       }
 
       this.logger.debug(`获取规则文档成功: ${id}`);
@@ -954,7 +1046,19 @@ export class FlexibleMappingRuleService {
         throw error;
       }
       this.logger.error("获取规则文档时发生错误", { id, error: error.message });
-      throw new BadRequestException(`获取规则文档失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'getRuleDocumentById',
+        message: `Failed to get rule document: ${error.message}`,
+        context: {
+          ruleId: id,
+          originalError: error.message,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_DOCUMENT_FETCH_ERROR
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -976,7 +1080,7 @@ export class FlexibleMappingRuleService {
         FlexibleMappingRuleResponseDto.fromDocument(rule),
       );
 
-      // 使用MappingRuleCacheService的预热功能
+      // 使用DataMapperCacheService的预热功能
       await this.mappingRuleCacheService.warmupCache(ruleDtos);
 
       this.logger.log("映射规则缓存预热完成", { cachedRules: ruleDtos.length });

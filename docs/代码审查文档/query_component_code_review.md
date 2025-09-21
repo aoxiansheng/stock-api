@@ -7,67 +7,9 @@
 
 
 
-### 1. 错误处理的一致性 ❌
-
-**需要改进：**
-- ❌ **错误分类不够细致**：缺乏业务错误码系统
-- ❌ **错误恢复机制**：部分场景缺乏自动重试
-
-**具体问题：**
-- 组件中有 **22 处** `throw new Error`，分布在4个文件中：
-  - `query.config.ts` (11处)
-  - `query.controller.ts` (3处)
-  - `query.service.ts` (1处)
-  - `query-execution-engine.service.ts` (7处)
-- 缺乏结构化的错误分类和错误码定义
-
-**改进建议：**
-```typescript
-// 🔧 更细粒度的错误分类
-export enum QueryErrorCode {
-  // 验证类错误
-  VALIDATION_FAILED = 'QUERY_VALIDATION_001',
-  INVALID_SYMBOLS = 'QUERY_VALIDATION_002',
-  MISSING_REQUIRED_PARAMS = 'QUERY_VALIDATION_003',
-
-  // 系统资源类错误
-  MEMORY_PRESSURE = 'QUERY_RESOURCE_001',
-  TIMEOUT_ERROR = 'QUERY_RESOURCE_002',
-  RATE_LIMIT_EXCEEDED = 'QUERY_RESOURCE_003',
-
-  // 外部依赖类错误
-  PROVIDER_UNAVAILABLE = 'QUERY_EXTERNAL_001',
-  CACHE_SERVICE_ERROR = 'QUERY_EXTERNAL_002',
-
-  // 业务逻辑类错误
-  UNSUPPORTED_QUERY_TYPE = 'QUERY_BUSINESS_001',
-  FEATURE_NOT_IMPLEMENTED = 'QUERY_BUSINESS_002',
-}
-
-// 🔧 带重试机制的错误类
-export class QueryError extends Error {
-  constructor(
-    public readonly code: QueryErrorCode,
-    message: string,
-    public readonly context?: any,
-    public readonly retryable: boolean = false  // 新增：是否可重试
-  ) {
-    super(message);
-    this.name = 'QueryError';
-  }
-
-  // 新增：错误恢复建议
-  getRecoveryAction(): 'retry' | 'fallback' | 'abort' {
-    if (this.retryable) return 'retry';
-    if (this.code.startsWith('QUERY_EXTERNAL')) return 'fallback';
-    return 'abort';
-  }
-}
-```
 
 
-
-### 3. 内存泄漏风险 ❌
+### 1. 内存泄漏风险 ❌
 
 **潜在问题：**
 - ❌ **事件监听器清理**：`EventEmitter2` 监听器没有在模块销毁时清理
@@ -102,55 +44,66 @@ async onModuleDestroy(): Promise<void> {
 }
 ```
 
-### 4. 监控系统集成不完整 ❌
+### 2. 系统指标获取未实现 ❌
 
 **问题：**
-- ❌ **指标获取临时实现**：`QueryMemoryMonitorService` 中使用固定值 `memoryPercentage = 0.5`
-- ❌ **缺乏真实指标**：注释显示 "TODO: 实现从事件驱动监控系统获取系统指标的方法"
+- ❌ **使用硬编码值**：`QueryMemoryMonitorService` 中使用固定值 `memoryPercentage = 0.5`
+- ❌ **未获取真实系统指标**：注释显示 "TODO: 实现从事件驱动监控系统获取系统指标的方法"
 
 **问题位置：**
 `query-memory-monitor.service.ts:61`
 
-**集成监控系统方案：**
+**正确的事件驱动集成方案：**
 ```typescript
-// 🔧 集成现有监控系统的方案
+// 🔧 遵循事件驱动架构，直接使用Node.js API获取指标
 export class QueryMemoryMonitorService {
   constructor(
-    private readonly monitoringService: MonitoringService,  // 新增依赖
-    private readonly eventBus: EventEmitter2,
+    private readonly eventBus: EventEmitter2,  // 仅注入事件总线
   ) {}
 
-  async getSystemMetrics(): Promise<SystemMetricsDto> {
-    try {
-      // 1. 优先从监控服务获取真实指标
-      const realMetrics = await this.monitoringService.getSystemMetrics();
-      return realMetrics;
-    } catch (error) {
-      // 2. 降级到基础系统指标
-      const basicMetrics = await this.getBasicSystemMetrics();
-      this.logger.warn('监控服务不可用，使用基础指标', { error: error.message });
-      return basicMetrics;
-    }
-  }
-
-  private async getBasicSystemMetrics(): Promise<SystemMetricsDto> {
-    const process = require('process');
+  private async checkMemoryUsage(): Promise<void> {
+    // 1. 直接使用Node.js API获取真实系统指标
     const memUsage = process.memoryUsage();
-    const totalMem = require('os').totalmem();
+    const heapStats = v8.getHeapStatistics();
+    const cpus = os.cpus();
 
-    return {
-      memory: {
-        used: memUsage.heapUsed,
-        total: totalMem,
-        percentage: memUsage.heapUsed / totalMem
-      },
-      cpu: { usage: process.cpuUsage().user / 1000000 },
-      uptime: process.uptime(),
-      timestamp: new Date(),
-    };
+    const memoryPercentage = memUsage.rss / heapStats.heap_size_limit;
+    const cpuUsage = cpus.length > 0 ? Math.min(os.loadavg()[0] / cpus.length, 1) : 0;
+
+    // 2. 通过事件总线发送监控指标（解耦设计）
+    setImmediate(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: 'query_memory_monitor',
+        metricType: 'system',
+        metricName: 'memory_pressure',
+        metricValue: memoryPercentage,
+        tags: {
+          component: 'query',
+          operation: 'memory_check',
+          cpu_usage: cpuUsage,
+          heap_used_mb: Math.round(memUsage.heapUsed / 1024 / 1024),
+          threshold_exceeded: memoryPercentage > 0.8
+        }
+      });
+    });
+
+    // 3. 内存压力判断和处理
+    if (memoryPercentage > 0.8) {
+      this.logger.warn('内存使用率过高，触发降级策略', {
+        memoryPercentage,
+        heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024)
+      });
+      // 执行内存压力处理逻辑...
+    }
   }
 }
 ```
+
+**注意事项：**
+- ✅ 保持事件驱动架构，不直接依赖 `MonitoringService`
+- ✅ 使用 Node.js 原生 API 获取系统指标（与 `CollectorService` 实现一致）
+- ✅ 通过 `SYSTEM_STATUS_EVENTS.METRIC_COLLECTED` 事件上报指标
 
 ## 改进优先级与实施建议
 
@@ -159,31 +112,27 @@ export class QueryMemoryMonitorService {
    - 所有服务类实现完整的`onModuleDestroy`清理逻辑
    - 清理EventEmitter2监听器、定时器、缓存引用
 
-### 🔄 近期执行（1-2个月内 - 技术可行性: ✅ 高）
-2. **错误处理标准化** - 提升用户体验和问题排查效率
-   - 实施细粒度错误分类和错误码系统
-   - 添加重试机制和错误恢复建议
-3. **监控系统集成** - 提升运维能力和性能监控准确性
-   - 集成现有MonitoringService，提供fallback机制
-   - 利用Node.js内置API作为备用指标来源
+2. **系统指标获取实现** - 替换硬编码值，提供真实监控数据
+   - 使用 Node.js 原生 API (`process.memoryUsage()`, `v8.getHeapStatistics()`)
+   - 通过事件总线上报指标，保持架构解耦
+   - 实现内存压力检测和响应机制
 
 
 ## 修正总结
 
-### 📋 文档质量评价
-- **问题识别**: A级 - 所有问题经代码库验证确认属实
-- **分析深度**: A级 - 问题定位准确，影响程度评估合理
-- **解决方案**: B级 → A级 - 原方案可行但不够全面，已优化为更具体、更可行的方案
+### 📋 文档评价与修正
+- **问题识别**: ✅ 内存泄漏问题准确
+- **架构理解**: ❌→✅ 原方案违背事件驱动架构，已修正为符合现有架构的方案
+- **解决方案**: 已更新为遵循事件驱动模式的正确实现
 
 ### 🔧 主要修正内容
-1. **错误处理增强**: 更细粒度分类，添加重试和恢复机制
-3. **功能实现策略**: 提供渐进式实现路径，降低架构风险
-4. **内存管理完善**: 全面的资源清理策略，覆盖所有服务类
-5. **监控集成方案**: 提供fallback机制，确保高可用性
+1. **移除错误的服务依赖方案**: 删除了直接注入 `MonitoringService` 的建议
+2. **采用事件驱动方案**: 通过 `EventEmitter2` 和 `SYSTEM_STATUS_EVENTS` 上报指标
+3. **使用原生 API**: 直接使用 Node.js API 获取系统指标，与 `CollectorService` 保持一致
 
-### ✅ 技术可行性确认
-- **高优先级问题**: 技术成熟，零兼容性风险，可立即执行
-- **中等优先级问题**: 有现成技术方案，向后兼容，渐进式迁移
-- **长期规划问题**: 需要架构设计，但有明确实施路径
+### ✅ 架构原则确认
+- **保持解耦**: 业务组件不直接依赖监控服务
+- **事件驱动**: 通过事件总线进行组件间通信
+- **性能优先**: 使用 `setImmediate()` 异步发送事件，不影响主流程
 
-建议立即着手解决内存泄漏和测试覆盖问题，这两个问题对系统稳定性影响最大且实施难度最低。
+建议立即着手解决内存泄漏问题和实现真实系统指标获取，这两个问题对系统稳定性影响最大且实施难度最低。

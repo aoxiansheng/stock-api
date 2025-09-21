@@ -5,6 +5,8 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { AUTH_ERROR_CODES } from "../constants/auth-error-codes.constants";
 import { Reflector } from "@nestjs/core";
 import type { Response } from "express";
 import { AuthenticatedRequest } from "../interfaces/authenticated-request.interface";
@@ -105,25 +107,26 @@ export class RateLimitGuard implements CanActivate {
           },
         );
 
-        throw new HttpException(
-          {
-            statusCode: HttpStatus.TOO_MANY_REQUESTS,
-            message: "API Key请求频率超出限制",
-            error: "Too Many Requests",
-            details: {
-              type: "API_KEY_RATE_LIMIT",
-              limit: result.limit,
-              current: result.current,
-              remaining: result.remaining,
-              resetTime: result.resetTime,
-              retryAfter: result.retryAfter,
-              window: apiKey.rateLimit.window,
-              apiKey: apiKey.appKey,
-            },
-            timestamp: new Date().toISOString(),
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "API Key request rate limit exceeded",
+          errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+          operation: 'canActivate',
+          component: ComponentIdentifier.AUTH,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          context: {
+            authErrorCode: AUTH_ERROR_CODES.RATE_LIMIT_EXCEEDED,
+            guard: 'RateLimitGuard',
+            type: "API_KEY_RATE_LIMIT",
+            limit: result.limit,
+            current: result.current,
+            remaining: result.remaining,
+            resetTime: result.resetTime,
+            retryAfter: result.retryAfter,
+            window: apiKey.rateLimit.window,
+            apiKey: apiKey.appKey
           },
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
+          retryable: true
+        });
       }
 
       return true;

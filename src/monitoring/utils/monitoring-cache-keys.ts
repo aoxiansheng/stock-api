@@ -1,5 +1,11 @@
 import { HttpHeadersUtil } from "@common/utils/http-headers.util";
 import type { Request } from "express";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { MONITORING_ERROR_CODES } from '../constants/monitoring-error-codes.constants';
 
 /**
  * 监控组件缓存键管理工具类
@@ -83,22 +89,63 @@ export class MonitoringCacheKeys {
    */
   static validateKey(key: string): string {
     if (!key || typeof key !== "string") {
-      throw new Error("缓存键名不能为空且必须为字符串");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateKey',
+        message: 'Cache key name cannot be empty and must be a string',
+        context: {
+          key,
+          keyType: typeof key,
+          errorType: MONITORING_ERROR_CODES.INVALID_CACHE_KEY_NAME
+        }
+      });
     }
 
     const trimmedKey = key.trim();
     if (trimmedKey.length === 0) {
-      throw new Error("缓存键名不能为空字符串");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateKey',
+        message: 'Cache key name cannot be empty string',
+        context: {
+          originalKey: key,
+          trimmedKey,
+          errorType: MONITORING_ERROR_CODES.EMPTY_CACHE_KEY_NAME
+        }
+      });
     }
 
     // 检查非法字符：冒号、空格、换行符等
     if (/[:\s\n\r\t]/.test(trimmedKey)) {
-      throw new Error("缓存键名不能包含冒号、空格或换行符");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateKey',
+        message: 'Cache key name cannot contain colons, spaces, or newline characters',
+        context: {
+          key: trimmedKey,
+          invalidChars: trimmedKey.match(/[:\s\n\r\t]/g),
+          errorType: MONITORING_ERROR_CODES.INVALID_CACHE_KEY_CHARS
+        }
+      });
     }
 
     // 检查长度限制
     if (trimmedKey.length > 200) {
-      throw new Error("缓存键名长度不能超过200字符");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateKey',
+        message: 'Cache key name length cannot exceed 200 characters',
+        context: {
+          key: trimmedKey,
+          currentLength: trimmedKey.length,
+          maxLength: 200,
+          errorType: MONITORING_ERROR_CODES.CACHE_KEY_NAME_TOO_LONG
+        }
+      });
     }
 
     return trimmedKey;
@@ -127,7 +174,17 @@ export class MonitoringCacheKeys {
     req?: Request,
   ): string[] {
     if (!Array.isArray(keys)) {
-      throw new Error("键名必须为数组");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'batch',
+        message: 'Keys must be an array',
+        context: {
+          keys,
+          keysType: typeof keys,
+          errorType: MONITORING_ERROR_CODES.INVALID_KEY_ARRAY
+        }
+      });
     }
 
     return keys.map((key) => {
@@ -143,7 +200,17 @@ export class MonitoringCacheKeys {
         case "cacheStats":
           return this.cacheStats(key);
         default:
-          throw new Error(`不支持的缓存类型: ${type}`);
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.MONITORING,
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: 'batch',
+            message: `Unsupported cache type: ${type}`,
+            context: {
+              type,
+              supportedTypes: ['health', 'trend', 'performance', 'alert', 'cacheStats'],
+              errorType: MONITORING_ERROR_CODES.UNSUPPORTED_CACHE_TYPE
+            }
+          });
       }
     });
   }

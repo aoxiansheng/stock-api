@@ -9,9 +9,9 @@
 
 import {
   Injectable,
-  BadRequestException,
-  NotFoundException,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 import { createLogger } from "@common/logging/index";
 import {
@@ -58,11 +58,18 @@ export class AlertRuleService {
     const validation = this.ruleValidator.validateRule(tempRuleForValidation);
 
     if (!validation.valid) {
-      const errorMsg = `规则验证失败: ${validation.errors.join(", ")}`;
+      const errorMsg = `Rule validation failed: ${validation.errors.join(", ")}`;
       this.logger.warn(errorMsg, { operation, errors: validation.errors });
-      throw new BadRequestException(
-        errorMsg || VALIDATION_MESSAGES.VALIDATION_FAILED,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'createRule',
+        message: errorMsg || 'Alert rule validation failed',
+        context: {
+          validationErrors: validation.errors,
+          ruleData: createRuleDto
+        }
+      });
     }
 
     try {
@@ -119,7 +126,15 @@ export class AlertRuleService {
       // 获取现有规则进行验证
       const existingRule = await this.alertRuleRepository.findById(ruleId);
       if (!existingRule) {
-        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'getRuleById',
+          message: 'Alert rule not found',
+          context: {
+            ruleId: ruleId
+          }
+        });
       }
 
       // 如果有需要验证的字段，进行验证
@@ -140,11 +155,19 @@ export class AlertRuleService {
         );
 
         if (!validation.valid) {
-          const errorMsg = `规则验证失败: ${validation.errors.join(", ")}`;
+          const errorMsg = `Rule validation failed: ${validation.errors.join(", ")}`;
           this.logger.warn(errorMsg, { operation, errors: validation.errors });
-          throw new BadRequestException(
-            errorMsg || VALIDATION_MESSAGES.VALIDATION_FAILED,
-          );
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.ALERT,
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: 'updateRule',
+            message: errorMsg || 'Alert rule validation failed',
+            context: {
+              ruleId: ruleId,
+              validationErrors: validation.errors,
+              updateData: updateRuleDto
+            }
+          });
         }
       }
 
@@ -268,7 +291,15 @@ export class AlertRuleService {
       const rule = await this.alertRuleRepository.findById(ruleId);
 
       if (!rule) {
-        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'getRuleById',
+          message: 'Alert rule not found',
+          context: {
+            ruleId: ruleId
+          }
+        });
       }
 
       this.logger.debug("获取告警规则成功", {

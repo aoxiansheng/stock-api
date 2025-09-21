@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
@@ -42,6 +42,10 @@ import { QueryType } from "../dto/query-types.dto";
 import { DataSourceType } from "../enums/data-source-type.enum";
 import { buildStorageKey } from "../utils/query.util";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { QUERY_ERROR_CODES } from "../constants/query-error-codes.constants";
+
 /**
  * Query执行引擎服务
  *
@@ -58,7 +62,7 @@ import { buildStorageKey } from "../utils/query.util";
  * - 可复用：可被多个执行器（SymbolQueryExecutor等）使用
  */
 @Injectable()
-export class QueryExecutionEngine implements OnModuleInit {
+export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryExecutionEngine.name);
 
   constructor(
@@ -93,6 +97,11 @@ export class QueryExecutionEngine implements OnModuleInit {
     });
   }
 
+  async onModuleDestroy(): Promise<void> {
+    this.logger.log("QueryExecutionEngine模块正在关闭");
+    // 可以在这里添加任何需要清理的资源
+  }
+
   /**
    * 执行查询路由方法
    *
@@ -108,26 +117,62 @@ export class QueryExecutionEngine implements OnModuleInit {
 
       case QueryType.BY_MARKET:
         // TODO: 实现市场查询逻辑
-        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.QUERY,
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: 'executeQuery',
+          message: `Query type not yet implemented: ${request.queryType}`,
+          context: { queryType: request.queryType, feature: 'market query' }
+        });
 
       case QueryType.BY_PROVIDER:
         // TODO: 实现提供商查询逻辑
-        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.QUERY,
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: 'executeQuery',
+          message: `Query type not yet implemented: ${request.queryType}`,
+          context: { queryType: request.queryType, feature: 'provider query' }
+        });
 
       case QueryType.BY_CATEGORY:
         // TODO: 实现标签查询逻辑
-        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.QUERY,
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: 'executeQuery',
+          message: `Query type not yet implemented: ${request.queryType}`,
+          context: { queryType: request.queryType, feature: 'category query' }
+        });
 
       case QueryType.BY_TIME_RANGE:
         // TODO: 实现时间范围查询逻辑
-        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.QUERY,
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: 'executeQuery',
+          message: `Query type not yet implemented: ${request.queryType}`,
+          context: { queryType: request.queryType, feature: 'time range query' }
+        });
 
       case QueryType.ADVANCED:
         // TODO: 实现高级查询逻辑
-        throw new Error(`暂不支持的查询类型: ${request.queryType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.QUERY,
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: 'executeQuery',
+          message: `Query type not yet implemented: ${request.queryType}`,
+          context: { queryType: request.queryType, feature: 'advanced query' }
+        });
 
       default:
-        throw new Error(`不支持的查询类型: ${request.queryType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.QUERY,
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: 'executeQuery',
+          message: `Unsupported query type: ${request.queryType}`,
+          context: { queryType: request.queryType, supportedTypes: Object.values(QueryType) }
+        });
     }
   }
 
@@ -1062,7 +1107,18 @@ export class QueryExecutionEngine implements OnModuleInit {
     return Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        setTimeout(() => reject(new Error(errorMessage)), timeout);
+        setTimeout(() => reject(
+          UniversalExceptionFactory.createBusinessException({
+            message: errorMessage,
+            errorCode: BusinessErrorCode.INVALID_OPERATION,
+            operation: 'withTimeout',
+            component: ComponentIdentifier.QUERY,
+            context: {
+              timeoutMs: timeout,
+              queryErrorCode: QUERY_ERROR_CODES.QUERY_TIMEOUT
+            }
+          })
+        ), timeout);
       }),
     ]);
   }
@@ -1123,7 +1179,13 @@ export class QueryExecutionEngine implements OnModuleInit {
    */
   private chunkArray<T>(array: T[], chunkSize: number): T[][] {
     if (chunkSize <= 0) {
-      throw new Error("分片大小必须大于0");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'chunkArray',
+        message: 'Shard size must be greater than 0',
+        context: { providedShardSize: chunkSize, minimumRequired: 1 }
+      });
     }
 
     const chunks: T[][] = [];

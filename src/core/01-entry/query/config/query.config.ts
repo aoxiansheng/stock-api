@@ -2,6 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { QUERY_TIMEOUT_CONFIG } from "../constants/query.constants";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 /**
  * Query组件配置服务
  *
@@ -94,21 +97,33 @@ export class QueryConfigService {
   validate(): void {
     // 批量大小验证
     if (this.maxBatchSize <= 0 || this.maxBatchSize > 1000) {
-      throw new Error(
-        `Invalid QUERY_MAX_BATCH_SIZE: ${this.maxBatchSize}. Must be between 1 and 1000.`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_MAX_BATCH_SIZE: ${this.maxBatchSize}. Must be between 1 and 1000.`,
+        context: { configKey: 'QUERY_MAX_BATCH_SIZE', value: this.maxBatchSize, validRange: '1-1000' }
+      });
     }
 
     if (this.maxMarketBatchSize <= 0 || this.maxMarketBatchSize > 2000) {
-      throw new Error(
-        `Invalid QUERY_MAX_MARKET_BATCH_SIZE: ${this.maxMarketBatchSize}. Must be between 1 and 2000.`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_MAX_MARKET_BATCH_SIZE: ${this.maxMarketBatchSize}. Must be between 1 and 2000.`,
+        context: { configKey: 'QUERY_MAX_MARKET_BATCH_SIZE', value: this.maxMarketBatchSize, validRange: '1-2000' }
+      });
     }
 
     if (this.maxMarketBatchSize < this.maxBatchSize) {
-      throw new Error(
-        `Invalid configuration: maxMarketBatchSize (${this.maxMarketBatchSize}) must be >= maxBatchSize (${this.maxBatchSize}).`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid configuration: maxMarketBatchSize (${this.maxMarketBatchSize}) must be >= maxBatchSize (${this.maxBatchSize}).`,
+        context: { configKey: 'batch_size_relationship', maxMarketBatchSize: this.maxMarketBatchSize, maxBatchSize: this.maxBatchSize }
+      });
     }
 
     // 超时时间验证
@@ -116,21 +131,33 @@ export class QueryConfigService {
       this.marketParallelTimeout <= 0 ||
       this.marketParallelTimeout > 300000
     ) {
-      throw new Error(
-        `Invalid QUERY_MARKET_TIMEOUT: ${this.marketParallelTimeout}. Must be between 1 and 300000ms (5 minutes).`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_MARKET_TIMEOUT: ${this.marketParallelTimeout}. Must be between 1 and 300000ms (5 minutes).`,
+        context: { configKey: 'QUERY_MARKET_TIMEOUT', value: this.marketParallelTimeout, validRange: '1-300000ms' }
+      });
     }
 
     if (this.receiverBatchTimeout <= 0 || this.receiverBatchTimeout > 120000) {
-      throw new Error(
-        `Invalid QUERY_RECEIVER_TIMEOUT: ${this.receiverBatchTimeout}. Must be between 1 and 120000ms (2 minutes).`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_RECEIVER_TIMEOUT: ${this.receiverBatchTimeout}. Must be between 1 and 120000ms (2 minutes).`,
+        context: { configKey: 'QUERY_RECEIVER_TIMEOUT', value: this.receiverBatchTimeout, validRange: '1-120000ms' }
+      });
     }
 
     if (this.receiverBatchTimeout >= this.marketParallelTimeout) {
-      throw new Error(
-        `Invalid configuration: receiverBatchTimeout (${this.receiverBatchTimeout}) must be < marketParallelTimeout (${this.marketParallelTimeout}).`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid configuration: receiverBatchTimeout (${this.receiverBatchTimeout}) must be < marketParallelTimeout (${this.marketParallelTimeout}).`,
+        context: { configKey: 'timeout_relationship', receiverBatchTimeout: this.receiverBatchTimeout, marketParallelTimeout: this.marketParallelTimeout }
+      });
     }
 
     // 内存阈值验证
@@ -138,40 +165,60 @@ export class QueryConfigService {
       this.memoryWarningThreshold < 0.1 ||
       this.memoryWarningThreshold > 0.95
     ) {
-      throw new Error(
-        `Invalid QUERY_MEMORY_WARNING_THRESHOLD: ${this.memoryWarningThreshold}. Must be between 0.1 and 0.95.`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_MEMORY_WARNING_THRESHOLD: ${this.memoryWarningThreshold}. Must be between 0.1 and 0.95.`,
+        context: { configKey: 'QUERY_MEMORY_WARNING_THRESHOLD', value: this.memoryWarningThreshold, validRange: '0.1-0.95' }
+      });
     }
 
     if (
       this.memoryCriticalThreshold < 0.5 ||
       this.memoryCriticalThreshold > 0.99
     ) {
-      throw new Error(
-        `Invalid QUERY_MEMORY_CRITICAL_THRESHOLD: ${this.memoryCriticalThreshold}. Must be between 0.5 and 0.99.`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_MEMORY_CRITICAL_THRESHOLD: ${this.memoryCriticalThreshold}. Must be between 0.5 and 0.99.`,
+        context: { configKey: 'QUERY_MEMORY_CRITICAL_THRESHOLD', value: this.memoryCriticalThreshold, validRange: '0.5-0.99' }
+      });
     }
 
     if (this.memoryCriticalThreshold <= this.memoryWarningThreshold) {
-      throw new Error(
-        `Invalid configuration: memoryCriticalThreshold (${this.memoryCriticalThreshold}) must be > memoryWarningThreshold (${this.memoryWarningThreshold}).`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid configuration: memoryCriticalThreshold (${this.memoryCriticalThreshold}) must be > memoryWarningThreshold (${this.memoryWarningThreshold}).`,
+        context: { configKey: 'memory_threshold_relationship', memoryCriticalThreshold: this.memoryCriticalThreshold, memoryWarningThreshold: this.memoryWarningThreshold }
+      });
     }
 
     if (
       this.memoryPressureReductionRatio < 0.1 ||
       this.memoryPressureReductionRatio > 1.0
     ) {
-      throw new Error(
-        `Invalid QUERY_MEMORY_REDUCTION_RATIO: ${this.memoryPressureReductionRatio}. Must be between 0.1 and 1.0.`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_MEMORY_REDUCTION_RATIO: ${this.memoryPressureReductionRatio}. Must be between 0.1 and 1.0.`,
+        context: { configKey: 'QUERY_MEMORY_REDUCTION_RATIO', value: this.memoryPressureReductionRatio, validRange: '0.1-1.0' }
+      });
     }
 
     // 性能调优参数验证
     if (this.gcTriggerInterval <= 0 || this.gcTriggerInterval > 10000) {
-      throw new Error(
-        `Invalid QUERY_GC_TRIGGER_INTERVAL: ${this.gcTriggerInterval}. Must be between 1 and 10000.`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'validate',
+        message: `Invalid QUERY_GC_TRIGGER_INTERVAL: ${this.gcTriggerInterval}. Must be between 1 and 10000.`,
+        context: { configKey: 'QUERY_GC_TRIGGER_INTERVAL', value: this.gcTriggerInterval, validRange: '1-10000' }
+      });
     }
   }
 

@@ -1,10 +1,8 @@
 import {
   Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
   Inject,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
@@ -129,12 +127,13 @@ export class ApiKeyManagementService {
 
       return apiKey.toJSON();
     } catch (error) {
-      this.logger.error("API密钥创建失败", {
-        userId,
-        name,
-        error: error.message,
-      });
-      throw new BadRequestException(ERROR_MESSAGES.CREATE_API_KEY_FAILED);
+      // Use unified error handling for API key creation failures
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'createApiKey',
+        ComponentIdentifier.AUTH,
+        { userId, name, operation: 'api_key_creation' }
+      );
     }
   }
 
@@ -174,7 +173,13 @@ export class ApiKeyManagementService {
           });
           // 清除过期的缓存
           await this.cacheService.del(cacheKey);
-          throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+          throw UniversalExceptionFactory.createBusinessException({
+            message: "API key has expired",
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: 'validateApiKey',
+            component: ComponentIdentifier.AUTH,
+            context: { appKey, expiresAt: cachedApiKey.expiresAt, source: 'cache' }
+          });
         }
 
         // 异步更新使用统计（不影响响应时间）
@@ -206,7 +211,13 @@ export class ApiKeyManagementService {
 
       if (!apiKey) {
         this.logger.warn("API密钥无效", { appKey });
-        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Invalid API credentials",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateApiKey',
+          component: ComponentIdentifier.AUTH,
+          context: { appKey, source: 'database' }
+        });
       }
 
       // 检查过期时间
@@ -215,7 +226,13 @@ export class ApiKeyManagementService {
           appKey,
           expiresAt: apiKey.expiresAt,
         });
-        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "API key has expired",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateApiKey',
+          component: ComponentIdentifier.AUTH,
+          context: { appKey, reason: 'expired' }
+        });
       }
 
       // 缓存API密钥数据（仅缓存有效的API密钥）
@@ -241,7 +258,7 @@ export class ApiKeyManagementService {
       return apiKey;
     } catch (error) {
       // 如果是业务异常（如无效凭证、过期），直接抛出
-      if (error instanceof BadRequestException) {
+      if (error.constructor.name === 'BusinessException') {
         throw error;
       }
 
@@ -261,7 +278,13 @@ export class ApiKeyManagementService {
 
       if (!apiKey) {
         this.logger.warn("API密钥无效", { appKey });
-        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_INVALID);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Invalid API credentials",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateApiKey',
+          component: ComponentIdentifier.AUTH,
+          context: { appKey, source: 'database' }
+        });
       }
 
       // 检查过期时间
@@ -270,7 +293,13 @@ export class ApiKeyManagementService {
           appKey,
           expiresAt: apiKey.expiresAt,
         });
-        throw new BadRequestException(ERROR_MESSAGES.API_CREDENTIALS_EXPIRED);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "API key has expired",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validateApiKey',
+          component: ComponentIdentifier.AUTH,
+          context: { appKey, reason: 'expired' }
+        });
       }
 
       // 异步更新使用统计（不影响响应时间）
@@ -348,7 +377,12 @@ export class ApiKeyManagementService {
         userId,
         error: error.message,
       });
-      throw new BadRequestException(ERROR_MESSAGES.GET_USER_API_KEYS_FAILED);
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'getUserApiKeys',
+        ComponentIdentifier.AUTH,
+        { userId, operation: 'get_user_api_keys' }
+      );
     }
   }
 
@@ -375,7 +409,12 @@ export class ApiKeyManagementService {
           appKey,
           userId,
         });
-        throw new NotFoundException(ERROR_MESSAGES.API_KEY_INVALID_OR_NO_PERM);
+        throw UniversalExceptionFactory.createNotFoundError(
+          "API key",
+          'revokeApiKey',
+          ComponentIdentifier.AUTH,
+          { appKey, userId }
+        );
       }
 
       // 异步清除相关缓存
@@ -390,7 +429,7 @@ export class ApiKeyManagementService {
 
       this.logger.log("API密钥撤销成功", { appKey, userId });
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error.constructor.name === 'BusinessException') {
         throw error;
       }
 
@@ -399,7 +438,12 @@ export class ApiKeyManagementService {
         userId,
         error: error.message,
       });
-      throw new BadRequestException(ERROR_MESSAGES.REVOKE_API_KEY_FAILED);
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'revokeApiKey',
+        ComponentIdentifier.AUTH,
+        { appKey, operation: 'revoke_api_key' }
+      );
     }
   }
 
@@ -420,7 +464,13 @@ export class ApiKeyManagementService {
       const apiKey = await this.findApiKeyByAppKey(appKey);
 
       if (!apiKey || apiKey.userId.toString() !== userId) {
-        throw new ForbiddenException("无权访问此API密钥的使用统计");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Insufficient permissions to access API key usage statistics",
+          errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+          operation: 'getApiKeyUsage',
+          component: ComponentIdentifier.AUTH,
+          context: { appKey, userId }
+        });
       }
 
       // 构建使用统计信息
@@ -443,7 +493,7 @@ export class ApiKeyManagementService {
       this.logger.log("API密钥使用统计获取成功", { appKey, userId });
       return usage;
     } catch (error) {
-      if (error instanceof ForbiddenException) {
+      if (error.constructor.name === 'BusinessException') {
         throw error;
       }
 
@@ -474,7 +524,13 @@ export class ApiKeyManagementService {
       const apiKey = await this.findApiKeyByAppKey(appKey);
 
       if (!apiKey || apiKey.userId.toString() !== userId) {
-        throw new ForbiddenException("无权重置此API密钥的频率限制");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Insufficient permissions to reset API key rate limit",
+          errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+          operation: 'resetApiKeyRateLimit',
+          component: ComponentIdentifier.AUTH,
+          context: { appKey, userId, hasApiKey: !!apiKey }
+        });
       }
 
       // 记录重置操作（实际的频率限制重置由RateLimitService处理）
@@ -482,7 +538,7 @@ export class ApiKeyManagementService {
 
       return { success: true };
     } catch (error) {
-      if (error instanceof ForbiddenException) {
+      if (error.constructor.name === 'BusinessException') {
         throw error;
       }
 
@@ -517,7 +573,12 @@ export class ApiKeyManagementService {
       return apiKeys.map((apiKey) => apiKey.toJSON());
     } catch (error) {
       this.logger.error("批量获取API密钥信息失败", { error: error.message });
-      throw new BadRequestException("获取API密钥信息失败");
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'getApiKeyInfo',
+        ComponentIdentifier.AUTH,
+        { apiKeyIds, operation: 'get_api_key_info' }
+      );
     }
   }
 
@@ -537,7 +598,13 @@ export class ApiKeyManagementService {
       const user = await this.userRepository.findById(userId);
 
       if (!user) {
-        throw new ForbiddenException("用户不存在");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "User not found",
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'hasPermissionToManageApiKey',
+          component: ComponentIdentifier.AUTH,
+          context: { userId }
+        });
       }
 
       // 获取用户角色对应的权限
@@ -557,9 +624,13 @@ export class ApiKeyManagementService {
           invalidPermissions,
         });
 
-        throw new ForbiddenException(
-          `无权限创建包含以下权限的API密钥: ${invalidPermissions.join(", ")}`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Insufficient permissions to create API key with permissions: ${invalidPermissions.join(", ")}`,
+          errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+          operation: 'hasPermissionToManageApiKey',
+          component: ComponentIdentifier.AUTH,
+          context: { userId, userRole: user.role, invalidPermissions }
+        });
       }
 
       this.logger.debug("用户权限范围验证通过", {
@@ -568,12 +639,17 @@ export class ApiKeyManagementService {
         requestedPermissions,
       });
     } catch (error) {
-      if (error instanceof ForbiddenException) {
+      if (error.constructor.name === 'BusinessException') {
         throw error;
       }
 
       this.logger.error("权限范围验证失败", { userId, error: error.message });
-      throw new BadRequestException("权限验证失败");
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'hasPermissionToManageApiKey',
+        ComponentIdentifier.AUTH,
+        { userId, operation: 'permission_validation' }
+      );
     }
   }
 
@@ -627,7 +703,12 @@ export class ApiKeyManagementService {
       return expiringKeys.map((key) => key.toJSON());
     } catch (error) {
       this.logger.error("获取即将过期的API密钥失败", { error: error.message });
-      throw new BadRequestException("获取即将过期的API密钥失败");
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'getExpiringApiKeys',
+        ComponentIdentifier.AUTH,
+        { daysBeforeExpiry, operation: 'get_expiring_api_keys' }
+      );
     }
   }
 

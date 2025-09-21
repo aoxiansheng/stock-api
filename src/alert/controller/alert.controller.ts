@@ -8,10 +8,10 @@ import {
   Body,
   Param,
   Query,
-  BadRequestException,
-  NotFoundException,
   Req,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 import { Throttle } from "@nestjs/throttler";
 import { ApiTags, ApiOperation, ApiParam } from "@nestjs/swagger";
 
@@ -506,7 +506,16 @@ export class AlertController {
       async (alertId) => {
         const alert = alertMap.get(alertId);
         if (!alert) {
-          throw new NotFoundException(`告警不存在: ${alertId}`);
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.ALERT,
+            errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+            operation: 'batchResolveAlerts',
+            message: `Alert not found: ${alertId}`,
+            context: {
+              alertId: alertId,
+              requestedAlertIds: body.alertIds
+            }
+          });
         }
 
         await this.alertOrchestrator.resolveAlert(

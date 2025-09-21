@@ -39,6 +39,9 @@ import {
 import { QueryType } from "../dto/query-types.dto";
 import { QueryService } from "../services/query.service";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 @ApiTags("🧠 弱时效接口 - 智能数据查询")
 @Controller("query")
 export class QueryController {
@@ -395,7 +398,13 @@ export class QueryController {
     @QueryParam("useCache") useCache?: boolean,
   ) {
     if (!symbols) {
-      throw new Error("Symbols parameter is required");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'queryBySymbols',
+        message: 'Symbols parameter is required',
+        context: { endpoint: '/query/symbols', receivedSymbols: symbols, validationField: 'symbols' }
+      });
     }
 
     const symbolArray = symbols
@@ -445,7 +454,13 @@ export class QueryController {
     @QueryParam("page") page?: number,
   ) {
     if (!market) {
-      throw new Error("Market parameter is required");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'queryByMarket',
+        message: 'Market parameter is required',
+        context: { endpoint: '/query/market', receivedMarket: market, validationField: 'market' }
+      });
     }
 
     this.logger.log(`API Request: Query by market`, {
@@ -488,7 +503,13 @@ export class QueryController {
     @QueryParam("page") page?: number,
   ) {
     if (!provider) {
-      throw new Error("Provider parameter is required");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'queryByProvider',
+        message: 'Provider parameter is required',
+        context: { endpoint: '/query/provider', receivedProvider: provider, validationField: 'provider' }
+      });
     }
 
     this.logger.log(`API Request: Query by provider`, {

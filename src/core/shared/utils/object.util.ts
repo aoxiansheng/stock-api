@@ -1,4 +1,5 @@
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
 import { DATATRANSFORM_CONFIG } from "../../02-processing/transformer/constants/data-transformer.constants";
 
@@ -8,6 +9,24 @@ const logger = createLogger("ObjectUtils");
  * 通用对象处理工具函数
  */
 export class ObjectUtils {
+  /**
+   * Dangerous property names that should be blocked for security
+   * Prevents prototype pollution and access to dangerous object properties
+   */
+  private static readonly DANGEROUS_KEYS = new Set([
+    '__proto__',
+    'constructor',
+    'prototype',
+    '__defineGetter__',
+    '__defineSetter__',
+    '__lookupGetter__',
+    '__lookupSetter__',
+    'hasOwnProperty',
+    'isPrototypeOf',
+    'propertyIsEnumerable',
+    'toString',
+    'valueOf'
+  ]);
   /**
    * 根据字符串路径从嵌套对象中安全地获取值。
    * 支持点（.）和方括号（[]）表示法。
@@ -36,6 +55,17 @@ export class ObjectUtils {
       for (const key of keys) {
         if (result === null || result === undefined) {
           return undefined;
+        }
+
+        // Security check: Block dangerous property access
+        if (ObjectUtils.DANGEROUS_KEYS.has(key)) {
+          throw UniversalExceptionFactory.createBusinessException({
+            message: `Access to dangerous property '${key}' is blocked for security`,
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: 'getValueFromPath',
+            component: ComponentIdentifier.SHARED,
+            context: { path, dangerousKey: key, reason: 'dangerous_property_access' }
+          });
         }
 
         let found = false;
@@ -86,11 +116,18 @@ export class ObjectUtils {
 
       return result;
     } catch (error) {
-      logger.error(`从路径解析值时出错: ${path}`, {
-        error: error.message,
-        stack: error.stack,
-      });
-      return undefined; // 在解析失败时静默返回 undefined
+      // Re-throw BusinessException to preserve error handling structure
+      if (error.constructor.name === 'BusinessException') {
+        throw error;
+      }
+
+      // Convert other errors to BusinessException
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'getValueFromPath',
+        ComponentIdentifier.SHARED,
+        { path, objectType: typeof obj }
+      );
     }
   }
 }

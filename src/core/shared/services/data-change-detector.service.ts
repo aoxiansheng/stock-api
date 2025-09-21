@@ -7,6 +7,8 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier } from "@common/core/exceptions";
+import { CacheService } from "@cache/services/cache.service";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 // Import from the new Market Domain layer
 import {
@@ -15,6 +17,7 @@ import {
   CHANGE_DETECTION_THRESHOLDS,
 } from "../constants/market.constants";
 import { SHARED_CACHE_CONSTANTS } from "../constants/cache.constants";
+import { SHARED_ERROR_CODES } from "../constants/shared-error-codes.constants";
 
 /**
  * 关键字段配置 - 按重要性排序，优先检测高频变化字段
@@ -85,6 +88,7 @@ export class DataChangeDetectorService {
 
   constructor(
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
+    private readonly cacheService: CacheService, // ✅ 统一缓存服务
   ) {}
 
   // 内存中的数据快照缓存（Redis故障时的降级方案）
@@ -199,9 +203,13 @@ export class DataChangeDetectorService {
         },
       );
 
-      this.logger.error("数据变化检测失败", { symbol, error: error.message });
-      // 容错：检测失败时认为数据有变化（保证数据新鲜度）
-      return this.createResult(true, [], [], "检测失败-保守处理", 0.5);
+      // 统一错误处理
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'detectSignificantChange',
+        ComponentIdentifier.SHARED,
+        { symbol, market, marketStatus }
+      );
     }
   }
 
@@ -485,9 +493,15 @@ export class DataChangeDetectorService {
    */
   private async getRedisSnapshot(symbol: string): Promise<DataSnapshot | null> {
     try {
-      return null; // Graceful degradation until CacheService integration
+      const cacheKey = this.buildSnapshotCacheKey(symbol);
+      return await this.cacheService.safeGet<DataSnapshot>(cacheKey);
     } catch (error) {
-      this.logger.debug("Redis快照获取失败", { symbol, error: error.message });
+      // 使用统一错误处理，但不抛出异常，降级到内存缓存
+      this.logger.debug("Redis快照获取失败", {
+        symbol,
+        error: error.message,
+        cacheKey: this.buildSnapshotCacheKey(symbol)
+      });
       return null;
     }
   }
@@ -501,10 +515,18 @@ export class DataChangeDetectorService {
     snapshot: DataSnapshot,
   ): Promise<void> {
     try {
-      this.logger.debug("Redis同步跳过 - CacheService未集成", { symbol });
+      const cacheKey = this.buildSnapshotCacheKey(symbol);
+      const ttl = this.getSnapshotCacheTTL(symbol);
+
+      await this.cacheService.safeSet(cacheKey, snapshot, { ttl });
+      this.logger.debug("Redis快照同步成功", { symbol, cacheKey, ttl });
     } catch (error) {
       // Silent failure for async sync - don't impact main flow
-      this.logger.debug("Redis快照同步失败", { symbol, error: error.message });
+      this.logger.debug("Redis快照同步失败", {
+        symbol,
+        error: error.message,
+        cacheKey: this.buildSnapshotCacheKey(symbol)
+      });
     }
   }
 
@@ -586,10 +608,18 @@ export class DataChangeDetectorService {
     snapshot: DataSnapshot,
   ): Promise<void> {
     try {
-      this.logger.debug("Redis保存跳过 - CacheService未集成", { symbol });
+      const cacheKey = this.buildSnapshotCacheKey(symbol);
+      const ttl = this.getSnapshotCacheTTL(symbol);
+
+      await this.cacheService.safeSet(cacheKey, snapshot, { ttl });
+      this.logger.debug("Redis快照保存成功", { symbol, cacheKey, ttl });
     } catch (error) {
       // Silent failure for async save - don't impact main flow
-      this.logger.debug("Redis快照保存失败", { symbol, error: error.message });
+      this.logger.debug("Redis快照保存失败", {
+        symbol,
+        error: error.message,
+        cacheKey: this.buildSnapshotCacheKey(symbol)
+      });
     }
   }
 

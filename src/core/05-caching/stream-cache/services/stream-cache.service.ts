@@ -11,6 +11,8 @@ import {
   StreamDataPoint,
   StreamCacheConfig,
 } from "../interfaces/stream-cache.interface";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier, UniversalRetryHandler } from "@common/core/exceptions";
+import { STREAM_CACHE_ERROR_CODES } from "../constants/stream-cache-error-codes.constants";
 
 // 健康检查状态接口
 interface StreamCacheHealthStatus {
@@ -71,7 +73,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   ) {
     this.config = { ...DEFAULT_STREAM_CACHE_CONFIG, ...config };
     this.setupPeriodicCleanup();
-    this.logger.log("StreamCacheService 初始化完成", {
+    this.logger.log("StreamCacheService initialized", {
       hotCacheTTL: this.config.hotCacheTTL,
       warmCacheTTL: this.config.warmCacheTTL,
       maxHotCacheSize: this.config.maxHotCacheSize,
@@ -85,7 +87,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     if (this.cacheCleanupInterval) {
       clearInterval(this.cacheCleanupInterval);
       this.cacheCleanupInterval = null;
-      this.logger.debug("缓存清理调度器已停止");
+      this.logger.debug("Cache cleanup scheduler stopped");
     }
   }
 
@@ -143,23 +145,18 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   // === 标准化异常处理方法 ===
 
   /**
-   * 统一错误处理 - 简化策略
-   * @param operation 操作名称
-   * @param error 错误对象
-   * @param key 缓存键
-   * @param throwError 是否抛出异常（默认false）
+   * 统一错误处理
    */
-  private handleError(
+  private handleError<T>(
     operation: string,
-    error: any,
+    error: Error,
     key?: string,
     throwError = false,
-  ): null | never {
-    const logLevel = throwError ? "error" : "warn";
-    this.logger[logLevel](`StreamCache ${operation} failed`, {
+  ): T | null {
+    this.logger.error(`Cache operation ${operation} failed`, {
       key,
       error: error.message,
-      component: "StreamCache",
+      stack: error.stack,
     });
 
     this.emitCacheMetric(operation, false, 0, {
@@ -168,9 +165,16 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     });
 
     if (throwError) {
-      throw new ServiceUnavailableException(
-        `StreamCache ${operation} failed: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: operation,
+        message: `StreamCache ${operation} failed: ${error.message}`,
+        context: {
+          key,
+          errorType: "cache_operation_failed"
+        }
+      });
     }
     return null;
   }
@@ -193,7 +197,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
           cacheType: "stream-cache",
           layer: "hot",
         });
-        this.logger.debug("Hot cache命中", { key, duration });
+        this.logger.debug("Hot cache hit", { key, duration });
         return hotCacheData;
       }
 
@@ -207,7 +211,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
         });
         // 提升到 Hot Cache
         this.setToHotCache(key, warmCacheData);
-        this.logger.debug("Warm cache命中，提升到Hot cache", { key, duration });
+        this.logger.debug("Warm cache hit, promoted to Hot cache", { key, duration });
         return warmCacheData;
       }
 
@@ -216,7 +220,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
         cacheType: "stream-cache",
         layer: "miss",
       });
-      this.logger.debug("缓存未命中", { key, duration });
+      this.logger.debug("Cache miss", { key, duration });
       return null;
     } catch (error) {
       return this.handleError("getData", error, key);
@@ -263,7 +267,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
         compressionRatio: compressedData.length / data.length,
       });
 
-      this.logger.debug("数据已缓存", {
+      this.logger.debug("Data cached", {
         key,
         dataSize,
         compressedSize: JSON.stringify(compressedData).length,
@@ -292,7 +296,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       // 过滤出指定时间戳之后的数据
       const incrementalData = allData.filter((point) => point.t > since);
 
-      this.logger.debug("增量数据查询", {
+      this.logger.debug("Incremental data query", {
         key,
         since,
         totalPoints: allData.length,
@@ -340,10 +344,10 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     try {
       await this.redisClient.del(this.buildWarmCacheKey(key));
     } catch (error) {
-      this.logger.warn("Warm cache删除失败", { key, error: error.message });
+      this.logger.warn("Warm cache deletion failed", { key, error: error.message });
     }
 
-    this.logger.debug("缓存数据已删除", { key });
+    this.logger.debug("Cache data deleted", { key });
   }
 
   /**
@@ -361,10 +365,10 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
         await this.redisClient.del(...keys);
       }
     } catch (error) {
-      this.logger.warn("Warm cache清空失败", { error: error.message });
+      this.logger.warn("Warm cache clear failed", { error: error.message });
     }
 
-    this.logger.log("所有缓存已清空");
+    this.logger.log("All cache cleared");
   }
 
 
@@ -451,15 +455,21 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     key: string,
   ): Promise<StreamDataPoint[] | null> {
     try {
-      const cacheKey = this.buildWarmCacheKey(key);
-      const cachedData = await this.redisClient.get(cacheKey);
+      return await UniversalRetryHandler.networkRetry(
+        async () => {
+          const cacheKey = this.buildWarmCacheKey(key);
+          const cachedData = await this.redisClient.get(cacheKey);
 
-      if (cachedData) {
-        return JSON.parse(cachedData);
-      }
-      return null;
+          if (cachedData) {
+            return JSON.parse(cachedData);
+          }
+          return null;
+        },
+        'getFromWarmCache',
+        ComponentIdentifier.STREAM_CACHE
+      );
     } catch (error) {
-      this.logger.warn("Warm cache访问失败", { key, error: error.message });
+      this.logger.warn("Warm cache access failed", { key, error: error.message });
       return null;
     }
   }
@@ -472,17 +482,24 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     data: StreamDataPoint[],
   ): Promise<void> {
     try {
-      const cacheKey = this.buildWarmCacheKey(key);
-      const serializedData = JSON.stringify(data);
+      await UniversalRetryHandler.networkRetry(
+        async () => {
+          const cacheKey = this.buildWarmCacheKey(key);
+          const serializedData = JSON.stringify(data);
 
-      // 设置TTL
-      await this.redisClient.setex(
-        cacheKey,
-        this.config.warmCacheTTL,
-        serializedData,
+          // 设置TTL
+          await this.redisClient.setex(
+            cacheKey,
+            this.config.warmCacheTTL,
+            serializedData,
+          );
+          return true;
+        },
+        'setToWarmCache',
+        ComponentIdentifier.STREAM_CACHE
       );
     } catch (error) {
-      this.logger.warn("Warm cache设置失败", { key, error: error.message });
+      this.logger.warn("Warm cache set operation failed", { key, error: error.message });
     }
   }
 
@@ -537,7 +554,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
 
     if (lruKey) {
       this.hotCache.delete(lruKey);
-      this.logger.debug("LRU清理缓存条目", {
+      this.logger.debug("LRU cleaned cache entry", {
         key: lruKey,
         accessCount: lruAccessCount,
       });
@@ -552,7 +569,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
       this.cleanupExpiredEntries();
     }, this.config.cleanupInterval);
 
-    this.logger.debug("缓存清理调度器已启动", {
+    this.logger.debug("Cache cleanup scheduler started", {
       interval: this.config.cleanupInterval,
     });
   }
@@ -572,7 +589,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     }
 
     if (cleanedCount > 0) {
-      this.logger.debug("清理过期缓存条目", {
+      this.logger.debug("Cleaned expired cache entries", {
         cleanedCount,
         remainingSize: this.hotCache.size,
       });

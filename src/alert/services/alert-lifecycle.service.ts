@@ -7,9 +7,11 @@
  * @date 2025-09-10
  */
 
-import { Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { ConfigType } from "@nestjs/config";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 import { createLogger } from "@common/logging/index";
 import { BUSINESS_ERROR_MESSAGES } from "@common/constants/semantic/error-messages.constants";
@@ -377,7 +379,16 @@ export class AlertLifecycleService {
     try {
       const existingAlert = await this.alertHistoryRepository.findById(alertId);
       if (!existingAlert) {
-        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'updateAlertSeverity',
+          message: 'Alert not found for severity update',
+          context: {
+            alertId: alertId,
+            newSeverity: newSeverity
+          }
+        });
       }
 
       const previousSeverity = existingAlert.severity;
@@ -387,7 +398,16 @@ export class AlertLifecycleService {
       });
 
       if (!alert) {
-        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'updateAlertSeverity',
+          message: 'Alert not found after update',
+          context: {
+            alertId: alertId,
+            newSeverity: newSeverity
+          }
+        });
       }
 
       // 发布告警升级事件
@@ -437,9 +457,17 @@ export class AlertLifecycleService {
     DatabaseValidationUtils.validateObjectIds(alertIds, "告警ID列表");
 
     if (alertIds.length > this.alertCacheLimits.batchSize) {
-      throw new Error(
-        `批量操作数量超出限制，最大允许${this.alertCacheLimits.batchSize}个`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'batchResolveAlerts',
+        message: `Batch operation size exceeds limit, maximum ${this.alertCacheLimits.batchSize} items allowed`,
+        context: {
+          requestedSize: alertIds.length,
+          maxAllowedSize: this.alertCacheLimits.batchSize,
+          alertIds: alertIds.slice(0, 5) // 只记录前5个ID作为示例
+        }
+      });
     }
 
     this.logger.log("批量更新告警状态", {
@@ -489,7 +517,15 @@ export class AlertLifecycleService {
       const alert = await this.alertHistoryRepository.findById(alertId);
 
       if (!alert) {
-        throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'getAlertById',
+          message: 'Alert not found',
+          context: {
+            alertId: alertId
+          }
+        });
       }
 
       this.logger.debug("获取告警详情成功", {
@@ -535,7 +571,17 @@ export class AlertLifecycleService {
     const alert = await this.alertHistoryRepository.update(alertId, updateData);
 
     if (!alert) {
-      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'updateAlertStatus',
+        message: 'Alert not found during status update',
+        context: {
+          alertId: alertId,
+          status: status,
+          updateData: updateData
+        }
+      });
     }
 
     return alert;

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { TokenService, JwtPayload } from "../infrastructure/token.service";
 import { User } from "../../schemas/user.schema";
 import { UserAuthenticationService } from "./user-authentication.service";
@@ -6,6 +6,7 @@ import { CacheService } from "../../../cache/services/cache.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { DatabaseValidationUtils } from "../../../common/utils/database.utils";
 import { createLogger } from "@common/modules/logging";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
 /**
  * 会话管理服务 - 用户会话和令牌生命周期管理
@@ -134,7 +135,13 @@ export class SessionManagementService {
       return user;
     } catch (error) {
       this.logger.debug("访问令牌验证失败", { error: error.message });
-      throw new UnauthorizedException("访问令牌无效或已过期");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "访问令牌无效或已过期",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateAccessToken',
+        component: ComponentIdentifier.AUTH,
+        context: { reason: 'invalid_access_token' }
+      });
     }
   }
 
@@ -167,7 +174,13 @@ export class SessionManagementService {
         username: payload.username,
         error: error.message,
       });
-      throw new UnauthorizedException("用户身份无效或已被禁用");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户身份无效或已被禁用",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateJwtPayload',
+        component: ComponentIdentifier.AUTH,
+        context: { userId: payload.sub, username: payload.username, reason: 'invalid_jwt_payload' }
+      });
     }
   }
 
@@ -310,7 +323,13 @@ export class SessionManagementService {
       };
     } catch (error) {
       this.logger.error("获取会话信息失败", { error: error.message });
-      throw new UnauthorizedException("无法获取会话信息");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "无法获取会话信息",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getSessionInfo',
+        component: ComponentIdentifier.AUTH,
+        context: { reason: 'session_info_unavailable' }
+      });
     }
   }
 

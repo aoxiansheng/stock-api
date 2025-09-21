@@ -11,6 +11,12 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { STREAM_RECEIVER_ERROR_CODES } from '../constants/stream-receiver-error-codes.constants';
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
@@ -920,7 +926,18 @@ export class StreamReceiverService implements OnModuleDestroy {
     if (clientIp) {
       const rateLimitPassed = await this.checkConnectionRateLimit(clientIp);
       if (!rateLimitPassed) {
-        const error = new Error("连接频率过高，请稍后重试");
+        const error = UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_RECEIVER,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'subscribeStream',
+          message: 'Connection rate limit exceeded, please try again later',
+          context: {
+            clientId: resolvedClientId,
+            clientIp,
+            requestId,
+            errorType: STREAM_RECEIVER_ERROR_CODES.CONNECTION_RATE_EXCEEDED
+          }
+        });
         this.logger.warn("连接被频率限制拒绝", {
           clientId: resolvedClientId,
           clientIp,
@@ -932,7 +949,18 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     // P0修复: 连接数量上限检查
     if (this.activeConnections.size >= this.config.maxConnections) {
-      const error = new Error("服务器连接数已达上限");
+      const error = UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+        operation: 'subscribeStream',
+        message: 'Server connection limit reached',
+        context: {
+          clientId: resolvedClientId,
+          currentConnections: this.activeConnections.size,
+          maxConnections: this.config.maxConnections,
+          errorType: STREAM_RECEIVER_ERROR_CODES.CONNECTION_LIMIT_REACHED
+        }
+      });
       this.logger.warn("连接被数量上限拒绝", {
         clientId: resolvedClientId,
         currentConnections: this.activeConnections.size,
@@ -1110,7 +1138,17 @@ export class StreamReceiverService implements OnModuleDestroy {
     try {
       // 1. 验证lastReceiveTimestamp
       if (!lastReceiveTimestamp || lastReceiveTimestamp > Date.now()) {
-        throw new Error("Invalid lastReceiveTimestamp");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_RECEIVER,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'handleClientReconnect',
+          message: 'Invalid lastReceiveTimestamp: must be a valid past timestamp',
+          context: {
+            lastReceiveTimestamp,
+            currentTime: Date.now(),
+            errorType: STREAM_RECEIVER_ERROR_CODES.INVALID_TIMESTAMP
+          }
+        });
       }
 
       // 2. 映射符号

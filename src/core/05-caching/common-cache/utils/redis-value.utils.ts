@@ -4,6 +4,9 @@ import {
 } from "../interfaces/cache-metadata.interface";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 /**
  * Redis值序列化/反序列化工具类
  * 统一处理Redis存储格式，避免多处重复逻辑
@@ -31,7 +34,17 @@ export class RedisValueUtils {
     try {
       return JSON.stringify(envelope);
     } catch (error) {
-      throw new Error(`Failed to serialize data: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+        operation: 'serialize',
+        message: `Failed to serialize data: ${error.message}`,
+        context: {
+          compressed,
+          metadata,
+          originalError: error.message
+        }
+      });
     }
   }
 
@@ -48,7 +61,17 @@ export class RedisValueUtils {
     metadata?: Partial<CacheMetadata>;
   } {
     if (!value) {
-      throw new Error("Cannot parse empty or null value");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'parse',
+        message: 'Cannot parse empty or null value',
+        context: {
+          value: value,
+          valueType: typeof value,
+          operation: 'redis_value_parse'
+        }
+      });
     }
 
     try {
@@ -65,9 +88,30 @@ export class RedisValueUtils {
       }
 
       // 不支持的数据格式
-      throw new Error("Unsupported Redis value format. Expected envelope structure with 'data' field.");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+        operation: 'parse',
+        message: "Unsupported Redis value format. Expected envelope structure with 'data' field.",
+        context: {
+          parsedValue: parsed,
+          hasDataField: parsed.data !== undefined,
+          valueType: typeof parsed,
+          operation: 'envelope_format_validation'
+        }
+      });
     } catch (error) {
-      throw new Error(`Failed to parse Redis value: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+        operation: 'parse',
+        message: `Failed to parse Redis value: ${error.message}`,
+        context: {
+          originalValue: value,
+          originalError: error.message,
+          operation: 'json_parse_failure'
+        }
+      });
     }
   }
 

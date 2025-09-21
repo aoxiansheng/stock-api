@@ -3,6 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@common/logging/index";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 /**
  * 解压缩性能指标接口
  */
@@ -154,7 +157,19 @@ export class AdaptiveDecompressionService {
 
       // 检查队列大小限制
       if (this.taskQueue.length >= this.performanceThresholds.maxQueueSize) {
-        reject(new Error("Decompression queue is full"));
+        reject(UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.COMMON_CACHE,
+          errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+          operation: 'decompress',
+          message: 'Decompression queue is full',
+          context: {
+            queueSize: this.taskQueue.length,
+            maxQueueSize: this.performanceThresholds.maxQueueSize,
+            priority: priority,
+            currentConcurrency: this.activeTasks.size,
+            maxConcurrency: this.currentMaxConcurrency
+          }
+        }));
         return;
       }
 

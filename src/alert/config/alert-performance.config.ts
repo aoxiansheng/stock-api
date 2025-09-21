@@ -8,9 +8,9 @@
  */
 
 import { registerAs } from "@nestjs/config";
-import { BadRequestException } from "@nestjs/common";
 import { IsNumber, Min, Max, validateSync } from "class-validator";
 import { plainToClass } from "class-transformer";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 
 /**
  * Alert性能配置类
@@ -85,9 +85,16 @@ export default registerAs("alertPerformance", (): AlertPerformanceConfig => {
   const errors = validateSync(config, { whitelist: true });
 
   if (errors.length > 0) {
-    throw new BadRequestException(
-      `Alert performance configuration validation failed: ${errors.map((e) => Object.values(e.constraints).join(", ")).join("; ")}`,
-    );
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.ALERT,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: 'validateAlertPerformanceConfig',
+      message: 'Alert performance configuration validation failed',
+      context: {
+        validationErrors: errors.map((e) => Object.values(e.constraints || {}).join(", ")),
+        configData: rawConfig
+      }
+    });
   }
 
   return config;

@@ -15,6 +15,7 @@ import { isCacheException } from "../../../cache/exceptions";
 import { isSecurityException } from "../../../auth/exceptions/security.exceptions";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import { CONSTANTS } from "@common/constants";
+import { BusinessException } from "../exceptions/business.exception";
 
 // Extract error messages from semantic layer
 const ERROR_MESSAGES = CONSTANTS.SEMANTIC.ERROR_MESSAGES;
@@ -86,7 +87,41 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let details: any;
 
     // ======== 第一部分：异常类型识别和错误信息提取 ========
-    if (exception instanceof HttpException) {
+    if (BusinessException.isBusinessException(exception)) {
+      // 🆕 BusinessException 处理 - 优先级最高
+      const businessError = exception as BusinessException;
+      status = businessError.getStatus();
+      message = businessError.message;
+      errorType = "BusinessException";
+
+      // 获取详细的业务异常信息
+      const detailedInfo = businessError.getDetailedInfo();
+      details = {
+        errorCode: businessError.errorCode,
+        operation: businessError.operation,
+        component: businessError.component,
+        retryable: businessError.retryable,
+        recoveryAction: businessError.getRecoveryAction(),
+        context: businessError.context,
+        ...(businessError.originalError && {
+          originalError: {
+            name: businessError.originalError.name,
+            message: businessError.originalError.message,
+          },
+        }),
+      };
+
+      // 记录业务异常详情
+      this.logger.warn("业务异常", {
+        errorCode: businessError.errorCode,
+        operation: businessError.operation,
+        component: businessError.component,
+        retryable: businessError.retryable,
+        context: businessError.context,
+        message: businessError.message,
+        status,
+      });
+    } else if (exception instanceof HttpException) {
       // HTTP异常（包括NestJS内置异常）
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
@@ -356,6 +391,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     status: number,
     exception: unknown,
   ): string {
+    // 🆕 BusinessException 错误码处理 - 优先级最高
+    if (BusinessException.isBusinessException(exception)) {
+      const businessError = exception as BusinessException;
+      return businessError.errorCode;
+    }
+
     // 🔧 简化: Cache异常相关错误码
     if (isCacheException(exception)) {
       switch ((exception as any).constructor.name) {

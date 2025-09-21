@@ -1,6 +1,10 @@
 /**
  * Cache 模块简化异常类
  *
+ * @deprecated 此文件已被标记为废弃，请使用统一错误处理系统
+ * 新代码应该使用 UniversalExceptionFactory 和 CACHE_ERROR_CODES 常量
+ * 参考：docs/代码审查文档/配置文件标准/统一错误处理使用指南.md
+ *
  * 基于通用组件库优化，移除重复实现，保留Cache业务特定的异常类型
  * 与 GlobalExceptionFilter 无缝集成，减少维护成本
  */

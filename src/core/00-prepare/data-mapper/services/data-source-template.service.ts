@@ -9,6 +9,8 @@ import {
   BadRequestException,
   ConflictException,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 import {
   DataSourceTemplate,
   DataSourceTemplateDocument,
@@ -36,7 +38,7 @@ export class DataSourceTemplateService {
   async createTemplate(
     dto: CreateDataSourceTemplateDto,
   ): Promise<DataSourceTemplateResponseDto> {
-    this.logger.log(`创建数据源模板: ${dto.name}`);
+    this.logger.log(`Creating data source template: ${dto.name}`);
 
     // 检查是否已存在相同名称的模板
     const existing = await this.templateModel.findOne({
@@ -46,7 +48,19 @@ export class DataSourceTemplateService {
     });
 
     if (existing) {
-      throw new ConflictException(`模板已存在: ${dto.name}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+        operation: 'createTemplate',
+        message: `Template already exists: ${dto.name}`,
+        context: {
+          templateName: dto.name,
+          provider: dto.provider,
+          apiType: dto.apiType,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_ALREADY_EXISTS
+        },
+        retryable: false
+      });
     }
 
     // 如果设置为默认模板，取消其他默认模板
@@ -67,7 +81,7 @@ export class DataSourceTemplateService {
 
     const saved = await template.save();
 
-    this.logger.log(`数据源模板创建成功: ${saved._id}`);
+    this.logger.log(`Data source template created successfully: ${saved._id}`);
     return DataSourceTemplateResponseDto.fromDocument(saved);
   }
 
@@ -121,14 +135,34 @@ export class DataSourceTemplateService {
   async findTemplateById(id: string): Promise<DataSourceTemplateResponseDto> {
     // 验证ObjectId格式
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`无效的模板ID格式: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'findTemplateById',
+        message: `Invalid template ID format: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     try {
       const template = await this.templateModel.findById(id);
 
       if (!template) {
-        throw new NotFoundException(`数据源模板未找到: ${id}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'findTemplateById',
+          message: `Data source template not found: ${id}`,
+          context: {
+            templateId: id,
+            errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+          },
+          retryable: false
+        });
       }
 
       // 更新使用统计
@@ -145,8 +179,19 @@ export class DataSourceTemplateService {
         throw error;
       }
 
-      this.logger.error(`查找模板时发生错误`, { id, error: error.message });
-      throw new BadRequestException(`查找模板失败: ${error.message}`);
+      this.logger.error(`Error occurred while finding template`, { id, error: error.message });
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+        operation: 'findTemplateById',
+        message: `Failed to find template: ${error.message}`,
+        context: {
+          templateId: id,
+          originalError: error.message,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_DOCUMENT_FETCH_ERROR
+        },
+        retryable: true
+      });
     }
   }
 
@@ -157,7 +202,7 @@ export class DataSourceTemplateService {
     provider: string,
     apiType: "rest" | "stream",
   ): Promise<DataSourceTemplateResponseDto | null> {
-    this.logger.debug(`查找最佳匹配模板`, { provider, apiType });
+    this.logger.debug(`Finding best matching template`, { provider, apiType });
 
     // 1. 首先查找默认模板
     let template = await this.templateModel
@@ -198,7 +243,17 @@ export class DataSourceTemplateService {
   ): Promise<DataSourceTemplateResponseDto> {
     // 验证ObjectId格式
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`无效的模板ID格式: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'updateTemplate',
+        message: `Invalid template ID format: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     try {
@@ -209,10 +264,20 @@ export class DataSourceTemplateService {
       );
 
       if (!template) {
-        throw new NotFoundException(`数据源模板未找到: ${id}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'updateTemplate',
+          message: `Data source template not found: ${id}`,
+          context: {
+            templateId: id,
+            errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+          },
+          retryable: false
+        });
       }
 
-      this.logger.log(`数据源模板更新成功: ${id}`);
+      this.logger.log(`Data source template updated successfully: ${id}`);
       return DataSourceTemplateResponseDto.fromDocument(template);
     } catch (error) {
       if (
@@ -222,8 +287,19 @@ export class DataSourceTemplateService {
         throw error;
       }
 
-      this.logger.error(`更新模板时发生错误`, { id, error: error.message });
-      throw new BadRequestException(`更新模板失败: ${error.message}`);
+      this.logger.error(`Error occurred while updating template`, { id, error: error.message });
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+        operation: 'updateTemplate',
+        message: `Failed to update template: ${error.message}`,
+        context: {
+          templateId: id,
+          originalError: error.message,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_GENERATION_FAILED
+        },
+        retryable: true
+      });
     }
   }
 
@@ -233,17 +309,37 @@ export class DataSourceTemplateService {
   async deleteTemplate(id: string): Promise<void> {
     // 验证ObjectId格式
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`无效的模板ID格式: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'deleteTemplate',
+        message: `Invalid template ID format: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     try {
       const template = await this.templateModel.findByIdAndDelete(id);
 
       if (!template) {
-        throw new NotFoundException(`数据源模板未找到: ${id}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'deleteTemplate',
+          message: `Data source template not found: ${id}`,
+          context: {
+            templateId: id,
+            errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+          },
+          retryable: false
+        });
       }
 
-      this.logger.log(`数据源模板删除成功: ${id}`);
+      this.logger.log(`Data source template deleted successfully: ${id}`);
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -252,8 +348,19 @@ export class DataSourceTemplateService {
         throw error;
       }
 
-      this.logger.error(`删除模板时发生错误`, { id, error: error.message });
-      throw new BadRequestException(`删除模板失败: ${error.message}`);
+      this.logger.error(`Error occurred while deleting template`, { id, error: error.message });
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+        operation: 'deleteTemplate',
+        message: `Failed to delete template: ${error.message}`,
+        context: {
+          templateId: id,
+          originalError: error.message,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_DOCUMENT_CREATION_FAILED
+        },
+        retryable: true
+      });
     }
   }
 
@@ -298,7 +405,7 @@ export class DataSourceTemplateService {
     sampleData: any;
     description?: string;
   }): Promise<DataSourceTemplateResponseDto> {
-    this.logger.log(`根据分析结果创建模板: ${dto.name}`);
+    this.logger.log(`Creating template from analysis: ${dto.name}`);
 
     // 1. 使用分析器分析数据
     const analysis = await this.analyzerService.analyzeDataSource(
@@ -312,7 +419,7 @@ export class DataSourceTemplateService {
       name: dto.name,
       provider: dto.provider,
       apiType: dto.apiType,
-      description: dto.description || `${dto.provider} ${dto.apiType} 数据模板`,
+      description: dto.description || `${dto.provider} ${dto.apiType} data template`,
       sampleData: dto.sampleData,
       extractedFields: analysis.extractedFields,
       confidence: analysis.confidence,

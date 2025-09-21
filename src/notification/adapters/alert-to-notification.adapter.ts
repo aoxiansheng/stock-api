@@ -7,9 +7,11 @@
  * @date 2025-09-12
  */
 
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { NOTIFICATION_ERROR_CODES } from "../constants/notification-error-codes.constants";
 
 // 导入独立的DTO类型
 import {
@@ -77,9 +79,19 @@ export class AlertToNotificationAdapter {
         error: error.message,
       });
 
-      throw new BadRequestException(
-        `Failed to adapt alert event: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Failed to adapt alert event: ${error.message}`,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: 'adaptAlertToNotification',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          originalError: error.message,
+          alertData: alertEvent,
+          customErrorCode: NOTIFICATION_ERROR_CODES.SEND_NOTIFICATION_FAILED,
+          reason: 'alert_adaptation_failed'
+        },
+        retryable: true
+      });
     }
   }
 

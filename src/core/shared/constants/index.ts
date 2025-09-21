@@ -30,3 +30,10 @@ export {
   type MarketTradingHours,
   type TradingSession,
 } from "./market.constants";
+
+// 统一错误处理常量
+export * from "./shared-error-codes.constants";
+export {
+  SHARED_ERROR_CODES,
+  type SharedErrorCode,
+} from "./shared-error-codes.constants";

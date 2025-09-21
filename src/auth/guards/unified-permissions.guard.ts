@@ -5,6 +5,8 @@ import {
   ForbiddenException,
   Optional,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { AUTH_ERROR_CODES } from "../constants/auth-error-codes.constants";
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 
@@ -85,10 +87,16 @@ export class UnifiedPermissionsGuard implements CanActivate {
       // 在需要检查权限时，确保权限服务已就绪
       if (!this.permissionService) {
         this.logger.error("权限服务未初始化，无法执行权限校验");
-        throw new ForbiddenException({
-          message: "权限服务不可用",
-          error: "PermissionServiceUnavailable",
-          timestamp: new Date().toISOString(),
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Permission service is unavailable",
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'canActivate',
+          component: ComponentIdentifier.AUTH,
+          context: {
+            authErrorCode: AUTH_ERROR_CODES.CACHE_SERVICE_UNAVAILABLE,
+            guard: 'UnifiedPermissionsGuard'
+          },
+          retryable: true
         });
       }
 
@@ -111,17 +119,15 @@ export class UnifiedPermissionsGuard implements CanActivate {
           checkResult,
         );
 
-        throw new ForbiddenException({
-          message: this.generatePermissionDeniedMessage(
-            authSubject,
-            checkResult,
-          ),
-          error: "Insufficient Permissions",
-          details: {
-            type:
-              authSubject.type === AuthSubjectType.JWT_USER
-                ? "JWT_USER_PERMISSION_DENIED"
-                : "API_KEY_PERMISSION_DENIED",
+        throw UniversalExceptionFactory.createBusinessException({
+          message: this.generatePermissionDeniedMessage(authSubject, checkResult),
+          errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+          operation: 'canActivate',
+          component: ComponentIdentifier.AUTH,
+          context: {
+            authErrorCode: AUTH_ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+            guard: 'UnifiedPermissionsGuard',
+            type: authSubject.type === AuthSubjectType.JWT_USER ? "JWT_USER_PERMISSION_DENIED" : "API_KEY_PERMISSION_DENIED",
             subjectType: authSubject.type,
             subjectId: authSubject.id,
             subjectName: authSubject.getDisplayName(),
@@ -132,9 +138,8 @@ export class UnifiedPermissionsGuard implements CanActivate {
             missingPermissions: checkResult.missingPermissions,
             missingRoles: checkResult.missingRoles,
             endpoint: request.url,
-            method: request.method,
-          },
-          timestamp: new Date().toISOString(),
+            method: request.method
+          }
         });
       }
 
@@ -153,7 +158,18 @@ export class UnifiedPermissionsGuard implements CanActivate {
       if (error instanceof ForbiddenException) {
         throw error;
       }
-      throw new ForbiddenException("权限验证失败，请稍后重试");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Permission verification failed, please try again later",
+        errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+        operation: 'canActivate',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          authErrorCode: AUTH_ERROR_CODES.AUTHORIZATION_FAILED,
+          guard: 'UnifiedPermissionsGuard',
+          originalError: error.message
+        },
+        retryable: true
+      });
     }
   }
 

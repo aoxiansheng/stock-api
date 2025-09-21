@@ -1,9 +1,9 @@
 import {
   Injectable,
-  BadRequestException,
-  ForbiddenException,
   Inject,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { AUTH_ERROR_CODES } from "../../constants/auth-error-codes.constants";
 import { CreateUserDto, LoginDto } from "../../dto/auth.dto";
 import { CreateApiKeyDto } from "../../dto/apikey.dto";
 // 使用统一配置系统
@@ -77,11 +77,29 @@ export class SecurityPolicyService {
     );
 
     if (!availability.usernameAvailable) {
-      throw new BadRequestException("用户名已被使用");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Username is already taken",
+        errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+        operation: 'validateRegistrationPolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          username,
+          authErrorCode: AUTH_ERROR_CODES.DUPLICATE_API_KEY_NAME
+        }
+      });
     }
 
     if (!availability.emailAvailable) {
-      throw new BadRequestException("邮箱地址已被使用");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Email address is already taken",
+        errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+        operation: 'validateRegistrationPolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          email,
+          authErrorCode: AUTH_ERROR_CODES.DUPLICATE_API_KEY_NAME
+        }
+      });
     }
 
     this.logger.debug("用户注册安全策略验证通过", { username, email });
@@ -159,7 +177,16 @@ export class SecurityPolicyService {
 
     // 1. 基础格式验证
     if (!appKey || appKey.length < 10) {
-      throw new BadRequestException("无效的API密钥格式");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid API key format",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateApiKeyUsagePolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          appKey: appKey?.substring(0, 10) + '...',
+          authErrorCode: AUTH_ERROR_CODES.INVALID_API_KEY_FORMAT
+        }
+      });
     }
 
     // 2. 频率限制检查（实际由RateLimitService处理，这里做额外检查）
@@ -249,7 +276,17 @@ export class SecurityPolicyService {
     const minLength = this.securityConfig.passwordMinLength || 8;
 
     if (password.length < minLength) {
-      throw new BadRequestException(`密码长度至少为${minLength}位`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Password must be at least ${minLength} characters long`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validatePasswordPolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          minLength,
+          actualLength: password.length,
+          authErrorCode: AUTH_ERROR_CODES.PASSWORD_POLICY_VIOLATION
+        }
+      });
     }
 
     // 检查密码复杂度
@@ -260,9 +297,19 @@ export class SecurityPolicyService {
 
     if (this.securityConfig.requirePasswordComplexity) {
       if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
-        throw new BadRequestException(
-          "密码必须包含大写字母、小写字母、数字和特殊字符",
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Password must contain uppercase letters, lowercase letters, numbers and special characters",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validatePasswordPolicy',
+          component: ComponentIdentifier.AUTH,
+          context: {
+            hasUpperCase,
+            hasLowerCase,
+            hasNumbers,
+            hasSpecialChar,
+            authErrorCode: AUTH_ERROR_CODES.PASSWORD_POLICY_VIOLATION
+          }
+        });
       }
     }
   }
@@ -272,11 +319,30 @@ export class SecurityPolicyService {
    */
   private validateUsernamePolicy(username: string): void {
     if (username.length < 3 || username.length > 50) {
-      throw new BadRequestException("用户名长度必须在3-50字符之间");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Username length must be between 3-50 characters",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateUsernamePolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          username,
+          length: username.length,
+          authErrorCode: AUTH_ERROR_CODES.INVALID_CREDENTIALS
+        }
+      });
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      throw new BadRequestException("用户名只能包含字母、数字、下划线和连字符");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Username can only contain letters, numbers, underscores and hyphens",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateUsernamePolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          username,
+          authErrorCode: AUTH_ERROR_CODES.INVALID_CREDENTIALS
+        }
+      });
     }
   }
 
@@ -286,7 +352,16 @@ export class SecurityPolicyService {
   private validateEmailPolicy(email: string): void {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new BadRequestException("邮箱格式无效");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid email format",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateEmailPolicy',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          email,
+          authErrorCode: AUTH_ERROR_CODES.INVALID_EMAIL_FORMAT
+        }
+      });
     }
   }
 
@@ -303,7 +378,19 @@ export class SecurityPolicyService {
       const cooldownPeriod = 60 * 1000; // 1分钟冷却期
 
       if (timeDiff < cooldownPeriod && attempt.count >= 3) {
-        throw new BadRequestException("注册过于频繁，请稍后再试");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Registration attempts too frequent, please try again later",
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'checkRegistrationRateLimit',
+          component: ComponentIdentifier.AUTH,
+          context: {
+            email,
+            attemptCount: attempt.count,
+            cooldownPeriod,
+            authErrorCode: AUTH_ERROR_CODES.RATE_LIMIT_EXCEEDED
+          },
+          retryable: true
+        });
       }
 
       if (timeDiff >= cooldownPeriod) {
@@ -339,9 +426,18 @@ export class SecurityPolicyService {
       const remainingTime = Math.ceil(
         (attempt.blockedUntil.getTime() - Date.now()) / 1000,
       );
-      throw new ForbiddenException(
-        `账户已被锁定，请在${remainingTime}秒后重试`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Account is locked, please try again in ${remainingTime} seconds`,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'checkAccountLockout',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          username,
+          remainingTime,
+          authErrorCode: AUTH_ERROR_CODES.ACCOUNT_LOCKED
+        },
+        retryable: true
+      });
     }
   }
 
@@ -365,17 +461,45 @@ export class SecurityPolicyService {
    */
   private validateApiKeyName(name: string): void {
     if (!name || name.trim().length < 2) {
-      throw new BadRequestException("API密钥名称至少需要2个字符");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "API key name must be at least 2 characters long",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateApiKeyName',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          name,
+          length: name?.trim().length || 0,
+          authErrorCode: AUTH_ERROR_CODES.INVALID_API_KEY_FORMAT
+        }
+      });
     }
 
     if (name.length > 100) {
-      throw new BadRequestException("API密钥名称不能超过100个字符");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "API key name cannot exceed 100 characters",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateApiKeyName',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          name,
+          length: name.length,
+          maxLength: 100,
+          authErrorCode: AUTH_ERROR_CODES.INVALID_API_KEY_FORMAT
+        }
+      });
     }
 
     if (!/^[a-zA-Z0-9\s_-]+$/.test(name)) {
-      throw new BadRequestException(
-        "API密钥名称只能包含字母、数字、空格、下划线和连字符",
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "API key name can only contain letters, numbers, spaces, underscores and hyphens",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateApiKeyName',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          name,
+          authErrorCode: AUTH_ERROR_CODES.INVALID_API_KEY_FORMAT
+        }
+      });
     }
   }
 
@@ -384,12 +508,32 @@ export class SecurityPolicyService {
    */
   private validateApiKeyPermissions(permissions: string[]): void {
     if (!permissions || permissions.length === 0) {
-      throw new BadRequestException("API密钥必须至少包含一个权限");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "API key must have at least one permission",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateApiKeyPermissions',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          permissions,
+          authErrorCode: AUTH_ERROR_CODES.INSUFFICIENT_PERMISSIONS
+        }
+      });
     }
 
     // 检查权限数量限制
     if (permissions.length > 20) {
-      throw new BadRequestException("API密钥权限数量不能超过20个");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "API key permissions cannot exceed 20",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateApiKeyPermissions',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          permissions,
+          count: permissions.length,
+          maxCount: 20,
+          authErrorCode: AUTH_ERROR_CODES.INSUFFICIENT_PERMISSIONS
+        }
+      });
     }
   }
 

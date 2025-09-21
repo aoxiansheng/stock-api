@@ -3,10 +3,10 @@ const RECENT_METRICS_COUNT = 5; // 替代 MONITORING_BUSINESS.SAMPLING_CONFIG.RE
 import { OPERATION_LIMITS } from "@common/constants/domain";
 import {
   Injectable,
-  NotFoundException,
   OnModuleDestroy,
   Inject,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 import { v4 as uuidv4 } from "uuid";
 import { Subject, fromEvent, race, timer } from "rxjs";
 import { takeUntil, first, map } from "rxjs/operators";
@@ -1664,7 +1664,15 @@ export class StreamDataFetcherService
    */
   async executeCore(): Promise<any> {
     // 这里可以用于其他核心操作，暂时不需要实现
-    throw new Error("executeCore not implemented for StreamDataFetcher");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.STREAM_DATA_FETCHER,
+      errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+      operation: 'executeCore',
+      message: 'executeCore not implemented for StreamDataFetcher',
+      context: {
+        service: 'StreamDataFetcher'
+      }
+    });
   }
 
   // === 私有方法 ===
@@ -1691,7 +1699,17 @@ export class StreamDataFetcherService
         registry.get?.(provider, capability);
 
       if (!capabilityInstance) {
-        throw new NotFoundException(`流能力不存在: ${provider}/${capability}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'getStreamCapability',
+          message: `Stream capability not found: ${provider}/${capability}`,
+          context: {
+            provider: provider,
+            capability: capability,
+            operation: 'capability_lookup'
+          }
+        });
       }
 
       // 验证这是一个WebSocket能力

@@ -7,6 +7,12 @@ import {
 import { createLogger } from "@common/logging/index";
 import { EventEmitter2, OnEvent } from "@nestjs/event-emitter";
 import type { ConfigType } from "@nestjs/config";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { MONITORING_ERROR_CODES } from '../constants/monitoring-error-codes.constants';
 
 // 零抽象架构：移除对抽象层的依赖，直接使用数值
 import {
@@ -98,7 +104,16 @@ export class AnalyzerService
     // 清理待处理的数据请求
     this.dataRequestPromises.forEach(({ reject, timeout }, requestId) => {
       clearTimeout(timeout);
-      reject(new Error("AnalyzerService shutting down"));
+      reject(UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'onModuleDestroy',
+        message: 'AnalyzerService shutting down',
+        context: {
+          requestId,
+          errorType: MONITORING_ERROR_CODES.ANALYZER_SHUTDOWN
+        }
+      }));
     });
     this.dataRequestPromises.clear();
 
@@ -141,7 +156,17 @@ export class AnalyzerService
     if (pendingRequest) {
       clearTimeout(pendingRequest.timeout);
       this.dataRequestPromises.delete(requestId);
-      pendingRequest.reject(new Error(metadata?.error || "数据不可用"));
+      pendingRequest.reject(UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.MONITORING,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'handleDataNotAvailable',
+        message: metadata?.error || 'Data unavailable',
+        context: {
+          requestId,
+          metadata,
+          errorType: MONITORING_ERROR_CODES.DATA_UNAVAILABLE
+        }
+      }));
 
       this.logger.debug("Analyzer: 数据不可用事件处理完成", {
         component: "AnalyzerService",
@@ -166,7 +191,17 @@ export class AnalyzerService
       // 设置请求超时
       const timeout = setTimeout(() => {
         this.dataRequestPromises.delete(requestId);
-        reject(new Error("数据请求超时"));
+        reject(UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.MONITORING,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_TIMEOUT,
+          operation: 'requestRawMetrics',
+          message: 'Data request timeout',
+          context: {
+            requestId,
+            timeoutMs: 5000,
+            errorType: MONITORING_ERROR_CODES.DATA_REQUEST_TIMEOUT
+          }
+        }));
       }, this.requestTimeoutMs);
 
       // 存储请求Promise

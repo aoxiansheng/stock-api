@@ -7,53 +7,9 @@
 
 ## 发现的问题
 
-
 ---
 
-### 1. ⚠️ 功能重复问题
-
-**问题描述**: `MappingRuleCacheService` 完全包装 `DataMapperCacheService`，存在100%代码重复
-**影响程度**: 中等
-**验证状态**: ✅ 已确认
-**位置**: `src/core/00-prepare/data-mapper/services/mapping-rule-cache.service.ts:70-344`
-
-#### 验证结果
-- ✅ 所有11个方法都是对`DataMapperCacheService`的直接转发
-- ✅ 无任何业务逻辑差异化
-- ✅ 代码重复率: 100%
-
-#### 重复情况
-```typescript
-// MappingRuleCacheService 所有方法都是简单转发
-async cacheBestMatchingRule(...args) {
-  await this.dataMapperCacheService.cacheBestMatchingRule(...args);
-}
-// 共11个方法，全部为简单转发
-```
-
-#### 优化方案
-**选项A - 直接消除（推荐）**:
-```typescript
-// 所有使用方直接注入 DataMapperCacheService
-constructor(
-  - private readonly mappingRuleCacheService: MappingRuleCacheService,
-  + private readonly dataMapperCacheService: DataMapperCacheService,
-) {}
-```
-
-**选项B - 差异化职责**:
-```typescript
-// 为 MappingRuleCacheService 添加业务特定逻辑
-async cacheBestMatchingRuleWithValidation(...) {
-  await this.validateRule(rule);
-  await this.dataMapperCacheService.cacheBestMatchingRule(...);
-  await this.updateRuleStatistics(...);
-}
-```
-
----
-
-### 2. ⚠️ 配置管理问题
+### 1. ⚠️ 配置管理问题
 
 **问题描述**: 存在常量重复定义和环境变量支持不足
 **影响程度**: 中等
@@ -106,7 +62,7 @@ DATA_MAPPER_CACHE_MAX_SIZE=1000
 
 ---
 
-### 3. 🔄 性能优化建议
+### 2. 🔄 性能优化建议
 
 **问题描述**: 存在轻微性能优化空间
 **影响程度**: 低
@@ -157,22 +113,66 @@ private serializeRule(rule: FlexibleMappingRuleResponseDto): string {
 
 ---
 
+## 重构实施计划
+
+### 第一阶段：架构重构（已完成）
+
+**目标**: 消除功能重复，明确组件职责划分
+
+**实施内容**:
+1. **删除冗余服务**:
+   - 删除 `src/core/00-prepare/data-mapper/services/mapping-rule-cache.service.ts` 文件
+   - 移除 `MappingRuleCacheService` 类定义
+
+2. **更新依赖注入**:
+   - 修改 `FlexibleMappingRuleService` 构造函数，将 `MappingRuleCacheService` 替换为 `DataMapperCacheService`
+   - 更新导入语句：`import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";`
+
+3. **更新模块配置**:
+   - 修改 `DataMapperModule`，移除 `MappingRuleCacheService` 的导入和导出
+   - 添加 `DataMapperCacheService` 的导入和导出
+
+**验证结果**:
+- ✅ 成功删除冗余的 `MappingRuleCacheService` 服务
+- ✅ `FlexibleMappingRuleService` 现在直接使用 `DataMapperCacheService`
+- ✅ `DataMapperModule` 正确配置了服务依赖
+- ✅ 代码重复率从100%降至0%
+
+### 第二阶段：配置优化（计划中）
+
+**目标**: 统一配置管理，增强环境变量支持
+
+**实施内容**:
+1. 创建统一配置文件 `data-mapper-unified.config.ts`
+2. 实现环境变量支持
+3. 更新现有配置引用
+
+### 第三阶段：性能优化（计划中）
+
+**目标**: 优化缓存键验证和JSON序列化
+
+**实施内容**:
+1. 实现缓存键验证结果缓存
+2. 优化大对象JSON序列化检测
+3. 建立性能基准对比
+
+---
+
 ## 后续行动计划
 
-### Phase 1: 测试补充 (优先级: 极高) 🔴
+### Phase 1: 配置优化 (优先级: 高) 🔴
 
-**风险**: 重构破坏现有功能
-**前置条件**: Phase 1 必须完成
-- [ ] 消除 `MappingRuleCacheService` 代码重复（推荐选项A）
+**风险**: 配置变更可能影响现有功能
+**前置条件**: 无
 - [ ] 统一缓存配置常量到 `data-mapper-unified.config.ts`
 - [ ] 添加环境变量支持（3个新变量）
 - [ ] 使用兼容性包装器确保平滑过渡
 
-**成功标准**: 代码重复减少80%以上，配置重复=0
+**成功标准**: 配置重复=0，环境变量支持完善
 
 ### Phase 2: 性能优化 (优先级: 低) 🔄
 **风险**: 优化引入新Bug
-**前置条件**: Phase 1-2 完成
+**前置条件**: Phase 1 完成
 - [ ] 实现缓存键验证结果缓存（Map-based）
 - [ ] 优化大对象JSON序列化检测
 - [ ] 建立性能基准对比（A/B测试）
@@ -186,17 +186,15 @@ private serializeRule(rule: FlexibleMappingRuleResponseDto): string {
 
 | 阶段 | 技术风险 | 影响等级 | 缓解策略 |
 |------|----------|----------|----------|
-| Phase 1 | 重构破坏现有功能 | 中 | 必须先完成测试，再逐步重构 |
+| Phase 1 | 配置变更影响现有功能 | 中 | 先在测试环境验证，再逐步上线 |
 | Phase 2 | 性能优化引入Bug | 低 | 性能基准测试 + A/B 测试验证 |
 
 ## 质量标准与验收条件
 
 ### 技术指标
-- **代码重复率**: <5% (静态分析)
 - **配置重复**: 0个 (人工审查)
 
 ### 架构指标
-- **组件职责单一**: MappingRuleCacheService 消除或差异化
 - **配置统一**: 所有常量统一到 unified.config.ts
 - **环境变量支持**: 3个关键配置可环境变量覆盖
 
@@ -204,14 +202,16 @@ private serializeRule(rule: FlexibleMappingRuleResponseDto): string {
 
 ## 审核总结
 
-**✅ 问题验证**: 所有4个问题真实存在，准确性100%
+**✅ 问题验证**: 所有剩余问题真实存在，准确性100%
 **✅ 技术方案**: 可行性高，风险可控
-**✅ 优先级排序**: 测试补充 > 架构重构 > 性能优化
+**✅ 优先级排序**: 配置优化 > 性能优化
 
 **总体评价**:
 - **文档质量**: ⭐⭐⭐⭐⭐ 问题识别准确，分析深入
 - **技术可行性**: ⭐⭐⭐⭐⭐ 所有方案都技术可行
-- **实施复杂度**: ⭐⭐⭐⭐ 中等复杂度，需要谨慎规划
-- **收益评估**: ⭐⭐⭐⭐ 显著提升代码质量和维护性
+- **实施复杂度**: ⭐⭐⭐ 中等复杂度，需要谨慎规划
+- **收益评估**: ⭐⭐⭐⭐ 提升代码质量和维护性
+
+**架构改进**: 通过消除冗余服务，明确了data-mapper-cache作为独立缓存器的职责，data-mapper组件现在直接使用外部缓存器，符合关注点分离原则。
 
 **下次审核**: Phase 1 完成后进行中期审核

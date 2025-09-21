@@ -20,6 +20,8 @@ import {
   RequestTrackingInterceptor,
 } from "@common/core/interceptors";
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 import { DatabaseModule } from "../../database/database.module";
 import { AuthModule } from "../../auth/module/auth.module";
@@ -144,7 +146,18 @@ export class AlertEnhancedModule implements OnModuleInit {
 
       if (!validationResult.isValid) {
         this.logger.error("❌ Alert模块常量验证失败");
-        throw new Error("Alert module constants validation failed");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Alert module constants validation failed",
+          errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+          operation: 'onModuleInit',
+          component: ComponentIdentifier.ALERT,
+          context: {
+            validationResult,
+            customErrorCode: ALERT_ERROR_CODES.INVALID_ALERT_CONFIG,
+            reason: 'constants_validation_failed'
+          },
+          retryable: false
+        });
       }
 
       // 记录服务架构状态

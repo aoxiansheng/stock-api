@@ -10,6 +10,12 @@ import { Injectable, Inject } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { NOTIFICATION_ERROR_CODES } from '../constants/notification-error-codes.constants';
 
 // 导入新的DTO和适配器（解耦架构的核心）
 import {
@@ -294,7 +300,7 @@ export class NotificationService {
 
       return result;
     } catch (error) {
-      this.logger.error("处理DTO通知请求时发生错误", {
+      this.logger.error("Error processing DTO notification request", {
         alertId: request.alertId,
         error: error.message,
       });
@@ -319,7 +325,7 @@ export class NotificationService {
     const batchId = `batch_${Date.now()}`;
     const startTime = Date.now();
 
-    this.logger.debug("开始处理批量DTO通知请求", {
+    this.logger.debug("Starting batch DTO notification request processing", {
       requestCount: batchRequest.requests.length,
       concurrency:
         batchRequest.concurrency || this.configService.getDefaultBatchSize(),
@@ -534,7 +540,17 @@ export class NotificationService {
     try {
       const sender = this.senders.get(channelType);
       if (!sender) {
-        throw new Error(`不支持的通知渠道类型: ${channelType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.NOTIFICATION,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'testNotificationChannel',
+          message: `Unsupported notification channel type: ${channelType}`,
+          context: {
+            channelType,
+            supportedChannels: Array.from(this.senders.keys()),
+            errorType: NOTIFICATION_ERROR_CODES.UNSUPPORTED_CHANNEL_TYPE
+          }
+        });
       }
 
       // 使用发送器进行测试
@@ -639,7 +655,18 @@ export class NotificationService {
       // 2. 根据渠道类型选择发送器
       const sender = this.senders.get(channel.type as NotificationChannelType);
       if (!sender) {
-        throw new Error(`不支持的通知渠道类型: ${channel.type}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.NOTIFICATION,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'sendResolutionNotificationToChannel',
+          message: `Unsupported notification channel type: ${channel.type}`,
+          context: {
+            channelType: channel.type,
+            channelId: channel.id,
+            errorType: NOTIFICATION_ERROR_CODES.UNSUPPORTED_CHANNEL_TYPE
+          },
+          retryable: false
+        });
       }
 
       // 3. 创建通知对象
@@ -681,7 +708,17 @@ export class NotificationService {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      throw new Error(`解决通知发送失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.NOTIFICATION,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'sendResolutionNotification',
+        message: `Resolution notification sending failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          duration: Date.now() - startTime,
+          errorType: NOTIFICATION_ERROR_CODES.RESOLVE_NOTIFICATION_FAILED
+        }
+      });
     }
   }
 
@@ -781,7 +818,18 @@ export class NotificationService {
       // 2. 根据渠道类型选择发送器
       const sender = this.senders.get(channel.type as NotificationChannelType);
       if (!sender) {
-        throw new Error(`不支持的通知渠道类型: ${channel.type}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.NOTIFICATION,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'sendAcknowledgmentNotificationToChannel',
+          message: `Unsupported notification channel type: ${channel.type}`,
+          context: {
+            channelType: channel.type,
+            channelId: channel.id,
+            errorType: NOTIFICATION_ERROR_CODES.UNSUPPORTED_CHANNEL_TYPE
+          },
+          retryable: false
+        });
       }
 
       // 3. 创建通知对象
@@ -823,7 +871,17 @@ export class NotificationService {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      throw new Error(`确认通知发送失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.NOTIFICATION,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'sendConfirmationNotification',
+        message: `Confirmation notification sending failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          duration: Date.now() - startTime,
+          errorType: NOTIFICATION_ERROR_CODES.CONFIRM_NOTIFICATION_FAILED
+        }
+      });
     }
   }
 
@@ -916,7 +974,18 @@ export class NotificationService {
       // 2. 根据渠道类型选择发送器
       const sender = this.senders.get(channel.type as NotificationChannelType);
       if (!sender) {
-        throw new Error(`不支持的通知渠道类型: ${channel.type}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.NOTIFICATION,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'sendSuppressionNotificationToChannel',
+          message: `Unsupported notification channel type: ${channel.type}`,
+          context: {
+            channelType: channel.type,
+            channelId: channel.id,
+            errorType: NOTIFICATION_ERROR_CODES.UNSUPPORTED_CHANNEL_TYPE
+          },
+          retryable: false
+        });
       }
 
       // 3. 创建通知对象
@@ -959,7 +1028,16 @@ export class NotificationService {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      throw new Error(`抑制通知发送失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.NOTIFICATION,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'sendSuppressionNotification',
+        message: `Suppression notification sending failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          errorType: NOTIFICATION_ERROR_CODES.SUPPRESS_NOTIFICATION_FAILED
+        }
+      });
     }
   }
 
@@ -1073,7 +1151,18 @@ export class NotificationService {
       // 2. 根据渠道类型选择发送器
       const sender = this.senders.get(channel.type as NotificationChannelType);
       if (!sender) {
-        throw new Error(`不支持的通知渠道类型: ${channel.type}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.NOTIFICATION,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'sendEscalationNotificationToChannel',
+          message: `Unsupported notification channel type: ${channel.type}`,
+          context: {
+            channelType: channel.type,
+            channelId: channel.id,
+            errorType: NOTIFICATION_ERROR_CODES.UNSUPPORTED_CHANNEL_TYPE
+          },
+          retryable: false
+        });
       }
 
       // 3. 创建通知对象 - 升级通知使用更高的优先级
@@ -1118,7 +1207,16 @@ export class NotificationService {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
-      throw new Error(`升级通知发送失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.NOTIFICATION,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'sendEscalationNotification',
+        message: `Escalation notification sending failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          errorType: NOTIFICATION_ERROR_CODES.ESCALATE_NOTIFICATION_FAILED
+        }
+      });
     }
   }
 
@@ -1324,7 +1422,18 @@ export class NotificationService {
     try {
       const sender = this.senders.get(channelType);
       if (!sender) {
-        throw new Error(`不支持的通知渠道类型: ${channelType}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.NOTIFICATION,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'sendToChannelByType',
+          message: `Unsupported notification channel type: ${channelType}`,
+          context: {
+            channelType,
+            requestId: `notif_${Date.now()}_${channelType}`,
+            errorType: NOTIFICATION_ERROR_CODES.UNSUPPORTED_CHANNEL_TYPE
+          },
+          retryable: false
+        });
       }
 
       // 构建Notification对象

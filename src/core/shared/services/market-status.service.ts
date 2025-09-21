@@ -7,7 +7,9 @@ import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory } from "@common/core/exceptions";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+import { SHARED_ERROR_CODES } from "../constants/shared-error-codes.constants";
 // Import from the new Market Domain layer
 import {
   Market,
@@ -315,7 +317,11 @@ export class MarketStatusService implements OnModuleDestroy {
     try {
       return false; // Graceful degradation until Provider integration is ready
     } catch (error) {
-      this.logger.debug("Provider集成可用性检查失败", { error: error.message });
+      // Use unified error handling but don't throw - just return false for degradation
+      this.logger.debug("Provider集成可用性检查失败", {
+        error: error.message,
+        errorCode: SHARED_ERROR_CODES.PROVIDER_INTEGRATION_UNAVAILABLE
+      });
       return false;
     }
   }

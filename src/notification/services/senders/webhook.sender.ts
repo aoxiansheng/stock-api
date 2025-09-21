@@ -9,10 +9,12 @@
 import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { firstValueFrom } from "rxjs";
-import { BadRequestException, Injectable, Inject } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 
 import { createLogger } from "@common/logging/index";
 import { URLSecurityValidator } from "@common/utils/url-security-validator.util";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { NOTIFICATION_ERROR_CODES } from "../../constants/notification-error-codes.constants";
 
 // 使用通知配置服务
 import { NotificationConfigService } from "../notification-config.service";
@@ -50,7 +52,19 @@ export class WebhookSender implements NotificationSender {
     // SSRF防护检查 - 失败时直接抛出异常，不被catch捕获
     const urlValidation = URLSecurityValidator.validateURL(channelConfig.url);
     if (!urlValidation.valid) {
-      throw new BadRequestException(`URL安全检查失败: ${urlValidation.error}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `URL security validation failed: ${urlValidation.error}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'sendWebhookNotification',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: channelConfig.url,
+          validationError: urlValidation.error,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'url_security_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     try {
@@ -131,7 +145,19 @@ export class WebhookSender implements NotificationSender {
     const urlValidation = URLSecurityValidator.validateURL(config.url);
     if (!urlValidation.valid) {
       this.logger.warn(`Webhook测试URL安全检查失败: ${urlValidation.error}`);
-      throw new BadRequestException(`URL安全检查失败: ${urlValidation.error}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `URL security validation failed: ${urlValidation.error}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'testWebhookConnection',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: config.url,
+          validationError: urlValidation.error,
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'url_security_validation_failed'
+        },
+        retryable: false
+      });
     }
 
     // 检查是否存在潜在的敏感头部
@@ -142,9 +168,19 @@ export class WebhookSender implements NotificationSender {
       )
     ) {
       this.logger.warn("Webhook测试配置中检测到潜在的敏感头部 (Authorization)");
-      throw new BadRequestException(
-        "出于安全原因，测试配置中不允许包含 Authorization 头部",
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "For security reasons, Authorization headers are not allowed in test configuration",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'testWebhookConnection',
+        component: ComponentIdentifier.NOTIFICATION,
+        context: {
+          url: config.url,
+          headers: Object.keys(config.headers),
+          customErrorCode: NOTIFICATION_ERROR_CODES.INVALID_CHANNEL_CONFIG,
+          reason: 'sensitive_header_detected'
+        },
+        retryable: false
+      });
     }
 
     try {

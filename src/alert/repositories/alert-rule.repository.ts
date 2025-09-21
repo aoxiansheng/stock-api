@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
 import { createLogger } from "@common/logging/index";
-import { BUSINESS_ERROR_MESSAGES } from "@common/constants/semantic/error-messages.constants";
 import { DatabaseValidationUtils } from "@common/utils/database.utils";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 import { CreateAlertRuleDto, UpdateAlertRuleDto } from "../dto";
 import { IAlertRule } from "../interfaces/alert.interface";
@@ -46,7 +47,18 @@ export class AlertRuleRepository {
 
     if (!rule) {
       this.logger.warn(`尝试更新不存在的规则`, { ruleId });
-      throw new NotFoundException(BUSINESS_ERROR_MESSAGES.RESOURCE_NOT_FOUND);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: 'Alert rule not found for update operation',
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'updateAlertRule',
+        component: ComponentIdentifier.ALERT,
+        context: {
+          ruleId,
+          customErrorCode: ALERT_ERROR_CODES.ALERT_NOT_FOUND,
+          reason: 'alert_rule_not_found'
+        },
+        retryable: false
+      });
     }
 
     this.logger.debug(`更新告警规则成功`, { ruleId });

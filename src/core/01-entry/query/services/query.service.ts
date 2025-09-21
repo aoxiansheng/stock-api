@@ -2,7 +2,6 @@ import {
   Injectable,
   OnModuleInit,
   OnModuleDestroy,
-  BadRequestException,
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
@@ -26,6 +25,9 @@ import {
 } from "../dto/query-response.dto";
 import { QueryResultProcessorService } from "./query-result-processor.service";
 import { QueryStatisticsService } from "./query-statistics.service";
+
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 
 /**
  * Query服务 - 查询编排器
@@ -266,9 +268,18 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
         if (hasErrors) {
           if (!request.continueOnError) {
             const firstError = result.metadata.errors[0];
-            throw new Error(
-              `Query for symbol ${firstError.symbol} failed: ${firstError.reason}`,
-            );
+            throw UniversalExceptionFactory.createBusinessException({
+              component: ComponentIdentifier.QUERY,
+              errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+              operation: 'executeBulkQuery',
+              message: `Query for symbol ${firstError.symbol} failed: ${firstError.reason}`,
+              context: {
+                failedSymbol: firstError.symbol,
+                failureReason: firstError.reason,
+                queryType: query.queryType,
+                continueOnError: request.continueOnError
+              }
+            });
           }
           this.logger.warn(`Bulk query item failed, continuing`, {
             queryType: query.queryType,

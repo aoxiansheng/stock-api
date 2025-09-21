@@ -4,6 +4,12 @@ import {
   CacheStrategy,
   CacheOrchestratorRequest,
 } from "../interfaces/smart-cache-orchestrator.interface";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier
+} from '@common/core/exceptions';
+import { SMART_CACHE_ERROR_CODES } from '../constants/smart-cache-error-codes.constants';
 
 /**
  * 智能缓存编排器请求构建工具
@@ -67,11 +73,23 @@ export function buildUnifiedCacheKey(
 ): string {
   // 验证输入参数
   if (!prefix || prefix.trim() === "") {
-    throw new Error("缓存键前缀不能为空");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.SMART_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'buildUnifiedCacheKey',
+      message: 'Cache key prefix cannot be empty',
+      context: { prefix, errorType: SMART_CACHE_ERROR_CODES.MISSING_CACHE_KEY_PREFIX }
+    });
   }
 
   if (!symbols || symbols.length === 0) {
-    throw new Error("符号列表不能为空");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.SMART_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'buildUnifiedCacheKey',
+      message: 'Symbols list cannot be empty',
+      context: { symbols, errorType: SMART_CACHE_ERROR_CODES.EMPTY_SYMBOLS_LIST }
+    });
   }
 
   const keyParts: string[] = [prefix];
@@ -110,11 +128,27 @@ export function buildUnifiedCacheKey(
 export function createStableSymbolsHash(symbols: string[]): string {
   // 验证crypto模块可用性
   if (!crypto || typeof crypto.createHash !== "function") {
-    throw new Error("Node.js crypto模块不可用");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.SMART_CACHE,
+      errorCode: BusinessErrorCode.ENVIRONMENT_ERROR,
+      operation: 'createStableSymbolsHash',
+      message: 'Node.js crypto module is unavailable',
+      context: {
+        cryptoAvailable: !!crypto,
+        createHashAvailable: !!(crypto && crypto.createHash),
+        errorType: SMART_CACHE_ERROR_CODES.CRYPTO_MODULE_UNAVAILABLE
+      }
+    });
   }
 
   if (!symbols || symbols.length === 0) {
-    throw new Error("符号列表不能为空");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.SMART_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'createStableSymbolsHash',
+      message: 'Symbols list cannot be empty',
+      context: { symbols, errorType: SMART_CACHE_ERROR_CODES.EMPTY_SYMBOLS_LIST }
+    });
   }
 
   // 标准化符号列表：排序并去重
@@ -124,7 +158,17 @@ export function createStableSymbolsHash(symbols: string[]): string {
     .sort();
 
   if (normalizedSymbols.length === 0) {
-    throw new Error("有效符号列表不能为空");
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.SMART_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'createStableSymbolsHash',
+      message: 'Valid symbols list cannot be empty after normalization',
+      context: {
+        originalSymbols: symbols,
+        normalizedSymbols,
+        errorType: SMART_CACHE_ERROR_CODES.EMPTY_VALID_SYMBOLS
+      }
+    });
   }
 
   // 使用SHA-1哈希算法

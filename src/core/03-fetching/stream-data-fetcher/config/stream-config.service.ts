@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@common/logging/index";
 import { StreamConfigDefaults } from './stream-config-defaults.constants';
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { STREAM_DATA_FETCHER_ERROR_CODES } from "../constants/stream-data-fetcher-error-codes.constants";
 
 /**
  * 流数据获取器配置接口
@@ -284,9 +286,23 @@ export class StreamConfigService {
     }
 
     if (errors.length > 0) {
-      throw new Error(
-        `Stream configuration validation failed: ${errors.join(", ")}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Stream configuration validation failed: ${errors.join(", ")}`,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'validateConfiguration',
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        context: {
+          validationErrors: errors,
+          configSnapshot: {
+            connections: this.config.connections,
+            healthCheck: this.config.healthCheck,
+            performance: this.config.performance
+          },
+          customErrorCode: STREAM_DATA_FETCHER_ERROR_CODES.INVALID_STREAM_CONFIG,
+          reason: 'stream_configuration_validation_failed'
+        },
+        retryable: false
+      });
     }
   }
 

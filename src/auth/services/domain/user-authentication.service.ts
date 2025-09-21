@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { CreateUserDto, LoginDto } from "../../dto/auth.dto";
 import { User } from "../../schemas/user.schema";
 import { UserRepository } from "../../repositories/user.repository";
@@ -13,6 +9,7 @@ import { DatabaseValidationUtils } from "../../../common/utils/database.utils";
 import { createLogger } from "@common/modules/logging";
 import { ACCOUNT_DEFAULTS } from "../../constants/user-operations.constants";
 import { ERROR_MESSAGES } from "../../../common/constants/semantic/error-messages.constants";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
 /**
  * 用户认证服务 - 核心认证逻辑
@@ -50,7 +47,13 @@ export class UserAuthenticationService {
 
     if (existingUser) {
       this.logger.warn("用户已存在", { username, email });
-      throw new ConflictException(ERROR_MESSAGES.USER_EXISTS);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户名或邮箱已被使用",
+        errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+        operation: 'registerUser',
+        component: ComponentIdentifier.AUTH,
+        context: { username, email, reason: 'duplicate_user' }
+      });
     }
 
     // 2. 加密密码
@@ -89,13 +92,25 @@ export class UserAuthenticationService {
 
     if (!user) {
       this.logger.warn("用户不存在", { username });
-      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户名或密码错误",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'authenticateUser',
+        component: ComponentIdentifier.AUTH,
+        context: { username, reason: 'user_not_found' }
+      });
     }
 
     // 2. 检查用户状态
     if (user.status !== OperationStatus.ACTIVE) {
       this.logger.warn("用户账户已禁用", { username, status: user.status });
-      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户账户已被禁用",
+        errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+        operation: 'authenticateUser',
+        component: ComponentIdentifier.AUTH,
+        context: { username, status: user.status, reason: 'account_disabled' }
+      });
     }
 
     // 3. 验证密码
@@ -106,7 +121,13 @@ export class UserAuthenticationService {
 
     if (!isPasswordValid) {
       this.logger.warn("密码验证失败", { username });
-      throw new UnauthorizedException(ERROR_MESSAGES.INVALID_CREDENTIALS);
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户名或密码错误",
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'authenticateUser',
+        component: ComponentIdentifier.AUTH,
+        context: { username, reason: 'invalid_password' }
+      });
     }
 
     this.logger.log("用户身份验证成功", {
@@ -133,12 +154,24 @@ export class UserAuthenticationService {
 
     if (!user) {
       this.logger.warn("用户ID无效", { userId });
-      throw new UnauthorizedException("用户不存在或已被删除");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户不存在或已被删除",
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'getUserById',
+        component: ComponentIdentifier.AUTH,
+        context: { userId, reason: 'user_not_found' }
+      });
     }
 
     if (user.status !== OperationStatus.ACTIVE) {
       this.logger.warn("用户账户已禁用", { userId, status: user.status });
-      throw new UnauthorizedException("用户账户已被禁用");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "用户账户已被禁用",
+        errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+        operation: 'getUserById',
+        component: ComponentIdentifier.AUTH,
+        context: { userId, status: user.status, reason: 'account_disabled' }
+      });
     }
 
     return user.toJSON() as User;

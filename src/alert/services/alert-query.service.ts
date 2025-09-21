@@ -9,6 +9,8 @@
 
 import { Injectable, Inject } from "@nestjs/common";
 import type { ConfigType } from "@nestjs/config";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 import { createLogger } from "@common/logging/index";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
@@ -481,7 +483,17 @@ export class AlertQueryService {
     try {
       // 参数验证
       if (startDate >= endDate) {
-        throw new Error("开始时间必须早于结束时间");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'getAlertTrend',
+          message: 'Start date must be earlier than end date',
+          context: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            interval: interval
+          }
+        });
       }
 
       // 防止查询时间范围过大
@@ -490,9 +502,19 @@ export class AlertQueryService {
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
       );
       if (daysDiff > maxDays) {
-        throw new Error(
-          `查询时间范围过大，${interval} 模式最多支持 ${maxDays} 天`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'getAlertTrend',
+          message: `Query date range too large, ${interval} mode supports maximum ${maxDays} days`,
+          context: {
+            requestedDays: daysDiff,
+            maxAllowedDays: maxDays,
+            interval: interval,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+          }
+        });
       }
 
       const trendData = await this.alertHistoryRepository.getAlertTrend(
@@ -531,12 +553,34 @@ export class AlertQueryService {
 
     // 参数验证
     if (!keyword || keyword.trim().length === 0) {
-      throw new Error("搜索关键词不能为空");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'searchAlerts',
+        message: 'Search keyword cannot be empty',
+        context: {
+          keyword: keyword,
+          filters: filters,
+          limit: limit
+        }
+      });
     }
 
     // 限制搜索关键词长度，防止性能问题
     if (keyword.length > 100) {
-      throw new Error("搜索关键词长度不能超过100个字符");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.ALERT,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'searchAlerts',
+        message: 'Search keyword length cannot exceed 100 characters',
+        context: {
+          keyword: keyword,
+          keywordLength: keyword.length,
+          maxLength: 100,
+          filters: filters,
+          limit: limit
+        }
+      });
     }
 
     this.logger.debug("搜索告警", {

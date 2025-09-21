@@ -1,6 +1,8 @@
 import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { TRANSFORMER_ERROR_CODES } from '../constants/transformer-error-codes.constants';
 
 import { REFERENCE_DATA } from "@common/constants/domain";
 import {
@@ -154,7 +156,17 @@ export class DataTransformerController {
   ) {
     // 验证请求体是数组
     if (!Array.isArray(requests)) {
-      throw new BadRequestException("批量请求必须是TransformRequestDto数组");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.TRANSFORMER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'transformBatch',
+        message: 'Batch request must be an array of TransformRequestDto',
+        context: {
+          requestType: typeof requests,
+          errorType: TRANSFORMER_ERROR_CODES.INVALID_BATCH_FORMAT
+        },
+        retryable: false
+      });
     }
 
     this.logger.log(`API Request: Batch transform data`, {

@@ -3,9 +3,9 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  ServiceUnavailableException,
   OnModuleDestroy,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 import { Reflector } from "@nestjs/core";
 import { createLogger } from "@common/logging/index";
 import { HttpRateLimitConfig } from "../interfaces/rate-limit.interfaces";
@@ -116,7 +116,16 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
     // 如果已销毁，拒绝请求
     if (this.isDestroyed) {
       this.logger.warn("Guard已销毁，拒绝请求");
-      throw new ServiceUnavailableException("服务不可用");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'canActivate',
+        message: 'Stream rate limit guard service is unavailable',
+        context: {
+          guardDestroyed: true,
+          operation: 'rate_limit_check'
+        }
+      });
     }
 
     const request = context.switchToHttp().getRequest();
@@ -139,7 +148,19 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
           endpoint: request.url,
           userAgent: request.headers["user-agent"],
         });
-        throw new ServiceUnavailableException("请求频率过高，请稍后重试");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'canActivate',
+          message: 'Request rate too high, please try again later',
+          context: {
+            clientIP: clientIP,
+            userId: userId,
+            endpoint: request.url,
+            userAgent: request.headers["user-agent"],
+            limitType: 'ip_rate_limit'
+          }
+        });
       }
 
       // 用户级别限制检查
@@ -153,7 +174,18 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
           userId,
           endpoint: request.url,
         });
-        throw new ServiceUnavailableException("请求频率过高，请稍后重试");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'canActivate',
+          message: 'Request rate too high, please try again later',
+          context: {
+            clientIP: clientIP,
+            userId: userId,
+            endpoint: request.url,
+            limitType: 'user_rate_limit'
+          }
+        });
       }
 
       // 突发请求检查
@@ -163,7 +195,18 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
           userId,
           endpoint: request.url,
         });
-        throw new ServiceUnavailableException("突发请求过多，请降低请求频率");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: 'canActivate',
+          message: 'Too many burst requests, please reduce request frequency',
+          context: {
+            clientIP: clientIP,
+            userId: userId,
+            endpoint: request.url,
+            limitType: 'burst_limit'
+          }
+        });
       }
 
       return true;

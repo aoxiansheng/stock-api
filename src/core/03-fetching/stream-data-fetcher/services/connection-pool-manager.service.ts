@@ -1,6 +1,7 @@
-import { Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { StreamConfigService } from "../config/stream-config.service";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 
 /**
  * 连接池管理器 - 防止连接池无限增长
@@ -46,9 +47,18 @@ export class ConnectionPoolManager {
         max: config.maxGlobal,
         key,
       });
-      throw new ServiceUnavailableException(
-        `系统连接数已达上限 (${config.maxGlobal})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+        operation: 'canCreateConnection',
+        message: `Global connection limit exceeded (${config.maxGlobal})`,
+        context: {
+          currentConnections: this.globalConnectionCount,
+          maxConnections: config.maxGlobal,
+          connectionKey: key,
+          limitType: 'global'
+        }
+      });
     }
 
     // 2. 检查每个键的连接数限制
@@ -59,9 +69,18 @@ export class ConnectionPoolManager {
         current: keyConnectionCount,
         max: config.maxPerKey,
       });
-      throw new ServiceUnavailableException(
-        `${key} 连接数已达上限 (${config.maxPerKey})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_DATA_FETCHER,
+        errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+        operation: 'canCreateConnection',
+        message: `Connection limit exceeded for key ${key} (${config.maxPerKey})`,
+        context: {
+          connectionKey: key,
+          currentConnections: keyConnectionCount,
+          maxConnections: config.maxPerKey,
+          limitType: 'per_key'
+        }
+      });
     }
 
     // 3. 检查每个IP的连接数限制（如果提供了IP）
@@ -74,9 +93,19 @@ export class ConnectionPoolManager {
           max: config.maxPerIP,
           key,
         });
-        throw new ServiceUnavailableException(
-          `IP ${clientIP} 连接数已达上限 (${config.maxPerIP})`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_DATA_FETCHER,
+          errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+          operation: 'canCreateConnection',
+          message: `IP connection limit exceeded for ${clientIP} (${config.maxPerIP})`,
+          context: {
+            clientIP: clientIP,
+            connectionKey: key,
+            currentConnections: ipConnectionCount,
+            maxConnections: config.maxPerIP,
+            limitType: 'per_ip'
+          }
+        });
       }
     }
 

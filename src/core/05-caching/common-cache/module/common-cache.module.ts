@@ -10,6 +10,9 @@ import { CACHE_CONFIG } from "../constants/cache-config.constants";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../monitoring/contracts";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 /**
  * 通用缓存模块
  * 非全局模块，需显式导入
@@ -117,9 +120,18 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
     if (!validationResult.valid) {
       console.error("❌ CommonCache configuration validation failed:");
       console.error(this.configValidator.getConfigSummary(validationResult));
-      throw new Error(
-        `CommonCache configuration validation failed: ${validationResult.errors.join(", ")}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'onModuleInit',
+        message: `CommonCache configuration validation failed: ${validationResult.errors.join(", ")}`,
+        context: {
+          validationErrors: validationResult.errors,
+          warnings: validationResult.warnings,
+          recommendations: validationResult.recommendations,
+          operation: 'module_initialization'
+        }
+      });
     }
 
     // 记录验证摘要

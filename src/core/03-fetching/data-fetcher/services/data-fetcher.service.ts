@@ -1,13 +1,18 @@
 import {
   Injectable,
-  NotFoundException,
-  BadRequestException,
-  ServiceUnavailableException,
+  HttpStatus
 } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+import {
+  BusinessException,
+  UniversalExceptionFactory,
+  UniversalRetryHandler,
+  ComponentIdentifier,
+  BusinessErrorCode
+} from "@common/core/exceptions";
 import {
   IDataFetcher,
   DataFetchParams,
@@ -25,11 +30,12 @@ import {
   DATA_FETCHER_OPERATIONS,
   DATA_FETCHER_DEFAULT_CONFIG,
 } from "../constants/data-fetcher.constants";
+import { DATA_FETCHER_ERROR_CODES } from "../constants/data-fetcher-error-codes.constants";
 
 /**
  * 原始数据类型定义
  *
- * 🎯 用户体验价值：支持多Provider格式的数据源
+ * �� 用户体验价值：支持多Provider格式的数据源
  * - 允许用户使用统一的字段名（如"symbol"）而不必了解每个Provider的特定格式
  * - 自动处理复杂的嵌套数据结构，用户无需关心数据来源的技术细节
  * - 简化配置：用户只需要关心业务字段，无需学习Provider特定的API结构
@@ -79,162 +85,105 @@ export class DataFetcherService implements IDataFetcher {
    * @returns 原始数据结果
    */
   async fetchRawData(params: DataFetchParams): Promise<RawDataResult> {
-    const startTime = Date.now();
-    const { provider, capability, symbols, contextService, requestId } = params;
-
-    this.logger.debug(
-      "开始获取原始数据",
-      sanitizeLogData({
-        requestId,
-        provider,
-        capability,
-        symbolsCount: symbols.length,
-        symbols: symbols.slice(
-          0,
-          DATA_FETCHER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT,
-        ),
-        operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-      }),
-    );
+    const {
+      provider,
+      capability,
+      symbols,
+      requestId,
+      apiType = DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_API_TYPE,
+      options = {},
+      contextService,
+    } = params;
 
     try {
       // 1. 验证提供商能力
-      const cap = await this.getCapability(provider, capability);
+      await this.checkCapability(provider, capability);
 
       // 2. 准备执行参数 - 简化：统一通过options传递，移除重复参数
       const executionParams = {
         symbols,
-        contextService,
         requestId,
-        options: {
-          apiType:
-            params.apiType || DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_API_TYPE,
-          ...params.options, // 合并用户传入的options
-        },
+        apiType,
+        ...options,
       };
 
       // 3. 执行SDK调用 - 标准化监控：记录外部API调用
       const apiStartTime = Date.now();
-      const rawData = await cap.execute(executionParams);
+      const rawData = await this.executeCapability(provider, capability, executionParams);
       const apiDuration = Date.now() - apiStartTime;
 
-      // 记录API调用指标 - 事件驱动方式
-      setImmediate(() => {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_fetcher",
-          metricType: "external_api",
-          metricName: "api_call_completed",
-          metricValue: apiDuration,
-          tags: {
-            provider,
-            capability,
-            status: "success",
-            requestId,
-            symbolsCount: symbols.length,
-          },
-        });
-      });
-
-      // 4. 处理返回数据格式
+      // 4. 处理原始数据 - 标准化：统一处理不同格式的返回结果
       const processedData = this.processRawData(rawData);
 
-      const processingTimeMs = Date.now() - startTime;
-
-      // 💡 系统级性能监控由 src/monitoring/ 全局监控组件统一处理
-      // 📁 不得在业务组件中重复实现系统级监控功能
-      // 🎯 组件级监控只记录业务相关的性能指标
-
-      // 记录处理性能数据 - 事件驱动方式
-      setImmediate(() => {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_fetcher",
-          metricType: "business",
-          metricName: "data_processing_completed",
-          metricValue: processingTimeMs,
-          tags: {
+      // 5. 性能监控 - 标准化：统一性能指标收集
+      if (apiDuration > DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS) {
+        this.logger.warn(
+          DATA_FETCHER_WARNING_MESSAGES.SLOW_RESPONSE.replace(
+            "{processingTimeMs}",
+            apiDuration.toString(),
+          ),
+          {
             provider,
             capability,
+            processingTimeMs: apiDuration,
             symbolsCount: symbols.length,
-            timePerSymbol:
-              symbols.length > 0 ? processingTimeMs / symbols.length : 0,
-            componentType: "data_fetcher",
-            requestId,
           },
-        });
-      });
+        );
+      }
 
-      // 6. 构建结果
-      const result: RawDataResult = {
+      // 6. 返回标准化结果
+      return {
         data: processedData,
         metadata: {
           provider,
           capability,
-          processingTimeMs: processingTimeMs,
+          processingTimeMs: apiDuration,
           symbolsProcessed: symbols.length,
         },
       };
-
-      this.logger.debug(
-        "原始数据获取成功",
+    } catch (error) {
+      // 错误日志 - 标准化：统一错误日志格式
+      this.logger.error(
+        `Data fetch failed for ${provider}.${capability}`,
         sanitizeLogData({
-          requestId,
           provider,
           capability,
-          processingTimeMs,
-          symbolsProcessed: symbols.length,
-          dataCount: processedData.length,
-          operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+          requestId,
+          error: error.message,
+          symbolsCount: symbols.length,
+          symbols: symbols.slice(0, DATA_FETCHER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT),
         }),
       );
 
-      return result;
-    } catch (error) {
-      const processingTimeMs = Date.now() - startTime;
-
-      // 记录失败的外部API调用 - 事件驱动方式
-      setImmediate(() => {
-        try {
-          this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-            timestamp: new Date(),
-            source: "data_fetcher",
-            metricType: "external_api",
-            metricName: "api_call_failed",
-            metricValue: processingTimeMs,
-            tags: {
-              provider,
-              capability,
-              status: "error",
-              requestId,
-              error: error.message,
-              symbolsCount: symbols.length,
-            },
-          });
-        } catch (monitorError) {
-          // 忽略监控事件发送失败
-        }
-      });
-
-      this.logger.error(
-        "原始数据获取失败",
-        sanitizeLogData({
-          requestId,
+      // 发送错误事件 - 标准化：统一错误事件格式
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: "data_fetcher",
+        metricType: "external_api",
+        metricName: "api_call_failed",
+        metricValue: 0,
+        tags: {
           provider,
           capability,
           error: error.message,
-          processingTimeMs,
-          symbolsCount: symbols.length,
-          operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-        }),
-      );
+          status: "error"
+        },
+      });
 
-      throw new BadRequestException(
-        DATA_FETCHER_ERROR_MESSAGES.DATA_FETCH_FAILED.replace(
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+
+      throw UniversalExceptionFactory.createBusinessException({
+        message: DATA_FETCHER_ERROR_MESSAGES.DATA_FETCH_FAILED.replace(
           "{error}",
           error.message,
         ),
-      );
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+        component: ComponentIdentifier.DATA_FETCHER,
+        context: { provider, capability, requestId, symbolsCount: symbols.length },
+      });
     }
   }
 
@@ -268,60 +217,33 @@ export class DataFetcherService implements IDataFetcher {
    */
   async getProviderContext(provider: string): Promise<any> {
     try {
-      const providerInstance =
-        this.capabilityRegistryService.getProvider(provider);
+      // Предполагаем, что этот метод существует или будет добавлен
+      const contextService = await this.getContextServiceForProvider(provider);
 
-      if (!providerInstance) {
-        throw new NotFoundException(`Provider ${provider} not registered`);
-      }
-
-      if (typeof providerInstance.getContextService !== "function") {
-        throw new NotFoundException(
-          `Provider ${provider} context service not available`,
-        );
-      }
-
-      // 记录数据库操作 - 获取provider上下文可能涉及数据库查询
-      const startTime = Date.now();
-      const result = await providerInstance.getContextService();
-      const duration = Date.now() - startTime;
-
-      // 记录数据库操作性能指标 - 事件驱动方式
-      setImmediate(() => {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_fetcher",
-          metricType: "database",
-          metricName: "provider_context_query",
-          metricValue: duration,
-          tags: {
+      if (!contextService) {
+        throw UniversalExceptionFactory.createBusinessException({
+          message: DATA_FETCHER_ERROR_MESSAGES.CONTEXT_SERVICE_NOT_AVAILABLE.replace(
+            "{provider}",
             provider,
-            operation: "get_context_service",
-            status: "success",
-          },
+          ),
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
+          component: ComponentIdentifier.DATA_FETCHER,
+          context: { provider },
         });
-      });
-
-      return result;
-    } catch (error) {
-      // 简化的错误处理：增强现有异常信息
-      if (error instanceof NotFoundException) {
-        // 保持原异常类型，增强错误信息
-        throw new NotFoundException(
-          `${error.message} [Context: DataFetcher.getProviderContext]`,
-        );
       }
 
-      // 增强日志信息
-      this.logger.error("Provider context service error", {
-        provider,
-        error: error.message,
-        stack: error.stack, // 添加堆栈信息
-        operation: DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
-      });
-
-      throw new ServiceUnavailableException(
-        `Provider ${provider} context service failed: ${error.message}`,
+      return contextService;
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      
+      throw UniversalExceptionFactory.createFromError(
+        error,
+        DATA_FETCHER_OPERATIONS.GET_PROVIDER_CONTEXT,
+        ComponentIdentifier.DATA_FETCHER,
+        { provider }
       );
     }
   }
@@ -436,7 +358,12 @@ export class DataFetcherService implements IDataFetcher {
         contextService: await this.getProviderContext(request.provider),
       };
 
-      const result = await this.fetchRawData(params);
+      const result = await UniversalRetryHandler.standardRetry(
+        async () => await this.fetchRawData(params),
+        DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+        ComponentIdentifier.DATA_FETCHER
+      );
+
       return DataFetchResponseDto.success(
         result.data,
         result.metadata.provider,
@@ -450,7 +377,7 @@ export class DataFetcherService implements IDataFetcher {
         provider: request.provider,
         capability: request.capability,
         requestId: request.requestId,
-        error: error.message,
+        error: error instanceof BusinessException ? error.getDetailedInfo() : error.message,
         operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
       });
 
@@ -466,26 +393,35 @@ export class DataFetcherService implements IDataFetcher {
    * @returns 能力实例
    * @throws NotFoundException 当能力不存在时
    */
-  private async getCapability(
-    provider: string,
-    capability: string,
-  ): Promise<any> {
-    const cap = this.capabilityRegistryService.getCapability(
-      provider,
-      capability,
-    );
+  private async checkCapability(provider: string, capability: string): Promise<void> {
+    try {
+      // Предполагаем, что этот метод существует или будет добавлен
+      const hasCapability = await this.hasCapability(provider, capability);
 
-    if (!cap) {
-      const errorMessage =
-        DATA_FETCHER_ERROR_MESSAGES.CAPABILITY_NOT_SUPPORTED.replace(
-          "{provider}",
-          provider,
-        ).replace("{capability}", capability);
-
-      throw new NotFoundException(errorMessage);
+      if (!hasCapability) {
+        throw UniversalExceptionFactory.createBusinessException({
+          message: DATA_FETCHER_ERROR_MESSAGES.CAPABILITY_NOT_SUPPORTED.replace(
+            "{provider}",
+            provider,
+          ).replace("{capability}", capability),
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: DATA_FETCHER_OPERATIONS.CHECK_CAPABILITY,
+          component: ComponentIdentifier.DATA_FETCHER,
+          context: { provider, capability },
+        });
+      }
+    } catch (error) {
+      if (error instanceof BusinessException) {
+        throw error;
+      }
+      
+      throw UniversalExceptionFactory.createFromError(
+        error,
+        DATA_FETCHER_OPERATIONS.CHECK_CAPABILITY,
+        ComponentIdentifier.DATA_FETCHER,
+        { provider, capability }
+      );
     }
-
-    return cap;
   }
 
   /**
@@ -633,5 +569,46 @@ export class DataFetcherService implements IDataFetcher {
     );
 
     return new DataFetchResponseDto([], metadata, true);
+  }
+
+  /**
+   * Вспомогательный метод для получения контекстного сервиса провайдера
+   */
+  private async getContextServiceForProvider(provider: string): Promise<any> {
+    // Реализация метода для работы с EnhancedCapabilityRegistryService
+    const providerInstance = this.capabilityRegistryService.getProvider(provider);
+    
+    if (!providerInstance) {
+      return null;
+    }
+    
+    if (typeof providerInstance.getContextService !== "function") {
+      return null;
+    }
+    
+    return await providerInstance.getContextService();
+  }
+
+  /**
+   * Вспомогательный метод для выполнения возможности
+   */
+  private async executeCapability(
+    provider: string, 
+    capability: string, 
+    params: any
+  ): Promise<any> {
+    const cap = this.capabilityRegistryService.getCapability(provider, capability);
+    if (!cap || typeof cap.execute !== 'function') {
+      return null;
+    }
+    return await cap.execute(params);
+  }
+
+  /**
+   * Вспомогательный метод для проверки наличия возможности
+   */
+  private async hasCapability(provider: string, capability: string): Promise<boolean> {
+    const cap = this.capabilityRegistryService.getCapability(provider, capability);
+    return !!cap;
   }
 }

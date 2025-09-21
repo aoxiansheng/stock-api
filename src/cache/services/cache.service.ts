@@ -5,15 +5,17 @@ import * as msgpack from "msgpack-lite";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import {
   Injectable,
-  ServiceUnavailableException,
   BadRequestException,
   Inject,
   HttpStatus,
 } from "@nestjs/common";
 import {
-  CacheConnectionException,
   CacheSerializationException,
 } from "../exceptions";
+
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { CACHE_ERROR_CODES } from '../constants/cache-error-codes.constants';
 import { ConfigService } from "@nestjs/config";
 // 🎯 复用 common 模块的日志配置
 import Redis from "ioredis";
@@ -71,7 +73,13 @@ export class CacheService {
     });
 
     if (!this.CacheUnifiedConfig) {
-      throw new Error("Cache unified configuration not found");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        operation: 'constructor',
+        message: 'Cache unified configuration not found',
+        context: { service: 'CacheService', configType: 'CacheUnifiedConfig' }
+      });
     }
 
     this.logger.debug("CacheService初始化完成", {
@@ -204,13 +212,32 @@ export class CacheService {
 
       return result === "OK";
     } catch (error) {
-      // 使用标准异常处理
+      // 使用统一异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.SET, key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: CACHE_CORE_OPERATIONS.SET,
+          message: `缓存连接错误: ${CACHE_CORE_OPERATIONS.SET} (key: ${key})`,
+          context: {
+            key,
+            operation: CACHE_CORE_OPERATIONS.SET,
+            connectionError: true,
+            originalError: error.message
+          }
+        });
       }
-      throw new ServiceUnavailableException(
-        `缓存设置失败: ${CACHE_CORE_OPERATIONS.SET} (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: CACHE_CORE_OPERATIONS.SET,
+        message: `缓存设置失败: ${CACHE_CORE_OPERATIONS.SET} (key: ${key})`,
+        context: {
+          key,
+          operation: CACHE_CORE_OPERATIONS.SET,
+          originalError: error.message
+        }
+      });
     }
   }
 
@@ -265,13 +292,32 @@ export class CacheService {
     } catch (error) {
       // 发送监控事件 - 错误导致未命中
       this.emitCacheEvent("get_miss", key, startTime, { error: error.message });
-      // 使用标准异常处理
+      // 使用统一异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.GET, key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: CACHE_CORE_OPERATIONS.GET,
+          message: `缓存连接错误: ${CACHE_CORE_OPERATIONS.GET} (key: ${key})`,
+          context: {
+            key,
+            operation: CACHE_CORE_OPERATIONS.GET,
+            connectionError: true,
+            originalError: error.message
+          }
+        });
       }
-      throw new ServiceUnavailableException(
-        `缓存获取失败: ${CACHE_CORE_OPERATIONS.GET} (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        operation: CACHE_CORE_OPERATIONS.GET,
+        message: `缓存获取失败: ${CACHE_CORE_OPERATIONS.GET} (key: ${key})`,
+        context: {
+          key,
+          operation: CACHE_CORE_OPERATIONS.GET,
+          originalError: error.message
+        }
+      });
     }
   }
 
@@ -336,16 +382,34 @@ export class CacheService {
         return await callback();
       }
     } catch (error) {
-      // 使用标准异常处理
+      // 使用统一异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(
-          CACHE_CORE_OPERATIONS.GET_OR_SET,
-          key,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'getOrSet',
+          message: 'Cache connection failed during get or set operation',
+          context: {
+            key,
+            operation: CACHE_CORE_OPERATIONS.GET_OR_SET,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `缓存获取或设置失败: ${CACHE_CORE_OPERATIONS.GET_OR_SET} (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'getOrSet',
+        message: 'Cache get or set operation failed',
+        context: {
+          key,
+          operation: CACHE_CORE_OPERATIONS.GET_OR_SET,
+          originalError: (error as Error).message,
+          errorType: CACHE_ERROR_CODES.OPERATION_TIMEOUT
+        },
+        retryable: true
+      });
     }
   }
 
@@ -358,13 +422,34 @@ export class CacheService {
         ...(Array.isArray(values) ? values : [values]),
       );
     } catch (error) {
-      // 使用标准异常处理
+      // 使用统一异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("listPush", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'listPush',
+          message: 'Cache connection failed during list push operation',
+          context: {
+            key,
+            values: Array.isArray(values) ? values.length : 1,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `列表推送失败: listPush (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'listPush',
+        message: 'Cache list push operation failed',
+        context: {
+          key,
+          values: Array.isArray(values) ? values.length : 1,
+          originalError: (error as Error).message,
+          errorType: CACHE_ERROR_CODES.OPERATION_TIMEOUT
+        },
+        retryable: true
+      });
     }
   }
 
@@ -372,13 +457,36 @@ export class CacheService {
     try {
       return await this.redis.ltrim(key, start, stop);
     } catch (error) {
-      // 使用标准异常处理
+      // 使用统一异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("listTrim", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'listTrim',
+          message: 'Cache connection failed during list trim operation',
+          context: {
+            key,
+            start,
+            stop,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `列表修剪失败: listTrim (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'listTrim',
+        message: 'Cache list trim operation failed',
+        context: {
+          key,
+          start,
+          stop,
+          originalError: (error as Error).message,
+          errorType: CACHE_ERROR_CODES.OPERATION_TIMEOUT
+        },
+        retryable: true
+      });
     }
   }
 
@@ -412,14 +520,34 @@ export class CacheService {
         ...(Array.isArray(members) ? members : [members]),
       );
     } catch (error) {
-      // 使用Cache专用异常
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("setAdd", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'setAdd',
+          message: 'Cache connection failed during set add operation',
+          context: {
+            key,
+            members: Array.isArray(members) ? members : [members],
+            operation: 'setAdd',
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `集合添加失败: setAdd (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'setAdd',
+        message: 'Set add operation failed',
+        context: {
+          key,
+          members: Array.isArray(members) ? members : [members],
+          operation: 'setAdd',
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -469,14 +597,34 @@ export class CacheService {
         ...(Array.isArray(members) ? members : [members]),
       );
     } catch (error) {
-      // 使用Cache专用异常
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("setRemove", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'setRemove',
+          message: 'Cache connection failed during set remove operation',
+          context: {
+            key,
+            members: Array.isArray(members) ? members : [members],
+            operation: 'setRemove',
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `集合移除失败: setRemove (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'setRemove',
+        message: 'Set remove operation failed',
+        context: {
+          key,
+          members: Array.isArray(members) ? members : [members],
+          operation: 'setRemove',
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -490,14 +638,36 @@ export class CacheService {
     try {
       return await this.redis.hincrby(key, field, value);
     } catch (error) {
-      // 使用Cache专用异常
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("hashIncrementBy", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'hashIncrementBy',
+          message: 'Cache connection failed during hash increment operation',
+          context: {
+            key,
+            field,
+            value,
+            operation: 'hashIncrementBy',
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `哈希增加失败: hashIncrementBy (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'hashIncrementBy',
+        message: 'Hash increment operation failed',
+        context: {
+          key,
+          field,
+          value,
+          operation: 'hashIncrementBy',
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -505,14 +675,36 @@ export class CacheService {
     try {
       return await this.redis.hset(key, field, value);
     } catch (error) {
-      // 使用Cache专用异常
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("hashSet", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'hashSet',
+          message: 'Cache connection failed during hash set operation',
+          context: {
+            key,
+            field,
+            value,
+            operation: 'hashSet',
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `哈希设置失败: hashSet (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'hashSet',
+        message: 'Hash set operation failed',
+        context: {
+          key,
+          field,
+          value,
+          operation: 'hashSet',
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -541,14 +733,34 @@ export class CacheService {
     try {
       return (await this.redis.expire(key, seconds)) === 1;
     } catch (error) {
-      // 使用Cache专用异常
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("expire", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'expire',
+          message: 'Cache connection failed during expire operation',
+          context: {
+            key,
+            seconds,
+            operation: 'expire',
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `设置过期失败: expire (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'expire',
+        message: 'Expire operation failed',
+        context: {
+          key,
+          seconds,
+          operation: 'expire',
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -564,9 +776,18 @@ export class CacheService {
     const maxBatchSize = this.CacheUnifiedConfig.maxBatchSize;
     if (keys.length > maxBatchSize) {
       // 使用标准异常处理
-      throw new BadRequestException(
-        `批量获取超过限制: 请求${keys.length}个键，最大允许${maxBatchSize}个`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'mget',
+        message: `Batch get operation exceeds limit: requested ${keys.length} keys, maximum allowed ${maxBatchSize}`,
+        context: {
+          requestedKeys: keys.length,
+          maxAllowed: maxBatchSize,
+          operation: 'mget',
+          validationRule: 'maxBatchSize'
+        }
+      });
     }
 
     const startTime = Date.now();
@@ -611,16 +832,35 @@ export class CacheService {
           batch: true,
         }),
       );
-      // 🔧 简化异常处理: 使用标净NestJS异常
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(
-          CACHE_CORE_OPERATIONS.MGET,
-          keys.join(","),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'mget',
+          message: 'Cache connection failed during batch get operation',
+          context: {
+            keys: keys.join(","),
+            batchSize: keys.length,
+            operation: CACHE_CORE_OPERATIONS.MGET,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `批量获取操作失败: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'mget',
+        message: 'Batch get operation failed',
+        context: {
+          keys: keys.join(","),
+          batchSize: keys.length,
+          operation: CACHE_CORE_OPERATIONS.MGET,
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED,
+          errorMessage: error.message
+        },
+        retryable: false
+      });
     }
 
     return result;
@@ -639,9 +879,18 @@ export class CacheService {
     const maxBatchSize = this.CacheUnifiedConfig.maxBatchSize;
     if (entries.size > maxBatchSize) {
       // 使用标准异常处理
-      throw new BadRequestException(
-        `批量设置超过限制: 请求${entries.size}个条目，最大允许${maxBatchSize}个`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'mset',
+        message: `Batch set operation exceeds limit: requested ${entries.size} entries, maximum allowed ${maxBatchSize}`,
+        context: {
+          requestedEntries: entries.size,
+          maxAllowed: maxBatchSize,
+          operation: 'mset',
+          validationRule: 'maxBatchSize'
+        }
+      });
     }
 
     const startTime = Date.now();
@@ -670,14 +919,36 @@ export class CacheService {
 
       return results.every((result) => result[1] === "OK");
     } catch (error) {
-      // 🔧 简化异帰处理: 使用标准NestJS异常
       if (this.isConnectionError(error)) {
         const keyList = Array.from(entries.keys()).join(",");
-        throw new CacheConnectionException(CACHE_CORE_OPERATIONS.MSET, keyList);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'mset',
+          message: 'Cache connection failed during batch set operation',
+          context: {
+            keys: keyList,
+            batchSize: entries.size,
+            operation: CACHE_CORE_OPERATIONS.MSET,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `批量设置操作失败: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'mset',
+        message: 'Batch set operation failed',
+        context: {
+          keys: Array.from(entries.keys()).join(","),
+          batchSize: entries.size,
+          operation: CACHE_CORE_OPERATIONS.MSET,
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED,
+          errorMessage: error.message
+        },
+        retryable: false
+      });
     }
   }
 
@@ -692,18 +963,33 @@ export class CacheService {
         return await this.redis.del(key);
       }
     } catch (error) {
-      // 使用Cache专用异常
       const cacheKey = Array.isArray(key) ? key.join(",") : key;
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(
-          CACHE_CORE_OPERATIONS.DELETE,
-          cacheKey,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'del',
+          message: 'Cache connection failed during delete operation',
+          context: {
+            key: cacheKey,
+            operation: CACHE_CORE_OPERATIONS.DELETE,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `缓存删除失败: ${CACHE_CORE_OPERATIONS.DELETE} (key: ${cacheKey})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'del',
+        message: 'Delete operation failed',
+        context: {
+          key: cacheKey,
+          operation: CACHE_CORE_OPERATIONS.DELETE,
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -717,17 +1003,32 @@ export class CacheService {
       if (keys.length === 0) return 0;
       return await this.redis.del(...keys);
     } catch (error) {
-      // 使用Cache专用异常
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException(
-          CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
-          pattern,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'delByPattern',
+          message: 'Cache connection failed during pattern delete operation',
+          context: {
+            pattern,
+            operation: CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `模式删除失败: ${CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN} (pattern: ${pattern})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'delByPattern',
+        message: 'Pattern delete operation failed',
+        context: {
+          pattern,
+          operation: CACHE_EXTENDED_OPERATIONS.DELETE_BY_PATTERN,
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 
@@ -820,10 +1121,17 @@ export class CacheService {
         serialized = msgpack.encode(value).toString("base64");
         break;
       default:
-        throw new CacheSerializationException(
-          CACHE_INTERNAL_OPERATIONS.SERIALIZE,
-          serializerType,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+          operation: 'serialize',
+          message: `Unsupported serialization type: ${serializerType}`,
+          context: {
+            serializerType,
+            supportedTypes: ['json', 'msgpack'],
+            operation: CACHE_INTERNAL_OPERATIONS.SERIALIZE
+          }
+        });
     }
 
     // 检查序列化后的大小
@@ -862,10 +1170,17 @@ export class CacheService {
         const buffer = Buffer.from(value, "base64");
         return msgpack.decode(buffer);
       default:
-        throw new CacheSerializationException(
-          CACHE_INTERNAL_OPERATIONS.DESERIALIZE,
-          deserializerType,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+          operation: 'deserialize',
+          message: `Unsupported deserialization type: ${deserializerType}`,
+          context: {
+            deserializerType,
+            supportedTypes: ['json', 'msgpack'],
+            operation: CACHE_INTERNAL_OPERATIONS.DESERIALIZE
+          }
+        });
     }
   }
 
@@ -1142,11 +1457,36 @@ export class CacheService {
     try {
       return await this.redis.eval(script, numKeys, ...args);
     } catch (error) {
-      // 使用标准异常处理
+      // 使用统一异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("eval", args[0] || "lua_script");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'eval',
+          message: 'Cache connection failed during Lua script execution',
+          context: {
+            script: script.substring(0, 50) + (script.length > 50 ? '...' : ''),
+            numKeys,
+            scriptId: args[0] || "lua_script",
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(`Lua脚本执行失败: eval`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'eval',
+        message: 'Lua script execution failed',
+        context: {
+          script: script.substring(0, 50) + (script.length > 50 ? '...' : ''),
+          numKeys,
+          scriptId: args[0] || "lua_script",
+          originalError: (error as Error).message,
+          errorType: CACHE_ERROR_CODES.REDIS_SERVER_ERROR
+        },
+        retryable: false
+      });
     }
   }
 
@@ -1208,13 +1548,32 @@ export class CacheService {
     try {
       return await this.redis.incr(key);
     } catch (error) {
-      // 使用标准异常处理
       if (this.isConnectionError(error)) {
-        throw new CacheConnectionException("incr", key);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.CACHE,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: 'incr',
+          message: 'Cache connection failed during increment operation',
+          context: {
+            key,
+            operation: 'incr',
+            errorType: CACHE_ERROR_CODES.REDIS_CONNECTION_FAILED
+          },
+          retryable: true
+        });
       }
-      throw new ServiceUnavailableException(
-        `计数器增加失败: incr (key: ${key})`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: 'incr',
+        message: 'Increment operation failed',
+        context: {
+          key,
+          operation: 'incr',
+          errorType: CACHE_ERROR_CODES.CONDITIONAL_OPERATION_FAILED
+        },
+        retryable: false
+      });
     }
   }
 }

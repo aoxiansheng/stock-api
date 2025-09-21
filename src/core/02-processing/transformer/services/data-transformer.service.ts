@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { TRANSFORMER_ERROR_CODES } from '../constants/transformer-error-codes.constants';
 
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
@@ -50,7 +52,7 @@ export class DataTransformerService {
     const apiTypeCtx = request.apiType;
 
     this.logger.log(
-      `开始数据转换`,
+      `Starting data transformation`,
       sanitizeLogData({
         provider: request.provider,
         transDataRuleListType: request.transDataRuleListType,
@@ -92,9 +94,19 @@ export class DataTransformerService {
       );
 
       if (!transformMappingRule) {
-        throw new NotFoundException(
-          `${DATATRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: provider '${request.provider}', transDataRuleListType '${request.transDataRuleListType}'`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'transform',
+          message: `No mapping rule found for provider '${request.provider}' and rule type '${request.transDataRuleListType}'`,
+          context: {
+            provider: request.provider,
+            transDataRuleListType: request.transDataRuleListType,
+            mappingOutRuleId: request.mappingOutRuleId,
+            errorType: TRANSFORMER_ERROR_CODES.NO_MAPPING_RULE_FOUND
+          },
+          retryable: false
+        });
       }
 
       const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(
@@ -119,9 +131,20 @@ export class DataTransformerService {
       }
 
       if (successfulTransformations === 0 && dataToProcess.length > 0) {
-        throw new BadRequestException(
-          "Transformation failed for all items in the request.",
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+          operation: 'transform',
+          message: 'Transformation failed for all items in the request',
+          context: {
+            totalItems: dataToProcess.length,
+            successfulTransformations,
+            provider: request.provider,
+            transDataRuleListType: request.transDataRuleListType,
+            errorType: TRANSFORMER_ERROR_CODES.ALL_TRANSFORMATIONS_FAILED
+          },
+          retryable: true
+        });
       }
 
       const finalData = Array.isArray(request.rawData)
@@ -154,7 +177,7 @@ export class DataTransformerService {
           ? "warn"
           : "log";
       this.logger[logLevel](
-        `数据转换成功完成`,
+        `Data transformation completed successfully`,
         sanitizeLogData({
           dataMapperRuleId: transformMappingRule.id,
           recordsProcessed: stats.recordsProcessed,
@@ -190,7 +213,7 @@ export class DataTransformerService {
         processingTimeMs >
         DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
       ) {
-        this.logger.warn(`数据转换性能警告: ${processingTimeMs}ms`, {
+        this.logger.warn(`Data transformation performance warning: ${processingTimeMs}ms`, {
           provider: request.provider,
           transDataRuleListType: request.transDataRuleListType,
           processingTimeMs,
@@ -221,7 +244,7 @@ export class DataTransformerService {
       });
 
       this.logger.error(
-        `数据转换失败`,
+        `Data transformation failed`,
         sanitizeLogData({
           provider: request.provider,
           transDataRuleListType: request.transDataRuleListType,
@@ -242,9 +265,21 @@ export class DataTransformerService {
         throw error; // 直接传播业务逻辑异常
       }
 
-      throw new BadRequestException(
-        `${DATATRANSFORM_ERROR_MESSAGES.TRANSFORMATION_FAILED}: ${error.message}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.TRANSFORMER,
+        errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+        operation: 'transform',
+        message: `Data transformation failed: ${error.message}`,
+        context: {
+          provider: request.provider,
+          transDataRuleListType: request.transDataRuleListType,
+          originalError: error.message,
+          processingTimeMs: Date.now() - startTime,
+          errorType: TRANSFORMER_ERROR_CODES.TRANSFORMATION_FAILED
+        },
+        retryable: true,
+        originalError: error
+      });
     }
   }
 
@@ -263,15 +298,32 @@ export class DataTransformerService {
 
     // 🎯 使用 common 模块的配置常量进行批量大小检查
     if (requests.length === 0) {
-      throw new BadRequestException(
-        `${DATATRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: 批量请求不能为空`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.TRANSFORMER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'transformBatch',
+        message: 'Batch request cannot be empty',
+        context: {
+          batchSize: requests.length,
+          errorType: TRANSFORMER_ERROR_CODES.EMPTY_BATCH_REQUEST
+        },
+        retryable: false
+      });
     }
 
     if (requests.length > DATATRANSFORM_CONFIG.MAX_BATCH_SIZE) {
-      throw new BadRequestException(
-        `${DATATRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: 批量大小 ${requests.length} 超过最大限制 ${DATATRANSFORM_CONFIG.MAX_BATCH_SIZE}`,
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.TRANSFORMER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'transformBatch',
+        message: `Batch size ${requests.length} exceeds maximum limit ${DATATRANSFORM_CONFIG.MAX_BATCH_SIZE}`,
+        context: {
+          batchSize: requests.length,
+          maxAllowed: DATATRANSFORM_CONFIG.MAX_BATCH_SIZE,
+          errorType: TRANSFORMER_ERROR_CODES.BATCH_SIZE_EXCEEDED
+        },
+        retryable: false
+      });
     }
 
     this.logger.log(
@@ -281,7 +333,7 @@ export class DataTransformerService {
         options,
         maxAllowed: DATATRANSFORM_CONFIG.MAX_BATCH_SIZE,
       },
-      "开始优化批量转换",
+      "Starting optimized batch transformation",
     );
 
     // Group requests by a unique rule identifier
@@ -310,9 +362,19 @@ export class DataTransformerService {
           if (!transformMappingRule) {
             // Handle case where no rule is found for the group
             // For batch operations, we throw exceptions that will be caught by the batch handler
-            throw new NotFoundException(
-              `${DATATRANSFORM_ERROR_MESSAGES.NO_MAPPING_RULE}: key '${ruleKey}'`,
-            );
+            throw UniversalExceptionFactory.createBusinessException({
+              component: ComponentIdentifier.TRANSFORMER,
+              errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+              operation: 'transformBatch',
+              message: `No mapping rule found for rule key: ${ruleKey}`,
+              context: {
+                ruleKey,
+                provider: firstReq.provider,
+                transDataRuleListType: firstReq.transDataRuleListType,
+                errorType: TRANSFORMER_ERROR_CODES.NO_MAPPING_RULE_FOUND
+              },
+              retryable: false
+            });
           }
 
           // Apply the single rule to all requests in the group, in parallel
@@ -324,9 +386,20 @@ export class DataTransformerService {
         } catch (error) {
           if (!options.continueOnError) throw error;
           // For batch operations, we throw exceptions that will be caught by the batch handler
-          throw new BadRequestException(
-            `${DATATRANSFORM_ERROR_MESSAGES.BATCH_TRANSFORMATION_FAILED}: ${error.message}`,
-          );
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.TRANSFORMER,
+            errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+            operation: 'transformBatch',
+            message: `Batch transformation failed: ${error.message}`,
+            context: {
+              ruleKey,
+              groupSize: groupedRequests.length,
+              originalError: error.message,
+              errorType: TRANSFORMER_ERROR_CODES.BATCH_TRANSFORMATION_FAILED
+            },
+            retryable: true,
+            originalError: error
+          });
         }
       },
     );
@@ -345,7 +418,7 @@ export class DataTransformerService {
         failedCount++;
         this.logger.error(
           { operation, error: result.reason.message },
-          "transformBatch中的组Promise被拒绝",
+          "Group Promise rejected in transformBatch",
         );
       }
     });
@@ -379,7 +452,7 @@ export class DataTransformerService {
         successful: finalResponses.length,
         failed: requests.length - finalResponses.length,
       },
-      "优化批量转换完成",
+      "Optimized batch transformation completed",
     );
 
     return finalResponses;
@@ -403,9 +476,20 @@ export class DataTransformerService {
         );
 
       if (!result.success) {
-        throw new BadRequestException(
-          result.errorMessage || "Transformation failed",
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+          operation: '_executeSingleTransform',
+          message: result.errorMessage || 'Single transformation failed',
+          context: {
+            ruleId: transformMappingRule.id,
+            ruleName: transformMappingRule.name,
+            provider: request.provider,
+            transDataRuleListType: request.transDataRuleListType,
+            errorType: TRANSFORMER_ERROR_CODES.RULE_APPLICATION_FAILED
+          },
+          retryable: true
+        });
       }
 
       const transformedData = result.transformedData;
@@ -435,7 +519,7 @@ export class DataTransformerService {
           ? "warn"
           : "log";
       this.logger[logLevel](
-        `单次数据转换成功完成`,
+        `Single data transformation completed successfully`,
         sanitizeLogData({
           dataMapperRuleId: transformMappingRule.id,
           recordsProcessed: stats.recordsProcessed,
@@ -447,7 +531,7 @@ export class DataTransformerService {
         processingTimeMs >
         DATATRANSFORM_PERFORMANCE_THRESHOLDS.SLOW_TRANSFORMATION_MS
       ) {
-        this.logger.warn(`单次数据转换性能警告: ${processingTimeMs}ms`, {
+        this.logger.warn(`Single data transformation performance warning: ${processingTimeMs}ms`, {
           dataMapperRuleId: transformMappingRule.id,
           processingTimeMs,
         });
@@ -456,7 +540,7 @@ export class DataTransformerService {
       return new DataTransformResponseDto(transformedData, metadata);
     } catch (error: any) {
       this.logger.error(
-        `单次数据转换失败`,
+        `Single data transformation failed`,
         sanitizeLogData({
           dataMapperRuleId: transformMappingRule.id,
           error: error.message,
@@ -512,7 +596,7 @@ export class DataTransformerService {
         }, 0);
 
         this.logger.debug(
-          "选择的映射规则命中统计",
+          "Selected mapping rule hit statistics",
           sanitizeLogData({
             provider,
             transDataRuleListType,

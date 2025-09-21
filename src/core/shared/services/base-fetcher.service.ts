@@ -3,6 +3,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import { NotFoundException } from "@nestjs/common";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
 /**
  * BaseFetcherService 抽象基类 - 🚫 不可直接实例化
@@ -169,10 +170,10 @@ export abstract class BaseFetcherService {
     operation: string,
     context: Record<string, any> = {},
   ): Error {
-    const errorMessage = error?.message || "未知错误";
+    const errorMessage = error?.message || "Unknown error";
 
     this.logger.error(
-      `${operation}失败`,
+      `Operation failed: ${operation}`,
       sanitizeLogData({
         ...context,
         error: errorMessage,
@@ -185,7 +186,19 @@ export abstract class BaseFetcherService {
       return error;
     }
 
-    throw new Error(`${operation}失败: ${errorMessage}`);
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.SHARED,
+      errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      operation,
+      message: `Operation failed: ${errorMessage}`,
+      context: {
+        operation,
+        originalError: errorMessage,
+        errorType: error?.constructor?.name || "Unknown",
+        ...context
+      },
+      retryable: true
+    });
   }
 
   // ✅ 事件驱动外部API调用监控

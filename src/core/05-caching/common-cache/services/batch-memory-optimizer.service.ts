@@ -3,6 +3,9 @@ import { ConfigService } from "@nestjs/config";
 import { createLogger } from "@common/logging/index";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 /**
  * 内存使用统计接口
  */
@@ -184,7 +187,19 @@ export class BatchMemoryOptimizerService {
 
             // 如果清理后仍然超限，减小批量大小
             if (this.getCurrentMemoryUsage() > opts.maxMemoryUsage) {
-              throw new Error("Memory usage exceeds limit even after cleanup");
+              throw UniversalExceptionFactory.createBusinessException({
+                component: ComponentIdentifier.COMMON_CACHE,
+                errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+                operation: 'optimizeBatch',
+                message: 'Memory usage exceeds limit even after cleanup',
+                context: {
+                  currentMemoryUsage: this.getCurrentMemoryUsage(),
+                  maxMemoryUsage: opts.maxMemoryUsage,
+                  batchSize: batch.items.length,
+                  itemCount: items.length,
+                  operation: 'batch_memory_optimization'
+                }
+              });
             }
           }
 

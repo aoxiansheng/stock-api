@@ -14,6 +14,7 @@ import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/sy
 import { SymbolMappingRepository } from "../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository";
 import { SymbolMappingRule } from "../../../00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema";
 import { createLogger } from "@common/logging/index";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 import {
   BatchMappingResult,
   RedisCacheRuntimeStatsDto,
@@ -99,7 +100,12 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         await this.changeStream.close();
         this.logger.log("Change Stream 已关闭");
       } catch (error) {
-        this.logger.error("关闭 Change Stream 失败", { error: error.message });
+        // Use unified error handling for Change Stream closure failures
+        this.logger.error("关闭 Change Stream 失败", {
+          error: error.message,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE
+        });
+        // Don't throw during module destruction - just log the error
       }
     }
 
@@ -303,11 +309,13 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
               direction,
             );
           } catch (error) {
-            this.logger.error("Uncached query failed", {
-              queryKey,
-              error: error.message,
-            });
-            throw error;
+            // Use unified error handling for database query failures
+            throw UniversalExceptionFactory.createFromError(
+              error as Error,
+              'batchMapSymbols',
+              ComponentIdentifier.SYMBOL_MAPPER_CACHE,
+              { queryKey, provider, symbolCount: symbolArray.length, direction }
+            );
           } finally {
             this.pendingQueries.delete(queryKey);
           }
@@ -355,14 +363,19 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
 
       return finalResult;
     } catch (error) {
-      this.logger.error("Symbol mapping failed", {
-        provider,
-        symbolsCount: symbolArray.length,
-        direction,
-        error: error.message,
-        requestId,
-      });
-      throw error;
+      // Use unified error handling for symbol mapping failures
+      throw UniversalExceptionFactory.createFromError(
+        error as Error,
+        'batchMapSymbols',
+        ComponentIdentifier.SYMBOL_MAPPER_CACHE,
+        {
+          provider,
+          symbolsCount: symbolArray.length,
+          direction,
+          requestId,
+          operation: 'symbol_mapping'
+        }
+      );
     }
   }
 
@@ -619,11 +632,12 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
 
       return rules;
     } catch (error) {
-      // 数据库查询失败时返回空数组作为默认值
+      // 数据库查询失败时返回空数组作为默认值 - use unified error handling for logging
       this.logger.error("Database query failed, returning empty rules as fallback", {
         provider: provider.toLowerCase(),
         rulesKey,
         error: error.message,
+        errorCode: BusinessErrorCode.DATABASE_ERROR,
         fallbackStrategy: "empty_rules_array",
       });
 
@@ -870,9 +884,12 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         watchEvents: ["insert", "update", "delete"],
       });
     } catch (error) {
+      // Use unified error handling for Change Stream setup failures
       this.logger.error("Failed to setup Change Stream monitoring", {
         error: error.message,
         stack: error.stack,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        service: 'change_stream_monitoring'
       });
       this.isMonitoringActive = false;
       this.scheduleReconnection();
@@ -1207,8 +1224,11 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         this.lastMemoryCleanup = new Date();
       }
     } catch (error) {
+      // Use unified error handling for memory monitoring failures
       this.logger.error("Memory usage check failed", {
         error: error.message,
+        errorCode: BusinessErrorCode.INTERNAL_ERROR,
+        operation: 'memory_monitoring'
       });
     }
   }
@@ -1375,10 +1395,12 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
         "Advanced LRU cleanup failed, falling back to simple clear",
         {
           error: error.message,
+          errorCode: BusinessErrorCode.INTERNAL_ERROR,
           currentSize,
           keepCount,
           processingTimeMs,
           fallbackStrategy: "simple_clear",
+          operation: 'lru_cleanup'
         },
       );
 

@@ -6,6 +6,8 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
@@ -130,7 +132,17 @@ export class RuleAlignmentService {
       // 1. 获取模板
       const template = await this.templateModel.findById(templateId);
       if (!template) {
-        throw new NotFoundException(`模板未找到: ${templateId}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'createRuleFromTemplate',
+          message: `Template not found: ${templateId}`,
+          context: {
+            templateId,
+            errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+          },
+          retryable: false
+        });
       }
 
       // 2. 检查规则是否已存在
@@ -144,7 +156,19 @@ export class RuleAlignmentService {
       });
 
       if (existingRule) {
-        throw new BadRequestException(`规则已存在: ${generatedRuleName}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+          operation: 'createRuleFromTemplate',
+          message: `Rule already exists: ${generatedRuleName}`,
+          context: {
+            ruleName: generatedRuleName,
+            templateId,
+            transDataRuleListType,
+            errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_ALREADY_EXISTS
+          },
+          retryable: false
+        });
       }
 
       // 3. 自动对齐字段
@@ -235,14 +259,33 @@ export class RuleAlignmentService {
       // 1. 获取规则和关联模板
       const rule = await this.ruleModel.findById(dataMapperRuleId);
       if (!rule) {
-        throw new NotFoundException(`规则未找到: ${dataMapperRuleId}`);
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'realignExistingRule',
+          message: `Rule not found: ${dataMapperRuleId}`,
+          context: {
+            ruleId: dataMapperRuleId,
+            errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+          },
+          retryable: false
+        });
       }
 
       const template = await this.templateModel.findById(rule.sourceTemplateId);
       if (!template) {
-        throw new BadRequestException(
-          `规则关联的模板未找到: ${rule.sourceTemplateId}`,
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'realignExistingRule',
+          message: `Associated template not found for rule: ${rule.sourceTemplateId}`,
+          context: {
+            ruleId: dataMapperRuleId,
+            templateId: rule.sourceTemplateId,
+            errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+          },
+          retryable: false
+        });
       }
 
       // 2. 保存原有字段映射
@@ -340,7 +383,17 @@ export class RuleAlignmentService {
 
     const rule = await this.ruleModel.findById(dataMapperRuleId);
     if (!rule) {
-      throw new NotFoundException(`规则未找到: ${dataMapperRuleId}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'manualAdjustFieldMapping',
+        message: `Rule not found: ${dataMapperRuleId}`,
+        context: {
+          ruleId: dataMapperRuleId,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
 
     let fieldMappings = [...rule.fieldMappings];
@@ -375,9 +428,18 @@ export class RuleAlignmentService {
             (mapping) => mapping.sourceFieldPath === adjustment.sourceField,
           );
           if (mappingIndex === -1) {
-            throw new NotFoundException(
-              `字段映射未找到: ${adjustment.sourceField}`,
-            );
+            throw UniversalExceptionFactory.createBusinessException({
+              component: ComponentIdentifier.DATA_MAPPER,
+              errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+              operation: 'manualAdjustFieldMapping',
+              message: `Field mapping not found: ${adjustment.sourceField}`,
+              context: {
+                ruleId: dataMapperRuleId,
+                sourceField: adjustment.sourceField,
+                errorType: DATA_MAPPER_ERROR_CODES.INVALID_FIELD_MAPPING
+              },
+              retryable: false
+            });
           }
           if (adjustment.newTargetField) {
             fieldMappings[mappingIndex].targetField = adjustment.newTargetField;
@@ -420,17 +482,44 @@ export class RuleAlignmentService {
   ) {
     // 参数验证
     if (!template) {
-      throw new BadRequestException("模板参数必须提供");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'previewAlignment',
+        message: 'Template parameter is required',
+        context: {
+          errorType: DATA_MAPPER_ERROR_CODES.MISSING_REQUIRED_FIELDS
+        },
+        retryable: false
+      });
     }
     if (!transDataRuleListType) {
-      throw new BadRequestException("transDataRuleListType参数必须提供");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'previewAlignment',
+        message: 'transDataRuleListType parameter is required',
+        context: {
+          errorType: DATA_MAPPER_ERROR_CODES.MISSING_REQUIRED_FIELDS
+        },
+        retryable: false
+      });
     }
     if (
       !["quote_fields", "basic_info_fields"].includes(transDataRuleListType)
     ) {
-      throw new BadRequestException(
-        "transDataRuleListType必须是quote_fields或basic_info_fields",
-      );
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'previewAlignment',
+        message: 'transDataRuleListType must be quote_fields or basic_info_fields',
+        context: {
+          providedType: transDataRuleListType,
+          allowedTypes: ['quote_fields', 'basic_info_fields'],
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_NAME
+        },
+        retryable: false
+      });
     }
 
     try {
@@ -456,7 +545,19 @@ export class RuleAlignmentService {
         transDataRuleListType,
         error: error.message,
       });
-      throw new BadRequestException(`字段对齐预览失败: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+        operation: 'previewAlignment',
+        message: `Field alignment preview failed: ${error.message}`,
+        context: {
+          templateId: template._id?.toString(),
+          transDataRuleListType,
+          originalError: error.message,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_ALIGNMENT_FAILED
+        },
+        retryable: true
+      });
     }
   }
 

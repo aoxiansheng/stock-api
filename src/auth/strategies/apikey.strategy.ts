@@ -1,4 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { AUTH_ERROR_CODES } from "../constants/auth-error-codes.constants";
 import { PassportStrategy } from "@nestjs/passport";
 import type { Request } from "express";
 import { Strategy } from "passport-custom";
@@ -26,14 +28,43 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, "apikey") {
     } catch (error) {
       // 如果是工具类抛出的凭证缺失错误
       if (error.message === "缺少API凭证") {
-        throw new UnauthorizedException("缺少API凭证");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Missing API credentials",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validate',
+          component: ComponentIdentifier.AUTH,
+          context: {
+            authErrorCode: AUTH_ERROR_CODES.MISSING_REQUIRED_PARAMETERS,
+            strategy: 'ApiKeyStrategy'
+          }
+        });
       }
       // 如果是工具类抛出的格式错误
       if (error.message?.includes("API凭证格式无效")) {
-        throw new UnauthorizedException(error.message);
+        throw UniversalExceptionFactory.createBusinessException({
+          message: "Invalid API credential format",
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: 'validate',
+          component: ComponentIdentifier.AUTH,
+          context: {
+            authErrorCode: AUTH_ERROR_CODES.INVALID_API_KEY_FORMAT,
+            strategy: 'ApiKeyStrategy',
+            originalError: error.message
+          }
+        });
       }
       // 其他错误统一处理为凭证无效
-      throw new UnauthorizedException("API凭证无效");
+      throw UniversalExceptionFactory.createBusinessException({
+        message: "Invalid API credentials",
+        errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+        operation: 'validate',
+        component: ComponentIdentifier.AUTH,
+        context: {
+          authErrorCode: AUTH_ERROR_CODES.AUTHENTICATION_FAILED,
+          strategy: 'ApiKeyStrategy',
+          originalError: error.message
+        }
+      });
     }
   }
 }

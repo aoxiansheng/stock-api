@@ -5,6 +5,9 @@ import { createLogger } from "@common/logging/index";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 import { CacheMetadata } from "../interfaces/cache-metadata.interface";
 
+// 统一错误处理基础设施
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
 
@@ -82,7 +85,17 @@ export class CacheCompressionService {
       };
     } catch (error) {
       this.logger.error("Compression failed", error);
-      throw new Error(`Data compression failed: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+        operation: 'compress',
+        message: `Data compression failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          dataSize: Buffer.byteLength(JSON.stringify(data), "utf8"),
+          compressionLevel: CACHE_CONFIG.COMPRESSION.LEVEL
+        }
+      });
     }
   }
 
@@ -171,7 +184,17 @@ export class CacheCompressionService {
       return JSON.parse(decompressedString);
     } catch (error) {
       this.logger.error("Decompression failed", error);
-      throw new Error(`Data decompression failed: ${error.message}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.COMMON_CACHE,
+        errorCode: BusinessErrorCode.DATA_SERIALIZATION_FAILED,
+        operation: 'decompress',
+        message: `Data decompression failed: ${error.message}`,
+        context: {
+          originalError: error.message,
+          hasMetadata: !!metadata,
+          isCompressed: metadata?.compressed || this.isCompressed(compressedData)
+        }
+      });
     }
   }
 

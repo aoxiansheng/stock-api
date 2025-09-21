@@ -1,9 +1,9 @@
 import {
   Injectable,
-  ConflictException,
-  NotFoundException,
   OnModuleInit,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { SYMBOL_MAPPER_ERROR_CODES } from "../constants/symbol-mapper-error-codes.constants";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
@@ -140,12 +140,18 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           },
         });
 
-        throw new ConflictException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_CONFIG_EXISTS.replace(
-            "{dataSourceName}",
-            createDto.dataSourceName,
-          ),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Symbol mapping configuration already exists for data source: ${createDto.dataSourceName}`,
+          errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+          operation: 'createMappingConfig',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            dataSourceName: createDto.dataSourceName,
+            dataSourceExists: true,
+            operation: 'create_mapping_config',
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_ALREADY_EXISTS
+          }
+        });
       }
 
       const created = await this.repository.create(createDto);
@@ -302,12 +308,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     try {
       const mapping = await this.repository.findById(id);
       if (!mapping) {
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_CONFIG_NOT_FOUND.replace(
-            "{id}",
-            id,
-          ),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Symbol mapping configuration not found: ${id}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'getMappingConfigById',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            configId: id,
+            operation: 'find_mapping_config',
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND
+          }
+        });
       }
 
       this.logger.debug(
@@ -371,12 +382,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           },
         });
 
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.DATA_SOURCE_MAPPING_NOT_FOUND.replace(
-            "{dataSourceName}",
-            dataSourceName,
-          ),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Data source mapping not found: ${dataSourceName}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'getMappingConfigByDataSource',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            dataSourceName: dataSourceName,
+            operation: 'find_data_source_mapping',
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_MAPPING_NOT_FOUND
+          }
+        });
       }
 
       // ✅ 事件化监控 - 数据获取成功
@@ -416,7 +432,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
         tags: {
           error: error.message,
           errorType: error.constructor.name,
-          statusCode: error instanceof NotFoundException ? 404 : 500,
+          statusCode: error.status || 500,
         },
       });
 
@@ -497,12 +513,18 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     try {
       const updated = await this.repository.updateById(id, updateDto);
       if (!updated) {
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_CONFIG_NOT_FOUND.replace(
-            "{id}",
-            id,
-          ),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Symbol mapping configuration not found for update: ${id}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'updateMappingConfig',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            configId: id,
+            updateData: updateDto,
+            operation: 'update_mapping_config',
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND
+          }
+        });
       }
 
       this.logger.log(
@@ -559,12 +581,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           },
         });
 
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_CONFIG_NOT_FOUND.replace(
-            "{id}",
-            id,
-          ),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Symbol mapping configuration not found for deletion: ${id}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'deleteMappingConfig',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            configId: id,
+            operation: 'delete_mapping_config',
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND
+          }
+        });
       }
 
       // 事件化监控 - 删除成功
@@ -777,12 +804,16 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           },
         });
 
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.DATA_SOURCE_NOT_FOUND.replace(
-            "{dataSourceName}",
-            addDto.dataSourceName,
-          ),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Data source not found for symbol mapping rule addition: ${addDto.dataSourceName}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'addSymbolMappingRule',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            dataSourceName: addDto.dataSourceName,
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_NOT_FOUND
+          }
+        });
       }
 
       // 事件化监控 - 规则添加成功
@@ -865,12 +896,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       );
 
       if (!updated) {
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.MAPPING_RULE_NOT_FOUND.replace(
-            "{dataSourceName}",
-            updateDto.dataSourceName,
-          ).replace("{standardSymbol}", updateDto.standardSymbol),
-        );
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Symbol mapping rule not found for update: ${updateDto.dataSourceName} - ${updateDto.standardSymbol}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'updateSymbolMappingRule',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
+            dataSourceName: updateDto.dataSourceName,
+            standardSymbol: updateDto.standardSymbol,
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
+          }
+        });
       }
 
       this.logger.log(
@@ -926,12 +962,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       );
 
       if (!updated) {
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.DATA_SOURCE_NOT_FOUND.replace(
-            "{dataSourceName}",
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Data source not found for symbol mapping rule removal: ${dataSourceName}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'removeSymbolMappingRule',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
             dataSourceName,
-          ),
-        );
+            standardSymbol,
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_NOT_FOUND
+          }
+        });
       }
 
       this.logger.log(
@@ -988,12 +1029,17 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       );
 
       if (!updated) {
-        throw new NotFoundException(
-          SYMBOL_MAPPER_ERROR_MESSAGES.DATA_SOURCE_NOT_FOUND.replace(
-            "{dataSourceName}",
+        throw UniversalExceptionFactory.createBusinessException({
+          message: `Data source not found for symbol mapping rule replacement: ${dataSourceName}`,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: 'replaceSymbolMappingRule',
+          component: ComponentIdentifier.SYMBOL_MAPPER,
+          context: {
             dataSourceName,
-          ),
-        );
+            newRulesCount: SymbolMappingRule.length,
+            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_NOT_FOUND
+          }
+        });
       }
 
       this.logger.log(

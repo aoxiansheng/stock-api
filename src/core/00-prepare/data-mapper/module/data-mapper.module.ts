@@ -20,7 +20,7 @@ import { DataSourceTemplateService } from "../services/data-source-template.serv
 import { FlexibleMappingRuleService } from "../services/flexible-mapping-rule.service";
 import { PersistedTemplateService } from "../services/persisted-template.service";
 import { RuleAlignmentService } from "../services/rule-alignment.service";
-import { MappingRuleCacheService } from "../services/mapping-rule-cache.service";
+import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
 
 // 🚀 简化后的Schema（只保留必要的数据结构）
 import {
@@ -60,7 +60,7 @@ import {
     FlexibleMappingRuleService, // 灵活映射规则服务
     PersistedTemplateService, // 预设模板持久化服务
     RuleAlignmentService, // 规则对齐服务
-    MappingRuleCacheService, // 映射规则Redis缓存服务
+    DataMapperCacheService, // 映射规则Redis缓存服务
   ],
   exports: [
     // 导出核心服务供其他模块使用
@@ -69,7 +69,7 @@ import {
     FlexibleMappingRuleService, // 导出灵活映射规则服务
     PersistedTemplateService, // 导出预设模板持久化服务
     RuleAlignmentService, // 导出规则对齐服务
-    MappingRuleCacheService, // 导出映射规则缓存服务
+    DataMapperCacheService, // 导出映射规则缓存服务
   ],
 })
 export class DataMapperModule {}

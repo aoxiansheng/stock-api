@@ -1,5 +1,5 @@
 /**
- * DataFetcher模块常量定义
+ * DataFetcher модуль константы
  */
 
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
@@ -10,7 +10,7 @@ import {
 import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
 
 /**
- * 数据获取操作类型
+ * Операции компонента Data Fetcher
  */
 export const DATA_FETCHER_OPERATIONS = {
   FETCH_RAW_DATA: "fetchRawData",
@@ -19,67 +19,67 @@ export const DATA_FETCHER_OPERATIONS = {
 } as const;
 
 /**
- * 数据获取错误消息
+ * Сообщения об ошибках компонента Data Fetcher
  */
 export const DATA_FETCHER_ERROR_MESSAGES = {
-  PROVIDER_NOT_FOUND: "未找到指定的数据提供商: {provider}",
-  CAPABILITY_NOT_SUPPORTED: "提供商 {provider} 不支持能力 {capability}",
-  CONTEXT_SERVICE_NOT_AVAILABLE: "提供商 {provider} 的上下文服务不可用",
-  DATA_FETCH_FAILED: "数据获取失败: {error}",
-  INVALID_SYMBOLS: "无效的股票代码: {symbols}",
-  EXECUTION_TIMEOUT: "数据获取超时",
-  PARTIAL_FAILURE: "部分股票代码获取失败: {failedSymbols}",
+  PROVIDER_NOT_FOUND: "Provider not found: {provider}",
+  CAPABILITY_NOT_SUPPORTED: "Provider {provider} does not support capability {capability}",
+  CONTEXT_SERVICE_NOT_AVAILABLE: "Context service for provider {provider} is not available",
+  DATA_FETCH_FAILED: "Data fetch failed: {error}",
+  INVALID_SYMBOLS: "Invalid symbols: {symbols}",
+  EXECUTION_TIMEOUT: "Data fetch operation timed out",
+  PARTIAL_FAILURE: "Partial failure for symbols: {failedSymbols}",
 } as const;
 
 /**
- * 数据获取警告消息
+ * Предупреждающие сообщения компонента Data Fetcher
  */
 export const DATA_FETCHER_WARNING_MESSAGES = {
-  SLOW_RESPONSE: "数据获取响应较慢，处理时间: {processingTimeMs}ms",
-  PARTIAL_SUCCESS: "数据获取部分成功，失败数量: {failedCount}",
-  CONTEXT_SERVICE_WARNING: "提供商上下文服务警告: {warning}",
+  SLOW_RESPONSE: "Slow response detected, processing time: {processingTimeMs}ms",
+  PARTIAL_SUCCESS: "Partial success, failed count: {failedCount}",
+  CONTEXT_SERVICE_WARNING: "Provider context service warning: {warning}",
 } as const;
 
 /**
- * 数据获取性能阈值
+ * Пороговые значения производительности
  */
 export const DATA_FETCHER_PERFORMANCE_THRESHOLDS = {
-  /** 慢响应阈值 (毫秒) - 使用统一配置 */
+  /** Порог медленного ответа (мс) - использует единую конфигурацию */
   SLOW_RESPONSE_MS: NUMERIC_CONSTANTS.N_1000,
 
-  /** 每个符号的最大处理时间 (毫秒) */
+  /** Максимальное время обработки на один символ (мс) */
   MAX_TIME_PER_SYMBOL_MS: NUMERIC_CONSTANTS.N_500,
 
-  /** 批量处理的最大符号数量 - 使用统一配置 */
+  /** Максимальное количество символов в пакете - использует единую конфигурацию */
   MAX_SYMBOLS_PER_BATCH: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,
 
-  /** 日志记录的符号数量限制 */
+  /** Ограничение количества символов для логирования */
   LOG_SYMBOLS_LIMIT: 10,
 } as const;
 
 /**
- * 数据获取默认配置
+ * Конфигурация по умолчанию
  */
 export const DATA_FETCHER_DEFAULT_CONFIG = {
-  /** 默认API类型 */
+  /** Тип API по умолчанию */
   DEFAULT_API_TYPE: "rest",
 
-  /** 默认超时时间 (毫秒) - 使用统一配置 */
+  /** Тайм-аут по умолчанию (мс) - использует единую конфигурацию */
   DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,
 
-  /** 默认重试次数 - 使用统一配置 */
+  /** Количество повторных попыток по умолчанию - использует единую конфигурацию */
   DEFAULT_RETRY_COUNT: RETRY_BUSINESS_SCENARIOS.DATA_FETCHER.maxAttempts,
 
-  /** 默认批量大小 - 使用统一配置 */
+  /** Размер пакета по умолчанию - использует единую конфигурацию */
   DEFAULT_BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,
 } as const;
 
 /**
- * 数据获取模块名称
+ * Имя модуля Data Fetcher
  */
 export const DATA_FETCHER_MODULE_NAME = "DataFetcher";
 
 /**
- * 数据获取服务令牌
+ * Токен сервиса Data Fetcher
  */
 export const DATA_FETCHER_SERVICE_TOKEN = "DataFetcherService";

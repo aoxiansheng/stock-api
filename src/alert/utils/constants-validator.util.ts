@@ -5,6 +5,8 @@
 
 import { createLogger } from "@common/logging/index";
 import { ALERT_DEFAULTS } from "../constants";
+import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 /**
  * 验证结果接口
@@ -64,7 +66,17 @@ export class AlertConstantsValidator {
     } else {
       this.logger.error(`验证失败，发现 ${errors.length} 个错误`);
       if (process.env.NODE_ENV === "production") {
-        throw new Error("生产环境常量验证失败");
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.ALERT,
+          errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+          operation: 'validateConstants',
+          message: 'Alert module constants validation failed in production environment',
+          context: {
+            errors: errors,
+            warnings: warnings,
+            environment: process.env.NODE_ENV
+          }
+        });
       }
     }
 

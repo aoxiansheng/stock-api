@@ -8,6 +8,8 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 
 import {
   DataSourceTemplate,
@@ -688,18 +690,48 @@ export class PersistedTemplateService {
   ): Promise<DataSourceTemplateDocument> {
     // 验证ObjectId格式
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`无效的模板ID格式: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getPersistedTemplateById',
+        message: `Invalid template ID format: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     let template;
     try {
       template = await this.templateModel.findById(id);
     } catch {
-      throw new BadRequestException(`无效的模板ID: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'getPersistedTemplateById',
+        message: `Invalid template ID: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     if (!template) {
-      throw new NotFoundException(`持久化模板未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'getPersistedTemplateById',
+        message: `Persisted template not found: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
 
     return template;
@@ -719,7 +751,17 @@ export class PersistedTemplateService {
     );
 
     if (!template) {
-      throw new NotFoundException(`持久化模板未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'updatePersistedTemplate',
+        message: `Persisted template not found: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
 
     this.logger.log(`持久化模板更新成功: ${id}`);
@@ -733,12 +775,33 @@ export class PersistedTemplateService {
     const template = await this.templateModel.findById(id);
 
     if (!template) {
-      throw new NotFoundException(`持久化模板未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'deletePersistedTemplate',
+        message: `Persisted template not found: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
 
     // 不允许删除预设模板
     if (template.isPreset) {
-      throw new BadRequestException("不能删除预设模板");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'deletePersistedTemplate',
+        message: 'Cannot delete preset template',
+        context: {
+          templateId: id,
+          isPreset: template.isPreset,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_APPLICATION_FAILED
+        },
+        retryable: false
+      });
     }
 
     await this.templateModel.findByIdAndDelete(id);
@@ -753,22 +816,63 @@ export class PersistedTemplateService {
   ): Promise<DataSourceTemplateDocument> {
     // 验证ObjectId格式
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`无效的模板ID格式: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'resetPresetTemplateById',
+        message: `Invalid template ID format: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     let template;
     try {
       template = await this.templateModel.findById(id);
     } catch {
-      throw new BadRequestException(`无效的模板ID: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'resetPresetTemplateById',
+        message: `Invalid template ID: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
+        },
+        retryable: false
+      });
     }
 
     if (!template) {
-      throw new NotFoundException(`持久化模板未找到: ${id}`);
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'resetPresetTemplateById',
+        message: `Persisted template not found: ${id}`,
+        context: {
+          templateId: id,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
 
     if (!template.isPreset) {
-      throw new BadRequestException("该模板不是预设模板，无法重置");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        operation: 'resetPresetTemplateById',
+        message: 'This template is not a preset template and cannot be reset',
+        context: {
+          templateId: id,
+          isPreset: template.isPreset,
+          errorType: DATA_MAPPER_ERROR_CODES.RULE_APPLICATION_FAILED
+        },
+        retryable: false
+      });
     }
 
     // 找到对应原始配置
@@ -780,7 +884,20 @@ export class PersistedTemplateService {
     );
 
     if (!originalConfig) {
-      throw new BadRequestException("未找到对应的预设模板配置");
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: 'resetPresetTemplateById',
+        message: 'Corresponding preset template configuration not found',
+        context: {
+          templateId: id,
+          templateName: template.name,
+          provider: template.provider,
+          apiType: template.apiType,
+          errorType: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
+        },
+        retryable: false
+      });
     }
 
     await this.templateModel.findByIdAndUpdate(id, {

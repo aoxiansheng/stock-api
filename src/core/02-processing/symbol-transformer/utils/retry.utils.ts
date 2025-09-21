@@ -4,7 +4,8 @@ import {
   CircuitBreakerConfig,
   CIRCUIT_BREAKER_BUSINESS_SCENARIOS,
 } from "@common/constants/domain/circuit-breaker-domain.constants";
-import { ErrorType } from "../constants/symbol-transformer-enhanced.constants";
+import { ErrorType, SYMBOL_TRANSFORMER_ERROR_CODES } from "../constants/symbol-transformer-enhanced.constants";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
 /**
  * 重试配置接口
@@ -251,7 +252,20 @@ class CircuitBreakerState {
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (this.state === CircuitState.OPEN) {
       if (Date.now() - this.lastFailureTime < this.options.resetTimeout) {
-        throw new Error("Circuit breaker is OPEN");
+        throw UniversalExceptionFactory.createBusinessException({
+          message: 'Circuit breaker is OPEN',
+          errorCode: BusinessErrorCode.OPERATION_NOT_ALLOWED,
+          operation: 'circuitBreakerExecute',
+          component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+          context: {
+            state: this.state,
+            lastFailureTime: this.lastFailureTime,
+            resetTimeout: this.options.resetTimeout,
+            customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.CIRCUIT_BREAKER_OPEN,
+            reason: 'circuit_breaker_open'
+          },
+          retryable: true
+        });
       } else {
         this.state = CircuitState.HALF_OPEN;
         this.successCount = 0;
@@ -273,7 +287,18 @@ class CircuitBreakerState {
       fn(),
       new Promise<never>((_, reject) =>
         setTimeout(
-          () => reject(new Error("Operation timeout")),
+          () => reject(UniversalExceptionFactory.createBusinessException({
+            message: 'Operation timeout',
+            errorCode: BusinessErrorCode.EXTERNAL_SERVICE_TIMEOUT,
+            operation: 'executeWithTimeout',
+            component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+            context: {
+              timeout: this.options.timeout,
+              customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.OPERATION_TIMEOUT,
+              reason: 'operation_timeout'
+            },
+            retryable: true
+          })),
           this.options.timeout,
         ),
       ),

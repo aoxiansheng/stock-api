@@ -6,9 +6,10 @@
  */
 
 import { registerAs } from "@nestjs/config";
-import { BadRequestException } from "@nestjs/common";
 import { IsNumber, IsBoolean, Min, Max, validateSync } from "class-validator";
 import { plainToClass } from "class-transformer";
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
+import { ALERT_ERROR_CODES } from "../constants/alert-error-codes.constants";
 
 /**
  * Alert缓存配置验证类
@@ -184,9 +185,18 @@ export default registerAs("alertCache", (): AlertCacheConfigValidation => {
     const errorMessages = errors
       .map((error) => Object.values(error.constraints || {}).join(", "))
       .join("; ");
-    throw new BadRequestException(
-      `Alert cache configuration validation failed: ${errorMessages}`,
-    );
+    throw UniversalExceptionFactory.createBusinessException({
+      message: `Alert cache configuration validation failed: ${errorMessages}`,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: 'validateAlertCacheConfig',
+      component: ComponentIdentifier.ALERT,
+      context: {
+        validationErrors: errors,
+        customErrorCode: ALERT_ERROR_CODES.INVALID_CACHE_CONFIG,
+        reason: 'cache_configuration_validation_failed'
+      },
+      retryable: false
+    });
   }
 
   return config;
