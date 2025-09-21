@@ -7,6 +7,7 @@ import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/sy
 import {
   SymbolTransformResult,
   SymbolTransformForProviderResult,
+  ISymbolTransformer,
 } from "../interfaces";
 import {
   SYMBOL_PATTERNS,
@@ -25,7 +26,7 @@ import { SYMBOL_TRANSFORMER_ERROR_CODES } from "../constants/symbol-transformer-
  * 职责：符号转换执行，不处理规则管理
  */
 @Injectable()
-export class SymbolTransformerService {
+export class SymbolTransformerService implements ISymbolTransformer {
   private readonly logger = createLogger("SymbolTransformer");
 
   constructor(

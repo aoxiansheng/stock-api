@@ -29,14 +29,10 @@ import { SymbolMappingQueryDto } from "../dto/symbol-mapping-query.dto";
 import { SymbolMappingResponseDto } from "../dto/symbol-mapping-response.dto";
 import {
   UpdateSymbolMappingDto,
-  TransformSymbolsDto,
-  TransformSymbolsResponseDto,
   AddSymbolMappingRuleDto,
   UpdateSymbolMappingRuleDto,
 } from "../dto/update-symbol-mapping.dto";
 import { SymbolMapperService } from "../services/symbol-mapper.service";
-import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
-import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
 
 @ApiTags("🔄 符号映射器")
 @Controller("symbol-mapper")
@@ -45,7 +41,6 @@ export class SymbolMapperController {
 
   constructor(
     private readonly symbolMapperService: SymbolMapperService,
-    private readonly symbolTransformerService: SymbolTransformerService,
   ) {}
 
   @ApiKeyAuth()
@@ -77,113 +72,6 @@ export class SymbolMapperController {
     } catch (error: any) {
       this.logger.error(`API错误: 数据源映射配置创建失败`, {
         dataSourceName: createDto.dataSourceName,
-        error: error.message,
-        errorType: error.constructor.name,
-      });
-      throw error;
-    }
-  }
-
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
-  @Post("map")
-  @ApiOperation({ summary: "映射单个股票代码" })
-  @ApiSuccessResponse()
-  @ApiStandardResponses()
-  async mapSymbol(
-    @Body() body: { symbol: string; fromProvider: string; toProvider: string },
-  ) {
-    const mappedSymbol =
-      await this.symbolTransformerService.transformSingleSymbol(
-        body.toProvider,
-        body.symbol,
-        MappingDirection.FROM_STANDARD, // 修正方向语义：standard→provider
-      );
-    // 遵循控制器编写规范：让拦截器自动处理响应格式化
-    return {
-      originalSymbol: body.symbol,
-      mappedSymbol,
-      fromProvider: body.fromProvider,
-      toProvider: body.toProvider,
-    };
-  }
-
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
-  @Post("transform")
-  @ApiOperation({
-    summary: "🔄 批量股票代码格式转换",
-    description: `
-### 功能说明
-高性能批量股票代码格式转换服务，支持多数据源间的代码格式互转。
-
-### 核心特性
-- **⚡ 高性能**: 支持大批量代码同时转换
-- **🌐 多数据源**: 支持 LongPort、iTick、TwelveData 等多个数据源格式
-- **🎯 智能匹配**: 自动识别输入代码格式并转换到目标格式
-- **📊 统计信息**: 提供详细的转换统计和耗时信息
-
-### 转换规则示例
-- **LongPort 格式**: \`700.HK\`, \`AAPL.US\`, \`000001.SZ\`
-- **iTick 格式**: \`HK.00700\`, \`US.AAPL\`, \`SZ.000001\`
-- **通用格式**: \`700\`, \`AAPL\`, \`000001\`
-
-### API Key 认证
-此接口需要 API Key 认证，适用于：
-- 第三方应用集成
-- 批量数据处理脚本
-- 自动化交易系统
-
-### 示例请求
-\`\`\`json
-{
-  "dataSourceName": REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-  "symbols": ["AAPL", "GOOGL", "700", "000001"]
-}
-\`\`\`
-
-### 响应包含
-- 转换后的代码列表
-- 转换成功/失败统计
-- 处理耗时信息
-- 错误代码详情
-    `,
-  })
-  @ApiSuccessResponse({ type: TransformSymbolsResponseDto })
-  @ApiStandardResponses()
-  async transformSymbols(
-    @Body(ValidationPipe) transformDto: TransformSymbolsDto,
-  ) {
-    this.logger.log(`API请求: 转换股票代码`, {
-      dataSourceName: transformDto.dataSourceName,
-      symbolsCount: transformDto.symbols.length,
-      symbols: transformDto.symbols.slice(0, 3), // 只记录前3个
-    });
-
-    try {
-      const result = await this.symbolTransformerService.transformSymbols(
-        transformDto.dataSourceName,
-        transformDto.symbols,
-        MappingDirection.FROM_STANDARD, // 修正方向语义：standard→provider
-      );
-
-      this.logger.log(`API响应: 代码转换成功`, {
-        dataSourceName: transformDto.dataSourceName,
-        inputCount: transformDto.symbols.length,
-        processingTimeMs: result.metadata.processingTimeMs + "ms",
-      });
-
-      // Controller层适配返回结构为 TransformSymbolsResponseDto
-      return {
-        dataSourceName: result.metadata.provider,
-        transformedSymbols: result.mappingDetails,
-        failedSymbols: result.failedSymbols,
-        processingTimeMs: result.metadata.processingTimeMs,
-      };
-    } catch (error: any) {
-      this.logger.error(`API错误: 代码转换失败`, {
-        dataSourceName: transformDto.dataSourceName,
-        symbolsCount: transformDto.symbols.length,
         error: error.message,
         errorType: error.constructor.name,
       });

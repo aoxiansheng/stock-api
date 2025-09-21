@@ -233,6 +233,13 @@ rg "implements ISymbolTransformer" src/core/02-processing/symbol-transformer/ser
 - ✅ 明确 SymbolMapper 与 SymbolTransformer 的职责边界。
 - ✅ 为后续扩展（如多执行器实现）提供清晰契约。
 
+## ✅ 执行记录（2025-09-21）
+- 已新增 `SymbolTransformerController` 并在模块层完成控制器/服务依赖梳理。
+- `SymbolMapperController` 移除转换端点，`SymbolMapperModule` 不再依赖执行器模块。
+- `SymbolTransformerService` 实现 `ISymbolTransformer`，未使用的接口与 Token 已清理。
+- `retry.utils.ts` 已删除，仓库内无残留引用。
+- 尝试执行 `bun run lint` 与 `bun run test:unit`，分别因历史配置错误与既有用例失败而终止，需后续集中修复。
+
 ---
 
 > **核心价值**: 基于职责边界的集中清理，构建清晰组件架构，压缩无效代码，为长期演进奠定基础。
