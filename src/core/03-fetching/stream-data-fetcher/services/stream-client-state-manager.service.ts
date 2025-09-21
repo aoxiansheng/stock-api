@@ -388,7 +388,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
         broadcastStats: this.getBroadcastStats(),
       });
 
-      throw new GatewayBroadcastError(
+      throw GatewayBroadcastError.create(
         symbol,
         healthStatus,
         healthStatus.details?.reason || "未知原因",
@@ -439,7 +439,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
           broadcastStats: this.getBroadcastStats(),
         });
 
-        throw new GatewayBroadcastError(
+        throw GatewayBroadcastError.create(
           symbol,
           healthStatus,
           "Gateway广播返回失败状态",
@@ -471,7 +471,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
         broadcastStats: this.getBroadcastStats(),
       });
 
-      throw new GatewayBroadcastError(
+      throw GatewayBroadcastError.create(
         symbol,
         healthStatus,
         `Gateway广播异常: ${error.message}`,

@@ -25,6 +25,8 @@ import { SYMBOL_TRANSFORMER_ERROR_CODES } from "../constants/symbol-transformer-
  * 专门处理符号转换执行逻辑，从 SymbolMapperService 迁移
  * 职责：符号转换执行，不处理规则管理
  */
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+
 @Injectable()
 export class SymbolTransformerService implements ISymbolTransformer {
   private readonly logger = createLogger("SymbolTransformer");
@@ -32,6 +34,7 @@ export class SymbolTransformerService implements ISymbolTransformer {
   constructor(
     private readonly symbolMapperCacheService: SymbolMapperCacheService, // 缓存服务（含回源逻辑）
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控（零耦合）
+    private readonly marketInferenceService: MarketInferenceService,
   ) {}
 
   /**
@@ -382,14 +385,33 @@ export class SymbolTransformerService implements ISymbolTransformer {
    * 推断市场类型（使用预编译正则表达式）
    */
   private inferMarketFromSymbols(symbols: string[]): string {
-    if (symbols.length === 0) return MARKET_TYPES.UNKNOWN;
+    if (!symbols || symbols.length === 0) {
+      return MARKET_TYPES.UNKNOWN;
+    }
 
-    const sample = symbols[0];
+    const labels = this.marketInferenceService.inferMarketLabels(symbols, {
+      collapseChina: true,
+    });
 
-    // 使用预编译正则表达式
-    if (SYMBOL_PATTERNS.CN.test(sample)) return MARKET_TYPES.CN; // A股
-    if (SYMBOL_PATTERNS.US.test(sample)) return MARKET_TYPES.US; // 美股
-    if (SYMBOL_PATTERNS.HK.test(sample)) return MARKET_TYPES.HK; // 港股
+    if (labels.length === 0) {
+      return MARKET_TYPES.UNKNOWN;
+    }
+
+    const uniqueLabels = new Set(labels);
+
+    if (uniqueLabels.size === 1) {
+      const [label] = labels;
+      if (label === MARKET_TYPES.CN) {
+        return MARKET_TYPES.CN;
+      }
+      if (label === MARKET_TYPES.US) {
+        return MARKET_TYPES.US;
+      }
+      if (label === MARKET_TYPES.HK) {
+        return MARKET_TYPES.HK;
+      }
+      return MARKET_TYPES.UNKNOWN;
+    }
 
     return MARKET_TYPES.MIXED;
   }

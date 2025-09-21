@@ -22,6 +22,8 @@ import { MonitoringModule } from "../../../../monitoring/monitoring.module"; // 
  *
  * 🎯 Phase 4 架构：精简依赖 + 管道化处理 + 统一监控
  */
+import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
+
 @Module({
   imports: [
     AuthModule, // 认证服务 (WebSocket 认证)
@@ -30,6 +32,7 @@ import { MonitoringModule } from "../../../../monitoring/monitoring.module"; // 
     TransformerModule, // 数据转换服务 (统一处理所有转换)
     StreamDataFetcherModule, // 🚀 流数据获取、缓存、客户端管理
     MonitoringModule, // ✅ 统一监控模块
+    MarketInferenceModule,
   ],
   providers: [StreamReceiverGateway, StreamReceiverService],
   exports: [StreamReceiverGateway, StreamReceiverService],

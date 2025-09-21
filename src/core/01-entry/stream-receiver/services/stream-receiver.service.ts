@@ -124,6 +124,8 @@ interface StreamConnectionContext {
  *
  * 🔗 Pipeline 位置：WebSocket → **StreamReceiver** → StreamDataFetcher → Transformer → Storage
  */
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
   private readonly logger = createLogger("StreamReceiver");
@@ -182,6 +184,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly configService: ConfigService,
     // ✅ Phase 4 精简依赖注入 - 已移除unused SymbolMapperService 和违规的 CollectorService
     private readonly symbolTransformerService: SymbolTransformerService, // 🆕 新增SymbolTransformer依赖
+    private readonly marketInferenceService: MarketInferenceService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
     // ✅ 移除违规的直接 CollectorService 依赖，改用事件化监控
@@ -2393,7 +2396,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   private extractProviderFromSymbol(symbol: string): string {
     try {
       // 1. 首先通过符号格式推断市场
-      const market = this.inferMarketFromSymbol(symbol);
+      const market = this.inferMarketLabel(symbol);
 
       // 2. 查找支持该市场的最佳提供商 (如果可用的话)
       const optimalProvider = this.findOptimalProviderForMarket(market, symbol);
@@ -2431,50 +2434,10 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 从符号推断市场代码
    */
-  private inferMarketFromSymbol(symbol: string): string {
-    const upperSymbol = symbol.toUpperCase();
-
-    // 港股市场
-    if (upperSymbol.includes(".HK") || upperSymbol.includes(".HKG")) {
-      return "HK";
-    }
-
-    // 美股市场
-    if (
-      upperSymbol.includes(".US") ||
-      upperSymbol.includes(".NASDAQ") ||
-      upperSymbol.includes(".NYSE")
-    ) {
-      return "US";
-    }
-
-    // A股市场
-    if (upperSymbol.includes(".SZ") || upperSymbol.includes(".SH")) {
-      return "CN";
-    }
-
-    // 新加坡市场
-    if (upperSymbol.includes(".SG") || upperSymbol.includes(".SGX")) {
-      return "SG";
-    }
-
-    // 基于符号模式推断 (无明确后缀的情况)
-    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-      // 纯字母，可能是美股
-      return "US";
-    }
-
-    if (/^(00|30|60|68)\d{4}$/.test(upperSymbol)) {
-      // 6位数字，以00/30/60/68开头，A股
-      return "CN";
-    }
-
-    if (/^\d{4,5}$/.test(upperSymbol)) {
-      // 4-5位数字，可能是港股
-      return "HK";
-    }
-
-    return "UNKNOWN";
+  private inferMarketLabel(symbol: string): string {
+    return this.marketInferenceService.inferMarketLabel(symbol, {
+      collapseChina: true,
+    });
   }
 
   /**
@@ -2525,7 +2488,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     const marketCounts: Record<string, number> = {};
 
     symbols.forEach((symbol) => {
-      const market = this.inferMarketFromSymbol(symbol);
+      const market = this.inferMarketLabel(symbol);
       marketCounts[market] = (marketCounts[market] || 0) + 1;
     });
 
@@ -3380,13 +3343,13 @@ export class StreamReceiverService implements OnModuleDestroy {
       try {
         // 提取业务元数据
         const provider = this.extractProviderFromSymbol(symbol);
-        const market = this.inferMarketFromSymbol(symbol);
+        const market = this.inferMarketLabel(symbol);
 
         // ✅ 事件化监控 - 延迟监控事件发送
         this.emitMonitoringEvent("stream_latency", latencyMs, {
           symbol,
           provider: this.extractProviderFromSymbol(symbol),
-          market: this.inferMarketFromSymbol(symbol),
+          market: this.inferMarketLabel(symbol),
           latencyCategory: this.categorizeLatency(latencyMs),
         });
 
@@ -3483,7 +3446,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 推断市场分布
     const markets = new Set(
       batch.flatMap((quote) =>
-        quote.symbols.map((symbol) => this.inferMarketFromSymbol(symbol))
+        quote.symbols.map((symbol) => this.inferMarketLabel(symbol))
       ).filter(market => market !== "UNKNOWN")
     );
 

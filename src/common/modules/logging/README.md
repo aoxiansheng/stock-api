@@ -224,24 +224,6 @@ console.log('应用的优化:', result.optimizationsApplied);
 }
 ```
 
-## 测试脚本
-
-系统提供了多个测试脚本验证功能：
-
-```bash
-# 性能监控功能测试
-ENHANCED_LOGGING_ENABLED=true DISABLE_AUTO_INIT=true npx tsx scripts/test-performance-monitoring.ts
-
-# 缓存统计功能测试
-ENHANCED_LOGGING_ENABLED=true DISABLE_AUTO_INIT=true npx tsx scripts/test-cache-statistics.ts
-
-# AuthService集成测试
-ENHANCED_LOGGING_ENABLED=true DISABLE_AUTO_INIT=true npx tsx scripts/test-auth-service-integration.ts
-
-# CacheService集成测试
-ENHANCED_LOGGING_ENABLED=true DISABLE_AUTO_INIT=true npx tsx scripts/test-cache-service-integration.ts
-```
-
 ## 架构优势
 
 ### 🎯 模块化设计

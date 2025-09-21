@@ -36,6 +36,8 @@ import { BackgroundTaskService } from "@appcore/infrastructure/services/backgrou
  * - 在QueryModule、ReceiverModule中导入此模块
  * - 注入SmartCacheOrchestrator服务进行缓存操作
  */
+import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
+
 @Module({
   imports: [
     // 🔑 关键依赖：StorageModule（非全局，必须显式导入）
@@ -51,6 +53,7 @@ import { BackgroundTaskService } from "@appcore/infrastructure/services/backgrou
     // - MarketStatusService: 市场状态查询，用于市场感知策略
     // - DataChangeDetectorService: 数据变化检测
     SharedServicesModule,
+    MarketInferenceModule,
 
     // InfrastructureModule 已移除以避免循环依赖
     // BackgroundTaskService 直接在 providers 中提供

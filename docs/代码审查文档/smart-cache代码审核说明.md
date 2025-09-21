@@ -10,27 +10,71 @@
 - **良好的模块设计**: SmartCache模块通过清晰的依赖关系避免了循环依赖
 - **合理的依赖层次**: 依赖关系为 `SmartCacheModule` → `StorageModule/CommonCacheModule/SharedServicesModule`
 
+### ⚠️ 问题点 (已验证)
+- **BackgroundTaskService重复提供**: SmartCacheModule直接提供BackgroundTaskService，但该服务定义在@appcore中，且SharedServicesModule并未实际提供此服务，造成依赖注入不一致
 
-### ⚠️ 问题点
-- **BackgroundTaskService重复提供**: SmartCacheModule直接提供BackgroundTaskService，而该服务在@appcore中已定义，可能造成实例重复
+**实际情况验证**:
+- SmartCacheModule: 在providers中直接提供BackgroundTaskService
+- SharedServicesModule: 注释声称提供BackgroundTaskService，但实际只提供`DataChangeDetectorService`、`MarketStatusService`、`FieldMappingService`
+- BackgroundTaskService: 定义在`@appcore/infrastructure/services/`，无全局提供
 
-### 🔧 优化解决方案
+### 🔧 优化解决方案 (修正)
+
+**方案1: 统一到SharedServicesModule (推荐)**
 ```typescript
+// src/core/shared/module/shared-services.module.ts
+@Global()
+@Module({
+  imports: [CacheModule, MonitoringModule],
+  providers: [
+    DataChangeDetectorService,
+    MarketStatusService,
+    FieldMappingService,
+    BackgroundTaskService, // ✅ 添加到全局共享服务
+  ],
+  exports: [
+    DataChangeDetectorService,
+    MarketStatusService,
+    FieldMappingService,
+    BackgroundTaskService, // ✅ 导出供其他模块使用
+  ],
+})
+export class SharedServicesModule {}
+
 // src/core/05-caching/smart-cache/module/smart-cache.module.ts
 @Module({
   imports: [
-    // ... 其他导入
-    SharedServicesModule, // ✅ 从SharedServicesModule导入BackgroundTaskService
+    StorageModule,
+    CommonCacheModule,
+    SharedServicesModule, // ✅ BackgroundTaskService来自SharedServicesModule
+    MarketInferenceModule,
   ],
   providers: [
     SmartCacheOrchestrator,
     SmartCachePerformanceOptimizer,
     // ❌ 移除重复的BackgroundTaskService提供
-    // BackgroundTaskService, // 删除这行
+    // BackgroundTaskService,
+    {
+      provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
+      useFactory: () => SmartCacheConfigFactory.createConfig(),
+    },
   ],
-  exports: [SmartCacheOrchestrator],
+  exports: [SmartCacheOrchestrator, SmartCachePerformanceOptimizer],
 })
 export class SmartCacheModule {}
+```
+
+**方案2: 创建专门的AppCoreModule**
+```typescript
+// src/appcore/infrastructure/appcore.module.ts
+@Global()
+@Module({
+  providers: [BackgroundTaskService],
+  exports: [BackgroundTaskService],
+})
+export class AppCoreModule {}
+
+// 在app.module.ts中导入AppCoreModule
 ```
 
 **解决效果**:
@@ -39,8 +83,6 @@ export class SmartCacheModule {}
 - ✅ 提高模块间协作清晰度
 
 ## 2. 性能问题 - 缓存策略、数据库查询优化
-
-
 
 ### ⚠️ 性能问题
 1. **内存管理风险**:
@@ -56,87 +98,6 @@ export class SmartCacheModule {}
        }
      }
    }
-   ```
-
-2. **Symbol到Market推断重复计算**:
-   - `inferMarketFromSymbol`方法可能被频繁调用，缺乏结果缓存
-
-### 🚀 优化解决方案
-
-**方案1: LRU缓存优化** (推荐，性能提升50%+)
-```typescript
-// 1. 首先安装LRU依赖
-// bun add lru-cache @types/lru-cache
-
-// 2. 导入并替换Map实现
-import { LRUCache } from 'lru-cache';
-
-// 3. 优化内存管理
-private readonly lastUpdateTimes = new LRUCache<string, number>({
-  max: SMART_CACHE_CONSTANTS.MEMORY_MANAGEMENT.MAX_LAST_UPDATE_ENTRIES, // 10000
-  ttl: SMART_CACHE_CONSTANTS.MEMORY_MANAGEMENT.LAST_UPDATE_TTL_MS, // 1小时
-  updateAgeOnGet: false, // 时间戳不需要更新访问时间
-});
-
-// 4. 添加Symbol市场推断缓存
-private readonly symbolMarketCache = new LRUCache<string, Market>({
-  max: SMART_CACHE_CONSTANTS.SYMBOL_MARKET_CACHE.MAX_ENTRIES, // 5000
-  ttl: SMART_CACHE_CONSTANTS.SYMBOL_MARKET_CACHE.TTL_MS, // 30分钟
-});
-
-// 5. 优化setLastUpdateTime方法
-private setLastUpdateTime(key: string, time: number): void {
-  // ✅ LRU自动处理过期，无需手动清理
-  this.lastUpdateTimes.set(key, time);
-  // ❌ 移除性能杀手：手动遍历清理
-}
-
-// 6. 优化inferMarketFromSymbol方法
-private inferMarketFromSymbol(symbol: string): Market {
-  // 先检查缓存
-  const cached = this.symbolMarketCache.get(symbol);
-  if (cached) {
-    return cached;
-  }
-
-  // 原有推断逻辑...
-  const market = this.calculateMarketFromSymbol(symbol);
-
-  // 缓存结果
-  this.symbolMarketCache.set(symbol, market);
-  return market;
-}
-```
-
-**方案2: 常量提取优化**
-```typescript
-// src/core/05-caching/smart-cache/constants/smart-cache.constants.ts
-export const SMART_CACHE_CONSTANTS = {
-  // ... 现有常量
-  MEMORY_MANAGEMENT: {
-    LAST_UPDATE_TTL_MS: 60 * 60 * 1000, // 1小时，替代硬编码3600000
-    MAX_LAST_UPDATE_ENTRIES: 10000,     // 最大更新时间条目数
-    CLEANUP_BATCH_SIZE: 100,            // 批量清理大小
-  },
-  SYMBOL_MARKET_CACHE: {
-    MAX_ENTRIES: 5000,                  // 最大symbol缓存条目
-    TTL_MS: 30 * 60 * 1000,            // 30分钟TTL
-  },
-  PERFORMANCE: {
-    CONCURRENT_LIMIT: 3,                // 替代魔术数字
-    BACKGROUND_THRESHOLD: 0.8,          // 后台更新阈值
-  }
-};
-```
-
-**优化效果**:
-- 🚀 **性能提升**: 内存清理从O(n)到O(1)，高频场景下50%+性能提升
-- 🧠 **内存可控**: LRU自动淘汰，避免无限制内存增长
-- ⚡ **缓存命中**: Symbol推断结果缓存，减少重复计算
-- 📊 **可监控**: LRU提供size()等监控接口
-
-
-
 
 ## 3. 配置和常量管理
 
@@ -202,7 +163,6 @@ import { SYSTEM_STATUS_EVENTS } from '@common/monitoring/events';
 - ✅ 简化重构时的路径维护
 - ✅ 符合项目路径别名规范
 
-
 ## 6. 内存泄漏风险
 
 ### ✅ 已实现的保护机制
@@ -240,51 +200,6 @@ public getMemoryStats() {
 }
 ```
 
-## 7. 通用组件复用
-
-### ✅ 复用优点
-- **日志组件**: 正确使用`@common/logging/index`的createLogger
-- **缓存服务**: 复用CommonCacheService而不是重复实现
-- **事件总线**: 使用EventEmitter2进行事件驱动通信
-
-### ⚠️ 复用可优化 疑似其他组件已经实现，需要先找到，看下是否可以复用
-**工具函数重复**: Symbol到Market推断逻辑可能在其他组件中重复，可抽取到@common/utils
-
-### 🔧 复用优化方案
-```typescript
-// 抽取到通用工具模块
-// src/common/utils/market-inference.utils.ts
-export class MarketInferenceUtils {
-  private static symbolMarketCache = new LRUCache<string, Market>({
-    max: 5000,
-    ttl: 30 * 60 * 1000, // 30分钟
-  });
-
-  static inferMarketFromSymbol(symbol: string): Market {
-    const cached = this.symbolMarketCache.get(symbol);
-    if (cached) return cached;
-
-    const market = this.calculateMarket(symbol);
-    this.symbolMarketCache.set(symbol, market);
-    return market;
-  }
-
-  private static calculateMarket(symbol: string): Market {
-    // 原有推断逻辑
-  }
-}
-
-// SmartCacheOrchestrator中使用
-private inferMarketFromSymbol(symbol: string): Market {
-  return MarketInferenceUtils.inferMarketFromSymbol(symbol);
-}
-```
-
-**复用效果**:
-- ✅ 避免代码重复
-- ✅ 统一市场推断逻辑
-- ✅ 集中缓存管理
-
 
 
 ## 📊 综合评估与实施路线图
@@ -293,10 +208,9 @@ private inferMarketFromSymbol(symbol: string): Market {
 
 | 问题类别 | 验证状态 | 严重程度 | 代码位置 | 影响评估 |
 |---------|----------|----------|----------|----------|
-| **BackgroundTaskService重复** | ✅ 已确认 | 🟡 中等 | smart-cache.module.ts:69 | 依赖注入冲突 |
+| **BackgroundTaskService重复** | ✅ 已确认 | 🟡 中等 | smart-cache.module.ts:72 | 依赖注入不一致，注释与实际不符 |
 | **内存管理性能问题** | ✅ 已确认 | 🔴 高 | service.ts:1915-1925 | 高频场景性能杀手 |
 | **硬编码常量** | ✅ 已确认 | 🟡 中等 | service.ts:1920 | 可维护性问题 |
-| **Symbol推断重复计算** | ✅ 已确认 | 🟡 中等 | service.ts:1730-1761 | 批量操作效率低 |
 | **相对路径依赖** | ✅ 已确认 | 🟢 低 | 多处import | 代码可读性 |
 
 ### 🚀 优化方案评估
@@ -308,16 +222,17 @@ private inferMarketFromSymbol(symbol: string): Market {
 | **LRU缓存替代** | A | 中等 | 50%+ | A |
 | **常量提取** | A | 低 | 微量 | A |
 | **模块依赖优化** | A | 低 | 微量 | A |
-| **工具函数复用** | A- | 中等 | 20%+ | A |
+
 
 ### 📅 实施优先级与时间规划
 
 #### 🚨 **P0 - 立即修复** (1-2天)
 1. **修正模块依赖**:
+   - 将BackgroundTaskService添加到SharedServicesModule的providers和exports
    - 移除SmartCacheModule中的BackgroundTaskService重复提供
-   - 从SharedServicesModule正确导入
+   - 更新注释以反映实际的服务提供情况
    - **风险**: 极低，配置调整
-   - **收益**: 消除依赖冲突
+   - **收益**: 消除依赖冲突，统一服务提供
 
 #### 🔥 **P1 - 性能优化** (2-3天)
 2. **LRU缓存实施**:
@@ -334,12 +249,6 @@ private inferMarketFromSymbol(symbol: string): Market {
    - **风险**: 极低，纯重构
    - **收益**: 提高可维护性
 
-#### 🔧 **P3 - 架构改进** (1-2天)
-4. **模块边界优化**:
-   - 使用路径别名替代相对路径
-   - 抽取MarketInferenceUtils到@common/utils
-   - **风险**: 低，改进型重构
-   - **收益**: 代码复用，架构清晰
 
 ### 📈 预期改进效果
 
@@ -355,7 +264,6 @@ private inferMarketFromSymbol(symbol: string): Market {
 
 #### **架构健康**:
 - 模块边界: 相对路径 → 别名规范
-- 代码复用: 重复实现 → 通用工具
 - 监控能力: 基础 → 完善指标
 
 ### ✅ 实施建议
@@ -366,7 +274,7 @@ private inferMarketFromSymbol(symbol: string): Market {
 
 **分阶段执行**:
 - **第1周**: P0 + P1（核心性能问题）
-- **第2周**: P2 + P3（代码质量提升）
+- **第2周**: P2 + 
 
 **质量保证**:
 - 每个阶段都需要单元测试验证

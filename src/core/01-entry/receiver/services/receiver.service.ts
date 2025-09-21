@@ -53,7 +53,6 @@ import { StoreDataDto } from "../../../04-storage/storage/dto/storage-request.dt
 import { StorageType } from "../../../04-storage/storage/enums/storage-type.enum";
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
 import { ValidationResultDto } from "../dto/validation.dto";
-import { MarketUtils } from "../utils/market.util";
 import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/data-fetcher.interface"; // 🔥 导入DataFetcher类型
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的数据接收常量
@@ -68,6 +67,8 @@ import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/da
  * 4. 能力调用执行
  * 5. 响应数据格式化
  */
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+
 @Injectable()
 export class ReceiverService {
   // 🎯 使用 common 模块的日志配置
@@ -86,6 +87,7 @@ export class ReceiverService {
     // 🎯 服务注册与状态依赖
     private readonly capabilityRegistryService: EnhancedCapabilityRegistryService,
     private readonly marketStatusService: MarketStatusService,
+    private readonly marketInferenceService: MarketInferenceService,
 
     // ✅ 事件化监控依赖 - 符合监控组件集成规范
     private readonly eventBus: EventEmitter2, // 替换CollectorService，使用事件驱动监控
@@ -138,12 +140,11 @@ export class ReceiverService {
       const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
       if (useSmartCache) {
         // 获取市场状态用于缓存策略决策
-        const { inferMarketFromSymbol } = await import(
-          "../../../05-caching/smart-cache/utils/smart-cache-request.utils.js"
-        );
         const markets = [
           ...new Set(
-            request.symbols.map((symbol) => inferMarketFromSymbol(symbol)),
+            request.symbols.map((symbol) =>
+              this.marketInferenceService.inferMarket(symbol),
+            ),
           ),
         ];
         const marketStatus =
@@ -501,7 +502,7 @@ export class ReceiverService {
 
       // 自动选择最佳提供商
       const inferredMarket =
-        market || MarketUtils.inferMarketFromSymbols(symbols);
+        market || this.marketInferenceService.inferDominantMarket(symbols);
       const capabilityName = receiverType;
       const bestProvider = this.capabilityRegistryService.getBestProvider(
         capabilityName,

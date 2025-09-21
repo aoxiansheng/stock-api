@@ -62,6 +62,10 @@ import {
  * - 简化依赖关系
  */
 
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+
+import { setDefaultMarketInferenceService } from '../utils/smart-cache-request.utils';
+
 @Injectable()
 export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(
@@ -96,9 +100,11 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     private readonly commonCacheService: CommonCacheService,
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
+    private readonly marketInferenceService: MarketInferenceService,
     private readonly backgroundTaskService: BackgroundTaskService,
     private readonly eventBus: EventEmitter2, // 事件化监控：只注入事件总线
   ) {
+    setDefaultMarketInferenceService(this.marketInferenceService);
     this.logger.log("SmartCacheOrchestrator service initializing...");
 
     // 验证并合并配置，提供默认值保护
@@ -276,6 +282,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 不强制取消进行中任务
    */
   async onModuleDestroy(): Promise<void> {
+    setDefaultMarketInferenceService(null);
     this.logger.log("SmartCacheOrchestrator shutting down...");
     this.isShuttingDown = true;
 
@@ -1729,36 +1736,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 复用cache-request.utils.ts中的实现逻辑
    */
   private inferMarketFromSymbol(symbol: string): Market {
-    const upperSymbol = symbol.toUpperCase().trim();
-
-    // 香港市场: .HK 后缀或5位数字
-    if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
-      return Market.HK;
-    }
-
-    // 美国市场: 1-5位字母
-    if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-      return Market.US;
-    }
-
-    // 深圳市场: .SZ 后缀或 00/30 前缀
-    if (
-      upperSymbol.includes(".SZ") ||
-      ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
-    ) {
-      return Market.SZ;
-    }
-
-    // 上海市场: .SH 后缀或 60/68 前缀
-    if (
-      upperSymbol.includes(".SH") ||
-      ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
-    ) {
-      return Market.SH;
-    }
-
-    // 默认美股
-    return Market.US;
+    return this.marketInferenceService.inferMarket(symbol);
   }
 
   /**

@@ -5,6 +5,11 @@ import {
   CacheOrchestratorRequest,
 } from "../interfaces/smart-cache-orchestrator.interface";
 import {
+  MarketDetectOptions,
+  SymbolValidationUtils,
+} from "@common/utils/symbol-validation.util";
+import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
+import {
   UniversalExceptionFactory,
   BusinessErrorCode,
   ComponentIdentifier
@@ -29,6 +34,14 @@ export interface CacheOrchestratorRequestBuilder<T> {
  * @param options 请求构建选项
  * @returns 标准化的编排器请求对象
  */
+let defaultMarketInferenceService: MarketInferenceService | undefined;
+
+export function setDefaultMarketInferenceService(
+  service: MarketInferenceService | null,
+): void {
+  defaultMarketInferenceService = service ?? undefined;
+}
+
 export function buildCacheOrchestratorRequest<T>(options: {
   symbols: string[];
   receiverType: string;
@@ -220,39 +233,18 @@ export function extractMarketFromSymbols(symbols: string[]): string {
  * @param symbol 股票符号
  * @returns 推断的市场枚举
  */
+
 export function inferMarketFromSymbol(
   symbol: string,
+  options?: MarketDetectOptions,
 ): (typeof Market)[keyof typeof Market] {
-  const upperSymbol = symbol.toUpperCase().trim();
+    if (defaultMarketInferenceService) {
+      return defaultMarketInferenceService.inferMarket(symbol, options);
+    }
 
-  // 香港市场: .HK 后缀或5位数字
-  if (upperSymbol.includes(".HK") || /^\d{5}$/.test(upperSymbol)) {
-    return Market.HK;
-  }
-
-  // 美国市场: 1-5位字母
-  if (/^[A-Z]{1,5}$/.test(upperSymbol)) {
-    return Market.US;
-  }
-
-  // 深圳市场: .SZ 后缀或 00/30 前缀
-  if (
-    upperSymbol.includes(".SZ") ||
-    ["00", "30"].some((prefix) => upperSymbol.startsWith(prefix))
-  ) {
-    return Market.SZ;
-  }
-
-  // 上海市场: .SH 后缀或 60/68 前缀
-  if (
-    upperSymbol.includes(".SH") ||
-    ["60", "68"].some((prefix) => upperSymbol.startsWith(prefix))
-  ) {
-    return Market.SH;
-  }
-
-  // 默认美股
-  return Market.US;
+    return (
+      SymbolValidationUtils.getMarketFromSymbol(symbol, options) ?? Market.US
+    );
 }
 
 /**

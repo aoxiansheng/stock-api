@@ -82,6 +82,8 @@ interface DataSnapshot {
   criticalValues: Record<string, number>; // 数值型关键字段
 }
 
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+
 @Injectable()
 export class DataChangeDetectorService {
   private readonly logger = createLogger(DataChangeDetectorService.name);
@@ -89,6 +91,7 @@ export class DataChangeDetectorService {
   constructor(
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
     private readonly cacheService: CacheService, // ✅ 统一缓存服务
+    private readonly marketInferenceService: MarketInferenceService,
   ) {}
 
   // 内存中的数据快照缓存（Redis故障时的降级方案）
@@ -543,24 +546,30 @@ export class DataChangeDetectorService {
    * 🎯 基于符号类型和市场状态的动态TTL
    */
   private getSnapshotCacheTTL(symbol: string): number {
-    // 基础TTL配置（秒）
     const baseTTL = {
-      crypto: 30, // 加密货币：30秒
-      us_stock: 60, // 美股：1分钟
-      hk_stock: 60, // 港股：1分钟
-      cn_stock: 60, // A股：1分钟
-      default: 60, // 默认：1分钟
+      crypto: 30,
+      us_stock: 60,
+      hk_stock: 60,
+      cn_stock: 60,
+      default: 60,
     };
 
-    // 根据符号推断类型
-    if (symbol.includes("USDT") || symbol.includes("BTC")) {
+    const label = this.marketInferenceService.inferMarketLabel(symbol, {
+      collapseChina: true,
+      fallback: Market.US,
+    });
+
+    if (label === Market.CRYPTO) {
       return baseTTL.crypto;
-    } else if (symbol.endsWith(".HK")) {
-      return baseTTL.hk_stock;
-    } else if (symbol.endsWith(".SH") || symbol.endsWith(".SZ")) {
-      return baseTTL.cn_stock;
-    } else if (/^[A-Z]{1,5}$/.test(symbol)) {
+    }
+    if (label === Market.US) {
       return baseTTL.us_stock;
+    }
+    if (label === Market.HK) {
+      return baseTTL.hk_stock;
+    }
+    if (label === Market.SZ || label === Market.SH || label === Market.CN || label === 'CN') {
+      return baseTTL.cn_stock;
     }
 
     return baseTTL.default;

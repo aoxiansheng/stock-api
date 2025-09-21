@@ -11,6 +11,7 @@ import { DataFetcherModule } from "../../../03-fetching/data-fetcher/module/data
 import { TransformerModule } from "../../../02-processing/transformer/module/data-transformer.module";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
+import { MarketInferenceModule } from "../../../../common/modules/market-inference/market-inference.module";
 
 import { ReceiverController } from "../controller/receiver.controller";
 import { ReceiverService } from "../services/receiver.service";
@@ -28,6 +29,7 @@ import { ReceiverService } from "../services/receiver.service";
     // CacheModule,
     SharedServicesModule,
     MonitoringModule, // ✅ 导入监控模块
+    MarketInferenceModule, // ✅ 导入市场推断模块
   ],
   controllers: [ReceiverController],
   providers: [ReceiverService],

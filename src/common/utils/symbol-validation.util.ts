@@ -10,12 +10,66 @@ import {
  * 统一的股票代码验证工具类
  * 集中管理所有股票代码验证逻辑，避免重复代码
  */
+export interface MarketDetectOptions {
+  /** 是否将深沪合并为 CN 标签 */
+  collapseChina?: boolean;
+  /** 未识别时的回退市场 */
+  fallback?: (typeof Market)[keyof typeof Market];
+}
+
 export class SymbolValidationUtils {
   /**
    * 验证股票代码格式是否有效
    * @param symbol 股票代码
    * @returns 是否有效
    */
+  private static readonly SUFFIX_GROUPS = {
+    HK: [".HK", ".HKG"],
+    US: [".US", ".NASDAQ", ".NYSE"],
+    SZ: [".SZ"],
+    SH: [".SH"],
+    SG: [".SG", ".SGX"],
+  } as const;
+
+  private static readonly US_SPECIAL_SYMBOLS: readonly string[] = [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "VTI",
+    "VOO",
+  ];
+
+  private static readonly CRYPTO_KEYWORDS = [
+    "USDT",
+    "USDC",
+    "BTC",
+    "ETH",
+    "SOL",
+  ] as const;
+
+  private static endsWithAny(symbol: string, suffixes: readonly string[]): boolean {
+    return suffixes.some((suffix) => symbol.endsWith(suffix));
+  }
+
+  private static stripSuffix(symbol: string, suffix: string): string {
+    return symbol.slice(0, symbol.length - suffix.length);
+  }
+
+  private static formatMarketLabel(
+    market: (typeof Market)[keyof typeof Market] | undefined,
+    collapseChina?: boolean,
+  ): string | undefined {
+    if (!market) return undefined;
+    if (collapseChina && (market === Market.SZ || market === Market.SH || market === Market.CN)) {
+      return Market.CN;
+    }
+    return market;
+  }
+
+  private static isCryptoSymbol(symbol: string): boolean {
+    return this.CRYPTO_KEYWORDS.some((keyword) => symbol.includes(keyword));
+  }
+
   public static isValidSymbol(symbol: string): boolean {
     if (!symbol || typeof symbol !== "string") {
       return false;
@@ -84,26 +138,23 @@ export class SymbolValidationUtils {
   public static isValidHKSymbol(symbol: string): boolean {
     const upperSymbol = symbol.toUpperCase();
 
-    // .HK 后缀格式：700.HK, 00700.HK, 09618.HK（支持1-5位数字，包含前导零）
-    // 特殊支持：HSI.HK（恒生指数）
-    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.MARKETS.HK.SUFFIX)) {
-      const prefix = upperSymbol.slice(0, -3); // 去掉 .HK
+    for (const suffix of this.SUFFIX_GROUPS.HK) {
+      if (upperSymbol.endsWith(suffix)) {
+        const prefix = this.stripSuffix(upperSymbol, suffix);
 
-      // 特殊处理指数代码
-      if (prefix === "HSI") {
-        return true; // 恒生指数
+        if (prefix === "HSI") {
+          return true;
+        }
+
+        return /^\d{1,5}$/.test(prefix);
       }
-
-      return /^\d{1,5}$/.test(prefix); // 1-5位数字，支持前导零
     }
 
-    // 纯数字格式：香港市场通常是5位数字格式
-    if (/^\d{5}$/.test(symbol)) {
-      return true; // 5位数字格式认为是香港市场（包括00700, 09618等）
+    if (/^\d{5}$/.test(upperSymbol)) {
+      return true;
     }
 
-    // 4位数字格式也可能是香港市场（如1234）
-    if (/^\d{4}$/.test(symbol)) {
+    if (/^\d{4}$/.test(upperSymbol)) {
       return true;
     }
 
@@ -115,26 +166,26 @@ export class SymbolValidationUtils {
    */
   public static isValidUSSymbol(symbol: string): boolean {
     const upperSymbol = symbol.toUpperCase();
+    const basePattern = /^[A-Z]{1,5}(\.[A-Z])?$/;
 
-    // .US 后缀格式：AAPL.US, BRK.A.US, SPY.US
-    if (upperSymbol.endsWith(MARKET_RECOGNITION_RULES.MARKETS.US.SUFFIX)) {
-      const prefix = upperSymbol.slice(0, -3); // 去掉 .US
-
-      // 特殊处理ETF和指数代码
-      if (["SPY", "QQQ", "IWM", "VTI", "VOO"].includes(prefix)) {
-        return true; // 常见ETF代码
+    for (const suffix of this.SUFFIX_GROUPS.US) {
+      if (upperSymbol.endsWith(suffix)) {
+        const prefix = this.stripSuffix(upperSymbol, suffix);
+        if (
+          this.US_SPECIAL_SYMBOLS.includes(prefix) ||
+          basePattern.test(prefix)
+        ) {
+          return true;
+        }
+        return false;
       }
-
-      return /^[A-Z]{1,5}(\.[A-Z])?$/.test(prefix); // 支持 BRK.A 格式
     }
 
-    // 纯字母格式：AAPL, BRK.A, SPY
-    // 特殊处理ETF和指数代码
-    if (["SPY", "QQQ", "IWM", "VTI", "VOO"].includes(upperSymbol)) {
-      return true; // 常见ETF代码
+    if (this.US_SPECIAL_SYMBOLS.includes(upperSymbol)) {
+      return true;
     }
 
-    return /^[A-Z]{1,5}(\.[A-Z])?$/.test(upperSymbol);
+    return basePattern.test(upperSymbol);
   }
 
   /**
@@ -187,8 +238,8 @@ export class SymbolValidationUtils {
   public static isValidOtherMarketSymbol(symbol: string): boolean {
     const upperSymbol = symbol.toUpperCase();
 
-    // 支持新加坡、台湾、日本等市场：ABC.SG, DEF.TW, GHI.JP
-    return /^[A-Z0-9]{1,10}\.(SG|TW|JP|KR|AU|CA)$/.test(upperSymbol);
+    // 支持新加坡、台湾、日本等市场：ABC.SG、DEF.SGX、GHI.JP
+    return /^[A-Z0-9]{1,10}\.(SG|SGX|TW|JP|KR|AU|CA)$/.test(upperSymbol);
   }
 
   /**
@@ -197,46 +248,43 @@ export class SymbolValidationUtils {
    */
   public static getMarketFromSymbol(
     symbol: string,
+    options: MarketDetectOptions = {},
   ): (typeof Market)[keyof typeof Market] | undefined {
-    if (!symbol) return undefined;
+    const normalized = this.normalizeSymbol(symbol);
 
-    const upperSymbol = symbol.toUpperCase().trim();
+    if (!normalized) {
+      return options.fallback;
+    }
 
-    // 1. 先检查有明确后缀的格式
-    if (upperSymbol.endsWith(".HK")) {
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.HK)) {
       return Market.HK;
     }
-    if (upperSymbol.endsWith(".US")) {
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.US)) {
       return Market.US;
     }
-    if (upperSymbol.endsWith(".SZ")) {
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.SZ)) {
       return Market.SZ;
     }
-    if (upperSymbol.endsWith(".SH")) {
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.SH)) {
       return Market.SH;
     }
 
-    // 2. 检查中国市场的特定前缀（6位数字，特定开头）
-    // 深圳：00、30开头的6位数字
-    if (/^(00|30)\d{4}$/.test(upperSymbol)) {
+    if (/^(00|30)\d{4}$/.test(normalized)) {
       return Market.SZ;
     }
-    // 上海：60、68开头的6位数字
-    if (/^(60|68)\d{4}$/.test(upperSymbol)) {
+    if (/^(60|68)\d{4}$/.test(normalized)) {
       return Market.SH;
     }
 
-    // 3. 检查美国市场的字母格式
-    if (this.isValidUSSymbol(upperSymbol)) {
+    if (this.isValidUSSymbol(normalized)) {
       return Market.US;
     }
 
-    // 4. 检查香港市场（4-5位数字格式，包括00700, 09618等）
-    if (/^\d{4,5}$/.test(upperSymbol)) {
+    if (/^\d{4,5}$/.test(normalized)) {
       return Market.HK;
     }
 
-    return undefined;
+    return options.fallback;
   }
 
   /**
@@ -244,6 +292,55 @@ export class SymbolValidationUtils {
    * @param symbols 股票代码数组
    * @returns 验证结果对象：{ valid: string[], invalid: string[] }
    */
+  public static inferMarketLabel(
+    symbol: string,
+    options: MarketDetectOptions = {},
+  ): string {
+    const normalized = this.normalizeSymbol(symbol);
+    const collapseChina = options.collapseChina;
+
+    if (!normalized) {
+      return (
+        this.formatMarketLabel(options.fallback, collapseChina) ?? 'UNKNOWN'
+      );
+    }
+
+    const detectedMarket = this.getMarketFromSymbol(normalized, {
+      ...options,
+      fallback: undefined,
+    });
+
+    const detectedLabel = this.formatMarketLabel(detectedMarket, collapseChina);
+    if (detectedLabel) {
+      return detectedLabel;
+    }
+
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.SG)) {
+      return 'SG';
+    }
+
+    if (this.isCryptoSymbol(normalized)) {
+      return Market.CRYPTO;
+    }
+
+    return (
+      this.formatMarketLabel(options.fallback, collapseChina) ?? 'UNKNOWN'
+    );
+  }
+
+  public static isExtendedMarketSymbol(symbol: string): boolean {
+    const normalized = this.normalizeSymbol(symbol);
+    if (!normalized) {
+      return false;
+    }
+
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.SG)) {
+      return true;
+    }
+
+    return this.isCryptoSymbol(normalized);
+  }
+
   public static validateSymbols(symbols: string[]): {
     valid: string[];
     invalid: string[];

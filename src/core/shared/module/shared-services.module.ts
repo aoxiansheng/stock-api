@@ -25,9 +25,11 @@ import { FieldMappingService } from "../services/field-mapping.service";
  * 纯工具类已迁移到 SharedUtilsModule
  * 基础设施服务已迁移到 src/app/services/infrastructure/
  */
+import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
+
 @Global()
 @Module({
-  imports: [CacheModule, MonitoringModule],
+  imports: [CacheModule, MonitoringModule, MarketInferenceModule],
   providers: [
     DataChangeDetectorService,
     MarketStatusService,
