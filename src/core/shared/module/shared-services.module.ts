@@ -39,6 +39,7 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     DataChangeDetectorService,
     MarketStatusService,
     FieldMappingService,
+    MarketInferenceModule, // ✅ 导出 MarketInferenceModule 使其在全局可用
   ],
 })
 export class SharedServicesModule {}

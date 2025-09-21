@@ -22,8 +22,8 @@ import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services
 import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
 import {
   buildCacheOrchestratorRequest,
-  inferMarketFromSymbol,
 } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
+import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
 import { ReceiverService } from "../../../01-entry/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../01-entry/receiver/dto/data-response.dto";
@@ -75,6 +75,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     private readonly smartCacheOrchestrator: SmartCacheOrchestrator,
     private readonly queryConfig: QueryConfigService,
     private readonly memoryMonitor: QueryMemoryMonitorService,
+    private readonly marketInferenceService: MarketInferenceService,
   ) {}
 
   // 配置参数访问器
@@ -1032,7 +1033,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
   private async getMarketStatusForSymbol(
     symbol: string,
   ): Promise<Record<Market, MarketStatusResult>> {
-    const market = inferMarketFromSymbol(symbol);
+    const market = this.marketInferenceService.inferMarket(symbol);
     return await this.marketStatusService.getBatchMarketStatus([
       market as Market,
     ]);
@@ -1057,7 +1058,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
       );
 
       // Query自行计算TTL
-      const market = request.market || inferMarketFromSymbol(symbol);
+      const market = request.market || this.marketInferenceService.inferMarket(symbol);
       const cacheTTL = await this.calculateCacheTTLByMarket(market, [symbol]);
 
       await this.storageService.storeData({
@@ -1181,7 +1182,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     >;
 
     symbols.forEach((symbol) => {
-      const market = inferMarketFromSymbol(symbol);
+      const market = this.marketInferenceService.inferMarket(symbol);
 
       if (!symbolsByMarket[market]) {
         symbolsByMarket[market] = [];
@@ -1220,23 +1221,9 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
   private inferMarketFromSymbols(symbols: string[]): string {
     if (!symbols || symbols.length === 0) return "unknown";
 
-    const marketCounts = new Map<string, number>();
-
-    symbols.forEach((symbol) => {
-      const market = inferMarketFromSymbol(symbol);
-      marketCounts.set(market, (marketCounts.get(market) || 0) + 1);
-    });
-
-    let maxMarket = "unknown";
-    let maxCount = 0;
-    for (const [market, count] of marketCounts) {
-      if (count > maxCount) {
-        maxCount = count;
-        maxMarket = market;
-      }
-    }
-
-    return maxMarket;
+    // 使用 MarketInferenceService 的统一方法
+    const dominantMarket = this.marketInferenceService.inferDominantMarket(symbols);
+    return dominantMarket;
   }
 
   /**
