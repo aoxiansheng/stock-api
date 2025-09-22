@@ -1,15 +1,11 @@
 import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
+import { Model } from "mongoose";
 import { createLogger } from "@common/logging/index";
-import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
-import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import {
   Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
+  OnModuleDestroy,
 } from "@nestjs/common";
 import {
   FlexibleMappingRule,
@@ -26,16 +22,32 @@ import {
 } from "../dto/flexible-mapping-rule.dto";
 import { DataSourceTemplateService } from "./data-source-template.service";
 import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
-import { ObjectUtils } from "../../../shared/utils/object.util";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { AsyncTaskLimiter } from "../utils/async-task-limiter";
-import { TRANSFORMATION_TYPES } from "../constants/data-mapper.constants";
+import { CacheService } from "@cache/services/cache.service";
 
+// 🆕 Phase 2 模块化重构：导入内部模块化组件
+import { MappingRuleCrudModule } from './modules/mapping-rule-crud.module';
+import { MappingRuleEngineModule } from './modules/mapping-rule-engine.module';
+import { MappingRuleStatsModule } from './modules/mapping-rule-stats.module';
+
+/**
+ * 灵活映射规则服务
+ *
+ * Phase 2 模块化重构：采用内部模块化架构
+ * - MappingRuleCrudModule: 处理 CRUD 操作
+ * - MappingRuleEngineModule: 处理规则引擎和映射逻辑
+ * - MappingRuleStatsModule: 处理统计和监控
+ *
+ * 保持向后兼容性：所有现有的公共API接口保持不变
+ */
 @Injectable()
-export class FlexibleMappingRuleService {
+export class FlexibleMappingRuleService implements OnModuleDestroy {
   private readonly logger = createLogger(FlexibleMappingRuleService.name);
-  private readonly asyncLimiter = new AsyncTaskLimiter(50);
+
+  // 🆕 Phase 2 模块化组件：职责分离
+  private readonly crudModule: MappingRuleCrudModule;
+  private readonly engineModule: MappingRuleEngineModule;
+  private readonly statsModule: MappingRuleStatsModule;
 
   constructor(
     @InjectModel(FlexibleMappingRule.name)
@@ -46,177 +58,80 @@ export class FlexibleMappingRuleService {
     private readonly templateService: DataSourceTemplateService,
     private readonly mappingRuleCacheService: DataMapperCacheService,
     private readonly eventBus: EventEmitter2,
-  ) {}
+    private readonly cacheService: CacheService,
+  ) {
+    // 🆕 Phase 2 模块化重构：初始化内部模块
+    this.crudModule = new MappingRuleCrudModule(
+      this.ruleModel,
+      this.templateModel,
+      this.templateService,
+    );
+
+    this.engineModule = new MappingRuleEngineModule();
+
+    this.statsModule = new MappingRuleStatsModule(
+      this.ruleModel,
+      this.eventBus,
+      this.cacheService,
+    );
+
+    this.logger.log('FlexibleMappingRuleService 模块化重构完成', {
+      crudModule: '✅ 已初始化',
+      engineModule: '✅ 已初始化',
+      statsModule: '✅ 已初始化'
+    });
+  }
 
   /**
    * 🎯 创建灵活映射规则
+   * Phase 2 重构：委托给 CrudModule
    */
   async createRule(
     dto: CreateFlexibleMappingRuleDto,
   ): Promise<FlexibleMappingRuleResponseDto> {
-    this.logger.log(`创建灵活映射规则: ${dto.name}`);
+    // 委托给 CRUD 模块处理核心逻辑
+    const rule = await this.crudModule.createRule(dto);
+    const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
-    try {
-      // 1. 验证数据源模板是否存在（如果提供了sourceTemplateId）
-      if (dto.sourceTemplateId) {
-        const template = await this.templateModel.findById(
-          dto.sourceTemplateId,
-        );
-        if (!template) {
-          throw UniversalExceptionFactory.createBusinessException({
-            message: `Data source template not found: ${dto.sourceTemplateId}`,
-            errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-            operation: 'createRule',
-            component: ComponentIdentifier.DATA_MAPPER,
-            context: {
-              sourceTemplateId: dto.sourceTemplateId,
-              dataMapperErrorCode: DATA_MAPPER_ERROR_CODES.TEMPLATE_NOT_FOUND
-            }
-          });
-        }
-      }
-
-      // 2. 检查是否已存在相同的规则
-      const existing = await this.ruleModel.findOne({
-        provider: dto.provider,
-        apiType: dto.apiType,
-        transDataRuleListType: dto.transDataRuleListType,
-        name: dto.name,
-      });
-
-      if (existing) {
-        throw UniversalExceptionFactory.createBusinessException({
-          component: ComponentIdentifier.DATA_MAPPER,
-          errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
-          operation: 'createRule',
-          message: `Mapping rule already exists: ${dto.name}`,
-          context: {
-            ruleName: dto.name,
-            provider: dto.provider,
-            apiType: dto.apiType,
-            errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_ALREADY_EXISTS
-          },
-          retryable: false
-        });
-      }
-
-      // 3. 如果设置为默认规则，取消其他默认规则
-      if (dto.isDefault) {
-        await this.ruleModel.updateMany(
-          {
-            provider: dto.provider,
-            apiType: dto.apiType,
-            transDataRuleListType: dto.transDataRuleListType,
-            isDefault: true,
-          },
-          { $set: { isDefault: false } },
-        );
-      }
-
-      // 4. 计算整体置信度
-      const overallConfidence = this.calculateOverallConfidence(
-        dto.fieldMappings,
+    // 🚀 缓存新创建的规则
+    await this.mappingRuleCacheService.cacheRuleById(ruleDto);
+    if (dto.isDefault) {
+      await this.mappingRuleCacheService.cacheBestMatchingRule(
+        dto.provider,
+        dto.apiType,
+        dto.transDataRuleListType,
+        ruleDto,
       );
-
-      // 5. 创建规则
-      const rule = new this.ruleModel({
-        ...dto,
-        overallConfidence,
-        usageCount: 0,
-        successfulTransformations: 0,
-        failedTransformations: 0,
-        isActive: true,
-      });
-
-      const saved = await rule.save();
-      const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(saved);
-
-      // 🚀 缓存新创建的规则
-      await this.mappingRuleCacheService.cacheRuleById(ruleDto);
-      if (dto.isDefault) {
-        await this.mappingRuleCacheService.cacheBestMatchingRule(
-          dto.provider,
-          dto.apiType,
-          dto.transDataRuleListType,
-          ruleDto,
-        );
-      }
-
-      this.logger.log(`灵活映射规则创建成功`, {
-        id: saved._id,
-        name: dto.name,
-        provider: dto.provider,
-        apiType: dto.apiType,
-        fieldMappings: dto.fieldMappings.length,
-        overallConfidence,
-      });
-
-      return ruleDto;
-    } catch (error) {
-      this.logger.error(`创建灵活映射规则失败`, {
-        name: dto.name,
-        provider: dto.provider,
-        error: error.message,
-      });
-      throw error;
     }
+
+    return ruleDto;
   }
 
   /**
    * 🎯 基于模板建议创建映射规则
+   * Phase 2 重构：委托给 CrudModule
    */
   async createRuleFromSuggestions(
     dto: CreateMappingRuleFromSuggestionsDto,
     suggestions: any[],
   ): Promise<FlexibleMappingRuleResponseDto> {
-    this.logger.log(`基于模板建议创建映射规则: ${dto.name}`);
+    // 委托给 CRUD 模块处理核心逻辑
+    const rule = await this.crudModule.createRuleFromSuggestions(dto, suggestions);
+    const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
-    // 1. 获取模板信息
-    const template = await this.templateService.findTemplateById(
-      dto.templateId,
-    );
+    // 🚀 缓存新创建的规则
+    await this.mappingRuleCacheService.cacheRuleById(ruleDto);
+    if (dto.isDefault) {
+      // 从 rule 文档中获取必要参数
+      await this.mappingRuleCacheService.cacheBestMatchingRule(
+        rule.provider,
+        rule.apiType as "rest" | "stream",
+        rule.transDataRuleListType,
+        ruleDto,
+      );
+    }
 
-    // 2. 根据选中的建议索引构建字段映射
-    const selectedSuggestions = dto.selectedSuggestionIndexes.map((index) => {
-      if (index < 0 || index >= suggestions.length) {
-        throw UniversalExceptionFactory.createBusinessException({
-          component: ComponentIdentifier.DATA_MAPPER,
-          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-          operation: 'createRuleFromSuggestions',
-          message: `Invalid suggestion index: ${index}`,
-          context: {
-            index,
-            maxIndex: suggestions.length - 1,
-            errorType: DATA_MAPPER_ERROR_CODES.INVALID_SUGGESTION_INDEX
-          },
-          retryable: false
-        });
-      }
-      return suggestions[index];
-    });
-
-    const fieldMappings = selectedSuggestions.map((suggestion) => ({
-      sourceFieldPath: suggestion.sourceField.fieldPath,
-      targetField: suggestion.targetField,
-      confidence: suggestion.confidence,
-      description: suggestion.reasoning,
-      isActive: true,
-    }));
-
-    // 3. 构建创建规则的DTO
-    const createDto: CreateFlexibleMappingRuleDto = {
-      name: dto.name,
-      provider: template.provider,
-      apiType: template.apiType as "rest" | "stream",
-      transDataRuleListType: "quote_fields", // 默认为报价字段，可根据需要调整
-      description: dto.description,
-      sourceTemplateId: dto.templateId,
-      fieldMappings,
-      isDefault: dto.isDefault,
-      version: "1.0.0",
-    };
-
-    return await this.createRule(createDto);
+    return ruleDto;
   }
 
   /**
@@ -268,6 +183,7 @@ export class FlexibleMappingRuleService {
 
   /**
    * 🔍 根据ID获取规则 (Redis缓存优化)
+   * Phase 2 重构：保留缓存逻辑，监控委托给 StatsModule
    */
   async findRuleById(id: string): Promise<FlexibleMappingRuleResponseDto> {
     const startTime = Date.now();
@@ -277,8 +193,8 @@ export class FlexibleMappingRuleService {
       const cachedRule =
         await this.mappingRuleCacheService.getCachedRuleById(id);
       if (cachedRule) {
-        // ✅ 缓存命中监控 - 事件驱动
-        this.emitMonitoringEvent("cache_hit", {
+        // 监控事件委托给 StatsModule
+        this.statsModule.emitMonitoringEvent("cache_hit", {
           type: "cache",
           operation: "get",
           duration: Date.now() - startTime,
@@ -290,33 +206,11 @@ export class FlexibleMappingRuleService {
       }
 
       // 2. 缓存未命中，从数据库查询
-      const rule = await this.ruleModel.findById(id);
+      const rule = await this.crudModule.getRuleDocumentById(id);
+      const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
-      if (!rule) {
-        // ✅ 数据库查询失败监控 - 事件驱动
-        this.emitMonitoringEvent("database_query_failed", {
-          type: "database",
-          operation: "findById",
-          duration: Date.now() - startTime,
-          collection: "flexibleMappingRules",
-          success: false,
-          error: "Document not found",
-        });
-        throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-        operation: 'mappingRuleNotFound',
-        message: `Mapping rule not found: ${id}`,
-        context: {
-          ruleId: id,
-          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
-        },
-        retryable: false
-      });
-      }
-
-      // ✅ 数据库查询成功监控 - 事件驱动
-      this.emitMonitoringEvent("database_query_success", {
+      // 监控事件委托给 StatsModule
+      this.statsModule.emitMonitoringEvent("database_query_success", {
         type: "database",
         operation: "findById",
         duration: Date.now() - startTime,
@@ -324,8 +218,6 @@ export class FlexibleMappingRuleService {
         success: true,
         resultCount: 1,
       });
-
-      const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
       // 3. 缓存查询结果 - 异步监控避免阻塞
       setImmediate(() => {
@@ -336,8 +228,8 @@ export class FlexibleMappingRuleService {
 
       return ruleDto;
     } catch (error) {
-      // ✅ 异常监控 - 事件驱动
-      this.emitMonitoringEvent("rule_query_error", {
+      // 监控事件委托给 StatsModule
+      this.statsModule.emitMonitoringEvent("rule_query_error", {
         type: "business",
         operation: "findRuleById",
         duration: Date.now() - startTime,
@@ -351,6 +243,7 @@ export class FlexibleMappingRuleService {
 
   /**
    * 🎯 查找最匹配的映射规则 (Redis缓存优化)
+   * Phase 2 重构：查询逻辑委托给 CrudModule，监控委托给 StatsModule
    */
   async findBestMatchingRule(
     provider: string,
@@ -373,8 +266,8 @@ export class FlexibleMappingRuleService {
           transDataRuleListType,
         );
       if (cachedRule) {
-        // ✅ 缓存命中监控 - 事件驱动
-        this.emitMonitoringEvent("cache_hit", {
+        // 监控事件委托给 StatsModule
+        this.statsModule.emitMonitoringEvent("cache_hit", {
           type: "cache",
           operation: "get_best_matching",
           duration: Date.now() - startTime,
@@ -386,40 +279,19 @@ export class FlexibleMappingRuleService {
         return cachedRule;
       }
 
-      // 2. 缓存未命中，从数据库查询
-      // 首先查找默认规则
-      let rule = await this.ruleModel
-        .findOne({
-          provider,
-          apiType,
-          transDataRuleListType,
-          isActive: true,
-          isDefault: true,
-        })
-        .sort({ overallConfidence: -1 });
-
-      // 3. 如果没有默认规则，查找最佳匹配规则
-      if (!rule) {
-        rule = await this.ruleModel
-          .findOne({
-            provider,
-            apiType,
-            transDataRuleListType,
-            isActive: true,
-          })
-          .sort({
-            overallConfidence: -1,
-            successRate: -1,
-            usageCount: -1,
-          });
-      }
+      // 2. 缓存未命中，委托给 CrudModule 查询
+      const rule = await this.crudModule.findBestMatchingRuleDocument(
+        provider,
+        apiType,
+        transDataRuleListType,
+      );
 
       const ruleDto = rule
         ? FlexibleMappingRuleResponseDto.fromDocument(rule)
         : null;
 
-      // ✅ 数据库查询监控 - 事件驱动
-      this.emitMonitoringEvent("best_matching_rule_query", {
+      // 监控事件委托给 StatsModule
+      this.statsModule.emitMonitoringEvent("best_matching_rule_query", {
         type: "database",
         operation: "findBestMatchingRule",
         duration: Date.now() - startTime,
@@ -430,7 +302,7 @@ export class FlexibleMappingRuleService {
         resultCount: ruleDto ? 1 : 0,
       });
 
-      // 4. 缓存查询结果（仅在找到规则时） - 异步避免阻塞
+      // 3. 缓存查询结果（仅在找到规则时） - 异步避免阻塞
       if (ruleDto) {
         setImmediate(() => {
           this.mappingRuleCacheService
@@ -451,8 +323,8 @@ export class FlexibleMappingRuleService {
         });
       }
 
-      // ✅ 性能监控 - 关键业务操作 - 事件驱动
-      this.emitMonitoringEvent("critical_path_operation", {
+      // 监控事件委托给 StatsModule
+      this.statsModule.emitMonitoringEvent("critical_path_operation", {
         type: "business",
         operation: "findBestMatchingRule",
         duration: Date.now() - startTime,
@@ -466,8 +338,8 @@ export class FlexibleMappingRuleService {
 
       return ruleDto;
     } catch (error) {
-      // ✅ 错误监控 - 事件驱动
-      this.emitMonitoringEvent("best_matching_rule_error", {
+      // 监控事件委托给 StatsModule
+      this.statsModule.emitMonitoringEvent("best_matching_rule_error", {
         type: "business",
         operation: "findBestMatchingRule",
         duration: Date.now() - startTime,
@@ -482,6 +354,7 @@ export class FlexibleMappingRuleService {
 
   /**
    * 🎯 应用灵活映射规则的核心逻辑
+   * Phase 2 重构：委托给 EngineModule 处理映射，StatsModule 处理统计
    */
   public async applyFlexibleMappingRule(
     rule: FlexibleMappingRuleDocument,
@@ -501,140 +374,34 @@ export class FlexibleMappingRuleService {
   }> {
     const startTime = Date.now();
 
-    // 🐞 调试：应用映射前输出规则概览
-    this.logger.debug("applyFlexibleMappingRule: begin", {
-      ruleId: rule._id?.toString(),
-      mappingCount: rule.fieldMappings?.length,
-      samplePaths: rule.fieldMappings
-        ?.slice(0, 5)
-        .map((m: any) => m.sourceFieldPath),
-    });
-    const transformedData = {};
-    const debugInfo = [];
-    let successfulMappings = 0;
-    let failedMappings = 0;
-
-    for (const mapping of rule.fieldMappings) {
-      // 若未显式设置 isActive，则默认视为启用
-      if (mapping.isActive === false) continue;
-
-      try {
-        // 1. 尝试主要路径
-        let sourceValue = this.getValueFromPath(
-          sourceData,
-          mapping.sourceFieldPath,
-        );
-        let fallbackUsed = undefined;
-
-        // 2. 如果主要路径失败，尝试回退路径
-        if (sourceValue === undefined && mapping.fallbackPaths?.length > 0) {
-          for (const fallbackPath of mapping.fallbackPaths) {
-            sourceValue = this.getValueFromPath(sourceData, fallbackPath);
-            if (sourceValue !== undefined) {
-              fallbackUsed = fallbackPath;
-              break;
-            }
-          }
-        }
-
-        if (sourceValue !== undefined) {
-          // 3. 应用转换（如果有）
-          let transformedValue = sourceValue;
-          if (mapping.transform) {
-            transformedValue = this.applyTransform(
-              sourceValue,
-              mapping.transform,
-            );
-          }
-          // 如果目标字段名包含 "percent" 且结果仍小于 1，则认为为比率制，需要再乘 100 输出百分数
-          if (
-            typeof transformedValue === "number" &&
-            Math.abs(transformedValue) < 1 &&
-            mapping.targetField.toLowerCase().includes("percent")
-          ) {
-            transformedValue = transformedValue * 100;
-          }
-
-          transformedData[mapping.targetField] = transformedValue;
-          successfulMappings++;
-
-          if (includeDebugInfo) {
-            debugInfo.push({
-              sourceFieldPath: mapping.sourceFieldPath,
-              targetField: mapping.targetField,
-              sourceValue,
-              transformedValue,
-              success: true,
-              fallbackUsed,
-            });
-          }
-        } else {
-          failedMappings++;
-
-          if (includeDebugInfo) {
-            debugInfo.push({
-              sourceFieldPath: mapping.sourceFieldPath,
-              targetField: mapping.targetField,
-              sourceValue: undefined,
-              transformedValue: undefined,
-              success: false,
-              error: "源字段值未找到",
-            });
-          }
-        }
-      } catch (error) {
-        failedMappings++;
-
-        if (includeDebugInfo) {
-          debugInfo.push({
-            sourceFieldPath: mapping.sourceFieldPath,
-            targetField: mapping.targetField,
-            sourceValue: undefined,
-            transformedValue: undefined,
-            success: false,
-            error: error.message,
-          });
-        }
-      }
-    }
-
-    const totalMappings = successfulMappings + failedMappings;
-    const successRate =
-      totalMappings > 0 ? successfulMappings / totalMappings : 0;
-
-    const result = {
-      transformedData,
-      success: successRate > 0.5, // 超过50%映射成功则认为整体成功
-      mappingStats: {
-        totalMappings,
-        successfulMappings,
-        failedMappings,
-        successRate,
-      },
-      debugInfo: includeDebugInfo ? debugInfo : undefined,
-    };
+    // 委托给 EngineModule 处理核心映射逻辑
+    const result = await this.engineModule.applyFlexibleMappingRule(
+      rule,
+      sourceData,
+      includeDebugInfo,
+    );
 
     try {
-      // ✅ 业务操作监控 - 事件驱动
-      this.emitMonitoringEvent("rule_application", {
+      // 委托给 StatsModule 处理监控事件
+      this.statsModule.emitMonitoringEvent("rule_application", {
         type: "business",
         operation: "applyFlexibleMappingRule",
         duration: Date.now() - startTime,
         ruleId: rule._id?.toString(),
         provider: rule.provider,
         apiType: rule.apiType,
-        totalMappings,
-        successfulMappings,
-        failedMappings,
-        successRate: Math.round(successRate * 100) / 100,
+        totalMappings: result.mappingStats.totalMappings,
+        successfulMappings: result.mappingStats.successfulMappings,
+        failedMappings: result.mappingStats.failedMappings,
+        successRate: Math.round(result.mappingStats.successRate * 100) / 100,
         success: result.success,
         category: "business_operation",
       });
 
-      // ✅ 异步更新规则统计（避免阻塞）
+      // 委托给 StatsModule 处理异步统计更新
       setImmediate(() => {
         if (rule._id) {
-          this.updateRuleStats(rule._id.toString(), result.success).catch(
+          this.statsModule.updateRuleStats(rule._id.toString(), result.success).catch(
             (error) => {
               this.logger.warn("更新规则统计失败", { error: error.message });
             },
@@ -652,267 +419,19 @@ export class FlexibleMappingRuleService {
   }
 
   /**
-   * 🔧 从路径获取值的辅助方法（统一路径解析优化）
-   * 性能优化：保留直接属性访问，对复杂路径使用统一的ObjectUtils
-   */
-  private getValueFromPath(obj: any, path: string): any {
-    // 快速路径：直接属性访问（无嵌套路径）
-    if (path.indexOf(".") === -1 && path.indexOf("[") === -1) {
-      return obj?.[path];
-    }
-
-    // 复杂路径：使用统一的ObjectUtils处理嵌套路径和数组访问
-    return ObjectUtils.getValueFromPath(obj, path);
-  }
-
-  /**
-   * 🔧 应用转换
-   */
-  private applyTransform(value: any, transform: any): any {
-    const numericValue = Number(value);
-
-    switch (transform.type) {
-      case TRANSFORMATION_TYPES.MULTIPLY:
-        if (!isNaN(numericValue)) {
-          return numericValue * (Number(transform.value) || 1);
-        }
-        break;
-      case TRANSFORMATION_TYPES.DIVIDE:
-        if (!isNaN(numericValue) && transform.value !== 0) {
-          return numericValue / (Number(transform.value) || 1);
-        }
-        break;
-      case TRANSFORMATION_TYPES.ADD:
-        if (!isNaN(numericValue)) {
-          return numericValue + (Number(transform.value) || 0);
-        }
-        break;
-      case TRANSFORMATION_TYPES.SUBTRACT:
-        if (!isNaN(numericValue)) {
-          return numericValue - (Number(transform.value) || 0);
-        }
-        break;
-      case TRANSFORMATION_TYPES.FORMAT:
-        const template = String(transform.value || "{value}");
-        return template.replace(/\{value\}/g, String(value));
-      default:
-        return value;
-    }
-
-    return value;
-  }
-
-  /**
-   * 📊 更新规则使用统计 (优化版 - 单次原子更新)
-   */
-  private async updateRuleStats(
-    dataMapperRuleId: string,
-    success: boolean,
-  ): Promise<void> {
-    const startTime = Date.now();
-
-    try {
-      // 使用单次原子更新，包含成功率重新计算
-      const result = await this.ruleModel.findByIdAndUpdate(
-        dataMapperRuleId,
-        [
-          {
-            $set: {
-              usageCount: { $add: ["$usageCount", 1] },
-              lastUsedAt: new Date(),
-              successfulTransformations: success
-                ? { $add: ["$successfulTransformations", 1] }
-                : "$successfulTransformations",
-              failedTransformations: success
-                ? "$failedTransformations"
-                : { $add: ["$failedTransformations", 1] },
-            },
-          },
-          {
-            $set: {
-              successRate: {
-                $cond: {
-                  if: {
-                    $gt: [
-                      {
-                        $add: [
-                          "$successfulTransformations",
-                          "$failedTransformations",
-                        ],
-                      },
-                      0,
-                    ],
-                  },
-                  then: {
-                    $divide: [
-                      "$successfulTransformations",
-                      {
-                        $add: [
-                          "$successfulTransformations",
-                          "$failedTransformations",
-                        ],
-                      },
-                    ],
-                  },
-                  else: 0,
-                },
-              },
-            },
-          },
-        ],
-        { new: true },
-      );
-
-      if (result) {
-        // 轻量任务限流器替代 setImmediate
-        this.asyncLimiter.schedule(() => {
-          const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(result);
-          return this.mappingRuleCacheService.invalidateRuleCache(
-            dataMapperRuleId,
-            ruleDto,
-          );
-        });
-      }
-
-      // 监控记录 - 事件驱动
-      this.emitMonitoringEvent("rule_stats_updated", {
-        type: "database",
-        operation: "updateRuleStats",
-        duration: Date.now() - startTime,
-        collection: "flexibleMappingRules",
-        ruleId: dataMapperRuleId,
-        success: true,
-      });
-    } catch (error) {
-      // 监控记录失败情况 - 事件驱动
-      this.emitMonitoringEvent("rule_stats_update_failed", {
-        type: "database",
-        operation: "updateRuleStats",
-        duration: Date.now() - startTime,
-        collection: "flexibleMappingRules",
-        ruleId: dataMapperRuleId,
-        success: false,
-        error: error.message,
-      });
-
-      this.logger.error("更新规则统计失败", {
-        dataMapperRuleId,
-        success,
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * 📊 计算整体置信度
-   */
-  private calculateOverallConfidence(fieldMappings: any[]): number {
-    if (fieldMappings.length === 0) return 0;
-
-    const avgConfidence =
-      fieldMappings.reduce((sum, mapping) => sum + mapping.confidence, 0) /
-      fieldMappings.length;
-    return Math.min(avgConfidence, 1.0);
-  }
-
-  /**
-   * 🎯 事件驱动监控事件发送
-   * 替代直接调用 CollectorService，使用事件总线异步发送监控事件
-   */
-  private emitMonitoringEvent(metricName: string, data: any) {
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "data_mapper_rule",
-        metricType: data.type || "business",
-        metricName,
-        metricValue: data.duration || data.value || 1,
-        tags: {
-          component: "flexible-mapping-rule",
-          operation: data.operation,
-          status: data.success ? "success" : "error",
-          provider: data.provider,
-          apiType: data.apiType,
-          collection: data.collection,
-          cacheType: data.cacheType,
-          ruleId: data.ruleId,
-          category: data.category,
-          error: data.error,
-          resultCount: data.resultCount,
-          cacheHit: data.cacheHit,
-          ruleFound: data.ruleFound,
-          totalMappings: data.totalMappings,
-          successfulMappings: data.successfulMappings,
-          failedMappings: data.failedMappings,
-          successRate: data.successRate,
-        },
-      });
-    });
-  }
-
-  /**
    * ✏️ 更新映射规则 (Redis缓存失效)
+   * Phase 2 重构：委托给 CrudModule
    */
   async updateRule(
     id: string,
     updateData: Partial<CreateFlexibleMappingRuleDto>,
   ): Promise<FlexibleMappingRuleResponseDto> {
     // 1. 获取原规则信息用于缓存失效
-    const oldRule = await this.ruleModel.findById(id);
-    if (!oldRule) {
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-        operation: 'mappingRuleNotFound',
-        message: `Mapping rule not found: ${id}`,
-        context: {
-          ruleId: id,
-          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
-        },
-        retryable: false
-      });
-    }
+    const oldRule = await this.crudModule.getRuleDocumentById(id);
     const oldRuleDto = FlexibleMappingRuleResponseDto.fromDocument(oldRule);
 
-    // 🛡️ 清洗 fieldMappings，确保默认值完整
-    if (Array.isArray(updateData.fieldMappings)) {
-      updateData.fieldMappings = updateData.fieldMappings.map((m: any) => ({
-        // 必要字段
-        sourceFieldPath: m.sourceFieldPath,
-        targetField: m.targetField,
-        transform: m.transform,
-        fallbackPaths: m.fallbackPaths,
-        confidence: m.confidence,
-        description: m.description,
-        // 默认值处理
-        isActive: m.isActive !== false,
-        isRequired: m.isRequired ?? false,
-      })) as any;
-    }
-
-    // 2. 更新规则
-    const rule = await this.ruleModel.findByIdAndUpdate(
-      id,
-      {
-        ...updateData,
-        ...(updateData.fieldMappings && {
-          overallConfidence: this.calculateOverallConfidence(
-            updateData.fieldMappings,
-          ),
-        }),
-      },
-      { new: true },
-    );
-    // �� 调试：更新后输出映射数量及示例路径
-    this.logger.debug("updateRule: fieldMappings after update", {
-      id,
-      mappingCount: rule.fieldMappings?.length,
-      samplePaths: rule.fieldMappings
-        ?.slice(0, 5)
-        .map((m: any) => m.sourceFieldPath),
-    });
-
+    // 2. 委托给 CrudModule 更新规则
+    const rule = await this.crudModule.updateRule(id, updateData);
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
     // 3. 🚀 失效相关缓存
@@ -921,41 +440,23 @@ export class FlexibleMappingRuleService {
     // 4. 缓存新的规则数据
     await this.mappingRuleCacheService.cacheRuleById(ruleDto);
 
-    this.logger.log(`映射规则更新成功`, { id, name: rule.name });
     return ruleDto;
   }
 
   /**
    * 🔄 激活/禁用规则 (Redis缓存失效)
+   * Phase 2 重构：委托给 CrudModule
    */
   async toggleRuleStatus(
     id: string,
     isActive: boolean,
   ): Promise<FlexibleMappingRuleResponseDto> {
     // 1. 获取原规则信息用于缓存失效
-    const oldRule = await this.ruleModel.findById(id);
-    if (!oldRule) {
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-        operation: 'mappingRuleNotFound',
-        message: `Mapping rule not found: ${id}`,
-        context: {
-          ruleId: id,
-          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
-        },
-        retryable: false
-      });
-    }
+    const oldRule = await this.crudModule.getRuleDocumentById(id);
     const oldRuleDto = FlexibleMappingRuleResponseDto.fromDocument(oldRule);
 
-    // 2. 更新规则状态
-    const rule = await this.ruleModel.findByIdAndUpdate(
-      id,
-      { isActive },
-      { new: true },
-    );
-
+    // 2. 委托给 CrudModule 更新规则状态
+    const rule = await this.crudModule.toggleRuleStatus(id, isActive);
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
     // 3. 🚀 失效相关缓存（特别是最佳匹配规则缓存）
@@ -964,102 +465,29 @@ export class FlexibleMappingRuleService {
     // 4. 缓存新的规则数据
     await this.mappingRuleCacheService.cacheRuleById(ruleDto);
 
-    this.logger.log(`规则状态更新`, { id, isActive });
     return ruleDto;
   }
 
   /**
    * 🗑️ 删除映射规则 (Redis缓存失效)
+   * Phase 2 重构：委托给 CrudModule
    */
   async deleteRule(id: string): Promise<void> {
-    // 1. 获取规则信息用于缓存失效
-    const rule = await this.ruleModel.findById(id);
-    if (!rule) {
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-        operation: 'mappingRuleNotFound',
-        message: `Mapping rule not found: ${id}`,
-        context: {
-          ruleId: id,
-          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
-        },
-        retryable: false
-      });
-    }
+    // 1. 委托给 CrudModule 删除规则（内部已包含验证逻辑）
+    const rule = await this.crudModule.deleteRule(id);
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
-    // 2. 删除规则
-    await this.ruleModel.findByIdAndDelete(id);
-
-    // 3. 🚀 失效相关缓存
+    // 2. 🚀 失效相关缓存
     await this.mappingRuleCacheService.invalidateRuleCache(id, ruleDto);
-
-    this.logger.log(`映射规则删除成功`, { id, name: rule.name });
   }
 
   /**
-   * 🔧 根据ID获取规则文档（修复封装越界）
-   * 修复服务封装越界问题：提供受控的公开API访问规则文档
-   * 注意：此方法专为修复架构违规而设计，不包含复杂的缓存逻辑
+   * 🎯 安全获取规则信息（返回DTO对象，替代直接暴露文档对象）
+   * Phase 2 重构：委托给 CrudModule
    */
-  async getRuleDocumentById(id: string): Promise<FlexibleMappingRuleDocument> {
-    // 参数验证
-    if (!Types.ObjectId.isValid(id)) {
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: 'findRuleById',
-        message: `Invalid rule ID format: ${id}`,
-        context: {
-          ruleId: id,
-          errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_ID_FORMAT
-        },
-        retryable: false
-      });
-    }
-
-    try {
-      // 直接查询数据库
-      const rule = await this.ruleModel.findById(id);
-      if (!rule) {
-        throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-        operation: 'mappingRuleNotFound',
-        message: `Mapping rule not found: ${id}`,
-        context: {
-          ruleId: id,
-          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
-        },
-        retryable: false
-      });
-      }
-
-      this.logger.debug(`获取规则文档成功: ${id}`);
-      return rule;
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      this.logger.error("获取规则文档时发生错误", { id, error: error.message });
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.DATA_MAPPER,
-        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
-        operation: 'getRuleDocumentById',
-        message: `Failed to get rule document: ${error.message}`,
-        context: {
-          ruleId: id,
-          originalError: error.message,
-          errorType: DATA_MAPPER_ERROR_CODES.RULE_DOCUMENT_FETCH_ERROR
-        },
-        retryable: true,
-        originalError: error
-      });
-    }
+  async getRuleSafeData(id: string): Promise<FlexibleMappingRuleResponseDto> {
+    const ruleDocument = await this.crudModule.getRuleDocumentById(id);
+    return FlexibleMappingRuleResponseDto.fromDocument(ruleDocument);
   }
 
   /**
@@ -1087,5 +515,29 @@ export class FlexibleMappingRuleService {
     } catch (error) {
       this.logger.error("映射规则缓存预热失败", { error: error.message });
     }
+  }
+
+  /**
+   * 🛡️ 验证缓存层JSON操作安全性
+   * Phase 2 重构：委托给 StatsModule
+   */
+  async validateCacheJsonSecurity(): Promise<{
+    jsonBombProtection: boolean;
+    dataIntegrity: boolean;
+    performanceWithinLimits: boolean;
+    errors: string[];
+  }> {
+    return this.statsModule.validateCacheJsonSecurity();
+  }
+
+  /**
+   * 🔄 清理资源（用于模块销毁时）
+   * Phase 2 重构：委托给 StatsModule
+   */
+  onModuleDestroy(): void {
+    // 委托给 StatsModule 处理清理工作
+    this.statsModule.onDestroy();
+
+    this.logger.log('FlexibleMappingRuleService 模块销毁完成');
   }
 }

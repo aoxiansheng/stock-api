@@ -68,20 +68,118 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
    */
   private emitMonitoringEvent(metricName: string, data: any) {
     setImmediate(() => {
+      // 🔧 修复高基数标签问题：过滤和净化标签
+      const sanitizedTags = this.sanitizeEventTags({
+        operation: data.operation,
+        status: data.success ? "success" : "error",
+        service: "SymbolMapperService",
+        ...data.tags,
+      });
+
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "symbol_mapper",
         metricType: data.metricType || "business",
         metricName,
         metricValue: data.duration || data.amount || 1,
-        tags: {
-          operation: data.operation,
-          status: data.success ? "success" : "error",
-          service: "SymbolMapperService",
-          ...data.tags,
-        },
+        tags: sanitizedTags,
       });
     });
+  }
+
+  /**
+   * 🔧 净化事件标签，移除高基数标签
+   * 防止Prometheus内存占用激增
+   */
+  private sanitizeEventTags(tags: Record<string, any>): Record<string, string> {
+    const sanitized: Record<string, string> = {};
+
+    // ✅ 保留低基数标签
+    const allowedTags = [
+      'operation', 'status', 'service', 'collection', 
+      'conflict', 'errorType', 'architecture'
+    ];
+
+    allowedTags.forEach(key => {
+      if (tags[key] !== undefined) {
+        sanitized[key] = String(tags[key]);
+      }
+    });
+
+    // 🔧 转换高基数标签为计数标签
+    if (tags.rulesCount !== undefined) {
+      // 规则数量分组：小批量(1-10), 中批量(11-50), 大批量(50+)
+      const count = Number(tags.rulesCount) || 0;
+      sanitized.rules_batch_size = count <= 10 ? 'small' : count <= 50 ? 'medium' : 'large';
+    }
+
+    if (tags.resultCount !== undefined) {
+      sanitized.has_results = Number(tags.resultCount) > 0 ? 'true' : 'false';
+    }
+
+    if (tags.totalRules !== undefined) {
+      const total = Number(tags.totalRules) || 0;
+      sanitized.total_rules_range = total <= 20 ? 'low' : total <= 100 ? 'medium' : 'high';
+    }
+
+    // 🔧 错误消息归类（移除动态内容）
+    if (tags.error && typeof tags.error === 'string') {
+      sanitized.error_category = this.categorizeError(tags.error);
+    }
+
+    // 🔧 符号类型归类（而非具体符号）
+    if (tags.standardSymbol && typeof tags.standardSymbol === 'string') {
+      sanitized.symbol_type = this.categorizeSymbol(tags.standardSymbol);
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * 🔧 错误消息归类
+   */
+  private categorizeError(errorMessage: string): string {
+    const lowerError = errorMessage.toLowerCase();
+    
+    if (lowerError.includes('not found') || lowerError.includes('不存在')) {
+      return 'not_found';
+    }
+    if (lowerError.includes('duplicate') || lowerError.includes('已存在')) {
+      return 'duplicate';
+    }
+    if (lowerError.includes('validation') || lowerError.includes('invalid')) {
+      return 'validation';
+    }
+    if (lowerError.includes('timeout') || lowerError.includes('超时')) {
+      return 'timeout';
+    }
+    if (lowerError.includes('permission') || lowerError.includes('unauthorized')) {
+      return 'permission';
+    }
+    return 'unknown';
+  }
+
+  /**
+   * 🔧 符号类型归类
+   */
+  private categorizeSymbol(symbol: string): string {
+    // 港股格式: 数字.HK
+    if (/^\d+\.HK$/i.test(symbol)) {
+      return 'hk_stock';
+    }
+    // 美股格式: 字母组合
+    if (/^[A-Z]{1,5}$/.test(symbol)) {
+      return 'us_stock';
+    }
+    // A股格式: 6位数字
+    if (/^\d{6}$/.test(symbol)) {
+      return 'cn_stock';
+    }
+    // 指数或其他
+    if (symbol.includes('INDEX') || symbol.includes('指数')) {
+      return 'index';
+    }
+    return 'other';
   }
 
   /**

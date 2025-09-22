@@ -87,6 +87,22 @@ export class StorageRepository {
     const [items, total] = await Promise.all([
       this.storedDataModel
         .find(filter)
+        .select({
+          _id: 1,
+          key: 1,
+          provider: 1,
+          market: 1,
+          storageClassification: 1,
+          compressed: 1,
+          dataSize: 1,
+          tags: 1,
+          storedAt: 1,
+          expiresAt: 1,
+          sensitivityLevel: 1,
+          encrypted: 1,
+          // 排除data字段以优化内存使用，分页查询不需要实际数据
+          data: 0,
+        })
         .sort({ storedAt: -1 })
         .skip(skip)
         .limit(limit)

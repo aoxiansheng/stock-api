@@ -312,9 +312,9 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         `Graceful shutdown timeout reached. ${this.activeTaskCount} tasks still active.`,
       );
 
-      // 记录告警指标 - 事件化监控
+      // 记录告警指标 - 通过BackgroundTaskService管理
       if (this.config.enableMetrics) {
-        setImmediate(() => {
+        this.backgroundTaskService.run(async () => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
             source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
@@ -328,7 +328,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               reason: "shutdown_timeout",
             },
           });
-        });
+        }, "emit_shutdown_timeout_metric");
       }
     }
 
@@ -425,9 +425,9 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     this.activeTaskCount++;
     task.status = "running";
 
-    // 更新活跃任务指标 - 事件化监控
+    // 更新活跃任务指标 - 通过BackgroundTaskService管理
     if (this.config.enableMetrics) {
-      setImmediate(() => {
+      this.backgroundTaskService.run(async () => {
         this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
           timestamp: new Date(),
           source: "smart_cache_orchestrator",
@@ -440,7 +440,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
             componentType: "smart_cache_orchestrator",
           },
         });
-      });
+      }, "emit_active_tasks_metric");
     }
 
     try {
@@ -565,9 +565,9 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         `Background update completed for cache key: ${task.cacheKey}`,
       );
 
-      // 更新完成指标 - 事件化监控
+      // 更新完成指标 - 通过BackgroundTaskService管理
       if (this.config.enableMetrics) {
-        setImmediate(() => {
+        this.backgroundTaskService.run(async () => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
             source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
@@ -580,7 +580,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             },
           });
-        });
+        }, "emit_task_completed_metric");
       }
     } catch (error) {
       task.status = "failed";
@@ -609,9 +609,9 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         );
       }
 
-      // 更新失败指标 - 事件化监控
+      // 更新失败指标 - 通过BackgroundTaskService管理
       if (this.config.enableMetrics) {
-        setImmediate(() => {
+        this.backgroundTaskService.run(async () => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
             source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
@@ -625,7 +625,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             },
           });
-        });
+        }, "emit_task_failed_metric");
       }
     } finally {
       this.activeTaskCount--;
@@ -635,9 +635,9 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         this.backgroundUpdateTasks.delete(task.cacheKey);
       }
 
-      // 更新活跃任务指标 - 事件化监控
+      // 更新活跃任务指标 - 通过BackgroundTaskService管理
       if (this.config.enableMetrics) {
-        setImmediate(() => {
+        this.backgroundTaskService.run(async () => {
           this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
             timestamp: new Date(),
             source: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
@@ -650,7 +650,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               componentType: SMART_CACHE_COMPONENT.IDENTIFIERS.NAME,
             },
           });
-        });
+        }, "emit_active_tasks_updated_metric");
       }
     } // finally 块结束
   }

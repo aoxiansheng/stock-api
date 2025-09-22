@@ -11,6 +11,7 @@ import { MonitoringModule } from "../../../monitoring/monitoring.module";
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
 import { FieldMappingService } from "../services/field-mapping.service";
+import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
 
 /**
  * 核心业务服务模块，提供跨组件共享的业务逻辑
@@ -34,11 +35,13 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     DataChangeDetectorService,
     MarketStatusService,
     FieldMappingService,
+    BackgroundTaskService,
   ],
   exports: [
     DataChangeDetectorService,
     MarketStatusService,
     FieldMappingService,
+    BackgroundTaskService,
     MarketInferenceModule, // ✅ 导出 MarketInferenceModule 使其在全局可用
   ],
 })

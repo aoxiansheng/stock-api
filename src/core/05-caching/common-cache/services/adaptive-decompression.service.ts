@@ -60,6 +60,9 @@ export enum ConcurrencyStrategy {
 export class AdaptiveDecompressionService {
   private readonly logger = createLogger(AdaptiveDecompressionService.name);
 
+  // ✅ 销毁状态标志，防止服务销毁后执行异步操作
+  private isDestroyed = false;
+
   // 并发控制参数
   private currentMaxConcurrency: number;
   private readonly initialMaxConcurrency: number;
@@ -274,7 +277,12 @@ export class AdaptiveDecompressionService {
       this.updateMetrics();
 
       // 继续处理队列
-      setImmediate(() => this.processQueue());
+      setImmediate(() => {
+        // ✅ 修复P0问题：检查销毁状态，防止服务销毁后执行
+        if (!this.isDestroyed) {
+          this.processQueue();
+        }
+      });
     }
   }
 
@@ -461,7 +469,12 @@ export class AdaptiveDecompressionService {
     });
 
     // 处理等待的任务
-    setImmediate(() => this.processQueue());
+    setImmediate(() => {
+      // ✅ 修复P0问题：检查销毁状态，防止服务销毁后执行
+      if (!this.isDestroyed) {
+        this.processQueue();
+      }
+    });
   }
 
   /**
@@ -577,6 +590,9 @@ export class AdaptiveDecompressionService {
    * 清理资源（用于测试或重置）
    */
   cleanup(): void {
+    // ✅ 设置销毁状态，防止后续异步操作执行
+    this.isDestroyed = true;
+
     // 拒绝所有等待中的任务
     this.taskQueue.forEach((task) => {
       task.reject(new Error("Service is shutting down"));

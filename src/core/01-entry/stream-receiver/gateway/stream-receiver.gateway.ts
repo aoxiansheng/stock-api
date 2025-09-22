@@ -37,9 +37,24 @@ import { StreamResponses } from '../utils/stream-response.utils';
 
 @WebSocketGateway({
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: (() => {
+      const corsOrigin = process.env.CORS_ORIGIN;
+      if (corsOrigin) {
+        return corsOrigin.split(',');
+      }
+      // 生产环境强制要求配置，开发环境使用严格白名单
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('生产环境必须配置CORS_ORIGIN环境变量');
+      }
+      return [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000'
+      ];
+    })(),
+    methods: ["GET"], // WebSocket升级只需要GET
     credentials: true,
+    optionsSuccessStatus: 200,
   },
   path: "/api/v1/stream-receiver/connect",
   transports: ["websocket"],

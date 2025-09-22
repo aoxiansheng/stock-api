@@ -125,6 +125,15 @@ interface StreamConnectionContext {
  * 🔗 Pipeline 位置：WebSocket → **StreamReceiver** → StreamDataFetcher → Transformer → Storage
  */
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+import {
+  LatencyUtils,
+  ConnectionHealthUtils,
+  ConnectionStatsUtils,
+  TimestampUtils,
+  CollectionUtils,
+  ConnectionHealthInfo
+} from '../utils/stream-receiver.utils';
+import { StreamDataValidator } from '../validators/stream-data.validator';
 
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
@@ -132,6 +141,9 @@ export class StreamReceiverService implements OnModuleDestroy {
 
   // ✅ 活跃的流连接管理 - provider:capability -> StreamConnection (已修复内存泄漏)
   private readonly activeConnections = new Map<string, StreamConnection>();
+
+  // 🔍 连接健康状态跟踪 - connectionId -> ConnectionHealthInfo
+  private readonly connectionHealth = new Map<string, ConnectionHealthInfo>();
 
   // P1重构: 配置管理 - 从硬编码迁移到ConfigService
   private readonly config: StreamReceiverConfig;
@@ -187,6 +199,8 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly marketInferenceService: MarketInferenceService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
+    // 🆕 P2重构: 数据验证模块
+    private readonly dataValidator: StreamDataValidator,
     // ✅ 移除违规的直接 CollectorService 依赖，改用事件化监控
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
     @Inject(forwardRef(() => RateLimitService))
@@ -323,7 +337,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         connectionTime,
         {
           clientId,
-          latencyCategory: this.categorizeLatency(connectionTime),
+          latencyCategory: LatencyUtils.categorizeLatency(connectionTime),
           authStatus
         }
       );
@@ -2440,14 +2454,94 @@ export class StreamReceiverService implements OnModuleDestroy {
     });
   }
 
+  // =============== 连接健康管理方法 ===============
+
   /**
-   * 延迟分类方法：将延迟时间归类为性能等级
+   * 更新连接健康状态 - 使用工具类
    */
-  private categorizeLatency(ms: number): string {
-    if (ms <= 10) return "excellent";
-    if (ms <= 50) return "good";
-    if (ms <= 200) return "acceptable";
-    return "poor";
+  private updateConnectionHealth(
+    connectionId: string,
+    isSuccess: boolean,
+    errorMessage?: string
+  ): void {
+    const now = Date.now();
+    let health = CollectionUtils.getOrCreate(
+      this.connectionHealth,
+      connectionId,
+      () => ConnectionHealthUtils.createInitialHealthInfo(now)
+    );
+
+    if (isSuccess) {
+      ConnectionHealthUtils.updateHealthOnSuccess(health, now);
+    } else {
+      ConnectionHealthUtils.updateHealthOnError(health, now);
+
+      // 记录错误监控事件
+      this.emitMonitoringEvent(
+        "connection_health_error",
+        1,
+        {
+          connectionId,
+          errorCount: health.errorCount,
+          consecutiveErrors: health.consecutiveErrors,
+          errorMessage: errorMessage || "unknown"
+        }
+      );
+    }
+  }
+
+  /**
+   * 检查连接是否健康
+   */
+  private isConnectionHealthy(connectionId: string): boolean {
+    const health = this.connectionHealth.get(connectionId);
+    if (!health) {
+      return false; // 没有健康记录的连接视为不健康
+    }
+
+    return health.isHealthy;
+  }
+
+  /**
+   * 查找不健康的连接
+   */
+  private findUnhealthyConnections(): string[] {
+    return CollectionUtils.filterMapKeys(
+      this.connectionHealth,
+      (health) => !health.isHealthy
+    );
+  }
+
+  /**
+   * 清理不健康的连接
+   */
+  private cleanupUnhealthyConnections(unhealthyConnectionIds: string[]): void {
+    const cleanedFromConnections = CollectionUtils.deleteBatch(
+      this.activeConnections,
+      unhealthyConnectionIds
+    );
+    const cleanedFromHealth = CollectionUtils.deleteBatch(
+      this.connectionHealth,
+      unhealthyConnectionIds
+    );
+
+    if (cleanedFromConnections > 0) {
+      this.logger.log("清理不健康连接完成", {
+        cleanedCount: cleanedFromConnections,
+        unhealthyConnections: unhealthyConnectionIds.length,
+        remainingConnections: this.activeConnections.size
+      });
+
+      // 发送监控事件
+      this.emitMonitoringEvent(
+        "unhealthy_connections_cleaned",
+        cleanedFromConnections,
+        {
+          unhealthyConnectionsFound: unhealthyConnectionIds.length,
+          remainingConnections: this.activeConnections.size
+        }
+      );
+    }
   }
 
   /**
@@ -2853,30 +2947,125 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * 清理过期的连接
+   * 智能连接清理 - 集成连接健康跟踪和活动度监控
    */
   private cleanupStaleConnections(): void {
     const now = Date.now();
-    let cleanedCount = 0;
+    let staleCount = 0;
+    let unhealthyCount = 0;
+    let totalCleaned = 0;
 
+    // 第一步：清理传统意义上的过期连接
     for (const [connectionId, connection] of this.activeConnections) {
-      // 检查连接是否过期或已断开
       if (this.isConnectionStale(connection, now)) {
         this.activeConnections.delete(connectionId);
-        cleanedCount++;
+        this.connectionHealth.delete(connectionId); // 同时清理健康记录
+        staleCount++;
+        totalCleaned++;
         this.logger.debug("清理过期连接", { connectionId });
       }
     }
 
-    // 连接数上限保护
+    // 第二步：更新并清理不健康的连接
+    this.updateConnectionHealthForAll();
+    const unhealthyConnections = this.findUnhealthyConnections();
+    this.cleanupUnhealthyConnections(unhealthyConnections);
+    unhealthyCount = unhealthyConnections.length;
+    totalCleaned += unhealthyCount;
+
+    // 第三步：连接数上限保护
     if (this.activeConnections.size > this.config.maxConnections) {
       this.enforceConnectionLimit();
     }
 
-    if (cleanedCount > 0) {
-      this.logger.log("连接清理完成", {
-        cleanedCount,
+    // 记录清理统计
+    if (totalCleaned > 0) {
+      this.logger.log("智能连接清理完成", {
+        staleConnectionsCleaned: staleCount,
+        unhealthyConnectionsCleaned: unhealthyCount,
+        totalCleaned,
         remainingConnections: this.activeConnections.size,
+        healthyConnections: this.connectionHealth.size
+      });
+
+      // 发送清理监控事件
+      this.emitMonitoringEvent(
+        "smart_connection_cleanup_completed",
+        totalCleaned,
+        {
+          staleConnections: staleCount,
+          unhealthyConnections: unhealthyCount,
+          remainingConnections: this.activeConnections.size,
+          cleanupType: "scheduled_cleanup"
+        }
+      );
+    }
+
+    // 第四步：健康状态统计和监控
+    this.reportConnectionHealthStats();
+  }
+
+  /**
+   * 批量更新所有连接的健康状态
+   */
+  private updateConnectionHealthForAll(): void {
+    const now = Date.now();
+
+    for (const [connectionId, connection] of this.activeConnections) {
+      let health = this.connectionHealth.get(connectionId);
+
+      if (!health) {
+        // 为没有健康记录的连接创建初始记录
+        health = ConnectionHealthUtils.createInitialHealthInfo(now);
+        health.lastActivity = connection.lastActiveAt?.getTime() || connection.createdAt?.getTime() || now;
+        health.connectionQuality = 'good'; // 新连接默认为good
+        this.connectionHealth.set(connectionId, health);
+      } else {
+        // 更新现有连接的活动时间
+        const connectionLastActivity = connection.lastActiveAt?.getTime() || connection.createdAt?.getTime() || now;
+        health.lastActivity = Math.max(health.lastActivity, connectionLastActivity);
+
+        // 重新计算健康状态
+        health.isHealthy = ConnectionHealthUtils.calculateConnectionHealthStatus(health);
+        health.connectionQuality = ConnectionHealthUtils.calculateConnectionQuality(health);
+      }
+    }
+
+    // 清理孤立的健康记录（没有对应连接的记录）
+    for (const [connectionId] of this.connectionHealth) {
+      if (!this.activeConnections.has(connectionId)) {
+        this.connectionHealth.delete(connectionId);
+      }
+    }
+  }
+
+  /**
+   * 报告连接健康状态统计 - 使用工具类
+   */
+  private reportConnectionHealthStats(): void {
+    const healthStats = ConnectionStatsUtils.calculateHealthStats(this.connectionHealth);
+
+    // 发送健康统计监控事件
+    this.emitMonitoringEvent(
+      "connection_health_statistics",
+      healthStats.total,
+      {
+        excellent: healthStats.excellent,
+        good: healthStats.good,
+        poor: healthStats.poor,
+        critical: healthStats.critical,
+        healthy: healthStats.healthy,
+        unhealthy: healthStats.unhealthy,
+        healthRatio: healthStats.healthRatio
+      }
+    );
+
+    // 如果不健康连接比例过高，记录警告
+    if (ConnectionStatsUtils.shouldWarnAboutHealth(healthStats, 0.2)) {
+      this.logger.warn("连接健康状况不佳", {
+        unhealthyRatio: (healthStats.unhealthy / healthStats.total).toFixed(2),
+        unhealthyCount: healthStats.unhealthy,
+        totalConnections: healthStats.total
       });
     }
   }
@@ -2906,16 +3095,50 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * 强制执行连接数上限
+   * 强制执行连接数上限 - 增强版：优先清理不健康连接
    */
   private enforceConnectionLimit(): void {
+    // 第一步：优先清理不健康连接
+    const unhealthyConnections = this.findUnhealthyConnections();
+    this.cleanupUnhealthyConnections(unhealthyConnections);
+
+    // 检查清理不健康连接后是否还需要进一步清理
+    if (this.activeConnections.size <= this.config.maxConnections) {
+      this.logger.debug("清理不健康连接后已达到连接数限制", {
+        currentConnections: this.activeConnections.size,
+        maxConnections: this.config.maxConnections,
+        unhealthyConnectionsCleaned: unhealthyConnections.length
+      });
+      return;
+    }
+
+    // 第二步：如果仍然超限，清理最不活跃的连接
+    this.cleanupInactiveConnections();
+  }
+
+  /**
+   * 清理最不活跃的连接
+   */
+  private cleanupInactiveConnections(): void {
     const connectionsArray = Array.from(this.activeConnections.entries());
 
-    // 按最后活动时间排序，清理最老的连接
-    connectionsArray.sort(([, a], [, b]) => {
-      const aTime = a.lastActiveAt || a.createdAt;
-      const bTime = b.lastActiveAt || b.createdAt;
-      return (aTime?.getTime() || 0) - (bTime?.getTime() || 0);
+    // 按连接质量和活动时间排序，优先清理质量差且不活跃的连接
+    connectionsArray.sort(([idA, connectionA], [idB, connectionB]) => {
+      const healthA = this.connectionHealth.get(idA);
+      const healthB = this.connectionHealth.get(idB);
+
+      // 首先按连接质量排序
+      const qualityPriorityA = ConnectionHealthUtils.getQualityPriority(healthA?.connectionQuality || 'poor');
+      const qualityPriorityB = ConnectionHealthUtils.getQualityPriority(healthB?.connectionQuality || 'poor');
+
+      if (qualityPriorityA !== qualityPriorityB) {
+        return qualityPriorityA - qualityPriorityB; // 质量差的排在前面
+      }
+
+      // 然后按最后活动时间排序
+      const aTime = connectionA.lastActiveAt || connectionA.createdAt;
+      const bTime = connectionB.lastActiveAt || connectionB.createdAt;
+      return (aTime?.getTime() || 0) - (bTime?.getTime() || 0); // 老的排在前面
     });
 
     // 移除超出上限的连接
@@ -2923,16 +3146,32 @@ export class StreamReceiverService implements OnModuleDestroy {
       0,
       connectionsArray.length - this.config.maxConnections,
     );
+
+    let removedCount = 0;
     for (const [connectionId] of toRemove) {
       this.activeConnections.delete(connectionId);
+      this.connectionHealth.delete(connectionId); // 同时清理健康记录
+      removedCount++;
     }
 
-    this.logger.warn("强制执行连接数上限", {
-      removedConnections: toRemove.length,
+    this.logger.warn("强制执行连接数上限 - 清理不活跃连接", {
+      removedConnections: removedCount,
       currentConnections: this.activeConnections.size,
       maxConnections: this.config.maxConnections,
     });
+
+    // 发送监控事件
+    this.emitMonitoringEvent(
+      "inactive_connections_cleaned",
+      removedCount,
+      {
+        currentConnections: this.activeConnections.size,
+        maxConnections: this.config.maxConnections,
+        reason: "connection_limit_exceeded"
+      }
+    );
   }
+
 
   /**
    * 获取当前活跃连接数 (用于测试和监控)
@@ -3350,7 +3589,7 @@ export class StreamReceiverService implements OnModuleDestroy {
           symbol,
           provider: this.extractProviderFromSymbol(symbol),
           market: this.inferMarketLabel(symbol),
-          latencyCategory: this.categorizeLatency(latencyMs),
+          latencyCategory: LatencyUtils.categorizeLatency(latencyMs),
         });
 
         this.logger.debug("流延迟指标已记录", {
@@ -3358,7 +3597,7 @@ export class StreamReceiverService implements OnModuleDestroy {
           provider,
           market,
           latencyMs,
-          latency_category: this.categorizeLatency(latencyMs),
+          latency_category: LatencyUtils.categorizeLatency(latencyMs),
         });
       } catch (error) {
         // 监控失败不应影响业务流程

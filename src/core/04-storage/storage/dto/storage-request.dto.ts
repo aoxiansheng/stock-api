@@ -8,8 +8,10 @@ import {
   IsEnum,
   ValidateNested,
 } from "class-validator";
+import { MaxValueSize } from "@common/validators/value-size.validator";
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
 import { StorageType } from "../enums/storage-type.enum";
+import { STORAGE_CONFIG } from "../constants/storage.constants";
 
 export class StorageOptionsDto {
   @ApiPropertyOptional({ description: "Cache TTL in seconds", default: 3600 })
@@ -53,6 +55,9 @@ export class StoreDataDto {
 
   @ApiProperty({ description: "Data to store" })
   @IsObject()
+  @MaxValueSize(STORAGE_CONFIG.MAX_DATA_SIZE_MB * 1024 * 1024, {
+    message: `数据大小不能超过 ${STORAGE_CONFIG.MAX_DATA_SIZE_MB}MB`,
+  })
   data: any;
 
   @ApiProperty({

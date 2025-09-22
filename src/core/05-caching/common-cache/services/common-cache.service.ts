@@ -36,6 +36,7 @@ export class CacheDecompressionException extends Error {
 /**
  * 解压操作并发控制工具
  * 防止高并发下CPU峰值，控制同时进行的解压操作数量
+ * ✅ 修复P0问题：添加private修饰符，隐藏内部实现
  */
 class DecompressionSemaphore {
   private permits: number;
@@ -81,6 +82,9 @@ class DecompressionSemaphore {
 export class CommonCacheService {
   private readonly logger = createLogger(CommonCacheService.name);
 
+  // ✅ 销毁状态标志，防止模块销毁后执行异步操作
+  private isDestroyed = false;
+
   // ✅ 使用类型安全的并发控制
   private readonly decompressionSemaphore = new DecompressionSemaphore(
     CACHE_CONFIG.DECOMPRESSION.MAX_CONCURRENT,
@@ -118,6 +122,11 @@ export class CommonCacheService {
     metadata?: any,
   ): void {
     setImmediate(() => {
+      // ✅ 修复P0问题：检查销毁状态，防止模块销毁后执行
+      if (this.isDestroyed) {
+        return;
+      }
+
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "common_cache",
@@ -145,6 +154,11 @@ export class CommonCacheService {
     decompressedSize?: number,
   ): void {
     setImmediate(() => {
+      // ✅ 修复P0问题：检查销毁状态，防止模块销毁后执行
+      if (this.isDestroyed) {
+        return;
+      }
+
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "common_cache",
@@ -1501,5 +1515,13 @@ export class CommonCacheService {
     }
 
     return result;
+  }
+
+  /**
+   * 清理资源（用于模块销毁时调用）
+   */
+  cleanup(): void {
+    this.isDestroyed = true;
+    this.logger.log("CommonCacheService cleaned up - async operations disabled");
   }
 }

@@ -1,6 +1,14 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
 
+// 敏感数据级别枚举
+export enum SensitivityLevel {
+  PUBLIC = "public",         // 公开数据，无敏感性
+  INTERNAL = "internal",     // 内部数据，限公司内部访问
+  CONFIDENTIAL = "confidential", // 机密数据，限授权人员访问
+  RESTRICTED = "restricted"  // 受限数据，最高安全级别
+}
+
 @Schema({
   timestamps: true,
   collection: "stored_data",
@@ -36,6 +44,18 @@ export class StoredData {
   @Prop({ type: Date, default: Date.now, index: true })
   storedAt: Date;
 
+  // 🔒 敏感数据分类字段
+  @Prop({
+    type: String,
+    enum: Object.values(SensitivityLevel),
+    default: SensitivityLevel.PUBLIC,
+    index: true
+  })
+  sensitivityLevel: SensitivityLevel;
+
+  @Prop({ type: Boolean, default: false, index: true })
+  encrypted: boolean;
+
   @Prop()
   createdAt?: Date;
 
@@ -60,6 +80,10 @@ StoredDataSchema.methods.toJSON = function () {
 StoredDataSchema.index({ storageClassification: 1, provider: 1, market: 1 });
 StoredDataSchema.index({ storedAt: -1 });
 StoredDataSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// 🔒 敏感数据相关索引
+StoredDataSchema.index({ sensitivityLevel: 1, encrypted: 1 });
+StoredDataSchema.index({ sensitivityLevel: 1, provider: 1 });
 
 // Add text index for key search
 StoredDataSchema.index({ key: "text" });

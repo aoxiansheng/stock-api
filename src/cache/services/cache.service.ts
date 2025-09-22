@@ -1134,9 +1134,30 @@ export class CacheService {
         });
     }
 
-    // 检查序列化后的大小
+    // 🛡️ 防止JSON炸弹攻击：添加1MB硬性限制
     const sizeInBytes = Buffer.byteLength(serialized, "utf8");
-    const maxSizeBytes = this.CacheUnifiedConfig.maxValueSizeMB * 1024 * 1024;
+    const JSON_BOMB_PROTECTION_LIMIT = 1024 * 1024; // 1MB
+    const maxSizeBytes = Math.min(
+      this.CacheUnifiedConfig.maxValueSizeMB * 1024 * 1024,
+      JSON_BOMB_PROTECTION_LIMIT
+    );
+
+    if (sizeInBytes > JSON_BOMB_PROTECTION_LIMIT) {
+      // 超过1MB直接拒绝，防止JSON炸弹攻击
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.CACHE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'serialize',
+        message: `JSON size exceeds security limit: ${Math.round(sizeInBytes / 1024 / 1024 * 100) / 100}MB > 1MB`,
+        context: {
+          sizeInBytes,
+          sizeMB: Math.round((sizeInBytes / (1024 * 1024)) * 100) / 100,
+          maxAllowedMB: 1,
+          securityReason: 'JSON_BOMB_PROTECTION',
+          operation: CACHE_INTERNAL_OPERATIONS.SERIALIZE
+        }
+      });
+    }
 
     if (sizeInBytes > maxSizeBytes) {
       this.logger.warn(CACHE_MESSAGES.WARNINGS.LARGE_VALUE_WARNING, {

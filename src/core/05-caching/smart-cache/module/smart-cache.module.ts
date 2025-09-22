@@ -3,7 +3,6 @@ import { createLogger } from "@common/logging/index";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 import { CommonCacheModule } from "../../common-cache/module/common-cache.module";
-// BackgroundTaskService is provided by this module
 import { SmartCacheOrchestrator } from "../services/smart-cache-orchestrator.service";
 import {
   type SmartCacheOrchestratorConfig,
@@ -13,7 +12,6 @@ import {
 import { SmartCacheConfigFactory } from "../config/smart-cache-config.factory";
 import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performance-optimizer.service";
 // 移除 CollectorModule 依赖 - 事件化监控不再需要直接导入监控模块
-import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
 
 /**
  * 智能缓存模块
@@ -27,7 +25,7 @@ import { BackgroundTaskService } from "@appcore/infrastructure/services/backgrou
  * 依赖模块：
  * - StorageModule: 提供StorageService，用于底层缓存操作
  * - SharedServicesModule: 提供MarketStatusService、BackgroundTaskService等共享服务
- * - CollectorModule: 提供CollectorService，用于监控数据收集
+ * - CommonCacheModule: 提供通用缓存服务
  *
  * 导出服务：
  * - SmartCacheOrchestrator: 核心编排器服务
@@ -48,15 +46,13 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     // 提供CommonCacheService用于缓存操作
     CommonCacheModule,
 
-    // 🔑 关键依赖：SharedServicesModule
+    // 🔑 关键依赖：SharedServicesModule (全局模块)
     // 提供以下共享服务：
     // - MarketStatusService: 市场状态查询，用于市场感知策略
     // - DataChangeDetectorService: 数据变化检测
+    // - BackgroundTaskService: 后台任务服务
     SharedServicesModule,
     MarketInferenceModule,
-
-    // InfrastructureModule 已移除以避免循环依赖
-    // BackgroundTaskService 直接在 providers 中提供
 
     // ✅ 已移除 CollectorModule - 使用事件化监控，SharedServicesModule 中的 EventEmitter2 已足够
   ],
@@ -67,9 +63,6 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
 
     // 性能优化器服务
     SmartCachePerformanceOptimizer,
-
-    // BackgroundTaskService 由本模块直接提供
-    BackgroundTaskService,
 
     // 配置提供者 - 使用环境变量驱动的配置工厂
     {

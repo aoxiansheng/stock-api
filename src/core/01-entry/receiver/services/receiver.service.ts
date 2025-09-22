@@ -3,6 +3,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  OnModuleDestroy,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
@@ -70,10 +71,11 @@ import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/da
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
 
 @Injectable()
-export class ReceiverService {
+export class ReceiverService implements OnModuleDestroy {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(ReceiverService.name);
   private activeConnections = 0;
+  private isDestroyed = false;
 
   // 🎯 使用 common 模块的常量，无需重复定义
 
@@ -844,6 +846,8 @@ export class ReceiverService {
   ): void {
     // ✅ 使用 setImmediate 确保异步处理，不阻塞业务逻辑
     setImmediate(() => {
+      if (this.isDestroyed) return; // 防止在模块销毁后执行
+
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "receiver",
@@ -873,6 +877,8 @@ export class ReceiverService {
 
     // ✅ 使用 setImmediate 确保异步处理，不阻塞业务逻辑
     setImmediate(() => {
+      if (this.isDestroyed) return; // 防止在模块销毁后执行
+
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "receiver",
@@ -1012,5 +1018,81 @@ export class ReceiverService {
     // 这里可以根据symbols判断市场，然后设置不同的TTL
     // 实际实现可以调用 marketStatusService 获取市场状态
     return defaultTTL;
+  }
+
+  /**
+   * NestJS 模块销毁生命周期钩子
+   * 负责清理资源和优雅关闭
+   */
+  async onModuleDestroy(): Promise<void> {
+    this.logger.log('ReceiverService 开始执行资源清理和优雅关闭');
+
+    // 标记服务为已销毁状态，防止新的异步操作
+    this.isDestroyed = true;
+
+    try {
+      // 1. 等待活跃连接完成处理
+      if (this.activeConnections > 0) {
+        this.logger.warn(`等待 ${this.activeConnections} 个活跃连接完成处理`);
+
+        // 等待最多10秒让活跃连接完成
+        const maxWaitTime = 10000;
+        const startTime = Date.now();
+
+        while (this.activeConnections > 0 && (Date.now() - startTime) < maxWaitTime) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
+        if (this.activeConnections > 0) {
+          this.logger.warn(`强制关闭前仍有 ${this.activeConnections} 个活跃连接未完成`);
+        } else {
+          this.logger.log('所有活跃连接已完成处理');
+        }
+      }
+
+      // 2. 发送服务关闭监控事件
+      this.emitServiceShutdownMetrics();
+
+      // 3. 清理统计信息
+      this.activeConnections = 0;
+
+      this.logger.log('ReceiverService 资源清理完成');
+    } catch (error) {
+      this.logger.error('ReceiverService 资源清理过程中发生错误', {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+  }
+
+  /**
+   * 发送服务关闭监控事件
+   */
+  private emitServiceShutdownMetrics(): void {
+    try {
+      // 使用 setImmediate 确保异步处理，同时检查销毁状态
+      setImmediate(() => {
+        if (!this.isDestroyed) return; // 只在销毁时发送关闭事件
+
+        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+          timestamp: new Date(),
+          source: "receiver",
+          metricType: "lifecycle",
+          metricName: "service_shutdown",
+          metricValue: 1,
+          tags: {
+            component: "receiver",
+            operation: "module_destroy",
+            final_active_connections: this.activeConnections,
+            uptime_seconds: Math.floor(process.uptime()),
+            shutdown_reason: "module_destroy",
+          },
+        });
+      });
+    } catch (error) {
+      this.logger.error('发送服务关闭监控事件失败', {
+        error: error.message,
+      });
+    }
   }
 }

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import os from "os";
 import { createLogger } from "@common/logging/index";
+import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { SMART_CACHE_CONSTANTS } from "../constants/smart-cache.constants";
 import { SMART_CACHE_COMPONENT } from "../constants/smart-cache.component.constants";
@@ -51,6 +52,7 @@ export class SmartCachePerformanceOptimizer {
 
   constructor(
     private readonly eventBus?: EventEmitter2, // 事件化监控：可选注入事件总线
+    private readonly backgroundTaskService?: BackgroundTaskService, // 后台任务服务：统一异步任务管理
   ) {
     // 初始化默认并发数
     this.originalMaxConcurrency = Math.min(
@@ -374,19 +376,36 @@ export class SmartCachePerformanceOptimizer {
     if (!this.eventBus) return;
 
     try {
-      setImmediate(() => {
-        this.eventBus!.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "smart_cache_performance_optimizer",
-          metricType: "performance",
-          metricName,
-          metricValue,
-          tags: {
-            componentType: "smart_cache_performance_optimizer",
-            ...tags,
-          },
+      // 优先使用BackgroundTaskService，回退到setImmediate
+      if (this.backgroundTaskService) {
+        this.backgroundTaskService.run(async () => {
+          this.eventBus!.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: "smart_cache_performance_optimizer",
+            metricType: "performance",
+            metricName,
+            metricValue,
+            tags: {
+              componentType: "smart_cache_performance_optimizer",
+              ...tags,
+            },
+          });
+        }, `emit_performance_metric_${metricName}`);
+      } else {
+        setImmediate(() => {
+          this.eventBus!.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+            timestamp: new Date(),
+            source: "smart_cache_performance_optimizer",
+            metricType: "performance",
+            metricName,
+            metricValue,
+            tags: {
+              componentType: "smart_cache_performance_optimizer",
+              ...tags,
+            },
+          });
         });
-      });
+      }
     } catch (error) {
       // 指标记录失败不应该影响主要功能
       this.logger.debug("Metrics recording failed", error);

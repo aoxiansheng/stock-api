@@ -39,6 +39,7 @@ import {
 } from "../dto/storage-response.dto";
 import { StorageMetadataDto } from "../dto/storage-metadata.dto";
 import { StorageRepository } from "../repositories/storage.repository";
+import { StandardRetry, PersistentRetry } from "../decorators/retryable.decorator";
 
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
@@ -59,6 +60,7 @@ export class StorageService {
    * @param request 存储请求（仅支持PERSISTENT类型）
    * @returns 存储响应
    */
+  @PersistentRetry('storeData')
   async storeData(request: StoreDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
 
@@ -201,6 +203,7 @@ export class StorageService {
    * @param request 检索请求（仅支持PERSISTENT类型）
    * @returns 检索响应
    */
+  @StandardRetry('retrieveData')
   async retrieveData(request: RetrieveDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
 
@@ -312,6 +315,7 @@ export class StorageService {
    * @param storageType 存储类型（仅支持PERSISTENT）
    * @returns 是否删除成功
    */
+  @StandardRetry('deleteData')
   async deleteData(
     key: string,
     storageType: StorageType = StorageType.PERSISTENT,
@@ -449,6 +453,7 @@ export class StorageService {
    * @param query 查询参数
    * @returns 分页数据
    */
+  @StandardRetry('findPaginated')
   async findPaginated(
     query: StorageQueryDto,
   ): Promise<PaginatedDataDto<PaginatedStorageItemDto>> {

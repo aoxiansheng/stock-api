@@ -108,6 +108,9 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly configValidator: CacheConfigValidator,
+    private readonly adaptiveDecompressionService: AdaptiveDecompressionService,
+    private readonly batchMemoryOptimizerService: BatchMemoryOptimizerService,
+    private readonly commonCacheService: CommonCacheService,
   ) {}
 
   async onModuleInit() {
@@ -186,10 +189,38 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    console.log("🧹 Cleaning up CommonCache Redis connections...");
+    console.log("🧹 Cleaning up CommonCache module...");
 
     try {
-      // 清理事件监听器
+      // ✅ 修复P0问题：先清理服务资源
+      console.log("🧹 Cleaning up services...");
+
+      // 清理CommonCacheService资源（停用异步操作）
+      try {
+        this.commonCacheService.cleanup();
+        console.log("✅ CommonCacheService cleanup completed");
+      } catch (error) {
+        console.error("❌ CommonCacheService cleanup error:", error.message);
+      }
+
+      // 清理AdaptiveDecompressionService资源
+      try {
+        this.adaptiveDecompressionService.cleanup();
+        console.log("✅ AdaptiveDecompressionService cleanup completed");
+      } catch (error) {
+        console.error("❌ AdaptiveDecompressionService cleanup error:", error.message);
+      }
+
+      // 清理BatchMemoryOptimizerService资源
+      try {
+        this.batchMemoryOptimizerService.cleanup();
+        console.log("✅ BatchMemoryOptimizerService cleanup completed");
+      } catch (error) {
+        console.error("❌ BatchMemoryOptimizerService cleanup error:", error.message);
+      }
+
+      // 清理Redis连接和事件监听器
+      console.log("🧹 Cleaning up Redis connections...");
       this.redisClient.removeAllListeners("connect");
       this.redisClient.removeAllListeners("error");
       this.redisClient.removeAllListeners("close");
@@ -198,8 +229,9 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
       // 优雅关闭连接
       await this.redisClient.quit();
       console.log("✅ CommonCache Redis cleanup completed");
+      console.log("✅ CommonCache module cleanup completed");
     } catch (error) {
-      console.error("❌ CommonCache Redis cleanup error:", error.message);
+      console.error("❌ CommonCache module cleanup error:", error.message);
       // 强制断开连接
       this.redisClient.disconnect();
     }
