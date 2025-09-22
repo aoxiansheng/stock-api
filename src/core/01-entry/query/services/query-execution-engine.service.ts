@@ -1073,7 +1073,6 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
         market,
         options: {
           compress: true,
-          cacheTtl: cacheTTL,
         },
       });
 

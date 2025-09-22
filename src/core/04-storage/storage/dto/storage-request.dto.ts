@@ -14,10 +14,6 @@ import { StorageType } from "../enums/storage-type.enum";
 import { STORAGE_CONFIG } from "../constants/storage.constants";
 
 export class StorageOptionsDto {
-  @ApiPropertyOptional({ description: "Cache TTL in seconds", default: 3600 })
-  @IsOptional()
-  @IsNumber()
-  cacheTtl?: number;
 
   @ApiPropertyOptional({
     description:
@@ -39,13 +35,6 @@ export class StorageOptionsDto {
   @IsObject()
   tags?: Record<string, string>;
 
-  @ApiPropertyOptional({
-    description: "Priority level for storage operations",
-    default: "normal",
-  })
-  @IsOptional()
-  @IsEnum(["high", "normal", "low"])
-  priority?: "high" | "normal" | "low";
 }
 
 export class StoreDataDto {

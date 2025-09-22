@@ -4,8 +4,6 @@ import Redis from "ioredis";
 import { CommonCacheService } from "../services/common-cache.service";
 import { CacheCompressionService } from "../services/cache-compression.service";
 import { CacheConfigValidator } from "../validators/cache-config.validator";
-import { AdaptiveDecompressionService } from "../services/adaptive-decompression.service";
-import { BatchMemoryOptimizerService } from "../services/batch-memory-optimizer.service";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
 import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../monitoring/contracts";
@@ -89,16 +87,12 @@ import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } fro
     // 核心服务
     CacheCompressionService,
     CacheConfigValidator,
-    AdaptiveDecompressionService,
-    BatchMemoryOptimizerService,
     CommonCacheService,
   ],
   exports: [
     CommonCacheService,
     CacheCompressionService,
     CacheConfigValidator,
-    AdaptiveDecompressionService,
-    BatchMemoryOptimizerService,
     CACHE_REDIS_CLIENT_TOKEN,
     // ✅ 移除METRICS_REGISTRY导出
   ],
@@ -108,8 +102,6 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly configValidator: CacheConfigValidator,
-    private readonly adaptiveDecompressionService: AdaptiveDecompressionService,
-    private readonly batchMemoryOptimizerService: BatchMemoryOptimizerService,
     private readonly commonCacheService: CommonCacheService,
   ) {}
 
@@ -201,22 +193,6 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
         console.log("✅ CommonCacheService cleanup completed");
       } catch (error) {
         console.error("❌ CommonCacheService cleanup error:", error.message);
-      }
-
-      // 清理AdaptiveDecompressionService资源
-      try {
-        this.adaptiveDecompressionService.cleanup();
-        console.log("✅ AdaptiveDecompressionService cleanup completed");
-      } catch (error) {
-        console.error("❌ AdaptiveDecompressionService cleanup error:", error.message);
-      }
-
-      // 清理BatchMemoryOptimizerService资源
-      try {
-        this.batchMemoryOptimizerService.cleanup();
-        console.log("✅ BatchMemoryOptimizerService cleanup completed");
-      } catch (error) {
-        console.error("❌ BatchMemoryOptimizerService cleanup error:", error.message);
       }
 
       // 清理Redis连接和事件监听器

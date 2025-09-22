@@ -66,7 +66,16 @@
       "mcp__serena__insert_before_symbol",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/symbol-mapper/symbol-mapper-monitoring.spec.ts --config=test/config/jest.unit.config.js --testTimeout=30000)",
       "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/symbol-mapper/tag-sanitization.spec.ts --config=test/config/jest.unit.config.js --testTimeout=30000)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/symbol-mapper --config=test/config/jest.unit.config.js --testTimeout=30000)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/symbol-mapper --config=test/config/jest.unit.config.js --testTimeout=30000)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/constants/data-mapper-error-codes.constants.ts)",
+      "mcp__serena__list_memories",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/services/modules/mapping-rule-stats.module.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/services/modules/mapping-rule-crud.module.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/module/data-mapper.module.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/shared/constants/market.constants.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/shared/services/field-mapping.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-connection-manager.service.spec.ts --testTimeout=30000)"
     ],
     "deny": [],
     "ask": []

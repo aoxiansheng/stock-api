@@ -87,8 +87,6 @@ export const QUERY_ERROR_CODES = {
   MONITORING_SERVICE_ERROR: 'QUERY_EXTERNAL_983',
 } as const;
 
-// 错误码类型定义
-export type QueryErrorCode = typeof QUERY_ERROR_CODES[keyof typeof QUERY_ERROR_CODES];
 
 // 错误分类辅助函数
 export const QueryErrorCategories = {

@@ -11,13 +11,11 @@ import { createLogger } from "@common/logging/index";
 import { HttpRateLimitConfig } from "../interfaces/rate-limit.interfaces";
 
 /**
- * 速率限制装饰器
+ * 速率限制装饰器元数据键
  */
 import { SetMetadata } from "@nestjs/common";
 
 export const STREAM_RATE_LIMIT_KEY = "streamRateLimit";
-export const StreamRateLimit = (config: HttpRateLimitConfig) =>
-  SetMetadata(STREAM_RATE_LIMIT_KEY, config);
 
 /**
  * 流数据获取DoS防护Guard

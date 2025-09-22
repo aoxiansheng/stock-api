@@ -6,18 +6,6 @@
 
 import { MappingDirection } from "../constants/cache.constants";
 
-/**
- * 单符号映射结果
- */
-export interface SymbolMappingResult {
-  success: boolean;
-  mappedSymbol?: string;
-  originalSymbol: string;
-  provider: string;
-  direction: MappingDirection;
-  cacheHit?: boolean;
-  processingTimeMs?: number;
-}
 
 /**
  * 批量符号映射结果
@@ -34,9 +22,10 @@ export interface BatchMappingResult {
 }
 
 /**
- * 缓存统计信息
+ * Symbol Mapper Cache 三层缓存统计信息
+ * 重命名以避免与其他模块的 RedisCacheRuntimeStatsDto 冲突
  */
-export interface RedisCacheRuntimeStatsDto {
+export interface SymbolMapperCacheStatsDto {
   totalQueries: number;
   l1HitRatio: number; // L1规则缓存命中率
   l2HitRatio: number; // L2符号缓存命中率

@@ -30,8 +30,8 @@ import {
   defaultStreamReceiverConfig,
 } from "../config/stream-receiver.config";
 
+import { QuoteData } from '../interfaces/data-processing.interface';
 import {
-  QuoteData,
   BatchProcessingStats,
   DynamicBatchingState,
   DynamicBatchingMetrics,

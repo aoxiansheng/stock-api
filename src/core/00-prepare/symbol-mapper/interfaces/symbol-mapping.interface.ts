@@ -1,6 +1,12 @@
 /**
  * 股票代码映射规则管理器接口
- * 注意：执行逻辑已迁移到 SymbolTransformerService
+ *
+ * 职责范围：股票代码映射规则的存储、检索和管理
+ * - 映射规则的CRUD操作
+ * - 数据源映射配置管理
+ * - 与SymbolTransformerService职责分工：
+ *   - ISymbolMapper: 规则管理层，负责规则存储和配置
+ *   - SymbolTransformerService: 执行层，负责具体的符号转换逻辑
  */
 export interface ISymbolMapper {
   saveMapping(rule: ISymbolMappingRuleList): Promise<void>;

@@ -66,8 +66,11 @@ export const MARKET_RECOGNITION_RULES = Object.freeze({
 
 /**
  * 请求选项验证规则常量 - 扁平化结构提升可读性
+ * 经过未使用代码清理，以下4个常量已被删除（未被使用）：
+ * - REQUEST_OPTIONS_PREFERRED_PROVIDER_MAX_LENGTH = 50
+ * - REQUEST_OPTIONS_FIELDS_MAX_ITEMS = 50
+ * - REQUEST_OPTIONS_MARKET_MAX_LENGTH = 10
+ * - REQUEST_OPTIONS_MARKET_PATTERN = /^[A-Z]{2,5}$/
+ *
+ * 如果未来需要这些验证规则，请重新添加并确保在相应的DTO中使用
  */
-export const REQUEST_OPTIONS_PREFERRED_PROVIDER_MAX_LENGTH = 50;
-export const REQUEST_OPTIONS_FIELDS_MAX_ITEMS = 50;
-export const REQUEST_OPTIONS_MARKET_MAX_LENGTH = 10;
-export const REQUEST_OPTIONS_MARKET_PATTERN = /^[A-Z]{2,5}$/;

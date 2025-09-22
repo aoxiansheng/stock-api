@@ -151,15 +151,3 @@ export interface IntelligentMappingResult {
   matchedPattern?: string;
 }
 
-/**
- * 数据处理错误信息
- */
-export interface DataProcessingError {
-  provider: string;
-  capability: string;
-  quotesCount: number;
-  error: string;
-  duration: number;
-  timestamp: number;
-  stage: "transform" | "cache" | "broadcast" | "symbol_consistency";
-}

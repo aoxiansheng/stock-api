@@ -2,12 +2,8 @@
  * Symbol Mapper Cache 相关常量
  */
 
-// Unified error handling constants
-export * from "./symbol-mapper-cache-error-codes.constants";
-export {
-  SYMBOL_MAPPER_CACHE_ERROR_CODES,
-  type SymbolMapperCacheErrorCode,
-} from "./symbol-mapper-cache-error-codes.constants";
+// Note: Error codes have been removed from symbol-mapper-cache-error-codes.constants.ts
+// as they were unused. Future error handling should use standardized common error codes.
 
 /**
  * 符号映射方向枚举
@@ -26,31 +22,6 @@ export enum MappingDirection {
  */
 export type MappingDirectionType = keyof typeof MappingDirection;
 
-/**
- * 缓存层级常量定义
- * 三层缓存架构：L1(规则) → L2(符号映射) → L3(批量结果)
- */
-export const CACHE_LAYERS = {
-  L1: "provider_rules", // 规则缓存
-  L2: "symbol_mapping", // 符号映射缓存
-  L3: "batch_result", // 批量结果缓存
-} as const;
-
-/**
- * 缓存层级类型 - 按项目惯例创建
- * 使用 keyof typeof 模式保持与其他模块一致性
- */
-export type CacheLayerType = keyof typeof CACHE_LAYERS;
-
-/**
- * 缓存指标名称
- */
-export const CACHE_METRICS = {
-  HIT_RATIO: "symbol_mapper_cache_hit_ratio",
-  OPERATION_DURATION: "symbol_mapper_cache_operation_duration",
-  CACHE_SIZE: "symbol_mapper_cache_size",
-  MEMORY_USAGE: "symbol_mapper_cache_memory_usage",
-} as const;
 
 // 缓存操作类型已迁移到系统级统一定义
 // 使用: import { CACHE_CORE_OPERATIONS, CACHE_EXTENDED_OPERATIONS } from '../../../cache/constants/cache.constants'

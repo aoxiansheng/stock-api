@@ -10,8 +10,7 @@ export * from "./services";
 // 配置服务
 export * from "./config/stream-recovery.config";
 
-// 指标服务
-//export * from './metrics/stream-recovery.metrics';
+// 指标服务已移至MonitoringModule
 
 // 提供者
 export * from "./providers/websocket-server.provider";

@@ -9,10 +9,9 @@
  * 4. 现代化：使用统一的缓存键命名规范，移除历史兼容层
  */
 
-import {
-  CompressionDataType,
-  CompressionStrategyName,
-} from "../constants/compression-thresholds.constants";
+// Compression types - inlined since the constants file was unused
+type CompressionDataType = "stream" | "batch" | "static" | "large";
+type CompressionStrategyName = "REALTIME" | "BATCH" | "STORAGE" | "ARCHIVE";
 
 /**
  * 基础缓存配置接口

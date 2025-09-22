@@ -3,4 +3,3 @@
  */
 
 export * from "./data-fetcher.interface";
-export * from "./capability-execute-result.interface";

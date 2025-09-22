@@ -732,7 +732,6 @@ export class ReceiverService implements OnModuleDestroy {
         market: this.extractMarketFromSymbols(request.symbols),
         options: {
           compress: true,
-          cacheTtl: this.calculateStorageCacheTTL(request.symbols),
         },
       };
 

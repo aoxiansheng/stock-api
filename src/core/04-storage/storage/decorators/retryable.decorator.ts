@@ -114,16 +114,6 @@ export function Retryable(options: RetryableOptions = {}) {
   };
 }
 
-/**
- * 快速重试装饰器（适用于轻量级操作）
- * 默认2次重试，500ms基础延迟
- */
-export function QuickRetry(operationName?: string) {
-  return Retryable({
-    configType: 'quick',
-    operationName
-  });
-}
 
 /**
  * 标准重试装饰器（适用于一般操作）
@@ -147,13 +137,3 @@ export function PersistentRetry(operationName?: string) {
   });
 }
 
-/**
- * 网络重试装饰器（适用于网络操作）
- * 默认4次重试，1500ms基础延迟，适合网络IO
- */
-export function NetworkRetry(operationName?: string) {
-  return Retryable({
-    configType: 'network',
-    operationName
-  });
-}

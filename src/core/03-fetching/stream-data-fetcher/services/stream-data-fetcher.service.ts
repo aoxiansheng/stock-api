@@ -417,13 +417,8 @@ export class StreamDataFetcherService
           },
         });
 
-        // 更新监控指标
-        // TODO: 实现 recordConcurrencyAdjustment 方法
-        // this.streamMetrics.recordConcurrencyAdjustment(
-        //   oldConcurrency,
-        //   newConcurrency,
-        //   reason
-        // );
+        // 更新监控指标 - 使用事件驱动方式
+        this.recordConcurrencyAdjustment(oldConcurrency, newConcurrency, reason);
       }
     }
   }
@@ -809,8 +804,7 @@ export class StreamDataFetcherService
       );
 
       // Phase 2.4: 更新客户端状态
-      // TODO: Implement updateSubscriptionState method in StreamClientStateManager
-      // this.clientStateManager.updateSubscriptionState(connection.id, symbols, 'subscribed');
+      this.clientStateManager.updateSubscriptionState(connection.id, symbols, 'subscribed');
 
       // 更新指标
       this.recordSubscriptionMetrics(
@@ -896,8 +890,7 @@ export class StreamDataFetcherService
       await this.removeSubscriptionFromCache(connection.id, symbols);
 
       // Phase 3.3: 更新客户端状态
-      // TODO: Implement updateSubscriptionState method in StreamClientStateManager
-      // this.clientStateManager.updateSubscriptionState(connection.id, symbols, 'unsubscribed');
+      this.clientStateManager.updateSubscriptionState(connection.id, symbols, 'unsubscribed');
 
       // 更新指标
       this.recordSubscriptionMetrics(
@@ -989,8 +982,7 @@ export class StreamDataFetcherService
       await this.clearConnectionCache(connection.id);
 
       // Phase 4.5: 更新客户端状态
-      // TODO: Implement removeConnection method in StreamClientStateManager
-      // this.clientStateManager.removeConnection(connection.id);
+      this.clientStateManager.removeConnection(connection.id);
 
       // 更新指标
       this.recordConnectionMetrics("connected", connection.provider);
@@ -2344,6 +2336,33 @@ export class StreamDataFetcherService
       symbol_count: symbolCount,
       action: event === "created" ? "subscribe" : "unsubscribe",
       status: "success",
+    });
+  }
+
+  /**
+   * 记录并发调整指标
+   */
+  private recordConcurrencyAdjustment(
+    oldConcurrency: number,
+    newConcurrency: number,
+    reason: string,
+  ): void {
+    // 使用事件驱动方式记录并发调整指标
+    this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+      component: "stream-data-fetcher",
+      operation: "concurrency_adjustment",
+      metrics: {
+        old_concurrency: oldConcurrency,
+        new_concurrency: newConcurrency,
+        adjustment: newConcurrency - oldConcurrency,
+        reason,
+        timestamp: Date.now(),
+      },
+      metadata: {
+        active_connections: this.activeConnections.size,
+        total_operations: this.performanceMetrics.totalRequests,
+        success_rate: this.performanceMetrics.successRate,
+      },
     });
   }
 

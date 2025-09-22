@@ -29,15 +29,6 @@ export class QueryMetadataDto {
   @ApiProperty({ description: "Query timestamp" })
   timestamp: string;
 
-  @ApiPropertyOptional({ description: "Query parameters summary" })
-  queryParams?: {
-    symbols?: string[];
-    market?: string;
-    provider?: string;
-    queryTypeFilter?: string;
-    timeRange?: { start: string; end: string };
-    queryFiltersCount?: number;
-  };
 
   @ApiPropertyOptional({ description: "Performance breakdown" })
   performance?: {

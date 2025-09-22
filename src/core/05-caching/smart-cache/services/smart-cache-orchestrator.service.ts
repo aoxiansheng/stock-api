@@ -13,7 +13,7 @@ import {
   MarketStatusService,
   MarketStatusResult,
 } from "../../../shared/services/market-status.service";
-import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
+import { BackgroundTaskService } from "@common/infrastructure/services/background-task.service";
 import {
   Market,
   MarketStatus,
@@ -2190,20 +2190,4 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * 将字符串市场状态转换为CommonCacheService需要的对象格式
-   */
-  private convertMarketStatusToObject(
-    status: string,
-  ): { isOpen: boolean; timezone: string; nextStateChange?: Date } | undefined {
-    if (!status || status === "unknown") {
-      return undefined;
-    }
-
-    return {
-      isOpen: status === "open",
-      timezone: "UTC",
-      nextStateChange: undefined,
-    };
-  }
 }

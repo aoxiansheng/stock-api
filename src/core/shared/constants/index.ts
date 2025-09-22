@@ -7,7 +7,7 @@
  * - 专用于 Core 模块的系统边界值和限制定义
  *
  * 🎯 使用方式:
- * 1. 限制常量: import { CORE_LIMITS, CoreLimitsUtil } from '@/core/shared/constants'
+ * 1. 限制常量: import { CORE_LIMITS } from '@/core/shared/constants'
  * 2. 批量限制: import { CORE_LIMITS.BATCH_LIMITS } from '@/core/shared/constants'
  * 3. 分页限制: import { CORE_LIMITS.PAGINATION } from '@/core/shared/constants'
  */
@@ -16,17 +16,15 @@
 // 从 common 常量剥离的专属导出
 // ================================
 export * from "./limits";
-export { CORE_LIMITS, CoreLimitsUtil, type CoreLimits } from "./limits";
+export { CORE_LIMITS } from "./limits";
 
 // 市场相关常量
 export * from "./market.constants";
 export {
   Market,
   MarketStatus,
-  MARKET_DOMAIN_CONFIG,
   MARKET_CACHE_CONFIG,
   MARKET_TRADING_HOURS,
-  MarketDomainUtil,
   type MarketTradingHours,
   type TradingSession,
 } from "./market.constants";

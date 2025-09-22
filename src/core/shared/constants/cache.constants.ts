@@ -16,13 +16,5 @@ export const SHARED_CACHE_CONSTANTS = {
    */
   MAX_CACHE_SIZE: 10000,
 
-  /**
-   * 缓存清理触发阈值（80% 容量时开始清理）
-   *
-   * 🎯 用途：预防性内存管理，避免达到硬性限制
-   * 🔧 配置理由：提供缓冲空间，确保性能平稳
-   */
-  CLEANUP_THRESHOLD: 0.8,
 } as const;
 
-export type SharedCacheConstants = typeof SHARED_CACHE_CONSTANTS;

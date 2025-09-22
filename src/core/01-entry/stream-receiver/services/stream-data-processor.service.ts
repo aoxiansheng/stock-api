@@ -37,7 +37,6 @@ import {
   IDataProcessor,
   CapabilityMappingConfig,
   IntelligentMappingResult,
-  DataProcessingError,
 } from "../interfaces/data-processing.interface";
 
 @Injectable()

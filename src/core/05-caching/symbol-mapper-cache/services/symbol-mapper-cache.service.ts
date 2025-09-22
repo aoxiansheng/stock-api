@@ -16,7 +16,7 @@ import { createLogger } from "@common/logging/index";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 import {
   BatchMappingResult,
-  RedisCacheRuntimeStatsDto,
+  SymbolMapperCacheStatsDto,
 } from "../interfaces/cache-stats.interface";
 import {
   CACHE_CLEANUP,

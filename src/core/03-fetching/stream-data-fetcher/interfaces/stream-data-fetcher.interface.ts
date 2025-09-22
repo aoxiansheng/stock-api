@@ -268,42 +268,6 @@ export interface StreamConnectionStats {
   memoryUsageBytes?: number;
 }
 
-/**
- * 流数据获取结果
- */
-export interface StreamDataResult {
-  /** 原始数据 */
-  data: any;
-
-  /** 数据元信息 */
-  metadata: StreamDataMetadata;
-}
-
-/**
- * 流数据元信息
- */
-export interface StreamDataMetadata {
-  /** 提供商名称 */
-  provider: string;
-
-  /** 能力类型 */
-  capability: string;
-
-  /** 符号 */
-  symbol: string;
-
-  /** 数据接收时间戳 */
-  receivedAt: Date;
-
-  /** 数据处理时间(毫秒) */
-  processingTimeMs: number;
-
-  /** 连接ID */
-  connectionId: string;
-
-  /** 请求ID */
-  requestId?: string;
-}
 
 /**
  * 流数据获取异常基类

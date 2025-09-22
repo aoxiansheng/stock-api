@@ -1,5 +1,4 @@
 import { Injectable, Inject } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import Redis from "ioredis";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
@@ -7,31 +6,9 @@ import { REDIS_SPECIAL_VALUES } from "../constants/cache.constants";
 import { RedisValueUtils } from "../utils/redis-value.utils";
 import { CacheCompressionService } from "./cache-compression.service";
 import { createLogger } from "@common/logging/index";
-import { AdaptiveDecompressionService } from "./adaptive-decompression.service";
-import { BatchMemoryOptimizerService } from "./batch-memory-optimizer.service";
-import {
-  ICacheOperation,
-  ICacheFallback,
-  ICacheMetadata,
-} from "../interfaces/cache-operation.interface";
 import { CacheMetadata } from "../interfaces/cache-metadata.interface";
 import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../monitoring/contracts";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-
-/**
- * 缓存解压异常类
- * 用于类型安全的错误处理和更好的调试体验
- */
-export class CacheDecompressionException extends Error {
-  constructor(
-    message: string,
-    public readonly key?: string,
-    public readonly originalError?: Error,
-  ) {
-    super(message);
-    this.name = "CacheDecompressionException";
-  }
-}
 
 /**
  * 解压操作并发控制工具
@@ -92,11 +69,8 @@ export class CommonCacheService {
 
   constructor(
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redis: Redis,
-    private readonly configService: ConfigService,
     private readonly compressionService: CacheCompressionService,
     private readonly eventBus: EventEmitter2, // ✅ 使用事件驱动方式替代直接依赖
-    private readonly adaptiveDecompressionService: AdaptiveDecompressionService, // ✅ 新增自适应解压缩服务
-    private readonly batchMemoryOptimizer: BatchMemoryOptimizerService, // ✅ 新增批量内存优化器
   ) {}
 
   /**

@@ -319,6 +319,68 @@ export class StreamClientStateManager implements OnModuleDestroy {
   }
 
   /**
+   * 更新客户端订阅状态
+   * @param connectionId 连接ID
+   * @param symbols 符号列表
+   * @param action 订阅动作
+   */
+  updateSubscriptionState(
+    connectionId: string,
+    symbols: string[],
+    action: 'subscribed' | 'unsubscribed'
+  ): void {
+    const clientSub = this.clientSubscriptions.get(connectionId);
+
+    if (!clientSub) {
+      this.logger.warn("尝试更新不存在的客户端订阅状态", {
+        connectionId,
+        action,
+        symbols: symbols.length,
+      });
+      return;
+    }
+
+    // 更新符号集合
+    if (action === 'subscribed') {
+      symbols.forEach(symbol => clientSub.symbols.add(symbol));
+      this.logger.debug("客户端订阅状态已更新（添加）", {
+        connectionId,
+        addedSymbols: symbols,
+        totalSymbols: clientSub.symbols.size,
+      });
+    } else {
+      symbols.forEach(symbol => clientSub.symbols.delete(symbol));
+      this.logger.debug("客户端订阅状态已更新（移除）", {
+        connectionId,
+        removedSymbols: symbols,
+        totalSymbols: clientSub.symbols.size,
+      });
+    }
+
+    // 更新活跃时间
+    clientSub.lastActiveTime = Date.now();
+
+    // 触发订阅变更事件
+    this.emitSubscriptionChange({
+      clientId: connectionId,
+      symbols,
+      action: action === 'subscribed' ? 'subscribe' : 'unsubscribe',
+      provider: clientSub.providerName,
+      capability: clientSub.wsCapabilityType,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * 移除连接（完全清理客户端状态）
+   * @param connectionId 连接ID
+   */
+  removeConnection(connectionId: string): void {
+    this.logger.debug("移除连接及其所有订阅", { connectionId });
+    this.removeClientSubscription(connectionId);
+  }
+
+  /**
    * 获取客户端状态统计
    * @returns 客户端状态统计信息
    */

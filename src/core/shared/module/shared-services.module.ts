@@ -11,7 +11,7 @@ import { MonitoringModule } from "../../../monitoring/monitoring.module";
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
 import { FieldMappingService } from "../services/field-mapping.service";
-import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
+import { BackgroundTaskService } from "@common/infrastructure/services/background-task.service";
 
 /**
  * 核心业务服务模块，提供跨组件共享的业务逻辑

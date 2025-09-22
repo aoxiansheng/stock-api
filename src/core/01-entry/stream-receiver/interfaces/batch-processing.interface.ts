@@ -3,16 +3,8 @@
  * 定义专职服务之间的契约和数据结构
  */
 
-/**
- * 批量处理的报价数据接口
- */
-export interface QuoteData {
-  rawData: any;
-  providerName: string;
-  wsCapabilityType: string;
-  timestamp: number;
-  symbols: string[];
-}
+import { QuoteData } from './data-processing.interface';
+
 
 /**
  * 批处理统计接口

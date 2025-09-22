@@ -30,19 +30,31 @@ import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status
 export class MappingRuleStatsModule {
   private readonly logger = new Logger(MappingRuleStatsModule.name);
 
-  // 📊 批量统计更新相关属性
+  // 📊 批量统计更新相关属性（支持环境变量）
   private readonly statsUpdateQueue = new Map<string, { success: number; failure: number; lastUpdate: number }>();
-  private readonly BATCH_UPDATE_INTERVAL = 30000; // 30秒批量更新
-  private readonly MAX_BATCH_SIZE = 100; // 最大批量更新条数
+  private readonly BATCH_UPDATE_INTERVAL = parseInt(process.env.DATA_MAPPER_BATCH_UPDATE_INTERVAL || '30000', 10); // 批量更新间隔 (ms)
+  private readonly MAX_BATCH_SIZE = parseInt(process.env.DATA_MAPPER_MAX_BATCH_SIZE || '100', 10); // 最大批量更新条数
   private batchUpdateTimer?: NodeJS.Timeout;
 
-  // 🚨 内存阈值监控配置
-  private readonly MEMORY_THRESHOLD_MB = 50; // 50MB内存阈值
-  private readonly MEMORY_CHECK_INTERVAL = 60000; // 60秒检查间隔
+  // 🚨 内存阈值监控配置（支持环境变量）
+  private readonly MEMORY_THRESHOLD_MB = parseInt(process.env.DATA_MAPPER_MEMORY_THRESHOLD_MB || '50', 10); // 内存阈值 (MB)
+  private readonly MEMORY_CHECK_INTERVAL = parseInt(process.env.DATA_MAPPER_MEMORY_CHECK_INTERVAL || '60000', 10); // 检查间隔 (ms)
   private memoryMonitorTimer?: NodeJS.Timeout;
 
-  private readonly asyncLimiter = new AsyncTaskLimiter(30);
+  private readonly asyncLimiter = new AsyncTaskLimiter(
+    parseInt(process.env.DATA_MAPPER_ASYNC_TASK_LIMIT || '30', 10) // 最大并发异步任务数
+  );
 
+  /**
+   * 构造函数
+   *
+   * 支持的环境变量：
+   * - DATA_MAPPER_MEMORY_THRESHOLD_MB: 内存阈值 (MB)，默认 50
+   * - DATA_MAPPER_MEMORY_CHECK_INTERVAL: 内存检查间隔 (ms)，默认 60000
+   * - DATA_MAPPER_BATCH_UPDATE_INTERVAL: 批量更新间隔 (ms)，默认 30000
+   * - DATA_MAPPER_MAX_BATCH_SIZE: 最大批量更新条数，默认 100
+   * - DATA_MAPPER_ASYNC_TASK_LIMIT: 最大并发异步任务数，默认 30
+   */
   constructor(
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
     private readonly eventBus: EventEmitter2,

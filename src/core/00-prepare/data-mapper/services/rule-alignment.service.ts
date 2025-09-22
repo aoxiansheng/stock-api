@@ -10,6 +10,7 @@ import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } fro
 import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+import { StringUtils } from '../../../shared/utils/string.util';
 
 import {
   DataSourceTemplate,
@@ -766,40 +767,10 @@ export class RuleAlignmentService {
 
     if (longer.length === 0) return 1.0;
 
-    const distance = this.levenshteinDistance(longer, shorter);
+    const distance = StringUtils.levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length;
   }
 
-  /**
-   * 🔧 计算编辑距离
-   */
-  private levenshteinDistance(str1: string, str2: string): number {
-    const matrix = [];
-
-    for (let i = 0; i <= str2.length; i++) {
-      matrix[i] = [i];
-    }
-
-    for (let j = 0; j <= str1.length; j++) {
-      matrix[0][j] = j;
-    }
-
-    for (let i = 1; i <= str2.length; i++) {
-      for (let j = 1; j <= str1.length; j++) {
-        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1,
-          );
-        }
-      }
-    }
-
-    return matrix[str2.length][str1.length];
-  }
 
   /**
    * 🔧 生成匹配推理

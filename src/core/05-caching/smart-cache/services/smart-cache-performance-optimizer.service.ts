@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import os from "os";
 import { createLogger } from "@common/logging/index";
-import { BackgroundTaskService } from "@appcore/infrastructure/services/background-task.service";
+import { BackgroundTaskService } from "@common/infrastructure/services/background-task.service";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { SMART_CACHE_CONSTANTS } from "../constants/smart-cache.constants";
 import { SMART_CACHE_COMPONENT } from "../constants/smart-cache.component.constants";
@@ -105,7 +105,7 @@ export class SmartCachePerformanceOptimizer {
    * 基于系统资源动态计算最优并发数
    */
   async calculateOptimalConcurrency(): Promise<number> {
-    try {
+    return this.trackExecution(async () => {
       const systemMetrics = await this.getSystemMetrics();
       const cpuCores = os.cpus().length;
       const baseConfig = this.originalMaxConcurrency;
@@ -139,10 +139,7 @@ export class SmartCachePerformanceOptimizer {
         Math.max(2, dynamicConcurrency),
         Math.min(baseConfig * 2, 32),
       );
-    } catch (error) {
-      this.logger.warn("Failed to calculate optimal concurrency", error);
-      return this.dynamicMaxConcurrency;
-    }
+    }, "calculateOptimalConcurrency");
   }
 
   /**
@@ -205,13 +202,13 @@ export class SmartCachePerformanceOptimizer {
     reducedConcurrency?: number;
     clearedTasks?: number;
   }> {
-    const isUnderPressure = await this.checkMemoryPressure();
+    return this.trackExecution(async () => {
+      const isUnderPressure = await this.checkMemoryPressure();
 
-    if (!isUnderPressure) {
-      return { handled: false };
-    }
+      if (!isUnderPressure) {
+        return { handled: false };
+      }
 
-    try {
       // 减少并发数
       const newConcurrency = Math.max(
         2,
@@ -239,10 +236,7 @@ export class SmartCachePerformanceOptimizer {
         handled: true,
         reducedConcurrency: newConcurrency,
       };
-    } catch (error) {
-      this.logger.error("Memory pressure handling failed", error);
-      return { handled: false };
-    }
+    }, "handleMemoryPressure");
   }
 
   /**
@@ -268,14 +262,14 @@ export class SmartCachePerformanceOptimizer {
    * 计算最优批量大小
    */
   calculateOptimalBatchSize(currentLoad = 0): number {
-    const DEFAULT_BATCH_SIZE =
-      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
-    const MAX_BATCH_SIZE =
-      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_BATCH_SIZE_COUNT;
-    const MIN_BATCH_SIZE =
-      SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_BATCH_SIZE_COUNT;
+    return this.trackExecutionSync(() => {
+      const DEFAULT_BATCH_SIZE =
+        SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.DEFAULT_BATCH_SIZE_COUNT;
+      const MAX_BATCH_SIZE =
+        SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_BATCH_SIZE_COUNT;
+      const MIN_BATCH_SIZE =
+        SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_BATCH_SIZE_COUNT;
 
-    try {
       const maxConcurrency = this.dynamicMaxConcurrency;
       const loadFactor = maxConcurrency > 0 ? currentLoad / maxConcurrency : 0;
 
@@ -304,10 +298,7 @@ export class SmartCachePerformanceOptimizer {
       }
 
       return Math.round(batchSize);
-    } catch (error) {
-      this.logger.warn("Failed to calculate optimal batch size", error);
-      return DEFAULT_BATCH_SIZE;
-    }
+    }, "calculateOptimalBatchSize");
   }
 
   /**
@@ -363,6 +354,64 @@ export class SmartCachePerformanceOptimizer {
         uptime: os.uptime(),
       },
     };
+  }
+
+  /**
+   * 跟踪异步操作的执行时间并更新性能统计
+   */
+  private async trackExecution<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+  ): Promise<T> {
+    const startTime = Date.now();
+    try {
+      const result = await operation();
+      this.updateExecutionStats(Date.now() - startTime, operationName);
+      return result;
+    } catch (error) {
+      this.updateExecutionStats(Date.now() - startTime, operationName);
+      throw error;
+    }
+  }
+
+  /**
+   * 跟踪同步操作的执行时间并更新性能统计
+   */
+  private trackExecutionSync<T>(
+    operation: () => T,
+    operationName: string,
+  ): T {
+    const startTime = Date.now();
+    try {
+      const result = operation();
+      this.updateExecutionStats(Date.now() - startTime, operationName);
+      return result;
+    } catch (error) {
+      this.updateExecutionStats(Date.now() - startTime, operationName);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新执行统计信息
+   */
+  private updateExecutionStats(executionTime: number, operationName: string): void {
+    this.performanceStats.totalTasks++;
+
+    // 计算滚动平均执行时间
+    if (this.performanceStats.totalTasks === 1) {
+      this.performanceStats.avgExecutionTime = executionTime;
+    } else {
+      this.performanceStats.avgExecutionTime =
+        (this.performanceStats.avgExecutionTime * (this.performanceStats.totalTasks - 1) + executionTime) /
+        this.performanceStats.totalTasks;
+    }
+
+    this.logger.debug(`Operation ${operationName} completed`, {
+      executionTime: `${executionTime}ms`,
+      avgExecutionTime: `${this.performanceStats.avgExecutionTime.toFixed(2)}ms`,
+      totalTasks: this.performanceStats.totalTasks,
+    });
   }
 
   /**

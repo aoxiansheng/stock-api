@@ -16,29 +16,5 @@ export class RequestIdUtils {
     return `${prefix}_${randomUUID()}`;
   }
 
-  /**
-   * 生成带时间戳的RequestId（如需要可读性）
-   * 格式: {prefix}_{timestamp}_{uuid_short}
-   * @param prefix 前缀（默认为'transform'）
-   * @returns 带时间戳的RequestId
-   */
-  static generateWithTimestamp(prefix = "transform"): string {
-    const timestamp = Date.now();
-    const uuid = randomUUID().split("-")[0]; // 取UUID前8位
-    return `${prefix}_${timestamp}_${uuid}`;
-  }
 
-  /**
-   * 验证RequestId格式
-   * @param requestId RequestId
-   * @returns 是否有效
-   */
-  static isValid(requestId: string): boolean {
-    if (!requestId || typeof requestId !== "string") {
-      return false;
-    }
-
-    // 支持两种格式：prefix_uuid 或 prefix_timestamp_uuid_short
-    return /^\w+_[\w-]+$/.test(requestId);
-  }
 }

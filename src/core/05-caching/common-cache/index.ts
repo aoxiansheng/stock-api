@@ -14,11 +14,6 @@ export {
 
 // 接口
 export type {
-  ICacheOperation,
-  ICacheFallback,
-  ICacheMetadata,
-} from "./interfaces/cache-operation.interface";
-export type {
   CacheMetadata,
   RedisEnvelope,
   CacheResult,
@@ -36,9 +31,12 @@ export {
 } from "./dto/cache-result.dto";
 export {
   CacheComputeOptionsDto,
-  TtlComputeParamsDto,
+  LegacyTtlComputeParamsDto,
 } from "./dto/cache-compute-options.dto";
-export { TtlComputeResultDto } from "./dto/ttl-compute-params.dto";
+export {
+  TtlComputeParamsDto,
+  TtlComputeResultDto
+} from "./dto/ttl-compute-params.dto";
 export {
   SmartCacheResultDto,
   BatchSmartCacheResultDto,

@@ -17,11 +17,4 @@ export class BaseRequestOptionsDto {
   @IsNumber()
   timeout?: number;
 
-  @IsOptional()
-  @IsBoolean()
-  skipCache?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  forceRefresh?: boolean;
 }

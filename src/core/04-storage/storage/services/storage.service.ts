@@ -3,14 +3,12 @@ import zlib from "zlib";
 
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
 
 // 统一错误处理基础设施
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
-import { STORAGE_ERROR_CODES } from "../constants/storage-error-codes.constants";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
@@ -20,7 +18,6 @@ import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/sy
 
 import {
   STORAGE_CONFIG,
-  STORAGE_ERROR_MESSAGES,
   STORAGE_WARNING_MESSAGES,
   STORAGE_PERFORMANCE_THRESHOLDS,
 } from "../constants/storage.constants";

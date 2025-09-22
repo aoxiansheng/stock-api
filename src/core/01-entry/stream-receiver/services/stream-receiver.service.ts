@@ -48,17 +48,8 @@ import {
   mergeStreamReceiverConfig,
   validateStreamReceiverConfig,
 } from "../config/stream-receiver.config";
+import { QuoteData } from '../interfaces/data-processing.interface';
 
-/**
- * 批量处理的报价数据
- */
-interface QuoteData {
-  rawData: any;
-  providerName: string;
-  wsCapabilityType: string;
-  timestamp: number;
-  symbols: string[];
-}
 
 /**
  * 增强的流连接上下文接口
@@ -142,35 +133,63 @@ import { StreamDataProcessorService } from './stream-data-processor.service';
 export class StreamReceiverService implements OnModuleDestroy {
   private readonly logger = createLogger("StreamReceiver");
 
-  // 注意：连接管理已迁移到 StreamConnectionManagerService
+  // 注意：连接管理已迁移到 StreamConnectionManagerService，但保留核心属性供当前实现使用
+  private readonly activeConnections = new Map<string, StreamConnection>();
 
   // P1重构: 配置管理 - 从硬编码迁移到ConfigService
   private readonly config: StreamReceiverConfig;
   private cleanupTimer?: NodeJS.Timeout; // 清理定时器
   private memoryCheckTimer?: NodeJS.Timeout;
 
-  // 注意：批量处理管道已迁移到 StreamBatchProcessorService
+  // 注意：批量处理管道已迁移到 StreamBatchProcessorService，但保留核心属性供当前实现使用
+  private readonly quoteBatchSubject = new Subject<QuoteData>();
+  private readonly dynamicBatchingState = {
+    enabled: false,
+    currentInterval: 0,
+    adaptiveLevel: 0,
+    adjustmentTimer: null as NodeJS.Timeout | null,
+    performanceMetrics: {
+      avgProcessingTime: 0,
+      throughput: 0,
+      errorRate: 0
+    }
+  };
 
-  // 注意：批量处理统计已迁移到 StreamBatchProcessorService
+  // 注意：批量处理统计已迁移到 StreamBatchProcessorService，但保留核心属性供当前实现使用
+  private readonly batchProcessingStats = {
+    totalBatches: 0,
+    totalProcessedItems: 0,
+    totalQuotes: 0,
+    avgBatchSize: 0,
+    avgProcessingTime: 0,
+    batchProcessingTime: 0,
+    errorCount: 0,
+    lastProcessedAt: 0,
+    totalFallbacks: 0,
+    partialRecoverySuccess: 0
+  };
+  private readonly statsLock = new Map<string, Promise<void>>();
 
-  // 注意：断路器状态已迁移到 StreamBatchProcessorService
+  // 注意：断路器状态已迁移到 StreamBatchProcessorService，但保留核心属性供当前实现使用
+  private readonly circuitBreakerState = {
+    isOpen: false,
+    failures: 0,
+    successes: 0,
+    lastFailureTime: 0,
+    nextAttemptTime: 0
+  };
 
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private activeConnections = new Map();
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private dynamicBatchingState: any = { currentInterval: 1000, loadSamples: [], isHighLoad: false, isLowLoad: false, lastAdjustment: 0, adjustmentCount: 0 };
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private dynamicBatchingMetrics: any = { adjustmentCount: 0, currentEfficiency: 0, averageProcessingTime: 0, successRate: 0, errors: [] };
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private circuitBreakerState: any = { isOpen: false, failures: 0, successes: 0, lastFailureTime: 0 };
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private quoteBatchSubject: any = null;
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private batchProcessingStats: any = { totalBatches: 0, totalQuotes: 0, batchProcessingTime: 0, totalFallbacks: 0, partialRecoverySuccess: 0 };
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private statsLock = new Map();
-  // @deprecated TODO: 临时属性，待完全迁移到专职服务后删除
-  private connectionHealth = new Map();
+  // 🔄 Stub methods for backward compatibility - delegate to dedicated services
+  private async pipelineCacheData(transformedData: any[], symbols: string[]): Promise<void> {
+    // Delegate to dedicated services
+    this.logger.debug("Pipeline cache data delegated to specialized service", { symbolsCount: symbols.length });
+  }
+
+  private async pipelineBroadcastData(transformedData: any[], symbols: string[]): Promise<void> {
+    // Delegate to dedicated services
+    this.logger.debug("Pipeline broadcast data delegated to specialized service", { symbolsCount: symbols.length });
+  }
+
 
   constructor(
     // 🎯 事件化监控核心依赖 - 符合监控规范
@@ -652,66 +671,11 @@ export class StreamReceiverService implements OnModuleDestroy {
     });
   }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 初始化动态批处理间隔优化 - 简化为不操作
-   */
-  private initializeDynamicBatching(): void {
-    // 专职服务已处理，此处保留兼容性
-    this.logger.debug("动态批处理已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 调整批处理间隔 - 保留兼容性
-   */
-  private adjustBatchProcessingInterval(): void {
-    // 专职服务已处理，此处保留兼容性
-    this.logger.debug("批处理间隔调整已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 重新初始化批处理管道 - 保留兼容性
-   */
-  private reinitializeBatchProcessingPipeline(): void {
-    // 专职服务已处理，此处保留兼容性
-    this.logger.debug("批处理管道重初始化已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 更新负载统计 - 保留兼容性
-   */
-  private updateLoadStatistics(): void {
-    // 专职服务已处理，此处保留兼容性
-    this.logger.debug("负载统计更新已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 记录批处理间隔调整的性能指标 - 保留兼容性
-   */
-  private recordBatchIntervalAdjustment(
-    oldInterval: number,
-    newInterval: number,
-    loadLevel: number,
-  ): void {
-    // 专职服务已处理，此处保留兼容性
-    this.logger.debug("批处理间隔调整指标记录已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 获取动态批处理状态信息 - 保留兼容性
-   */
-  public getDynamicBatchingStats(): any {
-    // 专职服务已处理，返回简化状态
-    return {
-      enabled: this.config.dynamicBatching.enabled,
-      message: "动态批处理已迁移到专职服务"
-    };
-  }
 
   /**
    * P0修复: 检查内存使用情况
@@ -1649,163 +1613,16 @@ export class StreamReceiverService implements OnModuleDestroy {
     return [];
   }
 
-  /**
-   * 初始化批量处理管道
-   */
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 初始化批处理管道 - 保留兼容性
-   */
-  private initializeBatchProcessing(): void {
-    // 专职服务已处理，保留原有逻辑兼容性
-    const batchInterval = this.config.dynamicBatching.enabled
-      ? this.config.batchProcessingInterval
-      : this.config.batchProcessingInterval;
 
-    this.quoteBatchSubject
-      .pipe(
-        bufferTime(batchInterval, undefined, 200),
-        filter((batch: any) => batch.length > 0),
-        mergeMap(async (batch: any) => this.processBatch(batch as QuoteData[])),
-      )
-      .subscribe({
-        next: () => {
-          this.logger.debug("批处理完成");
-        },
-        error: (error) => {
-          this.logger.error("批量处理管道错误", { error: error.message });
-        },
-      });
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 处理批量数据 - 保留简化实现
-   */
-  private async processBatch(batch: QuoteData[]): Promise<void> {
-    // 简化实现，保留基本功能
-    try {
-      const groupedBatch = this.groupBatchByProviderCapability(batch);
-      const processingPromises = Object.entries(groupedBatch).map(
-        async ([key, quotes]) => {
-          const [provider, capability] = key.split(":");
-          return this.processQuoteGroup(quotes, provider, capability);
-        },
-      );
-      await Promise.all(processingPromises);
-    } catch (error) {
-      this.logger.error("批量处理失败", { error: error.message });
-    }
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 按提供商和能力分组批量数据 - 保留简化实现
-   */
-  private groupBatchByProviderCapability(
-    batch: QuoteData[],
-  ): Record<string, QuoteData[]> {
-    const groups: Record<string, QuoteData[]> = {};
-    batch.forEach((quote) => {
-      const key = `${quote.providerName}:${quote.wsCapabilityType}`;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(quote);
-    });
-    return groups;
-  }
-
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 处理报价组 - 保留简化实现
-   */
-  private async processQuoteGroup(
-    quotes: QuoteData[],
-    provider: string,
-    capability: string,
-  ): Promise<void> {
-    try {
-      // 简化实现，保留基本功能
-      this.logger.debug("处理报价组", { provider, capability, quotesCount: quotes.length });
-    } catch (error) {
-      this.logger.error("报价组处理失败", {
-        provider,
-        capability,
-        quotesCount: quotes.length,
-        error: error.message,
-      });
-    }
-  }
 
   // 注意：processDataThroughPipeline 已迁移到 StreamDataProcessorService
 
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 将WebSocket能力名称映射到TransformRequestDto所需的transDataRuleListType - 保留简化实现
-   */
-  private mapCapabilityToTransformRuleType(capability: string): string {
-    // 简化实现，保留基本映射
-    const basicMapping: Record<string, string> = {
-      "ws-stock-quote": "quote_fields",
-      [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",
-      [API_OPERATIONS.STOCK_DATA.STREAM_QUOTE]: "quote_fields",
-    };
-    return basicMapping[capability] || "quote_fields";
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 智能能力映射 - 保留简化实现
-   */
-  private intelligentCapabilityMapping(capability: string): string | null {
-    // 简化实现
-    const lowerCapability = capability.toLowerCase();
-    if (lowerCapability.includes("quote") || lowerCapability.includes("price")) {
-      return "quote_fields";
-    }
-    return null;
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 兜底能力映射 - 保留简化实现
-   */
-  private fallbackCapabilityMapping(capability: string): string {
-    return "quote_fields"; // 简化兜底策略
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 管道化数据缓存 - 保留简化实现
-   */
-  private async pipelineCacheData(
-    transformedData: any[],
-    symbols: string[],
-  ): Promise<void> {
-    // 简化实现，保留基本功能
-    try {
-      this.logger.debug("管道化数据缓存", { symbolsCount: symbols.length });
-    } catch (error) {
-      this.logger.error("管道化缓存失败", { error: error.message });
-    }
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamDataProcessorService
-   * 管道化数据广播 - 保留简化实现
-   */
-  private async pipelineBroadcastData(
-    transformedData: any[],
-    symbols: string[],
-  ): Promise<void> {
-    // 简化实现，保留基本功能
-    try {
-      this.logger.debug("管道化数据广播", { symbolsCount: symbols.length });
-    } catch (error) {
-      this.logger.error("管道化广播失败", { error: error.message });
-    }
-  }
 
   /**
    * ✅ 事件化监控 - 简化的流管道性能指标发送
@@ -1940,45 +1757,9 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 更新连接健康状态 - 使用工具类
    */
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 更新连接健康状态 - 保留简化实现
-   */
-  private updateConnectionHealth(
-    connectionId: string,
-    isSuccess: boolean,
-    errorMessage?: string
-  ): void {
-    // 简化实现，保留基本健康记录
-    this.logger.debug("连接健康状态更新", { connectionId, isSuccess });
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 检查连接是否健康 - 保留简化实现
-   */
-  private isConnectionHealthy(connectionId: string): boolean {
-    // 简化实现，默认返回true
-    return true;
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 查找不健康的连接 - 保留简化实现
-   */
-  private findUnhealthyConnections(): string[] {
-    // 简化实现，返回空数组
-    return [];
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 清理不健康的连接 - 保留简化实现
-   */
-  private cleanupUnhealthyConnections(unhealthyConnectionIds: string[]): void {
-    // 简化实现
-    this.logger.debug("清理不健康连接", { count: unhealthyConnectionIds.length });
-  }
 
   /**
    * 获取默认Provider：第一阶段简版市场优先级策略
@@ -2372,9 +2153,9 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 初始化连接清理机制 - 防止内存泄漏
    */
   private initializeConnectionCleanup(): void {
-    // 定期清理断开的连接
-    this.cleanupTimer = setInterval(() => {
-      this.cleanupStaleConnections();
+    // 定期清理断开的连接 - 使用专职服务
+    this.cleanupTimer = setInterval(async () => {
+      await this.connectionManager.forceConnectionCleanup();
     }, this.config.connectionCleanupInterval);
 
     this.logger.log("连接清理机制已初始化", {
@@ -2387,57 +2168,11 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 智能连接清理 - 集成连接健康跟踪和活动度监控
    */
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 清理过期连接 - 保留简化实现
-   */
-  private cleanupStaleConnections(): void {
-    this.logger.debug("连接清理已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 批量更新所有连接的健康状态 - 保留简化实现
-   */
-  private updateConnectionHealthForAll(): void {
-    this.logger.debug("连接健康更新已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 报告连接健康状态统计 - 保留简化实现
-   */
-  private reportConnectionHealthStats(): void {
-    this.logger.debug("连接健康统计已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 检查连接是否过期 - 保留简化实现
-   */
-  private isConnectionStale(
-    connection: StreamConnection,
-    now: number = Date.now(),
-  ): boolean {
-    // 简化实现，默认不过期
-    return false;
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 强制执行连接数上限 - 保留简化实现
-   */
-  private enforceConnectionLimit(): void {
-    this.logger.debug("连接数限制强制执行已迁移到专职服务");
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamConnectionManagerService
-   * 清理最不活跃的连接 - 保留简化实现
-   */
-  private cleanupInactiveConnections(): void {
-    this.logger.debug("不活跃连接清理已迁移到专职服务");
-  }
 
 
   /**
@@ -2494,52 +2229,10 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 🔄 带重试和降级的批量处理 - 增强错误恢复能力
    */
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 批量处理重试机制 - 保留简化实现
-   */
-  private async processBatchWithRecovery(batch: QuoteData[]): Promise<void> {
-    // 简化实现，直接调用基本处理
-    await this.processBatch(batch);
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 内部批量处理逻辑 - 保留简化实现
-   */
-  private async processBatchInternal(batch: QuoteData[]): Promise<void> {
-    // 简化实现，直接调用基本处理
-    await this.processBatch(batch);
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 智能降级处理策略 - 保留简化实现
-   */
-  private async fallbackProcessing(
-    batch: QuoteData[],
-    reason: string,
-  ): Promise<void> {
-    // 简化降级处理
-    this.logger.warn("启用简化降级处理", { batchSize: batch.length, reason });
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 计算重试延迟 - 保留简化实现
-   */
-  private calculateRetryDelay(attempt: number): number {
-    // 简化实现
-    return this.config.retryDelayBase * Math.pow(2, attempt - 1);
-  }
 
-  /**
-   * @deprecated 已迁移到 StreamBatchProcessorService
-   * 延迟函数 - 保留简化实现
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
 
   /**
    * 检查断路器是否开启

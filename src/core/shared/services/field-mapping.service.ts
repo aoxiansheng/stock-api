@@ -1,7 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
-import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
 import {
   ReceiverType,
   QueryTypeFilter,
@@ -18,9 +16,7 @@ export class FieldMappingService {
   // 🔧 Phase 1.4: 统一日志规范，使用 createLogger 与项目规范一致
   private readonly logger = createLogger(FieldMappingService.name);
 
-  constructor(
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
-  ) {}
+  constructor() {}
 
   /**
    * 将 Receiver 的能力类型转换为 Storage 的数据分类
@@ -128,103 +124,6 @@ export class FieldMappingService {
     return Object.values(StorageClassification);
   }
 
-  /**
-   * 批量转换能力类型到数据分类
-   * @param receiverTypes - 能力类型数组
-   * @returns 数据分类数组
-   */
-  batchCapabilityToClassification(
-    receiverTypes: ReceiverType[],
-  ): StorageClassification[] {
-    return receiverTypes.map((type) => this.capabilityToClassification(type));
-  }
+  // Removed unused methods: batchCapabilityToClassification, batchClassificationToCapability, validateMappingConfig
 
-  /**
-   * 批量转换数据分类到能力类型
-   * @param classifications - 数据分类数组
-   * @returns 能力类型数组（过滤掉无法映射的）
-   */
-  batchClassificationToCapability(
-    classifications: StorageClassification[],
-  ): ReceiverType[] {
-    return classifications
-      .map((classification) => this.classificationToCapability(classification))
-      .filter((capability): capability is ReceiverType => capability !== null);
-  }
-
-  /**
-   * 验证字段映射配置的完整性
-   * @returns 验证结果
-   */
-  validateMappingConfig(): {
-    isValid: boolean;
-    missingMappings: string[];
-    redundantMappings: string[];
-  } {
-    const capabilities = this.getSupportedReceiverTypes();
-    const classifications = this.getSupportedStorageClassifications();
-
-    const capabilityToClassKeys = Object.keys(
-      FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION,
-    );
-    const classToCapabilityKeys = Object.keys(
-      FIELD_MAPPING_CONFIG.CLASSIFICATION_TO_CAPABILITY,
-    );
-
-    const missingMappings: string[] = [];
-    const redundantMappings: string[] = [];
-
-    // 检查能力类型到分类的映射
-    capabilities.forEach((capability) => {
-      if (!capabilityToClassKeys.includes(capability)) {
-        missingMappings.push(`能力类型 ${capability} 缺少到数据分类的映射`);
-      }
-    });
-
-    // 检查分类到能力类型的映射
-    classifications.forEach((classification) => {
-      if (!classToCapabilityKeys.includes(classification)) {
-        missingMappings.push(`数据分类 ${classification} 缺少到能力类型的映射`);
-      }
-    });
-
-    const isValid =
-      missingMappings.length === 0 && redundantMappings.length === 0;
-
-    return {
-      isValid,
-      missingMappings,
-      redundantMappings,
-    };
-  }
-
-  // ✅ 事件驱动监控方法（为保持架构一致性而添加，虽然此服务监控需求较低）
-  private emitMappingEvent(
-    operation: string,
-    statusCode: number,
-    duration: number,
-    metadata: any,
-  ) {
-    setImmediate(() => {
-      try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "field_mapping_service",
-          metricType: "business",
-          metricName: operation,
-          metricValue: duration,
-          tags: {
-            status_code: statusCode,
-            status: statusCode < 400 ? "success" : "error",
-            ...metadata,
-          },
-        });
-      } catch (error) {
-        this.logger.warn("字段映射事件发送失败", {
-          error: error.message,
-          operation,
-        });
-      }
-    });
-  }
 }

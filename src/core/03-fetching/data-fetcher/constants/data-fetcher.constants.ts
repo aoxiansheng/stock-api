@@ -73,13 +73,3 @@ export const DATA_FETCHER_DEFAULT_CONFIG = {
   /** Размер пакета по умолчанию - использует единую конфигурацию */
   DEFAULT_BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,
 } as const;
-
-/**
- * Имя модуля Data Fetcher
- */
-export const DATA_FETCHER_MODULE_NAME = "DataFetcher";
-
-/**
- * Токен сервиса Data Fetcher
- */
-export const DATA_FETCHER_SERVICE_TOKEN = "DataFetcherService";

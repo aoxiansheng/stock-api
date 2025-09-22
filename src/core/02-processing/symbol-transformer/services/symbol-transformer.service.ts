@@ -14,7 +14,6 @@ import {
   CONFIG,
   MARKET_TYPES,
   TRANSFORM_DIRECTIONS,
-  MONITORING_CONFIG,
 } from "../constants/symbol-transformer-enhanced.constants";
 import { RequestIdUtils } from "../utils/request-id.utils";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";

@@ -159,17 +159,4 @@ export class ErrorSanitizerInterceptor implements NestInterceptor {
     return remoteAddr || "unknown";
   }
 
-  /**
-   * 检查是否为敏感错误（简化版）
-   * 用于额外的安全监控和告警
-   */
-  private isSensitiveError(error: any): boolean {
-    const sensitiveKeywords = [
-      "password", "secret", "token", "key", "密码", "密钥", "令牌",
-      "database", "connection", "数据库", "连接字符串"
-    ];
-
-    const message = (error.message || "").toLowerCase();
-    return sensitiveKeywords.some((keyword) => message.includes(keyword));
-  }
 }
