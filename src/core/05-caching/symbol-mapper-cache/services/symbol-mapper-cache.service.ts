@@ -57,6 +57,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
 
   // 💾 内存监控
   private memoryCheckTimer: NodeJS.Timeout | null = null; // 内存检查定时器
+  private reconnectTimer: NodeJS.Timeout | null = null; // 重连定时器
   private lastMemoryCleanup: Date = new Date(); // 上次清理时间
 
 
@@ -122,6 +123,13 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       clearInterval(this.memoryCheckTimer);
       this.memoryCheckTimer = null;
       this.logger.log("Memory monitoring stopped");
+    }
+
+    // 清理重连定时器
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+      this.logger.log("Reconnect timer cleared");
     }
 
     // 重置监控状态
@@ -858,6 +866,12 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
    * 📡 调度重连 - 实现指数退避策略
    */
   private scheduleReconnection(): void {
+    // 清除现有的重连定时器，避免重复调度
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     // 计算退避延迟：1s -> 2s -> 4s -> 8s -> 16s -> 30s (max)
     const baseDelay = 1000; // 1秒基础延迟
     const delay = Math.min(
@@ -873,10 +887,13 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       nextAttemptAt: new Date(Date.now() + delay).toISOString(),
     });
 
-    setTimeout(() => {
+    // 存储定时器引用，以便后续清理
+    this.reconnectTimer = setTimeout(() => {
       this.logger.log("Attempting to reconnect Change Stream...", {
         attempt: this.reconnectAttempts,
       });
+      // 重连完成后清除定时器引用
+      this.reconnectTimer = null;
       this.setupChangeStreamMonitoring();
     }, delay);
   }

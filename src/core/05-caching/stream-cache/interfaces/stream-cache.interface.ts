@@ -59,8 +59,8 @@ export interface IStreamCache {
   deleteData(key: string): Promise<void>;
 
   /**
-   * 清空所有缓存
+   * 清空所有缓存 - 支持智能清理策略
    */
-  clearAll(): Promise<void>;
+  clearAll(options?: { force?: boolean; preserveActive?: boolean; maxAge?: number }): Promise<void>;
 
 }

@@ -66,6 +66,10 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   // 定时器管理
   private cacheCleanupInterval: NodeJS.Timeout | null = null;
 
+  // 内存泄漏防护机制
+  private isDestroyed = false;
+  private readonly pendingAsyncOperations = new Set<NodeJS.Immediate>();
+
   constructor(
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly eventBus: EventEmitter2,
@@ -84,11 +88,24 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
    * 模块销毁时清理资源
    */
   async onModuleDestroy(): Promise<void> {
+    // 设置销毁标志，防止新的异步操作
+    this.isDestroyed = true;
+
+    // 清理定时器
     if (this.cacheCleanupInterval) {
       clearInterval(this.cacheCleanupInterval);
       this.cacheCleanupInterval = null;
       this.logger.debug("Cache cleanup scheduler stopped");
     }
+
+    // 清理所有待执行的异步操作
+    if (this.pendingAsyncOperations.size > 0) {
+      this.logger.debug(`Clearing ${this.pendingAsyncOperations.size} pending async operations`);
+      this.pendingAsyncOperations.forEach(clearImmediate);
+      this.pendingAsyncOperations.clear();
+    }
+
+    this.logger.debug("StreamCacheService destroyed, all resources cleaned up");
   }
 
   // === 事件驱动监控方法 ===
@@ -102,7 +119,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     duration: number,
     metadata: any = {},
   ): void {
-    setImmediate(() => {
+    this.safeAsyncExecute(() => {
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "stream-cache",
@@ -127,7 +144,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
     value: number,
     tags: any = {},
   ): void {
-    setImmediate(() => {
+    this.safeAsyncExecute(() => {
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "stream-cache",
@@ -310,7 +327,7 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   }
 
   /**
-   * 批量获取数据
+   * 批量获取数据 - 使用Redis Pipeline优化性能
    * @param keys 缓存键数组
    * @returns 键值对映射
    */
@@ -319,17 +336,114 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   ): Promise<Record<string, StreamDataPoint[] | null>> {
     const result: Record<string, StreamDataPoint[] | null> = {};
 
-    try {
-      const promises = keys.map(async (key) => {
-        const data = await this.getData(key);
-        result[key] = data;
-      });
+    if (!keys || keys.length === 0) return result;
 
-      await Promise.all(promises);
+    try {
+      const batchSize = this.config.maxBatchSize || 50; // 配置化批次大小
+
+      for (let i = 0; i < keys.length; i += batchSize) {
+        const batch = keys.slice(i, i + batchSize);
+
+        try {
+          // 优先使用Redis Pipeline进行批量获取
+          await this.getBatchWithPipeline(batch, result);
+        } catch (pipelineError) {
+          this.logger.warn("Pipeline批量获取失败，降级到单个获取", {
+            batch,
+            error: pipelineError.message
+          });
+          // 降级到单个获取
+          await this.fallbackToSingleGets(batch, result);
+        }
+      }
+
       return result;
     } catch (error) {
       return this.handleError("getBatchData", error, keys.join(","));
     }
+  }
+
+  /**
+   * 使用Redis Pipeline进行批量获取
+   */
+  private async getBatchWithPipeline(
+    keys: string[],
+    result: Record<string, StreamDataPoint[] | null>
+  ): Promise<void> {
+    // 先检查Hot Cache
+    const hotCacheMisses: string[] = [];
+    for (const key of keys) {
+      const hotData = this.getFromHotCache(key);
+      if (hotData) {
+        result[key] = hotData;
+      } else {
+        hotCacheMisses.push(key);
+      }
+    }
+
+    if (hotCacheMisses.length === 0) return;
+
+    // 使用Pipeline批量获取Warm Cache
+    const pipeline = this.redisClient.pipeline();
+    hotCacheMisses.forEach(key => {
+      const redisKey = this.buildWarmCacheKey(key);
+      pipeline.get(redisKey);
+    });
+
+    const pipelineResults = await pipeline.exec();
+
+    // 处理Pipeline结果
+    hotCacheMisses.forEach((key, index) => {
+      const [error, data] = pipelineResults[index];
+      if (error) {
+        this.logger.warn(`Redis获取失败: ${key}`, { error: error.message });
+        result[key] = null;
+      } else {
+        if (data) {
+          try {
+            const parsedData = JSON.parse(data as string);
+            result[key] = parsedData;
+            // 提升到Hot Cache
+            this.setToHotCache(key, parsedData);
+          } catch (parseError) {
+            this.logger.warn(`数据解析失败: ${key}`, { error: parseError.message });
+            result[key] = null;
+          }
+        } else {
+          result[key] = null;
+        }
+      }
+    });
+  }
+
+  /**
+   * 降级方法：Pipeline失败时的备选方案
+   */
+  private async fallbackToSingleGets(
+    keys: string[],
+    result: Record<string, StreamDataPoint[] | null>
+  ): Promise<void> {
+    const batchPromises = keys.map(async (key) => ({
+      key,
+      data: await this.getData(key),
+    }));
+
+    const batchResults = await Promise.allSettled(batchPromises);
+
+    // 修正：正确处理Promise.allSettled结果
+    batchResults.forEach((promiseResult, index) => {
+      if (promiseResult.status === 'fulfilled') {
+        const { key, data } = promiseResult.value;
+        result[key] = data;
+      } else {
+        // 记录失败的key，用于监控和重试
+        const failedKey = keys[index];
+        this.logger.warn(`批量获取失败: ${failedKey}`, {
+          error: promiseResult.reason?.message
+        });
+        result[failedKey] = null;
+      }
+    });
   }
 
   /**
@@ -351,26 +465,179 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   }
 
   /**
-   * 清空所有缓存
+   * 清空所有缓存 - 智能清理策略
    */
-  async clearAll(): Promise<void> {
+  async clearAll(options: { force?: boolean; preserveActive?: boolean; maxAge?: number } = {}): Promise<void> {
     // 清空 Hot Cache (始终成功)
     this.hotCache.clear();
 
-    // 清空 Warm Cache 中的流数据 (容错处理)
+    // 清空 Warm Cache 中的流数据 (智能策略选择)
     try {
       const pattern = `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
-      const keys = await this.redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await this.redisClient.del(...keys);
+
+      if (options.preserveActive) {
+        // 保留活跃流数据，只清理过期数据
+        await this.clearExpiredOnly(pattern, options.maxAge || 3600); // 默认1小时
+      } else {
+        // 智能选择清理策略
+        const cacheStats = await this.getCacheStats();
+
+        if (cacheStats.estimatedKeyCount < 1000 || options.force) {
+          // 小量数据，直接SCAN+UNLINK
+          await this.scanAndClear(pattern);
+        } else {
+          // 大量数据，分批清理避免阻塞
+          await this.batchClearWithProgress(pattern);
+        }
       }
     } catch (error) {
       this.logger.warn("Warm cache clear failed", { error: error.message });
     }
 
-    this.logger.log("All cache cleared");
+    this.logger.log("All cache cleared", {
+      preserveActive: options.preserveActive,
+      force: options.force
+    });
   }
 
+
+  /**
+   * 使用SCAN命令安全地查找并清理keys
+   */
+  private async scanAndClear(pattern: string): Promise<void> {
+    const keys = await this.scanKeysWithTimeout(pattern, 10000);
+    if (keys.length > 0) {
+      // 使用UNLINK而非DEL，非阻塞删除
+      await this.redisClient.unlink(...keys);
+      this.logger.log("SCAN清理完成", { clearedCount: keys.length });
+    }
+  }
+
+  /**
+   * 使用SCAN命令查找keys，带超时保护
+   */
+  private async scanKeysWithTimeout(
+    pattern: string,
+    timeoutMs: number = 10000,
+  ): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = "0";
+    const startTime = Date.now();
+
+    try {
+      do {
+        if (Date.now() - startTime > timeoutMs) {
+          this.logger.warn("SCAN操作超时", {
+            pattern,
+            scannedKeys: keys.length,
+            timeoutMs
+          });
+          break;
+        }
+
+        const result = await this.redisClient.scan(
+          cursor,
+          "MATCH", pattern,
+          "COUNT", 200, // 增加COUNT提高效率
+        );
+        cursor = result[0];
+        keys.push(...result[1]);
+
+        // 避免单次扫描过多keys占用内存
+        if (keys.length > 10000) {
+          this.logger.warn("SCAN发现大量keys，分批处理", {
+            pattern,
+            keysFound: keys.length
+          });
+          break;
+        }
+      } while (cursor !== "0");
+
+      return keys;
+    } catch (error) {
+      this.logger.error("SCAN操作失败", { pattern, error: error.message });
+      return [];
+    }
+  }
+
+  /**
+   * 分批清理方法，避免阻塞Redis
+   */
+  private async batchClearWithProgress(pattern: string): Promise<void> {
+    let totalCleared = 0;
+    let cursor = "0";
+    const batchSize = 500;
+
+    do {
+      const result = await this.redisClient.scan(cursor, "MATCH", pattern, "COUNT", 100);
+      cursor = result[0];
+      const keys = result[1];
+
+      if (keys.length > 0) {
+        // 使用UNLINK而非DEL，非阻塞删除
+        await this.redisClient.unlink(...keys);
+        totalCleared += keys.length;
+
+        this.logger.debug("分批清理进度", {
+          clearedKeys: totalCleared,
+          currentBatch: keys.length
+        });
+      }
+
+      // 分批间隔，避免占用过多Redis资源
+      if (keys.length === batchSize) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    } while (cursor !== "0");
+
+    this.logger.log("分批清理完成", { totalCleared });
+  }
+
+  /**
+   * 只清理过期数据，保留活跃流
+   */
+  private async clearExpiredOnly(pattern: string, maxAgeSeconds: number): Promise<void> {
+    const keys = await this.scanKeysWithTimeout(pattern);
+    const expiredKeys: string[] = [];
+
+    // 批量检查TTL，筛选过期keys
+    for (let i = 0; i < keys.length; i += 100) {
+      const batch = keys.slice(i, i + 100);
+      const pipeline = this.redisClient.pipeline();
+
+      batch.forEach(key => pipeline.ttl(key));
+      const ttlResults = await pipeline.exec();
+
+      batch.forEach((key, index) => {
+        const [error, ttl] = ttlResults[index];
+        if (!error && (ttl === -1 || (typeof ttl === 'number' && ttl > maxAgeSeconds))) {
+          expiredKeys.push(key);
+        }
+      });
+    }
+
+    if (expiredKeys.length > 0) {
+      await this.redisClient.unlink(...expiredKeys);
+      this.logger.log("清理过期流缓存", { expiredCount: expiredKeys.length });
+    }
+  }
+
+  /**
+   * 获取缓存统计信息
+   */
+  private async getCacheStats(): Promise<{ estimatedKeyCount: number }> {
+    try {
+      // 使用Redis INFO命令估算key数量
+      const info = await this.redisClient.info('keyspace');
+      const dbMatch = info.match(/db\d+:keys=(\d+)/);
+      const estimatedKeyCount = dbMatch ? parseInt(dbMatch[1]) : 0;
+
+      return { estimatedKeyCount };
+    } catch (error) {
+      this.logger.warn("无法获取缓存统计", { error: error.message });
+      return { estimatedKeyCount: 1000 }; // 保守估计
+    }
+  }
 
   /**
    * 获取StreamCache健康状态 - 简化版本
@@ -413,6 +680,31 @@ export class StreamCacheService implements IStreamCache, OnModuleDestroy {
   }
 
   // === 私有方法 ===
+
+  /**
+   * 安全异步执行器 - 防止内存泄漏
+   * 在服务销毁后避免执行setImmediate回调
+   */
+  private safeAsyncExecute(operation: () => void): void {
+    if (this.isDestroyed) {
+      return;
+    }
+
+    const immediateId = setImmediate(() => {
+      // 双重检查：执行时再次确认服务未被销毁
+      if (!this.isDestroyed) {
+        try {
+          operation();
+        } catch (error) {
+          this.logger.warn("异步操作执行失败", { error: error.message });
+        }
+      }
+      // 清理引用
+      this.pendingAsyncOperations.delete(immediateId);
+    });
+
+    this.pendingAsyncOperations.add(immediateId);
+  }
 
   /**
    * 从 Hot Cache 获取数据
