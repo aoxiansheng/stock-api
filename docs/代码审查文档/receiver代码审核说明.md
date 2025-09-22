@@ -52,62 +52,7 @@ Receiver流向: 用户请求 → Receiver → Symbol-Transformer → [智能缓�
 
 
 
-## 2. 配置和常量管理
-
-### ⚠️ 配置改进建议
-
-**硬编码清理** ✅已验证：
-```typescript
-// 位置：src/core/01-entry/receiver/services/receiver.service.ts:calculateStorageCacheTTL()
-// 存在魔法数字，建议提取为统一配置
-const defaultTTL = SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S;
-const symbolCount = symbols?.length || 0;
-if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
-  return Math.max(defaultTTL,
-    (SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S /
-     CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE) * 2);
-}
-```
-
-### 💡 推荐解决方案
-
-**统一TTL配置管理**
-```typescript
-// 新增：src/core/01-entry/receiver/config/receiver-ttl.config.ts
-export interface ReceiverTTLConfig {
-  batchThreshold: number;        // 替代 TWENTY 魔法数字
-  ttlMultiplier: number;         // 替代 FIVE 魔法数字
-  largeBatchMultiplier: number;  // 替代硬编码的 2
-}
-
-// 在 receiver.service.ts 中使用
-private calculateStorageCacheTTL(symbols: string[]): number {
-  const config = this.configService.get<ReceiverTTLConfig>('receiverTtl');
-  const symbolCount = symbols?.length || 0;
-
-  if (symbolCount > config.batchThreshold) {
-    return Math.max(defaultTTL,
-      (SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S /
-       config.ttlMultiplier) * config.largeBatchMultiplier);
-  }
-  return defaultTTL;
-}
-```
-
-**环境变量配置**
-```bash
-# .env 文件
-RECEIVER_TTL_BATCH_THRESHOLD=20
-RECEIVER_TTL_MULTIPLIER=5
-RECEIVER_TTL_LARGE_BATCH_MULTIPLIER=2
-```
-
-**合理性评估**：⭐⭐⭐⭐ 中高度合理
-- ✅ **配置统一**：符合系统统一配置架构模式
-- ✅ **环境适配**：支持不同环境的差异化配置
-- ✅ **维护便利**：消除魔法数字，提高代码可读性
-
-## 4. 模块边界问题
+## 2. 模块边界问题
 
 ### ⚠️ 边界模糊点
 
@@ -116,7 +61,7 @@ RECEIVER_TTL_LARGE_BATCH_MULTIPLIER=2
 - 位置：`src/core/01-entry/query/services/query-execution-engine.service.ts:70,1021`
 - 建议考虑共同抽象层或事件驱动模式
 
-## 5. 内存泄漏风险
+## 3. 内存泄漏风险
 
 ### ⚠️ 内存泄漏风险点
 
@@ -163,11 +108,14 @@ private logConnectionMetrics() {
 
 ## 6. 通用组件复用
 
-### ⚠️ 复用改进建议
+
 
 **分页组件缺失**：
 - 当前没有使用通用的分页组件
-- 建议在批量查询场景中集成分页功能
+- 组件没有实现分页功能，这是正确的架构设计：
+  - Receiver 是强时效接口，专为实时数据场景设计
+  - 不支持分页是合理的，因为实时数据通常按股票代码列表请求
+  - 没有重复实现分页逻辑
 
 
 ## 关键问题汇总
@@ -188,9 +136,8 @@ private logConnectionMetrics() {
 
 ### 📋 低优先级改进
 
-3. **配置硬编码清理**：TTL计算中存在魔法数字 ✅已验证
+
 4. **监控指标补充**：缺少缓存命中率等业务指标
-5. **分页组件缺失**：批量查询场景中缺少分页功能
 
 ## 解决方案合理性总体评估
 
@@ -199,7 +146,7 @@ private logConnectionMetrics() {
 | 问题分类 | 优先级 | 架构合理性 | 合规性 | 实施难度 | 推荐度 |
 |---------|--------|-----------|--------|----------|--------|
 | Query→Receiver委托 | ✅ 已确认合理 | ⭐⭐⭐⭐⭐ | ✅ 架构合规 | 无需修改 | 保持现状 |
-| 配置硬编码 | 🟡 中 | ⭐⭐⭐⭐ | ✅ 合规 | 低 | 近期优化 |
+
 | 生命周期管理 | 🟢 低 | ⭐⭐⭐ | ✅ 合规 | 极低 | 预防性改进 |
 
 ### 🎯 效益分析
@@ -209,10 +156,6 @@ private logConnectionMetrics() {
 - **维护价值**：职责边界清晰，Query专注缓存，Receiver专注数据处理
 - **性能价值**：双层缓存策略有效，Query缓存命中率高
 
-**配置硬编码清理**：
-- **运维价值**：提高配置灵活性，支持环境差异化部署
-- **开发价值**：消除魔法数字，提高代码可读性
-- **测试价值**：便于单元测试中的配置模拟
 
 **生命周期管理完善**：
 - **稳定性价值**：预防潜在的资源泄漏问题
@@ -226,10 +169,6 @@ private logConnectionMetrics() {
    - 符合缓存代理模式设计原则
    - 职责分工清晰，无需重构
 
-**🟡 近期优化（2-4周）**：
-2. 建立ReceiverTTL统一配置
-   - 消除魔法数字
-   - 添加环境变量支持
 
 **🟢 长期改进（1-2个月）**：
 3. 完善生命周期管理
@@ -255,9 +194,6 @@ private logConnectionMetrics() {
    - 代码位置：`query-execution-engine.service.ts:70,1021`
    - **结论**：缓存代理模式的合理实现，无需修改 (⭐⭐⭐⭐⭐)
 
-2. **配置硬编码问题** - ✅ 代码位置已确认，建议优化
-   - 代码位置：`receiver.service.ts:calculateStorageCacheTTL()`
-   - 推荐方案：统一TTL配置管理 (⭐⭐⭐⭐)
 
 3. **生命周期管理缺失** - ✅ 代码分析确认，预防性改进
    - 问题：缺少OnModuleDestroy实现

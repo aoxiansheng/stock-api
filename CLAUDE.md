@@ -488,6 +488,47 @@ bun run test:regression          # Full regression test suite
 - **Database Connections**: Use `bun run test:database` for DB connectivity issues
 - **API Performance**: Use `bun run test:api` for endpoint performance analysis
 
+## ⚠️ CRITICAL: Common Cache Module Memory Leak Risk
+
+**IMMEDIATE ACTION REQUIRED**: The common-cache module has been identified with P0-level memory leak risks:
+
+### Critical Issues Identified
+1. **Service Lifecycle Management Incomplete**:
+   - `AdaptiveDecompressionService` and `BatchMemoryOptimizerService` have cleanup methods but they are NOT called during module destruction
+   - Location: `src/core/05-caching/common-cache/services/`
+   - Impact: Memory leaks, resource accumulation, potential system instability
+
+2. **Async Operations Continue After Shutdown**:
+   - Multiple `setImmediate` calls may execute after module destruction
+   - Locations: `common-cache.service.ts:120,147` and `adaptive-decompression.service.ts:277,464`
+   - Impact: Operations on destroyed resources, potential crashes
+
+3. **Internal Implementation Exposed**:
+   - `DecompressionSemaphore` class lacks private access modifier
+   - Location: `src/core/05-caching/common-cache/services/common-cache.service.ts:40`
+   - Impact: Accidental external usage, API surface pollution
+
+### Required Fixes (P0 Priority)
+```typescript
+// 1. In CommonCacheModule.onModuleDestroy(), add:
+await this.adaptiveDecompressionService.cleanup();
+await this.batchMemoryOptimizerService.cleanup();
+
+// 2. In setImmediate callbacks, add shutdown checks:
+private isDestroyed = false;
+setImmediate(() => {
+  if (!this.isDestroyed) {
+    // Execute original logic
+  }
+});
+
+// 3. Add private modifier to DecompressionSemaphore class
+```
+
+**Estimated Fix Time**: 2-4 hours
+**Risk Level**: High - affects production stability
+**Technical Debt Score**: Reduced from 7.0/10 to 6.2/10 due to these findings
+
 ## Critical Startup Issues to Monitor
 
 ### Singleton Pattern Violations
@@ -657,6 +698,25 @@ await cacheService.safeGetOrSet<T>(key, factory, options); // Calls factory on f
 ```
 
 **Implementation Location**: `src/cache/services/cache.service.ts`
+
+### ✅ Verified Cache Implementation Patterns
+Based on code review verification, these patterns are confirmed as implemented and working:
+
+```typescript
+// ✅ Environment-driven configuration (confirmed working)
+CACHE_DECOMPRESSION_ENABLED = "false"
+CACHE_DECOMPRESSION_MAX_CONCURRENT = "10"
+CACHE_DECOMPRESSION_TIMEOUT_MS = "5000"
+CACHE_PERF_ALERT_THRESHOLD = "50"
+CACHE_ERROR_ALERT_THRESHOLD = "0.01"
+
+// ✅ Fault-tolerant service patterns (confirmed implementation)
+await cacheService.safeGet<T>(key);      // Returns null on failure
+await cacheService.safeSet(key, value, options); // Silent failure, logs warning
+await cacheService.safeGetOrSet<T>(key, factory, options); // Calls factory on failure
+```
+
+**Configuration Quality**: The cache configuration system is more mature than initially assessed, with comprehensive environment variable support and structured constant management.
 
 ### Unified Monitoring Cache Architecture
 The monitoring system now uses a unified cache approach instead of a dedicated MonitoringCacheService:
@@ -1057,3 +1117,26 @@ curl http://localhost:3000/api/v1/monitoring/cache-stats
 # Check singleton pattern compliance
 grep "非单例" logs/*.log
 ```
+
+## Code Review Documentation
+
+The project maintains detailed code review documentation in `docs/代码审查文档/` with systematic analysis patterns:
+
+### Review Documentation Structure
+- **Problem identification with code verification**: All issues are backed by actual code inspection
+- **Technical feasibility assessment**: Each solution includes implementation difficulty and risk analysis
+- **Quality scoring system**: Standardized evaluation across functionality, security, maintainability, extensibility, and architecture
+- **Priority classification**: P0 (immediate), P1 (high), P2 (medium), P3 (low) with clear justification
+
+### Key Review Findings Integration
+Recent reviews have identified critical patterns:
+- **Service lifecycle management gaps**: Common across multiple modules
+- **Dependency injection architecture analysis**: Distinguishing between shared infrastructure vs. coupling issues
+- **Configuration system maturity**: Recognition of well-designed vs. problematic config patterns
+- **Memory leak risk assessment**: Focus on async operations and cleanup mechanisms
+
+**Review Quality Standards:**
+- Problem verification: Must be confirmed through actual code inspection
+- Solution feasibility: Technical implementation path must be clear
+- Impact assessment: Consider stability, performance, and maintainability
+- Migration compatibility: Preserve backward compatibility where possible

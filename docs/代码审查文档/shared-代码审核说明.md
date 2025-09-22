@@ -34,7 +34,7 @@ src/core/shared/
 
 
 ### ❌ 待解决问题 (唯一真实问题)
-
+暂时不予实现 这是代办任务之一
 #### Provider 集成未完成
 **位置**: `src/core/shared/services/market-status.service.ts:316-318`
 ```typescript

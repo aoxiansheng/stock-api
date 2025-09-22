@@ -99,45 +99,9 @@ export class AppCoreModule {}
      }
    }
 
-## 3. 配置和常量管理
 
-### ✅ 优点
-- **常量集中管理**: `SMART_CACHE_CONSTANTS`提供统一的常量定义
-- **环境变量支持**: 通过`SmartCacheConfigFactory`支持环境变量配置
-- **类型安全**: 使用TypeScript类型系统确保配置类型安全
 
-### ⚠️ 配置问题 (已验证)
-1. **硬编码值确实存在**:
-   ```typescript
-   // 实际代码 smart-cache-orchestrator.service.ts:1920
-   const oneHourAgo = time - 3600000; // ❌ 硬编码1小时毫秒数
-   const concurrencyLimit = 3; // ❌ 魔术数字
-   ```
-
-2. **环境变量映射复杂**:
-   - 环境变量重复使用于不同配置项
-   - 部分映射关系不直观
-
-### 🔧 配置优化方案
-```typescript
-// 替换硬编码为常量引用
-const oneHourAgo = time - SMART_CACHE_CONSTANTS.MEMORY_MANAGEMENT.LAST_UPDATE_TTL_MS;
-const concurrencyLimit = SMART_CACHE_CONSTANTS.PERFORMANCE.CONCURRENT_LIMIT;
-
-// 优化环境变量映射
-export const SmartCacheConfigFactory = {
-  memoryManagement: {
-    lastUpdateTtl: parseInt(process.env.SMART_CACHE_LAST_UPDATE_TTL) || 3600000,
-    maxEntries: parseInt(process.env.SMART_CACHE_MAX_ENTRIES) || 10000,
-  },
-  performance: {
-    concurrentLimit: parseInt(process.env.SMART_CACHE_CONCURRENT_LIMIT) || 3,
-    backgroundThreshold: parseFloat(process.env.SMART_CACHE_BG_THRESHOLD) || 0.8,
-  }
-};
-```
-
-## 5. 模块边界问题
+## 4. 模块边界问题
 
 ### ✅ 边界优点
 - **清晰的模块职责**: SmartCacheOrchestrator专注于缓存编排，SmartCachePerformanceOptimizer专注于性能优化
@@ -242,12 +206,6 @@ public getMemoryStats() {
    - **风险**: 中等，需要测试验证
    - **收益**: 50%+性能提升，内存可控
 
-#### ⚡ **P2 - 代码质量** (1天)
-3. **常量化配置**:
-   - 提取硬编码3600000到SMART_CACHE_CONSTANTS
-   - 添加环境变量支持
-   - **风险**: 极低，纯重构
-   - **收益**: 提高可维护性
 
 
 ### 📈 预期改进效果
@@ -259,7 +217,7 @@ public getMemoryStats() {
 
 #### **代码质量**:
 - 依赖注入: 冲突 → 清晰
-- 硬编码: 魔术数字 → 配置化
+
 - 可维护性: 分散逻辑 → 集中管理
 
 #### **架构健康**:
