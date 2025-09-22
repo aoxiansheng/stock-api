@@ -1,6 +1,9 @@
 import { Module } from "@nestjs/common";
 import { StreamReceiverGateway } from "../gateway/stream-receiver.gateway";
 import { StreamReceiverService } from "../services/stream-receiver.service";
+import { StreamBatchProcessorService } from "../services/stream-batch-processor.service";
+import { StreamConnectionManagerService } from "../services/stream-connection-manager.service";
+import { StreamDataProcessorService } from "../services/stream-data-processor.service";
 import { StreamDataValidator } from "../validators/stream-data.validator";
 
 // 导入依赖模块 - Phase 2 重构后精简依赖
@@ -35,7 +38,21 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     MonitoringModule, // ✅ 统一监控模块
     MarketInferenceModule,
   ],
-  providers: [StreamReceiverGateway, StreamReceiverService, StreamDataValidator],
-  exports: [StreamReceiverGateway, StreamReceiverService, StreamDataValidator],
+  providers: [
+    StreamReceiverGateway,
+    StreamReceiverService,
+    StreamBatchProcessorService,
+    StreamConnectionManagerService,
+    StreamDataProcessorService,
+    StreamDataValidator
+  ],
+  exports: [
+    StreamReceiverGateway,
+    StreamReceiverService,
+    StreamBatchProcessorService,
+    StreamConnectionManagerService,
+    StreamDataProcessorService,
+    StreamDataValidator
+  ],
 })
 export class StreamReceiverModule {}

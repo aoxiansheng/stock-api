@@ -482,6 +482,14 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
   }
 
   /**
+   * 🎯 获取规则文档对象（用于内部处理，如 transformer）
+   * Phase 2 重构：委托给 CrudModule
+   */
+  async getRuleDocumentById(id: string): Promise<FlexibleMappingRuleDocument> {
+    return await this.crudModule.getRuleDocumentById(id);
+  }
+
+  /**
    * 🎯 安全获取规则信息（返回DTO对象，替代直接暴露文档对象）
    * Phase 2 重构：委托给 CrudModule
    */

@@ -756,12 +756,15 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           request.metadata?.market,
         );
 
+        // 异步调度后台更新，不阻塞主流程
         this.scheduleBackgroundUpdate(
           request.cacheKey,
           request.symbols,
           request.fetchFn,
           priority,
-        );
+        ).catch((error) => {
+          this.logger.debug(`Failed to schedule background update for ${request.cacheKey}:`, error);
+        });
       }
 
       this.logger.debug(
@@ -1153,14 +1156,16 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       }
     });
 
-    // 批量调度后台更新任务
+    // 批量调度后台更新任务（异步，不阻塞主流程）
     updateTasks.forEach((task) => {
       this.scheduleBackgroundUpdate(
         task.cacheKey,
         task.symbols,
         task.fetchFn,
         task.priority,
-      );
+      ).catch((error) => {
+        this.logger.debug(`Failed to schedule batch background update for ${task.cacheKey}:`, error);
+      });
     });
 
     if (updateTasks.length > 0) {
@@ -1764,12 +1769,12 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
    * 调度后台更新任务
    * TTL节流、去重检查、并发限制
    */
-  scheduleBackgroundUpdate<T>(
+  async scheduleBackgroundUpdate<T>(
     cacheKey: string,
     symbols: string[],
     fetchFn: () => Promise<T>,
     priority?: number,
-  ): void {
+  ): Promise<void> {
     // 检查是否正在关闭
     if (this.isShuttingDown) {
       this.logger.debug(
@@ -1798,7 +1803,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
     // 检查该cacheKey的上次更新时间（防止频繁更新）
     const lastUpdateKey = `last_update_${cacheKey}`;
-    const lastUpdateTime = this.getLastUpdateTime(lastUpdateKey);
+    const lastUpdateTime = await this.getLastUpdateTime(lastUpdateKey);
 
     if (lastUpdateTime && now - lastUpdateTime < minInterval) {
       this.logger.debug(
@@ -1838,8 +1843,10 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     this.backgroundUpdateTasks.set(cacheKey, task);
     this.updateQueue.push(task);
 
-    // 记录当前调度时间
-    this.setLastUpdateTime(lastUpdateKey, now);
+    // 记录当前调度时间（异步，不阻塞主流程）
+    this.setLastUpdateTime(lastUpdateKey, now).catch((error) => {
+      this.logger.debug(`Failed to record schedule time for ${cacheKey}:`, error);
+    });
 
     this.logger.debug(`Scheduled background update for ${cacheKey}`, {
       priority: taskPriority,
@@ -1883,23 +1890,29 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 获取上次更新时间
-   * 使用简单的内存存储，实际生产中可以考虑持久化
+   * 已迁移到CommonCache，使用Redis TTL自动管理过期，消除O(n)性能问题
    */
-  private lastUpdateTimes = new Map<string, number>();
+  // lastUpdateTimes 已迁移到 CommonCache，使用 Redis TTL 自动管理过期
 
-  private getLastUpdateTime(key: string): number | undefined {
-    return this.lastUpdateTimes.get(key);
+  private async getLastUpdateTime(key: string): Promise<number | undefined> {
+    const updateKey = `smart_cache:last_update:${key}`;
+    try {
+      const result = await this.commonCacheService.get<number>(updateKey);
+      return result?.data;
+    } catch (error) {
+      this.logger.debug(`Failed to get last update time for ${key}:`, error);
+      return undefined;
+    }
   }
 
-  private setLastUpdateTime(key: string, time: number): void {
-    this.lastUpdateTimes.set(key, time);
-
-    // 清理过期的记录（保留最近1小时的记录）
-    const oneHourAgo = time - 3600000;
-    for (const [k, t] of this.lastUpdateTimes.entries()) {
-      if (t < oneHourAgo) {
-        this.lastUpdateTimes.delete(k);
-      }
+  private async setLastUpdateTime(key: string, time: number): Promise<void> {
+    const updateKey = `smart_cache:last_update:${key}`;
+    try {
+      // 使用CommonCache存储，TTL设为1小时自动过期，无需手动清理
+      await this.commonCacheService.set(updateKey, time, 3600);
+    } catch (error) {
+      this.logger.debug(`Failed to set last update time for ${key}:`, error);
+      // 静默失败，不影响主要功能
     }
   }
 
