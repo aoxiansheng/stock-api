@@ -1,0 +1,23 @@
+import { CACHE_BASE_VALUES } from './shared-base-values.constants';
+
+/**
+ * 缓存系统TTL配置常量
+ * 基于业务场景的TTL标准化配置
+ */
+export const CACHE_SHARED_TTL = {
+  // 业务场景TTL
+  REAL_TIME_TTL_SECONDS: CACHE_BASE_VALUES.FIVE_SECONDS,           // 实时数据TTL
+  NEAR_REAL_TIME_TTL_SECONDS: CACHE_BASE_VALUES.THIRTY_SECONDS,    // 准实时数据TTL
+  BATCH_QUERY_TTL_SECONDS: CACHE_BASE_VALUES.FIVE_MINUTES,         // 批量查询TTL
+  ARCHIVE_TTL_SECONDS: CACHE_BASE_VALUES.ONE_HOUR,                 // 归档数据TTL
+
+  // 市场状态相关TTL
+  TRADING_HOURS_TTL_SECONDS: CACHE_BASE_VALUES.THIRTY_SECONDS,     // 交易时段TTL
+  OFF_HOURS_TTL_SECONDS: 1800,                                     // 非交易时段TTL（30分钟）
+  WEEKEND_TTL_SECONDS: CACHE_BASE_VALUES.ONE_HOUR,                 // 周末TTL
+
+  // 边界值TTL
+  MIN_TTL_SECONDS: CACHE_BASE_VALUES.THIRTY_SECONDS,               // 最小TTL
+  MAX_TTL_SECONDS: CACHE_BASE_VALUES.ONE_DAY,                      // 最大TTL
+  DEFAULT_TTL_SECONDS: CACHE_BASE_VALUES.FIVE_MINUTES,             // 默认TTL
+} as const;

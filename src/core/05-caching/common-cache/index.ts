@@ -61,6 +61,20 @@ export {
   CACHE_CONFIG,
   CACHE_STRATEGIES,
 } from "./constants/cache-config.constants";
+
+// 新增共享常量导出
+export {
+  CACHE_BASE_VALUES,
+  CACHE_SHARED_TTL,
+  CACHE_SHARED_INTERVALS,
+  CACHE_SHARED_BATCH_SIZES,
+  // 便利性别名
+  BASE_VALUES,
+  SHARED_TTL,
+  SHARED_INTERVALS,
+  SHARED_BATCH_SIZES,
+} from "./constants";
+
 export type {
   CacheStrategy,
   CacheOperation,

@@ -71,8 +71,7 @@ export class SmartCacheConfigFactory {
         // 智能默认值：基于CPU核心数，使用常量定义范围
         Math.min(
           Math.max(
-            SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS
-              .MIN_CONCURRENT_UPDATES_COUNT,
+            SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
             cpuCores,
           ),
           SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,

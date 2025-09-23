@@ -1,8 +1,13 @@
 import { DATA_MAPPER_CACHE_CONFIG } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
+import {
+  CACHE_SHARED_TTL,
+  CACHE_SHARED_INTERVALS,
+  CACHE_SHARED_BATCH_SIZES
+} from '../../common-cache';
 
 /**
  * DataMapper 缓存常量配置
- * 专用于映射规则缓存的配置项
+ * 使用Common-cache的共享常量作为基础
  */
 export const DATA_MAPPER_CACHE_CONSTANTS = {
   // 🔑 缓存键前缀 - 使用简短前缀减少内存占用
@@ -13,35 +18,35 @@ export const DATA_MAPPER_CACHE_CONSTANTS = {
     RULE_STATS: "dm:rule_stats", // 规则统计信息
   },
 
-  // ⏰ TTL 配置 (秒) - 使用统一配置
+  // ⏰ TTL 配置 (秒) - 使用共享TTL常量
   TTL: {
-    BEST_RULE: DATA_MAPPER_CACHE_CONFIG.RULE_CACHE_TTL, // 使用统一规则缓存TTL
-    RULE_BY_ID: DATA_MAPPER_CACHE_CONFIG.RULE_CACHE_TTL, // 使用统一规则缓存TTL
-    PROVIDER_RULES: DATA_MAPPER_CACHE_CONFIG.SUGGESTION_CACHE_TTL, // 使用建议缓存TTL（更新更频繁）
-    RULE_STATS: DATA_MAPPER_CACHE_CONFIG.SUGGESTION_CACHE_TTL, // 统计信息更新频繁
+    BEST_RULE: CACHE_SHARED_TTL.BATCH_QUERY_TTL_SECONDS, // 数据映射批次查询TTL
+    RULE_BY_ID: CACHE_SHARED_TTL.BATCH_QUERY_TTL_SECONDS, // 数据映射批次查询TTL
+    PROVIDER_RULES: CACHE_SHARED_TTL.NEAR_REAL_TIME_TTL_SECONDS, // 准实时更新
+    RULE_STATS: CACHE_SHARED_TTL.NEAR_REAL_TIME_TTL_SECONDS, // 统计信息准实时
   },
 
-  // 📊 性能阈值配置
+  // 📊 性能阈值配置 - 使用共享批次常量
   PERFORMANCE: {
     SLOW_OPERATION_MS: 100, // 慢操作阈值 (毫秒)
-    MAX_BATCH_SIZE: 100, // 批量操作最大数量
-    STATS_CLEANUP_INTERVAL_MS: 300000, // 统计清理间隔 (5分钟)
+    MAX_BATCH_SIZE: CACHE_SHARED_BATCH_SIZES.DATA_MAPPING_BATCH_SIZE, // 数据映射批次
+    STATS_CLEANUP_INTERVAL_MS: CACHE_SHARED_INTERVALS.CLEANUP_INTERVAL_MS, // 使用共享清理间隔
   },
 
-  // ⏱️ 操作超时配置
+  // ⏱️ 操作超时配置 - 使用共享超时常量
   OPERATION_TIMEOUTS: {
-    DEFAULT_SCAN_MS: 5000, // scanKeysWithTimeout 默认超时
-    PROVIDER_INVALIDATE_MS: 3000, // 提供商缓存失效扫描超时
-    STATS_SCAN_MS: 2000, // 统计信息扫描超时
-    CLEAR_ALL_MS: 5000, // 清理所有缓存超时
+    DEFAULT_SCAN_MS: CACHE_SHARED_INTERVALS.OPERATION_TIMEOUT_MS, // 使用共享操作超时
+    PROVIDER_INVALIDATE_MS: CACHE_SHARED_INTERVALS.OPERATION_TIMEOUT_MS, // 使用共享操作超时
+    STATS_SCAN_MS: 2000, // 统计信息扫描超时（特有配置）
+    CLEAR_ALL_MS: CACHE_SHARED_INTERVALS.OPERATION_TIMEOUT_MS, // 使用共享操作超时
   },
 
-  // 🔄 批处理操作配置
+  // 🔄 批处理操作配置 - 使用共享批次常量
   BATCH_OPERATIONS: {
-    REDIS_SCAN_COUNT: 100, // Redis SCAN命令的COUNT参数
-    DELETE_BATCH_SIZE: 100, // 批量删除的批次大小
-    MAX_KEYS_PREVENTION: 10000, // 防止内存过度使用的键数限制
-    INTER_BATCH_DELAY_MS: 10, // 批次间延迟毫秒数，降低Redis负载
+    REDIS_SCAN_COUNT: CACHE_SHARED_BATCH_SIZES.REDIS_SCAN_COUNT, // 使用共享Redis扫描批次
+    DELETE_BATCH_SIZE: CACHE_SHARED_BATCH_SIZES.REDIS_DELETE_BATCH_SIZE, // 使用共享删除批次
+    MAX_KEYS_PREVENTION: 10000, // 防止内存过度使用的键数限制（特有配置）
+    INTER_BATCH_DELAY_MS: 10, // 批次间延迟毫秒数（特有配置）
   },
 
   // 📏 大小限制

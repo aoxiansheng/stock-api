@@ -1,0 +1,24 @@
+import { CACHE_BASE_VALUES } from './shared-base-values.constants';
+
+/**
+ * 缓存系统间隔时间配置常量
+ * 统一系统运维相关的时间间隔配置
+ */
+export const CACHE_SHARED_INTERVALS = {
+  // 清理操作间隔
+  CLEANUP_INTERVAL_MS: CACHE_BASE_VALUES.THIRTY_SECONDS_MS,        // 标准清理间隔
+  MEMORY_CLEANUP_INTERVAL_MS: CACHE_BASE_VALUES.THIRTY_SECONDS_MS, // 内存清理间隔
+
+  // 健康检查间隔
+  HEALTH_CHECK_INTERVAL_MS: CACHE_BASE_VALUES.TEN_SECONDS_MS,      // 健康检查间隔
+  HEARTBEAT_INTERVAL_MS: CACHE_BASE_VALUES.THIRTY_SECONDS_MS,      // 心跳间隔
+
+  // 监控数据收集间隔
+  METRICS_COLLECTION_INTERVAL_MS: 15000,                           // 监控指标收集（15秒）
+  STATS_LOG_INTERVAL_MS: CACHE_BASE_VALUES.ONE_MINUTE_MS,          // 统计日志间隔
+
+  // 超时配置
+  OPERATION_TIMEOUT_MS: CACHE_BASE_VALUES.FIVE_SECONDS_MS,         // 通用操作超时
+  CONNECTION_TIMEOUT_MS: CACHE_BASE_VALUES.FIVE_SECONDS_MS,        // 连接超时
+  GRACEFUL_SHUTDOWN_TIMEOUT_MS: CACHE_BASE_VALUES.THIRTY_SECONDS_MS, // 优雅关闭超时
+} as const;

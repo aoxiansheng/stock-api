@@ -1,32 +1,39 @@
+import {
+  CACHE_SHARED_TTL,
+  CACHE_SHARED_INTERVALS,
+  CACHE_SHARED_BATCH_SIZES
+} from '../../common-cache';
+
 /**
  * 流缓存常量配置
+ * 使用Common-cache的共享常量作为基础
  */
 
 export const STREAM_CACHE_CONFIG = {
-  // TTL 配置 (毫秒/秒)
+  // TTL配置 - 使用共享常量
   TTL: {
-    HOT_CACHE_MS: 5000, // Hot Cache: 5秒
-    WARM_CACHE_SECONDS: 300, // Warm Cache: 5分钟
+    HOT_CACHE_TTL_S: CACHE_SHARED_TTL.REAL_TIME_TTL_SECONDS,
+    WARM_CACHE_TTL_S: CACHE_SHARED_TTL.BATCH_QUERY_TTL_SECONDS,
   },
 
-  // 容量配置
+  // 容量配置 - 使用共享批次大小
   CAPACITY: {
-    MAX_HOT_CACHE_SIZE: 1000, // Hot Cache 最大条目数
-    MAX_BATCH_SIZE: 200, // 批量操作最大条目数
+    MAX_HOT_CACHE_SIZE: 1000,                                    // 流缓存特有
+    MAX_BATCH_SIZE: CACHE_SHARED_BATCH_SIZES.STREAM_BATCH_SIZE,  // 使用流数据专用批次
   },
 
-  // 清理配置
+  // 清理配置 - 使用共享间隔
   CLEANUP: {
-    INTERVAL_MS: 30000, // 清理间隔: 30秒
-    MAX_CLEANUP_ITEMS: 100, // 单次清理最大条目数
+    INTERVAL_MS: CACHE_SHARED_INTERVALS.CLEANUP_INTERVAL_MS,
+    MAX_CLEANUP_ITEMS: CACHE_SHARED_BATCH_SIZES.LARGE_BATCH_SIZE,
   },
 
-  // 压缩配置 - 使用分级压缩策略
-  COMPRESSION: {
-    THRESHOLD_BYTES: 1024, // 流数据压缩阈值: 1KB (优先实时性)
-    ENABLED: true, // 是否启用压缩
+  // 流缓存特有配置
+  STREAM_SPECIFIC: {
+    COMPRESSION_THRESHOLD_BYTES: 1024,        // 流数据压缩阈值
+    CONNECTION_TIMEOUT_MS: CACHE_SHARED_INTERVALS.CONNECTION_TIMEOUT_MS,
+    HEARTBEAT_INTERVAL_MS: CACHE_SHARED_INTERVALS.HEARTBEAT_INTERVAL_MS,
   },
-
 
   // 缓存键前缀 - 使用统一命名规范
   KEYS: {
@@ -39,17 +46,17 @@ export const STREAM_CACHE_CONFIG = {
  */
 export const DEFAULT_STREAM_CACHE_CONFIG = {
   // 流缓存特有配置
-  hotCacheTTL: STREAM_CACHE_CONFIG.TTL.HOT_CACHE_MS,
-  warmCacheTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_SECONDS,
+  hotCacheTTL: STREAM_CACHE_CONFIG.TTL.HOT_CACHE_TTL_S,
+  warmCacheTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_TTL_S,
   maxHotCacheSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_HOT_CACHE_SIZE,
   streamBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
-  connectionTimeout: 5000, // 5秒连接超时
-  heartbeatInterval: 30000, // 30秒心跳间隔
+  connectionTimeout: STREAM_CACHE_CONFIG.STREAM_SPECIFIC.CONNECTION_TIMEOUT_MS,
+  heartbeatInterval: STREAM_CACHE_CONFIG.STREAM_SPECIFIC.HEARTBEAT_INTERVAL_MS,
 
-  // 基础配置
-  defaultTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_SECONDS,
-  minTTL: 1,
-  maxTTL: 86400, // 24小时
+  // 基础配置 - 使用共享常量
+  defaultTTL: CACHE_SHARED_TTL.DEFAULT_TTL_SECONDS,
+  minTTL: CACHE_SHARED_TTL.MIN_TTL_SECONDS,
+  maxTTL: CACHE_SHARED_TTL.MAX_TTL_SECONDS,
   maxCacheSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_HOT_CACHE_SIZE,
   maxBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
   cleanupInterval: STREAM_CACHE_CONFIG.CLEANUP.INTERVAL_MS,
@@ -57,13 +64,13 @@ export const DEFAULT_STREAM_CACHE_CONFIG = {
   memoryCleanupThreshold: 0.85,
 
   // 压缩配置
-  compressionThreshold: STREAM_CACHE_CONFIG.COMPRESSION.THRESHOLD_BYTES,
-  compressionEnabled: STREAM_CACHE_CONFIG.COMPRESSION.ENABLED,
+  compressionThreshold: STREAM_CACHE_CONFIG.STREAM_SPECIFIC.COMPRESSION_THRESHOLD_BYTES,
+  compressionEnabled: true,
   compressionDataType: "stream" as const,
 
-  // 性能监控配置 - 使用默认值替代已删除的配置引用
+  // 性能监控配置 - 使用共享间隔
   slowOperationThreshold: 100, // 慢操作阈值: 100ms
-  statsLogInterval: 60000, // 统计日志间隔: 1分钟
+  statsLogInterval: CACHE_SHARED_INTERVALS.STATS_LOG_INTERVAL_MS,
   performanceMonitoring: true,
   verboseLogging: false,
 

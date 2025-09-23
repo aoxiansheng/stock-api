@@ -23,6 +23,7 @@ import {
   MEMORY_MONITORING,
   MappingDirection,
 } from "../../../shared/constants/cache.constants";
+import { SYMBOL_MAPPER_CACHE_CONSTANTS } from "../constants/symbol-mapper-cache.constants";
 import { CACHE_EVENTS, CacheEventType, CacheHitEvent, CacheMissEvent, CacheOperationStartEvent, CacheOperationCompleteEvent, CacheOperationErrorEvent, CacheDisabledEvent } from '../interfaces/cache-events.interface';
 
 /**
@@ -52,7 +53,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
   // 📡 变更监听
   private changeStream: any; // Change Stream 实例
   private reconnectAttempts: number = 0; // 重连尝试次数
-  private readonly maxReconnectDelay: number = 30000; // 最大重连延迟 30秒
+  private readonly maxReconnectDelay: number = SYMBOL_MAPPER_CACHE_CONSTANTS.CONNECTION.MAX_RECONNECT_DELAY_MS; // 最大重连延迟
   private isMonitoringActive: boolean = false; // 监控器激活状态
 
   // 💾 内存监控
@@ -873,7 +874,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
     }
 
     // 计算退避延迟：1s -> 2s -> 4s -> 8s -> 16s -> 30s (max)
-    const baseDelay = 1000; // 1秒基础延迟
+    const baseDelay = SYMBOL_MAPPER_CACHE_CONSTANTS.CONNECTION.BASE_RETRY_DELAY_MS; // 基础延迟
     const delay = Math.min(
       baseDelay * Math.pow(2, this.reconnectAttempts),
       this.maxReconnectDelay,
@@ -1314,7 +1315,7 @@ export class SymbolMapperCacheService implements OnModuleInit, OnModuleDestroy {
       allEntries.reverse();
 
       // 分批处理以避免大数据集性能问题
-      const batchSize = this.configService.get<CacheUnifiedConfigValidation>('cacheUnified')?.lruSortBatchSize || 1000;
+      const batchSize = this.configService.get<CacheUnifiedConfigValidation>('cacheUnified')?.lruSortBatchSize || SYMBOL_MAPPER_CACHE_CONSTANTS.BATCH.LRU_SORT_BATCH_SIZE;
       let deletedCount = 0;
 
       for (
