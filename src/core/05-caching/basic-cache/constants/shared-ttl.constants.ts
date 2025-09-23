@@ -13,7 +13,7 @@ export const CACHE_SHARED_TTL = {
 
   // 市场状态相关TTL
   TRADING_HOURS_TTL_SECONDS: CACHE_BASE_VALUES.THIRTY_SECONDS,     // 交易时段TTL
-  OFF_HOURS_TTL_SECONDS: 1800,                                     // 非交易时段TTL（30分钟）
+  OFF_HOURS_TTL_SECONDS: CACHE_BASE_VALUES.THIRTY_MINUTES,         // 非交易时段TTL（30分钟）
   WEEKEND_TTL_SECONDS: CACHE_BASE_VALUES.ONE_HOUR,                 // 周末TTL
 
   // 边界值TTL

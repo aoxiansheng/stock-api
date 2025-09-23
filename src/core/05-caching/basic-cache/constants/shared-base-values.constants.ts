@@ -7,6 +7,7 @@ export const CACHE_BASE_VALUES = {
   ONE_SECOND_MS: 1000,
   FIVE_SECONDS_MS: 5000,           // 统一 5秒标准
   TEN_SECONDS_MS: 10000,
+  FIFTEEN_SECONDS_MS: 15000,       // 统一 15秒标准
   THIRTY_SECONDS_MS: 30000,        // 统一 30秒标准
   ONE_MINUTE_MS: 60000,
   FIVE_MINUTES_MS: 300000,         // 统一 5分钟标准
@@ -16,6 +17,7 @@ export const CACHE_BASE_VALUES = {
   THIRTY_SECONDS: 30,              // 统一 30秒标准
   ONE_MINUTE: 60,
   FIVE_MINUTES: 300,               // 统一 5分钟标准
+  THIRTY_MINUTES: 1800,            // 统一 30分钟标准
   ONE_HOUR: 3600,
   ONE_DAY: 86400,
 
