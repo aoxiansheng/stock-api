@@ -180,7 +180,7 @@ async function testConfigLoading() {
     // 模拟WebSocket特性开关配置加载
     const featureFlags = {
       gatewayOnlyMode: process.env.WS_GATEWAY_ONLY_MODE === 'true',
-      allowLegacyFallback: process.env.WS_ALLOW_LEGACY_FALLBACK === 'true',
+      // allowLegacyFallback已移除 - 现在通过emergencyEnableLegacyFallback()方法控制
       strictMode: process.env.WS_STRICT_MODE === 'true'
     };
 

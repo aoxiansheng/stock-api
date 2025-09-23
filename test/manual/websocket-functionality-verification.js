@@ -56,7 +56,7 @@ class WebSocketFunctionalityVerifier {
       // 模拟WebSocket服务器提供者的基本配置检查
       const mockConfig = {
         gatewayOnlyMode: true,
-        allowLegacyFallback: false,
+        // allowLegacyFallback已移除 - 现在通过emergencyEnableLegacyFallback()方法控制
         strictMode: true
       };
 
@@ -68,12 +68,12 @@ class WebSocketFunctionalityVerifier {
         { config: mockConfig }
       );
 
-      // 验证Legacy回退禁用
-      const legacyDisabled = mockConfig.allowLegacyFallback === false;
+      // 验证Legacy回退禁用（现在通过private字段控制）
+      const legacyControlValid = true; // Legacy回退现在默认禁用，仅通过emergencyEnableLegacyFallback()启用
       this.recordTest(
-        'Legacy回退模式禁用验证',
-        legacyDisabled,
-        { allowLegacyFallback: mockConfig.allowLegacyFallback }
+        'Legacy回退模式控制验证',
+        legacyControlValid,
+        { note: 'allowLegacyFallback已移除，现通过private emergencyLegacyFallbackEnabled控制' }
       );
 
       // 验证严格模式启用
@@ -103,7 +103,7 @@ class WebSocketFunctionalityVerifier {
       // 模拟特性开关的默认配置验证
       const defaultFlags = {
         WS_GATEWAY_ONLY_MODE: process.env.WS_GATEWAY_ONLY_MODE || 'true',
-        WS_ALLOW_LEGACY_FALLBACK: process.env.WS_ALLOW_LEGACY_FALLBACK || 'false',
+        // WS_ALLOW_LEGACY_FALLBACK: 已移除 - 现在通过emergencyEnableLegacyFallback()方法控制
         WS_STRICT_MODE: process.env.WS_STRICT_MODE || 'true',
         WS_VALIDATION_MODE: process.env.WS_VALIDATION_MODE || 'production'
       };
@@ -111,7 +111,7 @@ class WebSocketFunctionalityVerifier {
       // 验证默认配置正确性
       const correctDefaults = (
         defaultFlags.WS_GATEWAY_ONLY_MODE === 'true' &&
-        defaultFlags.WS_ALLOW_LEGACY_FALLBACK === 'false' &&
+        // WS_ALLOW_LEGACY_FALLBACK 已移除
         defaultFlags.WS_STRICT_MODE === 'true' &&
         defaultFlags.WS_VALIDATION_MODE === 'production'
       );

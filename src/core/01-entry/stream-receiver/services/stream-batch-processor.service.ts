@@ -561,7 +561,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       const dataTransformRequestDto: DataTransformRequestDto = {
         provider: provider,
         apiType: "stream" as const,
-        transDataRuleListType: this.mapCapabilityToTransformRuleType(capability),
+        transDataRuleListType: this.mapCapabilityToTransDataRuleListType(capability),
         rawData: quotes.map((q) => q.rawData),
       };
 
@@ -658,9 +658,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
   }
 
   /**
-   * 健壮的能力映射
+   * 健壮的能力映射到数据映射规则类型
+   * 🎯 重构说明：消除ruleType歧义，统一使用transDataRuleListType
    */
-  private mapCapabilityToTransformRuleType(capability: string): string {
+  private mapCapabilityToTransDataRuleListType(capability: string): string {
     const capabilityMappingTable: Record<string, string> = {
       // WebSocket 流能力映射
       "ws-stock-quote": "quote_fields",
@@ -686,13 +687,13 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       "get-stock-info": "basic_info_fields",
     };
 
-    const ruleType = capabilityMappingTable[capability];
-    if (!ruleType) {
+    const transDataRuleListType = capabilityMappingTable[capability];
+    if (!transDataRuleListType) {
       this.logger.warn(`未知的能力类型: ${capability}，使用默认映射 quote_fields`);
       return "quote_fields";
     }
 
-    return ruleType;
+    return transDataRuleListType;
   }
 
   /**

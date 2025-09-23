@@ -106,38 +106,60 @@ export interface StreamConnectionOptions {
 
 
 /**
- * 订阅结果接口
+ * 流操作结果基础接口
+ * 通过泛型消除重复代码，支持操作元数据
  */
-export interface SubscriptionResult {
+export interface BaseStreamOperationResult {
   /** 是否成功 */
   success: boolean;
-
-  /** 已订阅的符号列表 */
-  subscribedSymbols: string[];
 
   /** 失败的符号列表 */
   failedSymbols?: string[];
 
   /** 错误信息 */
   error?: string;
+
+  /** 操作唯一标识 */
+  operationId?: string;
+
+  /** 操作时间戳 */
+  timestamp?: number;
+
+  /** 操作元数据 */
+  metadata?: Record<string, any>;
 }
 
 /**
- * 取消订阅结果接口
+ * 流操作结果泛型接口
+ * 通过映射类型动态添加成功字段
  */
-export interface UnsubscriptionResult {
-  /** 是否成功 */
-  success: boolean;
+export type StreamOperationResult<TSuccessField extends string> = BaseStreamOperationResult & {
+  [K in TSuccessField]: string[];
+};
 
-  /** 已取消订阅的符号列表 */
-  unsubscribedSymbols: string[];
+/**
+ * 订阅结果接口
+ * 使用泛型继承统一错误处理模式
+ */
+export type SubscriptionResult = StreamOperationResult<'subscribedSymbols'>;
 
-  /** 失败的符号列表 */
-  failedSymbols?: string[];
+/**
+ * 取消订阅结果接口
+ * 使用泛型继承统一错误处理模式
+ */
+export type UnsubscriptionResult = StreamOperationResult<'unsubscribedSymbols'>;
 
-  /** 错误信息 */
-  error?: string;
-}
+/**
+ * 未来扩展示例 - 批量操作结果
+ * 展示泛型接口的可扩展性
+ */
+export type BatchOperationResult = StreamOperationResult<'processedSymbols'>;
+
+/**
+ * 未来扩展示例 - 验证结果
+ * 展示泛型接口的灵活性
+ */
+export type ValidationResult = StreamOperationResult<'validatedSymbols'>;
 
 /**
  * 流连接实例接口

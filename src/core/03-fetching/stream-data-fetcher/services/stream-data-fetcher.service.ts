@@ -614,9 +614,38 @@ export class StreamDataFetcherService
   // === 核心流数据获取功能 ===
 
   /**
-   * Phase 1: 建立流式连接到提供商
-   * @param params 连接参数
-   * @returns 流连接实例
+   * 建立流式连接到提供商
+   *
+   * 📋 重载说明：提供两种调用方式，满足不同使用场景
+   *
+   * @overload - 对象参数形式（推荐）
+   * 适用于：复杂配置、参数校验、可维护性要求高的场景
+   * @param params 完整的连接参数对象，包含所有必需和可选配置
+   * @returns Promise<StreamConnection> 流连接实例
+   *
+   * @example
+   * // 推荐：结构化参数传递
+   * const connection = await establishStreamConnection({
+   *   provider: 'longport',
+   *   capability: 'ws-stock-quote',
+   *   requestId: 'req_123',
+   *   options: { autoReconnect: true }
+   * });
+   *
+   * @overload - 分散参数形式（向后兼容）
+   * 适用于：简单调用、快速集成、保持向后兼容的场景
+   * @param provider 提供商名称
+   * @param capability 能力标识
+   * @param config 可选配置参数
+   * @returns Promise<StreamConnection> 流连接实例
+   *
+   * @example
+   * // 兼容：分散参数传递
+   * const connection = await establishStreamConnection(
+   *   'longport',
+   *   'ws-stock-quote',
+   *   { autoReconnect: true }
+   * );
    */
   async establishStreamConnection(
     params: StreamConnectionParams,
