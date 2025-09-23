@@ -71,9 +71,6 @@ export interface StreamConnectionParams {
   /** WebSocket能力类型 (如: 'ws-stock-quote', 'ws-option-quote') */
   capability: string;
 
-  /** 提供商上下文服务实例 */
-  contextService: any;
-
   /** 请求ID，用于追踪和日志 */
   requestId: string;
 

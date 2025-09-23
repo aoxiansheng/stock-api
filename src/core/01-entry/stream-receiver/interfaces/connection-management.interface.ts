@@ -144,13 +144,3 @@ export interface MarketDistributionAnalysis {
   marketCoverage: string[];
 }
 
-/**
- * 连接参数构建器接口
- */
-export interface ConnectionParamsBuilder {
-  buildConnectionParams(
-    provider: string,
-    capability: string,
-    context: StreamConnectionContext,
-  ): StreamConnectionParams;
-}

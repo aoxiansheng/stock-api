@@ -142,7 +142,6 @@ export const TRANSFORM_PRIORITIES = Object.freeze({
 export const BATCH_TRANSFORM_OPTIONS = Object.freeze({
   CONTINUE_ON_ERROR: "continueOnError",
   PARALLEL_PROCESSING: "parallelProcessing",
-  VALIDATE_OUTPUT: "validateOutput",
   INCLUDE_METADATA: "includeMetadata",
   ENABLE_CACHING: "enableCaching",
 } as const);
@@ -189,7 +188,6 @@ export const TRANSFORM_DEFAULTS = Object.freeze({
   BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE, // 默认批量大小
   TIMEOUT_MS: 10000, // 默认超时时间（10秒）
   RETRY_ATTEMPTS: CORE_LIMITS.RATE_LIMITS.MAX_RETRIES, // 默认重试次数（使用统一配置）
-  VALIDATE_OUTPUT: true, // 默认启用输出验证
   INCLUDE_METADATA: false, // 默认不包含元数据
   CONTINUE_ON_ERROR: false, // 默认遇错停止
   ENABLE_CACHING: true, // 默认启用缓存

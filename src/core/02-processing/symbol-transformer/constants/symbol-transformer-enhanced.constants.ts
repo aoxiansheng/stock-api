@@ -61,15 +61,9 @@ export const CONFIG = deepFreeze({
 } as const);
 
 
-// ====================== 错误类型常量 - 统一使用枚举定义，保持向后兼容 ======================
-export const ERROR_TYPES = deepFreeze({
-  VALIDATION_ERROR: ErrorType.VALIDATION, // 验证错误
-  TIMEOUT_ERROR: ErrorType.TIMEOUT, // 超时错误
-  NETWORK_ERROR: ErrorType.NETWORK, // 网络错误
-  SERVICE_UNAVAILABLE_ERROR: ErrorType.SERVICE_UNAVAILABLE, // 服务不可用错误
-  SYSTEM_ERROR: ErrorType.SYSTEM, // 系统错误
-  UNKNOWN_ERROR: ErrorType.UNKNOWN, // 未知错误
-} as const);
+// ====================== ERROR_TYPES 常量已移除 ======================
+// 该常量在整个代码库中未被使用，已安全删除
+// ErrorType 枚举继续提供类型安全的错误类型定义
 
 // ====================== 监控配置 ======================
 export const MONITORING_CONFIG = deepFreeze({

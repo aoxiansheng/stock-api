@@ -15,10 +15,6 @@ import { API_TYPE_VALUES } from "../../../00-prepare/data-mapper/constants/data-
 import type { ApiType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 
 class TransformOptionsDto {
-  @ApiPropertyOptional({ description: "是否验证输出数据" })
-  @IsOptional()
-  @IsBoolean()
-  validateOutput?: boolean;
 
   @ApiPropertyOptional({
     description: "是否包含转换元数据",
@@ -32,10 +28,6 @@ class TransformOptionsDto {
   @IsBoolean()
   includeDebugInfo?: boolean;
 
-  @ApiPropertyOptional({ description: "自定义转换上下文" })
-  @IsOptional()
-  @IsObject()
-  context?: Record<string, any>;
 }
 
 export class DataTransformRequestDto {
