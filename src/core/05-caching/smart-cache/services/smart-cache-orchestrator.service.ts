@@ -7,7 +7,7 @@ import {
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { CommonCacheService } from "../../common-cache/services/common-cache.service";
+import { BasicCacheService } from "../../basic-cache/services/basic-cache.service";
 import { DataChangeDetectorService } from "../../../shared/services/data-change-detector.service";
 import {
   MarketStatusService,
@@ -51,13 +51,13 @@ import {
  *
  * 核心功能：
  * - 统一Receiver与Query的缓存调用骨架
- * - 策略映射：将CacheStrategy转换为CommonCacheService可识别的参数
+ * - 策略映射：将CacheStrategy转换为BasicCacheService可识别的参数
  * - 后台更新调度：TTL节流、去重、优先级计算
  * - 生命周期管理：初始化和优雅关闭
  *
  * 设计原则：
  * - 保持现有API接口不变
- * - 内部实现完全基于CommonCacheService
+ * - 内部实现完全基于BasicCacheService
  * - 提高缓存操作性能
  * - 简化依赖关系
  */
@@ -97,7 +97,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     @Inject(SMART_CACHE_ORCHESTRATOR_CONFIG)
     private readonly rawConfig: SmartCacheOrchestratorConfig,
 
-    private readonly commonCacheService: CommonCacheService,
+    private readonly basicCacheService: BasicCacheService,
     private readonly dataChangeDetectorService: DataChangeDetectorService,
     private readonly marketStatusService: MarketStatusService,
     private readonly marketInferenceService: MarketInferenceService,
@@ -451,7 +451,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       // 执行数据获取
       const freshData = await task.fetchFn();
 
-      // 使用CommonCacheService计算TTL
+      // 使用BasicCacheService计算TTL
       const symbol = task.symbols?.[0] || "unknown";
       const dataType = this.inferDataTypeFromKey(task.cacheKey);
 
@@ -488,13 +488,13 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
       const dataSize = JSON.stringify(freshData).length;
       const accessPattern = marketStatus?.isOpen ? "hot" : "warm";
-      const ttlResult = CommonCacheService.calculateOptimalTTL(
+      const ttlResult = BasicCacheService.calculateOptimalTTL(
         dataSize,
         accessPattern,
       );
 
       // 直接写入缓存
-      await this.commonCacheService.set(task.cacheKey, freshData, ttlResult);
+      await this.basicCacheService.set(task.cacheKey, freshData, ttlResult);
 
       // 数据变化检测（如果启用）
       if (this.config.enableDataChangeDetection) {
@@ -657,12 +657,12 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   // ===================
   // 公共接口方法
-  // 基于CommonCacheService实现
+  // 基于BasicCacheService实现
   // ===================
 
   /**
    * 获取单个数据的智能缓存
-   * 基于CommonCacheService实现的智能缓存获取
+   * 基于BasicCacheService实现的智能缓存获取
    */
   async getDataWithSmartCache<T>(
     request: CacheOrchestratorRequest<T>,
@@ -685,7 +685,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         };
       }
 
-      // 使用CommonCacheService计算TTL
+      // 使用BasicCacheService计算TTL
       const symbol = request.symbols?.[0] || "unknown";
       const dataType = this.inferDataTypeFromKey(request.cacheKey);
 
@@ -717,13 +717,13 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           : freshnessRequirement === "analytical"
             ? "warm"
             : "cold";
-      const ttlResult = CommonCacheService.calculateOptimalTTL(
+      const ttlResult = BasicCacheService.calculateOptimalTTL(
         dataSize,
         accessPattern,
       );
 
-      // 直接使用CommonCacheService获取数据
-      const cacheResult = await this.commonCacheService.getWithFallback(
+      // 直接使用BasicCacheService获取数据
+      const cacheResult = await this.basicCacheService.getWithFallback(
         request.cacheKey,
         request.fetchFn,
         {
@@ -807,7 +807,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 批量获取数据的智能缓存
-   * 使用CommonCacheService的mget功能进行批量获取
+   * 使用BasicCacheService的mget功能进行批量获取
    */
   async batchGetDataWithSmartCache<T>(
     requests: CacheOrchestratorRequest<T>[],
@@ -902,7 +902,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 处理批量缓存组（按策略分组）
-   * 使用CommonCacheService的mget进行批量优化
+   * 使用BasicCacheService的mget进行批量优化
    */
   private async processBatchGroup<T>(
     strategy: CacheStrategy,
@@ -952,11 +952,11 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       return await Promise.all(promises);
     }
 
-    // 对于其他策略，使用CommonCacheService的批量API
+    // 对于其他策略，使用BasicCacheService的批量API
     try {
-      // 使用CommonCacheService.mget
+      // 使用BasicCacheService.mget
       const keys = requests.map((req) => req.cacheKey);
-      const cacheResults = await this.commonCacheService.mget<T>(keys);
+      const cacheResults = await this.basicCacheService.mget<T>(keys);
 
       // 识别缓存未命中的查询
       const missedQueries = [];
@@ -1030,7 +1030,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
   /**
    * 处理缓存未命中的查询
-   * 优化并发处理，直接写入CommonCacheService
+   * 优化并发处理，直接写入BasicCacheService
    */
   private async handleMissedQueries<T>(
     missedQueries: Array<{
@@ -1048,7 +1048,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         try {
           const data = await request.fetchFn();
 
-          // 计算智能TTL并直接写入CommonCacheService
+          // 计算智能TTL并直接写入BasicCacheService
           const symbol = request.symbols?.[0] || "unknown";
           const dataType = this.inferDataTypeFromKey(request.cacheKey);
 
@@ -1063,13 +1063,13 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               : freshnessRequirement === "analytical"
                 ? "warm"
                 : "cold";
-          const ttlResult = CommonCacheService.calculateOptimalTTL(
+          const ttlResult = BasicCacheService.calculateOptimalTTL(
             dataSize,
             accessPattern,
           );
 
           // 异步设置缓存
-          this.commonCacheService
+          this.basicCacheService
             .set(request.cacheKey, data, ttlResult)
             .catch((error) => {
               this.logger.warn(
@@ -1213,7 +1213,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
 
         try {
           // 检查是否已存在有效缓存
-          const existingResult = await this.commonCacheService.get(query.key);
+          const existingResult = await this.basicCacheService.get(query.key);
           const ttlRemaining = existingResult.metadata?.ttlRemaining || 0;
           if (existingResult?.data && ttlRemaining > 60) {
             this.logger.debug(`跳过预热已缓存的key: ${query.key}`);
@@ -1298,7 +1298,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     try {
       // 1. 批量缓存检查
       const keys = requests.map((req) => req.cacheKey);
-      const cacheResults = await this.commonCacheService.mget<T>(keys);
+      const cacheResults = await this.basicCacheService.mget<T>(keys);
 
       // 2. 识别缓存未命中的请求
       const missedRequests = [];
@@ -1385,7 +1385,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       }
 
       // 批量获取缓存状态
-      const cacheResults = await this.commonCacheService.mget(cacheKeys);
+      const cacheResults = await this.basicCacheService.mget(cacheKeys);
       let totalTtl = 0;
 
       for (let i = 0; i < cacheKeys.length; i++) {
@@ -1493,7 +1493,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
         marketStatus = "unknown",
       } = options;
 
-      // 使用CommonCacheService的智能TTL计算
+      // 使用BasicCacheService的智能TTL计算
       const freshnessRequirement =
         this.mapAccessFrequencyToFreshnessRequirement(accessFrequency);
       const accessPattern =
@@ -1502,7 +1502,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           : freshnessRequirement === "analytical"
             ? "warm"
             : "cold";
-      const ttlResult = CommonCacheService.calculateOptimalTTL(
+      const ttlResult = BasicCacheService.calculateOptimalTTL(
         dataSize || 1024,
         accessPattern,
       );
@@ -1528,7 +1528,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
       }
 
       // 设置缓存
-      await this.commonCacheService.set(key, data, finalTtl);
+      await this.basicCacheService.set(key, data, finalTtl);
 
       this.logger.debug(
         `自适应TTL设置: key=${key}, ttl=${finalTtl}s, strategy=${strategy}, type=${dataType}, freq=${accessFrequency}`,
@@ -1897,7 +1897,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
   private async getLastUpdateTime(key: string): Promise<number | undefined> {
     const updateKey = `smart_cache:last_update:${key}`;
     try {
-      const result = await this.commonCacheService.get<number>(updateKey);
+      const result = await this.basicCacheService.get<number>(updateKey);
       return result?.data;
     } catch (error) {
       this.logger.debug(`Failed to get last update time for ${key}:`, error);
@@ -1909,7 +1909,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
     const updateKey = `smart_cache:last_update:${key}`;
     try {
       // 使用CommonCache存储，TTL设为1小时自动过期，无需手动清理
-      await this.commonCacheService.set(updateKey, time, 3600);
+      await this.basicCacheService.set(updateKey, time, 3600);
     } catch (error) {
       this.logger.debug(`Failed to set last update time for ${key}:`, error);
       // 静默失败，不影响主要功能
@@ -2053,7 +2053,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
               : freshnessRequirement === "analytical"
                 ? "warm"
                 : "cold";
-          const ttlResult = CommonCacheService.calculateOptimalTTL(
+          const ttlResult = BasicCacheService.calculateOptimalTTL(
             dataSize,
             accessPattern,
           );
@@ -2062,7 +2062,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           const data = await request.fetchFn();
 
           // 异步设置缓存
-          this.commonCacheService
+          this.basicCacheService
             .set(request.cacheKey, data, ttlResult)
             .catch((error) => {
               this.logger.warn(`缓存设置失败: ${request.cacheKey}`, error);
@@ -2113,7 +2113,7 @@ export class SmartCacheOrchestrator implements OnModuleInit, OnModuleDestroy {
           };
 
           // 异步设置缓存
-          this.commonCacheService
+          this.basicCacheService
             .set(request.cacheKey, data, 300)
             .catch((error) => {
               this.logger.warn(`重试缓存设置失败: ${request.cacheKey}`, error);

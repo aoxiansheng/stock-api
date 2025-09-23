@@ -128,12 +128,12 @@ export class YourModule {}
 ### 服务注入
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { CommonCacheService } from '@core/public/common-cache';
+import { BasicCacheService } from '@core/public/common-cache';
 
 @Injectable()
 export class YourService {
   constructor(
-    private readonly commonCache: CommonCacheService,
+    private readonly commonCache: BasicCacheService,
   ) {}
 
   async getData(key: string) {
@@ -144,13 +144,13 @@ export class YourService {
 
 ### 缓存键生成
 ```typescript
-import { CacheKeyUtils, CommonCacheService } from '@core/public/common-cache';
+import { CacheKeyUtils, BasicCacheService } from '@core/public/common-cache';
 
 // 方式1：使用工具类
 const key = CacheKeyUtils.generateStockQuoteKey('AAPL', 'longport', 'US');
 
 // 方式2：使用静态方法
-const key = CommonCacheService.generateCacheKey('stock_quote', 'AAPL', 'longport');
+const key = BasicCacheService.generateCacheKey('stock_quote', 'AAPL', 'longport');
 ```
 
 ## 📊 监控指标
@@ -179,7 +179,7 @@ cacheTtlRemaining
 
 ### 单元测试
 ```bash
-# 运行CommonCacheService测试
+# 运行BasicCacheService测试
 npx jest test/jest/unit/core/public/common-cache/services/common-cache.service.spec.ts
 
 # 运行工具类测试
@@ -252,7 +252,7 @@ npx jest test/jest/integration/core/public/common-cache
 
 ### ✅ 第一阶段完成 (1-2天)
 - [x] 创建目录结构和基础接口
-- [x] 实现CommonCacheService核心功能  
+- [x] 实现BasicCacheService核心功能  
 - [x] 创建工具类和常量配置
 - [x] 编写单元测试（42个测试用例全部通过）
 - [x] 创建集成测试框架

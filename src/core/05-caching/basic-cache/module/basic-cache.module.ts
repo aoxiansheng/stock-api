@@ -1,7 +1,7 @@
 import { Module, OnModuleDestroy, OnModuleInit, Inject } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
-import { CommonCacheService } from "../services/common-cache.service";
+import { BasicCacheService } from "../services/basic-cache.service";
 import { CacheCompressionService } from "../services/cache-compression.service";
 import { CacheConfigValidator } from "../validators/cache-config.validator";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
@@ -87,10 +87,10 @@ import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } fro
     // 核心服务
     CacheCompressionService,
     CacheConfigValidator,
-    CommonCacheService,
+    BasicCacheService,
   ],
   exports: [
-    CommonCacheService,
+    BasicCacheService,
     CacheCompressionService,
     CacheConfigValidator,
     CACHE_REDIS_CLIENT_TOKEN,
@@ -102,7 +102,7 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly configValidator: CacheConfigValidator,
-    private readonly commonCacheService: CommonCacheService,
+    private readonly basicCacheService: BasicCacheService,
   ) {}
 
   async onModuleInit() {
@@ -187,12 +187,12 @@ export class CommonCacheModule implements OnModuleInit, OnModuleDestroy {
       // ✅ 修复P0问题：先清理服务资源
       console.log("🧹 Cleaning up services...");
 
-      // 清理CommonCacheService资源（停用异步操作）
+      // 清理BasicCacheService资源（停用异步操作）
       try {
-        this.commonCacheService.cleanup();
-        console.log("✅ CommonCacheService cleanup completed");
+        this.basicCacheService.cleanup();
+        console.log("✅ BasicCacheService cleanup completed");
       } catch (error) {
-        console.error("❌ CommonCacheService cleanup error:", error.message);
+        console.error("❌ BasicCacheService cleanup error:", error.message);
       }
 
       // 清理Redis连接和事件监听器
@@ -249,9 +249,9 @@ export class CommonCacheAsyncModule {
           inject: [ConfigService],
         },
         CacheCompressionService,
-        CommonCacheService,
+        BasicCacheService,
       ],
-      exports: [CommonCacheService, CacheCompressionService],
+      exports: [BasicCacheService, CacheCompressionService],
     };
   }
 }

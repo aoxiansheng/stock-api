@@ -2,7 +2,7 @@ import {
   CACHE_SHARED_TTL,
   CACHE_SHARED_INTERVALS,
   CACHE_SHARED_BATCH_SIZES
-} from '../../common-cache';
+} from '../../basic-cache';
 
 /**
  * Symbol Mapper Cache 常量配置

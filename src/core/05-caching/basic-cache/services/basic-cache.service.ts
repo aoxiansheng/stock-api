@@ -56,8 +56,8 @@ class DecompressionSemaphore {
  * - 容错和降级处理
  */
 @Injectable()
-export class CommonCacheService {
-  private readonly logger = createLogger(CommonCacheService.name);
+export class BasicCacheService {
+  private readonly logger = createLogger(BasicCacheService.name);
 
   // ✅ 销毁状态标志，防止模块销毁后执行异步操作
   private isDestroyed = false;
@@ -1496,6 +1496,6 @@ export class CommonCacheService {
    */
   cleanup(): void {
     this.isDestroyed = true;
-    this.logger.log("CommonCacheService cleaned up - async operations disabled");
+    this.logger.log("BasicCacheService cleaned up - async operations disabled");
   }
 }

@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-import { CommonCacheModule } from "../../common-cache/module/common-cache.module";
+import { CommonCacheModule } from "../../basic-cache/module/basic-cache.module";
 import { SmartCacheOrchestrator } from "../services/smart-cache-orchestrator.service";
 import {
   type SmartCacheOrchestratorConfig,
@@ -43,7 +43,7 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     StorageModule,
 
     // 🔑 关键依赖：CommonCacheModule（Phase 4.4 迁移）
-    // 提供CommonCacheService用于缓存操作
+    // 提供BasicCacheService用于缓存操作
     CommonCacheModule,
 
     // 🔑 关键依赖：SharedServicesModule (全局模块)

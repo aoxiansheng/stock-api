@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SmartCacheOrchestrator } from '@core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
-import { CommonCacheService } from '@core/05-caching/common-cache/services/common-cache.service';
+import { CommonCacheService } from '@core/05-caching/basic-cache/services/basic-cache.service';
 import { DataChangeDetectorService } from '@core/shared/services/data-change-detector.service';
 import { MarketStatusService } from '@core/shared/services/market-status.service';
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';

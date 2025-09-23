@@ -16,7 +16,7 @@ export class StorageRepository {
   ) {}
 
   // --- Repository专注于MongoDB持久化存储操作 ---
-  // 缓存操作已迁移至 CommonCacheService
+  // 缓存操作已迁移至 BasicCacheService
 
   // --- Persistent Storage Methods ---
 

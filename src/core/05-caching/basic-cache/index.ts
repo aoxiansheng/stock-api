@@ -3,14 +3,14 @@
  */
 
 // 核心服务
-export { CommonCacheService } from "./services/common-cache.service";
+export { BasicCacheService } from "./services/basic-cache.service";
 export { CacheCompressionService } from "./services/cache-compression.service";
 
 // 模块
 export {
   CommonCacheModule,
   CommonCacheAsyncModule,
-} from "./module/common-cache.module";
+} from "./module/basic-cache.module";
 
 // 接口
 export type {

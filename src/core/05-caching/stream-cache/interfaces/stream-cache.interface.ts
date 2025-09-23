@@ -3,7 +3,7 @@
  * 专用于实时流数据的缓存操作
  */
 
-import { BaseCacheConfig } from "../../common-cache/interfaces/base-cache-config.interface";
+import { BaseCacheConfig } from "../../basic-cache/interfaces/base-cache-config.interface";
 
 /**
  * 压缩数据点格式 - 流数据专用格式
