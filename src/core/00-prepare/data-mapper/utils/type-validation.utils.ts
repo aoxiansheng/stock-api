@@ -41,29 +41,8 @@ export interface TypeValidationResult {
   suggestions: string[];
 }
 
-/**
- * 类型健康检查结果接口
- */
-export interface TypeHealthCheckResult {
-  /** 类型名称 */
-  type: RuleListType;
-  /** 是否健康 */
-  isHealthy: boolean;
-  /** 支持级别 */
-  supportLevel: ProductionSupportLevel;
-  /** 风险级别 */
-  riskLevel: RiskLevel;
-  /** 性能指标 */
-  performance: {
-    avgResponseTime: number;
-    cacheHitRate: number;
-    memoryUsage: number;
-  };
-  /** 问题列表 */
-  issues: string[];
-  /** 建议操作 */
-  recommendations: string[];
-}
+// Note: TypeHealthCheckResult interface removed as it was only used internally
+// by performTypeHealthCheck function and not exposed as part of the public API
 
 /**
  * 日志记录器
@@ -318,9 +297,21 @@ export function validateRuleType(
  * }
  * ```
  */
-export function performTypeHealthCheck(type: RuleListType): TypeHealthCheckResult {
+export function performTypeHealthCheck(type: RuleListType): {
+  type: RuleListType;
+  isHealthy: boolean;
+  supportLevel: ProductionSupportLevel;
+  riskLevel: RiskLevel;
+  performance: {
+    avgResponseTime: number;
+    cacheHitRate: number;
+    memoryUsage: number;
+  };
+  issues: string[];
+  recommendations: string[];
+} {
   const config = getProductionTypeConfig(type);
-  const result: TypeHealthCheckResult = {
+  const result = {
     type,
     isHealthy: true,
     supportLevel: config.supportLevel,

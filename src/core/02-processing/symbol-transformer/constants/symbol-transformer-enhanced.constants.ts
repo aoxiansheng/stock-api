@@ -60,11 +60,6 @@ export const CONFIG = deepFreeze({
   ENDPOINT: "/internal/symbol-transformation", // 内部转换端点
 } as const);
 
-// ====================== 转换方向常量 ======================
-export const TRANSFORM_DIRECTIONS = deepFreeze({
-  TO_STANDARD: "to_standard", // 转换为标准格式
-  FROM_STANDARD: "from_standard", // 从标准格式转换
-} as const);
 
 // ====================== 错误类型常量 - 统一使用枚举定义，保持向后兼容 ======================
 export const ERROR_TYPES = deepFreeze({
@@ -95,22 +90,8 @@ export const RETRY_CONFIG = {
 
 // ====================== 类型定义 ======================
 export type MarketType = (typeof MARKET_TYPES)[keyof typeof MARKET_TYPES];
-export type TransformDirection =
-  (typeof TRANSFORM_DIRECTIONS)[keyof typeof TRANSFORM_DIRECTIONS];
 // ErrorType is already defined as enum above
 
-// ====================== 汇总导出 ======================
-/**
- * 符号转换器增强常量汇总对象
- * 提供完整的常量访问点
- */
-export const SYMBOL_TRANSFORMER_ENHANCED = deepFreeze({
-  SYMBOL_PATTERNS,
-  MARKET_TYPES,
-  CONFIG,
-  TRANSFORM_DIRECTIONS,
-  ERROR_TYPES,
-  ErrorType, // 添加枚举导出
-  MONITORING_CONFIG,
-  RETRY_CONFIG,
-} as const);
+// ====================== 汇总导出已移除 ======================
+// SYMBOL_TRANSFORMER_ENHANCED 汇总对象已删除，因为未被使用
+// 各个常量继续作为独立导出提供，保持向后兼容性

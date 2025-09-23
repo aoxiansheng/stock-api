@@ -50,13 +50,9 @@ export const DATA_MAPPER_CACHE_CONSTANTS = {
     MAX_RULE_SIZE_KB: 10, // 单个规则最大大小 (KB)
   },
 
-  // 🏷️ 错误消息
+  // 🏷️ 错误消息 - 仅保留实际使用的错误消息
   ERROR_MESSAGES: {
-    CACHE_SET_FAILED: "缓存设置失败",
-    CACHE_GET_FAILED: "缓存获取失败",
-    CACHE_DELETE_FAILED: "缓存删除失败",
-    INVALID_RULE_ID: "无效的规则ID",
-    RULE_TOO_LARGE: "规则数据过大",
+    INVALID_RULE_ID: "无效的规则ID", // 对应 DATA_MAPPER_CACHE_ERROR_CODES.INVALID_RULE_ID
   },
 
   // ✅ 成功消息

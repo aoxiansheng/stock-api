@@ -104,30 +104,6 @@ export interface BaseCacheConfig {
 }
 
 /**
- * 流缓存配置接口
- * 继承基础配置，专门用于实时数据流缓存
- */
-export interface StreamCacheConfig extends BaseCacheConfig {
-  /** 热缓存TTL (毫秒) - 高频访问数据的短期缓存 */
-  hotCacheTTL: number;
-
-  /** 温缓存TTL (秒) - 中频访问数据的长期缓存 */
-  warmCacheTTL: number;
-
-  /** 热缓存最大容量 */
-  maxHotCacheSize: number;
-
-  /** 流数据批量处理大小 */
-  streamBatchSize: number;
-
-  /** 连接超时时间 (毫秒) */
-  connectionTimeout: number;
-
-  /** 心跳间隔 (毫秒) */
-  heartbeatInterval: number;
-}
-
-/**
  * 通用缓存配置接口
  * 继承基础配置，用于标准的键值对缓存
  */
@@ -178,49 +154,6 @@ export interface SymbolMapperCacheConfig extends BaseCacheConfig {
   warmupSize: number;
 }
 
-/**
- * 缓存配置工厂接口
- * 用于创建不同类型的缓存配置
- */
-export interface CacheConfigFactory {
-  /**
-   * 创建流缓存配置
-   * @param overrides 覆盖的配置项
-   * @returns 流缓存配置
-   */
-  createStreamCacheConfig(
-    overrides?: Partial<StreamCacheConfig>,
-  ): StreamCacheConfig;
-
-  /**
-   * 创建通用缓存配置
-   * @param overrides 覆盖的配置项
-   * @returns 通用缓存配置
-   */
-  createCommonCacheConfig(
-    overrides?: Partial<CommonCacheConfig>,
-  ): CommonCacheConfig;
-
-  /**
-   * 创建符号映射缓存配置
-   * @param overrides 覆盖的配置项
-   * @returns 符号映射缓存配置
-   */
-  createSymbolMapperCacheConfig(
-    overrides?: Partial<SymbolMapperCacheConfig>,
-  ): SymbolMapperCacheConfig;
-
-  /**
-   * 验证缓存配置
-   * @param config 配置对象
-   * @returns 验证结果
-   */
-  validateCacheConfig(config: BaseCacheConfig): {
-    isValid: boolean;
-    errors: string[];
-    warnings: string[];
-  };
-}
 
 /**
  * 缓存配置验证器接口

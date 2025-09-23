@@ -14,7 +14,7 @@ import { RECEIVER_ERROR_CODES } from "../constants/receiver-error-codes.constant
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
-import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
+import { MappingDirection } from "../../../shared/constants/cache.constants";
 // import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 // Market enum is now provided by cache-request.utils via the new four-layer architecture
 

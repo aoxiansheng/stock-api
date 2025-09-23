@@ -75,7 +75,11 @@
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/shared/constants/market.constants.ts)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/shared/services/field-mapping.service.ts)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service.ts)",
-      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-connection-manager.service.spec.ts --testTimeout=30000)"
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/01-entry/stream-receiver/services/stream-connection-manager.service.spec.ts --testTimeout=30000)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/utils/type-validation.utils.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/controller/user-json-persistence.controller.ts)"
     ],
     "deny": [],
     "ask": []

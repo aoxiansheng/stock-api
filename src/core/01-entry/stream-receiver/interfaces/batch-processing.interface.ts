@@ -76,21 +76,6 @@ export interface IBatchProcessor {
   };
 }
 
-/**
- * 流管道数据处理指标接口
- */
-export interface StreamPipelineMetrics {
-  provider: string;
-  capability: string;
-  quotesCount: number;
-  symbolsCount: number;
-  durations: {
-    total: number;
-    transform: number;
-    cache: number;
-    broadcast: number;
-  };
-}
 
 /**
  * 降级处理分析结果接口

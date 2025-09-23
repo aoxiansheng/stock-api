@@ -218,37 +218,6 @@ export class ConnectionStatsUtils {
   }
 }
 
-/**
- * 时间戳工具
- */
-export class TimestampUtils {
-  /**
-   * 检查时间戳是否超时
-   */
-  static isTimeout(timestamp: number, timeoutMs: number, now: number = Date.now()): boolean {
-    return now - timestamp > timeoutMs;
-  }
-
-  /**
-   * 格式化时长
-   */
-  static formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-    if (ms < 3600000) return `${(ms / 60000).toFixed(1)}m`;
-    return `${(ms / 3600000).toFixed(1)}h`;
-  }
-
-  /**
-   * 计算时间差的分类
-   */
-  static categorizeTimeDiff(ms: number): 'recent' | 'moderate' | 'old' | 'stale' {
-    if (ms < 60000) return 'recent'; // < 1分钟
-    if (ms < 600000) return 'moderate'; // < 10分钟
-    if (ms < 1800000) return 'old'; // < 30分钟
-    return 'stale'; // >= 30分钟
-  }
-}
 
 /**
  * 数组和集合工具

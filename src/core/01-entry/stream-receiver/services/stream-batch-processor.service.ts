@@ -30,14 +30,13 @@ import {
   defaultStreamReceiverConfig,
 } from "../config/stream-receiver.config";
 
-import { QuoteData } from '../interfaces/data-processing.interface';
+import { QuoteData, DataPipelineMetrics } from '../interfaces/data-processing.interface';
 import {
   BatchProcessingStats,
   DynamicBatchingState,
   DynamicBatchingMetrics,
   BatchProcessingCallbacks,
   IBatchProcessor,
-  StreamPipelineMetrics,
   FallbackAnalysisResult,
   PartialRecoveryResult,
 } from "../interfaces/batch-processing.interface";

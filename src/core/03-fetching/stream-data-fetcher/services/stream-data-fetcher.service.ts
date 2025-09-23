@@ -23,7 +23,7 @@ import {
   StreamSubscriptionException,
   StreamConnectionStats,
   StreamConnectionStatus,
-  StreamConnectionConfig,
+  StreamConnectionOptions,
   SubscriptionResult,
   UnsubscriptionResult,
 } from "../interfaces";
@@ -624,17 +624,17 @@ export class StreamDataFetcherService
   async establishStreamConnection(
     provider: string,
     capability: string,
-    config?: Partial<StreamConnectionConfig>,
+    config?: Partial<StreamConnectionOptions>,
   ): Promise<StreamConnection>;
   async establishStreamConnection(
     paramsOrProvider: StreamConnectionParams | string,
     capability?: string,
-    config?: Partial<StreamConnectionConfig>,
+    config?: Partial<StreamConnectionOptions>,
   ): Promise<StreamConnection> {
     // Handle overloaded signatures
     let provider: string;
     let cap: string;
-    let connectionConfig: Partial<StreamConnectionConfig> | undefined;
+    let connectionConfig: Partial<StreamConnectionOptions> | undefined;
 
     if (typeof paramsOrProvider === "string") {
       provider = paramsOrProvider;

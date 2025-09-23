@@ -98,23 +98,7 @@ export class FlexibleFieldMappingDto {
   enabled?: boolean;
 }
 
-// 🆕 数据源分析请求DTO（简化）
-export class AnalyzeDataSourceDto {
-  @ApiProperty({
-    description: "提供商",
-    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-  })
-  @IsString()
-  provider: string;
-
-  @ApiProperty({
-    description: "API 类型",
-    enum: API_TYPE_VALUES,
-    example: "rest",
-  })
-  @IsEnum(API_TYPE_VALUES)
-  apiType: ApiType;
-}
+// Note: AnalyzeDataSourceDto moved to data-source-analysis.dto.ts to eliminate duplication
 
 // 🆕 创建灵活映射规则DTO（简化）
 export class CreateFlexibleMappingRuleDto {

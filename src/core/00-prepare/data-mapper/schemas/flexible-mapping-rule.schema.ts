@@ -18,9 +18,6 @@ export class TransformRule {
   value?: number | string;
 
   @Prop()
-  format?: string;
-
-  @Prop()
   description?: string;
 
   @Prop()

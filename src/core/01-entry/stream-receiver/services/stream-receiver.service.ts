@@ -37,7 +37,7 @@ import {
 import { Subject } from "rxjs";
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
 import { STREAM_RECEIVER_METRICS } from "../constants/stream-receiver-metrics.constants";
-import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
+import { MappingDirection } from "../../../shared/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
 import { bufferTime, filter, mergeMap } from "rxjs/operators";
@@ -49,54 +49,9 @@ import {
   validateStreamReceiverConfig,
 } from "../config/stream-receiver.config";
 import { QuoteData } from '../interfaces/data-processing.interface';
+import { StreamConnectionContext } from '../interfaces/connection-management.interface';
 
 
-/**
- * 增强的流连接上下文接口
- */
-interface StreamConnectionContext {
-  // 基础信息
-  requestId: string;
-  provider: string;
-  capability: string;
-  clientId: string;
-
-  // 市场和符号信息
-  market: string;
-  symbolsCount: number;
-  marketDistribution: Record<string, number>;
-
-  // 配置信息
-  connectionConfig: {
-    autoReconnect: boolean;
-    maxReconnectAttempts: number;
-    heartbeatIntervalMs: number;
-    connectionTimeoutMs: number;
-  };
-
-  metricsConfig: {
-    enableLatencyTracking: boolean;
-    enableThroughputTracking: boolean;
-    metricsPrefix: string;
-  };
-
-  errorHandling: {
-    retryPolicy: string;
-    maxRetries: number;
-    circuitBreakerEnabled: boolean;
-  };
-
-  // 会话信息
-  session: {
-    createdAt: number;
-    version: string;
-    protocol: string;
-    compression: string;
-  };
-
-  // 扩展字段
-  extensions: Record<string, any>;
-}
 
 /**
  * StreamReceiver - 重构后的流数据接收器
@@ -120,7 +75,6 @@ import {
   LatencyUtils,
   ConnectionHealthUtils,
   ConnectionStatsUtils,
-  TimestampUtils,
   CollectionUtils,
   ConnectionHealthInfo
 } from '../utils/stream-receiver.utils';
@@ -1881,15 +1835,8 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 会话信息
       session: {
         createdAt: Date.now(),
-        version: "2.0",
-        protocol: "websocket",
-        compression: "gzip",
-      },
-
-      // 扩展字段 (为复杂SDK预留)
-      extensions: {
-        // 可以添加特定Provider需要的额外上下文
-        // 例如：认证token、区域设置、特殊配置等
+        lastActivity: Date.now(),
+        subscriptionCount: symbols.length,
       },
     };
   }

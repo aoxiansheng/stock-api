@@ -21,7 +21,7 @@ import {
   TransformSymbolsResponseDto,
 } from "../../../00-prepare/symbol-mapper/dto/update-symbol-mapping.dto";
 import { SymbolTransformerService } from "../services/symbol-transformer.service";
-import { MappingDirection } from "../../../05-caching/symbol-mapper-cache/constants/cache.constants";
+import { MappingDirection } from "../../../shared/constants/cache.constants";
 
 @ApiTags("🔁 符号转换器")
 @Controller("symbol-mapper")

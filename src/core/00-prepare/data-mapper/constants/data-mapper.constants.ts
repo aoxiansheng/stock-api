@@ -276,7 +276,7 @@ export const API_TYPES = Object.freeze({
  *
  * @description TypeScript类型定义，确保API类型的类型安全
  */
-export type ApiType = "rest" | "stream";
+export type ApiType = (typeof API_TYPES)[keyof typeof API_TYPES];
 
 /**
  * API类型数组（用于枚举验证）
@@ -334,45 +334,9 @@ export type RuleListType =
  */
 export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
 
-/**
- * 生产环境规则类型使用状态映射
- *
- * @description 定义各规则类型在生产环境中的使用状态和支持的端点
- * @usage 用于验证规则类型的生产就绪状态和获取支持的端点列表
- *
- * @example
- * ```typescript
- * import { RULE_TYPE_USAGE_STATUS } from './constants/data-mapper.constants';
- *
- * // 检查规则类型是否生产就绪
- * const isReady = RULE_TYPE_USAGE_STATUS['index_fields'].status === 'production';
- *
- * // 获取支持的端点
- * const endpoints = RULE_TYPE_USAGE_STATUS['quote_fields'].endpoints;
- * ```
- *
- * @since 1.0.0
- */
-export const RULE_TYPE_USAGE_STATUS = Object.freeze({
-  quote_fields: {
-    status: 'production' as const,
-    endpoints: ['get-stock-realtime', 'get-stock-history'],
-    riskLevel: 'low' as const,
-    description: '股票实时和历史行情数据'
-  },
-  basic_info_fields: {
-    status: 'production' as const,
-    endpoints: ['get-stock-basic-info'],
-    riskLevel: 'low' as const,
-    description: '股票基础信息数据'
-  },
-  index_fields: {
-    status: 'production' as const, // 已确认在生产环境使用
-    endpoints: ['get-index-quote'],
-    riskLevel: 'low' as const,
-    description: '指数行情数据'
-  }
-} as const);
+// Note: Rule type usage status moved to production-types.config.ts (PRODUCTION_TYPE_REGISTRY)
+// for unified configuration management with enhanced features including performance profiles,
+// fallback types, and comprehensive validation.
 
 
 /**

@@ -107,10 +107,6 @@ export interface StreamConnectionOptions {
   batchSize?: number;
 }
 
-/**
- * 流连接配置接口（别名，用于向后兼容）
- */
-export type StreamConnectionConfig = StreamConnectionOptions;
 
 /**
  * 订阅结果接口

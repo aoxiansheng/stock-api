@@ -65,10 +65,4 @@ export class StreamSubscribeDto {
   @IsOptional()
   preferredProvider?: string;
 
-  @ApiProperty({
-    description: "订阅选项",
-    example: { includeAfterHours: true },
-  })
-  @IsOptional()
-  options?: Record<string, any>;
 }

@@ -22,7 +22,7 @@ import {
   CACHE_CLEANUP,
   MEMORY_MONITORING,
   MappingDirection,
-} from "../constants/cache.constants";
+} from "../../../shared/constants/cache.constants";
 import { CACHE_EVENTS, CacheEventType, CacheHitEvent, CacheMissEvent, CacheOperationStartEvent, CacheOperationCompleteEvent, CacheOperationErrorEvent, CacheDisabledEvent } from '../interfaces/cache-events.interface';
 
 /**

@@ -3,7 +3,7 @@
  * 专用于实时流数据的缓存操作
  */
 
-import { StreamCacheConfig as BaseStreamCacheConfig } from "../../common-cache/interfaces/base-cache-config.interface";
+import { BaseCacheConfig } from "../../common-cache/interfaces/base-cache-config.interface";
 
 /**
  * 压缩数据点格式 - 流数据专用格式
@@ -17,11 +17,29 @@ export interface StreamDataPoint {
   cp?: number; // change percent
 }
 
-
 /**
- * 流缓存配置 - 新版本，继承基础配置
+ * 流缓存配置接口
+ * 继承基础配置，专门用于实时数据流缓存
  */
-export type StreamCacheConfig = BaseStreamCacheConfig;
+export interface StreamCacheConfig extends BaseCacheConfig {
+  /** 热缓存TTL (毫秒) - 高频访问数据的短期缓存 */
+  hotCacheTTL: number;
+
+  /** 温缓存TTL (秒) - 中频访问数据的长期缓存 */
+  warmCacheTTL: number;
+
+  /** 热缓存最大容量 */
+  maxHotCacheSize: number;
+
+  /** 流数据批量处理大小 */
+  streamBatchSize: number;
+
+  /** 连接超时时间 (毫秒) */
+  connectionTimeout: number;
+
+  /** 心跳间隔 (毫秒) */
+  heartbeatInterval: number;
+}
 
 /**
  * 流缓存核心接口
