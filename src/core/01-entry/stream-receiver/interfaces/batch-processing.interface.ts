@@ -5,6 +5,9 @@
 
 import { QuoteData } from './data-processing.interface';
 
+// 重新导出QuoteData以供其他模块使用
+export { QuoteData } from './data-processing.interface';
+
 
 /**
  * 批处理统计接口

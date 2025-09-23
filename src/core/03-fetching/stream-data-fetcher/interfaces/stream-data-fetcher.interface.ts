@@ -1,4 +1,6 @@
 import { REFERENCE_DATA } from "@common/constants/domain";
+import { StreamConnectionContext } from "../../../01-entry/stream-receiver/interfaces/connection-management.interface";
+
 /**
  * 流数据获取器接口定义
  * 专门处理WebSocket流式数据的获取和连接管理
@@ -73,6 +75,9 @@ export interface StreamConnectionParams {
 
   /** 请求ID，用于追踪和日志 */
   requestId: string;
+
+  /** 增强的连接上下文服务 */
+  contextService?: StreamConnectionContext;
 
   /** 可选配置参数 */
   options?: StreamConnectionOptions;

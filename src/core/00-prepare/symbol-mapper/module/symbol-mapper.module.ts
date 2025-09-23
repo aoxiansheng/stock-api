@@ -8,7 +8,7 @@ import { SharedServicesModule } from "../../../shared/module/shared-services.mod
 import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 
 // 导入新的独立缓存模块
-import { SymbolMapperCacheModule } from "../../../05-caching/symbol-mapper-cache/module/symbol-mapper-cache.module";
+import { SymbolMapperCacheModule } from "../../../05-caching/module/symbol-mapper-cache/module/symbol-mapper-cache.module";
 
 import { SymbolMappingRepository } from "../repositories/symbol-mapping.repository";
 import {

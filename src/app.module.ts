@@ -28,7 +28,7 @@ import { TransformerModule } from "./core/02-processing/transformer/module/data-
 import { StorageModule } from "./core/04-storage/storage/module/storage.module";
 
 // 核心业务层模块 - 缓存阶段
-import { SmartCacheModule } from "./core/05-caching/smart-cache/module/smart-cache.module";
+import { SmartCacheModule } from "./core/05-caching/module/smart-cache/module/smart-cache.module";
 
 // 领域模块
 import { AuthModule } from "./auth/module/auth.module";

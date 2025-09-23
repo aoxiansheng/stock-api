@@ -16,7 +16,7 @@ import { WebSocketFeatureFlagsService } from "../config/websocket-feature-flags.
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
 import { ProvidersModule } from "../../../../providers/module/providers-sg.module";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";
-import { StreamCacheModule } from "../../../05-caching/stream-cache/module/stream-cache.module";
+import { StreamCacheModule } from "../../../05-caching/module/stream-cache/module/stream-cache.module";
 
 /**
  * StreamDataFetcher模块 - Phase 4+ 重构版本

@@ -15,10 +15,10 @@ import { IsNumber, IsBoolean, Min, Max, validateSync } from "class-validator";
 import { plainToInstance } from "class-transformer";
 
 // 引入各组件配置工厂
-import { StreamCacheConfigFactory } from "../stream-cache/config/stream-cache-config.factory";
-import { DataMapperCacheConfigFactory } from "../data-mapper-cache/config/data-mapper-cache-config.factory";
-import { SymbolMapperCacheConfigFactory } from "../symbol-mapper-cache/config/symbol-mapper-cache-config.factory";
-import { SmartCacheConfigFactory } from "../smart-cache/config/smart-cache-config.factory";
+import { StreamCacheConfigFactory } from "../module/stream-cache/config/stream-cache-config.factory";
+import { DataMapperCacheConfigFactory } from "../module/data-mapper-cache/config/data-mapper-cache-config.factory";
+import { SymbolMapperCacheConfigFactory } from "../module/symbol-mapper-cache/config/symbol-mapper-cache-config.factory";
+import { SmartCacheConfigFactory } from "../module/smart-cache/config/smart-cache-config.factory";
 
 // 统一错误处理基础设施
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";

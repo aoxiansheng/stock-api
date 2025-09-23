@@ -1,11 +1,11 @@
-import { SmartCacheConfigFactory } from '@core/05-caching/smart-cache/config/smart-cache-config.factory';
-import { CacheStrategy } from '@core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
+import { SmartCacheConfigFactory } from '@core/05-caching/module/smart-cache/config/smart-cache-config.factory';
+import { CacheStrategy } from '@core/05-caching/module/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import {
   UniversalExceptionFactory,
   BusinessErrorCode,
   ComponentIdentifier,
 } from '@common/core/exceptions';
-import { SMART_CACHE_ERROR_CODES } from '@core/05-caching/smart-cache/constants/smart-cache-error-codes.constants';
+import { SMART_CACHE_ERROR_CODES } from '@core/05-caching/module/smart-cache/constants/smart-cache-error-codes.constants';
 
 describe('SmartCacheConfigFactory', () => {
   // 保存原始环境变量

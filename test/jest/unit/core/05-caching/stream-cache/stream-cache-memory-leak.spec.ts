@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import Redis from 'ioredis';
-import { StreamCacheService } from '@core/05-caching/stream-cache/services/stream-cache.service';
+import { StreamCacheService } from '@core/05-caching/module/stream-cache/services/stream-cache.service';
 import {
   CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN

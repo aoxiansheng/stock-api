@@ -3,7 +3,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-import { SmartCacheModule } from "../../../05-caching/smart-cache/module/smart-cache.module";
+import { SmartCacheModule } from "../../../05-caching/module/smart-cache/module/smart-cache.module";
 import { StorageModule } from "../../../04-storage/storage/module/storage.module";
 import { ReceiverModule } from "../../../01-entry/receiver/module/receiver.module";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module";

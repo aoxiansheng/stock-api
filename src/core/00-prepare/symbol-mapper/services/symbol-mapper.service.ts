@@ -9,7 +9,7 @@ import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { FeatureFlags } from "@config/feature-flags.config";
-import { SymbolMapperCacheService } from "../../../05-caching/symbol-mapper-cache/services/symbol-mapper-cache.service";
+import { SymbolMapperCacheService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 

@@ -21,7 +21,7 @@ import {
   CreateMappingRuleFromSuggestionsDto,
 } from "../dto/flexible-mapping-rule.dto";
 import { DataSourceTemplateService } from "./data-source-template.service";
-import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
+import { DataMapperCacheService } from "../../../05-caching/module/data-mapper-cache/services/data-mapper-cache.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CacheService } from "@cache/services/cache.service";
 

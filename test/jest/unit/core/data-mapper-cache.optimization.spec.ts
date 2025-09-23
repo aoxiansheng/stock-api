@@ -6,7 +6,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Redis } from 'ioredis';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DataMapperCacheService } from '../../../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service';
+import { DataMapperCacheService } from '../../../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache.service';
 import { FlexibleMappingRuleResponseDto } from '../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 
 describe('DataMapperCache Optimization Validation', () => {

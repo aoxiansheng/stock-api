@@ -1,0 +1,82 @@
+/**
+ * CommonCache模块统一导出
+ */
+
+// 核心服务
+export { BasicCacheService } from "./services/basic-cache.service";
+export { CacheCompressionService } from "./services/cache-compression.service";
+
+// 模块
+export {
+  BasicCacheModule,
+  CommonCacheAsyncModule,
+} from "./module/basic-cache.module";
+
+// 接口
+export type {
+  CacheMetadata,
+  RedisEnvelope,
+  CacheResult,
+} from "./interfaces/cache-metadata.interface";
+
+// DTO
+export {
+  CacheRequestDto,
+  BatchCacheRequestDto,
+} from "./dto/cache-request.dto";
+export {
+  CacheResultDto,
+  BatchCacheResultDto,
+  RedisCacheRuntimeStatsDto,
+} from "./dto/cache-result.dto";
+export {
+  CacheComputeOptionsDto,
+  LegacyTtlComputeParamsDto,
+} from "./dto/cache-compute-options.dto";
+export {
+  TtlComputeParamsDto,
+  TtlComputeResultDto
+} from "./dto/ttl-compute-params.dto";
+export {
+  SmartCacheResultDto,
+  BatchSmartCacheResultDto,
+} from "./dto/smart-cache-result.dto";
+
+// 工具类
+export { CacheKeyUtils } from "./utils/cache-key.utils";
+export { RedisValueUtils } from "./utils/redis-value.utils";
+
+// 常量
+export {
+  CACHE_KEY_PREFIXES,
+  // CACHE_OPERATIONS 已迁移到系统级，使用 import { CACHE_CORE_OPERATIONS } from '../../../cache/constants/cache.constants'
+  CACHE_RESULT_STATUS,
+  CACHE_PRIORITY,
+  DATA_SOURCE,
+  COMPRESSION_ALGORITHMS,
+  CACHE_DEFAULTS,
+  REDIS_SPECIAL_VALUES,
+} from "./constants/cache.constants";
+export {
+  CACHE_CONFIG,
+  CACHE_STRATEGIES,
+} from "./constants/cache-config.constants";
+
+// 新增共享常量导出
+export {
+  CACHE_BASE_VALUES,
+  CACHE_SHARED_TTL,
+  CACHE_SHARED_INTERVALS,
+  CACHE_SHARED_BATCH_SIZES,
+  // 便利性别名
+  BASE_VALUES,
+  SHARED_TTL,
+  SHARED_INTERVALS,
+  SHARED_BATCH_SIZES,
+} from "./constants";
+
+export type {
+  CacheStrategy,
+  CacheOperation,
+  CompressionAlgorithm,
+} from "./constants/cache-config.constants";

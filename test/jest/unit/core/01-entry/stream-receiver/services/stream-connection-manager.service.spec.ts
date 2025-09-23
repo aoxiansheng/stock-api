@@ -36,7 +36,30 @@ describe('StreamConnectionManagerService', () => {
     lastActiveAt: new Date(),
     provider: 'longport',
     capability: 'ws-stock-quote',
-    status: 'connected',
+    subscribedSymbols: new Set<string>(),
+    options: {
+      autoReconnect: true,
+      maxReconnectAttempts: 3,
+      heartbeatIntervalMs: 30000,
+      connectionTimeoutMs: 10000,
+    },
+    onData: jest.fn(),
+    onStatusChange: jest.fn(),
+    onError: jest.fn(),
+    sendHeartbeat: jest.fn().mockResolvedValue(true),
+    getStats: jest.fn().mockReturnValue({
+      connectionId: id,
+      status: 'connected',
+      connectionDurationMs: 1000,
+      messagesReceived: 10,
+      messagesSent: 5,
+      errorCount: 0,
+      reconnectCount: 0,
+      lastHeartbeat: new Date(),
+      avgProcessingLatencyMs: 50,
+      subscribedSymbolsCount: 1,
+    }),
+    isAlive: jest.fn().mockResolvedValue(true),
     close: jest.fn().mockResolvedValue(undefined),
   });
 
@@ -75,6 +98,7 @@ describe('StreamConnectionManagerService', () => {
     mockCallbacks = {
       recordConnectionMetrics: jest.fn(),
       emitMonitoringEvent: jest.fn(),
+      emitBusinessEvent: jest.fn(), // 添加缺失的emitBusinessEvent方法
     };
 
     const moduleBuilder = await Test.createTestingModule({
@@ -403,7 +427,7 @@ describe('StreamConnectionManagerService', () => {
         external: 50 * 1024 * 1024,
         rss: 600 * 1024 * 1024,
         arrayBuffers: 10 * 1024 * 1024,
-      });
+      }) as any; // 添加类型断言以避免类型检查错误
 
       // 等待内存检查触发
       setTimeout(() => {
@@ -528,7 +552,7 @@ describe('StreamConnectionManagerService', () => {
       const originalMemoryUsage = process.memoryUsage;
       process.memoryUsage = jest.fn().mockImplementation(() => {
         throw new Error('Memory check failed');
-      });
+      }) as any; // 添加类型断言以避免类型检查错误
 
       // 应该不会抛出异常
       expect(() => {

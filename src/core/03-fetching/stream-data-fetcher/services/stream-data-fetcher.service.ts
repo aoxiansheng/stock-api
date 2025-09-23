@@ -27,7 +27,7 @@ import {
   SubscriptionResult,
   UnsubscriptionResult,
 } from "../interfaces";
-import { StreamCacheService } from "../../../05-caching/stream-cache/services/stream-cache.service";
+import { StreamCacheService } from "../../../05-caching/module/stream-cache/services/stream-cache.service";
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { ConnectionPoolManager } from "./connection-pool-manager.service";
 

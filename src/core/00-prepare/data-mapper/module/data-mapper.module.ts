@@ -3,7 +3,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 
 import { AuthModule } from "../../../../auth/module/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
-import { DataMapperCacheModule } from "../../../05-caching/data-mapper-cache/module/data-mapper-cache.module";
+import { DataMapperCacheModule } from "../../../05-caching/module/data-mapper-cache/module/data-mapper-cache.module";
 import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 import { FeatureFlags } from "@config/feature-flags.config";
 import { MonitoringModule } from "../../../../monitoring/monitoring.module"; // ✅ 正确导入标准监控模块
@@ -20,7 +20,7 @@ import { DataSourceTemplateService } from "../services/data-source-template.serv
 import { FlexibleMappingRuleService } from "../services/flexible-mapping-rule.service";
 import { PersistedTemplateService } from "../services/persisted-template.service";
 import { RuleAlignmentService } from "../services/rule-alignment.service";
-import { DataMapperCacheService } from "../../../05-caching/data-mapper-cache/services/data-mapper-cache.service";
+import { DataMapperCacheService } from "../../../05-caching/module/data-mapper-cache/services/data-mapper-cache.service";
 
 // 🚀 简化后的Schema（只保留必要的数据结构）
 import {

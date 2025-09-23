@@ -6,7 +6,7 @@ import { API_OPERATIONS } from "@common/constants/domain";
 
 import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
 import { CONSTANTS } from "@common/constants";
-import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
+import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/constants/smart-cache.constants";
 
 /**
  * 查询错误消息常量

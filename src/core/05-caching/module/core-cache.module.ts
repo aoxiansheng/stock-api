@@ -5,11 +5,11 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import coreCacheUnifiedConfig from "../config/cache-unified.config";
 
 // 导入所有核心缓存模块
-import { SmartCacheModule } from "../smart-cache/module/smart-cache.module";
-import { StreamCacheModule } from "../stream-cache/module/stream-cache.module";
-import { DataMapperCacheModule } from "../data-mapper-cache/module/data-mapper-cache.module";
-import { SymbolMapperCacheModule } from "../symbol-mapper-cache/module/symbol-mapper-cache.module";
-import { CommonCacheModule } from "../basic-cache/module/basic-cache.module";
+import { SmartCacheModule } from "./smart-cache/module/smart-cache.module";
+import { StreamCacheModule } from "./stream-cache/module/stream-cache.module";
+import { DataMapperCacheModule } from "./data-mapper-cache/module/data-mapper-cache.module";
+import { SymbolMapperCacheModule } from "./symbol-mapper-cache/module/symbol-mapper-cache.module";
+import { BasicCacheModule } from "./basic-cache/module/basic-cache.module";
 
 // 导入配置工厂集成器
 import { CoreCacheConfigIntegrator } from "../config/cache-unified.config";
@@ -37,7 +37,7 @@ import { CoreCacheConfigIntegrator } from "../config/cache-unified.config";
     ConfigModule.forFeature(coreCacheUnifiedConfig),
 
     // 核心缓存组件模块
-    CommonCacheModule, // 基础缓存工具（其他模块的依赖）
+    BasicCacheModule, // 基础缓存工具（其他模块的依赖）
     SmartCacheModule, // 智能缓存编排器
     StreamCacheModule, // 流数据缓存
     DataMapperCacheModule, // 数据映射缓存
@@ -90,7 +90,7 @@ import { CoreCacheConfigIntegrator } from "../config/cache-unified.config";
     StreamCacheModule,
     DataMapperCacheModule,
     SymbolMapperCacheModule,
-    CommonCacheModule,
+    BasicCacheModule,
 
     // 导出配置提供者
     "coreCacheUnified",

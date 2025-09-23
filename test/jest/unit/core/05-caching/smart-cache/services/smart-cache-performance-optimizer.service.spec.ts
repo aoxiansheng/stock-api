@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SmartCachePerformanceOptimizer } from '@core/05-caching/smart-cache/services/smart-cache-performance-optimizer.service';
+import { SmartCachePerformanceOptimizer } from '@core/05-caching/module/smart-cache/services/smart-cache-performance-optimizer.service';
 import { BackgroundTaskService } from '@common/infrastructure/services/background-task.service';
 import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
 

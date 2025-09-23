@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SmartCacheOrchestrator } from '@core/05-caching/smart-cache/services/smart-cache-orchestrator.service';
-import { CommonCacheService } from '@core/05-caching/basic-cache/services/basic-cache.service';
+import { SmartCacheOrchestrator } from '@core/05-caching/module/smart-cache/services/smart-cache-orchestrator.service';
+import { BasicCacheService } from '@core/05-caching/module/basic-cache/services/basic-cache.service';
 import { DataChangeDetectorService } from '@core/shared/services/data-change-detector.service';
 import { MarketStatusService } from '@core/shared/services/market-status.service';
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
@@ -9,17 +9,17 @@ import { BackgroundTaskService } from '@common/infrastructure/services/backgroun
 import {
   SMART_CACHE_ORCHESTRATOR_CONFIG,
   type SmartCacheOrchestratorConfig,
-} from '@core/05-caching/smart-cache/interfaces/smart-cache-config.interface';
+} from '@core/05-caching/module/smart-cache/interfaces/smart-cache-config.interface';
 import {
   CacheStrategy,
   type CacheOrchestratorRequest,
-} from '@core/05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface';
+} from '@core/05-caching/module/smart-cache/interfaces/smart-cache-orchestrator.interface';
 import { Market } from '@core/shared/constants/market.constants';
 
 describe('SmartCacheOrchestrator', () => {
   let service: SmartCacheOrchestrator;
   let module: TestingModule;
-  let mockCommonCacheService: jest.Mocked<CommonCacheService>;
+  let mockBasicCacheService: jest.Mocked<BasicCacheService>;
   let mockDataChangeDetectorService: jest.Mocked<DataChangeDetectorService>;
   let mockMarketStatusService: jest.Mocked<MarketStatusService>;
   let mockMarketInferenceService: jest.Mocked<MarketInferenceService>;
@@ -75,7 +75,7 @@ describe('SmartCacheOrchestrator', () => {
 
   beforeEach(async () => {
     // Mock CommonCacheService
-    mockCommonCacheService = {
+    mockBasicCacheService = {
       get: jest.fn(),
       set: jest.fn(),
       getWithFallback: jest.fn(),
@@ -115,8 +115,8 @@ describe('SmartCacheOrchestrator', () => {
           useValue: mockConfig,
         },
         {
-          provide: CommonCacheService,
-          useValue: mockCommonCacheService,
+          provide: BasicCacheService,
+          useValue: mockBasicCacheService,
         },
         {
           provide: DataChangeDetectorService,
@@ -204,8 +204,8 @@ describe('SmartCacheOrchestrator', () => {
             useValue: invalidConfig,
           },
           {
-            provide: CommonCacheService,
-            useValue: mockCommonCacheService,
+            provide: BasicCacheService,
+            useValue: mockBasicCacheService,
           },
           {
             provide: DataChangeDetectorService,
@@ -265,7 +265,7 @@ describe('SmartCacheOrchestrator', () => {
         expect(result.hit).toBe(false);
         expect(result.strategy).toBe(CacheStrategy.NO_CACHE);
         expect(request.fetchFn).toHaveBeenCalled();
-        expect(mockCommonCacheService.getWithFallback).not.toHaveBeenCalled();
+        expect(mockBasicCacheService.getWithFallback).not.toHaveBeenCalled();
       });
 
       it('应该处理STRONG_TIMELINESS策略', async () => {
@@ -275,7 +275,7 @@ describe('SmartCacheOrchestrator', () => {
           metadata: { ttlRemaining: 3 },
         };
 
-        mockCommonCacheService.getWithFallback.mockResolvedValue({
+        mockBasicCacheService.getWithFallback.mockResolvedValue({
           ...mockCacheResult,
           fromCache: true,
           fromFallback: false,
@@ -293,13 +293,13 @@ describe('SmartCacheOrchestrator', () => {
         expect(result.data).toEqual(mockData);
         expect(result.hit).toBe(true);
         expect(result.strategy).toBe(CacheStrategy.STRONG_TIMELINESS);
-        expect(mockCommonCacheService.getWithFallback).toHaveBeenCalled();
+        expect(mockBasicCacheService.getWithFallback).toHaveBeenCalled();
       });
 
       it('应该在缓存错误时回退到直接获取', async () => {
         const mockData = { symbol: 'AAPL', price: 150 };
 
-        mockCommonCacheService.getWithFallback.mockRejectedValue(
+        mockBasicCacheService.getWithFallback.mockRejectedValue(
           new Error('Cache error'),
         );
 
@@ -341,7 +341,7 @@ describe('SmartCacheOrchestrator', () => {
           },
         ];
 
-        mockCommonCacheService.mget.mockResolvedValue({
+        mockBasicCacheService.mget.mockResolvedValue({
           data: [
             { key: 'test:AAPL', value: null }, // AAPL - NO_CACHE策略不会被mget处理
             { key: 'test:GOOGL', value: { symbol: 'GOOGL', price: 2800 } }, // GOOGL 缓存命中
@@ -368,7 +368,7 @@ describe('SmartCacheOrchestrator', () => {
           },
         ];
 
-        mockCommonCacheService.mget.mockRejectedValue(new Error('Cache error'));
+        mockBasicCacheService.mget.mockRejectedValue(new Error('Cache error'));
 
         const results = await service.batchGetDataWithSmartCache(requests);
 
@@ -404,8 +404,8 @@ describe('SmartCacheOrchestrator', () => {
       const symbols = ['AAPL'];
       const fetchFn = jest.fn();
 
-      mockCommonCacheService.get.mockResolvedValue({ data: null, metadata: {} });
-      mockCommonCacheService.set.mockResolvedValue(undefined);
+      mockBasicCacheService.get.mockResolvedValue({ data: null, metadata: {} });
+      mockBasicCacheService.set.mockResolvedValue(undefined);
 
       // 第一次调度
       await service.scheduleBackgroundUpdate(cacheKey, symbols, fetchFn);
@@ -557,8 +557,8 @@ describe('SmartCacheOrchestrator', () => {
         },
       ];
 
-      mockCommonCacheService.get.mockResolvedValue({ data: null, metadata: {} });
-      mockCommonCacheService.getWithFallback.mockImplementation(
+      mockBasicCacheService.get.mockResolvedValue({ data: null, metadata: {} });
+      mockBasicCacheService.getWithFallback.mockImplementation(
         async (key, fetchFn) => ({
           data: await fetchFn(),
           metadata: { ttlRemaining: 300 },
@@ -590,7 +590,7 @@ describe('SmartCacheOrchestrator', () => {
       ];
 
       // 模拟已存在有效缓存
-      mockCommonCacheService.get.mockResolvedValue({
+      mockBasicCacheService.get.mockResolvedValue({
         data: { symbol: 'AAPL', price: 150 },
         metadata: { ttlRemaining: 120 }, // 有效缓存
       });
@@ -625,7 +625,7 @@ describe('SmartCacheOrchestrator', () => {
         },
       ];
 
-      mockCommonCacheService.mget.mockResolvedValue({
+      mockBasicCacheService.mget.mockResolvedValue({
         data: [
           { key: 'test:AAPL', value: null },
           { key: 'test:GOOGL', value: null },
@@ -651,7 +651,7 @@ describe('SmartCacheOrchestrator', () => {
     it('应该分析缓存性能', async () => {
       const cacheKeys = ['test:AAPL', 'test:GOOGL', 'test:MSFT'];
 
-      mockCommonCacheService.mget.mockResolvedValue({
+      mockBasicCacheService.mget.mockResolvedValue({
         data: [
           { key: 'test:AAPL', value: { symbol: 'AAPL' } }, // 有效缓存
           { key: 'test:GOOGL', value: null }, // 缓存未命中
@@ -686,7 +686,7 @@ describe('SmartCacheOrchestrator', () => {
         fetchFn: jest.fn().mockRejectedValue(new Error('Fetch failed')),
       };
 
-      mockCommonCacheService.getWithFallback.mockRejectedValue(
+      mockBasicCacheService.getWithFallback.mockRejectedValue(
         new Error('Cache error'),
       );
 

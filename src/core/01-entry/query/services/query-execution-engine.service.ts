@@ -4,7 +4,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import { CONSTANTS } from "@common/constants";
-import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
+import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/constants/smart-cache.constants";
 import { Market } from "../../../shared/constants/market.constants";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
@@ -18,11 +18,11 @@ import {
 } from "../../../shared/services/market-status.service";
 import { FieldMappingService } from "../../../shared/services/field-mapping.service";
 import { StringUtils } from "../../../shared/utils/string.util";
-import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import { SmartCacheOrchestrator } from "../../../05-caching/module/smart-cache/services/smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../05-caching/module/smart-cache/interfaces/smart-cache-orchestrator.interface";
 import {
   buildCacheOrchestratorRequest,
-} from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
+} from "../../../05-caching/module/smart-cache/utils/smart-cache-request.utils";
 import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
 import { ReceiverService } from "../../../01-entry/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";

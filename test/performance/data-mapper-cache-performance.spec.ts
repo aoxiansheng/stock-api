@@ -8,7 +8,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Redis } from 'ioredis';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DataMapperCacheService } from '../../src/core/05-caching/data-mapper-cache/services/data-mapper-cache.service';
+import { DataMapperCacheService } from '../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache.service';
 
 describe('DataMapperCache Performance Benchmarks', () => {
   let service: DataMapperCacheService;

@@ -13,7 +13,7 @@ import { RECEIVER_ERROR_CODES } from "../constants/receiver-error-codes.constant
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { CONSTANTS } from "@common/constants";
-import { SMART_CACHE_CONSTANTS } from "../../../05-caching/smart-cache/constants/smart-cache.constants";
+import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/constants/smart-cache.constants";
 import { MappingDirection } from "../../../shared/constants/cache.constants";
 // import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 // Market enum is now provided by cache-request.utils via the new four-layer architecture
@@ -30,9 +30,9 @@ import {
 } from "../../../shared/services/market-status.service";
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { SymbolTransformForProviderResult } from "../../../02-processing/symbol-transformer/interfaces/symbol-transform-result.interface";
-import { SmartCacheOrchestrator } from "../../../05-caching/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/smart-cache/interfaces/smart-cache-orchestrator.interface";
-import { buildCacheOrchestratorRequest } from "../../../05-caching/smart-cache/utils/smart-cache-request.utils";
+import { SmartCacheOrchestrator } from "../../../05-caching/module/smart-cache/services/smart-cache-orchestrator.service";
+import { CacheStrategy } from "../../../05-caching/module/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import { buildCacheOrchestratorRequest } from "../../../05-caching/module/smart-cache/utils/smart-cache-request.utils";
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";

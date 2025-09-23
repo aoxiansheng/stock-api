@@ -10,8 +10,8 @@ import { Server } from "socket.io";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { StreamCacheService } from "../../../05-caching/stream-cache/services/stream-cache.service";
-import { StreamDataPoint } from "../../../05-caching/stream-cache/interfaces/stream-cache.interface";
+import { StreamCacheService } from "../../../05-caching/module/stream-cache/services/stream-cache.service";
+import { StreamDataPoint } from "../../../05-caching/module/stream-cache/interfaces/stream-cache.interface";
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { StreamDataFetcherService } from "./stream-data-fetcher.service";
 import {
