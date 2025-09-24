@@ -97,7 +97,7 @@ export default defineConfig([
   {
     name: "time-fields-standardization",
     files: ["src/**/*.{ts,js}"],
-    ignores: ["**/constants/**/*.{ts,js}", "**/*.constants.{ts,js}", "**/migration/**/*.{ts,js}", "**/legacy/**/*.{ts,js}", "**/test/**/*.{ts,js}", "**/*.spec.{ts,js}", "**/*.test.{ts,js}"],
+    ignores: ["**/constants/**/*.{ts,js}", "**/*.constants.{ts,js}", "**/migration/**/*.{ts,js}", "**/test/**/*.{ts,js}", "**/*.spec.{ts,js}", "**/*.test.{ts,js}"],
     rules: {
       // 时间字段标准化规则 - 检测废弃字段使用
       "no-restricted-syntax": [
@@ -151,7 +151,7 @@ export default defineConfig([
   {
     name: "deprecated-processing-time-detection",
     files: ["src/**/*.{ts,js}"],
-    ignores: ["**/test/**/*.{ts,js}", "**/*.spec.{ts,js}", "**/*.test.{ts,js}", "**/migration/**/*.{ts,js}", "**/legacy/**/*.{ts,js}"],
+    ignores: ["**/test/**/*.{ts,js}", "**/*.spec.{ts,js}", "**/*.test.{ts,js}", "**/migration/**/*.{ts,js}"],
     rules: {
       // 专门检测 processingTime 废弃字段的使用
       "no-restricted-syntax": [
