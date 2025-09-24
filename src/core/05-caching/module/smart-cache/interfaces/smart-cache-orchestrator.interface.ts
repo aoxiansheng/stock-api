@@ -155,26 +155,6 @@ export interface MarketStatusQueryResult {
   success: boolean;
 }
 
-/**
- * 智能缓存配置元数据接口
- * 用于传递配置相关信息
- */
-export interface CacheConfigMetadata {
-  /** 最小更新间隔（毫秒） */
-  minUpdateInterval: number;
-
-  /** 最大并发更新数 */
-  maxConcurrentUpdates: number;
-
-  /** 优雅关闭超时时间（毫秒） */
-  gracefulShutdownTimeout: number;
-
-  /** 是否启用后台更新 */
-  enableBackgroundUpdate: boolean;
-
-  /** 是否启用数据变化检测 */
-  enableDataChangeDetection: boolean;
-}
 
 /**
  * 策略配置映射接口

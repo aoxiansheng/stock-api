@@ -21,14 +21,6 @@ import { SMART_CACHE_ERROR_CODES } from '../constants/smart-cache-error-codes.co
  * 提供统一的请求构建、缓存键生成和符号哈希功能
  */
 
-export interface CacheOrchestratorRequestBuilder<T> {
-  cacheKey: string;
-  strategy: string;
-  symbols: string[];
-  fetchFn: () => Promise<T>;
-  metadata?: Record<string, any>;
-}
-
 /**
  * 构建智能缓存编排器请求
  * @param options 请求构建选项

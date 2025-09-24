@@ -64,7 +64,31 @@ export const STREAM_CACHE_ERROR_CODES = {
 // 错误码类型定义
 export type StreamCacheErrorCode = typeof STREAM_CACHE_ERROR_CODES[keyof typeof STREAM_CACHE_ERROR_CODES];
 
-// 错误分类辅助函数
+/**
+ * Stream Cache 错误分类工具类
+ *
+ * 📋 架构用途：
+ * - 提供统一的错误分类接口，与项目中其他 12 个模块保持一致
+ * - 支持错误重试决策逻辑（根据错误类型判断是否可重试）
+ * - 为监控系统和告警规则提供错误分类基础
+ * - 支持错误统计和分析（按类型聚合错误数据）
+ *
+ * 🔧 预期集成场景：
+ * - 全局异常处理器根据错误类型选择处理策略
+ * - 监控系统按错误严重程度分类告警
+ * - 重试机制根据 isRetryable() 决定是否重试
+ * - 错误日志系统按类型进行结构化记录
+ *
+ * 💡 使用示例：
+ * ```typescript
+ * if (StreamCacheErrorCategories.isRetryable(errorCode)) {
+ *   await retryOperation();
+ * }
+ * if (StreamCacheErrorCategories.isExternalError(errorCode)) {
+ *   await notifyExternalServiceTeam();
+ * }
+ * ```
+ */
 export const StreamCacheErrorCategories = {
   /**
    * 判断是否为验证类错误
@@ -114,7 +138,40 @@ export const StreamCacheErrorCategories = {
   }
 };
 
-// 错误码说明映射
+/**
+ * Stream Cache 错误码描述映射表
+ *
+ * 📋 架构用途：
+ * - 为每个错误码提供人类可读的描述信息
+ * - 保持与项目中其他模块的统一错误描述模式
+ * - 支持国际化和本地化的错误消息显示
+ * - 为开发工具、调试器、监控面板提供友好的错误说明
+ *
+ * 🔧 预期集成场景：
+ * - API 响应中的错误描述字段自动填充
+ * - 开发者工具和调试面板显示详细错误信息
+ * - 错误日志系统生成结构化的错误报告
+ * - 监控告警消息中包含可读的错误描述
+ * - 客户端错误处理展示用户友好的提示信息
+ *
+ * 💡 使用示例：
+ * ```typescript
+ * const errorMessage = STREAM_CACHE_ERROR_DESCRIPTIONS[errorCode] || 'Unknown error';
+ * logger.error(`Stream cache operation failed: ${errorMessage}`, { errorCode });
+ *
+ * // API 响应
+ * return {
+ *   success: false,
+ *   errorCode,
+ *   message: STREAM_CACHE_ERROR_DESCRIPTIONS[errorCode]
+ * };
+ * ```
+ *
+ * 🌐 扩展说明：
+ * - 当前为英文描述，未来可扩展为多语言支持
+ * - 描述信息应简洁明了，便于开发者快速定位问题
+ * - 可根据业务需求添加更多错误码的描述映射
+ */
 export const STREAM_CACHE_ERROR_DESCRIPTIONS = {
   [STREAM_CACHE_ERROR_CODES.INVALID_CACHE_KEY]: 'Cache key format is invalid',
   [STREAM_CACHE_ERROR_CODES.MISSING_REQUIRED_PARAMS]: 'Required parameters are missing',

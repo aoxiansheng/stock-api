@@ -49,35 +49,3 @@ export class CacheComputeOptionsDto {
   tags?: Record<string, string>;
 }
 
-/**
- * 缓存TTL计算参数DTO (旧版本，已重命名避免与ttl-compute-params.dto.ts冲突)
- */
-export class LegacyTtlComputeParamsDto {
-  @ApiProperty({
-    description: "数据类型",
-    enum: ["stock_quote", "market_status", "symbol_mapping"],
-  })
-  @IsEnum(["stock_quote", "market_status", "symbol_mapping"])
-  dataType: "stock_quote" | "market_status" | "symbol_mapping";
-
-  @ApiProperty({ description: "市场标识符" })
-  @IsString()
-  market: string;
-
-  @ApiPropertyOptional({
-    description: "交易时段",
-    enum: ["pre_market", "market", "after_market", "closed"],
-  })
-  @IsOptional()
-  @IsEnum(["pre_market", "market", "after_market", "closed"])
-  tradingSession?: "pre_market" | "market" | "after_market" | "closed";
-
-  @ApiPropertyOptional({ description: "数据提供商" })
-  @IsOptional()
-  @IsString()
-  provider?: string;
-
-  @ApiPropertyOptional({ description: "符号列表" })
-  @IsOptional()
-  symbols?: string[];
-}

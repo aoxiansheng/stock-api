@@ -2,6 +2,7 @@ import { Module, OnModuleDestroy, OnModuleInit, Inject } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 import { BasicCacheService } from "../services/basic-cache.service";
+import { BasicCacheStandardizedService } from "../services/basic-cache-standardized.service";
 import { CacheCompressionService } from "../services/cache-compression.service";
 import { CacheConfigValidator } from "../validators/cache-config.validator";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
@@ -12,8 +13,12 @@ import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../../monitoring/contracts";
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 
 /**
- * 通用缓存模块
+ * 通用缓存模块 (标准化版本)
  * 非全局模块，需显式导入
+ *
+ * 双服务模式：
+ * - BasicCacheStandardizedService: 新标准化服务 (主要)
+ * - BasicCacheService: 原有服务 (兼容性保留)
  */
 @Module({
   imports: [
@@ -84,13 +89,24 @@ import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } fro
       inject: [ConfigService],
     },
 
-    // 核心服务
+    // 🆕 标准化服务 (主要服务)
+    BasicCacheStandardizedService,
+
+    // 🔄 原有服务 (兼容性保留)
+    BasicCacheService,
+
+    // 📦 辅助服务
     CacheCompressionService,
     CacheConfigValidator,
-    BasicCacheService,
   ],
   exports: [
+    // 主要导出标准化服务
+    BasicCacheStandardizedService,
+
+    // 兼容性导出 (保持向后兼容)
     BasicCacheService,
+
+    // 辅助服务导出
     CacheCompressionService,
     CacheConfigValidator,
     CACHE_REDIS_CLIENT_TOKEN,
@@ -214,44 +230,3 @@ export class BasicCacheModule implements OnModuleInit, OnModuleDestroy {
   }
 }
 
-/**
- * 异步模块配置（用于需要异步初始化的场景）
- */
-@Module({})
-export class CommonCacheAsyncModule {
-  static forRootAsync() {
-    return {
-      module: CommonCacheAsyncModule,
-      imports: [
-        // ConfigModule已通过AppConfigModule全局提供，无需重复导入
-      ],
-      providers: [
-        {
-          provide: CACHE_REDIS_CLIENT_TOKEN,
-          useFactory: async (configService: ConfigService) => {
-            const redisConfig = {
-              host: configService.get<string>("redis.host", "localhost"),
-              port: configService.get<number>("redis.port", 6379),
-              password: configService.get<string>("redis.password"),
-              db: configService.get<number>("redis.db", 0),
-              connectTimeout: CACHE_CONFIG.TIMEOUTS.CONNECTION_TIMEOUT,
-              commandTimeout: CACHE_CONFIG.TIMEOUTS.REDIS_OPERATION_TIMEOUT,
-            };
-
-            const redis = new Redis(redisConfig);
-
-            // 等待连接建立
-            await redis.ping();
-            console.log(`✅ Redis async connection established`);
-
-            return redis;
-          },
-          inject: [ConfigService],
-        },
-        CacheCompressionService,
-        BasicCacheService,
-      ],
-      exports: [BasicCacheService, CacheCompressionService],
-    };
-  }
-}

@@ -2,6 +2,7 @@ import { Module, OnModuleDestroy, OnModuleInit, Inject } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 import { StreamCacheService } from "../services/stream-cache.service";
+import { StreamCacheStandardizedService } from "../services/stream-cache-standardized.service";
 import {
   STREAM_CACHE_CONFIG,
   DEFAULT_STREAM_CACHE_CONFIG,
@@ -126,9 +127,13 @@ import {
 
     // 核心流缓存服务（使用事件驱动监控）
     StreamCacheService,
+
+    // 标准化流缓存服务 - Phase 8 实现
+    StreamCacheStandardizedService,
   ],
   exports: [
     StreamCacheService,
+    StreamCacheStandardizedService,
     CACHE_REDIS_CLIENT_TOKEN,
     STREAM_CACHE_CONFIG_TOKEN,
   ],

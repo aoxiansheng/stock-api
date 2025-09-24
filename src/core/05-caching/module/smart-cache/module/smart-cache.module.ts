@@ -4,6 +4,7 @@ import { StorageModule } from "../../../../04-storage/storage/module/storage.mod
 import { SharedServicesModule } from "../../../../shared/module/shared-services.module";
 import { BasicCacheModule } from "../../basic-cache/module/basic-cache.module";
 import { SmartCacheOrchestrator } from "../services/smart-cache-orchestrator.service";
+import { SmartCacheStandardizedService } from "../services/smart-cache-standardized.service";
 import {
   type SmartCacheOrchestratorConfig,
   DEFAULT_SMART_CACHE_CONFIG,
@@ -14,25 +15,28 @@ import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performa
 // 移除 CollectorModule 依赖 - 事件化监控不再需要直接导入监控模块
 
 /**
- * 智能缓存模块
+ * 智能缓存模块 (标准化版本)
  *
  * 核心功能：
  * - 统一Receiver与Query的缓存调用骨架
  * - 提供多种缓存策略（强时效、弱时效、市场感知等）
  * - 后台更新机制与优先级调度
  * - 智能缓存键管理和TTL动态调整
+ * - 标准化缓存模块接口实现
+ * - 与 Foundation 层完全集成
  *
  * 依赖模块：
  * - StorageModule: 提供StorageService，用于底层缓存操作
  * - SharedServicesModule: 提供MarketStatusService、BackgroundTaskService等共享服务
  * - BasicCacheModule: 提供通用缓存服务
  *
- * 导出服务：
- * - SmartCacheOrchestrator: 核心编排器服务
+ * 双服务模式：
+ * - SmartCacheStandardizedService: 新标准化服务 (主要)
+ * - SmartCacheOrchestrator: 原有服务 (兼容性保留)
  *
  * 使用方式：
  * - 在QueryModule、ReceiverModule中导入此模块
- * - 注入SmartCacheOrchestrator服务进行缓存操作
+ * - 优先使用SmartCacheStandardizedService，向后兼容SmartCacheOrchestrator
  */
 import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
 
@@ -58,13 +62,16 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
   ],
 
   providers: [
-    // 核心编排器服务
+    // 🆕 标准化服务 (主要服务)
+    SmartCacheStandardizedService,
+
+    // 🔄 原有服务 (兼容性保留)
     SmartCacheOrchestrator,
 
-    // 性能优化器服务
+    // 🚀 性能优化器服务
     SmartCachePerformanceOptimizer,
 
-    // 配置提供者 - 使用环境变量驱动的配置工厂
+    // 📋 配置提供者 - 使用环境变量驱动的配置工厂
     {
       provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
       useFactory: () => SmartCacheConfigFactory.createConfig(),
@@ -72,7 +79,10 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
   ],
 
   exports: [
-    // 导出核心编排器，供其他模块使用
+    // 主要导出标准化服务
+    SmartCacheStandardizedService,
+
+    // 兼容性导出 (保持向后兼容)
     SmartCacheOrchestrator,
 
     // 导出性能优化器，供其他模块使用

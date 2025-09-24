@@ -9,7 +9,6 @@ export { CacheCompressionService } from "./services/cache-compression.service";
 // 模块
 export {
   BasicCacheModule,
-  CommonCacheAsyncModule,
 } from "./module/basic-cache.module";
 
 // 接口
@@ -31,16 +30,11 @@ export {
 } from "./dto/cache-result.dto";
 export {
   CacheComputeOptionsDto,
-  LegacyTtlComputeParamsDto,
 } from "./dto/cache-compute-options.dto";
 export {
   TtlComputeParamsDto,
   TtlComputeResultDto
 } from "./dto/ttl-compute-params.dto";
-export {
-  SmartCacheResultDto,
-  BatchSmartCacheResultDto,
-} from "./dto/smart-cache-result.dto";
 
 // 工具类
 export { CacheKeyUtils } from "./utils/cache-key.utils";
@@ -62,18 +56,8 @@ export {
   CACHE_STRATEGIES,
 } from "./constants/cache-config.constants";
 
-// 新增共享常量导出
-export {
-  CACHE_BASE_VALUES,
-  CACHE_SHARED_TTL,
-  CACHE_SHARED_INTERVALS,
-  CACHE_SHARED_BATCH_SIZES,
-  // 便利性别名
-  BASE_VALUES,
-  SHARED_TTL,
-  SHARED_INTERVALS,
-  SHARED_BATCH_SIZES,
-} from "./constants";
+// 注意: 共享常量已迁移到foundation层
+// 请直接从 '../../../foundation/constants/core-values.constants' 导入
 
 export type {
   CacheStrategy,
