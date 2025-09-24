@@ -1218,18 +1218,50 @@ export class StreamCacheStandardizedService
 
   /**
    * 批量获取数据 - IStreamCache接口实现
+   * 增强版：使用Redis Pipeline优化 + 降级策略
    */
   async getBatchData(keys: string[]): Promise<Record<string, StreamDataPoint[] | null>> {
-    const batchResult = await this.batchGet<StreamDataPoint[]>(keys);
     const result: Record<string, StreamDataPoint[] | null> = {};
 
-    keys.forEach((key, index) => {
-      const itemResult = batchResult.results[index];
-      // itemResult is BaseCacheResult, so we check success instead of hit
-      result[key] = itemResult?.success ? itemResult.data : null;
-    });
+    if (!keys || keys.length === 0) return result;
 
-    return result;
+    try {
+      const batchSize = this.streamConfig.streamBatchSize || 50; // 配置化批次大小
+
+      for (let i = 0; i < keys.length; i += batchSize) {
+        const batch = keys.slice(i, i + batchSize);
+
+        try {
+          // 优先使用Redis Pipeline进行批量获取
+          await this.getBatchWithPipeline(batch, result);
+        } catch (pipelineError) {
+          this.logger.warn("Pipeline批量获取失败，降级到单个获取", {
+            batch,
+            error: pipelineError.message
+          });
+          // 降级到单个获取
+          await this.fallbackToSingleGets(batch, result);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      this.recordError(error, { operation: 'getBatchData', keys: keys.join(",") });
+
+      // 最终降级：使用原始的batchGet方法
+      this.logger.warn("批量获取完全失败，使用原始方法", {
+        error: error.message,
+        keyCount: keys.length
+      });
+
+      const batchResult = await this.batchGet<StreamDataPoint[]>(keys);
+      keys.forEach((key, index) => {
+        const itemResult = batchResult.results[index];
+        result[key] = itemResult?.success ? itemResult.data : null;
+      });
+
+      return result;
+    }
   }
 
   /**
@@ -1785,6 +1817,238 @@ export class StreamCacheStandardizedService
         timestamp: Date.now(),
       };
     }
+  }
+
+  // ========================================
+  // 从旧系统移植的缺失功能
+  // ========================================
+
+  /**
+   * 系统级指标监控报告 - 事件驱动实现
+   * 从旧系统移植的功能，提供向后兼容性
+   */
+  async reportSystemMetrics(): Promise<void> {
+    try {
+      // 获取健康状态
+      const healthResult = await this.getHealth();
+      const capacityInfo = await this.getCapacityInfo();
+      const perfMetrics = await this.getPerformanceMetrics();
+
+      // 核心系统指标上报
+      this.emitSystemEvent("cache_hot_size", this.hotCache.size, {
+        maxSize: this.streamConfig.maxHotCacheSize,
+        utilizationRatio: this.hotCache.size / this.streamConfig.maxHotCacheSize,
+      });
+
+      // 健康状态指标 (0=unhealthy, 1=healthy)
+      const healthStatus = healthResult.success && healthResult.healthScore > 70 ? 1 : 0;
+      this.emitSystemEvent("health_status", healthStatus, {
+        healthScore: healthResult.healthScore || 0,
+        connectionStatus: healthResult.success ? "connected" : "disconnected",
+      });
+
+      // 内存使用指标
+      this.emitSystemEvent("memory_usage_bytes", capacityInfo.currentMemory, {
+        maxMemory: capacityInfo.maxMemory,
+        utilizationRatio: capacityInfo.memoryUtilization,
+        keyCount: capacityInfo.currentKeys,
+      });
+
+      // 性能指标
+      this.emitSystemEvent("hit_rate", perfMetrics.hitRate, {
+        totalHits: this.operationStats.totalHits,
+        totalMisses: this.operationStats.totalMisses,
+        hotCacheHits: this.operationStats.hotCacheHits,
+        warmCacheHits: this.operationStats.warmCacheHits,
+      });
+
+      this.emitSystemEvent("avg_response_time", perfMetrics.avgResponseTime, {
+        totalOperations: this.operationStats.totalOperations,
+        errorRate: perfMetrics.errorRate,
+      });
+
+      // 错误指标
+      this.emitSystemEvent("error_count", this.operationStats.errorCount, {
+        errorRate: perfMetrics.errorRate,
+        lastResetTime: this.operationStats.lastResetTime,
+      });
+
+      // 容量告警指标
+      if (capacityInfo.memoryUtilization > 0.8) {
+        this.emitSystemEvent("capacity_warning", 1, {
+          type: "memory_high",
+          utilizationRatio: capacityInfo.memoryUtilization,
+          threshold: 0.8,
+        });
+      }
+
+      if (capacityInfo.keyUtilization > 0.9) {
+        this.emitSystemEvent("capacity_warning", 1, {
+          type: "keys_high",
+          utilizationRatio: capacityInfo.keyUtilization,
+          threshold: 0.9,
+        });
+      }
+
+      this.logger.debug('System metrics reported successfully', {
+        hotCacheSize: this.hotCache.size,
+        memoryUsage: capacityInfo.currentMemory,
+        hitRate: perfMetrics.hitRate,
+        healthScore: healthResult.healthScore,
+      });
+
+    } catch (error) {
+      this.recordError(error, { operation: 'reportSystemMetrics' });
+      this.emitSystemEvent("metric_reporting_error", 1, {
+        errorMessage: error.message,
+        errorType: error.constructor.name,
+      });
+      this.logger.error('Failed to report system metrics', {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+  }
+
+  /**
+   * 向后兼容的健康状态接口
+   * 返回旧系统期望的StreamCacheHealthStatus格式
+   */
+  async getHealthStatus(): Promise<StreamCacheHealthStatus> {
+    try {
+      // 简单Redis连接测试
+      await this.redisClient.ping();
+      const perfMetrics = await this.getPerformanceMetrics();
+
+      return {
+        status: "healthy",
+        hotCacheSize: this.hotCache.size,
+        redisConnected: true,
+        lastError: null,
+        performance: {
+          avgHotCacheHitTime: perfMetrics.avgResponseTime * 0.1, // 估算Hot Cache平均响应时间
+          avgWarmCacheHitTime: perfMetrics.avgResponseTime * 0.9, // 估算Warm Cache平均响应时间
+          compressionRatio: 0.8, // 估算压缩比
+        },
+      };
+    } catch (error) {
+      this.recordError(error, { operation: 'getHealthStatus' });
+      return {
+        status: "unhealthy",
+        hotCacheSize: this.hotCache.size,
+        redisConnected: false,
+        lastError: error.message,
+      };
+    }
+  }
+
+  /**
+   * 使用Redis Pipeline进行批量获取 - 性能优化
+   * 从旧系统移植的高性能批量操作
+   */
+  private async getBatchWithPipeline(
+    keys: string[],
+    result: Record<string, StreamDataPoint[] | null>
+  ): Promise<void> {
+    // 先检查Hot Cache
+    const hotCacheMisses: string[] = [];
+    for (const key of keys) {
+      const hotData = this.getFromHotCache(key);
+      if (hotData) {
+        result[key] = hotData;
+      } else {
+        hotCacheMisses.push(key);
+      }
+    }
+
+    if (hotCacheMisses.length === 0) return;
+
+    // 使用Pipeline批量获取Warm Cache
+    const pipeline = this.redisClient.pipeline();
+    hotCacheMisses.forEach(key => {
+      const redisKey = this.buildWarmCacheKey(key);
+      pipeline.get(redisKey);
+    });
+
+    const pipelineResults = await pipeline.exec();
+
+    // 处理Pipeline结果
+    hotCacheMisses.forEach((key, index) => {
+      const [error, data] = pipelineResults[index];
+      if (error) {
+        this.logger.warn(`Redis获取失败: ${key}`, { error: error.message });
+        result[key] = null;
+      } else {
+        if (data) {
+          try {
+            const parsedData = JSON.parse(data as string);
+            result[key] = parsedData;
+            // 提升到Hot Cache
+            this.setToHotCache(key, parsedData);
+          } catch (parseError) {
+            this.logger.warn(`数据解析失败: ${key}`, { error: parseError.message });
+            result[key] = null;
+          }
+        } else {
+          result[key] = null;
+        }
+      }
+    });
+  }
+
+  /**
+   * 降级方法：Pipeline失败时的备选方案
+   * 从旧系统移植的容错机制
+   */
+  private async fallbackToSingleGets(
+    keys: string[],
+    result: Record<string, StreamDataPoint[] | null>
+  ): Promise<void> {
+    const batchPromises = keys.map(async (key) => ({
+      key,
+      data: await this.getData(key), // 使用现有的getData方法
+    }));
+
+    const batchResults = await Promise.allSettled(batchPromises);
+
+    // 处理Promise.allSettled结果
+    batchResults.forEach((promiseResult, index) => {
+      if (promiseResult.status === 'fulfilled') {
+        const { key, data } = promiseResult.value;
+        result[key] = data;
+      } else {
+        // 记录失败的key，用于监控和重试
+        const failedKey = keys[index];
+        this.logger.warn(`批量获取失败: ${failedKey}`, {
+          error: promiseResult.reason?.message
+        });
+        result[failedKey] = null;
+      }
+    });
+  }
+
+  /**
+   * 发送系统级事件监控
+   */
+  private emitSystemEvent(
+    metricName: string,
+    value: number,
+    tags: any = {},
+  ): void {
+    this.safeAsyncExecute(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: "stream-cache-standardized",
+        metricType: "system",
+        metricName,
+        metricValue: value,
+        tags: {
+          component: "StreamCacheStandardized",
+          version: this.version,
+          ...tags,
+        },
+      });
+    });
   }
 
   // ========================================

@@ -14,9 +14,6 @@ export const CACHE_KEY_PREFIXES = {
   API_RATE_LIMIT: "api_rate_limit",
 } as const;
 
-// 缓存操作类型已迁移到系统级统一定义
-// 使用: import { CACHE_CORE_OPERATIONS } from '../../../cache/constants/cache.constants'
-
 /**
  * 缓存结果状态
  */

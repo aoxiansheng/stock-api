@@ -30,8 +30,8 @@ import {
 } from "../../../shared/services/market-status.service";
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { SymbolTransformForProviderResult } from "../../../02-processing/symbol-transformer/interfaces/symbol-transform-result.interface";
-import { SmartCacheOrchestrator } from "../../../05-caching/module/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/module/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import { SmartCacheStandardizedService } from "../../../05-caching/module/smart-cache/services/smart-cache-standardized.service";
+import { CacheStrategy } from "../../../05-caching/module/smart-cache/services/smart-cache-standardized.service";
 import { buildCacheOrchestratorRequest } from "../../../05-caching/module/smart-cache/utils/smart-cache-request.utils";
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
@@ -93,7 +93,7 @@ export class ReceiverService implements OnModuleDestroy {
 
     // ✅ 事件化监控依赖 - 符合监控组件集成规范
     private readonly eventBus: EventEmitter2, // 替换CollectorService，使用事件驱动监控
-    private readonly smartCacheOrchestrator: SmartCacheOrchestrator, // 🔑 关键: 注入智能缓存编排器
+    private readonly smartCacheOrchestrator: SmartCacheStandardizedService, // 🔑 关键: 注入智能缓存编排器
   ) {}
 
   /**

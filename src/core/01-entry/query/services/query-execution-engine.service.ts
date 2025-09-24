@@ -18,8 +18,8 @@ import {
 } from "../../../shared/services/market-status.service";
 import { FieldMappingService } from "../../../shared/services/field-mapping.service";
 import { StringUtils } from "../../../shared/utils/string.util";
-import { SmartCacheOrchestrator } from "../../../05-caching/module/smart-cache/services/smart-cache-orchestrator.service";
-import { CacheStrategy } from "../../../05-caching/module/smart-cache/interfaces/smart-cache-orchestrator.interface";
+import { SmartCacheStandardizedService } from "../../../05-caching/module/smart-cache/services/smart-cache-standardized.service";
+import { CacheStrategy } from "../../../05-caching/module/smart-cache/services/smart-cache-standardized.service";
 import {
   buildCacheOrchestratorRequest,
 } from "../../../05-caching/module/smart-cache/utils/smart-cache-request.utils";
@@ -72,7 +72,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     private readonly fieldMappingService: FieldMappingService,
     private readonly paginationService: PaginationService,
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
-    private readonly smartCacheOrchestrator: SmartCacheOrchestrator,
+    private readonly smartCacheOrchestrator: SmartCacheStandardizedService,
     private readonly queryConfig: QueryConfigService,
     private readonly memoryMonitor: QueryMemoryMonitorService,
     private readonly marketInferenceService: MarketInferenceService,

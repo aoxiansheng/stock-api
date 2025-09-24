@@ -27,7 +27,7 @@ import {
   SubscriptionResult,
   UnsubscriptionResult,
 } from "../interfaces";
-import { StreamCacheService } from "../../../05-caching/module/stream-cache/services/stream-cache.service";
+import { StreamCacheStandardizedService } from "../../../05-caching/module/stream-cache/services/stream-cache-standardized.service";
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { ConnectionPoolManager } from "./connection-pool-manager.service";
 
@@ -41,7 +41,7 @@ import { ConnectionPoolManager } from "./connection-pool-manager.service";
  * - 与 CapabilityRegistry 集成获取提供商流能力
  *
  * ❌ 明确不负责：
- * - 数据缓存（由 StreamCacheService 负责）
+ * - 数据缓存（由 StreamCacheStandardizedService 负责）
  * - 数据转换（由 Transformer 负责）
  * - 数据存储（由 Storage 负责）
  * - 数据路由（由 StreamReceiver 负责）
@@ -141,7 +141,7 @@ export class StreamDataFetcherService
 
   constructor(
     private readonly capabilityRegistry: EnhancedCapabilityRegistryService,
-    private readonly streamCache: StreamCacheService,
+    private readonly streamCache: StreamCacheStandardizedService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly connectionPoolManager: ConnectionPoolManager,
     // ✅ 事件化驱动监控 - 仅注入事件总线
@@ -1674,7 +1674,7 @@ export class StreamDataFetcherService
   /**
    * Phase 4: 获取内部缓存服务 - 供 StreamReceiver 使用
    */
-  getStreamDataCache(): StreamCacheService {
+  getStreamDataCache(): StreamCacheStandardizedService {
     return this.streamCache;
   }
 

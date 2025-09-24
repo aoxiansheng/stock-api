@@ -10,7 +10,7 @@ import { Server } from "socket.io";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { StreamCacheService } from "../../../05-caching/module/stream-cache/services/stream-cache.service";
+import { StreamCacheStandardizedService } from "../../../05-caching/module/stream-cache/services/stream-cache-standardized.service";
 import { StreamDataPoint } from "../../../05-caching/module/stream-cache/interfaces/stream-cache.interface";
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { StreamDataFetcherService } from "./stream-data-fetcher.service";
@@ -38,7 +38,7 @@ import { STREAM_DATA_FETCHER_ERROR_CODES } from "../constants/stream-data-fetche
  * 不负责：
  * - 实时流数据处理（由StreamReceiver负责）
  * - 连接管理（由StreamDataFetcher负责）
- * - 缓存管理（由StreamCacheService负责）
+ * - 缓存管理（由StreamCacheStandardizedService负责）
  */
 
 export interface RecoveryJob {
@@ -193,7 +193,7 @@ export class StreamRecoveryWorkerService
   }
 
   constructor(
-    private readonly streamCache: StreamCacheService,
+    private readonly streamCache: StreamCacheStandardizedService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly configService: StreamRecoveryConfigService,

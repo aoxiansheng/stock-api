@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
-import { SymbolMapperCacheService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache.service";
+import { SymbolMapperCacheStandardizedService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service";
 import { MappingDirection } from "../../../shared/constants/cache.constants";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 import {
@@ -30,7 +30,7 @@ export class SymbolTransformerService implements ISymbolTransformer {
   private readonly logger = createLogger("SymbolTransformer");
 
   constructor(
-    private readonly symbolMapperCacheService: SymbolMapperCacheService, // 缓存服务（含回源逻辑）
+    private readonly symbolMapperCacheService: SymbolMapperCacheStandardizedService, // 缓存服务（含回源逻辑）
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控（零耦合）
     private readonly marketInferenceService: MarketInferenceService,
   ) {}

@@ -67,11 +67,11 @@ export class StorageService {
         component: ComponentIdentifier.STORAGE,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'storeData',
-        message: 'StorageService only supports PERSISTENT storage type. Use BasicCacheService for cache operations.',
+        message: 'StorageService only supports PERSISTENT storage type. Use StandardizedCacheService for cache operations.',
         context: {
           requestedStorageType: request.storageType,
           supportedTypes: [StorageType.PERSISTENT],
-          alternativeService: 'BasicCacheService'
+          alternativeService: 'StandardizedCacheService'
         }
       });
     }
@@ -213,11 +213,11 @@ export class StorageService {
         component: ComponentIdentifier.STORAGE,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'retrieveData',
-        message: 'StorageService only supports PERSISTENT retrieval type. Use BasicCacheService for cache operations.',
+        message: 'StorageService only supports PERSISTENT retrieval type. Use StandardizedCacheService for cache operations.',
         context: {
           requestedType: request.preferredType,
           supportedTypes: [StorageType.PERSISTENT],
-          alternativeService: 'BasicCacheService'
+          alternativeService: 'StandardizedCacheService'
         }
       });
     }
@@ -325,11 +325,11 @@ export class StorageService {
         component: ComponentIdentifier.STORAGE,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'deleteData',
-        message: 'StorageService only supports PERSISTENT delete type. Use BasicCacheService for cache operations.',
+        message: 'StorageService only supports PERSISTENT delete type. Use StandardizedCacheService for cache operations.',
         context: {
           requestedStorageType: storageType,
           supportedTypes: [StorageType.PERSISTENT],
-          alternativeService: 'BasicCacheService',
+          alternativeService: 'StandardizedCacheService',
           operation: 'delete_validation'
         }
       });
@@ -408,7 +408,7 @@ export class StorageService {
     try {
       const stats = new StorageStatsDto();
 
-      // 🎯 重构后：仅生成数据库统计，缓存统计由BasicCacheService负责
+      // 🎯 重构后：仅生成数据库统计，缓存统计由StandardizedCacheService负责
       const persistentStats = await this.getPersistentStats();
 
       // 缓存统计设为空对象，提示用户使用专用缓存服务

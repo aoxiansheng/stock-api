@@ -803,7 +803,7 @@ export class LogLevelController implements OnModuleInit {
       "DataFetcherService",
       "QueryService",
       "ReceiverService",
-      "SmartCacheOrchestrator",
+      "SmartCacheStandardizedService",
     ];
 
     return hotPathCandidates.filter(

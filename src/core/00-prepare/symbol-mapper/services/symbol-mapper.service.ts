@@ -9,7 +9,7 @@ import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
 import { FeatureFlags } from "@config/feature-flags.config";
-import { SymbolMapperCacheService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache.service";
+import { SymbolMapperCacheStandardizedService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
@@ -60,7 +60,7 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     private readonly paginationService: PaginationService,
     private readonly featureFlags: FeatureFlags,
     private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
-    private readonly symbolMapperCacheService: SymbolMapperCacheService,
+    private readonly symbolMapperCacheService: SymbolMapperCacheStandardizedService,
   ) {}
 
   /**
@@ -1251,8 +1251,8 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
   /**
    * 手动清理所有缓存（委派给缓存服务）
    */
-  clearCache(): void {
-    this.symbolMapperCacheService.clearAllCaches();
+  async clearCache(): Promise<void> {
+    await this.symbolMapperCacheService.clearAllCaches();
     this.logger.log("符号映射规则缓存已清理");
   }
 

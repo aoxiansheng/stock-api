@@ -376,14 +376,9 @@ export const DATA_MAPPER_DEFAULTS = Object.freeze({
 
 /**
  * 缓存配置常量
+ * 已删除：DATA_MAPPER_CACHE_CONFIG 常量已迁移到专用的 DataMapperCache 模块配置中
+ * 位置：src/core/05-caching/module/data-mapper-cache/constants/
  */
-export const DATA_MAPPER_CACHE_CONFIG = Object.freeze({
-  RULE_CACHE_TTL: 1800, // 规则缓存TTL（30分钟）
-  SUGGESTION_CACHE_TTL: 300, // 建议缓存TTL（5分钟）
-  TRANSFORMATION_CACHE_TTL: 600, // 转换缓存TTL（10分钟）
-  MAX_CACHE_SIZE: 1000, // 最大缓存条目数
-  CACHE_KEY_PREFIX: "data_mapper:", // 缓存键前缀
-} as const);
 
 
 

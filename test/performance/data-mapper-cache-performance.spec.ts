@@ -8,10 +8,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Redis } from 'ioredis';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DataMapperCacheService } from '../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache.service';
+import { DataMapperCacheStandardizedService } from '../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache-standardized.service';
 
 describe('DataMapperCache Performance Benchmarks', () => {
-  let service: DataMapperCacheService;
+  let service: DataMapperCacheStandardizedService;
   let redis: Redis;
   let eventEmitter: EventEmitter2;
 
@@ -28,7 +28,7 @@ describe('DataMapperCache Performance Benchmarks', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        DataMapperCacheService,
+        DataMapperCacheStandardizedService,
         {
           provide: 'default_IORedisModuleConnectionToken',
           useFactory: () => {
@@ -49,7 +49,7 @@ describe('DataMapperCache Performance Benchmarks', () => {
       ],
     }).compile();
 
-    service = module.get<DataMapperCacheService>(DataMapperCacheService);
+    service = module.get<DataMapperCacheStandardizedService>(DataMapperCacheStandardizedService);
     redis = module.get('default_IORedisModuleConnectionToken');
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
 

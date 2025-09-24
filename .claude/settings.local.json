@@ -98,7 +98,9 @@
       "Bash(DISABLE_AUTO_INIT=true npx jest src/core/05-caching/module/stream-cache/test-migration.spec.ts --testTimeout=30000)",
       "Bash(DISABLE_AUTO_INIT=true npx jest --config=test/config/jest.unit.config.js src/core/05-caching/module/stream-cache/test-migration.spec.ts --testTimeout=30000)",
       "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/05-caching/foundation/interfaces/standard-cache-module.interface.ts)",
-      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/05-caching/module/basic-cache/services/basic-cache-standardized.service.ts)"
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/05-caching/module/basic-cache/services/basic-cache-standardized.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npm run typecheck:file -- src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service.ts)",
+      "Bash(DISABLE_AUTO_INIT=true npx jest test/jest/unit/core/05-caching/module/basic-cache/services/standardized-cache.service.spec.ts --testTimeout=30000)"
     ],
     "deny": [],
     "ask": []

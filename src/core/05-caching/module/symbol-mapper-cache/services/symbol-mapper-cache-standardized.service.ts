@@ -14,8 +14,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-// Legacy imports (for compatibility)
-import { SymbolMapperCacheService } from './symbol-mapper-cache.service';
+// Core imports
 import { SymbolMappingRepository } from '../../../../00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { FeatureFlags } from '@config/feature-flags.config';
 
@@ -56,8 +55,8 @@ export class SymbolMapperCacheStandardizedService implements OnModuleInit, OnMod
   private memoryCheckTimer: NodeJS.Timeout | null = null;
   private lastMemoryCleanup = Date.now();
 
-  // Legacy service (双服务兼容模式)
-  private legacyService: SymbolMapperCacheService | null = null;
+  // Service metrics and monitoring
+  private isInitialized: boolean = false;
 
   constructor(
     private readonly eventEmitter: EventEmitter2,
@@ -66,6 +65,7 @@ export class SymbolMapperCacheStandardizedService implements OnModuleInit, OnMod
     private readonly featureFlags: FeatureFlags,
   ) {
     this.logger.log('SymbolMapperCacheStandardizedService (Simplified) initialized');
+    this.isInitialized = true;
   }
 
   // ==================== 生命周期方法 ====================
@@ -130,20 +130,24 @@ export class SymbolMapperCacheStandardizedService implements OnModuleInit, OnMod
    * 符号映射主方法 (兼容原有接口)
    */
   async mapSymbols(
-    symbols: string[],
     provider: string,
+    symbols: string | string[],
     direction: MappingDirection,
+    requestId?: string,
   ): Promise<BatchMappingResult> {
     const startTime = Date.now();
     this.stats.totalQueries++;
     this.stats.operations++;
+
+    // Convert symbols to array format for consistency
+    const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
 
     try {
       // 简化实现：直接转换符号格式
       const mappingDetails: Record<string, string> = {};
       const failedSymbols: string[] = [];
 
-      for (const symbol of symbols) {
+      for (const symbol of symbolArray) {
         try {
           if (direction === MappingDirection.TO_STANDARD) {
             mappingDetails[symbol] = this.convertToStandardFormat(symbol);
@@ -172,8 +176,8 @@ export class SymbolMapperCacheStandardizedService implements OnModuleInit, OnMod
         failedSymbols,
         provider,
         direction,
-        totalProcessed: symbols.length,
-        cacheHits: symbols.length - failedSymbols.length,
+        totalProcessed: symbolArray.length,
+        cacheHits: symbolArray.length - failedSymbols.length,
         processingTimeMs: Date.now() - startTime,
       };
 
@@ -324,20 +328,23 @@ export class SymbolMapperCacheStandardizedService implements OnModuleInit, OnMod
     return symbol;
   }
 
-  // ==================== 兼容性接口 ====================
+  // ==================== 服务状态 ====================
 
   /**
-   * 设置 Legacy Service (双服务兼容模式)
+   * 检查服务是否已初始化
    */
-  setLegacyService(legacyService: SymbolMapperCacheService): void {
-    this.legacyService = legacyService;
-    this.logger.log('Legacy service compatibility mode enabled');
+  isServiceInitialized(): boolean {
+    return this.isInitialized;
   }
 
   /**
-   * 获取 Legacy Service
+   * 获取服务版本信息
    */
-  getLegacyService(): SymbolMapperCacheService | null {
-    return this.legacyService;
+  getServiceInfo(): { name: string; version: string; mode: string } {
+    return {
+      name: 'SymbolMapperCacheStandardizedService',
+      version: '1.0.0',
+      mode: 'simplified'
+    };
   }
 }

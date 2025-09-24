@@ -3,7 +3,7 @@
  */
 
 // 核心服务
-export { BasicCacheService } from "./services/basic-cache.service";
+export { StandardizedCacheService } from "./services/standardized-cache.service";
 export { CacheCompressionService } from "./services/cache-compression.service";
 
 // 模块
@@ -43,7 +43,6 @@ export { RedisValueUtils } from "./utils/redis-value.utils";
 // 常量
 export {
   CACHE_KEY_PREFIXES,
-  // CACHE_OPERATIONS 已迁移到系统级，使用 import { CACHE_CORE_OPERATIONS } from '../../../cache/constants/cache.constants'
   CACHE_RESULT_STATUS,
   CACHE_PRIORITY,
   DATA_SOURCE,
@@ -55,9 +54,6 @@ export {
   CACHE_CONFIG,
   CACHE_STRATEGIES,
 } from "./constants/cache-config.constants";
-
-// 注意: 共享常量已迁移到foundation层
-// 请直接从 '../../../foundation/constants/core-values.constants' 导入
 
 export type {
   CacheStrategy,

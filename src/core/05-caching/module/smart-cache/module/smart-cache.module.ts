@@ -3,10 +3,8 @@ import { createLogger } from "@common/logging/index";
 import { StorageModule } from "../../../../04-storage/storage/module/storage.module";
 import { SharedServicesModule } from "../../../../shared/module/shared-services.module";
 import { BasicCacheModule } from "../../basic-cache/module/basic-cache.module";
-import { SmartCacheOrchestrator } from "../services/smart-cache-orchestrator.service";
 import { SmartCacheStandardizedService } from "../services/smart-cache-standardized.service";
 import {
-  type SmartCacheOrchestratorConfig,
   DEFAULT_SMART_CACHE_CONFIG,
   SMART_CACHE_ORCHESTRATOR_CONFIG,
 } from "../interfaces/smart-cache-config.interface";
@@ -30,13 +28,12 @@ import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performa
  * - SharedServicesModule: 提供MarketStatusService、BackgroundTaskService等共享服务
  * - BasicCacheModule: 提供通用缓存服务
  *
- * 双服务模式：
- * - SmartCacheStandardizedService: 新标准化服务 (主要)
- * - SmartCacheOrchestrator: 原有服务 (兼容性保留)
+ * 服务模式：
+ * - SmartCacheStandardizedService: 标准化智能缓存服务
  *
  * 使用方式：
  * - 在QueryModule、ReceiverModule中导入此模块
- * - 优先使用SmartCacheStandardizedService，向后兼容SmartCacheOrchestrator
+ * - 使用SmartCacheStandardizedService进行智能缓存操作
  */
 import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
 
@@ -47,7 +44,7 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     StorageModule,
 
     // 🔑 关键依赖：BasicCacheModule（Phase 4.4 迁移）
-    // 提供BasicCacheService用于缓存操作
+    // 提供StandardizedCacheService用于缓存操作
     BasicCacheModule,
 
     // 🔑 关键依赖：SharedServicesModule (全局模块)
@@ -65,9 +62,6 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     // 🆕 标准化服务 (主要服务)
     SmartCacheStandardizedService,
 
-    // 🔄 原有服务 (兼容性保留)
-    SmartCacheOrchestrator,
-
     // 🚀 性能优化器服务
     SmartCachePerformanceOptimizer,
 
@@ -81,9 +75,6 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
   exports: [
     // 主要导出标准化服务
     SmartCacheStandardizedService,
-
-    // 兼容性导出 (保持向后兼容)
-    SmartCacheOrchestrator,
 
     // 导出性能优化器，供其他模块使用
     SmartCachePerformanceOptimizer,
@@ -122,7 +113,7 @@ export class SmartCacheModule {
  * ```
  */
 export function createSmartCacheModuleWithConfig(
-  config: Partial<SmartCacheOrchestratorConfig>,
+  config: Partial<any>, // 暂时使用 any，配置接口将在后续清理
 ) {
   // 获取环境变量配置作为基础
   const envConfig = SmartCacheConfigFactory.createConfig();
@@ -142,16 +133,17 @@ export function createSmartCacheModuleWithConfig(
       StorageModule,
       BasicCacheModule,
       SharedServicesModule,
-      //CollectorModule,
+      MarketInferenceModule,
     ],
     providers: [
-      SmartCacheOrchestrator,
+      SmartCacheStandardizedService,
+      SmartCachePerformanceOptimizer,
       {
         provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
         useValue: mergedConfig,
       },
     ],
-    exports: [SmartCacheOrchestrator, SMART_CACHE_ORCHESTRATOR_CONFIG],
+    exports: [SmartCacheStandardizedService, SMART_CACHE_ORCHESTRATOR_CONFIG],
   })
   class ConfiguredSmartCacheModule {}
 

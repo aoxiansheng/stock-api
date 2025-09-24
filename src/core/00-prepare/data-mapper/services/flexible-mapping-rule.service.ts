@@ -21,7 +21,7 @@ import {
   CreateMappingRuleFromSuggestionsDto,
 } from "../dto/flexible-mapping-rule.dto";
 import { DataSourceTemplateService } from "./data-source-template.service";
-import { DataMapperCacheService } from "../../../05-caching/module/data-mapper-cache/services/data-mapper-cache.service";
+import { DataMapperCacheStandardizedService } from "../../../05-caching/module/data-mapper-cache/services/data-mapper-cache-standardized.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { CacheService } from "@cache/services/cache.service";
 
@@ -56,7 +56,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     private readonly paginationService: PaginationService,
     private readonly templateService: DataSourceTemplateService,
-    private readonly mappingRuleCacheService: DataMapperCacheService,
+    private readonly mappingRuleCacheService: DataMapperCacheStandardizedService,
     private readonly eventBus: EventEmitter2,
     private readonly cacheService: CacheService,
   ) {
@@ -516,7 +516,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
         FlexibleMappingRuleResponseDto.fromDocument(rule),
       );
 
-      // 使用DataMapperCacheService的预热功能
+      // 使用DataMapperCacheStandardizedService的预热功能
       await this.mappingRuleCacheService.warmupCache(ruleDtos);
 
       this.logger.log("映射规则缓存预热完成", { cachedRules: ruleDtos.length });

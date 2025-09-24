@@ -6,7 +6,7 @@
  */
 export const DATA_MAPPER_CACHE_ERROR_CODES = {
   // Validation errors - 仅保留实际使用的验证错误代码
-  INVALID_RULE_ID: 'DATA_MAPPER_CACHE_VALIDATION_001',      // 使用位置: data-mapper-cache.service.ts:1148
-  INVALID_KEY_FORMAT: 'DATA_MAPPER_CACHE_VALIDATION_002',   // 使用位置: data-mapper-cache.service.ts:1179
-  KEY_LENGTH_EXCEEDED: 'DATA_MAPPER_CACHE_VALIDATION_003',  // 使用位置: data-mapper-cache.service.ts:1163
+  INVALID_RULE_ID: 'DATA_MAPPER_CACHE_VALIDATION_001',      // 使用位置: data-mapper-cache-standardized.service.ts
+  INVALID_KEY_FORMAT: 'DATA_MAPPER_CACHE_VALIDATION_002',   // 使用位置: data-mapper-cache-standardized.service.ts
+  KEY_LENGTH_EXCEEDED: 'DATA_MAPPER_CACHE_VALIDATION_003',  // 使用位置: data-mapper-cache-standardized.service.ts
 } as const; 

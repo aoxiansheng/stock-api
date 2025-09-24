@@ -16,7 +16,7 @@ import { SMART_CACHE_COMPONENT } from "../constants/smart-cache.component.consta
  * - 批量处理优化
  * - 系统资源感知
  *
- * 设计为可被 SmartCacheOrchestrator 组合使用的独立服务
+ * 设计为可被 SmartCacheStandardizedService 组合使用的独立服务
  */
 @Injectable()
 export class SmartCachePerformanceOptimizer {

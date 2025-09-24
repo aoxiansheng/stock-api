@@ -21,7 +21,7 @@
     "AnalyzerService": "info",
     "PresenterService": "info",
     "CacheService": "info",
-    "SmartCacheOrchestrator": "warn",
+    "SmartCacheStandardizedService": "warn",
     "SymbolMapperService": "warn",
     "DataMapperService": "warn",
     

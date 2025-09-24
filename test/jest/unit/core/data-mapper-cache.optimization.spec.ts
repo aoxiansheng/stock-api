@@ -6,18 +6,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Redis } from 'ioredis';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { DataMapperCacheService } from '../../../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache.service';
+import { DataMapperCacheStandardizedService } from '../../../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache-standardized.service';
 import { FlexibleMappingRuleResponseDto } from '../../../../src/core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 
 describe('DataMapperCache Optimization Validation', () => {
-  let service: DataMapperCacheService;
+  let service: DataMapperCacheStandardizedService;
   let redis: Redis;
   let eventEmitter: EventEmitter2;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        DataMapperCacheService,
+        DataMapperCacheStandardizedService,
         {
           provide: 'default_IORedisModuleConnectionToken',
           useFactory: () => {
@@ -39,7 +39,7 @@ describe('DataMapperCache Optimization Validation', () => {
       ],
     }).compile();
 
-    service = module.get<DataMapperCacheService>(DataMapperCacheService);
+    service = module.get<DataMapperCacheStandardizedService>(DataMapperCacheStandardizedService);
     redis = module.get('default_IORedisModuleConnectionToken');
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
 
@@ -278,7 +278,7 @@ describe('DataMapperCache Optimization Validation', () => {
       expect(eventEmitter.emit).toBeDefined();
 
       // Test that service initialization doesn't throw
-      expect(service).toBeInstanceOf(DataMapperCacheService);
+      expect(service).toBeInstanceOf(DataMapperCacheStandardizedService);
 
       console.log('✅ Performance monitoring integration verified');
 

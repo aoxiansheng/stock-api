@@ -1009,7 +1009,7 @@ export class PresenterService {
         value: Math.random() * 500 + 200, // 200-700ms
         unit: "ms",
         timestamp: now,
-        labels: { service: "DataMapperCacheService", operation: "scanKeys" },
+        labels: { service: "DataMapperCacheStandardizedService", operation: "scanKeys" },
       });
 
       metrics.push({
@@ -1017,7 +1017,7 @@ export class PresenterService {
         value: Math.random() * 10 + 85, // 85-95%
         unit: "%",
         timestamp: now,
-        labels: { service: "DataMapperCacheService" },
+        labels: { service: "DataMapperCacheStandardizedService" },
       });
 
       // 业务逻辑指标

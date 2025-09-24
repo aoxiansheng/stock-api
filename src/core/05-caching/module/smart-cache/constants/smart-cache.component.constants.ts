@@ -35,7 +35,7 @@ export const SMART_CACHE_COMPONENT = Object.freeze({
 
   // 日志上下文定义
   LOG_CONTEXTS: {
-    ORCHESTRATOR_SERVICE: "SmartCacheOrchestratorService",
+    STANDARDIZED_SERVICE: "SmartCacheStandardizedService",
     PERFORMANCE_OPTIMIZER: "SmartCachePerformanceOptimizer",
     CONFIG_FACTORY: "SmartCacheConfigFactory",
     CONFIG_VALIDATOR: "SmartCacheConfigValidator",

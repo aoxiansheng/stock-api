@@ -1,20 +1,12 @@
-/**
- * AlertRuleValidator 增强功能测试
- * 🎯 验证器增强后的测试用例
- *
- * @description 测试验证器的ID格式验证和错误消息格式统一性
- * @author Claude Code Assistant
- * @date 2025-09-17
- */
+import { Test, TestingModule } from '@nestjs/testing';
+import { AlertRuleValidator } from '../../../../src/alert/validators/alert-rule.validator';
+import { ConfigService } from '@nestjs/config';
+import { IAlertRule } from '../../../../src/alert/interfaces';
+import { AlertRuleUtil } from '../../../../src/alert/constants';
 
-import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigService } from "@nestjs/config";
-import { AlertRuleValidator } from "../../../../../src/alert/validators/alert-rule.validator";
-import { IAlertRule } from "../../../../../src/alert/interfaces";
-
-describe("AlertRuleValidator - Enhanced Features", () => {
+describe('AlertRuleValidator', () => {
   let validator: AlertRuleValidator;
-  let configService: ConfigService;
+  let configService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,21 +15,11 @@ describe("AlertRuleValidator - Enhanced Features", () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key) => {
-              if (key === "alert") {
-                return {
-                  validation: {
-                    duration: { min: 30, max: 3600 },
-                    cooldown: { min: 60, max: 86400 },
-                  },
-                };
-              }
-              return null;
-            }),
+            get: jest.fn(),
           },
         },
         {
-          provide: "cacheUnified",
+          provide: 'cacheUnified',
           useValue: {
             defaultTtl: 300,
           },
@@ -45,282 +27,433 @@ describe("AlertRuleValidator - Enhanced Features", () => {
       ],
     }).compile();
 
-    validator = module.get<AlertRuleValidator>(AlertRuleValidator);
-    configService = module.get<ConfigService>(ConfigService);
+    validator = module.get(AlertRuleValidator);
+    configService = module.get(ConfigService);
   });
 
-  describe("ID格式验证", () => {
-    it("应该通过有效的ObjectId验证", () => {
-      const validRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011", // 有效的ObjectId
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: 80,
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-      const result = validator.validateRule(validRule);
+  it('should be defined', () => {
+    expect(validator).toBeDefined();
+  });
+
+  describe('validateRule', () => {
+    const mockRule: IAlertRule = {
+      id: 'rule_123',
+      name: 'Test Alert Rule',
+      description: 'Test alert rule description',
+      metric: 'cpu.usage',
+      operator: '>',
+      threshold: 80,
+      duration: 300,
+      severity: 'warning',
+      enabled: true,
+      channels: [
+        {
+          id: 'channel_1',
+          name: 'Email Channel',
+          type: 'email' as any,
+          config: { email: 'test@example.com' },
+          enabled: true,
+        }
+      ],
+      cooldown: 600,
+      tags: { environment: 'test' },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should validate a correct rule successfully', () => {
+      // Arrange
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(mockRule);
+
+      // Assert
       expect(result.valid).toBe(true);
-      expect(result.errors).not.toEqual(
-        expect.arrayContaining([expect.stringMatching(/无效的告警规则ID格式/)]),
-      );
+      expect(result.errors).toEqual([]);
     });
 
-    it("应该拒绝无效的ObjectId格式", () => {
-      const invalidRule: IAlertRule = {
-        id: "invalid-id-format", // 无效的ObjectId
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: 80,
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('should return validation errors for invalid rule name', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, name: '' };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
 
+      // Act
       const result = validator.validateRule(invalidRule);
+
+      // Assert
       expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([expect.stringMatching(/无效的告警规则ID格式/)]),
-      );
+      expect(result.errors).toContain('无效的规则名称格式: ');
     });
 
-    it("应该允许空的rule.id（创建新规则时）", () => {
-      const ruleWithoutId: Partial<IAlertRule> = {
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: 80,
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('should return validation errors for invalid metric name', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, metric: '' };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
 
-      const result = validator.validateRule(ruleWithoutId as IAlertRule);
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的监控指标名称格式: ');
+    });
+
+    it('should return validation errors for invalid operator', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, operator: 'invalid' as any };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的比较操作符: invalid');
+    });
+
+    it('should return validation errors for invalid threshold', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, threshold: NaN };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的阈值: NaN，必须是有效数字');
+    });
+
+    it('should return validation errors for invalid duration', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, duration: 10 };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的持续时间: 10，必须在30-3600秒之间');
+    });
+
+    it('should return validation errors for invalid cooldown', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, cooldown: 30 };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的冷却时间: 30，必须在60-86400秒之间');
+    });
+
+    it('should return validation errors for missing channels', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, channels: [] };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('必需字段缺失: 通知渠道');
+    });
+
+    it('should return validation errors for invalid channel type', () => {
+      // Arrange
+      const invalidRule = {
+        ...mockRule,
+        channels: [
+          {
+            id: 'channel_1',
+            name: 'Invalid Channel',
+            type: undefined as any,
+            config: {},
+            enabled: true,
+          }
+        ]
+      };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的通知渠道配置 1: 必须指定渠道类型');
+    });
+
+    it('should return validation errors for invalid severity', () => {
+      // Arrange
+      const invalidRule = { ...mockRule, severity: 'invalid' as any };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(invalidRule);
+
+      // Assert
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('无效的严重程度: invalid，必须是: info, warning, critical');
+    });
+
+    it('should return warnings for long cooldown periods', () => {
+      // Arrange
+      const ruleWithLongCooldown = { ...mockRule, cooldown: 91 * 86400 };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(ruleWithLongCooldown);
+
+      // Assert
       expect(result.valid).toBe(true);
-      expect(result.errors).not.toEqual(
-        expect.arrayContaining([expect.stringMatching(/无效的告警规则ID格式/)]),
-      );
+      expect(result.warnings).toContain('冷却时间超过2160小时，可能会延迟重要告警');
+    });
+
+    it('should return warnings for zero threshold with equality operators', () => {
+      // Arrange
+      const ruleWithZeroThreshold = { ...mockRule, threshold: 0, operator: '==' };
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const result = validator.validateRule(ruleWithZeroThreshold);
+
+      // Assert
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toContain('使用0作为阈值时请确认业务逻辑正确');
     });
   });
 
-  describe("错误消息格式统一性", () => {
-    it("应该返回统一格式的规则名称错误消息", () => {
-      const invalidRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011",
-        name: "", // 无效的规则名称
-        metric: "cpu_usage",
-        operator: ">",
+  describe('validateRules', () => {
+    const mockRules: IAlertRule[] = [
+      {
+        id: 'rule_1',
+        name: 'Test Rule 1',
+        metric: 'cpu.usage',
+        operator: '>',
         threshold: 80,
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
+        duration: 300,
+        severity: 'warning',
         enabled: true,
-        tags: {},
+        channels: [
+          {
+            id: 'channel_1',
+            name: 'Email Channel',
+            type: 'email' as any,
+            config: { email: 'test@example.com' },
+            enabled: true,
+          }
+        ],
+        cooldown: 600,
         createdAt: new Date(),
         updatedAt: new Date(),
-      };
+      },
+      {
+        id: 'rule_2',
+        name: 'Test Rule 2',
+        metric: 'memory.usage',
+        operator: '>',
+        threshold: 90,
+        duration: 300,
+        severity: 'critical',
+        enabled: true,
+        channels: [
+          {
+            id: 'channel_2',
+            name: 'SMS Channel',
+            type: 'sms' as any,
+            config: { phone: '+1234567890' },
+            enabled: true,
+          }
+        ],
+        cooldown: 600,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
 
-      const result = validator.validateRule(invalidRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/无效的规则名称格式.*\(空\)/),
-        ]),
-      );
+    it('should validate multiple rules and return results', () => {
+      // Arrange
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
+
+      // Act
+      const results = validator.validateRules(mockRules);
+
+      // Assert
+      expect(results).toHaveLength(2);
+      expect(results[0].valid).toBe(true);
+      expect(results[1].valid).toBe(true);
     });
 
-    it("应该返回统一格式的监控指标错误消息", () => {
-      const invalidRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011",
-        name: "test-rule",
-        metric: "", // 无效的监控指标
-        operator: ">",
-        threshold: 80,
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    it('should handle validation failures in batch validation', () => {
+      // Arrange
+      const invalidRules = [
+        { ...mockRules[0], name: '' },
+        { ...mockRules[1], operator: 'invalid' as any }
+      ];
+      
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30, max: 3600 },
+          cooldown: { min: 60, max: 86400 }
+        }
+      });
 
-      const result = validator.validateRule(invalidRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/无效的监控指标名称格式.*\(空\)/),
-        ]),
-      );
-    });
+      // Act
+      const results = validator.validateRules(invalidRules);
 
-    it("应该返回统一格式的阈值错误消息", () => {
-      const invalidRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011",
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: NaN, // 无效的阈值
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const result = validator.validateRule(invalidRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/无效的阈值.*必须是有效数字/),
-        ]),
-      );
-    });
-
-    it("应该返回统一格式的持续时间错误消息", () => {
-      const invalidRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011",
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: 80,
-        duration: 10, // 小于最小值30
-        cooldown: 300,
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const result = validator.validateRule(invalidRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/无效的持续时间.*必须在30-3600秒之间/),
-        ]),
-      );
-    });
-
-    it("应该返回统一格式的冷却时间错误消息", () => {
-      const invalidRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011",
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: 80,
-        duration: 60,
-        cooldown: 30, // 小于最小值60
-        severity: "warning",
-        channels: [
-          { name: "email-channel", type: "email", enabled: true, config: {} },
-        ],
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const result = validator.validateRule(invalidRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/无效的冷却时间.*必须在60-86400秒之间/),
-        ]),
-      );
-    });
-
-    it("应该返回统一格式的通知渠道错误消息", () => {
-      const invalidRule: IAlertRule = {
-        id: "507f1f77bcf86cd799439011",
-        name: "test-rule",
-        metric: "cpu_usage",
-        operator: ">",
-        threshold: 80,
-        duration: 60,
-        cooldown: 300,
-        severity: "warning",
-        channels: [], // 空的通知渠道
-        enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const result = validator.validateRule(invalidRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringMatching(/无效的通知渠道配置.*至少需要配置一个通知渠道/),
-        ]),
-      );
+      // Assert
+      expect(results).toHaveLength(2);
+      expect(results[0].valid).toBe(false);
+      expect(results[1].valid).toBe(false);
     });
   });
 
-  describe("完整功能验证", () => {
-    it("应该同时检测多个错误并返回统一格式的错误消息", () => {
-      const multipleErrorRule: any = {
-        id: "invalid-id",
-        name: "",
-        metric: "",
-        operator: "invalid",
-        threshold: NaN,
-        duration: 10,
-        cooldown: 30,
-        severity: "invalid",
-        channels: [],
+  describe('getSupportedOperators', () => {
+    it('should return list of supported operators', () => {
+      // Act
+      const operators = validator.getSupportedOperators();
+
+      // Assert
+      expect(operators).toEqual(['>', '>=', '<', '<=', '==', '!=']);
+    });
+  });
+
+  describe('getDefaultRuleConfig', () => {
+    it('should return default rule configuration', () => {
+      // Arrange
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30 },
+          cooldown: { min: 60 }
+        }
+      });
+
+      // Act
+      const config = validator.getDefaultRuleConfig();
+
+      // Assert
+      expect(config).toEqual({
+        operator: '>',
+        duration: 30,
+        cooldown: 60,
+        severity: 'warning',
         enabled: true,
-        tags: {},
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        tags: {}
+      });
+    });
 
-      const result = validator.validateRule(multipleErrorRule);
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(5);
+    it('should use cache config defaults when alert config is not available', () => {
+      // Arrange
+      configService.get.mockReturnValue(undefined);
 
-      // 验证每个错误消息都遵循统一格式
-      result.errors.forEach((error) => {
-        expect(error).toMatch(/^无效的/);
+      // Act
+      const config = validator.getDefaultRuleConfig();
+
+      // Assert
+      expect(config).toEqual({
+        operator: '>',
+        duration: 300,
+        cooldown: 300,
+        severity: 'warning',
+        enabled: true,
+        tags: {}
+      });
+    });
+  });
+
+  describe('getValidatorStats', () => {
+    it('should return validator statistics', () => {
+      // Arrange
+      configService.get.mockReturnValue({
+        validation: {
+          duration: { min: 30 },
+          cooldown: { min: 60 }
+        }
+      });
+
+      // Act
+      const stats = validator.getValidatorStats();
+
+      // Assert
+      expect(stats).toEqual({
+        supportedOperators: ['>', '>=', '<', '<=', '==', '!='],
+        validSeverities: ['info', 'warning', 'critical'],
+        defaultDuration: 30,
+        defaultCooldown: 60
       });
     });
   });

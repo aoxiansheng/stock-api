@@ -3,7 +3,7 @@ import { Market } from "../../../../shared/constants/market.constants";
 import {
   CacheStrategy,
   CacheOrchestratorRequest,
-} from "../interfaces/smart-cache-orchestrator.interface";
+} from "../services/smart-cache-standardized.service";
 import {
   MarketDetectOptions,
   SymbolValidationUtils,

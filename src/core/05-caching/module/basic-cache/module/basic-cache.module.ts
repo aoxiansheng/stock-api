@@ -1,8 +1,7 @@
 import { Module, OnModuleDestroy, OnModuleInit, Inject } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
-import { BasicCacheService } from "../services/basic-cache.service";
-import { BasicCacheStandardizedService } from "../services/basic-cache-standardized.service";
+import { StandardizedCacheService } from "../services/standardized-cache.service";
 import { CacheCompressionService } from "../services/cache-compression.service";
 import { CacheConfigValidator } from "../validators/cache-config.validator";
 import { CACHE_CONFIG } from "../constants/cache-config.constants";
@@ -13,12 +12,11 @@ import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../../monitoring/contracts";
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 
 /**
- * 通用缓存模块 (标准化版本)
+ * 通用缓存模块 (架构简化重构版本)
  * 非全局模块，需显式导入
  *
- * 双服务模式：
- * - BasicCacheStandardizedService: 新标准化服务 (主要)
- * - BasicCacheService: 原有服务 (兼容性保留)
+ * 重构后服务架构：
+ * - StandardizedCacheService: 统一标准化服务 (主要) - ✅ 已验证工作正常
  */
 @Module({
   imports: [
@@ -89,22 +87,19 @@ import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } fro
       inject: [ConfigService],
     },
 
-    // 🆕 标准化服务 (主要服务)
-    BasicCacheStandardizedService,
+    // 🎯 统一标准化服务 (重构后主要服务)
+    StandardizedCacheService,
 
-    // 🔄 原有服务 (兼容性保留)
-    BasicCacheService,
+
 
     // 📦 辅助服务
     CacheCompressionService,
     CacheConfigValidator,
   ],
   exports: [
-    // 主要导出标准化服务
-    BasicCacheStandardizedService,
+    // 🎯 主要导出统一标准化服务 (重构后主要接口)
+    StandardizedCacheService,
 
-    // 兼容性导出 (保持向后兼容)
-    BasicCacheService,
 
     // 辅助服务导出
     CacheCompressionService,
@@ -118,7 +113,7 @@ export class BasicCacheModule implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly configValidator: CacheConfigValidator,
-    private readonly basicCacheService: BasicCacheService,
+    private readonly standardizedCacheService: StandardizedCacheService,
   ) {}
 
   async onModuleInit() {
@@ -176,8 +171,18 @@ export class BasicCacheModule implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
 
-    // ✅ Phase 4: 初始化摘要
-    console.log(`✅ BasicCacheModule initialized successfully`);
+    // ✅ Phase 4: 统一标准化服务初始化
+    console.log(`🎯 Initializing StandardizedCacheService...`);
+    try {
+      await this.standardizedCacheService.initialize(validationResult.config);
+      console.log(`✅ StandardizedCacheService initialized successfully`);
+    } catch (error) {
+      console.error(`❌ StandardizedCacheService initialization failed:`, error);
+      throw error;
+    }
+
+    // ✅ Phase 5: 初始化摘要
+    console.log(`✅ BasicCacheModule initialized successfully (Architecture Simplified)`);
     console.log(`⚙️  Configuration summary:`);
     console.log(
       `   • Redis: ${validationResult.config.redis.host}:${validationResult.config.redis.port} (DB: ${validationResult.config.redis.db})`,
@@ -194,6 +199,9 @@ export class BasicCacheModule implements OnModuleInit, OnModuleDestroy {
     console.log(
       `   • Decompression: max ${validationResult.config.decompression.maxConcurrent} concurrent (timeout: ${validationResult.config.decompression.timeoutMs}ms)`,
     );
+    console.log(
+      `   • Services: StandardizedCacheService (unified cache service)`,
+    );
   }
 
   async onModuleDestroy() {
@@ -203,13 +211,14 @@ export class BasicCacheModule implements OnModuleInit, OnModuleDestroy {
       // ✅ 修复P0问题：先清理服务资源
       console.log("🧹 Cleaning up services...");
 
-      // 清理BasicCacheService资源（停用异步操作）
+      // 清理StandardizedCacheService资源（主要服务）
       try {
-        this.basicCacheService.cleanup();
-        console.log("✅ BasicCacheService cleanup completed");
+        this.standardizedCacheService.cleanup();
+        console.log("✅ StandardizedCacheService cleanup completed");
       } catch (error) {
-        console.error("❌ BasicCacheService cleanup error:", error.message);
+        console.error("❌ StandardizedCacheService cleanup error:", error.message);
       }
+
 
       // 清理Redis连接和事件监听器
       console.log("🧹 Cleaning up Redis connections...");

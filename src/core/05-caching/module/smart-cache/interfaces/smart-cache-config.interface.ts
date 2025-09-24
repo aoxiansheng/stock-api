@@ -1,4 +1,4 @@
-import { CacheStrategy } from "./smart-cache-orchestrator.interface";
+import { CacheStrategy } from "../services/smart-cache-standardized.service";
 import {
   SMART_CACHE_CONSTANTS,
   SmartCacheConstantsType,
