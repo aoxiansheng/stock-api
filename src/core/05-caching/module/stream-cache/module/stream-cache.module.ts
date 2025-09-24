@@ -128,18 +128,11 @@ import {
     // 标准化流缓存服务 - Phase 8 完成迁移
     StreamCacheStandardizedService,
 
-    // Backward compatibility alias during transition
-    {
-      provide: 'StreamCacheService',
-      useExisting: StreamCacheStandardizedService,
-    },
   ],
   exports: [
     // Export new standardized service for production use
     StreamCacheStandardizedService,
 
-    // Backward compatibility alias
-    'StreamCacheService',
     CACHE_REDIS_CLIENT_TOKEN,
     STREAM_CACHE_CONFIG_TOKEN,
   ],
