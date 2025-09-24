@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import os from "os";
-import { SmartCacheOrchestratorConfig } from "../interfaces/smart-cache-config.interface";
+import type { CacheUnifiedConfigInterface } from "../../../foundation/types/cache-config.types";
 import { CacheStrategy } from "../services/smart-cache-standardized.service";
 import {
   SMART_CACHE_CONSTANTS,
@@ -51,7 +51,7 @@ export class SmartCacheConfigFactory {
    * 创建SmartCache配置实例
    * 基于环境变量和系统资源生成优化的配置
    */
-  static createConfig(): SmartCacheOrchestratorConfig {
+  static createConfig(): CacheUnifiedConfigInterface {
     const cpuCores = os.cpus().length;
     const totalMemoryMB = Math.round(os.totalmem() / (1024 * 1024));
 
@@ -59,170 +59,101 @@ export class SmartCacheConfigFactory {
       `Creating SmartCache config - CPU cores: ${cpuCores}, Total memory: ${totalMemoryMB}MB`,
     );
 
-    const config: SmartCacheOrchestratorConfig = {
-      // 基础配置 - 支持环境变量覆盖
-      defaultMinUpdateInterval: this.parseIntEnv(
-        getEnvVar("MIN_UPDATE_INTERVAL_MS"),
-        SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
-      ),
+    // 从环境变量获取基础配置值
+    const strongTtl = this.parseIntEnv(
+      getEnvVar("STRONG_TTL_SECONDS"),
+      SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
+    );
 
-      maxConcurrentUpdates: this.parseIntEnv(
-        getEnvVar("MAX_CONCURRENT_UPDATES"),
-        // 智能默认值：基于CPU核心数，使用常量定义范围
-        Math.min(
-          Math.max(
-            SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
-            cpuCores,
-          ),
-          SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
+    const weakTtl = this.parseIntEnv(
+      getEnvVar("WEAK_TTL_SECONDS"),
+      SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
+    );
+
+    const maxConcurrentOps = this.parseIntEnv(
+      getEnvVar("MAX_CONCURRENT_UPDATES"),
+      // 智能默认值：基于CPU核心数，使用常量定义范围
+      Math.min(
+        Math.max(
+          SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT,
+          cpuCores,
         ),
+        SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT,
       ),
+    );
 
-      gracefulShutdownTimeout: this.parseIntEnv(
-        getEnvVar("SHUTDOWN_TIMEOUT_MS"),
-        SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
-      ),
+    const enableMetrics = this.parseBoolEnv(getEnvVar("ENABLE_METRICS"), true);
 
-      enableBackgroundUpdate: this.parseBoolEnv(
-        getEnvVar("ENABLE_BACKGROUND_UPDATE"),
-        true,
-      ),
+    // 映射到CacheUnifiedConfigInterface
+    const unifiedConfig: CacheUnifiedConfigInterface = {
+      // BaseCacheConfig fields
+      name: 'smart-cache',
+      defaultTtlSeconds: weakTtl, // 使用弱时效性TTL作为默认值
+      maxTtlSeconds: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S, // 3600秒
+      minTtlSeconds: strongTtl, // 使用强时效性TTL作为最小值
+      compressionEnabled: true,
+      compressionThresholdBytes: 1024,
+      metricsEnabled: enableMetrics,
+      performanceMonitoringEnabled: enableMetrics,
 
-      enableDataChangeDetection: this.parseBoolEnv(
-        getEnvVar("ENABLE_DATA_CHANGE_DETECTION"),
-        true,
-      ),
+      // TTL策略配置
+      ttl: {
+        realTimeTtlSeconds: strongTtl, // 强时效性：实时数据
+        nearRealTimeTtlSeconds: Math.round(strongTtl * 2), // 近实时：强时效性的2倍
+        batchQueryTtlSeconds: weakTtl, // 批量查询：弱时效性
+        offHoursTtlSeconds: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S, // 非交易时间
+        weekendTtlSeconds: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S * 2, // 周末更长缓存
+      },
 
-      enableMetrics: this.parseBoolEnv(getEnvVar("ENABLE_METRICS"), true),
+      // 性能配置
+      performance: {
+        maxMemoryMb: Math.min(Math.round(totalMemoryMB * 0.3), 2048), // 最多使用30%内存，不超过2GB
+        defaultBatchSize: 50,
+        maxConcurrentOperations: maxConcurrentOps,
+        slowOperationThresholdMs: 1000,
+        connectionTimeoutMs: 5000,
+        operationTimeoutMs: this.parseIntEnv(
+          getEnvVar("SHUTDOWN_TIMEOUT_MS"),
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.GRACEFUL_SHUTDOWN_TIMEOUT_MS,
+        ),
+      },
 
-      // 策略配置映射
-      strategies: {
-        // 强时效性策略 - Receiver场景
-        [CacheStrategy.STRONG_TIMELINESS]: {
-          ttl: this.parseIntEnv(
-            getEnvVar("STRONG_TTL_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
-          ),
-          enableBackgroundUpdate: this.parseBoolEnv(
-            getEnvVar("ENABLE_BACKGROUND_UPDATE"),
-            true,
-          ),
-          updateThresholdRatio: this.parseFloatEnv(
-            getEnvVar("STRONG_UPDATE_RATIO"),
-            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.STRONG_UPDATE_RATIO,
-          ),
-          forceRefreshInterval: this.parseIntEnv(
-            getEnvVar("MIN_UPDATE_INTERVAL_MS"),
-            SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS /
-              1000, // 转换为秒
-          ),
-          enableDataChangeDetection: this.parseBoolEnv(
-            getEnvVar("ENABLE_DATA_CHANGE_DETECTION"),
-            true,
-          ),
-        },
+      // 间隔配置
+      intervals: {
+        cleanupIntervalMs: 300000, // 5分钟清理间隔
+        healthCheckIntervalMs: this.parseIntEnv(
+          getEnvVar("HEALTH_CHECK_INTERVAL_MS"),
+          SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S * 1000, // 300秒转毫秒
+        ),
+        metricsCollectionIntervalMs: 60000, // 1分钟收集指标
+        statsLogIntervalMs: 300000, // 5分钟记录统计
+        heartbeatIntervalMs: this.parseIntEnv(
+          getEnvVar("MIN_UPDATE_INTERVAL_MS"),
+          SMART_CACHE_CONSTANTS.INTERVALS_MS.DEFAULT_MIN_UPDATE_INTERVAL_MS,
+        ),
+      },
 
-        // 弱时效性策略 - Query场景
-        [CacheStrategy.WEAK_TIMELINESS]: {
-          ttl: this.parseIntEnv(
-            getEnvVar("WEAK_TTL_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
-          ),
-          enableBackgroundUpdate: this.parseBoolEnv(
-            getEnvVar("ENABLE_BACKGROUND_UPDATE"),
-            true,
-          ),
-          updateThresholdRatio: this.parseFloatEnv(
-            getEnvVar("WEAK_UPDATE_RATIO"),
-            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.WEAK_UPDATE_RATIO,
-          ),
-          minUpdateInterval: this.parseIntEnv(
-            getEnvVar("MIN_UPDATE_INTERVAL_MS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S * 12, // 60秒
-          ),
-          enableDataChangeDetection: this.parseBoolEnv(
-            getEnvVar("ENABLE_DATA_CHANGE_DETECTION"),
-            true,
-          ),
-        },
+      // 限制配置
+      limits: {
+        maxKeyLength: 500, // 智能缓存键可能较长，包含策略信息
+        maxValueSizeBytes: 10 * 1024 * 1024, // 10MB
+        maxCacheEntries: 100000, // 10万条缓存条目
+        memoryThresholdRatio: 0.85, // 85%内存阈值
+        errorRateAlertThreshold: 0.05, // 5%错误率告警
+      },
 
-        // 市场感知策略 - 股票交易场景
-        [CacheStrategy.MARKET_AWARE]: {
-          openMarketTtl: this.parseIntEnv(
-            getEnvVar("MARKET_AWARE_TTL_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S,
-          ),
-          closedMarketTtl: this.parseIntEnv(
-            getEnvVar("MARKET_AWARE_TTL_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S,
-          ),
-          enableBackgroundUpdate: this.parseBoolEnv(
-            getEnvVar("ENABLE_BACKGROUND_UPDATE"),
-            true,
-          ),
-          marketStatusCheckInterval: this.parseIntEnv(
-            getEnvVar("HEALTH_CHECK_INTERVAL_MS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S, // 300秒
-          ),
-          openMarketUpdateThresholdRatio: this.parseFloatEnv(
-            getEnvVar("MARKET_OPEN_UPDATE_RATIO"),
-            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_OPEN_UPDATE_RATIO,
-          ),
-          closedMarketUpdateThresholdRatio: this.parseFloatEnv(
-            getEnvVar("MARKET_CLOSED_UPDATE_RATIO"),
-            SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.MARKET_CLOSED_UPDATE_RATIO,
-          ),
-          enableDataChangeDetection: this.parseBoolEnv(
-            getEnvVar("ENABLE_DATA_CHANGE_DETECTION"),
-            true,
-          ),
-        },
-
-        // 无缓存策略
-        [CacheStrategy.NO_CACHE]: {
-          bypassCache: this.parseBoolEnv(
-            getEnvVar("ENABLE_BACKGROUND_UPDATE"),
-            true,
-          ), // 重用环境变量
-          enableMetrics: this.parseBoolEnv(getEnvVar("ENABLE_METRICS"), true),
-        },
-
-        // 自适应策略 - 智能调整
-        [CacheStrategy.ADAPTIVE]: {
-          baseTtl: this.parseIntEnv(
-            getEnvVar("ADAPTIVE_TTL_BASE_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_BASE_DEFAULT_S,
-          ),
-          minTtl: this.parseIntEnv(
-            getEnvVar("ADAPTIVE_TTL_MIN_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MIN_S,
-          ),
-          maxTtl: this.parseIntEnv(
-            getEnvVar("ADAPTIVE_TTL_MAX_SECONDS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S,
-          ),
-          adaptationFactor: this.parseFloatEnv(
-            getEnvVar("ENABLE_ADAPTIVE_STRATEGY"), // 重用环境变量
-            1.5,
-          ),
-          enableBackgroundUpdate: this.parseBoolEnv(
-            getEnvVar("ENABLE_BACKGROUND_UPDATE"),
-            true,
-          ),
-          changeDetectionWindow: this.parseIntEnv(
-            getEnvVar("HEALTH_CHECK_INTERVAL_MS"),
-            SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S, // 3600秒
-          ),
-          enableDataChangeDetection: this.parseBoolEnv(
-            getEnvVar("ENABLE_DATA_CHANGE_DETECTION"),
-            true,
-          ),
-        },
+      // 重试配置
+      retry: {
+        maxRetryAttempts: 3,
+        baseRetryDelayMs: 100,
+        retryDelayMultiplier: 2,
+        maxRetryDelayMs: 5000,
+        exponentialBackoffEnabled: true,
       },
     };
 
     // 配置验证
-    const validationErrors = this.validateConfig(config);
+    const validationErrors = this.validateUnifiedConfig(unifiedConfig);
     if (validationErrors.length > 0) {
       this.logger.error(
         `SmartCache configuration validation failed:`,
@@ -240,13 +171,13 @@ export class SmartCacheConfigFactory {
       });
     }
 
-    // 记录配置摘要（包含环境变量使用统计）
+    // 记录配置摘要
     this.logger.log(`SmartCache configuration created successfully:`, {
-      maxConcurrentUpdates: config.maxConcurrentUpdates,
-      enableBackgroundUpdate: config.enableBackgroundUpdate,
-      enableMetrics: config.enableMetrics,
-      strongTtl: config.strategies[CacheStrategy.STRONG_TIMELINESS].ttl,
-      weakTtl: config.strategies[CacheStrategy.WEAK_TIMELINESS].ttl,
+      maxConcurrentOperations: unifiedConfig.performance.maxConcurrentOperations,
+      enableMetrics: unifiedConfig.metricsEnabled,
+      strongTtl: unifiedConfig.ttl.realTimeTtlSeconds,
+      weakTtl: unifiedConfig.ttl.batchQueryTtlSeconds,
+      maxMemoryMb: unifiedConfig.performance.maxMemoryMb,
     });
 
     // 仅在有自定义环境变量时输出详细信息
@@ -264,7 +195,7 @@ export class SmartCacheConfigFactory {
       );
     }
 
-    return config;
+    return unifiedConfig;
   }
 
   /**
@@ -391,113 +322,131 @@ export class SmartCacheConfigFactory {
 
   /**
    * 配置验证
-   * @param config 配置对象
+   * @param config 统一配置对象
    * @returns 验证错误数组
    */
-  private static validateConfig(
-    config: SmartCacheOrchestratorConfig,
+  private static validateUnifiedConfig(
+    config: CacheUnifiedConfigInterface,
   ): string[] {
     const errors: string[] = [];
 
     // 基础配置验证
-    if (config.defaultMinUpdateInterval <= 0) {
-      errors.push("defaultMinUpdateInterval must be positive");
+    if (!config.name || config.name.trim().length === 0) {
+      errors.push("name must be a non-empty string");
     }
 
-    if (config.maxConcurrentUpdates <= 0) {
-      errors.push("maxConcurrentUpdates must be positive");
+    if (config.defaultTtlSeconds <= 0) {
+      errors.push("defaultTtlSeconds must be positive");
     }
 
-    if (config.maxConcurrentUpdates > 32) {
+    if (config.minTtlSeconds <= 0) {
+      errors.push("minTtlSeconds must be positive");
+    }
+
+    if (config.maxTtlSeconds <= config.minTtlSeconds) {
+      errors.push("maxTtlSeconds must be greater than minTtlSeconds");
+    }
+
+    if (config.compressionThresholdBytes <= 0) {
+      errors.push("compressionThresholdBytes must be positive");
+    }
+
+    // TTL策略验证
+    const ttl = config.ttl;
+    if (ttl.realTimeTtlSeconds <= 0) {
+      errors.push("ttl.realTimeTtlSeconds must be positive");
+    }
+    if (ttl.nearRealTimeTtlSeconds <= 0) {
+      errors.push("ttl.nearRealTimeTtlSeconds must be positive");
+    }
+    if (ttl.batchQueryTtlSeconds <= 0) {
+      errors.push("ttl.batchQueryTtlSeconds must be positive");
+    }
+    if (ttl.offHoursTtlSeconds <= 0) {
+      errors.push("ttl.offHoursTtlSeconds must be positive");
+    }
+    if (ttl.weekendTtlSeconds <= 0) {
+      errors.push("ttl.weekendTtlSeconds must be positive");
+    }
+
+    // 性能配置验证
+    const performance = config.performance;
+    if (performance.maxMemoryMb <= 0) {
+      errors.push("performance.maxMemoryMb must be positive");
+    }
+    if (performance.maxMemoryMb > 8192) {
+      errors.push("performance.maxMemoryMb should not exceed 8GB for stability");
+    }
+    if (performance.defaultBatchSize <= 0) {
+      errors.push("performance.defaultBatchSize must be positive");
+    }
+    if (performance.maxConcurrentOperations <= 0) {
+      errors.push("performance.maxConcurrentOperations must be positive");
+    }
+    if (performance.maxConcurrentOperations > 100) {
       errors.push(
-        "maxConcurrentUpdates should not exceed 32 for performance reasons",
+        "performance.maxConcurrentOperations should not exceed 100 for performance reasons",
       );
     }
-
-    if (config.gracefulShutdownTimeout <= 0) {
-      errors.push("gracefulShutdownTimeout must be positive");
+    if (performance.slowOperationThresholdMs <= 0) {
+      errors.push("performance.slowOperationThresholdMs must be positive");
+    }
+    if (performance.connectionTimeoutMs <= 0) {
+      errors.push("performance.connectionTimeoutMs must be positive");
+    }
+    if (performance.operationTimeoutMs <= 0) {
+      errors.push("performance.operationTimeoutMs must be positive");
     }
 
-    // 策略配置验证
-    const strategies = config.strategies;
-
-    // 强时效性策略验证
-    const strongConfig = strategies[CacheStrategy.STRONG_TIMELINESS];
-    if (strongConfig.ttl <= 0) {
-      errors.push("STRONG_TIMELINESS: ttl must be positive");
+    // 间隔配置验证
+    const intervals = config.intervals;
+    if (intervals.cleanupIntervalMs <= 0) {
+      errors.push("intervals.cleanupIntervalMs must be positive");
     }
-    if (
-      strongConfig.updateThresholdRatio < 0 ||
-      strongConfig.updateThresholdRatio > 1
-    ) {
-      errors.push(
-        "STRONG_TIMELINESS: updateThresholdRatio must be between 0 and 1",
-      );
+    if (intervals.healthCheckIntervalMs <= 0) {
+      errors.push("intervals.healthCheckIntervalMs must be positive");
     }
-    if (strongConfig.forceRefreshInterval <= strongConfig.ttl) {
-      errors.push(
-        "STRONG_TIMELINESS: forceRefreshInterval should be greater than ttl",
-      );
+    if (intervals.metricsCollectionIntervalMs <= 0) {
+      errors.push("intervals.metricsCollectionIntervalMs must be positive");
+    }
+    if (intervals.statsLogIntervalMs <= 0) {
+      errors.push("intervals.statsLogIntervalMs must be positive");
+    }
+    if (intervals.heartbeatIntervalMs <= 0) {
+      errors.push("intervals.heartbeatIntervalMs must be positive");
     }
 
-    // 弱时效性策略验证
-    const weakConfig = strategies[CacheStrategy.WEAK_TIMELINESS];
-    if (weakConfig.ttl <= 0) {
-      errors.push("WEAK_TIMELINESS: ttl must be positive");
+    // 限制配置验证
+    const limits = config.limits;
+    if (limits.maxKeyLength <= 0) {
+      errors.push("limits.maxKeyLength must be positive");
     }
-    if (weakConfig.minUpdateInterval <= 0) {
-      errors.push("WEAK_TIMELINESS: minUpdateInterval must be positive");
+    if (limits.maxValueSizeBytes <= 0) {
+      errors.push("limits.maxValueSizeBytes must be positive");
     }
-    if (
-      weakConfig.updateThresholdRatio < 0 ||
-      weakConfig.updateThresholdRatio > 1
-    ) {
-      errors.push(
-        "WEAK_TIMELINESS: updateThresholdRatio must be between 0 and 1",
-      );
+    if (limits.maxCacheEntries <= 0) {
+      errors.push("limits.maxCacheEntries must be positive");
     }
-
-    // 市场感知策略验证
-    const marketConfig = strategies[CacheStrategy.MARKET_AWARE];
-    if (marketConfig.openMarketTtl <= 0 || marketConfig.closedMarketTtl <= 0) {
-      errors.push("MARKET_AWARE: TTL values must be positive");
+    if (limits.memoryThresholdRatio <= 0 || limits.memoryThresholdRatio > 1) {
+      errors.push("limits.memoryThresholdRatio must be between 0 and 1");
     }
-    if (marketConfig.marketStatusCheckInterval <= 0) {
-      errors.push("MARKET_AWARE: marketStatusCheckInterval must be positive");
-    }
-    if (
-      marketConfig.openMarketUpdateThresholdRatio < 0 ||
-      marketConfig.openMarketUpdateThresholdRatio > 1
-    ) {
-      errors.push(
-        "MARKET_AWARE: openMarketUpdateThresholdRatio must be between 0 and 1",
-      );
-    }
-    if (
-      marketConfig.closedMarketUpdateThresholdRatio < 0 ||
-      marketConfig.closedMarketUpdateThresholdRatio > 1
-    ) {
-      errors.push(
-        "MARKET_AWARE: closedMarketUpdateThresholdRatio must be between 0 and 1",
-      );
+    if (limits.errorRateAlertThreshold < 0 || limits.errorRateAlertThreshold > 1) {
+      errors.push("limits.errorRateAlertThreshold must be between 0 and 1");
     }
 
-    // 自适应策略验证
-    const adaptiveConfig = strategies[CacheStrategy.ADAPTIVE];
-    if (adaptiveConfig.minTtl >= adaptiveConfig.maxTtl) {
-      errors.push("ADAPTIVE: minTtl must be less than maxTtl");
+    // 重试配置验证
+    const retry = config.retry;
+    if (retry.maxRetryAttempts < 0) {
+      errors.push("retry.maxRetryAttempts must be non-negative");
     }
-    if (adaptiveConfig.adaptationFactor <= 0) {
-      errors.push("ADAPTIVE: adaptationFactor must be positive");
+    if (retry.baseRetryDelayMs <= 0) {
+      errors.push("retry.baseRetryDelayMs must be positive");
     }
-    if (
-      adaptiveConfig.baseTtl < adaptiveConfig.minTtl ||
-      adaptiveConfig.baseTtl > adaptiveConfig.maxTtl
-    ) {
-      errors.push("ADAPTIVE: baseTtl must be between minTtl and maxTtl");
+    if (retry.retryDelayMultiplier <= 1) {
+      errors.push("retry.retryDelayMultiplier must be greater than 1");
     }
-    if (adaptiveConfig.changeDetectionWindow <= 0) {
-      errors.push("ADAPTIVE: changeDetectionWindow must be positive");
+    if (retry.maxRetryDelayMs <= retry.baseRetryDelayMs) {
+      errors.push("retry.maxRetryDelayMs must be greater than baseRetryDelayMs");
     }
 
     return errors;

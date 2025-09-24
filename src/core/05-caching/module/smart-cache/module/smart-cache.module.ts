@@ -4,10 +4,6 @@ import { StorageModule } from "../../../../04-storage/storage/module/storage.mod
 import { SharedServicesModule } from "../../../../shared/module/shared-services.module";
 import { BasicCacheModule } from "../../basic-cache/module/basic-cache.module";
 import { SmartCacheStandardizedService } from "../services/smart-cache-standardized.service";
-import {
-  DEFAULT_SMART_CACHE_CONFIG,
-  SMART_CACHE_ORCHESTRATOR_CONFIG,
-} from "../interfaces/smart-cache-config.interface";
 import { SmartCacheConfigFactory } from "../config/smart-cache-config.factory";
 import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performance-optimizer.service";
 // 移除 CollectorModule 依赖 - 事件化监控不再需要直接导入监控模块
@@ -65,9 +61,9 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     // 🚀 性能优化器服务
     SmartCachePerformanceOptimizer,
 
-    // 📋 配置提供者 - 使用环境变量驱动的配置工厂
+    // 📋 配置提供者 - 使用统一配置接口的环境变量驱动工厂
     {
-      provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
+      provide: 'smartCacheConfig',
       useFactory: () => SmartCacheConfigFactory.createConfig(),
     },
   ],
@@ -80,7 +76,7 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     SmartCachePerformanceOptimizer,
 
     // 也导出配置令牌，便于测试和配置覆盖
-    SMART_CACHE_ORCHESTRATOR_CONFIG,
+    'smartCacheConfig',
   ],
 })
 export class SmartCacheModule {
@@ -113,7 +109,7 @@ export class SmartCacheModule {
  * ```
  */
 export function createSmartCacheModuleWithConfig(
-  config: Partial<any>, // 暂时使用 any，配置接口将在后续清理
+  config: Partial<import('../../../foundation/types/cache-config.types').CacheUnifiedConfigInterface>,
 ) {
   // 获取环境变量配置作为基础
   const envConfig = SmartCacheConfigFactory.createConfig();
@@ -122,9 +118,25 @@ export function createSmartCacheModuleWithConfig(
   const mergedConfig = {
     ...envConfig,
     ...config,
-    strategies: {
-      ...envConfig.strategies,
-      ...config.strategies,
+    ttl: {
+      ...envConfig.ttl,
+      ...config.ttl,
+    },
+    performance: {
+      ...envConfig.performance,
+      ...config.performance,
+    },
+    intervals: {
+      ...envConfig.intervals,
+      ...config.intervals,
+    },
+    limits: {
+      ...envConfig.limits,
+      ...config.limits,
+    },
+    retry: {
+      ...envConfig.retry,
+      ...config.retry,
     },
   };
 
@@ -139,11 +151,11 @@ export function createSmartCacheModuleWithConfig(
       SmartCacheStandardizedService,
       SmartCachePerformanceOptimizer,
       {
-        provide: SMART_CACHE_ORCHESTRATOR_CONFIG,
+        provide: 'smartCacheConfig',
         useValue: mergedConfig,
       },
     ],
-    exports: [SmartCacheStandardizedService, SMART_CACHE_ORCHESTRATOR_CONFIG],
+    exports: [SmartCacheStandardizedService, 'smartCacheConfig'],
   })
   class ConfiguredSmartCacheModule {}
 
