@@ -49,8 +49,8 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
   private dataProcessingStats: DataProcessingStats = {
     totalProcessed: 0,
     totalSymbolsProcessed: 0,
-    totalProcessingTime: 0,
-    averageProcessingTime: 0,
+    totalProcessingTimeMs: 0,
+    averageProcessingTimeMs: 0,
     totalErrors: 0,
     errorRate: 0,
     lastProcessedAt: 0,
@@ -455,13 +455,13 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
   /**
    * 更新处理统计
    */
-  private updateProcessingStats(quotesCount: number, symbolsCount: number, processingTime: number): void {
+  private updateProcessingStats(quotesCount: number, symbolsCount: number, processingTimeMs: number): void {
     this.dataProcessingStats.totalProcessed += quotesCount;
     this.dataProcessingStats.totalSymbolsProcessed += symbolsCount;
-    this.dataProcessingStats.totalProcessingTime += processingTime;
-    this.dataProcessingStats.averageProcessingTime =
+    this.dataProcessingStats.totalProcessingTimeMs += processingTimeMs;
+    this.dataProcessingStats.averageProcessingTimeMs =
       this.dataProcessingStats.totalProcessed > 0
-        ? this.dataProcessingStats.totalProcessingTime / this.dataProcessingStats.totalProcessed
+        ? this.dataProcessingStats.totalProcessingTimeMs / this.dataProcessingStats.totalProcessed
         : 0;
     this.dataProcessingStats.lastProcessedAt = Date.now();
 
@@ -502,8 +502,8 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
     this.dataProcessingStats = {
       totalProcessed: 0,
       totalSymbolsProcessed: 0,
-      totalProcessingTime: 0,
-      averageProcessingTime: 0,
+      totalProcessingTimeMs: 0,
+      averageProcessingTimeMs: 0,
       totalErrors: 0,
       errorRate: 0,
       lastProcessedAt: 0,

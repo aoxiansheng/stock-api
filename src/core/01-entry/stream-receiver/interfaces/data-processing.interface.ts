@@ -41,8 +41,8 @@ export interface DataPipelineMetrics {
 export interface DataProcessingStats {
   totalProcessed: number;
   totalSymbolsProcessed: number;
-  totalProcessingTime: number;
-  averageProcessingTime: number;
+  totalProcessingTimeMs: number;
+  averageProcessingTimeMs: number;
   totalErrors: number;
   errorRate: number;
   lastProcessedAt: number;
@@ -56,7 +56,7 @@ export interface SymbolConsistencyResult {
   standardizedSymbols: string[];
   inconsistencyCount: number;
   mappingUsed: boolean;
-  processingTime: number;
+  processingTimeMs: number;
 }
 
 /**
