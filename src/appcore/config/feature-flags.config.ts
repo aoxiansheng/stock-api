@@ -9,7 +9,6 @@
  * - OBJECT_POOL_ENABLED: 对象池优化开关 (default: true)
  * - RULE_COMPILATION_ENABLED: 规则编译优化开关 (default: true)
  * - DYNAMIC_LOG_LEVEL_ENABLED: 动态日志级别开关 (default: true)
- * - METRICS_LEGACY_MODE_ENABLED: 指标双写兼容模式开关 (default: true)
  * - BATCH_RESULT_CACHE_MAX_SIZE: L3批量结果缓存最大条目数 (default: 1000)
  * - BATCH_RESULT_CACHE_TTL: L3批量结果缓存生存时间ms (default: 7200000)
  */
@@ -38,9 +37,6 @@ export class FeatureFlags {
   readonly dynamicLogLevelEnabled: boolean =
     process.env.DYNAMIC_LOG_LEVEL_ENABLED !== "false";
 
-  // 🎯 指标双写兼容模式开关
-  readonly metricsLegacyModeEnabled: boolean =
-    process.env.METRICS_LEGACY_MODE_ENABLED !== "false";
 
   // 🎯 Symbol-Mapper 缓存配置参数 (调整为长期缓存策略)
   readonly symbolCacheMaxSize: number =
@@ -91,7 +87,6 @@ export class FeatureFlags {
       objectPoolEnabled: this.objectPoolEnabled,
       ruleCompilationEnabled: this.ruleCompilationEnabled,
       dynamicLogLevelEnabled: this.dynamicLogLevelEnabled,
-      metricsLegacyModeEnabled: this.metricsLegacyModeEnabled,
       symbolCacheMaxSize: this.symbolCacheMaxSize,
       symbolCacheTtl: this.symbolCacheTtl,
       ruleCacheMaxSize: this.ruleCacheMaxSize,
