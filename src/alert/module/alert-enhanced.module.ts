@@ -197,6 +197,5 @@ export class AlertEnhancedModule implements OnModuleInit {
     this.logger.log("📋 单一职责: 每个服务专注于特定领域");
     this.logger.log("🚀 清洁架构: 无历史包袱，性能优化");
     this.logger.log("");
-    this.logger.log("📚 文档: 参见 ARCHITECTURE.md");
   }
 }

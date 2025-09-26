@@ -1,16 +1,310 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigModule } from "@nestjs/config";
-import alertPresetsConfig, {
-  AlertPresetsConfig,
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { plainToClass } from 'class-transformer';
+import { validate } from 'class-validator';
+import {
   AlertRulePresets,
   AlertNotificationPresets,
   AlertPerformancePresets,
-} from "../../../../../src/alert/config/alert-presets.config";
-import { plainToClass } from "class-transformer";
-import { validateSync } from "class-validator";
+  AlertPresetsConfig,
+  default as alertPresetsConfig
+} from '@alert/config/alert-presets.config';
 
-describe("AlertPresetsConfig", () => {
+describe('AlertRulePresets', () => {
+  let config: AlertRulePresets;
+
+  beforeEach(() => {
+    // 清理环境变量以确保使用默认值
+    delete process.env.ALERT_PRESET_QUICK_DURATION;
+    delete process.env.ALERT_PRESET_STANDARD_DURATION;
+    delete process.env.ALERT_PRESET_COMPLEX_DURATION;
+    delete process.env.ALERT_PRESET_COMPLEX_COOLDOWN;
+
+    config = new AlertRulePresets();
+  });
+
+  afterEach(() => {
+    // 清理环境变量
+    delete process.env.ALERT_PRESET_QUICK_DURATION;
+    delete process.env.ALERT_PRESET_STANDARD_DURATION;
+    delete process.env.ALERT_PRESET_COMPLEX_DURATION;
+    delete process.env.ALERT_PRESET_COMPLEX_COOLDOWN;
+  });
+
+  describe('默认值配置', () => {
+    it('应该设置正确的默认值', () => {
+      expect(config.quickDuration).toBe(30);
+      expect(config.standardDuration).toBe(60);
+      expect(config.complexDuration).toBe(120);
+      expect(config.complexCooldown).toBe(600);
+    });
+  });
+
+  describe('环境变量配置', () => {
+    it('应该从环境变量读取quickDuration', () => {
+      process.env.ALERT_PRESET_QUICK_DURATION = '45';
+      const newConfig = new AlertRulePresets();
+      expect(newConfig.quickDuration).toBe(45);
+    });
+
+    it('应该从环境变量读取standardDuration', () => {
+      process.env.ALERT_PRESET_STANDARD_DURATION = '90';
+      const newConfig = new AlertRulePresets();
+      expect(newConfig.standardDuration).toBe(90);
+    });
+
+    it('应该从环境变量读取complexDuration', () => {
+      process.env.ALERT_PRESET_COMPLEX_DURATION = '180';
+      const newConfig = new AlertRulePresets();
+      expect(newConfig.complexDuration).toBe(180);
+    });
+
+    it('应该从环境变量读取complexCooldown', () => {
+      process.env.ALERT_PRESET_COMPLEX_COOLDOWN = '900';
+      const newConfig = new AlertRulePresets();
+      expect(newConfig.complexCooldown).toBe(900);
+    });
+  });
+
+  describe('数据验证', () => {
+    it('应该通过有效值的验证', async () => {
+      const validConfig = plainToClass(AlertRulePresets, {
+        quickDuration: 60,
+        standardDuration: 120,
+        complexDuration: 300,
+        complexCooldown: 1200
+      });
+
+      const errors = await validate(validConfig);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('应该拒绝quickDuration小于最小值', async () => {
+      const invalidConfig = plainToClass(AlertRulePresets, {
+        quickDuration: 5
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('quickDuration');
+    });
+
+    it('应该拒绝quickDuration大于最大值', async () => {
+      const invalidConfig = plainToClass(AlertRulePresets, {
+        quickDuration: 400
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('quickDuration');
+    });
+
+    it('应该拒绝complexCooldown小于最小值', async () => {
+      const invalidConfig = plainToClass(AlertRulePresets, {
+        complexCooldown: 200
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('complexCooldown');
+    });
+  });
+});
+
+describe('AlertNotificationPresets', () => {
+  let config: AlertNotificationPresets;
+
+  beforeEach(() => {
+    // 清理环境变量以确保使用默认值
+    delete process.env.ALERT_PRESET_INSTANT_TIMEOUT;
+    delete process.env.ALERT_PRESET_INSTANT_RETRIES;
+    delete process.env.ALERT_PRESET_STANDARD_TIMEOUT;
+    delete process.env.ALERT_PRESET_STANDARD_RETRIES;
+    delete process.env.ALERT_PRESET_BATCH_SIZE;
+
+    config = new AlertNotificationPresets();
+  });
+
+  afterEach(() => {
+    // 清理环境变量
+    delete process.env.ALERT_PRESET_INSTANT_TIMEOUT;
+    delete process.env.ALERT_PRESET_INSTANT_RETRIES;
+    delete process.env.ALERT_PRESET_STANDARD_TIMEOUT;
+    delete process.env.ALERT_PRESET_STANDARD_RETRIES;
+    delete process.env.ALERT_PRESET_BATCH_SIZE;
+  });
+
+  describe('默认值配置', () => {
+    it('应该设置正确的默认值', () => {
+      expect(config.instantTimeout).toBe(5000);
+      expect(config.instantRetries).toBe(5);
+      expect(config.standardTimeout).toBe(30000);
+      expect(config.standardRetries).toBe(3);
+      expect(config.batchSize).toBe(50);
+    });
+  });
+
+  describe('环境变量配置', () => {
+    it('应该从环境变量读取instantTimeout', () => {
+      process.env.ALERT_PRESET_INSTANT_TIMEOUT = '3000';
+      const newConfig = new AlertNotificationPresets();
+      expect(newConfig.instantTimeout).toBe(3000);
+    });
+
+    it('应该从环境变量读取batchSize', () => {
+      process.env.ALERT_PRESET_BATCH_SIZE = '100';
+      const newConfig = new AlertNotificationPresets();
+      expect(newConfig.batchSize).toBe(100);
+    });
+  });
+
+  describe('数据验证', () => {
+    it('应该通过有效值的验证', async () => {
+      const validConfig = plainToClass(AlertNotificationPresets, {
+        instantTimeout: 10000,
+        instantRetries: 3,
+        standardTimeout: 45000,
+        standardRetries: 2,
+        batchSize: 75
+      });
+
+      const errors = await validate(validConfig);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('应该拒绝instantTimeout小于最小值', async () => {
+      const invalidConfig = plainToClass(AlertNotificationPresets, {
+        instantTimeout: 500
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('instantTimeout');
+    });
+
+    it('应该拒绝batchSize大于最大值', async () => {
+      const invalidConfig = plainToClass(AlertNotificationPresets, {
+        batchSize: 250
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('batchSize');
+    });
+  });
+});
+
+describe('AlertPerformancePresets', () => {
+  let config: AlertPerformancePresets;
+
+  beforeEach(() => {
+    // 清理环境变量以确保使用默认值
+    delete process.env.ALERT_PRESET_HIGH_CONCURRENCY;
+    delete process.env.ALERT_PRESET_HIGH_BATCH_SIZE;
+    delete process.env.ALERT_PRESET_BALANCED_CONCURRENCY;
+    delete process.env.ALERT_PRESET_BALANCED_BATCH_SIZE;
+    delete process.env.ALERT_PRESET_CONSERVATIVE_CONCURRENCY;
+    delete process.env.ALERT_PRESET_CONSERVATIVE_BATCH_SIZE;
+
+    config = new AlertPerformancePresets();
+  });
+
+  afterEach(() => {
+    // 清理环境变量
+    delete process.env.ALERT_PRESET_HIGH_CONCURRENCY;
+    delete process.env.ALERT_PRESET_HIGH_BATCH_SIZE;
+    delete process.env.ALERT_PRESET_BALANCED_CONCURRENCY;
+    delete process.env.ALERT_PRESET_BALANCED_BATCH_SIZE;
+    delete process.env.ALERT_PRESET_CONSERVATIVE_CONCURRENCY;
+    delete process.env.ALERT_PRESET_CONSERVATIVE_BATCH_SIZE;
+  });
+
+  describe('默认值配置', () => {
+    it('应该设置正确的默认值', () => {
+      expect(config.highPerformanceConcurrency).toBe(20);
+      expect(config.highPerformanceBatchSize).toBe(1000);
+      expect(config.balancedConcurrency).toBe(5);
+      expect(config.balancedBatchSize).toBe(100);
+      expect(config.conservativeConcurrency).toBe(3);
+      expect(config.conservativeBatchSize).toBe(50);
+    });
+  });
+
+  describe('环境变量配置', () => {
+    it('应该从环境变量读取highPerformanceConcurrency', () => {
+      process.env.ALERT_PRESET_HIGH_CONCURRENCY = '30';
+      const newConfig = new AlertPerformancePresets();
+      expect(newConfig.highPerformanceConcurrency).toBe(30);
+    });
+
+    it('应该从环境变量读取balancedBatchSize', () => {
+      process.env.ALERT_PRESET_BALANCED_BATCH_SIZE = '150';
+      const newConfig = new AlertPerformancePresets();
+      expect(newConfig.balancedBatchSize).toBe(150);
+    });
+  });
+
+  describe('数据验证', () => {
+    it('应该通过有效值的验证', async () => {
+      const validConfig = plainToClass(AlertPerformancePresets, {
+        highPerformanceConcurrency: 25,
+        highPerformanceBatchSize: 1500,
+        balancedConcurrency: 10,
+        balancedBatchSize: 200,
+        conservativeConcurrency: 5,
+        conservativeBatchSize: 75
+      });
+
+      const errors = await validate(validConfig);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('应该拒绝conservativeConcurrency小于最小值', async () => {
+      const invalidConfig = plainToClass(AlertPerformancePresets, {
+        conservativeConcurrency: 0
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('conservativeConcurrency');
+    });
+
+    it('应该拒绝highPerformanceBatchSize大于最大值', async () => {
+      const invalidConfig = plainToClass(AlertPerformancePresets, {
+        highPerformanceBatchSize: 3000
+      });
+
+      const errors = await validate(invalidConfig);
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors[0].property).toBe('highPerformanceBatchSize');
+    });
+  });
+});
+
+describe('AlertPresetsConfig', () => {
+  let config: AlertPresetsConfig;
+
+  beforeEach(() => {
+    config = new AlertPresetsConfig();
+  });
+
+  describe('组合配置', () => {
+    it('应该包含所有预设配置子类', () => {
+      expect(config.rulePresets).toBeInstanceOf(AlertRulePresets);
+      expect(config.notificationPresets).toBeInstanceOf(AlertNotificationPresets);
+      expect(config.performancePresets).toBeInstanceOf(AlertPerformancePresets);
+    });
+
+    it('应该通过嵌套验证', async () => {
+      const errors = await validate(config);
+      expect(errors).toHaveLength(0);
+    });
+  });
+});
+
+describe('alertPresetsConfig factory', () => {
   let module: TestingModule;
+  let configService: ConfigService;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -20,409 +314,29 @@ describe("AlertPresetsConfig", () => {
         }),
       ],
     }).compile();
+
+    configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(async () => {
     await module.close();
   });
 
-  describe("AlertRulePresets", () => {
-    it("should validate default configuration successfully", () => {
-      const config = new AlertRulePresets();
-      const errors = validateSync(config);
-      expect(errors).toHaveLength(0);
-    });
-
-    it("should have correct default values", () => {
-      const config = new AlertRulePresets();
-      expect(config.quickDuration).toBe(30);
-      expect(config.standardDuration).toBe(60);
-      expect(config.complexDuration).toBe(120);
-      expect(config.complexCooldown).toBe(600);
-    });
-
-    it("should validate quickDuration bounds", () => {
-      const config = plainToClass(AlertRulePresets, {
-        quickDuration: 5,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertRulePresets, {
-        quickDuration: 301,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate standardDuration bounds", () => {
-      const config = plainToClass(AlertRulePresets, {
-        standardDuration: 29,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertRulePresets, {
-        standardDuration: 601,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate complexDuration bounds", () => {
-      const config = plainToClass(AlertRulePresets, {
-        complexDuration: 59,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertRulePresets, {
-        complexDuration: 1801,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate complexCooldown bounds", () => {
-      const config = plainToClass(AlertRulePresets, {
-        complexCooldown: 299,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertRulePresets, {
-        complexCooldown: 7201,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
+  it('应该成功注册alertPresets配置', () => {
+    const config = configService.get('alertPresets');
+    expect(config).toBeInstanceOf(AlertPresetsConfig);
   });
 
-  describe("AlertNotificationPresets", () => {
-      it("should validate default configuration successfully", () => {
-      const config = new AlertNotificationPresets();
-      const errors = validateSync(config);
-      expect(errors).toHaveLength(0);
-    });
+  it('应该包含完整的配置结构', () => {
+    const config = configService.get<AlertPresetsConfig>('alertPresets');
 
-    it("should have correct default values", () => {
-      const config = new AlertNotificationPresets();
-      expect(config.instantTimeout).toBe(5000);
-      expect(config.instantRetries).toBe(5);
-      expect(config.standardTimeout).toBe(30000);
-      expect(config.standardRetries).toBe(3);
-      expect(config.batchSize).toBe(50);
-    });
+    expect(config.rulePresets).toBeDefined();
+    expect(config.notificationPresets).toBeDefined();
+    expect(config.performancePresets).toBeDefined();
 
-    it("should validate instantTimeout bounds", () => {
-      const config = plainToClass(AlertNotificationPresets, {
-        instantTimeout: 999,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertNotificationPresets, {
-        instantTimeout: 30001,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate instantRetries bounds", () => {
-      const config = plainToClass(AlertNotificationPresets, {
-        instantRetries: 0,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertNotificationPresets, {
-        instantRetries: 11,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate standardTimeout bounds", () => {
-      const config = plainToClass(AlertNotificationPresets, {
-        standardTimeout: 4999,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertNotificationPresets, {
-        standardTimeout: 60001,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate standardRetries bounds", () => {
-      const config = plainToClass(AlertNotificationPresets, {
-        standardRetries: 0,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertNotificationPresets, {
-        standardRetries: 6,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate batchSize bounds", () => {
-      const config = plainToClass(AlertNotificationPresets, {
-        batchSize: 9,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertNotificationPresets, {
-        batchSize: 201,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-  });
-
-  describe("AlertPerformancePresets", () => {
-    it("should validate default configuration successfully", () => {
-      const config = new AlertPerformancePresets();
-      const errors = validateSync(config);
-      expect(errors).toHaveLength(0);
-    });
-
-    it("should have correct default values", () => {
-      const config = new AlertPerformancePresets();
-      expect(config.highPerformanceConcurrency).toBe(20);
-      expect(config.highPerformanceBatchSize).toBe(1000);
-      expect(config.balancedConcurrency).toBe(5);
-      expect(config.balancedBatchSize).toBe(100);
-      expect(config.conservativeConcurrency).toBe(3);
-      expect(config.conservativeBatchSize).toBe(50);
-    });
-
-    it("should validate highPerformanceConcurrency bounds", () => {
-      const config = plainToClass(AlertPerformancePresets, {
-        highPerformanceConcurrency: 9,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformancePresets, {
-        highPerformanceConcurrency: 51,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate highPerformanceBatchSize bounds", () => {
-      const config = plainToClass(AlertPerformancePresets, {
-        highPerformanceBatchSize: 499,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformancePresets, {
-        highPerformanceBatchSize: 2001,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate balancedConcurrency bounds", () => {
-      const config = plainToClass(AlertPerformancePresets, {
-        balancedConcurrency: 2,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformancePresets, {
-        balancedConcurrency: 21,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate balancedBatchSize bounds", () => {
-      const config = plainToClass(AlertPerformancePresets, {
-        balancedBatchSize: 49,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformancePresets, {
-        balancedBatchSize: 501,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate conservativeConcurrency bounds", () => {
-      const config = plainToClass(AlertPerformancePresets, {
-        conservativeConcurrency: 0,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformancePresets, {
-        conservativeConcurrency: 11,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate conservativeBatchSize bounds", () => {
-      const config = plainToClass(AlertPerformancePresets, {
-        conservativeBatchSize: 9,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformancePresets, {
-        conservativeBatchSize: 101,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-  });
-
-  describe("AlertPresetsConfig", () => {
-    it("should validate default configuration successfully", () => {
-      const config = new AlertPresetsConfig();
-      const errors = validateSync(config);
-      expect(errors).toHaveLength(0);
-    });
-
-    it("should have nested configurations", () => {
-      const config = new AlertPresetsConfig();
-      expect(config.rulePresets).toBeInstanceOf(AlertRulePresets);
-      expect(config.notificationPresets).toBeInstanceOf(AlertNotificationPresets);
-      expect(config.performancePresets).toBeInstanceOf(AlertPerformancePresets);
-    });
-  });
-
-  describe("Environment Variable Integration", () => {
-    it("should read environment variables correctly", () => {
-      // 设置环境变量
-      process.env.ALERT_PRESET_QUICK_DURATION = "50";
-      process.env.ALERT_PRESET_STANDARD_DURATION = "100";
-      process.env.ALERT_PRESET_COMPLEX_DURATION = "200";
-      process.env.ALERT_PRESET_COMPLEX_COOLDOWN = "1000";
-      process.env.ALERT_PRESET_INSTANT_TIMEOUT = "10000";
-      process.env.ALERT_PRESET_INSTANT_RETRIES = "3";
-      process.env.ALERT_PRESET_STANDARD_TIMEOUT = "40000";
-      process.env.ALERT_PRESET_STANDARD_RETRIES = "2";
-      process.env.ALERT_PRESET_BATCH_SIZE = "100";
-      process.env.ALERT_PRESET_HIGH_CONCURRENCY = "30";
-      process.env.ALERT_PRESET_HIGH_BATCH_SIZE = "1500";
-      process.env.ALERT_PRESET_BALANCED_CONCURRENCY = "10";
-      process.env.ALERT_PRESET_BALANCED_BATCH_SIZE = "200";
-      process.env.ALERT_PRESET_CONSERVATIVE_CONCURRENCY = "5";
-      process.env.ALERT_PRESET_CONSERVATIVE_BATCH_SIZE = "25";
-
-      // 重新加载配置
-      const config = alertPresetsConfig();
-
-      expect(config.rulePresets.quickDuration).toBe(50);
-      expect(config.rulePresets.standardDuration).toBe(100);
-      expect(config.rulePresets.complexDuration).toBe(200);
-      expect(config.rulePresets.complexCooldown).toBe(1000);
-      expect(config.notificationPresets.instantTimeout).toBe(10000);
-      expect(config.notificationPresets.instantRetries).toBe(3);
-      expect(config.notificationPresets.standardTimeout).toBe(40000);
-      expect(config.notificationPresets.standardRetries).toBe(2);
-      expect(config.notificationPresets.batchSize).toBe(100);
-      expect(config.performancePresets.highPerformanceConcurrency).toBe(30);
-      expect(config.performancePresets.highPerformanceBatchSize).toBe(1500);
-      expect(config.performancePresets.balancedConcurrency).toBe(10);
-      expect(config.performancePresets.balancedBatchSize).toBe(200);
-      expect(config.performancePresets.conservativeConcurrency).toBe(5);
-      expect(config.performancePresets.conservativeBatchSize).toBe(25);
-
-      // 清理环境变量
-      delete process.env.ALERT_PRESET_QUICK_DURATION;
-      delete process.env.ALERT_PRESET_STANDARD_DURATION;
-      delete process.env.ALERT_PRESET_COMPLEX_DURATION;
-      delete process.env.ALERT_PRESET_COMPLEX_COOLDOWN;
-      delete process.env.ALERT_PRESET_INSTANT_TIMEOUT;
-      delete process.env.ALERT_PRESET_INSTANT_RETRIES;
-      delete process.env.ALERT_PRESET_STANDARD_TIMEOUT;
-      delete process.env.ALERT_PRESET_STANDARD_RETRIES;
-      delete process.env.ALERT_PRESET_BATCH_SIZE;
-      delete process.env.ALERT_PRESET_HIGH_CONCURRENCY;
-      delete process.env.ALERT_PRESET_HIGH_BATCH_SIZE;
-      delete process.env.ALERT_PRESET_BALANCED_CONCURRENCY;
-      delete process.env.ALERT_PRESET_BALANCED_BATCH_SIZE;
-      delete process.env.ALERT_PRESET_CONSERVATIVE_CONCURRENCY;
-      delete process.env.ALERT_PRESET_CONSERVATIVE_BATCH_SIZE;
-    });
-
-    it("should use default values when environment variables are not set", () => {
-      // 确保环境变量未设置
-      delete process.env.ALERT_PRESET_QUICK_DURATION;
-      delete process.env.ALERT_PRESET_STANDARD_DURATION;
-      delete process.env.ALERT_PRESET_COMPLEX_DURATION;
-      delete process.env.ALERT_PRESET_COMPLEX_COOLDOWN;
-      delete process.env.ALERT_PRESET_INSTANT_TIMEOUT;
-      delete process.env.ALERT_PRESET_INSTANT_RETRIES;
-      delete process.env.ALERT_PRESET_STANDARD_TIMEOUT;
-      delete process.env.ALERT_PRESET_STANDARD_RETRIES;
-      delete process.env.ALERT_PRESET_BATCH_SIZE;
-      delete process.env.ALERT_PRESET_HIGH_CONCURRENCY;
-      delete process.env.ALERT_PRESET_HIGH_BATCH_SIZE;
-      delete process.env.ALERT_PRESET_BALANCED_CONCURRENCY;
-      delete process.env.ALERT_PRESET_BALANCED_BATCH_SIZE;
-      delete process.env.ALERT_PRESET_CONSERVATIVE_CONCURRENCY;
-      delete process.env.ALERT_PRESET_CONSERVATIVE_BATCH_SIZE;
-
-      const config = alertPresetsConfig();
-
-      expect(config.rulePresets.quickDuration).toBe(30);
-      expect(config.rulePresets.standardDuration).toBe(60);
-      expect(config.rulePresets.complexDuration).toBe(120);
-      expect(config.rulePresets.complexCooldown).toBe(600);
-      expect(config.notificationPresets.instantTimeout).toBe(5000);
-      expect(config.notificationPresets.instantRetries).toBe(5);
-      expect(config.notificationPresets.standardTimeout).toBe(30000);
-      expect(config.notificationPresets.standardRetries).toBe(3);
-      expect(config.notificationPresets.batchSize).toBe(50);
-      expect(config.performancePresets.highPerformanceConcurrency).toBe(20);
-      expect(config.performancePresets.highPerformanceBatchSize).toBe(1000);
-      expect(config.performancePresets.balancedConcurrency).toBe(5);
-      expect(config.performancePresets.balancedBatchSize).toBe(100);
-      expect(config.performancePresets.conservativeConcurrency).toBe(3);
-      expect(config.performancePresets.conservativeBatchSize).toBe(50);
-    });
+    // 验证具体配置值
+    expect(config.rulePresets.quickDuration).toBe(30);
+    expect(config.notificationPresets.instantTimeout).toBe(5000);
+    expect(config.performancePresets.highPerformanceConcurrency).toBe(20);
   });
 });

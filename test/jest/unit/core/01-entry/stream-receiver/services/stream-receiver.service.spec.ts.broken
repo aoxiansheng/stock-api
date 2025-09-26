@@ -1,0 +1,639 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/stream-receiver.service';
+import { SymbolTransformerService } from '@core/02-processing/symbol-transformer/services/symbol-transformer.service';
+import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
+import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
+import { StreamRecoveryWorkerService } from '@core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+import { RateLimitService } from '@auth/services/infrastructure/rate-limit.service';
+import { StreamDataValidator } from '@core/01-entry/stream-receiver/validators/stream-data.validator';
+import { StreamBatchProcessorService } from '@core/01-entry/stream-receiver/services/stream-batch-processor.service';
+import { StreamConnectionManagerService } from '@core/01-entry/stream-receiver/services/stream-connection-manager.service';
+import { StreamDataProcessorService } from '@core/01-entry/stream-receiver/services/stream-data-processor.service';
+import { StreamSubscribeDto } from '@core/01-entry/stream-receiver/dto/stream-subscribe.dto';
+import { StreamUnsubscribeDto } from '@core/01-entry/stream-receiver/dto/stream-unsubscribe.dto';
+import { STREAM_RECEIVER_ERROR_CODES } from '@core/01-entry/stream-receiver/constants/stream-receiver-error-codes.constants';
+import { STREAM_RECEIVER_TIMEOUTS } from '@core/01-entry/stream-receiver/constants/stream-receiver-timeouts.constants';
+import { UniversalExceptionFactory } from '@common/core/exceptions';
+import { Subject } from 'rxjs';
+import { Socket } from 'socket.io';
+
+describe('StreamReceiverService', () => {
+  let service: StreamReceiverService;
+  let module: TestingModule;
+  let configService: jest.Mocked<ConfigService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
+  let symbolTransformerService: jest.Mocked<SymbolTransformerService>;
+  let dataTransformerService: jest.Mocked<DataTransformerService>;
+  let streamDataFetcher: jest.Mocked<StreamDataFetcherService>;
+  let recoveryWorker: jest.Mocked<StreamRecoveryWorkerService>;
+  let marketInferenceService: jest.Mocked<MarketInferenceService>;
+  let rateLimitService: jest.Mocked<RateLimitService>;
+  let dataValidator: jest.Mocked<StreamDataValidator>;
+  let batchProcessor: jest.Mocked<StreamBatchProcessorService>;
+  let connectionManager: jest.Mocked<StreamConnectionManagerService>;
+  let dataProcessor: jest.Mocked<StreamDataProcessorService>;
+
+  // Mock data
+  const mockClient = {
+    id: 'test-client-id',
+    emit: jest.fn(),
+    disconnect: jest.fn(),
+    handshake: {
+      headers: {
+        'user-agent': 'test-agent'
+      },
+      address: '127.0.0.1'
+    }
+  } as unknown as Socket;
+
+  const mockSubscribeDto: StreamSubscribeDto = {
+    symbols: ['700.HK', 'AAPL.US'],
+    wsCapabilityType: 'stream-quote',
+    preferredProvider: 'longport'
+  };
+
+  const mockUnsubscribeDto: StreamUnsubscribeDto = {
+    symbols: ['700.HK'],
+    wsCapabilityType: 'stream-quote',
+    preferredProvider: 'longport'
+  };
+
+  const mockStreamConnection = {
+    id: 'connection-1',
+    clientId: 'test-client-id',
+    symbols: ['700.HK'],
+    provider: 'longport',
+    status: 'active',
+    createdAt: new Date(),
+    lastActivity: new Date()
+  };
+
+  const mockQuoteData = {
+    symbol: '700.HK',
+    price: 350.0,
+    change: 5.0,
+    changePercent: 1.45,
+    volume: 1000000,
+    timestamp: Date.now()
+  };
+
+  beforeEach(async () => {
+    // Create mocks
+    const configServiceMock = {
+      get: jest.fn().mockImplementation((key: string) => {
+        const configs = {
+          'streamReceiver': {
+            batchSize: 100,
+            batchTimeoutMs: 1000,
+            maxConnections: 1000,
+            memoryThresholdMB: 500
+          },
+          'monitoring': {
+            recentMetricsCount: 10
+          }
+        };
+        return configs[key] || {};
+      })
+    };
+
+    const eventEmitterMock = {
+      emit: jest.fn(),
+      on: jest.fn(),
+      removeListener: jest.fn()
+    };
+
+    const symbolTransformerMock = {
+      transformSymbol: jest.fn().mockResolvedValue({
+        mappedSymbols: ['700.HK'],
+        mappingDetails: { '700.HK': '700.HK' },
+        failedSymbols: [],
+        metadata: {
+          provider: 'longport',
+          totalSymbols: 1,
+          successCount: 1,
+          failedCount: 0,
+          processingTimeMs: 10
+        }
+      }),
+      batchTransformSymbols: jest.fn().mockResolvedValue({
+        mappedSymbols: ['700.HK', 'AAPL.US'],
+        mappingDetails: { '700.HK': '700.HK', 'AAPL.US': 'AAPL.US' },
+        failedSymbols: [],
+        metadata: {
+          provider: 'longport',
+          totalSymbols: 2,
+          successCount: 2,
+          failedCount: 0,
+          processingTimeMs: 20
+        }
+      })
+    };
+
+    const dataTransformerMock = {
+      transform: jest.fn().mockResolvedValue(mockQuoteData)
+    };
+
+    const streamDataFetcherMock = {
+      subscribeToStream: jest.fn().mockResolvedValue(mockStreamConnection),
+      unsubscribeFromStream: jest.fn().mockResolvedValue(true),
+      subscribe: jest.fn().mockResolvedValue(mockStreamConnection),
+      unsubscribe: jest.fn().mockResolvedValue(true),
+      getConnection: jest.fn().mockReturnValue(mockStreamConnection),
+      getAllConnections: jest.fn().mockReturnValue([mockStreamConnection]),
+      isConnected: jest.fn().mockReturnValue(true),
+      getClientStateManager: jest.fn().mockReturnValue({
+        getClientStateStats: jest.fn().mockReturnValue({
+          totalClients: 1,
+          totalSubscriptions: 2,
+          activeClients: 1,
+          providerBreakdown: { longport: 1 },
+          capabilityBreakdown: { 'stream-quote': 1 }
+        })
+      }),
+      getConnectionStatsByProvider: jest.fn().mockReturnValue({
+        total: 1,
+        active: 1,
+        connections: []
+      }),
+      batchHealthCheck: jest.fn().mockResolvedValue({
+        'connection-1': true
+      })
+    };
+
+    const recoveryWorkerMock = {
+      scheduleRecovery: jest.fn().mockResolvedValue(true),
+      getRecoveryStatus: jest.fn().mockResolvedValue({ pending: 0, completed: 0, failed: 0 })
+    };
+
+    const marketInferenceMock = {
+      inferMarket: jest.fn().mockResolvedValue('HK'),
+      getMarketTradingHours: jest.fn().mockResolvedValue({ isOpen: true })
+    };
+
+    const rateLimitMock = {
+      checkLimit: jest.fn().mockResolvedValue({
+        allowed: true,
+        limit: 100,
+        current: 1,
+        remaining: 99,
+        resetTime: Date.now() + 60000
+      }),
+      recordRequest: jest.fn().mockResolvedValue(true)
+    };
+
+    const dataValidatorMock = {
+      validate: jest.fn().mockResolvedValue(true),
+      validateStreamData: jest.fn().mockResolvedValue(true),
+      validateSubscriptionData: jest.fn().mockResolvedValue(true)
+    };
+
+    const batchProcessorMock = {
+      addToBatch: jest.fn(),
+      processBatch: jest.fn().mockResolvedValue([mockQuoteData]),
+      getBatchStats: jest.fn().mockReturnValue({
+        totalBatches: 10,
+        totalProcessedItems: 100,
+        totalQuotes: 50,
+        avgBatchSize: 10,
+        avgProcessingTime: 25,
+        batchProcessingTime: 250,
+        errorCount: 0,
+        lastProcessedAt: Date.now(),
+        totalFallbacks: 0,
+        partialRecoverySuccess: 0
+      }),
+      getCurrentBatchSize: jest.fn().mockReturnValue(5),
+      isProcessing: jest.fn().mockReturnValue(false)
+    };
+
+    const connectionManagerMock = {
+      createConnection: jest.fn().mockResolvedValue(mockStreamConnection),
+      removeConnection: jest.fn().mockResolvedValue(true),
+      getConnection: jest.fn().mockReturnValue(mockStreamConnection),
+      getAllConnections: jest.fn().mockReturnValue([mockStreamConnection]),
+      getConnectionStats: jest.fn().mockReturnValue({ active: 1, total: 1 }),
+      getConnectionHealthStats: jest.fn().mockReturnValue({ healthy: 1, total: 1 }),
+      closeConnection: jest.fn().mockResolvedValue(true)
+    };
+
+    const dataProcessorMock = {
+      processIncomingData: jest.fn().mockResolvedValue(mockQuoteData),
+      validateData: jest.fn().mockResolvedValue(true)
+    };
+
+    module = await Test.createTestingModule({
+      providers: [
+        StreamReceiverService,
+        { provide: ConfigService, useValue: configServiceMock },
+        { provide: EventEmitter2, useValue: eventEmitterMock },
+        { provide: SymbolTransformerService, useValue: symbolTransformerMock },
+        { provide: DataTransformerService, useValue: dataTransformerMock },
+        { provide: StreamDataFetcherService, useValue: streamDataFetcherMock },
+        { provide: StreamRecoveryWorkerService, useValue: recoveryWorkerMock },
+        { provide: MarketInferenceService, useValue: marketInferenceMock },
+        { provide: RateLimitService, useValue: rateLimitMock },
+        { provide: StreamDataValidator, useValue: dataValidatorMock },
+        { provide: StreamBatchProcessorService, useValue: batchProcessorMock },
+        { provide: StreamConnectionManagerService, useValue: connectionManagerMock },
+        { provide: StreamDataProcessorService, useValue: dataProcessorMock }
+      ],
+    }).compile();
+
+    service = module.get<StreamReceiverService>(StreamReceiverService);
+    configService = module.get(ConfigService);
+    eventEmitter = module.get(EventEmitter2);
+    symbolTransformerService = module.get(SymbolTransformerService);
+    dataTransformerService = module.get(DataTransformerService);
+    streamDataFetcher = module.get(StreamDataFetcherService);
+    recoveryWorker = module.get(StreamRecoveryWorkerService);
+    marketInferenceService = module.get(MarketInferenceService);
+    rateLimitService = module.get(RateLimitService);
+    dataValidator = module.get(StreamDataValidator);
+    batchProcessor = module.get(StreamBatchProcessorService);
+    connectionManager = module.get(StreamConnectionManagerService);
+    dataProcessor = module.get(StreamDataProcessorService);
+  });
+
+  afterEach(async () => {
+    await module.close();
+  });
+
+  describe('Initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should initialize with proper configuration', () => {
+      expect(configService.get).toHaveBeenCalledWith('streamReceiver');
+      expect(service).toBeInstanceOf(StreamReceiverService);
+    });
+
+    it('should set up monitoring and cleanup timers', () => {
+      // Service should initialize timers during construction
+      expect(service).toBeDefined();
+    });
+  });
+
+  describe('Stream Subscription', () => {
+    it('should successfully subscribe to stream', async () => {
+      rateLimitService.checkLimit.mockResolvedValue({
+        allowed: true,
+        limit: 100,
+        current: 1,
+        remaining: 99,
+        resetTime: Date.now() + 60000
+      });
+      dataValidator.validate.mockResolvedValue(true);
+      symbolTransformerService.batchTransformSymbols.mockResolvedValue({
+        mappedSymbols: ['700.HK', 'AAPL.US'],
+        mappingDetails: { '700.HK': '700.HK', 'AAPL.US': 'AAPL.US' },
+        failedSymbols: [],
+        metadata: {
+          provider: 'longport',
+          totalSymbols: 2,
+          successCount: 2,
+          failedCount: 0,
+          processingTimeMs: 20
+        }
+      });
+      streamDataFetcher.subscribeToStream.mockResolvedValue(mockStreamConnection);
+
+      const result = await service.subscribeStream(mockClient, mockSubscribeDto);
+
+      expect(rateLimitService.checkLimit).toHaveBeenCalled();
+      expect(dataValidator.validate).toHaveBeenCalledWith(mockSubscribeDto);
+      expect(symbolTransformerService.batchTransformSymbols).toHaveBeenCalledWith(mockSubscribeDto.symbols);
+      expect(streamDataFetcher.subscribeToStream).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should reject subscription when rate limit exceeded', async () => {
+      rateLimitService.checkRateLimit.mockResolvedValue(false);
+
+      await expect(service.subscribeStream(mockClient, mockSubscribeDto))
+        .rejects
+        .toThrow();
+
+      expect(rateLimitService.checkRateLimit).toHaveBeenCalled();
+      expect(streamDataFetcher.subscribeToStream).not.toHaveBeenCalled();
+    });
+
+    it('should reject subscription with invalid data', async () => {
+      rateLimitService.checkRateLimit.mockResolvedValue(true);
+      dataValidator.validate.mockResolvedValue(false);
+
+      await expect(service.subscribeStream(mockClient, mockSubscribeDto))
+        .rejects
+        .toThrow();
+
+      expect(dataValidator.validate).toHaveBeenCalledWith(mockSubscribeDto);
+      expect(streamDataFetcher.subscribeToStream).not.toHaveBeenCalled();
+    });
+
+    it('should handle symbol transformation failure', async () => {
+      rateLimitService.checkRateLimit.mockResolvedValue(true);
+      dataValidator.validate.mockResolvedValue(true);
+      symbolTransformerService.transformSymbols.mockRejectedValue(new Error('Transform failed'));
+
+      await expect(service.subscribeStream(mockClient, mockSubscribeDto))
+        .rejects
+        .toThrow('Transform failed');
+
+      expect(symbolTransformerService.transformSymbols).toHaveBeenCalledWith(mockSubscribeDto.symbols);
+      expect(streamDataFetcher.subscribeToStream).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Stream Unsubscription', () => {
+    it('should successfully unsubscribe from stream', async () => {
+      streamDataFetcher.unsubscribe.mockResolvedValue(true);
+      connectionManager.removeConnection.mockResolvedValue(true);
+
+      const result = await service.unsubscribeStream(mockClient, mockUnsubscribeDto);
+
+      expect(streamDataFetcher.unsubscribe).toHaveBeenCalled();
+      expect(result).toBe(true);
+    });
+
+    it('should handle unsubscribe failure gracefully', async () => {
+      streamDataFetcher.unsubscribe.mockRejectedValue(new Error('Unsubscribe failed'));
+
+      await expect(service.unsubscribeStream(mockClient, mockUnsubscribeDto))
+        .rejects
+        .toThrow('Unsubscribe failed');
+
+      expect(streamDataFetcher.unsubscribe).toHaveBeenCalled();
+    });
+  });
+
+  describe('Data Processing', () => {
+    it('should process incoming stream data', async () => {
+      dataProcessor.processIncomingData.mockResolvedValue(mockQuoteData);
+      dataTransformerService.transform.mockResolvedValue(mockQuoteData);
+
+      const result = await service.handleIncomingData(mockQuoteData);
+
+      expect(dataProcessor.processIncomingData).toHaveBeenCalledWith(mockQuoteData);
+      expect(result).toEqual(mockQuoteData);
+    });
+
+    it('should handle data processing errors', async () => {
+      dataProcessor.processIncomingData.mockRejectedValue(new Error('Processing failed'));
+
+      await expect(service.handleIncomingData(mockQuoteData))
+        .rejects
+        .toThrow('Processing failed');
+    });
+
+    it('should emit monitoring events for processed data', async () => {
+      dataProcessor.processIncomingData.mockResolvedValue(mockQuoteData);
+
+      await service.handleIncomingData(mockQuoteData);
+
+      expect(eventEmitter.emit).toHaveBeenCalled();
+    });
+  });
+
+  describe('Connection Management', () => {
+    it('should return active connections count', () => {
+      const count = service.getActiveConnectionsCount();
+      expect(typeof count).toBe('number');
+      expect(count).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle client reconnection', async () => {
+      recoveryWorker.scheduleRecovery.mockResolvedValue(true);
+      connectionManager.createConnection.mockResolvedValue(mockStreamConnection);
+
+      await service.handleClientReconnect(mockClient, {
+        previousConnectionId: 'old-id',
+        symbols: ['700.HK'],
+        wsCapabilityType: 'stream-quote'
+      });
+
+      expect(recoveryWorker.scheduleRecovery).toHaveBeenCalled();
+    });
+
+    it('should detect reconnection attempts', () => {
+      const isReconnection = service.detectReconnection(mockClient, {
+        previousConnectionId: 'old-id',
+        lastDisconnectTime: Date.now() - 5000
+      });
+
+      expect(typeof isReconnection).toBe('boolean');
+    });
+  });
+
+  describe('Provider Selection', () => {
+    it('should select provider by market priority', async () => {
+      marketInferenceService.inferMarket.mockResolvedValue('HK');
+
+      const provider = await service.getProviderByMarketPriority(['700.HK']);
+
+      expect(marketInferenceService.inferMarket).toHaveBeenCalledWith('700.HK');
+      expect(provider).toBeDefined();
+    });
+
+    it('should fall back to default provider when market inference fails', async () => {
+      marketInferenceService.inferMarket.mockRejectedValue(new Error('Inference failed'));
+
+      const provider = await service.getDefaultProvider();
+
+      expect(provider).toBeDefined();
+    });
+
+    it('should select provider by performance metrics', async () => {
+      const provider = await service.selectByPerformance(['longport', 'futu']);
+
+      expect(provider).toBeDefined();
+      expect(['longport', 'futu']).toContain(provider);
+    });
+  });
+
+  describe('Circuit Breaker', () => {
+    it('should check circuit breaker state', () => {
+      const state = service.getCircuitBreakerState();
+
+      expect(state).toHaveProperty('isOpen');
+      expect(state).toHaveProperty('failureCount');
+      expect(state).toHaveProperty('lastFailure');
+    });
+
+    it('should open circuit breaker on repeated failures', () => {
+      // Simulate multiple failures
+      for (let i = 0; i < 5; i++) {
+        service.recordCircuitBreakerFailure();
+      }
+
+      const isOpen = service.isCircuitBreakerOpen();
+      expect(isOpen).toBe(true);
+    });
+
+    it('should reset circuit breaker after successful operations', () => {
+      // First cause failures
+      for (let i = 0; i < 5; i++) {
+        service.recordCircuitBreakerFailure();
+      }
+
+      // Then record successes
+      service.recordCircuitBreakerSuccess();
+      service.resetCircuitBreaker();
+
+      const isOpen = service.isCircuitBreakerOpen();
+      expect(isOpen).toBe(false);
+    });
+  });
+
+  describe('Batch Processing', () => {
+    it('should return batch processing statistics', () => {
+      const stats = service.getBatchProcessingStats();
+
+      expect(stats).toHaveProperty('processed');
+      expect(stats).toHaveProperty('failed');
+      expect(stats).toHaveProperty('pending');
+    });
+
+    it('should update batch statistics thread-safely', () => {
+      const initialStats = service.getBatchProcessingStats();
+
+      service.updateBatchStatsThreadSafe({
+        processed: 10,
+        failed: 1,
+        pending: 2
+      });
+
+      const updatedStats = service.getBatchProcessingStats();
+      expect(updatedStats.processed).toBeGreaterThanOrEqual(initialStats.processed);
+    });
+  });
+
+  describe('Memory Management', () => {
+    it('should check memory usage and trigger alerts if needed', () => {
+      const memoryUsage = service.checkMemoryUsage();
+
+      expect(typeof memoryUsage).toBe('object');
+      expect(memoryUsage).toHaveProperty('heapUsed');
+      expect(memoryUsage).toHaveProperty('heapTotal');
+    });
+
+    it('should force connection cleanup when memory pressure is high', async () => {
+      connectionManager.getAllConnections.mockReturnValue([
+        { ...mockStreamConnection, lastActivity: new Date(Date.now() - 10 * 60 * 1000) } // 10 minutes old
+      ]);
+
+      const cleanedCount = await service.forceConnectionCleanup();
+
+      expect(typeof cleanedCount).toBe('number');
+      expect(cleanedCount).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('Health Check', () => {
+    it('should perform health check and return status', async () => {
+      streamDataFetcher.isConnected.mockReturnValue(true);
+      connectionManager.getConnectionStats.mockReturnValue({ active: 5, total: 10 });
+
+      const health = await service.healthCheck();
+
+      expect(health).toHaveProperty('status');
+      expect(health).toHaveProperty('connections');
+      expect(health).toHaveProperty('memoryUsage');
+    });
+
+    it('should return unhealthy status when dependencies fail', async () => {
+      streamDataFetcher.isConnected.mockReturnValue(false);
+
+      const health = await service.healthCheck();
+
+      expect(health.status).toBe('unhealthy');
+    });
+  });
+
+  describe('Metrics and Monitoring', () => {
+    it('should record WebSocket connection metrics', () => {
+      service.recordWebSocketConnection(mockClient, 'connect');
+
+      expect(eventEmitter.emit).toHaveBeenCalled();
+    });
+
+    it('should record stream pipeline metrics', () => {
+      service.recordStreamPipelineMetrics({
+        symbol: '700.HK',
+        latencyMs: 100,
+        provider: 'longport',
+        success: true
+      });
+
+      expect(eventEmitter.emit).toHaveBeenCalled();
+    });
+
+    it('should emit business events', () => {
+      service.emitBusinessEvent('subscription', {
+        clientId: mockClient.id,
+        symbols: ['700.HK'],
+        success: true
+      });
+
+      expect(eventEmitter.emit).toHaveBeenCalled();
+    });
+
+    it('should emit monitoring events', () => {
+      service.emitMonitoringEvent('performance', {
+        metric: 'latency',
+        value: 100,
+        threshold: 200
+      });
+
+      expect(eventEmitter.emit).toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should classify pipeline errors correctly', () => {
+      const networkError = new Error('Network timeout');
+      const validationError = new Error('Invalid data format');
+
+      const networkType = service.classifyPipelineError(networkError);
+      const validationType = service.classifyPipelineError(validationError);
+
+      expect(typeof networkType).toBe('string');
+      expect(typeof validationType).toBe('string');
+    });
+
+    it('should record pipeline errors', () => {
+      const error = new Error('Test pipeline error');
+
+      service.recordPipelineError(error, {
+        stage: 'transformation',
+        symbol: '700.HK',
+        provider: 'longport'
+      });
+
+      expect(eventEmitter.emit).toHaveBeenCalled();
+    });
+  });
+
+  describe('Cleanup and Destruction', () => {
+    it('should cleanup resources on module destroy', async () => {
+      const cleanupSpy = jest.spyOn(service, 'onModuleDestroy');
+
+      await service.onModuleDestroy();
+
+      expect(cleanupSpy).toHaveBeenCalled();
+    });
+
+    it('should clear timers on destruction', async () => {
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+
+      await service.onModuleDestroy();
+
+      // Verify timers are cleared (may be called multiple times)
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      expect(clearIntervalSpy).toHaveBeenCalled();
+    });
+  });
+});

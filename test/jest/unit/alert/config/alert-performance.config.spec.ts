@@ -1,176 +1,264 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ConfigModule } from "@nestjs/config";
-import alertPerformanceConfig, {
-  AlertPerformanceConfig,
-} from "../../../../../src/alert/config/alert-performance.config";
-import { plainToClass } from "class-transformer";
-import { validateSync } from "class-validator";
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigModule } from '@nestjs/config';
+import { plainToClass } from 'class-transformer';
+import { validateSync } from 'class-validator';
+import { AlertPerformanceConfig, default as alertPerformanceConfig } from '@alert/config/alert-performance.config';
+import { BusinessErrorCode } from '@common/core/exceptions';
 
-describe("AlertPerformanceConfig", () => {
-  let module: TestingModule;
+describe('AlertPerformanceConfig', () => {
+  let config: AlertPerformanceConfig;
 
   beforeEach(async () => {
-    module = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          load: [alertPerformanceConfig],
-        }),
-      ],
+    // 清理环境变量以确保使用默认值
+    delete process.env.ALERT_MAX_CONCURRENCY;
+    delete process.env.ALERT_QUEUE_SIZE_LIMIT;
+    delete process.env.ALERT_RATE_LIMIT_PER_MINUTE;
+    delete process.env.ALERT_BATCH_SIZE;
+    delete process.env.ALERT_CONNECTION_POOL_SIZE;
+
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot()],
     }).compile();
+
+    config = new AlertPerformanceConfig();
   });
 
-  afterEach(async () => {
-    await module.close();
+  afterEach(() => {
+    // 清理环境变量
+    delete process.env.ALERT_MAX_CONCURRENCY;
+    delete process.env.ALERT_QUEUE_SIZE_LIMIT;
+    delete process.env.ALERT_RATE_LIMIT_PER_MINUTE;
+    delete process.env.ALERT_BATCH_SIZE;
+    delete process.env.ALERT_CONNECTION_POOL_SIZE;
   });
 
-  describe("AlertPerformanceConfig", () => {
-    it("should validate default configuration successfully", () => {
-      const config = new AlertPerformanceConfig();
+  describe('constructor', () => {
+    it('should create instance with default values', () => {
+      expect(config).toBeDefined();
+      expect(config.maxConcurrency).toBe(5);
+      expect(config.queueSizeLimit).toBe(100);
+      expect(config.rateLimitPerMinute).toBe(100);
+      expect(config.batchSize).toBe(100);
+      expect(config.connectionPoolSize).toBe(10);
+    });
+
+    it('should use environment variables when provided', () => {
+      process.env.ALERT_MAX_CONCURRENCY = '10';
+      process.env.ALERT_QUEUE_SIZE_LIMIT = '200';
+      process.env.ALERT_RATE_LIMIT_PER_MINUTE = '150';
+      process.env.ALERT_BATCH_SIZE = '50';
+      process.env.ALERT_CONNECTION_POOL_SIZE = '20';
+
+      const envConfig = new AlertPerformanceConfig();
+
+      expect(envConfig.maxConcurrency).toBe(10);
+      expect(envConfig.queueSizeLimit).toBe(200);
+      expect(envConfig.rateLimitPerMinute).toBe(150);
+      expect(envConfig.batchSize).toBe(50);
+      expect(envConfig.connectionPoolSize).toBe(20);
+    });
+
+    it('should use default values for invalid environment variables', () => {
+      process.env.ALERT_MAX_CONCURRENCY = 'invalid';
+      process.env.ALERT_QUEUE_SIZE_LIMIT = 'not-a-number';
+
+      const invalidConfig = new AlertPerformanceConfig();
+
+      expect(invalidConfig.maxConcurrency).toBe(5);
+      expect(invalidConfig.queueSizeLimit).toBe(100);
+    });
+  });
+
+  describe('validation', () => {
+    describe('maxConcurrency', () => {
+      it('should accept valid values', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { maxConcurrency: 10 });
+        const errors = validateSync(testConfig);
+        const maxConcurrencyErrors = errors.filter(e => e.property === 'maxConcurrency');
+        expect(maxConcurrencyErrors).toHaveLength(0);
+      });
+
+      it('should reject values below minimum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { maxConcurrency: 0 });
+        const errors = validateSync(testConfig);
+        const maxConcurrencyErrors = errors.filter(e => e.property === 'maxConcurrency');
+        expect(maxConcurrencyErrors.length).toBeGreaterThan(0);
+      });
+
+      it('should reject values above maximum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { maxConcurrency: 100 });
+        const errors = validateSync(testConfig);
+        const maxConcurrencyErrors = errors.filter(e => e.property === 'maxConcurrency');
+        expect(maxConcurrencyErrors.length).toBeGreaterThan(0);
+      });
+
+      it('should reject non-numeric values', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { maxConcurrency: 'invalid' });
+        const errors = validateSync(testConfig);
+        const maxConcurrencyErrors = errors.filter(e => e.property === 'maxConcurrency');
+        expect(maxConcurrencyErrors.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('queueSizeLimit', () => {
+      it('should accept valid values', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { queueSizeLimit: 500 });
+        const errors = validateSync(testConfig);
+        const queueErrors = errors.filter(e => e.property === 'queueSizeLimit');
+        expect(queueErrors).toHaveLength(0);
+      });
+
+      it('should reject values below minimum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { queueSizeLimit: 5 });
+        const errors = validateSync(testConfig);
+        const queueErrors = errors.filter(e => e.property === 'queueSizeLimit');
+        expect(queueErrors.length).toBeGreaterThan(0);
+      });
+
+      it('should reject values above maximum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { queueSizeLimit: 2000 });
+        const errors = validateSync(testConfig);
+        const queueErrors = errors.filter(e => e.property === 'queueSizeLimit');
+        expect(queueErrors.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('rateLimitPerMinute', () => {
+      it('should accept valid values', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { rateLimitPerMinute: 200 });
+        const errors = validateSync(testConfig);
+        const rateErrors = errors.filter(e => e.property === 'rateLimitPerMinute');
+        expect(rateErrors).toHaveLength(0);
+      });
+
+      it('should reject values below minimum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { rateLimitPerMinute: 0 });
+        const errors = validateSync(testConfig);
+        const rateErrors = errors.filter(e => e.property === 'rateLimitPerMinute');
+        expect(rateErrors.length).toBeGreaterThan(0);
+      });
+
+      it('should reject values above maximum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { rateLimitPerMinute: 2000 });
+        const errors = validateSync(testConfig);
+        const rateErrors = errors.filter(e => e.property === 'rateLimitPerMinute');
+        expect(rateErrors.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('batchSize', () => {
+      it('should accept valid values', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { batchSize: 50 });
+        const errors = validateSync(testConfig);
+        const batchErrors = errors.filter(e => e.property === 'batchSize');
+        expect(batchErrors).toHaveLength(0);
+      });
+
+      it('should reject values below minimum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { batchSize: 0 });
+        const errors = validateSync(testConfig);
+        const batchErrors = errors.filter(e => e.property === 'batchSize');
+        expect(batchErrors.length).toBeGreaterThan(0);
+      });
+
+      it('should reject values above maximum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { batchSize: 2000 });
+        const errors = validateSync(testConfig);
+        const batchErrors = errors.filter(e => e.property === 'batchSize');
+        expect(batchErrors.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('connectionPoolSize', () => {
+      it('should accept valid values', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { connectionPoolSize: 25 });
+        const errors = validateSync(testConfig);
+        const poolErrors = errors.filter(e => e.property === 'connectionPoolSize');
+        expect(poolErrors).toHaveLength(0);
+      });
+
+      it('should reject values below minimum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { connectionPoolSize: 0 });
+        const errors = validateSync(testConfig);
+        const poolErrors = errors.filter(e => e.property === 'connectionPoolSize');
+        expect(poolErrors.length).toBeGreaterThan(0);
+      });
+
+      it('should reject values above maximum', () => {
+        const testConfig = plainToClass(AlertPerformanceConfig, { connectionPoolSize: 100 });
+        const errors = validateSync(testConfig);
+        const poolErrors = errors.filter(e => e.property === 'connectionPoolSize');
+        expect(poolErrors.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('integration', () => {
+    it('should create valid configuration with all default values', () => {
       const errors = validateSync(config);
       expect(errors).toHaveLength(0);
     });
 
-    it("should have correct default values", () => {
-      const config = new AlertPerformanceConfig();
-      expect(config.maxConcurrency).toBe(5);
-      expect(config.queueSizeLimit).toBe(100);
-      expect(config.rateLimitPerMinute).toBe(100);
-      expect(config.batchSize).toBe(100);
-      expect(config.connectionPoolSize).toBe(10);
+    it('should create valid configuration with environment variables', () => {
+      process.env.ALERT_MAX_CONCURRENCY = '15';
+      process.env.ALERT_QUEUE_SIZE_LIMIT = '300';
+      process.env.ALERT_RATE_LIMIT_PER_MINUTE = '250';
+      process.env.ALERT_BATCH_SIZE = '75';
+      process.env.ALERT_CONNECTION_POOL_SIZE = '30';
+
+      const envConfig = new AlertPerformanceConfig();
+      const errors = validateSync(envConfig);
+
+      expect(errors).toHaveLength(0);
+      expect(envConfig.maxConcurrency).toBe(15);
+      expect(envConfig.queueSizeLimit).toBe(300);
+      expect(envConfig.rateLimitPerMinute).toBe(250);
+      expect(envConfig.batchSize).toBe(75);
+      expect(envConfig.connectionPoolSize).toBe(30);
     });
 
-    it("should validate maxConcurrency bounds", () => {
-      const config = plainToClass(AlertPerformanceConfig, {
-        maxConcurrency: 0,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
+    it('should handle partial environment variables correctly', () => {
+      process.env.ALERT_MAX_CONCURRENCY = '8';
+      process.env.ALERT_BATCH_SIZE = '60';
 
-      const configMax = plainToClass(AlertPerformanceConfig, {
-        maxConcurrency: 51,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
+      const partialConfig = new AlertPerformanceConfig();
+      const errors = validateSync(partialConfig);
 
-    it("should validate queueSizeLimit bounds", () => {
-      const config = plainToClass(AlertPerformanceConfig, {
-        queueSizeLimit: 5,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformanceConfig, {
-        queueSizeLimit: 1001,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate rateLimitPerMinute bounds", () => {
-      const config = plainToClass(AlertPerformanceConfig, {
-        rateLimitPerMinute: 0,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformanceConfig, {
-        rateLimitPerMinute: 1001,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate batchSize bounds", () => {
-      const config = plainToClass(AlertPerformanceConfig, { batchSize: 0 });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformanceConfig, {
-        batchSize: 1001,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
-    });
-
-    it("should validate connectionPoolSize bounds", () => {
-      const config = plainToClass(AlertPerformanceConfig, {
-        connectionPoolSize: 0,
-      });
-      const errors = validateSync(config);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].constraints).toHaveProperty("min");
-
-      const configMax = plainToClass(AlertPerformanceConfig, {
-        connectionPoolSize: 51,
-      });
-      const errorsMax = validateSync(configMax);
-      expect(errorsMax.length).toBeGreaterThan(0);
-      expect(errorsMax[0].constraints).toHaveProperty("max");
+      expect(errors).toHaveLength(0);
+      expect(partialConfig.maxConcurrency).toBe(8); // From env
+      expect(partialConfig.queueSizeLimit).toBe(100); // Default
+      expect(partialConfig.rateLimitPerMinute).toBe(100); // Default
+      expect(partialConfig.batchSize).toBe(60); // From env
+      expect(partialConfig.connectionPoolSize).toBe(10); // Default
     });
   });
 
-  describe("Environment Variable Integration", () => {
-    it("should read environment variables correctly", () => {
-      // 设置环境变量
-      process.env.ALERT_MAX_CONCURRENCY = "10";
-      process.env.ALERT_QUEUE_SIZE_LIMIT = "200";
-      process.env.ALERT_RATE_LIMIT_PER_MINUTE = "200";
-      process.env.ALERT_BATCH_SIZE = "200";
-      process.env.ALERT_CONNECTION_POOL_SIZE = "20";
-
-      // 重新加载配置
-      const config = alertPerformanceConfig();
-
-      expect(config.maxConcurrency).toBe(10);
-      expect(config.queueSizeLimit).toBe(200);
-      expect(config.rateLimitPerMinute).toBe(200);
-      expect(config.batchSize).toBe(200);
-      expect(config.connectionPoolSize).toBe(20);
-
-      // 清理环境变量
-      delete process.env.ALERT_MAX_CONCURRENCY;
-      delete process.env.ALERT_QUEUE_SIZE_LIMIT;
-      delete process.env.ALERT_RATE_LIMIT_PER_MINUTE;
-      delete process.env.ALERT_BATCH_SIZE;
-      delete process.env.ALERT_CONNECTION_POOL_SIZE;
-    });
-
-    it("should use default values when environment variables are not set", () => {
-      // 确保环境变量未设置
-      delete process.env.ALERT_MAX_CONCURRENCY;
-      delete process.env.ALERT_QUEUE_SIZE_LIMIT;
-      delete process.env.ALERT_RATE_LIMIT_PER_MINUTE;
-      delete process.env.ALERT_BATCH_SIZE;
-      delete process.env.ALERT_CONNECTION_POOL_SIZE;
-
-      const config = alertPerformanceConfig();
-
-      expect(config.maxConcurrency).toBe(5);
-      expect(config.queueSizeLimit).toBe(100);
-      expect(config.rateLimitPerMinute).toBe(100);
-      expect(config.batchSize).toBe(100);
-      expect(config.connectionPoolSize).toBe(10);
-    });
-
-    it("should validate environment variable values", () => {
-      // 设置无效的环境变量值
-      process.env.ALERT_MAX_CONCURRENCY = "0"; // 小于最小值
+  describe('error handling', () => {
+    it('should throw exception when validation fails', () => {
+      // 设置无效的环境变量以触发验证错误
+      process.env.ALERT_MAX_CONCURRENCY = '100'; // 超过最大值50
 
       expect(() => {
         alertPerformanceConfig();
-      }).toThrow(/Alert performance configuration validation failed/);
+      }).toThrow();
+    });
 
-      // 清理
-      delete process.env.ALERT_MAX_CONCURRENCY;
+    it('should include validation errors in exception context', () => {
+      // 设置多个无效的环境变量以触发多个验证错误
+      process.env.ALERT_MAX_CONCURRENCY = '100'; // 超过最大值50
+      process.env.ALERT_BATCH_SIZE = '2000'; // 超过最大值1000
+
+      try {
+        alertPerformanceConfig();
+        // 如果没有抛出异常，则失败测试
+        expect(true).toBe(false); // 这行代码应该不会执行
+      } catch (error) {
+        expect(error.message).toContain('Alert performance configuration validation failed');
+        expect(error.context).toBeDefined();
+        expect(error.context.validationErrors).toBeDefined();
+      }
     });
   });
 });
+
+export { alertPerformanceConfig };

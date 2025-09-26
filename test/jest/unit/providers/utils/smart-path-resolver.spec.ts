@@ -1,0 +1,4 @@
+// smart-path-resolver.spec.ts - 测试占位代码
+// 路径: unit/providers/utils/smart-path-resolver.spec.ts
+
+// TODO: 实现具体的测试用例

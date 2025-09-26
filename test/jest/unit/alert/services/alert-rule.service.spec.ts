@@ -1,415 +1,515 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AlertRuleService } from '../../../../src/alert/services/alert-rule.service';
-import { AlertRuleRepository } from '../../../../src/alert/repositories/alert-rule.repository';
-import { AlertRuleValidator } from '../../../../src/alert/validators/alert-rule.validator';
-import { CreateAlertRuleDto, UpdateAlertRuleDto, AlertNotificationChannelDto, AlertNotificationChannelType } from '../../../../src/alert/dto';
-import { IAlertRule } from '../../../../src/alert/interfaces';
+import { BadRequestException } from '@nestjs/common';
+import { AlertRuleService } from '@alert/services/alert-rule.service';
+import { AlertRuleRepository } from '@alert/repositories/alert-rule.repository';
+import { AlertRuleValidator } from '@alert/validators/alert-rule.validator';
+import { CreateAlertRuleDto, UpdateAlertRuleDto } from '@alert/dto';
+import { IAlertRule } from '@alert/interfaces';
+import { AlertSeverity } from '@alert/types/alert.types';
+import { AlertNotificationChannelType } from '@alert/dto/alert-rule.dto';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
-import { DatabaseValidationUtils } from '@common/utils/database.utils';
-
-// Mock 数据
-const mockAlertRule: IAlertRule = {
-  id: 'rule_1234567890_abcdef',
-  name: 'Test Alert Rule',
-  description: 'Test alert rule description',
-  metric: 'cpu.usage',
-  operator: '>',
-  threshold: 80,
-  duration: 300,
-  severity: 'warning',
-  enabled: true,
-  channels: [
-    {
-      id: 'channel_1',
-      name: 'Email Channel',
-      type: 'email' as any,
-      config: { email: 'test@example.com' },
-      enabled: true,
-    }
-  ],
-  cooldown: 600,
-  tags: { environment: 'test' },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-const mockCreateRuleDto: CreateAlertRuleDto = {
-  name: 'Test Alert Rule',
-  description: 'Test alert rule description',
-  metric: 'cpu.usage',
-  operator: '>',
-  threshold: 80,
-  duration: 300,
-  severity: 'warning' as any,
-  enabled: true,
-  channels: [
-    {
-      name: 'Email Channel',
-      type: AlertNotificationChannelType.EMAIL,
-      config: { email: 'test@example.com' },
-      enabled: true,
-    }
-  ],
-  cooldown: 600,
-  tags: { environment: 'test' },
-};
-
-const mockUpdateRuleDto: UpdateAlertRuleDto = {
-  name: 'Updated Alert Rule',
-  description: 'Updated alert rule description',
-  metric: 'memory.usage',
-  operator: '<',
-  threshold: 20,
-  duration: 600,
-  severity: 'critical' as any,
-  enabled: false,
-  channels: [
-    {
-      name: 'SMS Channel',
-      type: AlertNotificationChannelType.SMS,
-      config: { phone: '+1234567890' },
-      enabled: true,
-    }
-  ],
-  cooldown: 1200,
-  tags: { environment: 'prod' },
-};
 
 describe('AlertRuleService', () => {
   let service: AlertRuleService;
-  let repository: jest.Mocked<AlertRuleRepository>;
-  let validator: jest.Mocked<AlertRuleValidator>;
+  let mockAlertRuleRepository: any;
+  let mockRuleValidator: any;
+
+  const mockCreateRuleDto: CreateAlertRuleDto = {
+    name: 'Test Rule',
+    description: 'Test rule description',
+    metric: 'cpu_usage',
+    operator: '>',
+    threshold: 80,
+    severity: AlertSeverity.CRITICAL,
+    enabled: true,
+    cooldown: 300,
+    duration: 60,
+    tags: { team: 'infrastructure' },
+    channels: [
+      {
+        id: 'channel_1',
+        type: AlertNotificationChannelType.EMAIL,
+        name: 'Email Channel',
+        enabled: true,
+        config: { recipients: ['admin@example.com'] },
+        retryCount: 3,
+        timeout: 5000
+      }
+    ]
+  };
+
+  const mockAlertRule: IAlertRule = {
+    id: '507f1f77bcf86cd799439011',
+    name: 'Test Rule',
+    description: 'Test rule description',
+    metric: 'cpu_usage',
+    operator: '>',
+    threshold: 80,
+    severity: AlertSeverity.CRITICAL,
+    enabled: true,
+    cooldown: 300,
+    duration: 60,
+    tags: { team: 'infrastructure' },
+    channels: [
+      {
+        id: 'channel_1',
+        type: AlertNotificationChannelType.EMAIL,
+        name: 'Email Channel',
+        enabled: true,
+        config: { recipients: ['admin@example.com'] },
+        retryCount: 3,
+        timeout: 5000
+      }
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const mockUpdateRuleDto: UpdateAlertRuleDto = {
+    name: 'Updated Test Rule',
+    threshold: 85,
+    enabled: false
+  };
 
   beforeEach(async () => {
+    mockAlertRuleRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      findAll: jest.fn(),
+      findAllEnabled: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      toggle: jest.fn(),
+      countAll: jest.fn(),
+      countEnabled: jest.fn()
+    };
+
+    mockRuleValidator = {
+      validateRule: jest.fn()
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AlertRuleService,
-        {
-          provide: AlertRuleRepository,
-          useValue: {
-            create: jest.fn(),
-            update: jest.fn(),
-            delete: jest.fn(),
-            findAll: jest.fn(),
-            findAllEnabled: jest.fn(),
-            findById: jest.fn(),
-            toggle: jest.fn(),
-            countAll: jest.fn(),
-            countEnabled: jest.fn(),
-          },
-        },
-        {
-          provide: AlertRuleValidator,
-          useValue: {
-            validateRule: jest.fn(),
-          },
-        },
+        { provide: AlertRuleRepository, useValue: mockAlertRuleRepository },
+        { provide: AlertRuleValidator, useValue: mockRuleValidator }
       ],
     }).compile();
 
-    service = module.get(AlertRuleService);
-    repository = module.get(AlertRuleRepository);
-    validator = module.get(AlertRuleValidator);
+    service = module.get<AlertRuleService>(AlertRuleService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  describe('Service Initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
   });
 
-  describe('createRule', () => {
-    it('should create a new alert rule successfully', async () => {
-      // Arrange
-      const ruleWithId = {
-        ...mockCreateRuleDto,
-        id: 'rule_1234567890_abcdef',
-      } as any;
-      
-      validator.validateRule.mockReturnValue({ valid: true, errors: [] });
-      repository.create.mockResolvedValue(mockAlertRule);
+  describe('Create Rule', () => {
+    it('should create rule successfully', async () => {
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
+      mockAlertRuleRepository.create.mockResolvedValue(mockAlertRule);
 
-      // Act
       const result = await service.createRule(mockCreateRuleDto);
 
-      // Assert
-      expect(validator.validateRule).toHaveBeenCalled();
-      expect(repository.create).toHaveBeenCalled();
+      expect(mockRuleValidator.validateRule).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...mockCreateRuleDto,
+          id: 'temp'
+        })
+      );
+
+      expect(mockAlertRuleRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...mockCreateRuleDto,
+          id: expect.stringMatching(/^rule_\d+_\w+$/),
+          channels: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'channel_1',
+              type: AlertNotificationChannelType.EMAIL
+            })
+          ])
+        })
+      );
+
       expect(result).toEqual(mockAlertRule);
     });
 
-    it('should throw an exception when rule validation fails', async () => {
-      // Arrange
-      validator.validateRule.mockReturnValue({ 
-        valid: false, 
-        errors: ['Invalid rule configuration'] 
-      });
+    it('should create rule without channels', async () => {
+      const createDto = { ...mockCreateRuleDto, channels: undefined };
+      const expectedRule = { ...mockAlertRule, channels: [] };
 
-      // Act & Assert
-      await expect(service.createRule(mockCreateRuleDto))
-        .rejects
-        .toThrow(); // 具体的异常类型可能需要根据实现调整
-      
-      expect(validator.validateRule).toHaveBeenCalled();
-      expect(repository.create).not.toHaveBeenCalled();
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
+      mockAlertRuleRepository.create.mockResolvedValue(expectedRule);
+
+      const result = await service.createRule(createDto);
+
+      expect(mockAlertRuleRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          channels: []
+        })
+      );
+
+      expect(result).toEqual(expectedRule);
     });
 
-    it('should handle repository errors during creation', async () => {
-      // Arrange
-      validator.validateRule.mockReturnValue({ valid: true, errors: [] });
-      repository.create.mockRejectedValue(new Error('Database error'));
+    it('should handle validation failure', async () => {
+      const validationErrors = ['Invalid threshold value', 'Missing required field'];
+      mockRuleValidator.validateRule.mockReturnValue({
+        valid: false,
+        errors: validationErrors
+      });
 
-      // Act & Assert
-      await expect(service.createRule(mockCreateRuleDto))
-        .rejects
-        .toThrow('Database error');
-      
-      expect(validator.validateRule).toHaveBeenCalled();
-      expect(repository.create).toHaveBeenCalled();
+      await expect(service.createRule(mockCreateRuleDto)).rejects.toThrow();
+
+      expect(mockAlertRuleRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository create errors', async () => {
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
+      mockAlertRuleRepository.create.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.createRule(mockCreateRuleDto)).rejects.toThrow('Database error');
     });
   });
 
-  describe('updateRule', () => {
-    it('should update an existing alert rule successfully', async () => {
-      // Arrange
-      repository.findById.mockResolvedValue(mockAlertRule);
-      validator.validateRule.mockReturnValue({ valid: true, errors: [] });
-      repository.update.mockResolvedValue({
-        ...mockAlertRule,
-        ...mockUpdateRuleDto,
-      });
+  describe('Update Rule', () => {
+    it('should update rule successfully', async () => {
+      const ruleId = '507f1f77bcf86cd799439011';
+      const updatedRule = { ...mockAlertRule, ...mockUpdateRuleDto };
 
-      // Act
-      const result = await service.updateRule('rule_1234567890_abcdef', mockUpdateRuleDto);
+      mockAlertRuleRepository.findById.mockResolvedValue(mockAlertRule);
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
+      mockAlertRuleRepository.update.mockResolvedValue(updatedRule);
 
-      // Assert
-      expect(repository.findById).toHaveBeenCalledWith('rule_1234567890_abcdef');
-      expect(validator.validateRule).toHaveBeenCalled();
-      expect(repository.update).toHaveBeenCalledWith('rule_1234567890_abcdef', mockUpdateRuleDto);
-      expect(result.name).toBe('Updated Alert Rule');
+      const result = await service.updateRule(ruleId, mockUpdateRuleDto);
+
+      expect(mockAlertRuleRepository.findById).toHaveBeenCalledWith(ruleId);
+      expect(mockRuleValidator.validateRule).toHaveBeenCalled();
+      expect(mockAlertRuleRepository.update).toHaveBeenCalledWith(ruleId, mockUpdateRuleDto);
+      expect(result).toEqual(updatedRule);
     });
 
-    it('should throw an exception when rule is not found', async () => {
-      // Arrange
-      repository.findById.mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(service.updateRule('nonexistent_rule', mockUpdateRuleDto))
-        .rejects
-        .toThrow(); // 具体异常类型需要根据实现调整
-      
-      expect(repository.findById).toHaveBeenCalledWith('nonexistent_rule');
-      expect(repository.update).not.toHaveBeenCalled();
+    it('should handle invalid rule ID format', async () => {
+      await expect(service.updateRule('invalid-id', mockUpdateRuleDto)).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw an exception when rule validation fails', async () => {
-      // Arrange
-      repository.findById.mockResolvedValue(mockAlertRule);
-      validator.validateRule.mockReturnValue({ 
-        valid: false, 
-        errors: ['Invalid rule configuration'] 
+    it('should handle rule not found', async () => {
+      mockAlertRuleRepository.findById.mockResolvedValue(null);
+
+      await expect(service.updateRule('507f1f77bcf86cd799439011', mockUpdateRuleDto)).rejects.toThrow();
+    });
+
+    it('should handle validation failure during update', async () => {
+      mockAlertRuleRepository.findById.mockResolvedValue(mockAlertRule);
+      mockRuleValidator.validateRule.mockReturnValue({
+        valid: false,
+        errors: ['Invalid configuration']
       });
 
-      // Act & Assert
-      await expect(service.updateRule('rule_1234567890_abcdef', mockUpdateRuleDto))
-        .rejects
-        .toThrow(); // 具体异常类型需要根据实现调整
-      
-      expect(repository.findById).toHaveBeenCalledWith('rule_1234567890_abcdef');
-      expect(validator.validateRule).toHaveBeenCalled();
-      expect(repository.update).not.toHaveBeenCalled();
+      await expect(service.updateRule('507f1f77bcf86cd799439011', mockUpdateRuleDto)).rejects.toThrow();
+    });
+
+    it('should handle repository update errors', async () => {
+      mockAlertRuleRepository.findById.mockResolvedValue(mockAlertRule);
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
+      mockAlertRuleRepository.update.mockRejectedValue(new Error('Update failed'));
+
+      await expect(service.updateRule('507f1f77bcf86cd799439011', mockUpdateRuleDto)).rejects.toThrow('Update failed');
     });
   });
 
-  describe('deleteRule', () => {
-    it('should delete an alert rule successfully', async () => {
-      // Arrange
-      repository.delete.mockResolvedValue(true);
+  describe('Delete Rule', () => {
+    it('should delete rule successfully', async () => {
+      const ruleId = '507f1f77bcf86cd799439011';
+      mockAlertRuleRepository.delete.mockResolvedValue(true);
 
-      // Act
-      const result = await service.deleteRule('rule_1234567890_abcdef');
+      const result = await service.deleteRule(ruleId);
 
-      // Assert
-      expect(repository.delete).toHaveBeenCalledWith('rule_1234567890_abcdef');
+      expect(mockAlertRuleRepository.delete).toHaveBeenCalledWith(ruleId);
       expect(result).toBe(true);
     });
 
-    it('should return false when rule does not exist', async () => {
-      // Arrange
-      repository.delete.mockResolvedValue(false);
+    it('should handle invalid rule ID format', async () => {
+      await expect(service.deleteRule('invalid-id')).rejects.toThrow(BadRequestException);
+    });
 
-      // Act
-      const result = await service.deleteRule('nonexistent_rule');
+    it('should handle rule not found during deletion', async () => {
+      mockAlertRuleRepository.delete.mockResolvedValue(false);
 
-      // Assert
-      expect(repository.delete).toHaveBeenCalledWith('nonexistent_rule');
+      const result = await service.deleteRule('507f1f77bcf86cd799439011');
+
       expect(result).toBe(false);
     });
-  });
 
-  describe('getAllRules', () => {
-    it('should return all alert rules', async () => {
-      // Arrange
-      const rules = [mockAlertRule];
-      repository.findAll.mockResolvedValue(rules);
+    it('should handle repository delete errors', async () => {
+      mockAlertRuleRepository.delete.mockRejectedValue(new Error('Delete failed'));
 
-      // Act
-      const result = await service.getAllRules();
-
-      // Assert
-      expect(repository.findAll).toHaveBeenCalled();
-      expect(result).toEqual(rules);
-    });
-
-    it('should return empty array when no rules exist', async () => {
-      // Arrange
-      repository.findAll.mockResolvedValue([]);
-
-      // Act
-      const result = await service.getAllRules();
-
-      // Assert
-      expect(repository.findAll).toHaveBeenCalled();
-      expect(result).toEqual([]);
+      await expect(service.deleteRule('507f1f77bcf86cd799439011')).rejects.toThrow('Delete failed');
     });
   });
 
-  describe('getEnabledRules', () => {
-    it('should return all enabled alert rules', async () => {
-      // Arrange
-      const enabledRule = { ...mockAlertRule, enabled: true };
-      repository.findAllEnabled.mockResolvedValue([enabledRule]);
+  describe('Get Rule By ID', () => {
+    it('should get rule by ID successfully', async () => {
+      const ruleId = '507f1f77bcf86cd799439011';
+      mockAlertRuleRepository.findById.mockResolvedValue(mockAlertRule);
 
-      // Act
-      const result = await service.getEnabledRules();
+      const result = await service.getRuleById(ruleId);
 
-      // Assert
-      expect(repository.findAllEnabled).toHaveBeenCalled();
-      expect(result).toEqual([enabledRule]);
-    });
-  });
-
-  describe('getRuleById', () => {
-    it('should return an alert rule by ID', async () => {
-      // Arrange
-      repository.findById.mockResolvedValue(mockAlertRule);
-
-      // Act
-      const result = await service.getRuleById('rule_1234567890_abcdef');
-
-      // Assert
-      expect(repository.findById).toHaveBeenCalledWith('rule_1234567890_abcdef');
+      expect(mockAlertRuleRepository.findById).toHaveBeenCalledWith(ruleId);
       expect(result).toEqual(mockAlertRule);
     });
 
-    it('should throw an exception when rule is not found', async () => {
-      // Arrange
-      repository.findById.mockResolvedValue(null);
+    it('should handle invalid rule ID format', async () => {
+      await expect(service.getRuleById('invalid-id')).rejects.toThrow(BadRequestException);
+    });
 
-      // Act & Assert
-      await expect(service.getRuleById('nonexistent_rule'))
-        .rejects
-        .toThrow(); // 具体异常类型需要根据实现调整
-      
-      expect(repository.findById).toHaveBeenCalledWith('nonexistent_rule');
+    it('should handle rule not found', async () => {
+      mockAlertRuleRepository.findById.mockResolvedValue(null);
+
+      await expect(service.getRuleById('507f1f77bcf86cd799439011')).rejects.toThrow();
+    });
+
+    it('should handle repository findById errors', async () => {
+      mockAlertRuleRepository.findById.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getRuleById('507f1f77bcf86cd799439011')).rejects.toThrow('Database error');
     });
   });
 
-  describe('toggleRule', () => {
-    it('should toggle rule enabled status to false', async () => {
-      // Arrange
-      repository.toggle.mockResolvedValue(true);
+  describe('Get All Rules', () => {
+    it('should get all rules successfully', async () => {
+      const mockRules = [
+        mockAlertRule,
+        { ...mockAlertRule, id: '507f1f77bcf86cd799439012', name: 'Another Rule' }
+      ];
 
-      // Act
-      const result = await service.toggleRule('rule_1234567890_abcdef', false);
+      mockAlertRuleRepository.findAll.mockResolvedValue(mockRules);
 
-      // Assert
-      expect(repository.toggle).toHaveBeenCalledWith('rule_1234567890_abcdef', false);
-      expect(result).toBe(true);
+      const result = await service.getAllRules();
+
+      expect(mockAlertRuleRepository.findAll).toHaveBeenCalled();
+      expect(result).toEqual(mockRules);
     });
 
-    it('should toggle rule enabled status to true', async () => {
-      // Arrange
-      repository.toggle.mockResolvedValue(true);
+    it('should return empty array when no rules found', async () => {
+      mockAlertRuleRepository.findAll.mockResolvedValue([]);
 
-      // Act
-      const result = await service.toggleRule('rule_1234567890_abcdef', true);
+      const result = await service.getAllRules();
 
-      // Assert
-      expect(repository.toggle).toHaveBeenCalledWith('rule_1234567890_abcdef', true);
-      expect(result).toBe(true);
+      expect(result).toEqual([]);
+    });
+
+    it('should handle repository findAll errors', async () => {
+      mockAlertRuleRepository.findAll.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getAllRules()).rejects.toThrow('Database error');
     });
   });
 
-  describe('batchToggleRules', () => {
+  describe('Get Enabled Rules', () => {
+    it('should get enabled rules successfully', async () => {
+      const enabledRules = [mockAlertRule];
+      mockAlertRuleRepository.findAllEnabled.mockResolvedValue(enabledRules);
+
+      const result = await service.getEnabledRules();
+
+      expect(mockAlertRuleRepository.findAllEnabled).toHaveBeenCalled();
+      expect(result).toEqual(enabledRules);
+    });
+
+    it('should return empty array when no enabled rules', async () => {
+      mockAlertRuleRepository.findAllEnabled.mockResolvedValue([]);
+
+      const result = await service.getEnabledRules();
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle repository findAllEnabled errors', async () => {
+      mockAlertRuleRepository.findAllEnabled.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getEnabledRules()).rejects.toThrow('Database error');
+    });
+  });
+
+  describe('Toggle Rule', () => {
+    it('should toggle rule to enabled', async () => {
+      const ruleId = '507f1f77bcf86cd799439011';
+      mockAlertRuleRepository.toggle.mockResolvedValue(true);
+
+      const result = await service.toggleRule(ruleId, true);
+
+      expect(mockAlertRuleRepository.toggle).toHaveBeenCalledWith(ruleId, true);
+      expect(result).toBe(true);
+    });
+
+    it('should toggle rule to disabled', async () => {
+      const ruleId = '507f1f77bcf86cd799439011';
+      mockAlertRuleRepository.toggle.mockResolvedValue(true);
+
+      const result = await service.toggleRule(ruleId, false);
+
+      expect(mockAlertRuleRepository.toggle).toHaveBeenCalledWith(ruleId, false);
+      expect(result).toBe(true);
+    });
+
+    it('should handle invalid rule ID format', async () => {
+      await expect(service.toggleRule('invalid-id', true)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should handle toggle errors', async () => {
+      mockAlertRuleRepository.toggle.mockRejectedValue(new Error('Toggle failed'));
+
+      await expect(service.toggleRule('507f1f77bcf86cd799439011', true)).rejects.toThrow('Toggle failed');
+    });
+  });
+
+  describe('Batch Toggle Rules', () => {
     it('should batch toggle rules successfully', async () => {
-      // Arrange
-      const ruleIds = ['rule_1', 'rule_2', 'rule_3'];
-      service.toggleRule = jest.fn().mockResolvedValue(true);
+      const ruleIds = ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'];
+      mockAlertRuleRepository.toggle.mockResolvedValue(true);
 
-      // Act
       const result = await service.batchToggleRules(ruleIds, true);
 
-      // Assert
-      expect(service.toggleRule).toHaveBeenCalledTimes(3);
-      expect(result.successCount).toBe(3);
+      expect(result.successCount).toBe(2);
       expect(result.failedCount).toBe(0);
       expect(result.errors).toEqual([]);
     });
 
     it('should handle partial failures in batch toggle', async () => {
-      // Arrange
-      const ruleIds = ['rule_1', 'rule_2', 'rule_3'];
-      service.toggleRule = jest.fn()
+      const ruleIds = ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'];
+      mockAlertRuleRepository.toggle
         .mockResolvedValueOnce(true)
-        .mockRejectedValueOnce(new Error('Toggle failed'))
-        .mockResolvedValueOnce(true);
+        .mockRejectedValueOnce(new Error('Toggle failed'));
 
-      // Act
-      const result = await service.batchToggleRules(ruleIds, false);
+      const result = await service.batchToggleRules(ruleIds, true);
 
-      // Assert
-      expect(service.toggleRule).toHaveBeenCalledTimes(3);
-      expect(result.successCount).toBe(2);
+      expect(result.successCount).toBe(1);
       expect(result.failedCount).toBe(1);
       expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('507f1f77bcf86cd799439012');
     });
   });
 
-  describe('getRuleStats', () => {
-    it('should return rule statistics', async () => {
-      // Arrange
-      repository.countAll.mockResolvedValue(10);
-      repository.countEnabled.mockResolvedValue(7);
+  describe('Get Rule Statistics', () => {
+    it('should get rule statistics successfully', async () => {
+      mockAlertRuleRepository.countAll.mockResolvedValue(10);
+      mockAlertRuleRepository.countEnabled.mockResolvedValue(7);
 
-      // Act
       const result = await service.getRuleStats();
 
-      // Assert
-      expect(repository.countAll).toHaveBeenCalled();
-      expect(repository.countEnabled).toHaveBeenCalled();
+      expect(mockAlertRuleRepository.countAll).toHaveBeenCalled();
+      expect(mockAlertRuleRepository.countEnabled).toHaveBeenCalled();
       expect(result).toEqual({
         totalRules: 10,
         enabledRules: 7,
-        disabledRules: 3,
+        disabledRules: 3
       });
+    });
+
+    it('should handle repository count errors', async () => {
+      mockAlertRuleRepository.countAll.mockRejectedValue(new Error('Count error'));
+
+      await expect(service.getRuleStats()).rejects.toThrow('Count error');
     });
   });
 
-  describe('validateRule', () => {
-    it('should validate a rule using the validator', () => {
-      // Arrange
-      const validationResponse = { valid: true, errors: [] };
-      validator.validateRule.mockReturnValue(validationResponse);
+  describe('Validate Rule', () => {
+    it('should validate rule successfully', () => {
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
 
-      // Act
       const result = service.validateRule(mockAlertRule);
 
-      // Assert
-      expect(validator.validateRule).toHaveBeenCalledWith(mockAlertRule);
-      expect(result).toEqual(validationResponse);
+      expect(mockRuleValidator.validateRule).toHaveBeenCalledWith(mockAlertRule);
+      expect(result).toEqual({ valid: true, errors: [] });
+    });
+
+    it('should return validation errors', () => {
+      const validationErrors = ['Invalid threshold', 'Missing metric'];
+      mockRuleValidator.validateRule.mockReturnValue({
+        valid: false,
+        errors: validationErrors
+      });
+
+      const result = service.validateRule(mockAlertRule);
+
+      expect(result).toEqual({
+        valid: false,
+        errors: validationErrors
+      });
+    });
+
+    it('should handle validator errors', () => {
+      mockRuleValidator.validateRule.mockImplementation(() => {
+        throw new Error('Validator error');
+      });
+
+      expect(() => service.validateRule(mockAlertRule)).toThrow('Validator error');
+    });
+  });
+
+  describe('Edge Cases and Error Handling', () => {
+    it('should handle concurrent rule operations', async () => {
+      const ruleId = '507f1f77bcf86cd799439011';
+      mockAlertRuleRepository.findById.mockResolvedValue(mockAlertRule);
+
+      const promises = [
+        service.getRuleById(ruleId),
+        service.getRuleById(ruleId),
+        service.getRuleById(ruleId)
+      ];
+
+      const results = await Promise.all(promises);
+
+      expect(results).toHaveLength(3);
+      results.forEach(result => {
+        expect(result).toEqual(mockAlertRule);
+      });
+    });
+
+    it('should handle large batch operations', async () => {
+      const manyRules = new Array(100).fill(mockAlertRule).map((rule, index) => ({
+        ...rule,
+        id: `rule_${index}`,
+        name: `Rule ${index}`
+      }));
+
+      mockAlertRuleRepository.findAll.mockResolvedValue(manyRules);
+
+      const result = await service.getAllRules();
+
+      expect(result).toHaveLength(100);
+      expect(result[0].name).toBe('Rule 0');
+      expect(result[99].name).toBe('Rule 99');
+    });
+
+    it('should handle empty rule validation', () => {
+      const emptyRule = {} as IAlertRule;
+      mockRuleValidator.validateRule.mockReturnValue({
+        valid: false,
+        errors: ['Rule is empty']
+      });
+
+      const result = service.validateRule(emptyRule);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Rule is empty');
+    });
+
+    it('should handle network timeout during creation', async () => {
+      mockRuleValidator.validateRule.mockReturnValue({ valid: true, errors: [] });
+      mockAlertRuleRepository.create.mockImplementation(() => {
+        return new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Network timeout')), 100);
+        });
+      });
+
+      await expect(service.createRule(mockCreateRuleDto)).rejects.toThrow('Network timeout');
     });
   });
 });

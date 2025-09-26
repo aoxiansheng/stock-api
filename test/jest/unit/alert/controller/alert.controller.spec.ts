@@ -1,518 +1,683 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AlertController } from '../../../../src/alert/controller/alert.controller';
-import { AlertOrchestratorService } from '../../../../src/alert/services/alert-orchestrator.service';
+import { AlertController } from '@alert/controller/alert.controller';
+import { AlertOrchestratorService } from '@alert/services/alert-orchestrator.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { IAlertRule, IAlert, IAlertStats, IMetricData } from '../../../../src/alert/interfaces';
-import { AlertStatus } from '../../../../src/alert/types/alert.types';
-import { CreateAlertRuleDto, UpdateAlertRuleDto, AlertQueryDto, AcknowledgeAlertDto, ResolveAlertDto, TriggerAlertDto } from '../../../../src/alert/dto';
-import { AlertResponseDto } from '../../../../src/alert/dto/alert-response.dto';
-import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
-
-// Mock 数据
-const mockAlertRule: IAlertRule = {
-  id: 'rule_1234567890_abcdef',
-  name: 'Test Alert Rule',
-  description: 'Test alert rule description',
-  metric: 'cpu.usage',
-  operator: '>',
-  threshold: 80,
-  duration: 300,
-  severity: 'warning',
-  enabled: true,
-  channels: [
-    {
-      id: 'channel_1',
-      name: 'Email Channel',
-      type: 'email' as any,
-      config: { email: 'test@example.com' },
-      enabled: true,
-    }
-  ],
-  cooldown: 600,
-  tags: { environment: 'test' },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-const mockAlert: IAlert = {
-  id: 'alert_1234567890_abcdef',
-  ruleId: 'rule_1234567890_abcdef',
-  ruleName: 'Test Alert Rule',
-  metric: 'cpu.usage',
-  value: 85,
-  threshold: 80,
-  severity: 'warning',
-  status: AlertStatus.FIRING,
-  message: 'Alert triggered: cpu.usage > 80, current value: 85',
-  startTime: new Date(),
-  endTime: undefined,
-  acknowledgedBy: undefined,
-  acknowledgedAt: undefined,
-  resolvedBy: undefined,
-  resolvedAt: undefined,
-  tags: { environment: 'test' },
-  context: {
-    metric: 'cpu.usage',
-    operator: '>',
-    tags: { host: 'server1' }
-  }
-};
-
-const mockAlertStats: IAlertStats = {
-  activeAlerts: 5,
-  criticalAlerts: 2,
-  warningAlerts: 3,
-  infoAlerts: 0,
-  totalAlertsToday: 10,
-  resolvedAlertsToday: 3,
-  averageResolutionTime: 30,
-  totalRules: 20,
-  enabledRules: 18,
-};
-
-const mockAlertResponseDto = new AlertResponseDto();
-mockAlertResponseDto.id = mockAlert.id;
-mockAlertResponseDto.ruleId = mockAlert.ruleId;
-mockAlertResponseDto.ruleName = mockAlert.ruleName;
-mockAlertResponseDto.metric = mockAlert.metric;
-mockAlertResponseDto.value = mockAlert.value;
-mockAlertResponseDto.threshold = mockAlert.threshold;
-mockAlertResponseDto.severity = mockAlert.severity;
-mockAlertResponseDto.status = mockAlert.status;
-mockAlertResponseDto.message = mockAlert.message;
-mockAlertResponseDto.startTime = mockAlert.startTime;
-mockAlertResponseDto.endTime = mockAlert.endTime;
-mockAlertResponseDto.acknowledgedBy = mockAlert.acknowledgedBy;
-mockAlertResponseDto.acknowledgedAt = mockAlert.acknowledgedAt;
-mockAlertResponseDto.resolvedBy = mockAlert.resolvedBy;
-mockAlertResponseDto.resolvedAt = mockAlert.resolvedAt;
-mockAlertResponseDto.tags = mockAlert.tags;
+import { CreateAlertRuleDto, UpdateAlertRuleDto, AlertQueryDto, TriggerAlertDto, AlertResponseDto, ResolveAlertDto, AcknowledgeAlertDto } from '@alert/dto';
+import { IAlertRule, IAlert } from '@alert/interfaces';
+import { AlertSeverity, AlertStatus } from '@alert/types/alert.types';
+import { Types } from 'mongoose';
+import { jest } from '@jest/globals';
 
 describe('AlertController', () => {
   let controller: AlertController;
-  let alertOrchestrator: jest.Mocked<AlertOrchestratorService>;
-  let paginationService: jest.Mocked<PaginationService>;
+  let mockAlertOrchestrator: any;
+  let mockPaginationService: any;
+
+  const mockAlertRule: IAlertRule = {
+    id: new Types.ObjectId().toHexString(),
+    name: 'Test Alert Rule',
+    description: 'Test rule description',
+    metric: 'cpu_usage',
+    operator: '>',
+    threshold: 80,
+    duration: 300,
+    severity: AlertSeverity.WARNING,
+    enabled: true,
+    channels: [],
+    cooldown: 600,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'test-user'
+  } as any;
+
+  const mockAlert: IAlert = {
+    id: new Types.ObjectId().toHexString(),
+    ruleId: mockAlertRule.id,
+    status: AlertStatus.FIRING,
+    severity: AlertSeverity.WARNING,
+    message: 'CPU usage exceeded threshold',
+    createdAt: new Date(),
+    acknowledgedAt: undefined,
+    resolvedAt: undefined,
+    metadata: { value: 85 },
+    // Additional fields required by AlertResponseDto.fromEntity
+    ruleName: mockAlertRule.name,
+    metric: 'cpu_usage',
+    value: 85,
+    threshold: 80,
+    startTime: new Date(),
+    endTime: undefined,
+    acknowledgedBy: undefined,
+    resolvedBy: undefined,
+    tags: undefined,
+    context: undefined
+  } as any;
 
   beforeEach(async () => {
+    mockAlertOrchestrator = {
+      createRule: jest.fn(),
+      getRules: jest.fn(),
+      getRuleById: jest.fn(),
+      updateRule: jest.fn(),
+      deleteRule: jest.fn(),
+      toggleRule: jest.fn(),
+      getActiveAlerts: jest.fn(),
+      queryAlerts: jest.fn(),
+      getStats: jest.fn(),
+      getAlertById: jest.fn(),
+      acknowledgeAlert: jest.fn(),
+      resolveAlert: jest.fn(),
+      evaluateAllRules: jest.fn(),
+    };
+
+    mockPaginationService = {
+      normalizePaginationQuery: jest.fn(),
+      createPaginatedResponse: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AlertController],
       providers: [
         {
           provide: AlertOrchestratorService,
-          useValue: {
-            createRule: jest.fn(),
-            getRules: jest.fn(),
-            getRuleById: jest.fn(),
-            updateRule: jest.fn(),
-            deleteRule: jest.fn(),
-            toggleRule: jest.fn(),
-            getActiveAlerts: jest.fn(),
-            queryAlerts: jest.fn(),
-            getStats: jest.fn(),
-            getAlertById: jest.fn(),
-            acknowledgeAlert: jest.fn(),
-            resolveAlert: jest.fn(),
-            evaluateAllRules: jest.fn(),
-          },
+          useValue: mockAlertOrchestrator
         },
         {
           provide: PaginationService,
-          useValue: {
-            normalizePaginationQuery: jest.fn().mockImplementation((query) => ({
-              page: query.page || 1,
-              limit: query.limit || 10,
-            })),
-            createPaginatedResponse: jest.fn().mockImplementation((data, page, limit, total) => ({
-              data,
-              meta: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-              },
-            })),
-          },
-        },
+          useValue: mockPaginationService
+        }
       ],
     }).compile();
 
-    controller = module.get(AlertController);
-    alertOrchestrator = module.get(AlertOrchestratorService);
-    paginationService = module.get(PaginationService);
+    controller = module.get<AlertController>(AlertController);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+  describe('Rule Management', () => {
+    describe('createRule', () => {
+      it('should create a new alert rule', async () => {
+        const createDto: CreateAlertRuleDto = {
+          name: 'Test Rule',
+          metric: 'cpu_usage',
+          operator: '>',
+          threshold: 80,
+          duration: 300,
+          severity: AlertSeverity.WARNING,
+          enabled: true,
+          channels: [],
+          cooldown: 600
+        } as any;
 
-  // ==================== 告警规则管理 ====================
+        mockAlertOrchestrator.createRule.mockResolvedValue(mockAlertRule);
 
-  describe('createRule', () => {
-    it('should create a new alert rule', async () => {
-      // Arrange
-      const createRuleDto: CreateAlertRuleDto = {
-        name: 'Test Alert Rule',
-        description: 'Test alert rule description',
-        metric: 'cpu.usage',
-        operator: '>',
-        threshold: 80,
-        duration: 300,
-        severity: 'warning' as any,
-        enabled: true,
-        channels: [
-          {
-            name: 'Email Channel',
-            type: 'email' as any,
-            config: { email: 'test@example.com' },
-            enabled: true,
-          }
-        ],
-        cooldown: 600,
-        tags: { environment: 'test' },
-      };
-      
-      alertOrchestrator.createRule.mockResolvedValue(mockAlertRule);
+        const result = await controller.createRule(createDto);
 
-      // Act
-      const result = await controller.createRule(createRuleDto);
-
-      // Assert
-      expect(alertOrchestrator.createRule).toHaveBeenCalledWith(createRuleDto);
-      expect(result).toEqual(mockAlertRule);
-    });
-  });
-
-  describe('getRules', () => {
-    it('should return all alert rules', async () => {
-      // Arrange
-      alertOrchestrator.getRules.mockResolvedValue([mockAlertRule]);
-
-      // Act
-      const result = await controller.getRules();
-
-      // Assert
-      expect(alertOrchestrator.getRules).toHaveBeenCalled();
-      expect(result).toEqual([mockAlertRule]);
-    });
-  });
-
-  describe('getRuleById', () => {
-    it('should return an alert rule by ID', async () => {
-      // Arrange
-      alertOrchestrator.getRuleById.mockResolvedValue(mockAlertRule);
-
-      // Act
-      const result = await controller.getRuleById('rule_1234567890_abcdef');
-
-      // Assert
-      expect(alertOrchestrator.getRuleById).toHaveBeenCalledWith('rule_1234567890_abcdef');
-      expect(result).toEqual(mockAlertRule);
-    });
-
-    it('should return null when rule is not found', async () => {
-      // Arrange
-      alertOrchestrator.getRuleById.mockResolvedValue(null);
-
-      // Act
-      const result = await controller.getRuleById('nonexistent_rule');
-
-      // Assert
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('updateRule', () => {
-    it('should update an alert rule', async () => {
-      // Arrange
-      const updateRuleDto: UpdateAlertRuleDto = {
-        name: 'Updated Alert Rule',
-        description: 'Updated alert rule description',
-      };
-      
-      const updatedRule = { ...mockAlertRule, ...updateRuleDto };
-      alertOrchestrator.updateRule.mockResolvedValue(updatedRule);
-
-      // Act
-      const result = await controller.updateRule('rule_1234567890_abcdef', updateRuleDto);
-
-      // Assert
-      expect(alertOrchestrator.updateRule).toHaveBeenCalledWith('rule_1234567890_abcdef', updateRuleDto);
-      expect(result).toEqual(updatedRule);
-    });
-  });
-
-  describe('deleteRule', () => {
-    it('should delete an alert rule', async () => {
-      // Arrange
-      alertOrchestrator.deleteRule.mockResolvedValue();
-
-      // Act
-      await controller.deleteRule('rule_1234567890_abcdef');
-
-      // Assert
-      expect(alertOrchestrator.deleteRule).toHaveBeenCalledWith('rule_1234567890_abcdef');
-    });
-  });
-
-  describe('toggleRule', () => {
-    it('should toggle an alert rule status', async () => {
-      // Arrange
-      alertOrchestrator.toggleRule.mockResolvedValue();
-
-      // Act
-      await controller.toggleRule('rule_1234567890_abcdef', { enabled: false });
-
-      // Assert
-      expect(alertOrchestrator.toggleRule).toHaveBeenCalledWith('rule_1234567890_abcdef', false);
-    });
-  });
-
-  // ==================== 告警管理 ====================
-
-  describe('getActiveAlerts', () => {
-    it('should return active alerts', async () => {
-      // Arrange
-      alertOrchestrator.getActiveAlerts.mockResolvedValue([mockAlert]);
-
-      // Act
-      const result = await controller.getActiveAlerts();
-
-      // Assert
-      expect(alertOrchestrator.getActiveAlerts).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-      expect(result[0]).toBeInstanceOf(AlertResponseDto);
-    });
-  });
-
-  describe('getAlertHistory', () => {
-    it('should return paginated alert history', async () => {
-      // Arrange
-      const query: AlertQueryDto = { page: 1, limit: 10 };
-      const mockQueryResult = { alerts: [mockAlert], total: 1 };
-      
-      alertOrchestrator.queryAlerts.mockResolvedValue(mockQueryResult);
-      paginationService.createPaginatedResponse.mockReturnValue({
-        data: [mockAlertResponseDto],
-        meta: { page: 1, limit: 10, total: 1, totalPages: 1 }
+        expect(mockAlertOrchestrator.createRule).toHaveBeenCalledWith(createDto);
+        expect(result).toEqual(mockAlertRule);
       });
 
-      // Act
-      const result = await controller.getAlertHistory(query);
+      it('should handle orchestrator errors gracefully', async () => {
+        const createDto: CreateAlertRuleDto = {
+          name: 'Test Rule',
+          metric: 'cpu_usage'
+        } as any;
 
-      // Assert
-      expect(alertOrchestrator.queryAlerts).toHaveBeenCalled();
-      expect(result.data).toHaveLength(1);
-      expect(result.meta).toEqual({ page: 1, limit: 10, total: 1, totalPages: 1 });
+        const error = new Error('Database connection failed');
+        mockAlertOrchestrator.createRule.mockRejectedValue(error);
+
+        await expect(controller.createRule(createDto)).rejects.toThrow(error);
+        expect(mockAlertOrchestrator.createRule).toHaveBeenCalledWith(createDto);
+      });
+    });
+
+    describe('getRules', () => {
+      it('should return all alert rules', async () => {
+        const rules = [mockAlertRule];
+        mockAlertOrchestrator.getRules.mockResolvedValue(rules);
+
+        const result = await controller.getRules();
+
+        expect(mockAlertOrchestrator.getRules).toHaveBeenCalled();
+        expect(result).toEqual(rules);
+      });
+
+      it('should return empty array when no rules exist', async () => {
+        mockAlertOrchestrator.getRules.mockResolvedValue([]);
+
+        const result = await controller.getRules();
+
+        expect(mockAlertOrchestrator.getRules).toHaveBeenCalled();
+        expect(result).toEqual([]);
+      });
+    });
+
+    describe('getRuleById', () => {
+      it('should return rule by ID', async () => {
+        const ruleId = mockAlertRule.id;
+        mockAlertOrchestrator.getRuleById.mockResolvedValue(mockAlertRule);
+
+        const result = await controller.getRuleById(ruleId);
+
+        expect(mockAlertOrchestrator.getRuleById).toHaveBeenCalledWith(ruleId);
+        expect(result).toEqual(mockAlertRule);
+      });
+
+      it('should return null for non-existent rule', async () => {
+        const ruleId = new Types.ObjectId().toHexString();
+        mockAlertOrchestrator.getRuleById.mockResolvedValue(null);
+
+        const result = await controller.getRuleById(ruleId);
+
+        expect(mockAlertOrchestrator.getRuleById).toHaveBeenCalledWith(ruleId);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('updateRule', () => {
+      it('should update existing rule', async () => {
+        const ruleId = mockAlertRule.id;
+        const updateDto: UpdateAlertRuleDto = {
+          threshold: 90,
+          enabled: false
+        } as any;
+        const updatedRule = { ...mockAlertRule, ...updateDto };
+
+        mockAlertOrchestrator.updateRule.mockResolvedValue(updatedRule);
+
+        const result = await controller.updateRule(ruleId, updateDto);
+
+        expect(mockAlertOrchestrator.updateRule).toHaveBeenCalledWith(ruleId, updateDto);
+        expect(result).toEqual(updatedRule);
+      });
+
+      it('should return null for non-existent rule', async () => {
+        const ruleId = new Types.ObjectId().toHexString();
+        const updateDto: UpdateAlertRuleDto = { threshold: 90 } as any;
+
+        mockAlertOrchestrator.updateRule.mockResolvedValue(null);
+
+        const result = await controller.updateRule(ruleId, updateDto);
+
+        expect(mockAlertOrchestrator.updateRule).toHaveBeenCalledWith(ruleId, updateDto);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('deleteRule', () => {
+      it('should delete rule successfully', async () => {
+        const ruleId = mockAlertRule.id;
+        mockAlertOrchestrator.deleteRule.mockResolvedValue();
+
+        await controller.deleteRule(ruleId);
+
+        expect(mockAlertOrchestrator.deleteRule).toHaveBeenCalledWith(ruleId);
+      });
+
+      it('should handle delete errors gracefully', async () => {
+        const ruleId = mockAlertRule.id;
+        const error = new Error('Rule not found');
+        mockAlertOrchestrator.deleteRule.mockRejectedValue(error);
+
+        await expect(controller.deleteRule(ruleId)).rejects.toThrow(error);
+        expect(mockAlertOrchestrator.deleteRule).toHaveBeenCalledWith(ruleId);
+      });
+    });
+
+    describe('toggleRule', () => {
+      it('should enable rule', async () => {
+        const ruleId = mockAlertRule.id;
+        const body = { enabled: true };
+        mockAlertOrchestrator.toggleRule.mockResolvedValue();
+
+        await controller.toggleRule(ruleId, body);
+
+        expect(mockAlertOrchestrator.toggleRule).toHaveBeenCalledWith(ruleId, true);
+      });
+
+      it('should disable rule', async () => {
+        const ruleId = mockAlertRule.id;
+        const body = { enabled: false };
+        mockAlertOrchestrator.toggleRule.mockResolvedValue();
+
+        await controller.toggleRule(ruleId, body);
+
+        expect(mockAlertOrchestrator.toggleRule).toHaveBeenCalledWith(ruleId, false);
+      });
     });
   });
 
-  describe('getAlertStats', () => {
-    it('should return alert statistics', async () => {
-      // Arrange
-      alertOrchestrator.getStats.mockResolvedValue(mockAlertStats);
+  describe('Alert Management', () => {
+    describe('getActiveAlerts', () => {
+      it('should return active alerts', async () => {
+        const alerts = [mockAlert];
+        mockAlertOrchestrator.getActiveAlerts.mockResolvedValue(alerts);
 
-      // Act
-      const result = await controller.getAlertStats();
+        const result = await controller.getActiveAlerts();
 
-      // Assert
-      expect(alertOrchestrator.getStats).toHaveBeenCalled();
-      expect(result).toEqual(mockAlertStats);
+        expect(mockAlertOrchestrator.getActiveAlerts).toHaveBeenCalled();
+        expect(result).toHaveLength(1);
+      });
+
+      it('should return empty array when no active alerts', async () => {
+        mockAlertOrchestrator.getActiveAlerts.mockResolvedValue([]);
+
+        const result = await controller.getActiveAlerts();
+
+        expect(mockAlertOrchestrator.getActiveAlerts).toHaveBeenCalled();
+        expect(result).toEqual([]);
+      });
+
+      it('should filter alerts by query parameters', async () => {
+        const query: AlertQueryDto = { severity: AlertSeverity.CRITICAL } as any;
+        const alerts = [mockAlert];
+        mockAlertOrchestrator.getActiveAlerts.mockResolvedValue(alerts);
+
+        const result = await controller.getActiveAlerts(query);
+
+        expect(mockAlertOrchestrator.getActiveAlerts).toHaveBeenCalled();
+        expect(result).toHaveLength(1);
+      });
+    });
+
+    describe('getAlertHistory', () => {
+      it('should return paginated alert history', async () => {
+        const query: AlertQueryDto = { page: 1, limit: 10 } as any;
+        const normalizedQuery = { page: 1, limit: 10 };
+        const convertedQuery = {
+          ...query,
+          startTime: undefined,
+          endTime: undefined,
+        };
+        const queryResult = {
+          alerts: [mockAlert],
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false
+        };
+        const paginatedResponse = {
+          items: [mockAlert],
+          pagination: {
+            total: 1,
+            page: 1,
+            limit: 10,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false
+          }
+        };
+
+        mockPaginationService.normalizePaginationQuery.mockReturnValue(normalizedQuery);
+        mockAlertOrchestrator.queryAlerts.mockResolvedValue(queryResult);
+        mockPaginationService.createPaginatedResponse.mockReturnValue(paginatedResponse);
+
+        const result = await controller.getAlertHistory(query);
+
+        expect(mockPaginationService.normalizePaginationQuery).toHaveBeenCalledWith(query);
+        expect(mockAlertOrchestrator.queryAlerts).toHaveBeenCalledWith(convertedQuery);
+        expect(mockPaginationService.createPaginatedResponse).toHaveBeenCalled();
+        expect(result).toEqual(paginatedResponse);
+      });
+
+      it('should convert date strings to Date objects', async () => {
+        const query: AlertQueryDto = {
+          page: 1,
+          limit: 10,
+          startTime: '2024-01-01T00:00:00.000Z' as any,
+          endTime: '2024-01-02T00:00:00.000Z' as any
+        };
+        const normalizedQuery = { page: 1, limit: 10 };
+        const queryResult = {
+          alerts: [],
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false
+        };
+
+        mockPaginationService.normalizePaginationQuery.mockReturnValue(normalizedQuery);
+        mockAlertOrchestrator.queryAlerts.mockResolvedValue(queryResult);
+        mockPaginationService.createPaginatedResponse.mockReturnValue({
+          items: [],
+          pagination: { total: 0, page: 1, limit: 10, totalPages: 0, hasNext: false, hasPrev: false }
+        });
+
+        await controller.getAlertHistory(query);
+
+        expect(mockAlertOrchestrator.queryAlerts).toHaveBeenCalledWith({
+          ...query,
+          startTime: new Date('2024-01-01T00:00:00.000Z'),
+          endTime: new Date('2024-01-02T00:00:00.000Z'),
+        });
+      });
+    });
+
+    describe('getAlertStats', () => {
+      it('should return alert statistics', async () => {
+        const stats = {
+          totalRules: 5,
+          enabledRules: 3,
+          activeAlerts: 2,
+          criticalAlerts: 1,
+          warningAlerts: 1,
+          infoAlerts: 0,
+          totalAlertsToday: 10,
+          resolvedAlertsToday: 8,
+          averageResolutionTime: 300
+        };
+        mockAlertOrchestrator.getStats.mockResolvedValue(stats);
+
+        const result = await controller.getAlertStats();
+
+        expect(mockAlertOrchestrator.getStats).toHaveBeenCalled();
+        expect(result).toEqual(stats);
+      });
+    });
+
+    describe('getAlertById', () => {
+      it('should return alert by ID', async () => {
+        const alertId = mockAlert.id;
+        mockAlertOrchestrator.getAlertById.mockResolvedValue(mockAlert);
+
+        const result = await controller.getAlertById(alertId);
+
+        expect(mockAlertOrchestrator.getAlertById).toHaveBeenCalledWith(alertId);
+        expect(result).toBeTruthy();
+      });
+
+      it('should return null for non-existent alert', async () => {
+        const alertId = new Types.ObjectId().toHexString();
+        mockAlertOrchestrator.getAlertById.mockResolvedValue(null);
+
+        const result = await controller.getAlertById(alertId);
+
+        expect(mockAlertOrchestrator.getAlertById).toHaveBeenCalledWith(alertId);
+        expect(result).toBeNull();
+      });
+    });
+
+    describe('acknowledgeAlert', () => {
+      it('should acknowledge alert successfully', async () => {
+        const alertId = mockAlert.id;
+        const body: AcknowledgeAlertDto = {
+          acknowledgedBy: 'admin@test.com',
+          note: 'Investigating the issue'
+        };
+        const acknowledgedAlert = {
+          ...mockAlert,
+          acknowledgedAt: new Date(),
+          acknowledgedBy: body.acknowledgedBy
+        };
+
+        mockAlertOrchestrator.acknowledgeAlert.mockResolvedValue(acknowledgedAlert);
+
+        const result = await controller.acknowledgeAlert(alertId, body);
+
+        expect(mockAlertOrchestrator.acknowledgeAlert).toHaveBeenCalledWith(
+          alertId,
+          body.acknowledgedBy,
+          body.note
+        );
+        expect(result).toBeTruthy();
+      });
+    });
+
+    describe('resolveAlert', () => {
+      it('should resolve alert successfully', async () => {
+        const alertId = mockAlert.id;
+        const body: ResolveAlertDto = {
+          resolvedBy: 'admin@test.com',
+          solution: 'CPU usage normalized after scaling'
+        };
+
+        mockAlertOrchestrator.getAlertById.mockResolvedValue(mockAlert);
+        mockAlertOrchestrator.resolveAlert.mockResolvedValue();
+
+        await controller.resolveAlert(alertId, body);
+
+        expect(mockAlertOrchestrator.getAlertById).toHaveBeenCalledWith(alertId);
+        expect(mockAlertOrchestrator.resolveAlert).toHaveBeenCalledWith(
+          alertId,
+          body.resolvedBy,
+          mockAlert.ruleId,
+          body.solution
+        );
+      });
+
+      it('should handle missing alert error', async () => {
+        const alertId = new Types.ObjectId().toHexString();
+        const body: ResolveAlertDto = {
+          resolvedBy: 'admin@test.com',
+          solution: 'Issue resolved'
+        };
+
+        mockAlertOrchestrator.getAlertById.mockResolvedValue(null);
+
+        await expect(controller.resolveAlert(alertId, body)).rejects.toThrow();
+        expect(mockAlertOrchestrator.getAlertById).toHaveBeenCalledWith(alertId);
+        expect(mockAlertOrchestrator.resolveAlert).not.toHaveBeenCalled();
+      });
     });
   });
 
-  describe('getAlertById', () => {
-    it('should return an alert by ID', async () => {
-      // Arrange
-      alertOrchestrator.getAlertById.mockResolvedValue(mockAlert);
+  describe('Manual Trigger', () => {
+    describe('triggerEvaluation', () => {
+      it('should trigger evaluation without parameters', async () => {
+        mockAlertOrchestrator.evaluateAllRules.mockResolvedValue();
 
-      // Act
-      const result = await controller.getAlertById('alert_1234567890_abcdef');
+        const result = await controller.triggerEvaluation();
 
-      // Assert
-      expect(alertOrchestrator.getAlertById).toHaveBeenCalledWith('alert_1234567890_abcdef');
-      expect(result).toBeInstanceOf(AlertResponseDto);
+        expect(mockAlertOrchestrator.evaluateAllRules).toHaveBeenCalledWith([]);
+        expect(result).toEqual({ message: '告警评估已触发' });
+      });
+
+      it('should trigger evaluation for specific rule', async () => {
+        const triggerDto: TriggerAlertDto = {
+          ruleId: mockAlertRule.id,
+          metrics: []
+        };
+        mockAlertOrchestrator.getRuleById.mockResolvedValue(mockAlertRule);
+        mockAlertOrchestrator.evaluateAllRules.mockResolvedValue();
+
+        const result = await controller.triggerEvaluation(triggerDto);
+
+        expect(mockAlertOrchestrator.getRuleById).toHaveBeenCalledWith(triggerDto.ruleId);
+        expect(mockAlertOrchestrator.evaluateAllRules).toHaveBeenCalledWith([]);
+        expect(result.message).toContain(triggerDto.ruleId);
+      });
+
+      it('should trigger evaluation with metrics', async () => {
+        const triggerDto: TriggerAlertDto = {
+          metrics: [
+            {
+              metric: 'cpu_usage',
+              value: 85,
+              timestamp: new Date(),
+              tags: { instance: 'web-01' }
+            }
+          ]
+        };
+        mockAlertOrchestrator.evaluateAllRules.mockResolvedValue();
+
+        const result = await controller.triggerEvaluation(triggerDto);
+
+        expect(mockAlertOrchestrator.evaluateAllRules).toHaveBeenCalledWith([
+          {
+            metric: triggerDto.metrics[0].metric,
+            value: triggerDto.metrics[0].value,
+            timestamp: triggerDto.metrics[0].timestamp,
+            tags: triggerDto.metrics[0].tags
+          }
+        ]);
+        expect(result.message).toContain('1 个指标');
+      });
+
+      it('should proceed even when rule is not found', async () => {
+        const triggerDto: TriggerAlertDto = {
+          ruleId: new Types.ObjectId().toHexString(),
+          metrics: []
+        };
+        mockAlertOrchestrator.getRuleById.mockResolvedValue(null);
+        mockAlertOrchestrator.evaluateAllRules.mockResolvedValue();
+
+        const result = await controller.triggerEvaluation(triggerDto);
+
+        expect(mockAlertOrchestrator.getRuleById).toHaveBeenCalledWith(triggerDto.ruleId);
+        expect(mockAlertOrchestrator.evaluateAllRules).toHaveBeenCalledWith([]);
+        expect(result.message).toContain(triggerDto.ruleId);
+      });
+
+      it('should log client identifier for audit', async () => {
+        const req = {
+          headers: { 'x-forwarded-for': '192.168.1.1', 'user-agent': 'test-client' },
+          connection: { remoteAddress: '127.0.0.1' }
+        };
+        const triggerDto: TriggerAlertDto = { metrics: [] };
+        mockAlertOrchestrator.evaluateAllRules.mockResolvedValue();
+
+        const result = await controller.triggerEvaluation(triggerDto, req);
+
+        expect(mockAlertOrchestrator.evaluateAllRules).toHaveBeenCalled();
+        expect(result).toEqual({ message: '告警评估已触发' });
+      });
     });
 
-    it('should return null when alert is not found', async () => {
-      // Arrange
-      alertOrchestrator.getAlertById.mockResolvedValue(null);
+    describe('generateEvaluationMessage', () => {
+      it('should generate message for rule-specific evaluation', () => {
+        const controllerInstance = new AlertController(
+          mockAlertOrchestrator,
+          mockPaginationService
+        );
+        const triggerDto: TriggerAlertDto = { ruleId: mockAlertRule.id, metrics: [] };
 
-      // Act
-      const result = await controller.getAlertById('nonexistent_alert');
+        const message = (controllerInstance as any).generateEvaluationMessage(triggerDto);
 
-      // Assert
-      expect(result).toBeNull();
-    });
-  });
+        expect(message).toBe(`告警规则 ${mockAlertRule.id} 评估已触发`);
+      });
 
-  describe('acknowledgeAlert', () => {
-    it('should acknowledge an alert', async () => {
-      // Arrange
-      const acknowledgeDto: AcknowledgeAlertDto = {
-        acknowledgedBy: 'testUser',
-        note: 'Test acknowledgment'
-      };
-      
-      const acknowledgedAlert = { ...mockAlert, status: AlertStatus.ACKNOWLEDGED };
-      alertOrchestrator.acknowledgeAlert.mockResolvedValue(acknowledgedAlert);
+      it('should generate message for metrics evaluation', () => {
+        const controllerInstance = new AlertController(
+          mockAlertOrchestrator,
+          mockPaginationService
+        );
+        const triggerDto: TriggerAlertDto = {
+          metrics: [
+            { metric: 'cpu_usage', value: 85, timestamp: new Date() },
+            { metric: 'memory_usage', value: 70, timestamp: new Date() }
+          ]
+        };
 
-      // Act
-      const result = await controller.acknowledgeAlert('alert_1234567890_abcdef', acknowledgeDto);
+        const message = (controllerInstance as any).generateEvaluationMessage(triggerDto);
 
-      // Assert
-      expect(alertOrchestrator.acknowledgeAlert).toHaveBeenCalledWith(
-        'alert_1234567890_abcdef',
-        acknowledgeDto.acknowledgedBy,
-        acknowledgeDto.note
-      );
-      expect(result).toBeInstanceOf(AlertResponseDto);
-    });
-  });
+        expect(message).toBe('告警评估已触发，处理了 2 个指标');
+      });
 
-  describe('resolveAlert', () => {
-    it('should resolve an alert', async () => {
-      // Arrange
-      const resolveDto: ResolveAlertDto = {
-        resolvedBy: 'testUser',
-        solution: 'Test resolution'
-      };
-      
-      alertOrchestrator.getAlertById.mockResolvedValue(mockAlert);
-      alertOrchestrator.resolveAlert.mockResolvedValue();
+      it('should generate default message', () => {
+        const controllerInstance = new AlertController(
+          mockAlertOrchestrator,
+          mockPaginationService
+        );
 
-      // Act
-      await controller.resolveAlert('alert_1234567890_abcdef', resolveDto);
+        const message = (controllerInstance as any).generateEvaluationMessage();
 
-      // Assert
-      expect(alertOrchestrator.getAlertById).toHaveBeenCalledWith('alert_1234567890_abcdef');
-      expect(alertOrchestrator.resolveAlert).toHaveBeenCalledWith(
-        'alert_1234567890_abcdef',
-        resolveDto.resolvedBy,
-        mockAlert.ruleId,
-        resolveDto.solution
-      );
-    });
-  });
-
-  // ==================== 手动触发 ====================
-
-  describe('triggerEvaluation', () => {
-    it('should trigger alert evaluation for all rules', async () => {
-      // Arrange
-      alertOrchestrator.evaluateAllRules.mockResolvedValue();
-
-      // Act
-      const result = await controller.triggerEvaluation();
-
-      // Assert
-      expect(alertOrchestrator.evaluateAllRules).toHaveBeenCalledWith([]);
-      expect(result).toEqual({ message: '告警评估已触发' });
-    });
-
-    it('should trigger alert evaluation for specific rule', async () => {
-      // Arrange
-      const triggerDto: TriggerAlertDto = { ruleId: 'rule_1234567890_abcdef' };
-      alertOrchestrator.getRuleById.mockResolvedValue(mockAlertRule);
-      alertOrchestrator.evaluateAllRules.mockResolvedValue();
-
-      // Act
-      const result = await controller.triggerEvaluation(triggerDto);
-
-      // Assert
-      expect(alertOrchestrator.getRuleById).toHaveBeenCalledWith('rule_1234567890_abcdef');
-      expect(alertOrchestrator.evaluateAllRules).toHaveBeenCalledWith([]);
-      expect(result).toEqual({ message: '告警规则 rule_1234567890_abcdef 评估已触发' });
-    });
-
-    it('should trigger alert evaluation with metrics data', async () => {
-      // Arrange
-      const metricsData: IMetricData[] = [
-        { metric: 'cpu.usage', value: 85, timestamp: new Date(), tags: { host: 'server1' } }
-      ];
-      
-      const triggerDto: TriggerAlertDto = { metrics: metricsData };
-      alertOrchestrator.evaluateAllRules.mockResolvedValue();
-
-      // Act
-      const result = await controller.triggerEvaluation(triggerDto);
-
-      // Assert
-      expect(alertOrchestrator.evaluateAllRules).toHaveBeenCalledWith(metricsData);
-      expect(result).toEqual({ message: '告警评估已触发，处理了 1 个指标' });
-    });
-  });
-
-  // ==================== 批量操作 ====================
-
-  describe('batchAcknowledgeAlerts', () => {
-    it('should batch acknowledge alerts successfully', async () => {
-      // Arrange
-      const body = { alertIds: ['alert_1', 'alert_2'], acknowledgedBy: 'testUser' };
-      
-      alertOrchestrator.acknowledgeAlert
-        .mockResolvedValueOnce({ ...mockAlert, id: 'alert_1' } as any)
-        .mockResolvedValueOnce({ ...mockAlert, id: 'alert_2' } as any);
-
-      // Act
-      const result = await controller.batchAcknowledgeAlerts(body);
-
-      // Assert
-      expect(alertOrchestrator.acknowledgeAlert).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ succeeded: ['alert_1', 'alert_2'], failed: [] });
-    });
-
-    it('should handle partial failures in batch acknowledgment', async () => {
-      // Arrange
-      const body = { alertIds: ['alert_1', 'alert_2'], acknowledgedBy: 'testUser' };
-      
-      alertOrchestrator.acknowledgeAlert
-        .mockResolvedValueOnce({ ...mockAlert, id: 'alert_1' } as any)
-        .mockRejectedValueOnce(new Error('Acknowledgment failed'));
-
-      // Act
-      const result = await controller.batchAcknowledgeAlerts(body);
-
-      // Assert
-      expect(alertOrchestrator.acknowledgeAlert).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ succeeded: ['alert_1'], failed: ['alert_2'] });
+        expect(message).toBe('告警评估已触发');
+      });
     });
   });
 
-  describe('batchResolveAlerts', () => {
-    it('should batch resolve alerts successfully', async () => {
-      // Arrange
-      const body = { alertIds: ['alert_1', 'alert_2'], resolvedBy: 'testUser' };
-      const activeAlerts = [
-        { ...mockAlert, id: 'alert_1' },
-        { ...mockAlert, id: 'alert_2' }
-      ];
-      
-      alertOrchestrator.getActiveAlerts.mockResolvedValue(activeAlerts as any);
-      alertOrchestrator.resolveAlert.mockResolvedValue();
+  describe('Batch Operations', () => {
+    describe('batchAcknowledgeAlerts', () => {
+      it('should acknowledge multiple alerts successfully', async () => {
+        const body = {
+          alertIds: [mockAlert.id, new Types.ObjectId().toHexString()],
+          acknowledgedBy: 'admin@test.com'
+        };
+        mockAlertOrchestrator.acknowledgeAlert
+          .mockResolvedValueOnce(mockAlert)
+          .mockResolvedValueOnce(mockAlert);
 
-      // Act
-      const result = await controller.batchResolveAlerts(body);
+        const result = await controller.batchAcknowledgeAlerts(body);
 
-      // Assert
-      expect(alertOrchestrator.getActiveAlerts).toHaveBeenCalled();
-      expect(alertOrchestrator.resolveAlert).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ succeeded: ['alert_1', 'alert_2'], failed: [] });
+        expect(result.succeeded).toEqual(body.alertIds);
+        expect(result.failed).toEqual([]);
+        expect(mockAlertOrchestrator.acknowledgeAlert).toHaveBeenCalledTimes(2);
+      });
+
+      it('should handle partial failures in batch acknowledge', async () => {
+        const body = {
+          alertIds: [mockAlert.id, new Types.ObjectId().toHexString()],
+          acknowledgedBy: 'admin@test.com'
+        };
+        mockAlertOrchestrator.acknowledgeAlert
+          .mockResolvedValueOnce(mockAlert)
+          .mockRejectedValueOnce(new Error('Alert not found'));
+
+        const result = await controller.batchAcknowledgeAlerts(body);
+
+        expect(result.succeeded).toEqual([body.alertIds[0]]);
+        expect(result.failed).toEqual([body.alertIds[1]]);
+        expect(mockAlertOrchestrator.acknowledgeAlert).toHaveBeenCalledTimes(2);
+      });
     });
 
-    it('should handle alert not found in batch resolution', async () => {
-      // Arrange
-      const body = { alertIds: ['nonexistent_alert'], resolvedBy: 'testUser' };
-      alertOrchestrator.getActiveAlerts.mockResolvedValue([]);
+    describe('batchResolveAlerts', () => {
+      it('should resolve multiple alerts successfully', async () => {
+        const body = {
+          alertIds: [mockAlert.id, new Types.ObjectId().toHexString()],
+          resolvedBy: 'admin@test.com'
+        };
+        const allAlerts = [mockAlert, { ...mockAlert, id: body.alertIds[1] }];
 
-      // Act
-      const result = await controller.batchResolveAlerts(body);
+        mockAlertOrchestrator.getActiveAlerts.mockResolvedValue(allAlerts);
+        mockAlertOrchestrator.resolveAlert.mockResolvedValue();
 
-      // Assert
-      expect(result).toEqual({ succeeded: [], failed: ['nonexistent_alert'] });
+        const result = await controller.batchResolveAlerts(body);
+
+        expect(result.succeeded).toEqual(body.alertIds);
+        expect(result.failed).toEqual([]);
+        expect(mockAlertOrchestrator.resolveAlert).toHaveBeenCalledTimes(2);
+      });
+
+      it('should handle missing alerts in batch resolve', async () => {
+        const body = {
+          alertIds: [mockAlert.id, new Types.ObjectId().toHexString()],
+          resolvedBy: 'admin@test.com'
+        };
+        const allAlerts = [mockAlert]; // Missing second alert
+
+        mockAlertOrchestrator.getActiveAlerts.mockResolvedValue(allAlerts);
+        mockAlertOrchestrator.resolveAlert.mockResolvedValue();
+
+        const result = await controller.batchResolveAlerts(body);
+
+        expect(result.succeeded).toEqual([body.alertIds[0]]);
+        expect(result.failed).toEqual([body.alertIds[1]]);
+        expect(mockAlertOrchestrator.resolveAlert).toHaveBeenCalledTimes(1);
+      });
+
+      it('should handle resolve failures', async () => {
+        const body = {
+          alertIds: [mockAlert.id],
+          resolvedBy: 'admin@test.com'
+        };
+        const allAlerts = [mockAlert];
+
+        mockAlertOrchestrator.getActiveAlerts.mockResolvedValue(allAlerts);
+        mockAlertOrchestrator.resolveAlert.mockRejectedValue(new Error('Database error'));
+
+        const result = await controller.batchResolveAlerts(body);
+
+        expect(result.succeeded).toEqual([]);
+        expect(result.failed).toEqual([body.alertIds[0]]);
+        expect(mockAlertOrchestrator.resolveAlert).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.ts"],
+  "project": ["src/**/*.ts", "scripts/**/*.js"],
+  "ignore": [
+    "dist/**",
+    "node_modules/**",
+    "coverage/**",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e.ts",
+    "**/*.e2e-spec.ts",
+    "test/**",
+    "tools/**"
+  ],
+  "ignoreDependencies": [
+    "@types/*",
+    "eslint*",
+    "prettier*",
+    "jest*",
+    "@jest/*",
+    "ts-jest",
+    "@nestjs/testing"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "typescript": {
+    "config": "./tsconfig.json"
+  },
+  "compilers": {
+    "typescript": true
+  },
+  "paths": {
+    "@appcore/*": ["./src/appcore/*"],
+    "@config/*": ["./src/appcore/config/*"],
+    "@common/logging/*": ["./src/common/modules/logging/*"],
+    "@common/*": ["./src/common/*"],
+    "@common-types/*": ["./src/common/types/*"],
+    "@common-utils/*": ["./src/common/utils/*"],
+    "@core/*": ["./src/core/*"],
+    "@providers/*": ["./src/providers/*"],
+    "@auth/*": ["./src/auth/*"],
+    "@alert/*": ["./src/alert/*"],
+    "@cache/*": ["./src/cache/*"],
+    "@monitoring/*": ["./src/monitoring/*"],
+    "@notification/*": ["./src/notification/*"],
+    "@scripts/*": ["./src/scripts/*"],
+    "@src/*": ["./src/*"]
+  },
+  "rules": {
+    "exports": "error",
+    "files": "error",
+    "dependencies": "warn",
+    "devDependencies": "warn",
+    "optionalPeerDependencies": "off"
+  }
+}

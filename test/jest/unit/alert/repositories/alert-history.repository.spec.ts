@@ -1,413 +1,486 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { AlertHistoryRepository } from '../../../../src/alert/repositories/alert-history.repository';
-import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { IAlert, IAlertQuery } from '../../../../src/alert/interfaces';
-import { AlertHistory } from '../../../../src/alert/schemas/alert-history.schema';
-import { AlertStatus } from '../../../../src/alert/types/alert.types';
 
-// Mock 数据
-const mockAlert: IAlert = {
-  id: 'alert_1234567890_abcdef',
-  ruleId: 'rule_1234567890_abcdef',
-  ruleName: 'Test Alert Rule',
-  metric: 'cpu.usage',
-  value: 85,
-  threshold: 80,
-  severity: 'warning',
-  status: AlertStatus.FIRING,
-  message: 'Alert triggered: cpu.usage > 80, current value: 85',
-  startTime: new Date(),
-  endTime: undefined,
-  acknowledgedBy: undefined,
-  acknowledgedAt: undefined,
-  resolvedBy: undefined,
-  resolvedAt: undefined,
-  tags: { environment: 'test' },
-  context: {
-    metric: 'cpu.usage',
-    operator: '>',
-    tags: { host: 'server1' }
-  }
-};
+import { AlertHistoryRepository } from '@alert/repositories/alert-history.repository';
+import { AlertHistory } from '@alert/schemas/alert-history.schema';
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import { IAlert, IAlertQuery } from '@alert/interfaces';
+import { AlertSeverity, AlertStatus } from '@alert/types/alert.types';
+import cacheLimitsConfig from '@cache/config/cache-unified.config';
+import alertConfig from '@alert/config/alert.config';
 
 describe('AlertHistoryRepository', () => {
   let repository: AlertHistoryRepository;
-  let alertHistoryModel: any;
-  let paginationService: jest.Mocked<PaginationService>;
+  let mockModel: any;
+  let mockPaginationService: jest.Mocked<PaginationService>;
 
-  const mockAlertHistoryModel = {
-    new: jest.fn().mockResolvedValue(mockAlert),
-    constructor: jest.fn().mockResolvedValue(mockAlert),
-    create: jest.fn(),
-    findOneAndUpdate: jest.fn(),
-    find: jest.fn(),
-    findOne: jest.fn(),
-    countDocuments: jest.fn(),
-    aggregate: jest.fn(),
-    deleteMany: jest.fn(),
-    exec: jest.fn(),
-    lean: jest.fn().mockReturnThis(),
-    sort: jest.fn().mockReturnThis(),
-    skip: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
+  const mockAlert: IAlert = {
+    id: '507f1f77bcf86cd799439012',
+    ruleId: '507f1f77bcf86cd799439011',
+    ruleName: 'Test Alert Rule',
+    metric: 'cpu_usage',
+    value: 85,
+    threshold: 80,
+    severity: AlertSeverity.WARNING,
+    status: AlertStatus.FIRING,
+    message: 'CPU usage is above threshold',
+    startTime: new Date('2024-01-01T00:00:00.000Z'),
+    endTime: undefined,
+    acknowledgedBy: undefined,
+    acknowledgedAt: undefined,
+    resolvedBy: undefined,
+    resolvedAt: undefined,
+    tags: { environment: 'test' },
+    context: { source: 'monitoring' }
+  };
+
+  const mockAlertQuery: IAlertQuery = {
+    ruleId: '507f1f77bcf86cd799439011',
+    severity: AlertSeverity.WARNING,
+    status: AlertStatus.FIRING,
+    page: 1,
+    limit: 10,
+    sortBy: 'startTime',
+    sortOrder: 'desc'
+  };
+
+  const mockCacheLimits = {
+    maxBatchSize: 100
+  };
+
+  const mockAlertConfig = {
+    evaluationInterval: 30
   };
 
   beforeEach(async () => {
+    const mockQueryChain = {
+      lean: jest.fn().mockReturnThis(),
+      exec: jest.fn(),
+      sort: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+    };
+
+    mockModel = jest.fn().mockImplementation(() => ({
+      save: jest.fn().mockResolvedValue({
+        toObject: jest.fn().mockReturnValue(mockAlert)
+      })
+    }));
+
+    mockModel.find = jest.fn(() => mockQueryChain);
+    mockModel.findOne = jest.fn(() => mockQueryChain);
+    mockModel.findOneAndUpdate = jest.fn(() => ({ exec: jest.fn() }));
+    mockModel.countDocuments = jest.fn(() => ({ exec: jest.fn().mockResolvedValue(1) }));
+    mockModel.deleteMany = jest.fn(() => ({ exec: jest.fn().mockResolvedValue({ deletedCount: 5 }) }));
+    mockModel.aggregate = jest.fn().mockResolvedValue([]);
+
+    mockPaginationService = {
+      normalizePaginationQuery: jest.fn().mockReturnValue({ page: 1, limit: 10 }),
+      calculateSkip: jest.fn().mockReturnValue(0)
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AlertHistoryRepository,
         {
           provide: getModelToken(AlertHistory.name),
-          useValue: mockAlertHistoryModel,
+          useValue: mockModel
+        },
+        {
+          provide: cacheLimitsConfig.KEY,
+          useValue: mockCacheLimits
+        },
+        {
+          provide: alertConfig.KEY,
+          useValue: mockAlertConfig
         },
         {
           provide: PaginationService,
-          useValue: {
-            normalizePaginationQuery: jest.fn().mockImplementation((query) => ({
-              page: query.page || 1,
-              limit: query.limit || 10,
-            })),
-            calculateSkip: jest.fn().mockImplementation((page, limit) => (page - 1) * limit),
-            createPagination: jest.fn().mockImplementation((page, limit, total) => ({
-              page,
-              limit,
-              total,
-              totalPages: Math.ceil(total / limit),
-            })),
-          },
-        },
-      ],
+          useValue: mockPaginationService
+        }
+      ]
     }).compile();
 
-    repository = module.get(AlertHistoryRepository);
-    alertHistoryModel = module.get(getModelToken(AlertHistory.name));
-    paginationService = module.get(PaginationService);
+    repository = module.get<AlertHistoryRepository>(AlertHistoryRepository);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(repository).toBeDefined();
-  });
-
   describe('create', () => {
-    it('should create a new alert history record', async () => {
-      // Arrange
+    it('should create a new alert successfully', async () => {
       const alertData = {
-        id: 'alert_1234567890_abcdef',
-        ruleId: 'rule_1234567890_abcdef',
-        ruleName: 'Test Alert Rule',
-        metric: 'cpu.usage',
-        value: 85,
-        threshold: 80,
-        severity: 'warning',
-        status: AlertStatus.FIRING,
-        message: 'Alert triggered: cpu.usage > 80, current value: 85',
+        ...mockAlert,
         startTime: new Date(),
+        status: AlertStatus.FIRING
       };
-      
-      const savedAlert = { ...mockAlert, toObject: jest.fn().mockReturnValue(mockAlert) };
-      alertHistoryModel.new.mockReturnValue({ save: jest.fn().mockResolvedValue(savedAlert) });
 
-      // Act
+      const mockInstance = {
+        save: jest.fn().mockResolvedValue({
+          toObject: jest.fn().mockReturnValue(alertData)
+        })
+      };
+
+      mockModel.mockReturnValueOnce(mockInstance);
+
       const result = await repository.create(alertData);
 
-      // Assert
-      expect(alertHistoryModel.new).toHaveBeenCalledWith(alertData);
-      expect(result).toEqual(mockAlert);
+      expect(mockModel).toHaveBeenCalledWith(alertData);
+      expect(mockInstance.save).toHaveBeenCalled();
+      expect(result).toEqual(alertData);
+    });
+
+    it('should handle save errors', async () => {
+      const alertData = {
+        ...mockAlert,
+        startTime: new Date(),
+        status: AlertStatus.FIRING
+      };
+
+      const mockError = new Error('Database save error');
+      const mockInstance = {
+        save: jest.fn().mockRejectedValue(mockError)
+      };
+
+      mockModel.mockReturnValueOnce(mockInstance);
+
+      await expect(repository.create(alertData))
+        .rejects.toThrow(mockError);
     });
   });
 
   describe('update', () => {
-    it('should update an existing alert history record', async () => {
-      // Arrange
-      const updateData = { status: AlertStatus.RESOLVED, resolvedAt: new Date() };
-      const updatedAlert = { ...mockAlert, ...updateData, toObject: jest.fn().mockReturnValue({ ...mockAlert, ...updateData }) };
-      alertHistoryModel.findOneAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(updatedAlert) });
+    it('should update an existing alert successfully', async () => {
+      const updateData = { status: AlertStatus.ACKNOWLEDGED, acknowledgedBy: 'test-user' };
+      const updatedAlert = { ...mockAlert, ...updateData };
 
-      // Act
-      const result = await repository.update('alert_1234567890_abcdef', updateData);
+      mockModel.findOneAndUpdate = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue({
+          toObject: jest.fn().mockReturnValue(updatedAlert)
+        })
+      }));
 
-      // Assert
-      expect(alertHistoryModel.findOneAndUpdate).toHaveBeenCalledWith(
-        { id: 'alert_1234567890_abcdef' },
+      const result = await repository.update(mockAlert.id, updateData);
+
+      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { id: mockAlert.id },
         updateData,
         { new: true }
       );
-      expect(result).toEqual({ ...mockAlert, ...updateData });
+      expect(result).toEqual(updatedAlert);
     });
 
-    it('should return null when alert is not found for update', async () => {
-      // Arrange
-      alertHistoryModel.findOneAndUpdate.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+    it('should return null when alert not found', async () => {
+      const updateData = { status: AlertStatus.ACKNOWLEDGED };
 
-      // Act
-      const result = await repository.update('nonexistent_alert', { status: AlertStatus.RESOLVED });
+      mockModel.findOneAndUpdate = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue(null)
+      }));
 
-      // Assert
+      const result = await repository.update('nonexistent-id', updateData);
+
       expect(result).toBeNull();
     });
   });
 
   describe('find', () => {
-    it('should find alerts with query filters', async () => {
-      // Arrange
+    it('should find alerts with pagination', async () => {
+      const mockAlerts = [mockAlert];
+      const mockTotal = 1;
+
+      // Mock find query chain
+      const mockFindChain = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockAlerts)
+      };
+
+      mockModel.find = jest.fn().mockReturnValue(mockFindChain);
+      mockModel.countDocuments = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue(mockTotal)
+      }));
+
+      const result = await repository.find(mockAlertQuery);
+
+      expect(mockPaginationService.normalizePaginationQuery).toHaveBeenCalledWith({
+        page: mockAlertQuery.page,
+        limit: mockAlertQuery.limit
+      });
+      expect(mockPaginationService.calculateSkip).toHaveBeenCalledWith(1, 10);
+      expect(result).toEqual({ alerts: mockAlerts, total: mockTotal });
+    });
+
+    it('should apply filters correctly', async () => {
       const query: IAlertQuery = {
-        ruleId: 'rule_1234567890_abcdef',
+        ruleId: 'test-rule-id',
+        severity: AlertSeverity.CRITICAL,
         status: AlertStatus.FIRING,
-        severity: 'warning',
+        metric: 'cpu',
+        startTime: new Date('2024-01-01'),
+        endTime: new Date('2024-01-02'),
+        tags: { environment: 'prod' },
         page: 1,
-        limit: 10,
+        limit: 10
       };
-      
-      alertHistoryModel.find.mockReturnValue({ 
+
+      const mockFindChain = {
         sort: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([mockAlert])
-      });
-      alertHistoryModel.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
-
-      // Act
-      const result = await repository.find(query);
-
-      // Assert
-      expect(alertHistoryModel.find).toHaveBeenCalled();
-      expect(alertHistoryModel.countDocuments).toHaveBeenCalled();
-      expect(result).toEqual({ alerts: [mockAlert], total: 1 });
-    });
-
-    it('should handle date range filters', async () => {
-      // Arrange
-      const startDate = new Date('2023-01-01');
-      const endDate = new Date('2023-01-02');
-      const query: IAlertQuery = {
-        startTime: startDate,
-        endTime: endDate,
-        page: 1,
-        limit: 10,
+        exec: jest.fn().mockResolvedValue([])
       };
-      
-      alertHistoryModel.find.mockReturnValue({ 
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([mockAlert])
+
+      mockModel.find = jest.fn().mockReturnValue(mockFindChain);
+      mockModel.countDocuments = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue(0)
+      }));
+
+      await repository.find(query);
+
+      expect(mockModel.find).toHaveBeenCalledWith({
+        ruleId: 'test-rule-id',
+        severity: AlertSeverity.CRITICAL,
+        status: AlertStatus.FIRING,
+        metric: expect.any(RegExp),
+        startTime: {
+          $gte: new Date('2024-01-01'),
+          $lte: new Date('2024-01-02')
+        },
+        'tags.environment': 'prod'
       });
-      alertHistoryModel.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
-
-      // Act
-      const result = await repository.find(query);
-
-      // Assert
-      expect(alertHistoryModel.find).toHaveBeenCalled();
-      expect(result.alerts).toEqual([mockAlert]);
-    });
-
-    it('should handle tag filters', async () => {
-      // Arrange
-      const query: IAlertQuery = {
-        tags: { environment: 'test' },
-        page: 1,
-        limit: 10,
-      };
-      
-      alertHistoryModel.find.mockReturnValue({ 
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([mockAlert])
-      });
-      alertHistoryModel.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
-
-      // Act
-      const result = await repository.find(query);
-
-      // Assert
-      expect(alertHistoryModel.find).toHaveBeenCalled();
-      expect(result.alerts).toEqual([mockAlert]);
     });
   });
 
   describe('findActive', () => {
-    it('should find all active alerts', async () => {
-      // Arrange
-      const activeAlert = { ...mockAlert, status: AlertStatus.FIRING };
-      alertHistoryModel.find.mockReturnValue({ 
+    it('should find active alerts', async () => {
+      const mockActiveAlerts = [{ ...mockAlert, status: AlertStatus.FIRING }];
+
+      const mockFindChain = {
         sort: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([activeAlert])
-      });
+        exec: jest.fn().mockResolvedValue(mockActiveAlerts)
+      };
 
-      // Act
+      mockModel.find = jest.fn().mockReturnValue(mockFindChain);
+
       const result = await repository.findActive();
 
-      // Assert
-      expect(alertHistoryModel.find).toHaveBeenCalledWith({
-        status: { $in: [AlertStatus.FIRING, AlertStatus.ACKNOWLEDGED] },
+      expect(mockModel.find).toHaveBeenCalledWith({
+        status: { $in: [AlertStatus.FIRING, AlertStatus.ACKNOWLEDGED] }
       });
-      expect(result).toEqual([activeAlert]);
+      expect(result).toEqual(mockActiveAlerts);
     });
   });
 
   describe('getStatistics', () => {
     it('should return alert statistics', async () => {
-      // Arrange
-      const activeAlerts = [{ _id: 'warning', count: 5 }];
-      const todayAlerts = 10;
-      const resolvedToday = 3;
-      const avgResolutionTime = [{ avgTime: 1800000 }]; // 30 minutes
-      
-      alertHistoryModel.aggregate
-        .mockResolvedValueOnce(activeAlerts)
-        .mockResolvedValueOnce([{}]) // todayAlerts
-        .mockResolvedValueOnce([{}]) // resolvedToday
-        .mockResolvedValueOnce(avgResolutionTime);
+      const mockActiveAlerts = [{ _id: 'WARNING', count: 2 }];
+      const mockAvgResolutionTime = [{ _id: null, avgTime: 3600000 }];
+      const mockTodayAlerts = 5;
+      const mockResolvedToday = 3;
 
-      // Act
+      mockModel.aggregate = jest.fn()
+        .mockResolvedValueOnce(mockActiveAlerts)
+        .mockResolvedValueOnce(mockAvgResolutionTime);
+
+      // Mock Promise.all structure for getStatistics - countDocuments returns promise directly in getStatistics
+      mockModel.countDocuments = jest.fn()
+        .mockResolvedValueOnce(mockTodayAlerts)
+        .mockResolvedValueOnce(mockResolvedToday);
+
       const result = await repository.getStatistics();
 
-      // Assert
-      expect(alertHistoryModel.aggregate).toHaveBeenCalledTimes(4);
       expect(result).toEqual({
-        activeAlerts,
-        todayAlerts: expect.any(Number),
-        resolvedToday: expect.any(Number),
-        avgResolutionTime,
+        activeAlerts: mockActiveAlerts,
+        todayAlerts: mockTodayAlerts,
+        resolvedToday: mockResolvedToday,
+        avgResolutionTime: mockAvgResolutionTime
       });
+      expect(mockModel.aggregate).toHaveBeenCalledTimes(2);
+      expect(mockModel.countDocuments).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('getCountByStatus', () => {
-    it('should return alert count grouped by status', async () => {
-      // Arrange
-      const statusCounts = [
-        { _id: AlertStatus.FIRING, count: 5 },
-        { _id: AlertStatus.RESOLVED, count: 10 },
+    it('should return count by status', async () => {
+      const mockStatusCounts = [
+        { _id: AlertStatus.FIRING, count: 3 },
+        { _id: AlertStatus.RESOLVED, count: 2 }
       ];
-      
-      alertHistoryModel.aggregate.mockResolvedValue(statusCounts);
 
-      // Act
+      mockModel.aggregate = jest.fn().mockResolvedValue(mockStatusCounts);
+
       const result = await repository.getCountByStatus();
 
-      // Assert
-      expect(alertHistoryModel.aggregate).toHaveBeenCalled();
       expect(result).toEqual({
-        [AlertStatus.FIRING]: 5,
-        [AlertStatus.RESOLVED]: 10,
+        [AlertStatus.FIRING]: 3,
+        [AlertStatus.RESOLVED]: 2
       });
     });
   });
 
   describe('getCountBySeverity', () => {
-    it('should return alert count grouped by severity', async () => {
-      // Arrange
-      const severityCounts = [
-        { _id: 'warning', count: 5 },
-        { _id: 'critical', count: 2 },
+    it('should return count by severity', async () => {
+      const mockSeverityCounts = [
+        { _id: AlertSeverity.CRITICAL, count: 1 },
+        { _id: AlertSeverity.WARNING, count: 4 }
       ];
-      
-      alertHistoryModel.aggregate.mockResolvedValue(severityCounts);
 
-      // Act
+      mockModel.aggregate = jest.fn().mockResolvedValue(mockSeverityCounts);
+
       const result = await repository.getCountBySeverity();
 
-      // Assert
-      expect(alertHistoryModel.aggregate).toHaveBeenCalled();
       expect(result).toEqual({
-        warning: 5,
-        critical: 2,
+        [AlertSeverity.CRITICAL]: 1,
+        [AlertSeverity.WARNING]: 4
       });
     });
   });
 
   describe('getAlertTrend', () => {
-    it('should return alert trend data', async () => {
-      // Arrange
-      const startDate = new Date('2023-01-01');
-      const endDate = new Date('2023-01-07');
-      const trendData = [
-        { time: '2023-01-01', count: 5, resolved: 3 },
-        { time: '2023-01-02', count: 8, resolved: 6 },
+    it('should return alert trend data with default interval', async () => {
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-01-02');
+
+      const mockTrendData = [
+        { time: '2024-01-01', count: 5, resolved: 2 },
+        { time: '2024-01-02', count: 3, resolved: 1 }
       ];
-      
-      alertHistoryModel.aggregate.mockResolvedValue(trendData);
 
-      // Act
-      const result = await repository.getAlertTrend(startDate, endDate, 'day');
+      mockModel.aggregate = jest.fn().mockResolvedValue(mockTrendData);
 
-      // Assert
-      expect(alertHistoryModel.aggregate).toHaveBeenCalled();
-      expect(result).toEqual(trendData);
+      const result = await repository.getAlertTrend(startDate, endDate);
+
+      expect(mockModel.aggregate).toHaveBeenCalledWith(expect.arrayContaining([
+        expect.objectContaining({
+          $match: {
+            startTime: { $gte: startDate, $lte: endDate }
+          }
+        }),
+        expect.any(Object),
+        expect.any(Object),
+        expect.any(Object),
+        { $sort: { time: 1 } }
+      ]));
+      expect(result).toEqual(mockTrendData);
+    });
+
+    it('should handle different intervals', async () => {
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-01-02');
+
+      mockModel.aggregate = jest.fn().mockResolvedValue([]);
+
+      await repository.getAlertTrend(startDate, endDate, 'hour');
+      await repository.getAlertTrend(startDate, endDate, 'week');
+
+      expect(mockModel.aggregate).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('findById', () => {
-    it('should find an alert by ID', async () => {
-      // Arrange
-      alertHistoryModel.findOne.mockReturnValue({ lean: jest.fn().mockReturnThis(), exec: jest.fn().mockResolvedValue(mockAlert) });
+    it('should find alert by id', async () => {
+      const mockFindChain = {
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(mockAlert)
+      };
 
-      // Act
-      const result = await repository.findById('alert_1234567890_abcdef');
+      mockModel.findOne = jest.fn().mockReturnValue(mockFindChain);
 
-      // Assert
-      expect(alertHistoryModel.findOne).toHaveBeenCalledWith({ id: 'alert_1234567890_abcdef' });
+      const result = await repository.findById(mockAlert.id);
+
+      expect(mockModel.findOne).toHaveBeenCalledWith({ id: mockAlert.id });
       expect(result).toEqual(mockAlert);
     });
 
-    it('should return null when alert is not found', async () => {
-      // Arrange
-      alertHistoryModel.findOne.mockReturnValue({ lean: jest.fn().mockReturnThis(), exec: jest.fn().mockResolvedValue(null) });
+    it('should return null when alert not found', async () => {
+      const mockFindChain = {
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(null)
+      };
 
-      // Act
-      const result = await repository.findById('nonexistent_alert');
+      mockModel.findOne = jest.fn().mockReturnValue(mockFindChain);
 
-      // Assert
+      const result = await repository.findById('nonexistent-id');
+
       expect(result).toBeNull();
     });
   });
 
   describe('searchByKeyword', () => {
     it('should search alerts by keyword', async () => {
-      // Arrange
+      const keyword = 'cpu';
       const query: IAlertQuery = { page: 1, limit: 10 };
-      alertHistoryModel.find.mockReturnValue({ 
+      const mockSearchResults = [mockAlert];
+
+      const mockFindChain = {
         sort: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         limit: jest.fn().mockReturnThis(),
         lean: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([mockAlert])
+        exec: jest.fn().mockResolvedValue(mockSearchResults)
+      };
+
+      mockModel.find = jest.fn().mockReturnValue(mockFindChain);
+      mockModel.countDocuments = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue(1)
+      }));
+
+      const result = await repository.searchByKeyword(keyword, query);
+
+      expect(mockModel.find).toHaveBeenCalledWith({
+        $or: [
+          { message: expect.any(RegExp) },
+          { ruleName: expect.any(RegExp) },
+          { metric: expect.any(RegExp) }
+        ]
       });
-      alertHistoryModel.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
+      expect(result).toEqual({ alerts: mockSearchResults, total: 1 });
+    });
 
-      // Act
-      const result = await repository.searchByKeyword('cpu usage', query);
+    it('should escape special regex characters in keyword', async () => {
+      const keyword = 'cpu.*usage';
+      const query: IAlertQuery = { page: 1, limit: 10 };
 
-      // Assert
-      expect(alertHistoryModel.find).toHaveBeenCalled();
-      expect(alertHistoryModel.countDocuments).toHaveBeenCalled();
-      expect(result).toEqual({ alerts: [mockAlert], total: 1 });
+      const mockFindChain = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        lean: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([])
+      };
+
+      mockModel.find = jest.fn().mockReturnValue(mockFindChain);
+      mockModel.countDocuments = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue(0)
+      }));
+
+      await repository.searchByKeyword(keyword, query);
+
+      const callArgs = mockModel.find.mock.calls[0][0];
+      expect(callArgs.$or[0].message.source).toContain('cpu\\.\\*usage');
     });
   });
 
   describe('cleanup', () => {
     it('should cleanup old resolved alerts', async () => {
-      // Arrange
       const daysToKeep = 30;
-      alertHistoryModel.deleteMany.mockReturnValue({ exec: jest.fn().mockResolvedValue({ deletedCount: 5 }) });
+      const mockDeleteResult = { deletedCount: 5 };
 
-      // Act
+      mockModel.deleteMany = jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue(mockDeleteResult)
+      }));
+
       const result = await repository.cleanup(daysToKeep);
 
-      // Assert
-      expect(alertHistoryModel.deleteMany).toHaveBeenCalled();
+      expect(mockModel.deleteMany).toHaveBeenCalledWith({
+        startTime: { $lt: expect.any(Date) },
+        status: AlertStatus.RESOLVED
+      });
       expect(result).toBe(5);
     });
   });

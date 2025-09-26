@@ -27,7 +27,8 @@
       "@notification/*": ["src/notification/*"],
       "@scripts/*": ["src/scripts/*"],
       "@test/*": ["test/*"],
-      "@test-config/*": ["test/config/*"]
+      "@test-config/*": ["test/config/*"],
+      "@src/*": ["src/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

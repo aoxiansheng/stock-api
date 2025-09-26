@@ -1,326 +1,315 @@
-import { AlertCacheKeys, alertCacheKeys, createAlertCacheKeys, AlertCacheKeyType } from '../../../../src/alert/utils/alert-cache-keys.util';
+import { AlertCacheKeys, AlertCacheKeyType, AlertCacheKeyConfig } from '@alert/utils/alert-cache-keys.util';
 
 describe('AlertCacheKeys', () => {
-  describe('Default Instance', () => {
-    it('should be defined', () => {
-      expect(alertCacheKeys).toBeDefined();
-      expect(alertCacheKeys).toBeInstanceOf(AlertCacheKeys);
-    });
+  let alertCacheKeys: AlertCacheKeys;
 
-    describe('activeAlert', () => {
-      it('should generate active alert cache key', () => {
-        const key = alertCacheKeys.activeAlert('rule_123');
-        expect(key).toBe('alert:active:rule_123');
-      });
-    });
-
-    describe('cooldown', () => {
-      it('should generate cooldown cache key', () => {
-        const key = alertCacheKeys.cooldown('rule_123');
-        expect(key).toBe('alert:cooldown:rule_123');
-      });
-    });
-
-    describe('timeseries', () => {
-      it('should generate timeseries cache key', () => {
-        const key = alertCacheKeys.timeseries('rule_123');
-        expect(key).toBe('alert:timeseries:rule_123');
-      });
-    });
-
-    describe('stats', () => {
-      it('should generate stats cache key with default type', () => {
-        const key = alertCacheKeys.stats();
-        expect(key).toBe('alert:stats:general');
-      });
-
-      it('should generate stats cache key with custom type', () => {
-        const key = alertCacheKeys.stats('performance');
-        expect(key).toBe('alert:stats:performance');
-      });
-    });
-
-    describe('batchOperation', () => {
-      it('should generate batch operation cache key', () => {
-        const key = alertCacheKeys.batchOperation('op_123');
-        expect(key).toBe('alert:batch:op_123');
-      });
-    });
-
-    describe('activeAlertPattern', () => {
-      it('should return active alert pattern', () => {
-        const pattern = alertCacheKeys.activeAlertPattern();
-        expect(pattern).toBe('alert:active:*');
-      });
-    });
-
-    describe('cooldownPattern', () => {
-      it('should return cooldown pattern', () => {
-        const pattern = alertCacheKeys.cooldownPattern();
-        expect(pattern).toBe('alert:cooldown:*');
-      });
-    });
-
-    describe('timeseriesPattern', () => {
-      it('should return timeseries pattern', () => {
-        const pattern = alertCacheKeys.timeseriesPattern();
-        expect(pattern).toBe('alert:timeseries:*');
-      });
-    });
-
-    describe('allAlertKeysPattern', () => {
-      it('should return all alert keys pattern', () => {
-        const pattern = alertCacheKeys.allAlertKeysPattern();
-        expect(pattern).toBe('alert:*');
-      });
-    });
-
-    describe('getPatternByType', () => {
-      it('should return correct pattern for each key type', () => {
-        expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.ACTIVE_ALERT)).toBe('alert:active:*');
-        expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.COOLDOWN)).toBe('alert:cooldown:*');
-        expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.TIMESERIES)).toBe('alert:timeseries:*');
-        expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.STATS)).toBe('alert:stats:*');
-        expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.BATCH_OPERATION)).toBe('alert:batch:*');
-      });
-
-      it('should return all alert keys pattern for unknown type', () => {
-        const pattern = alertCacheKeys.getPatternByType('unknown' as any);
-        expect(pattern).toBe('alert:*');
-      });
-    });
-
-    describe('extractRuleId', () => {
-      it('should extract rule ID from active alert key', () => {
-        const ruleId = alertCacheKeys.extractRuleId('alert:active:rule_123');
-        expect(ruleId).toBe('rule_123');
-      });
-
-      it('should extract rule ID from cooldown key', () => {
-        const ruleId = alertCacheKeys.extractRuleId('alert:cooldown:rule_123');
-        expect(ruleId).toBe('rule_123');
-      });
-
-      it('should extract rule ID from timeseries key', () => {
-        const ruleId = alertCacheKeys.extractRuleId('alert:timeseries:rule_123');
-        expect(ruleId).toBe('rule_123');
-      });
-
-      it('should return null for invalid key format', () => {
-        const ruleId = alertCacheKeys.extractRuleId('invalid:key:format');
-        expect(ruleId).toBeNull();
-      });
-
-      it('should return null for empty key', () => {
-        const ruleId = alertCacheKeys.extractRuleId('');
-        expect(ruleId).toBeNull();
-      });
-    });
-
-    describe('isKeyOfType', () => {
-      it('should correctly identify active alert key type', () => {
-        const result = alertCacheKeys.isKeyOfType('alert:active:rule_123', AlertCacheKeyType.ACTIVE_ALERT);
-        expect(result).toBe(true);
-      });
-
-      it('should correctly identify cooldown key type', () => {
-        const result = alertCacheKeys.isKeyOfType('alert:cooldown:rule_123', AlertCacheKeyType.COOLDOWN);
-        expect(result).toBe(true);
-      });
-
-      it('should correctly identify timeseries key type', () => {
-        const result = alertCacheKeys.isKeyOfType('alert:timeseries:rule_123', AlertCacheKeyType.TIMESERIES);
-        expect(result).toBe(true);
-      });
-
-      it('should return false for mismatched key type', () => {
-        const result = alertCacheKeys.isKeyOfType('alert:active:rule_123', AlertCacheKeyType.COOLDOWN);
-        expect(result).toBe(false);
-      });
-    });
-
-    describe('getKeyType', () => {
-      it('should return correct key type for active alert key', () => {
-        const keyType = alertCacheKeys.getKeyType('alert:active:rule_123');
-        expect(keyType).toBe(AlertCacheKeyType.ACTIVE_ALERT);
-      });
-
-      it('should return correct key type for cooldown key', () => {
-        const keyType = alertCacheKeys.getKeyType('alert:cooldown:rule_123');
-        expect(keyType).toBe(AlertCacheKeyType.COOLDOWN);
-      });
-
-      it('should return correct key type for timeseries key', () => {
-        const keyType = alertCacheKeys.getKeyType('alert:timeseries:rule_123');
-        expect(keyType).toBe(AlertCacheKeyType.TIMESERIES);
-      });
-
-      it('should return null for unknown key type', () => {
-        const keyType = alertCacheKeys.getKeyType('unknown:key:format');
-        expect(keyType).toBeNull();
-      });
-    });
-
-    describe('batchActiveAlerts', () => {
-      it('should generate batch active alert keys', () => {
-        const keys = alertCacheKeys.batchActiveAlerts(['rule_1', 'rule_2']);
-        expect(keys).toEqual(['alert:active:rule_1', 'alert:active:rule_2']);
-      });
-    });
-
-    describe('batchCooldowns', () => {
-      it('should generate batch cooldown keys', () => {
-        const keys = alertCacheKeys.batchCooldowns(['rule_1', 'rule_2']);
-        expect(keys).toEqual(['alert:cooldown:rule_1', 'alert:cooldown:rule_2']);
-      });
-    });
-
-    describe('batchTimeseries', () => {
-      it('should generate batch timeseries keys', () => {
-        const keys = alertCacheKeys.batchTimeseries(['rule_1', 'rule_2']);
-        expect(keys).toEqual(['alert:timeseries:rule_1', 'alert:timeseries:rule_2']);
-      });
-    });
-
-    describe('getConfig', () => {
-      it('should return current key configuration', () => {
-        const config = alertCacheKeys.getConfig();
-        expect(config).toEqual({
-          activeAlertPrefix: 'alert:active',
-          cooldownPrefix: 'alert:cooldown',
-          timeseriesPrefix: 'alert:timeseries',
-          statsPrefix: 'alert:stats',
-          batchPrefix: 'alert:batch',
-        });
-      });
-    });
-
-    describe('validateKey', () => {
-      it('should validate correct active alert key', () => {
-        const result = alertCacheKeys.validateKey('alert:active:rule_123');
-        expect(result).toEqual({
-          valid: true,
-          type: AlertCacheKeyType.ACTIVE_ALERT,
-          ruleId: 'rule_123'
-        });
-      });
-
-      it('should validate correct cooldown key', () => {
-        const result = alertCacheKeys.validateKey('alert:cooldown:rule_123');
-        expect(result).toEqual({
-          valid: true,
-          type: AlertCacheKeyType.COOLDOWN,
-          ruleId: 'rule_123'
-        });
-      });
-
-      it('should validate correct timeseries key', () => {
-        const result = alertCacheKeys.validateKey('alert:timeseries:rule_123');
-        expect(result).toEqual({
-          valid: true,
-          type: AlertCacheKeyType.TIMESERIES,
-          ruleId: 'rule_123'
-        });
-      });
-
-      it('should validate correct stats key', () => {
-        const result = alertCacheKeys.validateKey('alert:stats:general');
-        expect(result).toEqual({
-          valid: true,
-          type: AlertCacheKeyType.STATS
-        });
-      });
-
-      it('should return error for empty key', () => {
-        const result = alertCacheKeys.validateKey('');
-        expect(result).toEqual({
-          valid: false,
-          error: '缓存键必须是非空字符串'
-        });
-      });
-
-      it('should return error for invalid key format', () => {
-        const result = alertCacheKeys.validateKey('invalid:key:format');
-        expect(result).toEqual({
-          valid: false,
-          error: '无法识别的缓存键类型'
-        });
-      });
-
-      it('should return error when rule ID cannot be extracted', () => {
-        const result = alertCacheKeys.validateKey('alert:active:');
-        expect(result).toEqual({
-          valid: false,
-          error: '无法从缓存键中提取规则ID'
-        });
-      });
-    });
-
-    describe('getDebugInfo', () => {
-      it('should return debug information', () => {
-        const debugInfo = alertCacheKeys.getDebugInfo();
-        expect(debugInfo).toEqual({
-          config: expect.any(Object),
-          patterns: expect.any(Object),
-          sampleKeys: expect.any(Object)
-        });
-        expect(debugInfo.sampleKeys.activeAlert).toBe('alert:active:rule_123');
-        expect(debugInfo.sampleKeys.cooldown).toBe('alert:cooldown:rule_123');
-        expect(debugInfo.sampleKeys.timeseries).toBe('alert:timeseries:rule_123');
-      });
-    });
+  beforeEach(() => {
+    alertCacheKeys = new AlertCacheKeys();
   });
 
-  describe('Custom Instance', () => {
-    it('should create custom instance with provided configuration', () => {
-      const customConfig = {
-        activeAlertPrefix: 'custom:alert:active',
-        cooldownPrefix: 'custom:alert:cooldown',
-        timeseriesPrefix: 'custom:alert:timeseries',
-        statsPrefix: 'custom:alert:stats',
-        batchPrefix: 'custom:alert:batch',
-      };
-
-      const customKeys = createAlertCacheKeys(customConfig);
-      expect(customKeys.getConfig()).toEqual(customConfig);
-    });
-
-    it('should use default configuration for missing properties', () => {
-      const customConfig = {
-        activeAlertPrefix: 'custom:alert:active'
-      };
-
-      const customKeys = createAlertCacheKeys(customConfig);
-      const config = customKeys.getConfig();
-      expect(config.activeAlertPrefix).toBe('custom:alert:active');
-      expect(config.cooldownPrefix).toBe('alert:cooldown'); // default value
-      expect(config.timeseriesPrefix).toBe('alert:timeseries'); // default value
-    });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe('AlertCacheKeys Class', () => {
-    let customKeys: AlertCacheKeys;
+  describe('constructor', () => {
+    it('should create instance with default configuration', () => {
+      const keys = new AlertCacheKeys();
+      const config = keys.getConfig();
 
-    beforeEach(() => {
-      customKeys = new AlertCacheKeys({
-        activeAlertPrefix: 'test:active',
-        cooldownPrefix: 'test:cooldown',
-        timeseriesPrefix: 'test:timeseries',
-        statsPrefix: 'test:stats',
-        batchPrefix: 'test:batch',
-      });
+      expect(config.activeAlertPrefix).toBe('alert:active');
+      expect(config.cooldownPrefix).toBe('alert:cooldown');
+      expect(config.timeseriesPrefix).toBe('alert:timeseries');
+      expect(config.statsPrefix).toBe('alert:stats');
+      expect(config.batchPrefix).toBe('alert:batch');
     });
 
     it('should create instance with custom configuration', () => {
-      expect(customKeys).toBeDefined();
-      const config = customKeys.getConfig();
-      expect(config.activeAlertPrefix).toBe('test:active');
+      const customConfig: Partial<AlertCacheKeyConfig> = {
+        activeAlertPrefix: 'custom:active',
+        cooldownPrefix: 'custom:cooldown'
+      };
+
+      const keys = new AlertCacheKeys(customConfig);
+      const config = keys.getConfig();
+
+      expect(config.activeAlertPrefix).toBe('custom:active');
+      expect(config.cooldownPrefix).toBe('custom:cooldown');
+      expect(config.timeseriesPrefix).toBe('alert:timeseries'); // Should use default
+    });
+  });
+
+  describe('basic key generation methods', () => {
+    const testRuleId = 'test-rule-123';
+
+    it('should generate active alert cache key', () => {
+      const key = alertCacheKeys.activeAlert(testRuleId);
+      expect(key).toBe(`alert:active:${testRuleId}`);
     });
 
-    it('should generate keys with custom prefixes', () => {
-      expect(customKeys.activeAlert('rule_123')).toBe('test:active:rule_123');
-      expect(customKeys.cooldown('rule_123')).toBe('test:cooldown:rule_123');
-      expect(customKeys.timeseries('rule_123')).toBe('test:timeseries:rule_123');
+    it('should generate cooldown cache key', () => {
+      const key = alertCacheKeys.cooldown(testRuleId);
+      expect(key).toBe(`alert:cooldown:${testRuleId}`);
+    });
+
+    it('should generate timeseries cache key', () => {
+      const key = alertCacheKeys.timeseries(testRuleId);
+      expect(key).toBe(`alert:timeseries:${testRuleId}`);
+    });
+
+    it('should generate stats cache key with default type', () => {
+      const key = alertCacheKeys.stats();
+      expect(key).toBe('alert:stats:general');
+    });
+
+    it('should generate stats cache key with custom type', () => {
+      const key = alertCacheKeys.stats('performance');
+      expect(key).toBe('alert:stats:performance');
+    });
+
+    it('should generate batch operation cache key', () => {
+      const operationId = 'batch-op-456';
+      const key = alertCacheKeys.batchOperation(operationId);
+      expect(key).toBe(`alert:batch:${operationId}`);
+    });
+  });
+
+  describe('pattern matching methods', () => {
+    it('should return active alert pattern', () => {
+      const pattern = alertCacheKeys.activeAlertPattern();
+      expect(pattern).toBe('alert:active:*');
+    });
+
+    it('should return cooldown pattern', () => {
+      const pattern = alertCacheKeys.cooldownPattern();
+      expect(pattern).toBe('alert:cooldown:*');
+    });
+
+    it('should return timeseries pattern', () => {
+      const pattern = alertCacheKeys.timeseriesPattern();
+      expect(pattern).toBe('alert:timeseries:*');
+    });
+
+    it('should return all alert keys pattern', () => {
+      const pattern = alertCacheKeys.allAlertKeysPattern();
+      expect(pattern).toBe('alert:*');
+    });
+
+    it('should return pattern by key type', () => {
+      expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.ACTIVE_ALERT))
+        .toBe('alert:active:*');
+      expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.COOLDOWN))
+        .toBe('alert:cooldown:*');
+      expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.TIMESERIES))
+        .toBe('alert:timeseries:*');
+      expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.STATS))
+        .toBe('alert:stats:*');
+      expect(alertCacheKeys.getPatternByType(AlertCacheKeyType.BATCH_OPERATION))
+        .toBe('alert:batch:*');
+    });
+  });
+
+  describe('key parsing methods', () => {
+    it('should extract rule ID from active alert key', () => {
+      const ruleId = 'rule-123';
+      const key = alertCacheKeys.activeAlert(ruleId);
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBe(ruleId);
+    });
+
+    it('should extract rule ID from cooldown key', () => {
+      const ruleId = 'rule-456';
+      const key = alertCacheKeys.cooldown(ruleId);
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBe(ruleId);
+    });
+
+    it('should extract rule ID from timeseries key', () => {
+      const ruleId = 'rule-789';
+      const key = alertCacheKeys.timeseries(ruleId);
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBe(ruleId);
+    });
+
+    it('should return null for non-rule keys', () => {
+      const key = alertCacheKeys.stats('general');
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBeNull();
+    });
+
+    it('should return null for invalid keys', () => {
+      const extractedId = alertCacheKeys.extractRuleId('invalid:key:format');
+      expect(extractedId).toBeNull();
+    });
+  });
+
+  describe('key type validation', () => {
+    it('should correctly identify active alert key type', () => {
+      const key = alertCacheKeys.activeAlert('test-rule');
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.ACTIVE_ALERT)).toBe(true);
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.COOLDOWN)).toBe(false);
+    });
+
+    it('should correctly identify cooldown key type', () => {
+      const key = alertCacheKeys.cooldown('test-rule');
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.COOLDOWN)).toBe(true);
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.ACTIVE_ALERT)).toBe(false);
+    });
+
+    it('should correctly identify timeseries key type', () => {
+      const key = alertCacheKeys.timeseries('test-rule');
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.TIMESERIES)).toBe(true);
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.STATS)).toBe(false);
+    });
+
+    it('should correctly identify stats key type', () => {
+      const key = alertCacheKeys.stats('performance');
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.STATS)).toBe(true);
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.BATCH_OPERATION)).toBe(false);
+    });
+
+    it('should correctly identify batch operation key type', () => {
+      const key = alertCacheKeys.batchOperation('op-123');
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.BATCH_OPERATION)).toBe(true);
+      expect(alertCacheKeys.isKeyOfType(key, AlertCacheKeyType.ACTIVE_ALERT)).toBe(false);
+    });
+
+    it('should get correct key type', () => {
+      expect(alertCacheKeys.getKeyType(alertCacheKeys.activeAlert('test')))
+        .toBe(AlertCacheKeyType.ACTIVE_ALERT);
+      expect(alertCacheKeys.getKeyType(alertCacheKeys.cooldown('test')))
+        .toBe(AlertCacheKeyType.COOLDOWN);
+      expect(alertCacheKeys.getKeyType(alertCacheKeys.stats()))
+        .toBe(AlertCacheKeyType.STATS);
+      expect(alertCacheKeys.getKeyType('invalid:key')).toBeNull();
+    });
+  });
+
+  describe('batch key generation', () => {
+    const ruleIds = ['rule-1', 'rule-2', 'rule-3'];
+
+    it('should generate batch active alert keys', () => {
+      const keys = alertCacheKeys.batchActiveAlerts(ruleIds);
+      expect(keys).toHaveLength(3);
+      expect(keys[0]).toBe('alert:active:rule-1');
+      expect(keys[1]).toBe('alert:active:rule-2');
+      expect(keys[2]).toBe('alert:active:rule-3');
+    });
+
+    it('should generate batch cooldown keys', () => {
+      const keys = alertCacheKeys.batchCooldowns(ruleIds);
+      expect(keys).toHaveLength(3);
+      expect(keys[0]).toBe('alert:cooldown:rule-1');
+      expect(keys[1]).toBe('alert:cooldown:rule-2');
+      expect(keys[2]).toBe('alert:cooldown:rule-3');
+    });
+
+    it('should generate batch timeseries keys', () => {
+      const keys = alertCacheKeys.batchTimeseries(ruleIds);
+      expect(keys).toHaveLength(3);
+      expect(keys[0]).toBe('alert:timeseries:rule-1');
+      expect(keys[1]).toBe('alert:timeseries:rule-2');
+      expect(keys[2]).toBe('alert:timeseries:rule-3');
+    });
+
+    it('should handle empty rule ID array', () => {
+      expect(alertCacheKeys.batchActiveAlerts([])).toEqual([]);
+      expect(alertCacheKeys.batchCooldowns([])).toEqual([]);
+      expect(alertCacheKeys.batchTimeseries([])).toEqual([]);
+    });
+  });
+
+  describe('key validation', () => {
+    it('should validate active alert key successfully', () => {
+      const key = alertCacheKeys.activeAlert('test-rule');
+      const validation = alertCacheKeys.validateKey(key);
+
+      expect(validation.valid).toBe(true);
+      expect(validation.type).toBe(AlertCacheKeyType.ACTIVE_ALERT);
+      expect(validation.ruleId).toBe('test-rule');
+      expect(validation.error).toBeUndefined();
+    });
+
+    it('should validate stats key successfully', () => {
+      const key = alertCacheKeys.stats('performance');
+      const validation = alertCacheKeys.validateKey(key);
+
+      expect(validation.valid).toBe(true);
+      expect(validation.type).toBe(AlertCacheKeyType.STATS);
+      expect(validation.ruleId).toBeUndefined();
+      expect(validation.error).toBeUndefined();
+    });
+
+    it('should reject empty key', () => {
+      const validation = alertCacheKeys.validateKey('');
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toBe('缓存键必须是非空字符串');
+    });
+
+    it('should reject null key', () => {
+      const validation = alertCacheKeys.validateKey(null as any);
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toBe('缓存键必须是非空字符串');
+    });
+
+    it('should reject unrecognized key format', () => {
+      const validation = alertCacheKeys.validateKey('invalid:key:format');
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toBe('无法识别的缓存键类型');
+    });
+
+    it('should reject rule key without rule ID', () => {
+      // Manually create an invalid key that matches pattern but has no rule ID
+      const validation = alertCacheKeys.validateKey('alert:active:');
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toBe('无法从缓存键中提取规则ID');
+    });
+  });
+
+  describe('debug information', () => {
+    it('should provide comprehensive debug info', () => {
+      const debugInfo = alertCacheKeys.getDebugInfo();
+
+      expect(debugInfo.config).toBeDefined();
+      expect(debugInfo.patterns).toBeDefined();
+      expect(debugInfo.sampleKeys).toBeDefined();
+
+      // Verify config
+      expect(debugInfo.config.activeAlertPrefix).toBe('alert:active');
+      expect(debugInfo.config.cooldownPrefix).toBe('alert:cooldown');
+
+      // Verify patterns
+      expect(debugInfo.patterns.activeAlert).toBe('alert:active:*');
+      expect(debugInfo.patterns.cooldown).toBe('alert:cooldown:*');
+      expect(debugInfo.patterns.allAlert).toBe('alert:*');
+
+      // Verify sample keys
+      expect(debugInfo.sampleKeys.activeAlert).toBe('alert:active:rule_123');
+      expect(debugInfo.sampleKeys.cooldown).toBe('alert:cooldown:rule_123');
+      expect(debugInfo.sampleKeys.stats).toBe('alert:stats:general');
+      expect(debugInfo.sampleKeys.batchOperation).toBe('alert:batch:op_456');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle special characters in rule ID', () => {
+      const ruleId = 'rule-123_test.special-chars';
+      const key = alertCacheKeys.activeAlert(ruleId);
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBe(ruleId);
+    });
+
+    it('should handle unicode characters in rule ID', () => {
+      const ruleId = 'rule-测试-123';
+      const key = alertCacheKeys.activeAlert(ruleId);
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBe(ruleId);
+    });
+
+    it('should handle very long rule IDs', () => {
+      const ruleId = 'a'.repeat(100);
+      const key = alertCacheKeys.activeAlert(ruleId);
+      const extractedId = alertCacheKeys.extractRuleId(key);
+      expect(extractedId).toBe(ruleId);
     });
   });
 });
