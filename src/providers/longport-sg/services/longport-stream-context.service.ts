@@ -148,25 +148,30 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
       this.connectionState.status = ConnectionStatus.INITIALIZING;
       this.logger.log("开始初始化 LongPort WebSocket 连接");
 
-      // 创建 LongPort 配置
-      this.config = Config.fromEnv();
+      // 创建 LongPort SG 配置
+      // 使用 LONGPORT_SG_* 环境变量
+      const appKey = process.env.LONGPORT_SG_APP_KEY;
+      const appSecret = process.env.LONGPORT_SG_APP_SECRET;
+      const accessToken = process.env.LONGPORT_SG_ACCESS_TOKEN;
 
-      // 如果环境变量不存在，使用配置服务中的值
-      if (!process.env.LONGPORT_APP_KEY) {
-        const appKey = this.configService.get("LONGPORT_APP_KEY");
-        const appSecret = this.configService.get("LONGPORT_APP_SECRET");
-        const accessToken = this.configService.get("LONGPORT_ACCESS_TOKEN");
+      if (!appKey || !appSecret || !accessToken) {
+        // 如果 SG 环境变量不存在，尝试从配置服务获取
+        const configAppKey = this.configService.get("LONGPORT_SG_APP_KEY");
+        const configAppSecret = this.configService.get("LONGPORT_SG_APP_SECRET");
+        const configAccessToken = this.configService.get("LONGPORT_SG_ACCESS_TOKEN");
 
-        if (appKey && appSecret && accessToken) {
-          this.config = new Config(appKey, appSecret, accessToken);
+        if (configAppKey && configAppSecret && configAccessToken) {
+          this.config = new Config(configAppKey, configAppSecret, configAccessToken);
         } else {
           this.connectionState.status = ConnectionStatus.FAILED;
           this.connectionState.healthStatus =
             CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
           throw new Error(
-            "LongPort 配置不完整：缺少 APP_KEY、APP_SECRET 或 ACCESS_TOKEN",
+            "LongPort SG 配置不完整：缺少 LONGPORT_SG_APP_KEY、LONGPORT_SG_APP_SECRET 或 LONGPORT_SG_ACCESS_TOKEN",
           );
         }
+      } else {
+        this.config = new Config(appKey, appSecret, accessToken);
       }
 
       // 创建 QuoteContext

@@ -11,14 +11,12 @@ import {
  * 使用Common-cache的共享常量作为基础，同时保持向后兼容性
  */
 export const SMART_CACHE_CONSTANTS = Object.freeze({
-  // TTL相关常量 - 使用foundation常量，保留旧的结构名称以兼容现有代码
-  TTL_SECONDS: {
+  // TTL相关常量 - 使用foundation常量，统一命名规范
+  TTL: {
     STRONG_TIMELINESS_DEFAULT_S: CACHE_CORE_TTL.REAL_TIME_TTL_SECONDS,
     WEAK_TIMELINESS_DEFAULT_S: CACHE_CORE_TTL.BATCH_QUERY_TTL_SECONDS,
     MARKET_OPEN_DEFAULT_S: CACHE_CORE_TTL.TRADING_HOURS_TTL_SECONDS,
     MARKET_CLOSED_DEFAULT_S: CACHE_CORE_TTL.OFF_HOURS_TTL_SECONDS,
-    ADAPTIVE_BASE_DEFAULT_S: 180,
-    ADAPTIVE_MIN_S: CACHE_CORE_TTL.MIN_TTL_SECONDS,
     ADAPTIVE_MAX_S: CACHE_CORE_TTL.ARCHIVE_TTL_SECONDS,
   },
 
@@ -53,25 +51,17 @@ export const SMART_CACHE_CONSTANTS = Object.freeze({
     ERROR_RATE_THRESHOLD: 0.01,
   },
 
-  // 边界值常量 - 保留原有结构
-  BOUNDARIES: {
-    MIN_CPU_CORES_COUNT: 2,
-    MAX_CPU_CORES_COUNT: 16,
-    MIN_MEMORY_MB: 512,
-    MAX_CACHE_SIZE_MB: 1024,
-  },
-
-  // 组件标识常量 - 保留原有结构
-  COMPONENT_IDENTIFIERS: {
-    NAME: "smart_cache_orchestrator",
-    VERSION: "2.0.0",
-    NAMESPACE: "smart-cache",
-  },
 } as const); // 使用 as const 提供更严格的类型推导
+
+// 深度冻结所有嵌套对象以确保完全不可变性
+Object.freeze(SMART_CACHE_CONSTANTS.TTL);
+Object.freeze(SMART_CACHE_CONSTANTS.INTERVALS_MS);
+Object.freeze(SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS);
+Object.freeze(SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS);
 
 // 从常量对象推导类型，提高类型安全性
 export type SmartCacheConstantsType = typeof SMART_CACHE_CONSTANTS;
-export type TTLSecondsType = typeof SMART_CACHE_CONSTANTS.TTL_SECONDS;
+export type TTLType = typeof SMART_CACHE_CONSTANTS.TTL;
 export type IntervalsType = typeof SMART_CACHE_CONSTANTS.INTERVALS_MS;
 export type ConcurrencyLimitsType = typeof SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS;
 export type ThresholdRatiosType = typeof SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS;

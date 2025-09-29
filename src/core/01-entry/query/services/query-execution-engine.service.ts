@@ -1097,11 +1097,11 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
         await this.marketStatusService.getMarketStatus(market as Market);
 
       if (status === "TRADING") {
-        return SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S; // 交易时间30秒缓存
+        return SMART_CACHE_CONSTANTS.TTL.MARKET_OPEN_DEFAULT_S; // 交易时间30秒缓存
       } else if (isHoliday) {
-        return SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S; // 假日1小时缓存
+        return SMART_CACHE_CONSTANTS.TTL.ADAPTIVE_MAX_S; // 假日1小时缓存
       } else {
-        return SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S; // 闭市5分钟缓存
+        return SMART_CACHE_CONSTANTS.TTL.WEAK_TIMELINESS_DEFAULT_S; // 闭市5分钟缓存
       }
     } catch (error) {
       this.logger.warn(`TTL计算失败，使用默认值`, {
@@ -1109,7 +1109,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
         symbols,
         error: error.message,
       });
-      return SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S; // 默认5分钟缓存
+      return SMART_CACHE_CONSTANTS.TTL.WEAK_TIMELINESS_DEFAULT_S; // 默认5分钟缓存
     }
   }
 

@@ -6,7 +6,7 @@
 import {
   SMART_CACHE_CONSTANTS,
   SmartCacheConstantsType,
-  TTLSecondsType,
+  TTLType,
   IntervalsType,
   ConcurrencyLimitsType,
   ThresholdRatiosType,
@@ -21,12 +21,10 @@ describe('SmartCache Constants', () => {
 
     it('should have all required top-level properties', () => {
       const requiredProps = [
-        'TTL_SECONDS',
+        'TTL',
         'INTERVALS_MS',
         'CONCURRENCY_LIMITS',
-        'THRESHOLD_RATIOS',
-        'BOUNDARIES',
-        'COMPONENT_IDENTIFIERS'
+        'THRESHOLD_RATIOS'
       ];
 
       requiredProps.forEach(prop => {
@@ -35,21 +33,19 @@ describe('SmartCache Constants', () => {
     });
   });
 
-  describe('TTL_SECONDS Constants', () => {
+  describe('TTL Constants', () => {
     it('should define all TTL constants', () => {
-      const ttl = SMART_CACHE_CONSTANTS.TTL_SECONDS;
+      const ttl = SMART_CACHE_CONSTANTS.TTL;
 
       expect(ttl.STRONG_TIMELINESS_DEFAULT_S).toBeDefined();
       expect(ttl.WEAK_TIMELINESS_DEFAULT_S).toBeDefined();
       expect(ttl.MARKET_OPEN_DEFAULT_S).toBeDefined();
       expect(ttl.MARKET_CLOSED_DEFAULT_S).toBeDefined();
-      expect(ttl.ADAPTIVE_BASE_DEFAULT_S).toBeDefined();
-      expect(ttl.ADAPTIVE_MIN_S).toBeDefined();
       expect(ttl.ADAPTIVE_MAX_S).toBeDefined();
     });
 
     it('should have numeric TTL values', () => {
-      const ttl = SMART_CACHE_CONSTANTS.TTL_SECONDS;
+      const ttl = SMART_CACHE_CONSTANTS.TTL;
 
       Object.values(ttl).forEach(value => {
         expect(typeof value).toBe('number');
@@ -58,24 +54,17 @@ describe('SmartCache Constants', () => {
     });
 
     it('should maintain logical TTL ordering', () => {
-      const ttl = SMART_CACHE_CONSTANTS.TTL_SECONDS;
+      const ttl = SMART_CACHE_CONSTANTS.TTL;
 
       // Strong timeliness should be shorter than weak timeliness
       expect(ttl.STRONG_TIMELINESS_DEFAULT_S).toBeLessThan(ttl.WEAK_TIMELINESS_DEFAULT_S);
 
       // Market open should be shorter than market closed (more frequent updates during trading)
       expect(ttl.MARKET_OPEN_DEFAULT_S).toBeLessThanOrEqual(ttl.MARKET_CLOSED_DEFAULT_S);
-
-      // Adaptive min should be less than adaptive max
-      expect(ttl.ADAPTIVE_MIN_S).toBeLessThan(ttl.ADAPTIVE_MAX_S);
-
-      // Adaptive base should be within min/max range
-      expect(ttl.ADAPTIVE_BASE_DEFAULT_S).toBeGreaterThanOrEqual(ttl.ADAPTIVE_MIN_S);
-      expect(ttl.ADAPTIVE_BASE_DEFAULT_S).toBeLessThanOrEqual(ttl.ADAPTIVE_MAX_S);
     });
 
     it('should have reasonable TTL values for practical use', () => {
-      const ttl = SMART_CACHE_CONSTANTS.TTL_SECONDS;
+      const ttl = SMART_CACHE_CONSTANTS.TTL;
 
       // Strong timeliness should be for real-time scenarios (typically < 30s)
       expect(ttl.STRONG_TIMELINESS_DEFAULT_S).toBeLessThanOrEqual(30);
@@ -225,87 +214,13 @@ describe('SmartCache Constants', () => {
     });
   });
 
-  describe('BOUNDARIES Constants', () => {
-    it('should define all boundary constants', () => {
-      const boundaries = SMART_CACHE_CONSTANTS.BOUNDARIES;
-
-      expect(boundaries.MIN_CPU_CORES_COUNT).toBeDefined();
-      expect(boundaries.MAX_CPU_CORES_COUNT).toBeDefined();
-      expect(boundaries.MIN_MEMORY_MB).toBeDefined();
-      expect(boundaries.MAX_CACHE_SIZE_MB).toBeDefined();
-    });
-
-    it('should have numeric boundary values', () => {
-      const boundaries = SMART_CACHE_CONSTANTS.BOUNDARIES;
-
-      Object.values(boundaries).forEach(value => {
-        expect(typeof value).toBe('number');
-        expect(value).toBeGreaterThan(0);
-        expect(Number.isInteger(value)).toBe(true);
-      });
-    });
-
-    it('should maintain logical boundary ordering', () => {
-      const boundaries = SMART_CACHE_CONSTANTS.BOUNDARIES;
-
-      expect(boundaries.MIN_CPU_CORES_COUNT).toBeLessThan(boundaries.MAX_CPU_CORES_COUNT);
-      expect(boundaries.MIN_MEMORY_MB).toBeLessThan(boundaries.MAX_CACHE_SIZE_MB);
-    });
-
-    it('should have practical system boundaries', () => {
-      const boundaries = SMART_CACHE_CONSTANTS.BOUNDARIES;
-
-      // CPU cores should be reasonable for modern systems
-      expect(boundaries.MIN_CPU_CORES_COUNT).toBeGreaterThanOrEqual(1);
-      expect(boundaries.MAX_CPU_CORES_COUNT).toBeLessThanOrEqual(128);
-
-      // Memory values should be practical for server environments
-      expect(boundaries.MIN_MEMORY_MB).toBeGreaterThanOrEqual(256);
-      expect(boundaries.MAX_CACHE_SIZE_MB).toBeLessThanOrEqual(16384); // 16GB max cache
-    });
-  });
-
-  describe('COMPONENT_IDENTIFIERS Constants', () => {
-    it('should define all component identifiers', () => {
-      const component = SMART_CACHE_CONSTANTS.COMPONENT_IDENTIFIERS;
-
-      expect(component.NAME).toBeDefined();
-      expect(component.VERSION).toBeDefined();
-      expect(component.NAMESPACE).toBeDefined();
-    });
-
-    it('should have string identifier values', () => {
-      const component = SMART_CACHE_CONSTANTS.COMPONENT_IDENTIFIERS;
-
-      expect(typeof component.NAME).toBe('string');
-      expect(typeof component.VERSION).toBe('string');
-      expect(typeof component.NAMESPACE).toBe('string');
-
-      expect(component.NAME.length).toBeGreaterThan(0);
-      expect(component.VERSION.length).toBeGreaterThan(0);
-      expect(component.NAMESPACE.length).toBeGreaterThan(0);
-    });
-
-    it('should have proper component naming conventions', () => {
-      const component = SMART_CACHE_CONSTANTS.COMPONENT_IDENTIFIERS;
-
-      // Name should follow naming conventions
-      expect(component.NAME).toMatch(/^[a-z_]+$/);
-
-      // Version should follow semver pattern
-      expect(component.VERSION).toMatch(/^\d+\.\d+\.\d+$/);
-
-      // Namespace should follow kebab-case
-      expect(component.NAMESPACE).toMatch(/^[a-z-]+$/);
-    });
-  });
 
   describe('Type Safety', () => {
     it('should provide correct TypeScript types', () => {
       const constants: SmartCacheConstantsType = SMART_CACHE_CONSTANTS;
       expect(constants).toBeDefined();
 
-      const ttl: TTLSecondsType = SMART_CACHE_CONSTANTS.TTL_SECONDS;
+      const ttl: TTLType = SMART_CACHE_CONSTANTS.TTL;
       expect(ttl).toBeDefined();
 
       const intervals: IntervalsType = SMART_CACHE_CONSTANTS.INTERVALS_MS;
@@ -320,21 +235,19 @@ describe('SmartCache Constants', () => {
 
     it('should ensure immutability through freezing', () => {
       expect(Object.isFrozen(SMART_CACHE_CONSTANTS)).toBe(true);
-      expect(Object.isFrozen(SMART_CACHE_CONSTANTS.TTL_SECONDS)).toBe(true);
+      expect(Object.isFrozen(SMART_CACHE_CONSTANTS.TTL)).toBe(true);
       expect(Object.isFrozen(SMART_CACHE_CONSTANTS.INTERVALS_MS)).toBe(true);
       expect(Object.isFrozen(SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS)).toBe(true);
       expect(Object.isFrozen(SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS)).toBe(true);
-      expect(Object.isFrozen(SMART_CACHE_CONSTANTS.BOUNDARIES)).toBe(true);
-      expect(Object.isFrozen(SMART_CACHE_CONSTANTS.COMPONENT_IDENTIFIERS)).toBe(true);
     });
 
     it('should support const assertion typing', () => {
       // Test that 'as const' provides proper literal types
-      const strongTtl = SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S;
+      const strongTtl = SMART_CACHE_CONSTANTS.TTL.STRONG_TIMELINESS_DEFAULT_S;
       expect(typeof strongTtl).toBe('number');
 
-      const componentName = SMART_CACHE_CONSTANTS.COMPONENT_IDENTIFIERS.NAME;
-      expect(typeof componentName).toBe('string');
+      const thresholdRatio = SMART_CACHE_CONSTANTS.THRESHOLD_RATIOS.CACHE_HIT_RATE_TARGET;
+      expect(typeof thresholdRatio).toBe('number');
     });
   });
 
@@ -342,7 +255,7 @@ describe('SmartCache Constants', () => {
     it('should reference foundation constants appropriately', () => {
       // The constants should be derived from foundation layer constants
       // This test verifies that the values are reasonable and likely come from a shared source
-      const ttl = SMART_CACHE_CONSTANTS.TTL_SECONDS;
+      const ttl = SMART_CACHE_CONSTANTS.TTL;
       const intervals = SMART_CACHE_CONSTANTS.INTERVALS_MS;
       const concurrency = SMART_CACHE_CONSTANTS.CONCURRENCY_LIMITS;
 
@@ -360,14 +273,14 @@ describe('SmartCache Constants', () => {
       // Test that the old structure names are preserved for compatibility
       const constants = SMART_CACHE_CONSTANTS;
 
-      expect(constants.TTL_SECONDS).toBeDefined();
+      expect(constants.TTL).toBeDefined();
       expect(constants.INTERVALS_MS).toBeDefined();
       expect(constants.CONCURRENCY_LIMITS).toBeDefined();
       expect(constants.THRESHOLD_RATIOS).toBeDefined();
 
       // Specific backward compatibility properties
-      expect(constants.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S).toBeDefined();
-      expect(constants.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S).toBeDefined();
+      expect(constants.TTL.STRONG_TIMELINESS_DEFAULT_S).toBeDefined();
+      expect(constants.TTL.WEAK_TIMELINESS_DEFAULT_S).toBeDefined();
       expect(constants.CONCURRENCY_LIMITS.MIN_CONCURRENT_UPDATES_COUNT).toBeDefined();
       expect(constants.CONCURRENCY_LIMITS.MAX_CONCURRENT_UPDATES_COUNT).toBeDefined();
     });

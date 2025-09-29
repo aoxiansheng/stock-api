@@ -40,10 +40,52 @@ export class LongportSgContextService implements OnModuleInit, OnModuleDestroy {
 
     this.initializationPromise = (async () => {
       try {
-        this.logger.log("开始初始化 LongPort SDK 连接...");
-        const config = Config.fromEnv();
+        this.logger.log("开始初始化 LongPort SG SDK 连接...");
+        
+        // 使用 LONGPORT_SG_* 环境变量创建配置
+        const appKey = process.env.LONGPORT_SG_APP_KEY;
+        const appSecret = process.env.LONGPORT_SG_APP_SECRET;
+        const accessToken = process.env.LONGPORT_SG_ACCESS_TOKEN;
+
+        if (!appKey || !appSecret || !accessToken) {
+          throw new Error(
+            "LongPort SG 配置不完整：缺少 LONGPORT_SG_APP_KEY、LONGPORT_SG_APP_SECRET 或 LONGPORT_SG_ACCESS_TOKEN"
+          );
+        }
+
+        // 临时设置标准环境变量，然后使用 fromEnv() 方法
+        const originalAppKey = process.env.LONGPORT_APP_KEY;
+        const originalAppSecret = process.env.LONGPORT_APP_SECRET;
+        const originalAccessToken = process.env.LONGPORT_ACCESS_TOKEN;
+        
+        process.env.LONGPORT_APP_KEY = appKey;
+        process.env.LONGPORT_APP_SECRET = appSecret;
+        process.env.LONGPORT_ACCESS_TOKEN = accessToken;
+        
+        let config;
+        try {
+          config = Config.fromEnv();
+        } finally {
+          // 恢复原始环境变量
+          if (originalAppKey !== undefined) {
+            process.env.LONGPORT_APP_KEY = originalAppKey;
+          } else {
+            delete process.env.LONGPORT_APP_KEY;
+          }
+          if (originalAppSecret !== undefined) {
+            process.env.LONGPORT_APP_SECRET = originalAppSecret;
+          } else {
+            delete process.env.LONGPORT_APP_SECRET;
+          }
+          if (originalAccessToken !== undefined) {
+            process.env.LONGPORT_ACCESS_TOKEN = originalAccessToken;
+          } else {
+            delete process.env.LONGPORT_ACCESS_TOKEN;
+          }
+        }
+        
         this.quoteContext = await QuoteContext.new(config);
-        this.logger.log("LongPort SDK 连接初始化成功");
+        this.logger.log("LongPort SG SDK 连接初始化成功");
       } catch (error) {
         // 添加防御性检查，确保错误对象存在
         const errorStack = error?.stack || "未知错误";

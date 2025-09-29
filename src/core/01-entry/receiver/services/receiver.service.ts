@@ -1010,14 +1010,14 @@ export class ReceiverService implements OnModuleDestroy {
   private calculateStorageCacheTTL(symbols: string[]): number {
     // 根据市场开盘状态调整缓存时间
     // 开盘时间使用短缓存(1-5秒)，闭市使用长缓存(30-300秒)
-    const defaultTTL = SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_OPEN_DEFAULT_S; // 默认缓存
+    const defaultTTL = SMART_CACHE_CONSTANTS.TTL.MARKET_OPEN_DEFAULT_S; // 默认缓存
 
     // 使用 symbols 数量做简单 TTL 调整示例（避免未使用变量警告）
     const symbolCount = symbols?.length || 0;
     if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
       return Math.max(
         defaultTTL,
-        (SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S /
+        (SMART_CACHE_CONSTANTS.TTL.WEAK_TIMELINESS_DEFAULT_S /
           CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE) *
           2,
       ); // 大批量请求给更长 TTL

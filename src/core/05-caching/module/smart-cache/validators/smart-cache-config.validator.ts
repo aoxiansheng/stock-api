@@ -18,9 +18,9 @@ export class SmartCacheConfigValidator {
       errors.push(`${strategyName}: TTL必须为正数，当前值: ${ttl}`);
     }
 
-    if (ttl > SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S) {
+    if (ttl > SMART_CACHE_CONSTANTS.TTL.ADAPTIVE_MAX_S) {
       errors.push(
-        `${strategyName}: TTL过大，最大值: ${SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S}秒`,
+        `${strategyName}: TTL过大，最大值: ${SMART_CACHE_CONSTANTS.TTL.ADAPTIVE_MAX_S}秒`,
       );
     }
 

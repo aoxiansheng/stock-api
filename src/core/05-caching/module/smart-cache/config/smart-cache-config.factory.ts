@@ -62,12 +62,12 @@ export class SmartCacheConfigFactory {
     // 从环境变量获取基础配置值
     const strongTtl = this.parseIntEnv(
       getEnvVar("STRONG_TTL_SECONDS"),
-      SMART_CACHE_CONSTANTS.TTL_SECONDS.STRONG_TIMELINESS_DEFAULT_S,
+      SMART_CACHE_CONSTANTS.TTL.STRONG_TIMELINESS_DEFAULT_S,
     );
 
     const weakTtl = this.parseIntEnv(
       getEnvVar("WEAK_TTL_SECONDS"),
-      SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S,
+      SMART_CACHE_CONSTANTS.TTL.WEAK_TIMELINESS_DEFAULT_S,
     );
 
     const maxConcurrentOps = this.parseIntEnv(
@@ -89,7 +89,7 @@ export class SmartCacheConfigFactory {
       // BaseCacheConfig fields
       name: 'smart-cache',
       defaultTtlSeconds: weakTtl, // 使用弱时效性TTL作为默认值
-      maxTtlSeconds: SMART_CACHE_CONSTANTS.TTL_SECONDS.ADAPTIVE_MAX_S, // 3600秒
+      maxTtlSeconds: SMART_CACHE_CONSTANTS.TTL.ADAPTIVE_MAX_S, // 3600秒
       minTtlSeconds: strongTtl, // 使用强时效性TTL作为最小值
       compressionEnabled: true,
       compressionThresholdBytes: 1024,
@@ -101,8 +101,8 @@ export class SmartCacheConfigFactory {
         realTimeTtlSeconds: strongTtl, // 强时效性：实时数据
         nearRealTimeTtlSeconds: Math.round(strongTtl * 2), // 近实时：强时效性的2倍
         batchQueryTtlSeconds: weakTtl, // 批量查询：弱时效性
-        offHoursTtlSeconds: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S, // 非交易时间
-        weekendTtlSeconds: SMART_CACHE_CONSTANTS.TTL_SECONDS.MARKET_CLOSED_DEFAULT_S * 2, // 周末更长缓存
+        offHoursTtlSeconds: SMART_CACHE_CONSTANTS.TTL.MARKET_CLOSED_DEFAULT_S, // 非交易时间
+        weekendTtlSeconds: SMART_CACHE_CONSTANTS.TTL.MARKET_CLOSED_DEFAULT_S * 2, // 周末更长缓存
       },
 
       // 性能配置
@@ -123,7 +123,7 @@ export class SmartCacheConfigFactory {
         cleanupIntervalMs: 300000, // 5分钟清理间隔
         healthCheckIntervalMs: this.parseIntEnv(
           getEnvVar("HEALTH_CHECK_INTERVAL_MS"),
-          SMART_CACHE_CONSTANTS.TTL_SECONDS.WEAK_TIMELINESS_DEFAULT_S * 1000, // 300秒转毫秒
+          SMART_CACHE_CONSTANTS.TTL.WEAK_TIMELINESS_DEFAULT_S * 1000, // 300秒转毫秒
         ),
         metricsCollectionIntervalMs: 60000, // 1分钟收集指标
         statsLogIntervalMs: 300000, // 5分钟记录统计
