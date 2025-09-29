@@ -1,4 +1,12 @@
-// index.spec.ts - 测试占位代码
-// 路径: unit/notification/dto/channels/index.spec.ts
+import * as ChannelDtos from '@notification/dto/channels';
 
-// TODO: 实现具体的测试用例
+describe('Notification Channels DTOs Index', () => {
+  it('should export all channel DTOs', () => {
+    expect(ChannelDtos.EmailConfigDto).toBeDefined();
+    expect(ChannelDtos.SlackConfigDto).toBeDefined();
+    expect(ChannelDtos.SmsConfigDto).toBeDefined();
+    expect(ChannelDtos.DingTalkConfigDto).toBeDefined();
+    expect(ChannelDtos.WebhookConfigDto).toBeDefined();
+    expect(ChannelDtos.LogConfigDto).toBeDefined();
+  });
+});

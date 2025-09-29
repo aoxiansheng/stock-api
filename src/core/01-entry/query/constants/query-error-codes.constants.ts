@@ -8,7 +8,7 @@
  * - EXTERNAL: 外部依赖错误 (900-999)
  */
 
-export const QUERY_ERROR_CODES = {
+export const QUERY_ERROR_CODES = Object.freeze({
   // ==================== 验证类错误 (001-299) ====================
 
   // 参数验证 (001-099)
@@ -85,7 +85,7 @@ export const QUERY_ERROR_CODES = {
   CONNECTION_TIMEOUT: 'QUERY_EXTERNAL_981',
   CACHE_SERVICE_ERROR: 'QUERY_EXTERNAL_982',
   MONITORING_SERVICE_ERROR: 'QUERY_EXTERNAL_983',
-} as const;
+} as const);
 
 
 // 错误分类辅助函数
@@ -125,6 +125,12 @@ export const QueryErrorCategories = {
    */
   isRetryable: (errorCode: string): boolean => {
     // 系统资源错误中的超时和资源问题通常可重试
+    if (errorCode.includes('SYSTEM_60') || // 资源耗尽错误 600-699
+        errorCode.includes('SYSTEM_70')) { // 超时错误 700-799
+      return true;
+    }
+    
+    // 检查特定的错误模式
     if (errorCode.includes('TIMEOUT') ||
         errorCode.includes('RESOURCE_EXHAUSTED') ||
         errorCode.includes('CPU_OVERLOAD') ||
@@ -132,10 +138,12 @@ export const QueryErrorCategories = {
       return true;
     }
 
-    // 外部依赖错误通常可重试
+    // 外部依赖错误通常可重试，除了认证失败
     if (errorCode.includes('EXTERNAL')) {
-      // 除了认证失败，其他外部错误都可重试
-      return !errorCode.includes('AUTHENTICATION_FAILED');
+      if (errorCode.includes('AUTHENTICATION_FAILED') || errorCode === 'QUERY_EXTERNAL_953') {
+        return false;
+      }
+      return true;
     }
 
     // 验证错误和业务逻辑错误通常不可重试
@@ -150,6 +158,12 @@ export const QueryErrorCategories = {
       return 'retry';
     }
 
+    // 特别处理认证失败错误
+    if (errorCode === 'QUERY_EXTERNAL_953' || 
+        (errorCode.includes('EXTERNAL') && errorCode.includes('AUTHENTICATION_FAILED'))) {
+      return 'fallback';
+    }
+    
     if (QueryErrorCategories.isExternalError(errorCode)) {
       return 'fallback';
     }
@@ -159,7 +173,7 @@ export const QueryErrorCategories = {
 };
 
 // 错误码说明映射（用于开发和调试）
-export const QUERY_ERROR_DESCRIPTIONS = {
+export const QUERY_ERROR_DESCRIPTIONS = Object.freeze({
   [QUERY_ERROR_CODES.MISSING_SYMBOLS_PARAM]: 'Required symbols parameter is missing',
   [QUERY_ERROR_CODES.MISSING_MARKET_PARAM]: 'Required market parameter is missing',
   [QUERY_ERROR_CODES.MISSING_PROVIDER_PARAM]: 'Required provider parameter is missing',
@@ -169,4 +183,4 @@ export const QUERY_ERROR_DESCRIPTIONS = {
   [QUERY_ERROR_CODES.PROVIDER_UNAVAILABLE]: 'External data provider is unavailable',
   [QUERY_ERROR_CODES.CACHE_SERVICE_ERROR]: 'Cache service error occurred',
   // 可根据需要添加更多描述
-} as const;
+} as const);

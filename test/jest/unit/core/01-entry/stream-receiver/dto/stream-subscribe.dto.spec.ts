@@ -132,7 +132,7 @@ describe('StreamSubscribeDto', () => {
     it('should fail validation when symbols is not an array', async () => {
       // Arrange
       const dto = new StreamSubscribeDto();
-      (dto as any).symbols = 'AAPL.US'; // Invalid: should be array
+      (dto as any).symbols = 'AAPL.US';
 
       // Act
       const errors = await validate(dto);

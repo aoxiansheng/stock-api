@@ -11,27 +11,27 @@ import { QueryStatisticsService } from '@core/01-entry/query/services/query-stat
 import { QueryResultProcessorService } from '@core/01-entry/query/services/query-result-processor.service';
 
 // Mock all the imported modules since we're testing module configuration
-jest.mock('@auth/auth.module', () => ({
+jest.mock('../../../../auth/module/auth.module', () => ({
   AuthModule: class MockAuthModule {}
 }));
 
-jest.mock('@core/04-storage/module/storage.module', () => ({
+jest.mock('../../../04-storage/storage/module/storage.module', () => ({
   StorageModule: class MockStorageModule {}
 }));
 
-jest.mock('@common/services/shared-services.module', () => ({
+jest.mock('../../../shared/module/shared-services.module', () => ({
   SharedServicesModule: class MockSharedServicesModule {}
 }));
 
-jest.mock('@core/05-caching/smart-cache/module/smart-cache.module', () => ({
+jest.mock('../../../05-caching/module/smart-cache/module/smart-cache.module', () => ({
   SmartCacheModule: class MockSmartCacheModule {}
 }));
 
-jest.mock('@core/01-entry/receiver/module/receiver.module', () => ({
+jest.mock('../../../01-entry/receiver/module/receiver.module', () => ({
   ReceiverModule: class MockReceiverModule {}
 }));
 
-jest.mock('@monitoring/module/monitoring.module', () => ({
+jest.mock('../../../../monitoring/monitoring.module', () => ({
   MonitoringModule: class MockMonitoringModule {}
 }));
 
@@ -118,6 +118,19 @@ describe('QueryModule', () => {
 
     it('should compile successfully', () => {
       expect(module).toBeInstanceOf(TestingModule);
+    });
+
+    it('should initialize with constructor validation', () => {
+      // Constructor should be called during module compilation
+      expect(module).toBeDefined();
+    });
+
+    it('should validate module configuration during initialization', () => {
+      // The module should initialize without throwing errors
+      expect(() => {
+        const queryModule = new QueryModule();
+        expect(queryModule).toBeDefined();
+      }).not.toThrow();
     });
   });
 

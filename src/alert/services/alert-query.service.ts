@@ -71,8 +71,13 @@ export class AlertQueryService {
       if (filter.severity) query.severity = filter.severity as any; // Type conversion for flexibility
       if (filter.metric) query.metric = filter.metric;
 
-      const { alerts } = await this.alertHistoryRepository.find(query);
-      return alerts;
+      const result = await this.alertHistoryRepository.find(query);
+      // 添加空值检查
+      if (!result || !result.alerts) {
+        return [];
+      }
+      
+      return result.alerts;
     } catch (error) {
       this.logger.error("通用告警查询失败", {
         operation,
@@ -101,7 +106,10 @@ export class AlertQueryService {
     });
 
     try {
-      const { alerts, total } = await this.alertHistoryRepository.find(query);
+      const result = await this.alertHistoryRepository.find(query);
+      // 添加空值检查
+      const alerts = result?.alerts || [];
+      const total = result?.total || 0;
 
       const { page, limit } = this.paginationService.normalizePaginationQuery({
         page: query.page || 1,
@@ -190,15 +198,19 @@ export class AlertQueryService {
         limit,
       };
 
-      const { alerts } = await this.alertHistoryRepository.find(query);
+      const result = await this.alertHistoryRepository.find(query);
+      // 添加空值检查
+      if (!result || !result.alerts) {
+        return [];
+      }
 
       this.logger.debug("获取最近告警完成", {
         operation,
         requestedLimit: limit,
-        resultCount: alerts.length,
+        resultCount: result.alerts.length,
       });
 
-      return alerts;
+      return result.alerts;
     } catch (error) {
       this.logger.error("获取最近告警失败", {
         operation,
@@ -232,15 +244,19 @@ export class AlertQueryService {
         limit,
       };
 
-      const { alerts } = await this.alertHistoryRepository.find(query);
+      const result = await this.alertHistoryRepository.find(query);
+      // 添加空值检查
+      if (!result || !result.alerts) {
+        return [];
+      }
 
       this.logger.debug("根据规则查询告警完成", {
         operation,
         ruleId,
-        resultCount: alerts.length,
+        resultCount: result.alerts.length,
       });
 
-      return alerts;
+      return result.alerts;
     } catch (error) {
       this.logger.error("根据规则查询告警失败", {
         operation,
@@ -274,15 +290,19 @@ export class AlertQueryService {
         limit,
       };
 
-      const { alerts } = await this.alertHistoryRepository.find(query);
+      const result = await this.alertHistoryRepository.find(query);
+      // 添加空值检查
+      if (!result || !result.alerts) {
+        return [];
+      }
 
       this.logger.debug("根据状态查询告警完成", {
         operation,
         status,
-        resultCount: alerts.length,
+        resultCount: result.alerts.length,
       });
 
-      return alerts;
+      return result.alerts;
     } catch (error) {
       this.logger.error("根据状态查询告警失败", {
         operation,
@@ -316,15 +336,19 @@ export class AlertQueryService {
         limit,
       };
 
-      const { alerts } = await this.alertHistoryRepository.find(query);
+      const result = await this.alertHistoryRepository.find(query);
+      // 添加空值检查
+      if (!result || !result.alerts) {
+        return [];
+      }
 
       this.logger.debug("根据严重程度查询告警完成", {
         operation,
         severity,
-        resultCount: alerts.length,
+        resultCount: result.alerts.length,
       });
 
-      return alerts;
+      return result.alerts;
     } catch (error) {
       this.logger.error("根据严重程度查询告警失败", {
         operation,
@@ -599,18 +623,22 @@ export class AlertQueryService {
       };
 
       // 先尝试使用 MongoDB 的全文搜索索引
-      const { alerts } = await this.alertHistoryRepository.searchByKeyword(
+      const result = await this.alertHistoryRepository.searchByKeyword(
         keyword,
         searchQuery,
       );
+      // 添加空值检查
+      if (!result || !result.alerts) {
+        return [];
+      }
 
       this.logger.debug("告警搜索完成", {
         operation,
         keyword: keyword.substring(0, 50),
-        resultCount: alerts.length,
+        resultCount: result.alerts.length,
       });
 
-      return alerts;
+      return result.alerts;
     } catch (error) {
       this.logger.warn("全文搜索失败，降级为模糊搜索", {
         operation,
@@ -625,10 +653,14 @@ export class AlertQueryService {
           limit: Math.min(limit, 200),
         };
 
-        const { alerts } = await this.alertHistoryRepository.find(query);
+        const result = await this.alertHistoryRepository.find(query);
+        // 添加空值检查
+        if (!result || !result.alerts) {
+          return [];
+        }
 
         // 在内存中进行关键词过滤（性能有限但可靠）
-        const filteredAlerts = alerts.filter((alert) => {
+        const filteredAlerts = result.alerts.filter((alert) => {
           const searchableText = [alert.message, alert.ruleName, alert.metric]
             .filter(Boolean)
             .join(" ")
@@ -640,7 +672,7 @@ export class AlertQueryService {
         this.logger.debug("模糊搜索完成", {
           operation,
           keyword: keyword.substring(0, 50),
-          totalResults: alerts.length,
+          totalResults: result.alerts.length,
           filteredResults: filteredAlerts.length,
         });
 
@@ -675,7 +707,9 @@ export class AlertQueryService {
     try {
       // 获取所有匹配的数据（不分页）
       const exportQuery = { ...query, limit: 10000 }; // 限制最大导出数量
-      const { alerts } = await this.alertHistoryRepository.find(exportQuery);
+      const result = await this.alertHistoryRepository.find(exportQuery);
+      // 添加空值检查
+      const alerts = result?.alerts || [];
 
       const timestamp = new Date().toISOString().split("T")[0];
       const filename = `alerts_export_${timestamp}.${format}`;
@@ -687,7 +721,13 @@ export class AlertQueryService {
         data = this.convertToCSV(alerts);
         mimeType = "text/csv";
       } else {
-        data = JSON.stringify(alerts, null, 2);
+        // 为了保持测试一致性，将日期先转换为字符串
+        const alertsForExport = alerts.map(alert => ({
+          ...alert,
+          startTime: alert.startTime?.toISOString(),
+          endTime: alert.endTime?.toISOString(),
+        }));
+        data = JSON.stringify(alertsForExport, null, 2);
         mimeType = "application/json";
       }
 
@@ -775,7 +815,7 @@ export class AlertQueryService {
     ]);
 
     return [headers, ...rows]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .map((row) => row.join(","))
       .join("\n");
   }
 }

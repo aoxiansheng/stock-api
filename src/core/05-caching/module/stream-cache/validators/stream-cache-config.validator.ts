@@ -1,4 +1,5 @@
 import { createLogger } from "@common/logging/index";
+import { ValidationSubResult } from "../../../foundation/types/validation.types";
 
 /**
  * Stream Cache 配置验证器
@@ -400,12 +401,4 @@ export interface StreamCacheValidationResult {
   errors: string[];
   warnings: string[];
   summary: string;
-}
-
-/**
- * 子验证结果接口
- */
-interface ValidationSubResult {
-  errors: string[];
-  warnings: string[];
 }

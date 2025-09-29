@@ -4,18 +4,20 @@ import { JwtUserSubject } from '@auth/subjects/jwt-user.subject';
 import { AuthSubjectType } from '@auth/interfaces/auth-subject.interface';
 import { Permission, UserRole } from '@auth/enums/user-role.enum';
 import { ForbiddenException } from '@nestjs/common';
+import { OperationStatus } from '@common/types/enums/shared-base.enum';
 
 describe('AuthSubjectFactory', () => {
   const mockJwtUser = {
-    id: 'user123',
+    id: '507f1f77bcf86cd799439011',
     username: 'testuser',
     role: UserRole.DEVELOPER,
   };
 
   const mockApiKey = {
-    id: 'apikey123',
+    id: '507f1f77bcf86cd799439012',
     name: 'Test API Key',
     permissions: [Permission.DATA_READ, Permission.QUERY_EXECUTE],
+    status: OperationStatus.ACTIVE,
   };
 
   describe('createFromRequest', () => {
@@ -25,7 +27,7 @@ describe('AuthSubjectFactory', () => {
 
       expect(subject).toBeInstanceOf(JwtUserSubject);
       expect(subject.type).toBe(AuthSubjectType.JWT_USER);
-      expect(subject.id).toBe('user123');
+      expect(subject.id).toBe('507f1f77bcf86cd799439011');
     });
 
     it('should create API key subject from request with permissions array', () => {
@@ -34,7 +36,7 @@ describe('AuthSubjectFactory', () => {
 
       expect(subject).toBeInstanceOf(ApiKeySubject);
       expect(subject.type).toBe(AuthSubjectType.API_KEY_SUBJECT);
-      expect(subject.id).toBe('apikey123');
+      expect(subject.id).toBe('507f1f77bcf86cd799439012');
     });
 
     it('should throw ForbiddenException when request has no user', () => {
@@ -45,7 +47,7 @@ describe('AuthSubjectFactory', () => {
     });
 
     it('should throw ForbiddenException when user type cannot be identified', () => {
-      const request = { user: { id: 'unknown123' } };
+      const request = { user: { id: '507f1f77bcf86cd799439015' } };
 
       expect(() => AuthSubjectFactory.createFromRequest(request)).toThrow(ForbiddenException);
       expect(() => AuthSubjectFactory.createFromRequest(request)).toThrow('无法识别的认证主体类型');
@@ -58,7 +60,7 @@ describe('AuthSubjectFactory', () => {
 
       expect(subject).toBeInstanceOf(JwtUserSubject);
       expect(subject.type).toBe(AuthSubjectType.JWT_USER);
-      expect(subject.id).toBe('user123');
+      expect(subject.id).toBe('507f1f77bcf86cd799439011');
       expect(subject.role).toBe(UserRole.DEVELOPER);
     });
 
@@ -76,7 +78,7 @@ describe('AuthSubjectFactory', () => {
 
       expect(subject).toBeInstanceOf(ApiKeySubject);
       expect(subject.type).toBe(AuthSubjectType.API_KEY_SUBJECT);
-      expect(subject.id).toBe('apikey123');
+      expect(subject.id).toBe('507f1f77bcf86cd799439012');
       expect(subject.permissions).toEqual([Permission.DATA_READ, Permission.QUERY_EXECUTE]);
     });
 
@@ -130,8 +132,8 @@ describe('AuthSubjectFactory', () => {
 
       expect(debugInfo).toEqual({
         type: AuthSubjectType.JWT_USER,
-        id: 'user123',
-        displayName: 'JWT用户: testuser (DEVELOPER)',
+        id: '507f1f77bcf86cd799439011',
+        displayName: 'JWT用户: testuser (developer)',
         permissionCount: subject.permissions.length,
         permissions: subject.permissions,
         metadata: subject.metadata,
@@ -145,7 +147,7 @@ describe('AuthSubjectFactory', () => {
 
       expect(debugInfo).toEqual({
         type: AuthSubjectType.API_KEY_SUBJECT,
-        id: 'apikey123',
+        id: '507f1f77bcf86cd799439012',
         displayName: 'API Key: Test API Key',
         permissionCount: subject.permissions.length,
         permissions: subject.permissions,
@@ -181,8 +183,8 @@ describe('AuthSubjectFactory', () => {
     });
 
     it('should return false for subjects with different IDs', () => {
-      const user1 = { ...mockJwtUser, id: 'user123' };
-      const user2 = { ...mockJwtUser, id: 'user456' };
+      const user1 = { ...mockJwtUser, id: '507f1f77bcf86cd799439017' };
+      const user2 = { ...mockJwtUser, id: '507f1f77bcf86cd799439018' };
       const subject1 = new JwtUserSubject(user1);
       const subject2 = new JwtUserSubject(user2);
       const areEqual = AuthSubjectFactory.areEqual(subject1, subject2);
@@ -208,7 +210,7 @@ describe('AuthSubjectFactory', () => {
 
     it('should handle user with both role and permissions (should prioritize role)', () => {
       const userWithBoth = {
-        id: 'user123',
+        id: '507f1f77bcf86cd799439013',
         username: 'testuser',
         role: UserRole.DEVELOPER,
         permissions: [Permission.DATA_READ] // This should be ignored
@@ -222,7 +224,7 @@ describe('AuthSubjectFactory', () => {
 
     it('should handle permissions as non-array value', () => {
       const userWithStringPermissions = {
-        id: 'apikey123',
+        id: '507f1f77bcf86cd799439016',
         name: 'Test API Key',
         permissions: 'not-an-array'
       };
@@ -249,7 +251,7 @@ describe('AuthSubjectFactory', () => {
     it('should handle isValidSubject with invalid API key subject', () => {
       const expiredApiKey = {
         ...mockApiKey,
-        status: 'INACTIVE'
+        status: OperationStatus.INACTIVE
       };
       const invalidSubject = new ApiKeySubject(expiredApiKey);
       const isValid = AuthSubjectFactory.isValidSubject(invalidSubject);
@@ -261,7 +263,7 @@ describe('AuthSubjectFactory', () => {
       // Create a mock subject that has API_KEY_SUBJECT type but is not an instance of ApiKeySubject
       const mockSubject = {
         type: AuthSubjectType.API_KEY_SUBJECT,
-        id: 'test123',
+        id: '507f1f77bcf86cd799439020',
         permissions: [],
         metadata: {}
       } as any;
@@ -272,12 +274,12 @@ describe('AuthSubjectFactory', () => {
     });
 
     it('should handle getDebugInfo with minimal subject data', () => {
-      const minimalUser = { id: 'minimal123', username: 'minimal', role: UserRole.DEVELOPER };
+      const minimalUser = { id: '507f1f77bcf86cd799439021', username: 'minimal', role: UserRole.DEVELOPER };
       const subject = new JwtUserSubject(minimalUser);
       const debugInfo = AuthSubjectFactory.getDebugInfo(subject);
 
       expect(debugInfo).toHaveProperty('type');
-      expect(debugInfo).toHaveProperty('id', 'minimal123');
+      expect(debugInfo).toHaveProperty('id', '507f1f77bcf86cd799439021');
       expect(debugInfo).toHaveProperty('displayName');
       expect(debugInfo).toHaveProperty('permissionCount');
       expect(debugInfo).toHaveProperty('permissions');
@@ -287,7 +289,7 @@ describe('AuthSubjectFactory', () => {
 
     it('should handle edge case where user has role undefined but permissions is array', () => {
       const ambiguousUser = {
-        id: 'ambiguous123',
+        id: '507f1f77bcf86cd799439022',
         name: 'Ambiguous',
         role: undefined,
         permissions: [Permission.DATA_READ]
@@ -301,16 +303,15 @@ describe('AuthSubjectFactory', () => {
 
     it('should handle user with role null but permissions is array', () => {
       const userWithNullRole = {
-        id: 'nullrole123',
+        id: '507f1f77bcf86cd799439023',
         name: 'Null Role',
         role: null,
         permissions: [Permission.DATA_READ]
       };
       const request = { user: userWithNullRole };
-      const subject = AuthSubjectFactory.createFromRequest(request);
 
-      expect(subject).toBeInstanceOf(ApiKeySubject);
-      expect(subject.type).toBe(AuthSubjectType.API_KEY_SUBJECT);
+      expect(() => AuthSubjectFactory.createFromRequest(request)).toThrow(ForbiddenException);
+      expect(() => AuthSubjectFactory.createFromRequest(request)).toThrow('创建JWT用户权限主体失败');
     });
   });
 });

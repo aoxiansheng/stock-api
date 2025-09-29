@@ -44,9 +44,9 @@ describe('StorageClassification', () => {
   });
 
   describe('Enum Completeness', () => {
-    it('should have exactly 21 classification values', () => {
+    it('should have exactly 19 classification values', () => {
       const allValues = Object.values(StorageClassification);
-      expect(allValues).toHaveLength(21);
+      expect(allValues).toHaveLength(19);
     });
 
     it('should have unique values for all classifications', () => {

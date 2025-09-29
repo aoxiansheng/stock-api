@@ -1,12 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { TestingModule } from '@nestjs/testing';
 import { AuthModule } from '@auth/module/auth.module';
-import { ConfigModule } from '@nestjs/config';
-import { PassportModule } from '@nestjs/passport';
-import { JwtModule } from '@nestjs/jwt';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@cache/module/cache.module';
-import { DatabaseModule } from '../../../../../src/database/database.module';
-import { PermissionModule } from '@auth/permission/permission.module';
+import { UnitTestSetup } from '@test/testbasic/setup/unit-test-setup';
+import { TestCacheModule } from '@test/testbasic/modules/test-cache.module';
 
 // Services
 import { AuthFacadeService } from '@auth/services/facade/auth-facade.service';
@@ -51,214 +47,221 @@ import { UserRepository } from '@auth/repositories/user.repository';
 // Controllers
 import { AuthController } from '@auth/controller/auth.controller';
 
-describe('AuthModule', () => {
+describe('AuthModule (Using Test Infrastructure)', () => {
   let module: TestingModule;
+  let testContext: any;
 
-  beforeEach(async () => {
-    module = await Test.createTestingModule({
-      imports: [AuthModule],
-    }).compile();
-  });
-
-  it('should compile the module', async () => {
-    expect(module).toBeDefined();
-  });
-
-  describe('imports', () => {
-    it('should import required modules', () => {
-      const configModule = module.get(ConfigModule);
-      const passportModule = module.get(PassportModule);
-      const eventEmitterModule = module.get(EventEmitterModule);
-      const cacheModule = module.get(CacheModule);
-      const databaseModule = module.get(DatabaseModule);
-      const permissionModule = module.get(PermissionModule);
-      
-      expect(configModule).toBeDefined();
-      expect(passportModule).toBeDefined();
-      expect(eventEmitterModule).toBeDefined();
-      expect(cacheModule).toBeDefined();
-      expect(databaseModule).toBeDefined();
-      expect(permissionModule).toBeDefined();
+  beforeAll(async () => {
+    // 使用测试基础设施创建测试上下文，模块覆盖方式避免依赖冲突
+    testContext = await UnitTestSetup.createTestContext(async () => {
+      return await UnitTestSetup.createBasicTestModuleWithOverrides({
+        imports: [AuthModule],
+        overrides: [
+          {
+            module: CacheModule,
+            override: TestCacheModule,
+          },
+        ],
+      });
     });
 
-    it('should configure JwtModule with async factory', async () => {
-      // This test ensures JwtModule is properly configured
-      // We can't easily test the async configuration without a full NestJS setup
-      // but we can check that the module is defined
-      const jwtModule = module.get(JwtModule);
-      expect(jwtModule).toBeDefined();
+    await testContext.setup();
+    module = testContext.getModule();
+  });
+
+  afterAll(async () => {
+    await testContext.cleanup();
+  });
+
+  it('should compile the module', () => {
+    expect(module).toBeDefined();
+    UnitTestSetup.validateModuleCompilation(module);
+  });
+
+  describe('基础设施验证', () => {
+    it('应该有正确的配置', () => {
+      // 验证JWT配置
+      const configService = UnitTestSetup.getConfigService(module);
+      expect(configService.get('JWT_SECRET')).toBe('test-jwt-secret-key-for-testing-only');
+      expect(configService.get('JWT_EXPIRES_IN')).toBe('24h');
+    });
+
+    it('应该提供模拟的外部依赖', async () => {
+      // 验证Redis Mock
+      const redisMock = await testContext.getService('default_IORedisModuleConnectionToken');
+      expect(redisMock).toBeDefined();
+      expect(typeof redisMock.get).toBe('function');
+      expect(typeof redisMock.set).toBe('function');
+
+      // 验证统一配置
+      const authConfig = await testContext.getService('authUnified');
+      expect(authConfig).toBeDefined();
+      expect(authConfig.cache).toBeDefined();
+      expect(authConfig.limits).toBeDefined();
     });
   });
 
   describe('providers', () => {
-    // Facade layer
-    it('should provide AuthFacadeService', () => {
-      const service = module.get(AuthFacadeService);
-      expect(service).toBeDefined();
-      expect(service).toBeInstanceOf(AuthFacadeService);
+    // Facade layer - 使用测试上下文验证
+    it('should provide AuthFacadeService', async () => {
+      await testContext.validateService(AuthFacadeService, AuthFacadeService);
     });
 
-    // Domain layer
-    it('should provide domain services', () => {
-      const userAuthService = module.get(UserAuthenticationService);
-      const sessionService = module.get(SessionManagementService);
-      const apiKeyService = module.get(ApiKeyManagementService);
-      const securityService = module.get(SecurityPolicyService);
-      const auditService = module.get(AuditService);
-      const notificationService = module.get(AuthEventNotificationService);
+    // Domain layer - 使用测试上下文批量验证
+    it('should provide domain services', async () => {
+      const domainServices = [
+        UserAuthenticationService,
+        SessionManagementService,
+        ApiKeyManagementService,
+        SecurityPolicyService,
+        AuditService,
+        AuthEventNotificationService,
+      ];
 
-      expect(userAuthService).toBeDefined();
-      expect(sessionService).toBeDefined();
-      expect(apiKeyService).toBeDefined();
-      expect(securityService).toBeDefined();
-      expect(auditService).toBeDefined();
-      expect(notificationService).toBeDefined();
+      for (const serviceClass of domainServices) {
+        await testContext.validateService(serviceClass, serviceClass);
+      }
     });
 
-    // Infrastructure layer
-    it('should provide infrastructure services', () => {
-      const configService = module.get(AuthConfigService);
-      const passwordService = module.get(PasswordService);
-      const tokenService = module.get(TokenService);
-      const permissionService = module.get(PermissionService);
-      const rateLimitService = module.get(RateLimitService);
-      const performanceService = module.get(AuthPerformanceService);
+    // Infrastructure layer - 使用测试上下文批量验证
+    it('should provide infrastructure services', async () => {
+      const infrastructureServices = [
+        AuthConfigService,
+        PasswordService,
+        TokenService,
+        PermissionService,
+        RateLimitService,
+        AuthPerformanceService,
+      ];
 
-      expect(configService).toBeDefined();
-      expect(passwordService).toBeDefined();
-      expect(tokenService).toBeDefined();
-      expect(permissionService).toBeDefined();
-      expect(rateLimitService).toBeDefined();
-      expect(performanceService).toBeDefined();
+      for (const serviceClass of infrastructureServices) {
+        await testContext.validateService(serviceClass, serviceClass);
+      }
     });
 
-    // Strategies
-    it('should provide authentication strategies', () => {
-      const jwtStrategy = module.get(JwtStrategy);
-      const apiKeyStrategy = module.get(ApiKeyStrategy);
-
-      expect(jwtStrategy).toBeDefined();
-      expect(apiKeyStrategy).toBeDefined();
+    // Strategies - 使用测试上下文验证
+    it('should provide authentication strategies', async () => {
+      await testContext.validateService(JwtStrategy, JwtStrategy);
+      await testContext.validateService(ApiKeyStrategy, ApiKeyStrategy);
     });
 
-    // Guards
-    it('should provide authentication guards', () => {
-      const jwtGuard = module.get(JwtAuthGuard);
-      const apiKeyGuard = module.get(ApiKeyAuthGuard);
-      const permissionsGuard = module.get(UnifiedPermissionsGuard);
-      const rateLimitGuard = module.get(RateLimitGuard);
+    // Guards - 使用测试上下文批量验证
+    it('should provide authentication guards', async () => {
+      const guards = [
+        JwtAuthGuard,
+        ApiKeyAuthGuard,
+        UnifiedPermissionsGuard,
+        RateLimitGuard,
+      ];
 
-      expect(jwtGuard).toBeDefined();
-      expect(apiKeyGuard).toBeDefined();
-      expect(permissionsGuard).toBeDefined();
-      expect(rateLimitGuard).toBeDefined();
+      for (const guardClass of guards) {
+        await testContext.validateService(guardClass, guardClass);
+      }
     });
 
-    // Filters
-    it('should provide exception filters', () => {
-      const globalExceptionFilter = module.get(GlobalExceptionFilter);
-      const rateLimitFilter = module.get(RateLimitExceptionFilter);
-
-      expect(globalExceptionFilter).toBeDefined();
-      expect(rateLimitFilter).toBeDefined();
+    // Filters - 使用测试上下文验证
+    it('should provide exception filters', async () => {
+      await testContext.validateService(GlobalExceptionFilter, GlobalExceptionFilter);
+      await testContext.validateService(RateLimitExceptionFilter, RateLimitExceptionFilter);
     });
 
-    // Interceptors
-    it('should provide interceptors', () => {
-      const responseInterceptor = module.get(ResponseInterceptor);
-      const requestTrackingInterceptor = module.get(RequestTrackingInterceptor);
-
-      expect(responseInterceptor).toBeDefined();
-      expect(requestTrackingInterceptor).toBeDefined();
+    // Interceptors - 使用测试上下文验证
+    it('should provide interceptors', async () => {
+      await testContext.validateService(ResponseInterceptor, ResponseInterceptor);
+      await testContext.validateService(RequestTrackingInterceptor, RequestTrackingInterceptor);
     });
 
-    // Middleware
-    it('should provide middleware', () => {
-      const securityMiddleware = module.get(SecurityMiddleware);
-
-      expect(securityMiddleware).toBeDefined();
+    // Middleware - 使用测试上下文验证
+    it('should provide middleware', async () => {
+      await testContext.validateService(SecurityMiddleware, SecurityMiddleware);
     });
 
-    // Repositories
-    it('should provide repositories', () => {
-      const apiKeyRepository = module.get(ApiKeyRepository);
-      const userRepository = module.get(UserRepository);
-
-      expect(apiKeyRepository).toBeDefined();
-      expect(userRepository).toBeDefined();
+    // Repositories - 使用测试上下文验证
+    it('should provide repositories', async () => {
+      await testContext.validateService(ApiKeyRepository, ApiKeyRepository);
+      await testContext.validateService(UserRepository, UserRepository);
     });
   });
 
   describe('controllers', () => {
-    it('should provide AuthController', () => {
-      const controller = module.get(AuthController);
-      expect(controller).toBeDefined();
-      expect(controller).toBeInstanceOf(AuthController);
+    it('should provide AuthController', async () => {
+      await testContext.validateService(AuthController, AuthController);
     });
   });
 
-  describe('exports', () => {
-    it('should export facade service', () => {
-      // This is a bit tricky to test directly since exports are not accessible via get()
-      // but we can verify the module compiles with the exports
-      expect(module.get(AuthFacadeService)).toBeDefined();
+  describe('模块导出验证', () => {
+    it('should export facade service', async () => {
+      const facade = await testContext.getService(AuthFacadeService);
+      expect(facade).toBeDefined();
+      expect(facade).toBeInstanceOf(AuthFacadeService);
     });
 
-    it('should export domain services', () => {
-      expect(module.get(UserAuthenticationService)).toBeDefined();
-      expect(module.get(SessionManagementService)).toBeDefined();
-      expect(module.get(ApiKeyManagementService)).toBeDefined();
+    it('should export domain services', async () => {
+      const domainServices = [
+        UserAuthenticationService,
+        SessionManagementService,
+        ApiKeyManagementService,
+      ];
+
+      for (const serviceClass of domainServices) {
+        const service = await testContext.getService(serviceClass);
+        expect(service).toBeDefined();
+        expect(service).toBeInstanceOf(serviceClass);
+      }
     });
 
-    it('should export infrastructure services', () => {
-      expect(module.get(AuthConfigService)).toBeDefined();
-      expect(module.get(PermissionService)).toBeDefined();
-      expect(module.get(RateLimitService)).toBeDefined();
-      expect(module.get(TokenService)).toBeDefined();
-      expect(module.get(AuthPerformanceService)).toBeDefined();
+    it('should export infrastructure services', async () => {
+      const infrastructureServices = [
+        AuthConfigService,
+        PermissionService,
+        RateLimitService,
+        TokenService,
+        AuthPerformanceService,
+      ];
+
+      for (const serviceClass of infrastructureServices) {
+        const service = await testContext.getService(serviceClass);
+        expect(service).toBeDefined();
+      }
     });
 
-    it('should export guards', () => {
-      expect(module.get(JwtAuthGuard)).toBeDefined();
-      expect(module.get(ApiKeyAuthGuard)).toBeDefined();
-      expect(module.get(UnifiedPermissionsGuard)).toBeDefined();
-      expect(module.get(RateLimitGuard)).toBeDefined();
-    });
+    it('should export all auth components', async () => {
+      // 使用批量验证所有重要组件
+      const allComponents = [
+        // Guards
+        JwtAuthGuard,
+        ApiKeyAuthGuard,
+        UnifiedPermissionsGuard,
+        RateLimitGuard,
+        // Filters
+        GlobalExceptionFilter,
+        RateLimitExceptionFilter,
+        // Interceptors
+        ResponseInterceptor,
+        RequestTrackingInterceptor,
+        // Middleware
+        SecurityMiddleware,
+        // Repositories
+        ApiKeyRepository,
+        UserRepository,
+      ];
 
-    it('should export filters', () => {
-      expect(module.get(GlobalExceptionFilter)).toBeDefined();
-      expect(module.get(RateLimitExceptionFilter)).toBeDefined();
-    });
-
-    it('should export interceptors', () => {
-      expect(module.get(ResponseInterceptor)).toBeDefined();
-      expect(module.get(RequestTrackingInterceptor)).toBeDefined();
-    });
-
-    it('should export middleware', () => {
-      expect(module.get(SecurityMiddleware)).toBeDefined();
-    });
-
-    it('should export repositories', () => {
-      expect(module.get(ApiKeyRepository)).toBeDefined();
-      expect(module.get(UserRepository)).toBeDefined();
+      for (const componentClass of allComponents) {
+        expect(await testContext.getService(componentClass)).toBeDefined();
+      }
     });
   });
 
-  describe('module compilation', () => {
-    it('should compile without circular dependencies', async () => {
-      // This test ensures the module can be compiled without circular dependencies
-      // If there were circular dependencies, the module creation would fail
-      const newModule = await Test.createTestingModule({
-        imports: [AuthModule],
-      }).compile();
-      
-      expect(newModule).toBeDefined();
+  describe('模块完整性验证', () => {
+    it('should compile without circular dependencies', () => {
+      // 测试基础设施已经验证了模块编译
+      expect(module).toBeDefined();
+      UnitTestSetup.validateModuleCompilation(module);
     });
 
-    it('should resolve all dependencies', async () => {
-      // This test ensures all providers can be resolved without missing dependencies
-      const providers = [
+    it('should resolve all dependencies using test infrastructure', async () => {
+      // 使用测试基础设施批量验证所有提供者
+      const allProviders = [
         AuthFacadeService,
         UserAuthenticationService,
         SessionManagementService,
@@ -288,9 +291,26 @@ describe('AuthModule', () => {
         AuthController,
       ];
 
-      for (const provider of providers) {
-        expect(() => module.get(provider)).not.toThrow();
+      // 使用测试上下文的批量验证方法
+      for (const providerClass of allProviders) {
+        expect(await testContext.getService(providerClass)).toBeDefined();
       }
+    });
+
+    it('should provide proper mock dependencies', async () => {
+      // 验证Mock依赖是否正确提供
+      const redisMock = await testContext.getService('default_IORedisModuleConnectionToken');
+      const authConfig = await testContext.getService('authUnified');
+      const cacheConfig = await testContext.getService('cacheUnified');
+
+      expect(redisMock).toBeDefined();
+      expect(authConfig).toBeDefined();
+      expect(cacheConfig).toBeDefined();
+
+      // 验证Mock方法是否可用
+      expect(typeof redisMock.get).toBe('function');
+      expect(typeof redisMock.set).toBe('function');
+      expect(typeof redisMock.del).toBe('function');
     });
   });
 });

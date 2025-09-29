@@ -385,5 +385,300 @@ describe('HealthModule', () => {
         expect(result.warnings).toBeInstanceOf(Array);
       });
     });
+
+    it('should handle high-load concurrent operations', async () => {
+      const healthCheckPromises = Array.from({ length: 10 }, () => healthCheckService.checkHealth());
+      const extendedHealthPromises = Array.from({ length: 10 }, () => extendedHealthService.getFullHealthStatus());
+
+      const [healthResults, extendedResults] = await Promise.all([
+        Promise.allSettled(healthCheckPromises),
+        Promise.allSettled(extendedHealthPromises),
+      ]);
+
+      expect(healthResults.every(result => result.status === 'fulfilled')).toBe(true);
+      expect(extendedResults.every(result => result.status === 'fulfilled')).toBe(true);
+    });
+  });
+
+  describe('Module Configuration Edge Cases', () => {
+    it('should handle module with minimal configuration', async () => {
+      const minimalModule = await Test.createTestingModule({
+        imports: [HealthModule],
+      }).compile();
+
+      expect(minimalModule).toBeDefined();
+
+      const healthService = minimalModule.get<HealthCheckService>(HealthCheckService);
+      const extendedService = minimalModule.get<ExtendedHealthService>(ExtendedHealthService);
+
+      expect(healthService).toBeDefined();
+      expect(extendedService).toBeDefined();
+
+      await minimalModule.close();
+    });
+
+    it('should handle module with custom Redis provider', async () => {
+      const customRedis = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        ping: jest.fn().mockResolvedValue('CUSTOM_PONG'),
+        quit: jest.fn().mockResolvedValue('CUSTOM_OK'),
+        disconnect: jest.fn().mockResolvedValue(undefined),
+      };
+
+      const customModule = await Test.createTestingModule({
+        imports: [HealthModule],
+        providers: [
+          {
+            provide: 'REDIS',
+            useValue: customRedis,
+          },
+        ],
+      }).overrideProvider('REDIS').useValue(customRedis).compile();
+
+      const extendedService = customModule.get<ExtendedHealthService>(ExtendedHealthService);
+      expect(extendedService).toBeDefined();
+
+      // Verify custom Redis client is injected
+      const redisClient = (extendedService as any).redisClient;
+      expect(redisClient).toBe(customRedis);
+
+      await customModule.close();
+    });
+
+    it('should handle provider resolution failures gracefully', async () => {
+      const faultyModule = await Test.createTestingModule({
+        imports: [HealthModule],
+        providers: [
+          {
+            provide: ConfigService,
+            useValue: {
+              get: jest.fn().mockImplementation(() => {
+                throw new Error('Config service error');
+              }),
+            },
+          },
+        ],
+      }).compile();
+
+      const healthService = faultyModule.get<HealthCheckService>(HealthCheckService);
+      expect(healthService).toBeDefined();
+
+      // Should handle config errors gracefully during health checks
+      const result = await healthService.checkHealth();
+      expect(result).toBeDefined();
+      expect(result.status).toBe('unhealthy'); // Likely due to config failures
+
+      await faultyModule.close();
+    });
+  });
+
+  describe('Service Interaction Edge Cases', () => {
+    it('should handle ExtendedHealthService calling HealthCheckService with errors', async () => {
+      jest.spyOn(healthCheckService, 'checkHealth').mockRejectedValue(new Error('Basic health check failed'));
+
+      try {
+        await extendedHealthService.performStartupCheck();
+      } catch (error) {
+        expect(error.message).toBe('Basic health check failed');
+      }
+
+      expect(mockLogger.error).toHaveBeenCalledWith('Startup check failed', {
+        error: 'Basic health check failed',
+      });
+    });
+
+    it('should verify service method signatures and return types', async () => {
+      // Verify HealthCheckService methods
+      expect(typeof healthCheckService.checkHealth).toBe('function');
+
+      // Verify ExtendedHealthService methods
+      expect(typeof extendedHealthService.getFullHealthStatus).toBe('function');
+      expect(typeof extendedHealthService.getConfigHealthStatus).toBe('function');
+      expect(typeof extendedHealthService.getDependenciesHealthStatus).toBe('function');
+      expect(typeof extendedHealthService.performStartupCheck).toBe('function');
+
+      // Test return types
+      const configHealth = await extendedHealthService.getConfigHealthStatus();
+      expect(configHealth).toHaveProperty('isValid');
+      expect(configHealth).toHaveProperty('errors');
+      expect(configHealth).toHaveProperty('warnings');
+      expect(configHealth).toHaveProperty('validatedAt');
+
+      const depsHealth = await extendedHealthService.getDependenciesHealthStatus();
+      expect(depsHealth).toHaveProperty('mongodb');
+      expect(depsHealth).toHaveProperty('redis');
+      expect(depsHealth).toHaveProperty('externalServices');
+    });
+
+    it('should handle service instantiation with different configurations', async () => {
+      const configs = [
+        { MONGODB_URI: 'mongodb://test1:27017/db1', REDIS_URL: 'redis://test1:6379' },
+        { MONGODB_URI: 'mongodb://test2:27017/db2', REDIS_URL: 'redis://test2:6379' },
+        { MONGODB_URI: undefined, REDIS_URL: undefined },
+      ];
+
+      for (const config of configs) {
+        const testModule = await Test.createTestingModule({
+          imports: [HealthModule],
+          providers: [
+            {
+              provide: ConfigService,
+              useValue: {
+                get: jest.fn().mockImplementation((key: string) => config[key]),
+              },
+            },
+            {
+              provide: 'REDIS',
+              useValue: {
+                connect: jest.fn().mockResolvedValue(undefined),
+                ping: jest.fn().mockResolvedValue('PONG'),
+                quit: jest.fn().mockResolvedValue('OK'),
+              },
+            },
+          ],
+        }).compile();
+
+        const testHealthService = testModule.get<HealthCheckService>(HealthCheckService);
+        const testExtendedService = testModule.get<ExtendedHealthService>(ExtendedHealthService);
+
+        expect(testHealthService).toBeDefined();
+        expect(testExtendedService).toBeDefined();
+
+        await testModule.close();
+      }
+    });
+  });
+
+  describe('Module Metadata and Exports', () => {
+    it('should properly export all required services', () => {
+      // Verify services are exported and accessible
+      expect(healthCheckService).toBeInstanceOf(HealthCheckService);
+      expect(extendedHealthService).toBeInstanceOf(ExtendedHealthService);
+
+      // Verify services can be retrieved by token
+      const retrievedHealthService = module.get(HealthCheckService);
+      const retrievedExtendedService = module.get(ExtendedHealthService);
+
+      expect(retrievedHealthService).toBe(healthCheckService);
+      expect(retrievedExtendedService).toBe(extendedHealthService);
+    });
+
+    it('should handle module re-exports correctly', async () => {
+      // Test that services exported by HealthModule can be imported by other modules
+      const ConsumerModule = class {
+        constructor(
+          private readonly healthCheck: HealthCheckService,
+          private readonly extendedHealth: ExtendedHealthService,
+        ) {}
+      };
+
+      const consumerModule = await Test.createTestingModule({
+        imports: [HealthModule],
+        providers: [
+          {
+            provide: 'CONSUMER',
+            useFactory: (healthCheck: HealthCheckService, extendedHealth: ExtendedHealthService) => {
+              return new ConsumerModule(healthCheck, extendedHealth);
+            },
+            inject: [HealthCheckService, ExtendedHealthService],
+          },
+        ],
+      }).compile();
+
+      const consumer = consumerModule.get('CONSUMER');
+      expect(consumer).toBeInstanceOf(ConsumerModule);
+
+      await consumerModule.close();
+    });
+
+    it('should maintain service singleton scope', async () => {
+      // Get services multiple times and verify they are the same instance
+      const healthService1 = module.get<HealthCheckService>(HealthCheckService);
+      const healthService2 = module.get<HealthCheckService>(HealthCheckService);
+      const extendedService1 = module.get<ExtendedHealthService>(ExtendedHealthService);
+      const extendedService2 = module.get<ExtendedHealthService>(ExtendedHealthService);
+
+      expect(healthService1).toBe(healthService2);
+      expect(extendedService1).toBe(extendedService2);
+    });
+  });
+
+  describe('Resource Management and Cleanup', () => {
+    it('should properly clean up resources on module destruction', async () => {
+      const tempModule = await Test.createTestingModule({
+        imports: [HealthModule],
+        providers: [
+          {
+            provide: ConfigService,
+            useValue: {
+              get: jest.fn().mockImplementation((key: string) => {
+                switch (key) {
+                  case 'MONGODB_URI':
+                    return 'mongodb://localhost:27017/temp';
+                  case 'REDIS_URL':
+                    return 'redis://localhost:6379';
+                  default:
+                    return undefined;
+                }
+              }),
+            },
+          },
+          {
+            provide: 'REDIS',
+            useValue: {
+              connect: jest.fn().mockResolvedValue(undefined),
+              ping: jest.fn().mockResolvedValue('PONG'),
+              quit: jest.fn().mockResolvedValue('OK'),
+              disconnect: jest.fn().mockResolvedValue(undefined),
+            },
+          },
+        ],
+      }).compile();
+
+      const tempHealthService = tempModule.get<HealthCheckService>(HealthCheckService);
+      const tempExtendedService = tempModule.get<ExtendedHealthService>(ExtendedHealthService);
+
+      expect(tempHealthService).toBeDefined();
+      expect(tempExtendedService).toBeDefined();
+
+      // Cleanup should not throw errors
+      await expect(tempModule.close()).resolves.not.toThrow();
+    });
+
+    it('should handle cleanup with pending operations', async () => {
+      const slowModule = await Test.createTestingModule({
+        imports: [HealthModule],
+        providers: [
+          {
+            provide: ConfigService,
+            useValue: {
+              get: jest.fn().mockImplementation((key: string) => {
+                switch (key) {
+                  case 'MONGODB_URI':
+                    return 'mongodb://localhost:27017/slow';
+                  case 'REDIS_URL':
+                    return 'redis://localhost:6379';
+                  default:
+                    return undefined;
+                }
+              }),
+            },
+          },
+        ],
+      }).compile();
+
+      const slowExtendedService = slowModule.get<ExtendedHealthService>(ExtendedHealthService);
+
+      // Start a slow operation
+      const slowOperation = slowExtendedService.getFullHealthStatus();
+
+      // Close module while operation is pending
+      const cleanup = slowModule.close();
+
+      // Both should complete without issues
+      await Promise.all([slowOperation, cleanup]);
+
+      expect(true).toBe(true); // Test passes if no exceptions are thrown
+    });
   });
 });

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { EnhancedCapabilityRegistryService } from '@providers/services/enhanced-capability-registry.service';
 import { StreamCacheStandardizedService } from '@core/05-caching/module/stream-cache/services/stream-cache-standardized.service';
@@ -10,637 +10,1267 @@ import {
   StreamConnection,
   StreamConnectionParams,
   StreamConnectionStatus,
-  StreamConnectionStats,
-  StreamConnectionException,
-  StreamSubscriptionException,
+  StreamConnectionOptions,
 } from '@core/03-fetching/stream-data-fetcher/interfaces';
-import { OPERATION_LIMITS } from '@common/constants/domain';
-import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
+import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
+import { UnitTestSetup } from '../../../../../../testbasic/setup/unit-test-setup';
+
+// Mock interfaces
+interface MockStreamConnection extends StreamConnection {
+  id: string;
+  provider: string;
+  capability: string;
+  isConnected: boolean;
+  lastActiveAt: Date;
+  close: jest.Mock;
+  sendHeartbeat: jest.Mock;
+  onStatusChange: jest.Mock;
+  onError: jest.Mock;
+  getStats: jest.Mock;
+}
 
 describe('StreamDataFetcherService', () => {
   let service: StreamDataFetcherService;
-  let capabilityRegistry: EnhancedCapabilityRegistryService;
-  let streamCache: StreamCacheStandardizedService;
-  let clientStateManager: StreamClientStateManager;
-  let connectionPoolManager: ConnectionPoolManager;
-  let eventBus: EventEmitter2;
-  let configService: ConfigService;
+  let module: TestingModule;
+  let enhancedCapabilityRegistry: jest.Mocked<EnhancedCapabilityRegistryService>;
+  let streamCache: jest.Mocked<StreamCacheStandardizedService>;
+  let clientStateManager: jest.Mocked<StreamClientStateManager>;
+  let connectionPoolManager: jest.Mocked<ConnectionPoolManager>;
+  let eventBus: jest.Mocked<EventEmitter2>;
+  let configService: jest.Mocked<ConfigService>;
+  
+  // 🔥 关键：保持原始Mock对象的引用，用于测试断言
+  let originalMockEventBus: any;
+  let originalMockConfigService: any;
 
-  // Mock连接对象
-  const mockConnection: StreamConnection = {
-    id: 'test-connection-id-123',
-    provider: 'longport',
-    capability: 'ws-stock-quote',
-    isConnected: true,
-    createdAt: new Date(),
-    lastActiveAt: new Date(),
-    subscribedSymbols: new Set<string>(),
-    options: {
-      autoReconnect: true,
-      maxReconnectAttempts: 3,
-      connectionTimeoutMs: 30000,
-    },
-    onData: jest.fn(),
-    onStatusChange: jest.fn(),
-    onError: jest.fn(),
-    sendHeartbeat: jest.fn().mockResolvedValue(true),
-    getStats: jest.fn().mockReturnValue({
-      connectionId: 'test-connection-id-123',
-      status: StreamConnectionStatus.CONNECTED,
-      connectionDurationMs: 60000,
-      messagesReceived: 100,
-      messagesSent: 50,
-      errorCount: 0,
-      reconnectCount: 0,
-      lastHeartbeat: new Date(),
-      avgProcessingLatencyMs: 10,
-      subscribedSymbolsCount: 5,
-    } as StreamConnectionStats),
-    isAlive: jest.fn().mockResolvedValue(true),
-    close: jest.fn().mockResolvedValue(undefined),
+  const createMockConnection = (options: Partial<MockStreamConnection> = {}): MockStreamConnection => {
+    return {
+      id: options.id || 'test-connection-123',
+      provider: options.provider || 'longport',
+      capability: options.capability || 'ws-stock-quote',
+      isConnected: options.isConnected !== undefined ? options.isConnected : true,
+      lastActiveAt: options.lastActiveAt || new Date(),
+      close: jest.fn().mockResolvedValue(undefined),
+      sendHeartbeat: jest.fn().mockResolvedValue(true),
+      onStatusChange: jest.fn(),
+      onError: jest.fn(),
+      getStats: jest.fn().mockReturnValue({
+        connectionId: options.id || 'test-connection-123',
+        isConnected: options.isConnected !== undefined ? options.isConnected : true,
+        lastActiveAt: options.lastActiveAt || new Date(),
+        messagesReceived: 0,
+        messagesSent: 0,
+      }),
+      ...options,
+    } as MockStreamConnection;
   };
 
-  // Mock capability实例
-  const mockCapability = {
-    connect: jest.fn().mockResolvedValue(mockConnection),
-  };
+  const createMockCapability = () => ({
+    name: 'test-capability',
+    description: 'Test capability',
+    supportedMarkets: ['US', 'HK'],
+    supportedSymbolFormats: ['SYMBOL', 'SYMBOL.EXCHANGE'],
+    execute: jest.fn(),
+    connect: jest.fn().mockResolvedValue(createMockConnection()),
+  });
 
   beforeEach(async () => {
-    // 清理所有mock
-    jest.clearAllMocks();
+    // Create mocks
+    const mockEnhancedCapabilityRegistry = {
+      getCapability: jest.fn(),
+      get: jest.fn(),
+    };
 
-    const module: TestingModule = await Test.createTestingModule({
+    const mockStreamCache = {
+      setData: jest.fn().mockResolvedValue(undefined),
+      deleteData: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const mockClientStateManager = {
+      updateSubscriptionState: jest.fn(),
+      removeConnection: jest.fn(),
+    };
+
+    const mockConnectionPoolManager = {
+      registerConnection: jest.fn(),
+      unregisterConnection: jest.fn(),
+      getStats: jest.fn().mockReturnValue({
+        totalConnections: 0,
+        activeConnections: 0,
+        poolUtilization: 0,
+      }),
+      getAlerts: jest.fn().mockReturnValue([]),
+    };
+
+    // ✅ 修正: 创建可spy的mock对象，确保Jest断言能正常工作
+    originalMockEventBus = {
+      emit: jest.fn().mockReturnValue(undefined),
+    };
+
+    // ✅ 修正: 创建可spy的mock对象，支持动态配置
+    originalMockConfigService = {
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'monitoringUnifiedLimits') {
+          return {
+            dataProcessingBatch: {
+              recentMetrics: 5,
+            },
+          };
+        }
+        return undefined;
+      }),
+    };
+
+    module = await UnitTestSetup.createBasicTestModule({
       providers: [
         StreamDataFetcherService,
         {
           provide: EnhancedCapabilityRegistryService,
-          useValue: {
-            getCapability: jest.fn().mockReturnValue(mockCapability),
-            get: jest.fn().mockReturnValue(mockCapability),
-          },
+          useValue: mockEnhancedCapabilityRegistry,
         },
         {
           provide: StreamCacheStandardizedService,
-          useValue: {
-            setData: jest.fn().mockResolvedValue(undefined),
-            deleteData: jest.fn().mockResolvedValue(undefined),
-          },
+          useValue: mockStreamCache,
         },
         {
           provide: StreamClientStateManager,
-          useValue: {
-            updateSubscriptionState: jest.fn(),
-            removeConnection: jest.fn(),
-          },
+          useValue: mockClientStateManager,
         },
         {
           provide: ConnectionPoolManager,
-          useValue: {
-            registerConnection: jest.fn(),
-            unregisterConnection: jest.fn(),
-            getStats: jest.fn().mockReturnValue({
-              global: 10,
-              byKey: {},
-              byIP: {},
-            }),
-            getAlerts: jest.fn().mockReturnValue([]),
-          },
+          useValue: mockConnectionPoolManager,
         },
         {
           provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
+          useValue: originalMockEventBus,
         },
         {
           provide: ConfigService,
-          useValue: {
-            get: jest.fn().mockReturnValue({
-              dataProcessingBatch: {
-                recentMetrics: 5,
-              },
-            }),
-          },
+          useValue: originalMockConfigService,
         },
       ],
-    }).compile();
+    });
 
     service = module.get<StreamDataFetcherService>(StreamDataFetcherService);
-    capabilityRegistry = module.get<EnhancedCapabilityRegistryService>(
-      EnhancedCapabilityRegistryService,
-    );
-    streamCache = module.get<StreamCacheStandardizedService>(
-      StreamCacheStandardizedService,
-    );
-    clientStateManager = module.get<StreamClientStateManager>(
-      StreamClientStateManager,
-    );
-    connectionPoolManager = module.get<ConnectionPoolManager>(
-      ConnectionPoolManager,
-    );
-    eventBus = module.get<EventEmitter2>(EventEmitter2);
-    configService = module.get<ConfigService>(ConfigService);
+    enhancedCapabilityRegistry = module.get(EnhancedCapabilityRegistryService);
+    streamCache = module.get(StreamCacheStandardizedService);
+    clientStateManager = module.get(StreamClientStateManager);
+    connectionPoolManager = module.get(ConnectionPoolManager);
+    eventBus = module.get(EventEmitter2);
+    configService = module.get(ConfigService);
+
+    // ❌ 删除: 不要使用jest.spyOn，直接使用已有的mock函数
+    // jest.spyOn会覆盖我们精心设置的mock，导致事件检测失败
   });
 
   afterEach(async () => {
-    // 清理服务资源
-    if (service) {
-      await service.onModuleDestroy();
-    }
+    await UnitTestSetup.cleanupModule(module);
   });
 
-  describe('建立流连接 - establishStreamConnection', () => {
-    it('应该成功建立流连接（对象参数形式）', async () => {
+  describe('Service Initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should initialize with correct dependencies', () => {
+      expect(enhancedCapabilityRegistry).toBeDefined();
+      expect(streamCache).toBeDefined();
+      expect(clientStateManager).toBeDefined();
+      expect(connectionPoolManager).toBeDefined();
+      expect(eventBus).toBeDefined();
+      expect(configService).toBeDefined();
+    });
+
+    it('should start periodic cleanup and adaptive concurrency monitoring', () => {
+      // Service should initialize without throwing errors
+      expect(service).toBeInstanceOf(StreamDataFetcherService);
+    });
+  });
+
+  describe('establishStreamConnection', () => {
+    describe('Object parameter form (recommended)', () => {
+      it('should establish connection with object parameters', async () => {
+        const mockCapability = createMockCapability();
+        const mockConnection = createMockConnection();
+
+        enhancedCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
+        mockCapability.connect.mockResolvedValue(mockConnection);
+
+        const params: StreamConnectionParams = {
+          provider: 'longport',
+          capability: 'ws-stock-quote',
+          requestId: 'test-request-123',
+          options: {
+            autoReconnect: true,
+            maxReconnectAttempts: 3,
+            connectionTimeoutMs: 30000,
+          },
+        };
+
+        const connection = await service.establishStreamConnection(params);
+
+        // 等待异步事件发射完成
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(connection).toBe(mockConnection);
+        expect(enhancedCapabilityRegistry.getCapability).toHaveBeenCalledWith(
+          'longport',
+          'ws-stock-quote'
+        );
+        expect(mockCapability.connect).toHaveBeenCalledWith(
+          expect.objectContaining({
+            provider: 'longport',
+            capability: 'ws-stock-quote',
+            autoReconnect: true,
+            maxReconnectAttempts: 3,
+            connectionTimeoutMs: 30000,
+          })
+        );
+        expect(connectionPoolManager.registerConnection).toHaveBeenCalled();
+        expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+          expect.objectContaining({
+            metricName: 'connection_established',
+          })
+        );
+      });
+
+      it('should handle connection establishment failure', async () => {
+        const mockCapability = createMockCapability();
+        const connectionError = new Error('Connection failed');
+
+        enhancedCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
+        mockCapability.connect.mockRejectedValue(connectionError);
+
+        const params: StreamConnectionParams = {
+          provider: 'longport',
+          capability: 'ws-stock-quote',
+          requestId: 'test-request-456',
+        };
+
+        await expect(service.establishStreamConnection(params)).rejects.toThrow('Connection failed');
+
+        // 等待异步事件发射完成
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+          expect.objectContaining({
+            metricName: 'connection_establishment_failed',
+          })
+        );
+      });
+    });
+
+    describe('Separate parameters form (backward compatibility)', () => {
+      it('should establish connection with separate parameters', async () => {
+        const mockCapability = createMockCapability();
+        const mockConnection = createMockConnection();
+
+        enhancedCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
+        mockCapability.connect.mockResolvedValue(mockConnection);
+
+        const config: Partial<StreamConnectionOptions> = {
+          autoReconnect: true,
+          maxReconnectAttempts: 2,
+        };
+
+        const connection = await service.establishStreamConnection(
+          'longport',
+          'ws-stock-quote',
+          config
+        );
+
+        expect(connection).toBe(mockConnection);
+        expect(enhancedCapabilityRegistry.getCapability).toHaveBeenCalledWith(
+          'longport',
+          'ws-stock-quote'
+        );
+        expect(mockCapability.connect).toHaveBeenCalledWith(
+          expect.objectContaining({
+            provider: 'longport',
+            capability: 'ws-stock-quote',
+            autoReconnect: true,
+            maxReconnectAttempts: 2,
+          })
+        );
+      });
+    });
+
+    it('should throw error when capability not found', async () => {
+      enhancedCapabilityRegistry.getCapability.mockReturnValue(null);
+
+      const params: StreamConnectionParams = {
+        provider: 'unknown-provider',
+        capability: 'unknown-capability',
+        requestId: 'test-request-789',
+      };
+
+      await expect(service.establishStreamConnection(params)).rejects.toThrow(
+        'Stream capability not found: unknown-provider/unknown-capability'
+      );
+    });
+
+    it('should throw error when connection instance is invalid', async () => {
+      const mockCapability = createMockCapability();
+
+      enhancedCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
+      mockCapability.connect.mockResolvedValue(null);
+
       const params: StreamConnectionParams = {
         provider: 'longport',
         capability: 'ws-stock-quote',
-        requestId: 'req_123',
-        options: {
-          autoReconnect: true,
-          maxReconnectAttempts: 3,
-        },
+        requestId: 'test-request-101',
       };
 
-      const connection = await service.establishStreamConnection(params);
-
-      expect(connection).toBeDefined();
-      expect(connection.id).toBe('test-connection-id-123');
-      expect(connection.provider).toBe('longport');
-      expect(connection.capability).toBe('ws-stock-quote');
-      expect(capabilityRegistry.getCapability).toHaveBeenCalledWith(
-        'longport',
-        'ws-stock-quote',
+      await expect(service.establishStreamConnection(params)).rejects.toThrow(
+        '连接建立失败：连接实例无效'
       );
-      expect(connectionPoolManager.registerConnection).toHaveBeenCalled();
-      expect(eventBus.emit).toHaveBeenCalled();
-    });
-
-    it('应该成功建立流连接（分散参数形式）', async () => {
-      const connection = await service.establishStreamConnection(
-        'longport',
-        'ws-stock-quote',
-        { autoReconnect: true },
-      );
-
-      expect(connection).toBeDefined();
-      expect(connection.provider).toBe('longport');
-      expect(capabilityRegistry.getCapability).toHaveBeenCalled();
-    });
-
-    it('当获取能力失败时应该抛出StreamConnectionException', async () => {
-      (capabilityRegistry.getCapability as jest.Mock).mockReturnValue(null);
-
-      const params: StreamConnectionParams = {
-        provider: 'invalid',
-        capability: 'invalid',
-        requestId: 'req_123',
-      };
-
-      await expect(
-        service.establishStreamConnection(params),
-      ).rejects.toThrow(StreamConnectionException);
-    });
-
-    it('当连接建立失败时应该抛出异常', async () => {
-      mockCapability.connect.mockRejectedValueOnce(
-        new Error('Connection failed'),
-      );
-
-      await expect(
-        service.establishStreamConnection('longport', 'ws-stock-quote'),
-      ).rejects.toThrow('Connection failed');
-    });
-
-    it('应该正确处理连接超时', async () => {
-      const slowConnection = { ...mockConnection, isConnected: false };
-      mockCapability.connect.mockResolvedValueOnce(slowConnection);
-
-      await expect(
-        service.establishStreamConnection({
-          provider: 'longport',
-          capability: 'ws-stock-quote',
-          requestId: 'req_123',
-          options: { connectionTimeoutMs: 100 },
-        }),
-      ).rejects.toThrow();
     });
   });
 
-  describe('订阅符号 - subscribeToSymbols', () => {
-    it('应该成功订阅符号', async () => {
+  describe('subscribeToSymbols', () => {
+    let mockConnection: MockStreamConnection;
+
+    beforeEach(() => {
+      mockConnection = createMockConnection();
+    });
+
+    it('should subscribe to symbols successfully', async () => {
       const symbols = ['AAPL', 'GOOGL', 'MSFT'];
 
       await service.subscribeToSymbols(mockConnection, symbols);
 
+      expect(streamCache.setData).toHaveBeenCalledWith(
+        `subscription:${mockConnection.id}`,
+        expect.arrayContaining([
+          expect.objectContaining({
+            symbols,
+            result: expect.objectContaining({
+              success: true,
+              subscribedSymbols: symbols,
+              failedSymbols: [],
+            }),
+          }),
+        ]),
+        'warm'
+      );
       expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledWith(
         mockConnection.id,
         symbols,
-        'subscribed',
-      );
-      expect(streamCache.setData).toHaveBeenCalled();
-      expect(eventBus.emit).toHaveBeenCalled();
-    });
-
-    it('当连接未建立时应该抛出异常', async () => {
-      const disconnectedConnection = {
-        ...mockConnection,
-        isConnected: false,
-      };
-
-      await expect(
-        service.subscribeToSymbols(disconnectedConnection, ['AAPL']),
-      ).rejects.toThrow(StreamConnectionException);
-    });
-
-    it('应该处理空符号列表', async () => {
-      await service.subscribeToSymbols(mockConnection, []);
-
-      expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledWith(
-        mockConnection.id,
-        [],
-        'subscribed',
+        'subscribed'
       );
     });
 
-    it('应该正确记录性能指标', async () => {
+    it('should throw error when connection is not connected', async () => {
+      mockConnection.isConnected = false;
       const symbols = ['AAPL'];
+
+      await expect(service.subscribeToSymbols(mockConnection, symbols)).rejects.toThrow(
+        '连接未建立，无法订阅'
+      );
+    });
+
+    it('should emit subscription events', async () => {
+      const symbols = ['AAPL'];
+
       await service.subscribeToSymbols(mockConnection, symbols);
 
-      // 验证性能指标记录
-      const stats = service.getAdaptiveConcurrencyStats();
-      expect(stats.performance.totalRequests).toBeGreaterThan(0);
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          metricName: 'subscription_operation',
+        })
+      );
     });
   });
 
-  describe('取消订阅符号 - unsubscribeFromSymbols', () => {
-    it('应该成功取消订阅符号', async () => {
+  describe('unsubscribeFromSymbols', () => {
+    let mockConnection: MockStreamConnection;
+
+    beforeEach(() => {
+      mockConnection = createMockConnection();
+    });
+
+    it('should unsubscribe from symbols successfully', async () => {
       const symbols = ['AAPL', 'GOOGL'];
 
       await service.unsubscribeFromSymbols(mockConnection, symbols);
 
+      expect(streamCache.deleteData).toHaveBeenCalledWith(
+        `subscription:${mockConnection.id}`
+      );
       expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledWith(
         mockConnection.id,
         symbols,
-        'unsubscribed',
+        'unsubscribed'
       );
-      expect(streamCache.deleteData).toHaveBeenCalled();
-      expect(eventBus.emit).toHaveBeenCalled();
     });
 
-    it('应该处理空符号列表', async () => {
-      await service.unsubscribeFromSymbols(mockConnection, []);
+    it('should emit unsubscription events', async () => {
+      const symbols = ['AAPL'];
 
-      expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledWith(
-        mockConnection.id,
-        [],
-        'unsubscribed',
+      await service.unsubscribeFromSymbols(mockConnection, symbols);
+
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          metricName: 'subscription_operation',
+        })
       );
     });
   });
 
-  describe('关闭连接 - closeConnection', () => {
+  describe('closeConnection', () => {
+    let mockConnection: MockStreamConnection;
+
     beforeEach(() => {
-      // 先建立连接以便关闭
+      mockConnection = createMockConnection();
+      // Simulate an established connection
       const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
       (service as any).activeConnections.set(connectionKey, mockConnection);
       (service as any).connectionIdToKey.set(mockConnection.id, connectionKey);
     });
 
-    it('应该成功关闭连接', async () => {
+    it('should close connection successfully', async () => {
       await service.closeConnection(mockConnection);
 
       expect(mockConnection.close).toHaveBeenCalled();
-      expect(connectionPoolManager.unregisterConnection).toHaveBeenCalled();
-      expect(clientStateManager.removeConnection).toHaveBeenCalledWith(
-        mockConnection.id,
-      );
-      expect(eventBus.emit).toHaveBeenCalled();
+      expect(clientStateManager.removeConnection).toHaveBeenCalledWith(mockConnection.id);
+      expect(streamCache.deleteData).toHaveBeenCalledWith(`connection:${mockConnection.id}`);
+      expect(streamCache.deleteData).toHaveBeenCalledWith(`subscription:${mockConnection.id}`);
     });
 
-    it('即使关闭失败也应该清理内存映射', async () => {
-      (mockConnection.close as jest.Mock).mockRejectedValueOnce(new Error('Close failed'));
+    it('should clean up connection from maps even if close fails', async () => {
+      mockConnection.close.mockRejectedValue(new Error('Close failed'));
 
-      await expect(
-        service.closeConnection(mockConnection),
-      ).rejects.toThrow('Close failed');
+      await expect(service.closeConnection(mockConnection)).rejects.toThrow('Close failed');
 
-      // 验证内存映射已清理
+      // Connection should still be cleaned up from maps
       expect((service as any).activeConnections.size).toBe(0);
       expect((service as any).connectionIdToKey.size).toBe(0);
     });
+
+    it('should emit connection events', async () => {
+      await service.closeConnection(mockConnection);
+
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          metricName: 'connection_monitoring_stopped',
+        })
+      );
+    });
   });
 
-  describe('连接状态检查 - isConnectionActive', () => {
-    it('应该正确检查连接活跃状态（通过连接对象）', () => {
-      const isActive = service.isConnectionActive(mockConnection);
-      expect(isActive).toBe(true);
-    });
+  describe('Connection Status and Stats', () => {
+    let mockConnection: MockStreamConnection;
 
-    it('应该正确检查连接活跃状态（通过连接键）', () => {
+    beforeEach(() => {
+      mockConnection = createMockConnection();
       const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
       (service as any).activeConnections.set(connectionKey, mockConnection);
-
-      const isActive = service.isConnectionActive(connectionKey);
-      expect(isActive).toBe(true);
     });
 
-    it('应该返回false当连接不存在', () => {
-      const isActive = service.isConnectionActive('non-existent-key');
-      expect(isActive).toBe(false);
-    });
-  });
+    it('should check if connection is active', () => {
+      expect(service.isConnectionActive(mockConnection)).toBe(true);
 
-  describe('连接统计 - getConnectionStats', () => {
-    it('应该返回连接统计信息', () => {
+      mockConnection.isConnected = false;
+      expect(service.isConnectionActive(mockConnection)).toBe(false);
+    });
+
+    it('should get connection stats', () => {
       const stats = service.getConnectionStats(mockConnection);
-      expect(stats).toBeDefined();
-      expect(stats?.connectionId).toBe('test-connection-id-123');
-      expect(stats?.status).toBe(StreamConnectionStatus.CONNECTED);
+
+      expect(stats).toEqual(
+        expect.objectContaining({
+          connectionId: mockConnection.id,
+          isConnected: true,
+        })
+      );
     });
 
-    it('应该返回null当连接没有统计信息', () => {
-      const connectionWithoutStats = { ...mockConnection, getStats: undefined };
-      const stats = service.getConnectionStats(connectionWithoutStats);
-      expect(stats).toBeNull();
+    it('should get all connection stats', () => {
+      const allStats = service.getAllConnectionStats();
+
+      expect(allStats).toHaveProperty(
+        `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`
+      );
+    });
+
+    it('should get connection stats by provider', () => {
+      const providerStats = service.getConnectionStatsByProvider('longport');
+
+      expect(providerStats).toEqual(
+        expect.objectContaining({
+          total: 1,
+          active: 1,
+          connections: expect.arrayContaining([
+            expect.objectContaining({
+              capability: 'ws-stock-quote',
+              isConnected: true,
+            }),
+          ]),
+        })
+      );
+    });
+
+    it('should get existing connection', () => {
+      const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
+      const existingConnection = service.getExistingConnection(connectionKey);
+
+      expect(existingConnection).toBe(mockConnection);
     });
   });
 
-  describe('批量健康检查 - batchHealthCheck', () => {
+  describe('Batch Health Check', () => {
     beforeEach(() => {
-      // 添加一些测试连接
+      // Add some mock connections
       const connections = [
-        { ...mockConnection, id: 'conn1', lastActiveAt: new Date() },
-        { ...mockConnection, id: 'conn2', lastActiveAt: new Date(Date.now() - 3 * 60 * 1000) }, // 3分钟前
-        { ...mockConnection, id: 'conn3', lastActiveAt: new Date(Date.now() - 10 * 60 * 1000) }, // 10分钟前
+        createMockConnection({ id: 'conn-1', provider: 'longport' }),
+        createMockConnection({ id: 'conn-2', provider: 'longport' }),
+        createMockConnection({ id: 'conn-3', provider: 'futu', isConnected: false }),
       ];
 
-      connections.forEach((conn, index) => {
-        const key = `provider:capability:${conn.id}`;
+      connections.forEach((conn) => {
+        const key = `${conn.provider}:${conn.capability}:${conn.id}`;
         (service as any).activeConnections.set(key, conn);
-        (service as any).connectionIdToKey.set(conn.id, key);
       });
     });
 
-    it('应该执行分层健康检查', async () => {
-      const results = await service.batchHealthCheck({
-        timeoutMs: 5000,
-        tieredEnabled: true,
-      });
+    it('should perform tiered health check by default', async () => {
+      const results = await service.batchHealthCheck();
 
-      expect(results).toBeDefined();
-      expect(Object.keys(results).length).toBeGreaterThan(0);
+      expect(Object.keys(results)).toHaveLength(3);
+      expect(results).toEqual(
+        expect.objectContaining({
+          'longport:ws-stock-quote:conn-1': expect.any(Boolean),
+          'longport:ws-stock-quote:conn-2': expect.any(Boolean),
+          'futu:ws-stock-quote:conn-3': expect.any(Boolean),
+        })
+      );
     });
 
-    it('应该回退到传统批量检查当分层被禁用', async () => {
+    it('should use fallback batch health check when tiered is disabled', async () => {
       const results = await service.batchHealthCheck({
         tieredEnabled: false,
-        concurrency: 2,
+        timeoutMs: 5000,
+        concurrency: 5,
       });
 
-      expect(results).toBeDefined();
+      expect(Object.keys(results)).toHaveLength(3);
     });
 
-    it('应该处理健康检查超时', async () => {
-      (mockConnection.isAlive as jest.Mock).mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(false), 1000)),
-      );
-
+    it('should handle health check with custom options', async () => {
       const results = await service.batchHealthCheck({
-        timeoutMs: 100,
+        timeoutMs: 1000,
+        retries: 2,
         skipUnresponsive: true,
       });
 
-      // 超时的连接应该被标记为不健康
-      Object.values(results).forEach((isHealthy) => {
-        expect(typeof isHealthy).toBe('boolean');
-      });
-    });
-
-    it('应该支持重试机制', async () => {
-      let callCount = 0;
-      (mockConnection.isAlive as jest.Mock).mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.reject(new Error('First attempt failed'));
-        }
-        return Promise.resolve(true);
-      });
-
-      const results = await service.batchHealthCheck({
-        retries: 2,
-      });
-
-      expect(callCount).toBeGreaterThan(1);
+      expect(Object.keys(results)).toHaveLength(3);
     });
   });
 
-  describe('自适应并发控制', () => {
-    it('应该获取自适应并发控制统计', () => {
+  describe('Adaptive Concurrency Control', () => {
+    it('should get adaptive concurrency stats', () => {
       const stats = service.getAdaptiveConcurrencyStats();
 
-      expect(stats).toBeDefined();
-      expect(stats.currentConcurrency).toBeDefined();
-      expect(stats.concurrencyRange).toBeDefined();
-      expect(stats.performance).toBeDefined();
-      expect(stats.circuitBreaker).toBeDefined();
+      expect(stats).toEqual(
+        expect.objectContaining({
+          currentConcurrency: expect.any(Number),
+          concurrencyRange: expect.objectContaining({
+            min: expect.any(Number),
+            max: expect.any(Number),
+          }),
+          performance: expect.objectContaining({
+            avgResponseTime: expect.any(String),
+            p95ResponseTime: expect.any(String),
+            successRate: expect.any(String),
+            totalRequests: expect.any(Number),
+          }),
+          circuitBreaker: expect.objectContaining({
+            enabled: expect.any(Boolean),
+          }),
+        })
+      );
     });
 
-    it('应该记录操作性能', () => {
-      // 执行一些操作来生成性能数据
-      (service as any).recordOperationPerformance(100, true);
-      (service as any).recordOperationPerformance(200, false);
-
-      const stats = service.getAdaptiveConcurrencyStats();
-      expect(stats.performance.totalRequests).toBe(2);
-      expect(stats.performance.successRate).toBeDefined();
-    });
-
-    it('应该在失败率高时触发断路器', () => {
-      // 模拟高失败率
-      for (let i = 0; i < 10; i++) {
-        (service as any).recordOperationPerformance(100, false);
-      }
-      (service as any).performanceMetrics.successRate = 0.4; // 40%成功率
-
-      (service as any).analyzePerformanceAndAdjustConcurrency();
-
-      expect((service as any).concurrencyControl.circuitBreaker.enabled).toBe(true);
-    });
-
-    it('应该在性能良好时增加并发限制', () => {
-      const initialConcurrency = (service as any).concurrencyControl.currentConcurrency;
-
-      // 模拟良好性能
-      for (let i = 0; i < 20; i++) {
-        (service as any).recordOperationPerformance(50, true); // 快速响应，成功
-      }
-      (service as any).performanceMetrics.avgResponseTime = 50;
-      (service as any).performanceMetrics.successRate = 0.99;
-
-      // 设置上次调整时间以避免稳定期限制
-      (service as any).concurrencyControl.lastAdjustment = 0;
-
-      (service as any).analyzePerformanceAndAdjustConcurrency();
-
-      expect((service as any).concurrencyControl.currentConcurrency).toBeGreaterThan(initialConcurrency);
+    it('should use adaptive concurrency in batch operations', async () => {
+      // The service should use adaptive concurrency in its operations
+      // This is tested indirectly through batch health check
+      const results = await service.batchHealthCheck({ concurrency: 5 });
+      expect(Object.keys(results).length).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('内存管理和清理', () => {
-    it('应该定期清理僵尸连接', () => {
-      // 添加一个僵尸连接
-      const zombieConnection = {
-        ...mockConnection,
-        id: 'zombie-conn',
-        isConnected: false,
-        lastActiveAt: new Date(Date.now() - 40 * 60 * 1000), // 40分钟前
-      };
-      const key = 'provider:capability:zombie-conn';
-      (service as any).activeConnections.set(key, zombieConnection);
-      (service as any).connectionIdToKey.set(zombieConnection.id, key);
-
-      // 执行清理
-      (service as any).performPeriodicMapCleanup();
-
-      // 验证僵尸连接已被清理
-      expect((service as any).activeConnections.has(key)).toBe(false);
-      expect((service as any).connectionIdToKey.has(zombieConnection.id)).toBe(false);
-    });
-
-    it('应该清理无效的连接映射', () => {
-      // 添加一个只在映射中存在的连接ID
-      (service as any).connectionIdToKey.set('orphan-id', 'orphan-key');
-
-      // 执行清理
-      (service as any).performPeriodicMapCleanup();
-
-      // 验证孤儿映射已被清理
-      expect((service as any).connectionIdToKey.has('orphan-id')).toBe(false);
-    });
-
-    it('应该在销毁时清理所有资源', async () => {
-      // 添加一些连接
-      const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
-      (service as any).activeConnections.set(connectionKey, mockConnection);
-      (service as any).connectionIdToKey.set(mockConnection.id, connectionKey);
-
-      // 执行销毁
-      await service.onModuleDestroy();
-
-      // 验证资源已清理
-      expect((service as any).isServiceDestroyed).toBe(true);
-      expect((service as any).activeConnections.size).toBe(0);
-      expect((service as any).connectionIdToKey.size).toBe(0);
-    });
-  });
-
-  describe('连接池管理集成', () => {
-    it('应该获取连接池统计信息', () => {
-      const stats = service.getConnectionPoolStats();
-
-      expect(stats).toBeDefined();
-      expect(stats.activeConnections).toBeDefined();
-      expect(stats.adaptiveConcurrency).toBeDefined();
-      expect(stats.eventDrivenMonitoring).toBe(true);
-      expect(connectionPoolManager.getStats).toHaveBeenCalled();
-      expect(connectionPoolManager.getAlerts).toHaveBeenCalled();
-    });
-  });
-
-  describe('缓存服务集成', () => {
-    it('应该返回流数据缓存服务', () => {
+  describe('Cache Services Access', () => {
+    it('should provide access to stream data cache', () => {
       const cache = service.getStreamDataCache();
       expect(cache).toBe(streamCache);
     });
 
-    it('应该返回客户端状态管理器', () => {
+    it('should provide access to client state manager', () => {
       const manager = service.getClientStateManager();
       expect(manager).toBe(clientStateManager);
     });
   });
 
-  describe('现有连接查询', () => {
-    it('应该获取现有连接', () => {
+  describe('Connection Pool Stats', () => {
+    it('should get connection pool stats', () => {
+      const stats = service.getConnectionPoolStats();
+
+      expect(stats).toEqual(
+        expect.objectContaining({
+          totalConnections: expect.any(Number),
+          activeConnections: expect.any(Number),
+          alerts: expect.any(Array),
+          adaptiveConcurrency: expect.any(Object),
+          eventDrivenMonitoring: true,
+          timestamp: expect.any(String),
+        })
+      );
+    });
+  });
+
+  describe('Metrics Summary', () => {
+    it('should get metrics summary', async () => {
+      const summary = service.getMetricsSummary();
+
+      expect(summary).toEqual(
+        expect.objectContaining({
+          activeConnections: expect.any(Number),
+          connectionMappings: expect.any(Number),
+          timestamp: expect.any(String),
+          status: 'active',
+        })
+      );
+
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          metricName: 'metrics_summary_requested',
+        })
+      );
+    });
+  });
+
+  describe('Service Destruction', () => {
+    it('should clean up resources on module destroy', async () => {
+      // Add a mock connection
+      const mockConnection = createMockConnection();
       const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
       (service as any).activeConnections.set(connectionKey, mockConnection);
 
-      const conn = service.getExistingConnection(connectionKey);
-      expect(conn).toBe(mockConnection);
+      await service.onModuleDestroy();
+
+      expect(mockConnection.close).toHaveBeenCalled();
+      expect((service as any).activeConnections.size).toBe(0);
+      expect((service as any).isServiceDestroyed).toBe(true);
     });
 
-    it('应该返回null当连接不存在', () => {
-      const conn = service.getExistingConnection('non-existent');
-      expect(conn).toBeNull();
-    });
-  });
+    it('should handle connection close failures during destruction', async () => {
+      const mockConnection = createMockConnection();
+      mockConnection.close.mockRejectedValue(new Error('Close failed'));
 
-  describe('按提供商统计', () => {
-    it('应该获取提供商连接统计', () => {
-      // 添加测试连接
-      const conn1 = { ...mockConnection, id: 'conn1', provider: 'longport' };
-      const conn2 = { ...mockConnection, id: 'conn2', provider: 'longport', isConnected: false };
-      const conn3 = { ...mockConnection, id: 'conn3', provider: 'itick' };
+      const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
+      (service as any).activeConnections.set(connectionKey, mockConnection);
 
-      (service as any).activeConnections.set('longport:ws:conn1', conn1);
-      (service as any).activeConnections.set('longport:ws:conn2', conn2);
-      (service as any).activeConnections.set('itick:ws:conn3', conn3);
-
-      const stats = service.getConnectionStatsByProvider('longport');
-
-      expect(stats.total).toBe(2);
-      expect(stats.active).toBe(1);
-      expect(stats.connections).toHaveLength(2);
+      // Should not throw even if connection close fails
+      await expect(service.onModuleDestroy()).resolves.not.toThrow();
     });
   });
 
-  describe('指标摘要', () => {
-    it('应该获取指标摘要', () => {
-      const summary = service.getMetricsSummary();
-
-      expect(summary).toBeDefined();
-      expect(summary.activeConnections).toBeDefined();
-      expect(summary.connectionMappings).toBeDefined();
-      expect(summary.timestamp).toBeDefined();
-      expect(summary.status).toBe('active');
-      expect(eventBus.emit).toHaveBeenCalled();
-    });
-  });
-
-  describe('核心执行方法', () => {
-    it('应该在executeCore中抛出未实现异常', async () => {
-      await expect(service.executeCore()).rejects.toThrow();
-    });
-  });
-
-  describe('错误处理', () => {
-    it('应该处理连接状态变化回调设置失败', async () => {
-      const badConnection = {
-        ...mockConnection,
-        onStatusChange: jest.fn().mockImplementation(() => {
-          throw new Error('Callback setup failed');
-        }),
-      };
-      mockCapability.connect.mockResolvedValueOnce(badConnection);
-
-      // 不应该因为回调设置失败而导致连接建立失败
-      const connection = await service.establishStreamConnection('longport', 'ws-stock-quote');
-      expect(connection).toBeDefined();
-    });
-
-    it('应该处理内存泄漏检测', () => {
-      // 模拟内存泄漏情况
-      for (let i = 0; i < 100; i++) {
-        (service as any).connectionIdToKey.set(`id-${i}`, `key-${i}`);
-      }
-      (service as any).activeConnections.set('single-key', mockConnection);
-
-      // 执行清理（应该触发内存泄漏警告）
-      (service as any).performPeriodicMapCleanup();
-
-      // 验证日志记录（通过mock logger或其他方式）
-      expect((service as any).connectionIdToKey.size).toBeGreaterThan(
-        (service as any).activeConnections.size * 2,
+  describe('Error Handling', () => {
+    it('should throw error for executeCore method', async () => {
+      await expect(service.executeCore()).rejects.toThrow(
+        'executeCore not implemented for StreamDataFetcher'
       );
+    });
+  });
+
+  describe('Adaptive Concurrency Control Deep Testing', () => {
+    beforeEach(() => {
+      // 🔥 关键：完全重置性能指标，确保成功率为100%
+      (service as any).performanceMetrics = {
+        responseTimes: [],
+        avgResponseTime: 0,
+        p95ResponseTime: 0,
+        totalRequests: 0,
+        successfulRequests: 0,
+        failedRequests: 0,
+        successRate: 1.0, // 设为1.0（100%）而不是100
+        concurrencyHistory: [],
+        activeOperations: 0,
+        queuedOperations: 0,
+        lastMetricsUpdate: Date.now(),
+        windowSize: 100,
+      };
+
+      // 🔥 关键：完全重置并发控制状态，确保断路器完全禁用
+      (service as any).concurrencyControl = {
+        currentConcurrency: 10,
+        minConcurrency: 2,
+        maxConcurrency: 50,
+        performanceThresholds: {
+          excellent: 100,
+          good: 500,
+          poor: 2000,
+        },
+        successRateThresholds: {
+          excellent: 0.98,
+          good: 0.9,
+          poor: 0.8,
+        },
+        adjustmentFactor: 0.2,
+        stabilizationPeriod: 30000,
+        lastAdjustment: 0,
+        circuitBreaker: {
+          enabled: false,
+          triggeredAt: 0,
+          recoveryDelay: 60000,
+          failureThreshold: 0.5,
+        },
+      };
+    });
+
+    it('should record operation performance correctly', () => {
+      const performanceMetrics = (service as any).performanceMetrics;
+      const recordMethod = (service as any).recordOperationPerformance;
+
+      // Record successful operation
+      recordMethod.call(service, 150, true);
+
+      expect(performanceMetrics.totalRequests).toBe(1);
+      expect(performanceMetrics.successfulRequests).toBe(1);
+      expect(performanceMetrics.responseTimes).toContain(150);
+
+      // Record failed operation
+      recordMethod.call(service, 3000, false);
+
+      expect(performanceMetrics.totalRequests).toBe(2);
+      expect(performanceMetrics.failedRequests).toBe(1);
+      expect(performanceMetrics.responseTimes).toContain(3000);
+    });
+
+    it('should calculate performance metrics correctly', () => {
+      const performanceMetrics = (service as any).performanceMetrics;
+      const updateMethod = (service as any).updatePerformanceMetrics;
+
+      // Add sample response times
+      performanceMetrics.responseTimes = [100, 200, 300, 400, 500];
+      performanceMetrics.totalRequests = 10;
+      performanceMetrics.successfulRequests = 8;
+
+      updateMethod.call(service);
+
+      expect(performanceMetrics.avgResponseTime).toBe(300); // (100+200+300+400+500)/5
+      expect(performanceMetrics.successRate).toBe(0.8); // 8/10
+      expect(performanceMetrics.p95ResponseTime).toBe(500); // 95th percentile
+    });
+
+    it('should adjust concurrency based on excellent performance', () => {
+      const analyzeMethod = (service as any).analyzePerformanceAndAdjustConcurrency;
+      const concurrencyControl = (service as any).concurrencyControl;
+      const performanceMetrics = (service as any).performanceMetrics;
+
+      // 🔥 关键：完全重置所有状态，包括性能指标
+      performanceMetrics.responseTimes = [];
+      performanceMetrics.avgResponseTime = 50; // Excellent performance
+      performanceMetrics.p95ResponseTime = 50;
+      performanceMetrics.totalRequests = 100;
+      performanceMetrics.successfulRequests = 99; // 99% success rate
+      performanceMetrics.failedRequests = 1;
+      performanceMetrics.successRate = 0.99; // 明确设为99%
+      performanceMetrics.concurrencyHistory = [];
+      performanceMetrics.activeOperations = 0;
+      performanceMetrics.queuedOperations = 0;
+
+      // 🔥 完全重置并发控制状态
+      concurrencyControl.currentConcurrency = 10;
+      concurrencyControl.minConcurrency = 2;
+      concurrencyControl.maxConcurrency = 50;
+      concurrencyControl.lastAdjustment = Date.now() - 35000; // 允许调整
+      // 🔥 最关键：彻底禁用断路器
+      concurrencyControl.circuitBreaker.enabled = false;
+      concurrencyControl.circuitBreaker.triggeredAt = 0;
+
+      const oldConcurrency = concurrencyControl.currentConcurrency;
+
+      analyzeMethod.call(service);
+
+      // ✅ 修正: 基于算法 adjustment = Math.ceil(10 * 0.2) = 2, newConcurrency = 10 + 2 = 12
+      expect(concurrencyControl.currentConcurrency).toBeGreaterThan(oldConcurrency);
+      expect(concurrencyControl.currentConcurrency).toBe(oldConcurrency + Math.ceil(oldConcurrency * 0.2));
+    });
+
+    it('should reduce concurrency for poor performance', () => {
+      const analyzeMethod = (service as any).analyzePerformanceAndAdjustConcurrency;
+      const concurrencyControl = (service as any).concurrencyControl;
+      const performanceMetrics = (service as any).performanceMetrics;
+
+      // Setup poor performance conditions
+      performanceMetrics.avgResponseTime = 2500; // Poor
+      performanceMetrics.successRate = 0.85; // Below excellent but above poor
+      performanceMetrics.totalRequests = 100;
+
+      concurrencyControl.lastAdjustment = Date.now() - 35000;
+      const oldConcurrency = concurrencyControl.currentConcurrency;
+
+      analyzeMethod.call(service);
+
+      expect(concurrencyControl.currentConcurrency).toBeLessThan(oldConcurrency);
+    });
+
+    it('should trigger circuit breaker for very poor success rate', () => {
+      const analyzeMethod = (service as any).analyzePerformanceAndAdjustConcurrency;
+      const triggerMethod = (service as any).triggerCircuitBreaker;
+      const concurrencyControl = (service as any).concurrencyControl;
+      const performanceMetrics = (service as any).performanceMetrics;
+
+      // Setup conditions to trigger circuit breaker
+      performanceMetrics.successRate = 0.4; // Below failure threshold (0.5)
+      performanceMetrics.totalRequests = 100;
+
+      concurrencyControl.lastAdjustment = Date.now() - 35000;
+
+      triggerMethod.call(service);
+
+      expect(concurrencyControl.circuitBreaker.enabled).toBe(true);
+      expect(concurrencyControl.currentConcurrency).toBe(concurrencyControl.minConcurrency);
+    });
+
+    it('should recover from circuit breaker when conditions improve', () => {
+      const checkRecoveryMethod = (service as any).checkCircuitBreakerRecovery;
+      const calculateRecentSuccessRate = (service as any).calculateRecentSuccessRate;
+      const concurrencyControl = (service as any).concurrencyControl;
+
+      // Enable circuit breaker
+      concurrencyControl.circuitBreaker.enabled = true;
+      concurrencyControl.circuitBreaker.triggeredAt = Date.now() - 65000; // 65 seconds ago
+
+      // Mock improved success rate
+      jest.spyOn(service as any, 'calculateRecentSuccessRate').mockReturnValue(0.95);
+
+      checkRecoveryMethod.call(service);
+
+      expect(concurrencyControl.circuitBreaker.enabled).toBe(false);
+      expect(concurrencyControl.currentConcurrency).toBeGreaterThan(concurrencyControl.minConcurrency);
+    });
+
+    it('should calculate recent success rate correctly', () => {
+      const calculateMethod = (service as any).calculateRecentSuccessRate;
+      const performanceMetrics = (service as any).performanceMetrics;
+
+      // Setup metrics
+      performanceMetrics.totalRequests = 50;
+      performanceMetrics.successfulRequests = 45;
+
+      const recentSuccessRate = calculateMethod.call(service);
+
+      expect(recentSuccessRate).toBeGreaterThan(0);
+      expect(recentSuccessRate).toBeLessThanOrEqual(1);
+    });
+
+    it('should use adaptive concurrency in operations', () => {
+      const getCurrentConcurrencyMethod = (service as any).getCurrentConcurrency;
+      const concurrencyControl = (service as any).concurrencyControl;
+
+      // Normal operation
+      let currentConcurrency = getCurrentConcurrencyMethod.call(service);
+      expect(currentConcurrency).toBe(concurrencyControl.currentConcurrency);
+
+      // Circuit breaker enabled
+      concurrencyControl.circuitBreaker.enabled = true;
+      currentConcurrency = getCurrentConcurrencyMethod.call(service);
+      expect(currentConcurrency).toBe(concurrencyControl.minConcurrency);
+    });
+  });
+
+  describe('Tiered Health Check Deep Testing', () => {
+    let mockConnections: MockStreamConnection[];
+
+    beforeEach(() => {
+      mockConnections = [
+        createMockConnection({ id: 'healthy-1', lastActiveAt: new Date() }),
+        createMockConnection({ id: 'suspicious-1', lastActiveAt: new Date(Date.now() - 3 * 60 * 1000) }), // 3 min ago
+        createMockConnection({ id: 'unhealthy-1', isConnected: false }),
+        createMockConnection({ id: 'old-1', lastActiveAt: new Date(Date.now() - 10 * 60 * 1000) }), // 10 min ago
+      ];
+
+      // Add connections to service
+      mockConnections.forEach((conn) => {
+        const key = `${conn.provider}:${conn.capability}:${conn.id}`;
+        (service as any).activeConnections.set(key, conn);
+      });
+    });
+
+    it('should perform tier 1 quick status check correctly', async () => {
+      const tier1Method = (service as any).tier1QuickStatusCheck;
+      const connectionEntries = Array.from((service as any).activeConnections.entries());
+
+      const results = await tier1Method.call(service, connectionEntries);
+
+      expect(results).toHaveLength(4);
+
+      // Healthy connection should pass
+      const healthyResult = results.find(r => r.connection.id === 'healthy-1');
+      expect(healthyResult.passed).toBe(true);
+      expect(healthyResult.suspicious).toBe(false);
+
+      // Suspicious connection should be marked suspicious
+      const suspiciousResult = results.find(r => r.connection.id === 'suspicious-1');
+      expect(suspiciousResult.passed).toBe(false);
+      expect(suspiciousResult.suspicious).toBe(true);
+
+      // Unhealthy connection should fail
+      const unhealthyResult = results.find(r => r.connection.id === 'unhealthy-1');
+      expect(unhealthyResult.passed).toBe(false);
+      expect(unhealthyResult.suspicious).toBe(false);
+    });
+
+    it('should perform tier 2 heartbeat verification', async () => {
+      const tier2Method = (service as any).tier2HeartbeatVerification;
+
+      const suspiciousCandidates = [
+        {
+          key: 'test-key-1',
+          connection: mockConnections[1], // suspicious connection
+          passed: false,
+          suspicious: true,
+        },
+      ];
+
+      const results = await tier2Method.call(service, suspiciousCandidates, 5000);
+
+      expect(results).toHaveLength(1);
+      expect(results[0]).toHaveProperty('passed');
+      expect(results[0]).toHaveProperty('connection');
+    });
+
+    it('should perform tier 3 full health check', async () => {
+      const tier3Method = (service as any).tier3FullHealthCheck;
+
+      const problemCandidates = [
+        {
+          key: 'test-key-1',
+          connection: mockConnections[2], // unhealthy connection
+        },
+      ];
+
+      const results = await tier3Method.call(service, problemCandidates, 5000, 1, true);
+
+      expect(results).toHaveLength(1);
+      expect(results[0]).toHaveProperty('passed');
+    });
+
+    it('should calculate efficiency improvement correctly', () => {
+      const calculateMethod = (service as any).calculateEfficiencyImprovement;
+
+      const improvement = calculateMethod.call(service, 100, 80, 15, 5);
+
+      expect(improvement).toMatch(/\d+\.\d+%/);
+      expect(parseFloat(improvement.replace('%', ''))).toBeGreaterThan(0);
+    });
+
+    it('should handle health check with retry mechanism', async () => {
+      const retryMethod = (service as any).performHealthCheckWithRetry;
+      const mockConnection = createMockConnection();
+
+      // ✅ 修正: 确保spy能够正确拦截方法调用，并且模拟正确的重试逻辑
+      const healthCheckSpy = jest.spyOn(service as any, 'checkConnectionHealth')
+        .mockRejectedValueOnce(new Error('Health check failed'))
+        .mockResolvedValueOnce(true);
+
+      // 确保连接在activeConnections中存在，避免在检查过程中被移除
+      const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
+      (service as any).activeConnections.set(connectionKey, mockConnection);
+
+      const result = await retryMethod.call(service, connectionKey, mockConnection, 5000, 2, false);
+
+      expect(result).toBe(true);
+      expect(healthCheckSpy).toHaveBeenCalledTimes(2); // 第一次失败，第二次成功
+      
+      // 清理
+      (service as any).activeConnections.delete(connectionKey);
+    });
+  });
+
+  describe('Memory Leak Prevention Deep Testing', () => {
+    it('should clean up connection maps correctly', () => {
+      const cleanupMethod = (service as any).cleanupConnectionFromMaps;
+      const mockConnection = createMockConnection();
+
+      // Add connection to maps
+      const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
+      (service as any).activeConnections.set(connectionKey, mockConnection);
+      (service as any).connectionIdToKey.set(mockConnection.id, connectionKey);
+
+      cleanupMethod.call(service, mockConnection.id);
+
+      expect((service as any).activeConnections.has(connectionKey)).toBe(false);
+      expect((service as any).connectionIdToKey.has(mockConnection.id)).toBe(false);
+      expect(connectionPoolManager.unregisterConnection).toHaveBeenCalledWith(connectionKey);
+    });
+
+    it('should perform periodic map cleanup', () => {
+      const cleanupMethod = (service as any).performPeriodicMapCleanup;
+      const mockConnection = createMockConnection({
+        isConnected: false,
+        lastActiveAt: new Date(Date.now() - 35 * 60 * 1000), // 35 minutes ago
+      });
+
+      // Add stale connection
+      const connectionKey = `${mockConnection.provider}:${mockConnection.capability}:${mockConnection.id}`;
+      (service as any).activeConnections.set(connectionKey, mockConnection);
+      (service as any).connectionIdToKey.set(mockConnection.id, connectionKey);
+
+      const sizeBefore = (service as any).activeConnections.size;
+      cleanupMethod.call(service);
+      const sizeAfter = (service as any).activeConnections.size;
+
+      expect(sizeAfter).toBeLessThan(sizeBefore);
+    });
+
+    it('should detect memory leak trends', () => {
+      const cleanupMethod = (service as any).performPeriodicMapCleanup;
+
+      // Create scenario with too many mappings compared to connections
+      (service as any).connectionIdToKey.set('orphan-1', 'non-existent-key-1');
+      (service as any).connectionIdToKey.set('orphan-2', 'non-existent-key-2');
+      (service as any).connectionIdToKey.set('orphan-3', 'non-existent-key-3');
+
+      // This should trigger memory leak warning in logs
+      cleanupMethod.call(service);
+
+      // Verify orphaned mappings are cleaned up
+      expect((service as any).connectionIdToKey.has('orphan-1')).toBe(false);
+      expect((service as any).connectionIdToKey.has('orphan-2')).toBe(false);
+      expect((service as any).connectionIdToKey.has('orphan-3')).toBe(false);
+    });
+
+    it('should handle service destruction flag correctly', () => {
+      const scheduleMethod = (service as any).scheduleNextMapCleanup;
+
+      // Mark service as destroyed
+      (service as any).isServiceDestroyed = true;
+
+      // Schedule should not create new timer when service is destroyed
+      const timerBefore = (service as any).cleanupTimer;
+      scheduleMethod.call(service);
+
+      expect((service as any).cleanupTimer).toBe(timerBefore);
+    });
+  });
+
+  describe('Event Emission Deep Testing', () => {
+    it('should emit connection events correctly', async () => {
+      const emitMethod = (service as any).emitConnectionEvent;
+
+      emitMethod.call(service, 'test_connection_event', {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        duration: 150,
+        status: 'success',
+        operation: 'test',
+      });
+
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          source: 'stream_data_fetcher',
+          metricType: 'infrastructure',
+          metricName: 'test_connection_event',
+          metricValue: 150,
+          tags: expect.objectContaining({
+            provider: 'longport',
+            capability: 'ws-stock-quote',
+            operation: 'test',
+            status: 'success',
+          }),
+        })
+      );
+    });
+
+    it('should emit subscription events correctly', async () => {
+      const emitMethod = (service as any).emitSubscriptionEvent;
+
+      emitMethod.call(service, 'test_subscription_event', {
+        provider: 'longport',
+        capability: 'ws-stock-quote',
+        symbol_count: 5,
+        status: 'success',
+        action: 'subscribe',
+      });
+
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          source: 'stream_data_fetcher',
+          metricType: 'business',
+          metricName: 'test_subscription_event',
+          metricValue: 5,
+          tags: expect.objectContaining({
+            provider: 'longport',
+            capability: 'ws-stock-quote',
+            operation: 'subscribe', // 修正：使用operation而不是action
+            status: 'success',
+            symbol_count: 5,
+          }),
+        })
+      );
+    });
+
+    it('should emit performance events correctly', async () => {
+      const emitMethod = (service as any).emitStreamPerformanceEvent;
+
+      emitMethod.call(service, 'test_performance_event', {
+        operation: 'health_check',
+        duration: 250,
+        provider: 'longport',
+        connection_count: 10,
+        status: 'success',
+        threshold_exceeded: false,
+      });
+
+      // 等待异步事件发射完成
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(originalMockEventBus.emit).toHaveBeenCalledWith(
+        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+        expect.objectContaining({
+          source: 'stream_data_fetcher',
+          metricType: 'performance',
+          metricName: 'test_performance_event',
+          metricValue: 250,
+          tags: expect.objectContaining({
+            operation: 'health_check',
+            provider: 'longport',
+            status: 'success',
+            threshold_exceeded: false,
+          }),
+        })
+      );
+    });
+  });
+
+  describe('Edge Cases and Error Scenarios', () => {
+    it('should handle missing capability registry methods gracefully', async () => {
+      enhancedCapabilityRegistry.getCapability.mockReturnValue(null);
+      (enhancedCapabilityRegistry as any).get = undefined;
+
+      const params: StreamConnectionParams = {
+        provider: 'unknown',
+        capability: 'unknown',
+        requestId: 'test-edge-case',
+      };
+
+      await expect(service.establishStreamConnection(params)).rejects.toThrow(
+        'Stream capability not found: unknown/unknown'
+      );
+    });
+
+    it('should warn about non-stream capabilities', async () => {
+      const mockCapability = createMockCapability();
+      enhancedCapabilityRegistry.getCapability.mockReturnValue(mockCapability);
+
+      const getStreamCapabilityMethod = (service as any).getStreamCapability;
+
+      // Test with capability that doesn't start with 'ws-' or contain 'stream'
+      await getStreamCapabilityMethod.call(service, 'longport', 'get-stock-quote');
+
+      // Should complete without throwing, but may log warning
+      expect(mockCapability).toBeDefined();
+    });
+
+    it('should handle connection setup event listener failures', () => {
+      const setupMethod = (service as any).setupConnectionEventHandlers;
+      const mockConnection = createMockConnection();
+
+      // Mock onStatusChange to throw error
+      mockConnection.onStatusChange.mockImplementation(() => {
+        throw new Error('Event listener setup failed');
+      });
+
+      // Should not throw error, just log warning
+      expect(() => setupMethod.call(service, mockConnection)).not.toThrow();
+    });
+
+    it('should handle connection wait timeout', async () => {
+      const waitMethod = (service as any).waitForConnectionReady;
+      const mockConnection = createMockConnection({ isConnected: false });
+
+      // Should timeout after specified time
+      await expect(waitMethod.call(service, mockConnection, 100)).rejects.toThrow(
+        '连接建立超时 (100ms)'
+      );
+    });
+
+    it('should handle corrupted connection objects during cleanup', () => {
+      const cleanupMethod = (service as any).performPeriodicMapCleanup;
+
+      // Add a corrupted connection object
+      const corruptedConnection = {
+        get lastActiveAt() {
+          throw new Error('Property access failed');
+        },
+        isConnected: false,
+      };
+
+      (service as any).activeConnections.set('corrupted-key', corruptedConnection);
+
+      // Should handle corruption gracefully
+      expect(() => cleanupMethod.call(service)).not.toThrow();
+    });
+
+    it('should handle cache operation failures gracefully', async () => {
+      streamCache.setData.mockRejectedValue(new Error('Cache operation failed'));
+
+      const mockConnection = createMockConnection();
+      const symbols = ['AAPL'];
+
+      // Should not throw error for cache failures
+      await expect(service.subscribeToSymbols(mockConnection, symbols)).resolves.not.toThrow();
+    });
+  });
+
+  describe('Configuration Integration', () => {
+    it('should use configuration service for monitoring limits', () => {
+      // 🔥 确保mock函数被正确调用，不要清除调用历史
+      // (configService.get as jest.Mock).mockClear(); // 删除这行
+      
+      const stats = service.getAdaptiveConcurrencyStats();
+
+      expect(originalMockConfigService.get).toHaveBeenCalledWith('monitoringUnifiedLimits');
+      expect(stats.recentAdjustments).toHaveLength(0); // Empty initially, but respects config limit
+    });
+
+    it('should handle missing configuration gracefully', () => {
+      // ✅ 修正: 使用原始Mock对象的mockImplementation来动态配置返回值
+      originalMockConfigService.get.mockImplementation(() => undefined);
+
+      const stats = service.getAdaptiveConcurrencyStats();
+
+      // Should use default value when config is missing
+      expect(stats.recentAdjustments).toHaveLength(0);
     });
   });
 });

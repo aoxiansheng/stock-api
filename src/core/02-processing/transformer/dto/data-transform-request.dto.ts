@@ -10,21 +10,56 @@ import {
   IsEnum,
   IsNotEmpty,
   ValidateNested,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+  registerDecorator,
+  ValidationOptions,
+  ValidateIf,
 } from "class-validator";
 import { API_TYPE_VALUES } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 import type { ApiType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
+
+@ValidatorConstraint({ name: 'isNonEmptyObjectOrArray', async: false })
+export class IsNonEmptyObjectOrArrayConstraint implements ValidatorConstraintInterface {
+  validate(value: any, args: ValidationArguments) {
+    if (Array.isArray(value)) {
+      return true;
+    }
+    if (typeof value === 'object' && value !== null) {
+      return Object.keys(value).length > 0;
+    }
+    return false;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'rawData must be a non-empty object or an array';
+  }
+}
+
+export function IsNonEmptyObjectOrArray(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      constraints: [],
+      validator: IsNonEmptyObjectOrArrayConstraint,
+    });
+  };
+}
 
 class TransformOptionsDto {
 
   @ApiPropertyOptional({
     description: "是否包含转换元数据",
   })
-  @IsOptional()
+  @ValidateIf((o, v) => v !== undefined)
   @IsBoolean()
   includeMetadata?: boolean;
 
   @ApiPropertyOptional({ description: "是否包含调试信息" })
-  @IsOptional()
+  @ValidateIf((o, v) => v !== undefined)
   @IsBoolean()
   includeDebugInfo?: boolean;
 
@@ -36,6 +71,7 @@ export class DataTransformRequestDto {
     example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsString()
+  @IsNotEmpty()
   provider: string;
 
   @ApiProperty({
@@ -51,11 +87,11 @@ export class DataTransformRequestDto {
     example: "quote_fields",
   })
   @IsString()
+  @IsNotEmpty()
   transDataRuleListType: string;
 
   @ApiProperty({ description: "要转换的原始数据" })
-  @IsObject()
-  @IsNotEmpty()
+  @IsNonEmptyObjectOrArray()
   rawData: any;
 
   @ApiPropertyOptional({ description: "要使用的特定映射规则ID" })

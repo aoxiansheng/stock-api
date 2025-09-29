@@ -172,8 +172,149 @@ describe('ApiKeyUtil', () => {
   describe('sanitizeAccessToken', () => {
     it('should sanitize access token for logging', () => {
       const result = ApiKeyUtil.sanitizeAccessToken('abcdefghijklmnopqrstuvwxyz');
-      
+
       expect(result).toBe('abcd****xyz');
+    });
+
+    it('should handle short tokens', () => {
+      const result = ApiKeyUtil.sanitizeAccessToken('abc');
+
+      expect(result).toBe('abc');
+    });
+
+    it('should handle empty string', () => {
+      const result = ApiKeyUtil.sanitizeAccessToken('');
+
+      expect(result).toBe('');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle zero current in calculateUsagePercentage', () => {
+      const result = ApiKeyUtil.calculateUsagePercentage(0, 100);
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle negative limit in calculateUsagePercentage', () => {
+      const result = ApiKeyUtil.calculateUsagePercentage(50, -10);
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle decimal calculations in calculateUsagePercentage', () => {
+      const result = ApiKeyUtil.calculateUsagePercentage(33, 99);
+
+      expect(result).toBe(33); // rounds (33/99)*100 = 33.33... to 33
+    });
+
+    it('should handle very large numbers in calculateUsagePercentage', () => {
+      const result = ApiKeyUtil.calculateUsagePercentage(999, 1000);
+
+      expect(result).toBe(100); // rounds 99.9 to 100
+    });
+
+    it('should handle isNearExpiry with custom warning days', () => {
+      const nearExpiryDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day from now
+      const result = ApiKeyUtil.isNearExpiry(nearExpiryDate, 2);
+
+      expect(result).toBe(true);
+    });
+
+    it('should handle isNearExpiry with zero warning days', () => {
+      const nearExpiryDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day from now
+      const result = ApiKeyUtil.isNearExpiry(nearExpiryDate, 0);
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle isNearExpiry with exactly warning days', () => {
+      const exactDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // exactly 7 days from now
+      const result = ApiKeyUtil.isNearExpiry(exactDate, 7);
+
+      expect(result).toBe(true);
+    });
+
+    it('should handle generateDefaultName with zero index', () => {
+      const result = ApiKeyUtil.generateDefaultName(0);
+
+      expect(result).toBe('API Key 0');
+    });
+
+    it('should handle generateDefaultName with negative index', () => {
+      const result = ApiKeyUtil.generateDefaultName(-1);
+
+      expect(result).toBe('API Key -1');
+    });
+
+    it('should handle generateAccessToken with zero length', () => {
+      const result = ApiKeyUtil.generateAccessToken(0);
+
+      expect(result).toBe('');
+    });
+
+    it('should handle generateAccessToken with large length', () => {
+      const result = ApiKeyUtil.generateAccessToken(1000);
+
+      expect(result).toBe('a'.repeat(1000));
+    });
+
+    it('should validate StringValidationUtil is called with correct parameters for isValidName', () => {
+      const mockIsValidName = require('../../../../src/common/utils/string-validation.util').StringValidationUtil.isValidName;
+
+      ApiKeyUtil.isValidName('Test Name');
+
+      expect(mockIsValidName).toHaveBeenCalledWith('Test Name', {
+        minLength: expect.any(Number),
+        maxLength: expect.any(Number),
+        pattern: expect.any(RegExp),
+        allowEmpty: false,
+        allowNullish: false,
+      });
+    });
+
+    it('should validate UUID is called in generateAppKey', () => {
+      const uuid = require('uuid');
+      const v4Mock = uuid.v4;
+
+      ApiKeyUtil.generateAppKey();
+
+      expect(v4Mock).toHaveBeenCalled();
+    });
+
+    it('should call StringValidationUtil.generateRandomString with correct params', () => {
+      const mockGenerateRandomString = require('../../../../src/common/utils/string-validation.util').StringValidationUtil.generateRandomString;
+
+      ApiKeyUtil.generateAccessToken(32);
+
+      expect(mockGenerateRandomString).toHaveBeenCalledWith({
+        length: 32,
+        charset: expect.any(String),
+      });
+    });
+
+    it('should call StringValidationUtil.matchesPattern for appKey validation', () => {
+      const mockMatchesPattern = require('../../../../src/common/utils/string-validation.util').StringValidationUtil.matchesPattern;
+
+      ApiKeyUtil.isValidAppKey('test-key');
+
+      expect(mockMatchesPattern).toHaveBeenCalledWith('test-key', expect.any(RegExp));
+    });
+
+    it('should call StringValidationUtil.matchesPattern for accessToken validation', () => {
+      const mockMatchesPattern = require('../../../../src/common/utils/string-validation.util').StringValidationUtil.matchesPattern;
+
+      ApiKeyUtil.isValidAccessToken('test-token');
+
+      expect(mockMatchesPattern).toHaveBeenCalledWith('test-token', expect.any(RegExp));
+    });
+
+    it('should call StringValidationUtil.sanitizeString with correct params', () => {
+      const mockSanitizeString = require('../../../../src/common/utils/string-validation.util').StringValidationUtil.sanitizeString;
+
+      ApiKeyUtil.sanitizeAccessToken('test-token');
+
+      expect(mockSanitizeString).toHaveBeenCalledWith('test-token', 4, 4, '*');
     });
   });
 });

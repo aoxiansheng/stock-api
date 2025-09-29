@@ -12,8 +12,11 @@ export class RequestIdUtils {
    * @returns 唯一RequestId
    */
   static generate(prefix = "transform"): string {
+    // 增加对null值的处理，确保健壮性
+    const safePrefix = prefix === null ? "transform" : prefix;
+    
     // UUID保证全局唯一，无需复杂逻辑
-    return `${prefix}_${randomUUID()}`;
+    return `${safePrefix}_${randomUUID()}`;
   }
 
 

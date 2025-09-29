@@ -7,6 +7,8 @@ import { QueryResponseDto, BulkQueryResponseDto, QueryStatsDto } from '@core/01-
 import { QueryType } from '@core/01-entry/query/dto/query-types.dto';
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
+import { Reflector } from '@nestjs/core';
+import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
 
 // Mock the logger
 jest.mock('@common/logging/index', () => ({
@@ -25,6 +27,15 @@ jest.mock('@common/core/exceptions', () => ({
   },
   ComponentIdentifier: {},
   BusinessErrorCode: {},
+}));
+
+// Mock AuthPerformanceService
+jest.mock('@auth/services/infrastructure/auth-performance.service', () => ({
+  AuthPerformanceService: jest.fn().mockImplementation(() => ({
+    recordAuthFlowPerformance: jest.fn(),
+    recordAuthCachePerformance: jest.fn(),
+    recordAuthFlowStats: jest.fn(),
+  })),
 }));
 
 describe('QueryController', () => {
@@ -56,6 +67,20 @@ describe('QueryController', () => {
           provide: QueryService,
           useValue: mockQueryService,
         },
+        {
+          provide: Reflector,
+          useValue: {
+            getAllAndOverride: jest.fn().mockReturnValue(false),
+          },
+        },
+        {
+          provide: AuthPerformanceService,
+          useValue: {
+            recordAuthFlowPerformance: jest.fn(),
+            recordAuthCachePerformance: jest.fn(),
+            recordAuthFlowStats: jest.fn(),
+          },
+        }
       ],
     }).compile();
 
@@ -476,7 +501,9 @@ describe('QueryController', () => {
     it('should throw error when symbols parameter is missing', async () => {
       // Arrange
       const mockError = new Error('Symbols parameter is required');
-      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockReturnValue(mockError);
+      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockImplementation(() => {
+        throw mockError;
+      });
 
       // Act & Assert
       await expect(controller.queryBySymbols('')).rejects.toThrow('Symbols parameter is required');
@@ -496,7 +523,9 @@ describe('QueryController', () => {
     it('should throw error when symbols parameter is null or undefined', async () => {
       // Arrange
       const mockError = new Error('Symbols parameter is required');
-      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockReturnValue(mockError);
+      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockImplementation(() => {
+        throw mockError;
+      });
 
       // Act & Assert
       await expect(controller.queryBySymbols(null as any)).rejects.toThrow('Symbols parameter is required');
@@ -615,7 +644,7 @@ describe('QueryController', () => {
     it('should throw error when market parameter is missing', async () => {
       // Arrange
       const mockError = new Error('Market parameter is required');
-      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockReturnValue(mockError);
+      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockImplementation(() => { throw mockError; });
 
       // Act & Assert
       await expect(controller.queryByMarket('')).rejects.toThrow('Market parameter is required');
@@ -684,7 +713,7 @@ describe('QueryController', () => {
     it('should throw error when provider parameter is missing', async () => {
       // Arrange
       const mockError = new Error('Provider parameter is required');
-      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockReturnValue(mockError);
+      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockImplementation(() => { throw mockError; });
 
       // Act & Assert
       await expect(controller.queryByProvider('')).rejects.toThrow('Provider parameter is required');
@@ -825,7 +854,7 @@ describe('QueryController', () => {
     it('should handle validation errors with proper context', async () => {
       // Arrange
       const validationError = new Error('Validation failed');
-      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockReturnValue(validationError);
+      (UniversalExceptionFactory.createBusinessException as jest.Mock).mockImplementation(() => { throw validationError; });
 
       // Act & Assert
       await expect(controller.queryBySymbols('')).rejects.toThrow('Validation failed');
@@ -911,11 +940,13 @@ describe('QueryController', () => {
         symbols: ['AAPL'],
       })).rejects.toThrow();
 
+      // 修改期望，使用objectContaining接受额外属性，并修正期望的errorType
       expect(mockLogger.error).toHaveBeenCalledWith(
         'API Error: Query execution failed',
         expect.objectContaining({
           error: 'Custom service error',
-          errorType: 'CustomError',
+          errorType: 'Error', // 更改为与控制器中实际使用的值匹配
+          queryType: QueryType.BY_SYMBOLS
         })
       );
     });

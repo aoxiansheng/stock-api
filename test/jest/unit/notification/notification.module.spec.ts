@@ -1,4 +1,22 @@
-// notification.module.spec.ts - 测试占位代码
-// 路径: unit/notification/notification.module.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { NotificationModule } from '@notification/notification.module';
+import { NotificationService } from '@notification/services/notification.service';
 
-// TODO: 实现具体的测试用例
+describe('NotificationModule', () => {
+  let module: TestingModule;
+
+  beforeEach(async () => {
+    module = await Test.createTestingModule({
+      imports: [NotificationModule],
+    }).compile();
+  });
+
+  it('should be defined', () => {
+    expect(module).toBeDefined();
+  });
+
+  it('should resolve NotificationService', () => {
+    const service = module.get<NotificationService>(NotificationService);
+    expect(service).toBeDefined();
+  });
+});

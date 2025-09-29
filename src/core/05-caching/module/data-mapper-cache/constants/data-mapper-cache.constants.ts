@@ -80,13 +80,3 @@ export enum DataMapperCacheOperation {
   CLEAR = "clear",
 }
 
-/**
- * 缓存统计类型
- */
-export interface DataMapperCacheMetrics {
-  hits: number;
-  misses: number;
-  operations: number;
-  avgResponseTime: number;
-  lastResetTime: Date;
-}

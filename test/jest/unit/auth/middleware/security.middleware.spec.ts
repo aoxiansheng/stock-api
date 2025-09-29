@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { SecurityMiddleware, CSRFMiddleware, RateLimitByIPMiddleware } from '@auth/middleware/security.middleware';
 import { AuthConfigService } from '@auth/services/infrastructure/auth-config.service';
 import { Request, Response, NextFunction } from 'express';
 import { createLogger } from '@common/logging/index';
 import { HttpHeadersUtil } from '@common/utils/http-headers.util';
 import { SecurityExceptionFactory } from '@auth/exceptions/security.exceptions';
+import { UnitTestSetup } from '@test/testbasic/setup/unit-test-setup';
 
 // Mock the logger
 jest.mock('@common/logging/index', () => ({
@@ -63,8 +63,9 @@ describe('SecurityMiddleware', () => {
 
   const mockNext = jest.fn() as NextFunction;
 
-  beforeEach(async () => {
-    const mockAuthConfigService = {
+  beforeEach(() => {
+    // 创建AuthConfigService的Mock
+    authConfigService = {
       getMaxPayloadSizeBytes: jest.fn().mockReturnValue(10485760), // 10MB
       getMaxPayloadSizeString: jest.fn().mockReturnValue('10MB'),
       getMaxStringLengthSanitize: jest.fn().mockReturnValue(1000),
@@ -80,20 +81,10 @@ describe('SecurityMiddleware', () => {
         maxRequests: 1000,
         windowMs: 60000,
       }),
-    };
+    } as any;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SecurityMiddleware,
-        {
-          provide: AuthConfigService,
-          useValue: mockAuthConfigService,
-        },
-      ],
-    }).compile();
-
-    middleware = module.get<SecurityMiddleware>(SecurityMiddleware);
-    authConfigService = module.get(AuthConfigService);
+    // 创建SecurityMiddleware实例
+    middleware = new SecurityMiddleware(authConfigService);
 
     // Reset mocks
     jest.clearAllMocks();
@@ -363,12 +354,8 @@ describe('CSRFMiddleware', () => {
 
   const mockNext = jest.fn() as NextFunction;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [CSRFMiddleware],
-    }).compile();
-
-    middleware = module.get<CSRFMiddleware>(CSRFMiddleware);
+  beforeEach(() => {
+    middleware = new CSRFMiddleware();
 
     // Reset mocks
     jest.clearAllMocks();
@@ -445,33 +432,26 @@ describe('RateLimitByIPMiddleware', () => {
 
   const mockNext = jest.fn() as NextFunction;
 
-  beforeEach(async () => {
-    const mockAuthConfigService = {
+  beforeEach(() => {
+    // 创建AuthConfigService的Mock
+    authConfigService = {
       isIpRateLimitEnabled: jest.fn().mockReturnValue(true),
       getIpRateLimitConfig: jest.fn().mockReturnValue({
         enabled: true,
         maxRequests: 5,
         windowMs: 60000,
       }),
-    };
+    } as any;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        RateLimitByIPMiddleware,
-        {
-          provide: AuthConfigService,
-          useValue: mockAuthConfigService,
-        },
-      ],
-    }).compile();
-
-    middleware = module.get<RateLimitByIPMiddleware>(RateLimitByIPMiddleware);
-    authConfigService = module.get(AuthConfigService);
+    // 创建RateLimitByIPMiddleware实例
+    middleware = new RateLimitByIPMiddleware(authConfigService);
 
     // Reset mocks and clear rate limit map
     jest.clearAllMocks();
-    (middleware as any).ipRequestCounts.clear();
-    
+    if ((middleware as any).ipRequestCounts) {
+      (middleware as any).ipRequestCounts.clear();
+    }
+
     // Mock HttpHeadersUtil
     (HttpHeadersUtil.getSecureClientIdentifier as jest.Mock).mockReturnValue('127.0.0.1');
     (HttpHeadersUtil.getClientIP as jest.Mock).mockReturnValue('127.0.0.1');

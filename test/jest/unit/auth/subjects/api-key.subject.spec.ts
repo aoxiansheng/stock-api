@@ -424,5 +424,260 @@ describe('ApiKeySubject', () => {
         expect(subject.isValid()).toBe(false);
       });
     });
+
+    it('should handle getUsageStats with invalid date', () => {
+      const apiKeyWithInvalidDate = { ...mockApiKey, createdAt: 'invalid-date' };
+      const subject = new ApiKeySubject(apiKeyWithInvalidDate);
+      const stats = subject.getUsageStats();
+
+      // Should handle invalid date gracefully
+      expect(stats.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('should handle metadata with null values', () => {
+      const apiKeyWithNulls = {
+        ...mockApiKey,
+        rateLimit: null,
+        expiresAt: null,
+        lastAccessedAt: null,
+        totalRequestCount: null
+      };
+      const subject = new ApiKeySubject(apiKeyWithNulls);
+
+      expect(subject.getRateLimit()).toBeNull();
+      expect(subject.isValid()).toBe(true); // null expiresAt should be valid
+      expect(subject.getUsageStats().totalRequestCount).toBe(0);
+      expect(subject.getUsageStats().lastAccessedAt).toBeNull();
+    });
+
+    it('should handle permissions array validation', () => {
+      const apiKeyWithStringPermissions = {
+        ...mockApiKey,
+        permissions: 'invalid'
+      };
+
+      expect(() => new ApiKeySubject(apiKeyWithStringPermissions)).toThrow('API Key主体的权限字段必须是数组');
+    });
+
+    it('should handle permissions array with null', () => {
+      const apiKeyWithNullPermissions = {
+        ...mockApiKey,
+        permissions: null
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithNullPermissions);
+      expect(subject.permissions).toEqual([]);
+    });
+
+    it('should handle permissions array with undefined', () => {
+      const apiKeyWithUndefinedPermissions = {
+        ...mockApiKey,
+        permissions: undefined
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithUndefinedPermissions);
+      expect(subject.permissions).toEqual([]);
+    });
+
+    it('should handle empty string userId', () => {
+      const apiKeyWithEmptyUserId = {
+        ...mockApiKey,
+        userId: ''
+      };
+
+      expect(() => new ApiKeySubject(apiKeyWithEmptyUserId)).toThrow('API Key关联的用户ID格式无效');
+    });
+
+    it('should handle whitespace userId', () => {
+      const apiKeyWithWhitespaceUserId = {
+        ...mockApiKey,
+        userId: '   '
+      };
+
+      expect(() => new ApiKeySubject(apiKeyWithWhitespaceUserId)).toThrow('API Key关联的用户ID格式无效');
+    });
+
+    it('should handle complex userId object', () => {
+      const apiKeyWithComplexUserId = {
+        ...mockApiKey,
+        userId: {
+          toString: () => '507f1f77bcf86cd799439011',
+          _id: '507f1f77bcf86cd799439011'
+        }
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithComplexUserId);
+      expect(subject.metadata.userId).toBe('507f1f77bcf86cd799439011');
+    });
+
+    it('should handle expiresAt as string', () => {
+      const future = new Date(Date.now() + 10000);
+      const apiKeyWithStringExpiry = {
+        ...mockApiKey,
+        expiresAt: future.toISOString()
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithStringExpiry);
+      expect(subject.isValid()).toBe(true);
+    });
+
+    it('should handle invalid expiresAt string', () => {
+      const apiKeyWithInvalidExpiry = {
+        ...mockApiKey,
+        expiresAt: 'invalid-date'
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithInvalidExpiry);
+      const valid = subject.isValid();
+
+      // Should handle invalid date and not crash
+      expect(typeof valid).toBe('boolean');
+    });
+
+    it('should handle missing appKey in metadata', () => {
+      const apiKeyWithoutAppKey = {
+        ...mockApiKey,
+        appKey: undefined
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithoutAppKey);
+      expect(subject.metadata.appKey).toBeUndefined();
+    });
+
+    it('should handle missing name in getDisplayName', () => {
+      const apiKeyWithoutName = {
+        ...mockApiKey,
+        name: null
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithoutName);
+      expect(subject.getDisplayName()).toBe('API Key: unnamed');
+    });
+
+    it('should handle empty string name in getDisplayName', () => {
+      const apiKeyWithEmptyName = {
+        ...mockApiKey,
+        name: ''
+      };
+
+      const subject = new ApiKeySubject(apiKeyWithEmptyName);
+      expect(subject.getDisplayName()).toBe('API Key: unnamed');
+    });
+
+    it('should handle permissions validation with non-enum values', () => {
+      const subject = new ApiKeySubject(mockApiKey);
+
+      // Test with a string that is not a valid Permission enum value
+      const hasInvalidPermission = subject.hasPermission('INVALID_PERMISSION' as any);
+      expect(hasInvalidPermission).toBe(false);
+    });
+
+    it('should handle hasAllPermissions with empty array', () => {
+      const subject = new ApiKeySubject(mockApiKey);
+
+      const hasAll = subject.hasAllPermissions([]);
+      expect(hasAll).toBe(true);
+    });
+
+    it('should handle hasAnyPermission with empty array', () => {
+      const subject = new ApiKeySubject(mockApiKey);
+
+      const hasAny = subject.hasAnyPermission([]);
+      expect(hasAny).toBe(false);
+    });
+
+    it('should handle SYSTEM_ADMIN permission hierarchy correctly with all system permissions', () => {
+      const adminApiKey = { ...mockApiKey, permissions: [Permission.SYSTEM_ADMIN] };
+      const subject = new ApiKeySubject(adminApiKey);
+
+      // Test all system permissions one by one
+      expect(subject.hasPermission(Permission.SYSTEM_MONITOR)).toBe(true);
+      expect(subject.hasPermission(Permission.SYSTEM_METRICS)).toBe(true);
+      expect(subject.hasPermission(Permission.SYSTEM_HEALTH)).toBe(true);
+
+      // Test hasAllPermissions with system permissions
+      expect(subject.hasAllPermissions([Permission.SYSTEM_MONITOR, Permission.SYSTEM_METRICS])).toBe(true);
+
+      // Test hasAnyPermission with system permissions
+      expect(subject.hasAnyPermission([Permission.SYSTEM_MONITOR, Permission.DATA_READ])).toBe(true);
+    });
+
+    it('should handle belongsToUser with null userId in subject', () => {
+      const apiKeyWithNullUserId = { ...mockApiKey, userId: null };
+      const subject = new ApiKeySubject(apiKeyWithNullUserId);
+
+      expect(subject.belongsToUser('507f1f77bcf86cd799439011')).toBe(false);
+    });
+
+    it('should handle belongsToUser with undefined userId in subject', () => {
+      const apiKeyWithUndefinedUserId = { ...mockApiKey, userId: undefined };
+      const subject = new ApiKeySubject(apiKeyWithUndefinedUserId);
+
+      expect(subject.belongsToUser('507f1f77bcf86cd799439011')).toBe(false);
+    });
+
+    it('should handle belongsToUser with empty string userId in subject', () => {
+      const apiKeyWithoutUserId = { ...mockApiKey, userId: undefined };
+      const subject = new ApiKeySubject(apiKeyWithoutUserId);
+
+      expect(subject.belongsToUser('')).toBe(false);
+    });
+
+    it('should validate toJSON includes all required fields', () => {
+      const subject = new ApiKeySubject(mockApiKey);
+      const json = subject.toJSON();
+
+      expect(json).toHaveProperty('type');
+      expect(json).toHaveProperty('id');
+      expect(json).toHaveProperty('permissions');
+      expect(json).toHaveProperty('metadata');
+      expect(json.metadata).toHaveProperty('name');
+      expect(json.metadata).toHaveProperty('appKey');
+      expect(json.metadata).toHaveProperty('userId');
+      expect(json.metadata).toHaveProperty('status');
+      expect(json.metadata).toHaveProperty('expiresAt');
+      expect(json.metadata).toHaveProperty('rateLimit');
+    });
+
+    it('should handle constructor with minimal valid data', () => {
+      const minimalApiKey = {
+        id: '507f1f77bcf86cd799439011',
+        permissions: []
+      };
+
+      const subject = new ApiKeySubject(minimalApiKey);
+
+      expect(subject.id).toBe('507f1f77bcf86cd799439011');
+      expect(subject.permissions).toEqual([]);
+      expect(subject.metadata.name).toBeUndefined();
+      expect(subject.metadata.userId).toBeUndefined();
+    });
+
+    it('should handle isValid with exactly current time expiration', () => {
+      const now = new Date();
+      const apiKeyExpiringExactlyNow = { ...mockApiKey, expiresAt: now };
+
+      // Wait a tiny bit to ensure we're past the expiry time
+      setTimeout(() => {
+        const subject = new ApiKeySubject(apiKeyExpiringExactlyNow);
+        expect(subject.isValid()).toBe(false);
+      }, 1);
+    });
+
+    it('should handle getUsageStats with 0 totalRequestCount', () => {
+      const apiKeyWithZeroCount = { ...mockApiKey, totalRequestCount: 0 };
+      const subject = new ApiKeySubject(apiKeyWithZeroCount);
+      const stats = subject.getUsageStats();
+
+      expect(stats.totalRequestCount).toBe(0);
+    });
+
+    it('should handle very large totalRequestCount', () => {
+      const apiKeyWithLargeCount = { ...mockApiKey, totalRequestCount: Number.MAX_SAFE_INTEGER };
+      const subject = new ApiKeySubject(apiKeyWithLargeCount);
+      const stats = subject.getUsageStats();
+
+      expect(stats.totalRequestCount).toBe(Number.MAX_SAFE_INTEGER);
+    });
   });
 });

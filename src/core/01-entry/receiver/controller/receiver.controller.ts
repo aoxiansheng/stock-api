@@ -146,18 +146,23 @@ export class ReceiverController {
     try {
       const result = await this.receiverService.handleRequest(request);
 
-      // 🎯 修改：根据部分失败情况动态判断成功状态
-      const isFullySuccessful = !result.metadata.hasPartialFailures;
+      // 🎯 修改：增加空值检查，处理metadata可能为undefined的情况
+      const isFullySuccessful = result.metadata ? !result.metadata.hasPartialFailures : true;
 
-      this.logger.log(`数据请求处理完成`, {
-        requestId: result.metadata.requestId,
-        success: isFullySuccessful,
-        provider: result.metadata.provider,
-        processingTimeMs: result.metadata.processingTimeMs,
-        totalRequested: result.metadata.totalRequested,
-        successfullyProcessed: result.metadata.successfullyProcessed,
-        hasPartialFailures: result.metadata.hasPartialFailures,
-      });
+      // 🎯 修改：增加空值检查，确保metadata存在
+      if (result.metadata) {
+        this.logger.log(`数据请求处理完成`, {
+          requestId: result.metadata.requestId,
+          success: isFullySuccessful,
+          provider: result.metadata.provider,
+          processingTimeMs: result.metadata.processingTimeMs,
+          totalRequested: result.metadata.totalRequested,
+          successfullyProcessed: result.metadata.successfullyProcessed,
+          hasPartialFailures: result.metadata.hasPartialFailures,
+        });
+      } else {
+        this.logger.log(`数据请求处理完成，无元数据`);
+      }
 
       // 🎯 合规修复：直接返回业务数据，让 ResponseInterceptor 自动处理格式化
       return result;

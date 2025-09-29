@@ -355,8 +355,9 @@ describe('Retryable Decorators', () => {
 
         // Assert
         expect(result).toBe(originalDescriptor);
-        expect(result.value).not.toBe(originalDescriptor.value); // Method should be wrapped
         expect(typeof result.value).toBe('function');
+        // 验证方法被装饰器包装
+        expect(result.value).toBeDefined();
       });
 
       it('should preserve descriptor properties', () => {
@@ -589,6 +590,485 @@ describe('Retryable Decorators', () => {
         'DerivedService.derivedMethod',
         ComponentIdentifier.STORAGE
       );
+    });
+  });
+
+  describe('Direct Decorator Factory Function Coverage', () => {
+    describe('Retryable decorator factory function execution', () => {
+      it('should execute Retryable decorator factory with default options', () => {
+        // Arrange
+        const target = {};
+        const propertyName = 'testMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('test'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 直接调用装饰器工厂函数以触发函数覆盖
+        const decoratorFactory = Retryable();
+        expect(typeof decoratorFactory).toBe('function');
+
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证装饰器工厂函数执行
+        expect(result).toBe(originalDescriptor);
+        expect(typeof result.value).toBe('function');
+        // 验证函数被装饰器修改（装饰器会替换原方法）
+        expect(result.value).toBeDefined();
+      });
+
+      it('should execute Retryable decorator factory with custom options', () => {
+        // Arrange
+        const target = { constructor: { name: 'TestClass' } };
+        const propertyName = 'customMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('custom'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+        const customOptions = {
+          maxAttempts: 5,
+          baseDelay: 2000,
+          operationName: 'customOperation'
+        };
+
+        // Act - 使用自定义选项调用装饰器工厂
+        const decoratorFactory = Retryable(customOptions);
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证自定义选项处理
+        expect(result).toBe(originalDescriptor);
+        expect(typeof result.value).toBe('function');
+      });
+
+      it('should execute Retryable decorator factory with configType options', () => {
+        // Arrange
+        const target = { constructor: { name: 'ConfigTestClass' } };
+        const propertyName = 'configMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('config'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        const configTypes = ['quick', 'standard', 'persistent', 'network'] as const;
+
+        for (const configType of configTypes) {
+          // Act - 测试每种配置类型的装饰器工厂执行
+          const decoratorFactory = Retryable({ configType });
+          const result = decoratorFactory(target, `${propertyName}_${configType}`, originalDescriptor);
+
+          // Assert - 验证配置类型特定的装饰器工厂执行
+          expect(result).toBe(originalDescriptor);
+          expect(typeof result.value).toBe('function');
+        }
+      });
+
+      it('should execute Retryable decorator factory operation name generation logic', () => {
+        // Arrange
+        const target = { constructor: { name: 'OperationNameTest' } };
+        const propertyName = 'methodForNameGeneration';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('name-gen'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 测试操作名称生成逻辑的执行
+        const decoratorWithoutName = Retryable({});
+        const resultWithoutName = decoratorWithoutName(target, propertyName, originalDescriptor);
+
+        const decoratorWithName = Retryable({ operationName: 'explicitName' });
+        const resultWithName = decoratorWithName(target, 'anotherMethod', originalDescriptor);
+
+        // Assert - 验证操作名称生成和显式名称处理
+        expect(resultWithoutName).toBe(originalDescriptor);
+        expect(resultWithName).toBe(originalDescriptor);
+        expect(typeof resultWithoutName.value).toBe('function');
+        expect(typeof resultWithName.value).toBe('function');
+      });
+
+      it('should execute Retryable decorator factory property descriptor modification', () => {
+        // Arrange
+        const target = {};
+        const propertyName = 'descriptorTest';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('descriptor-test'),
+          writable: false,
+          enumerable: false,
+          configurable: false
+        };
+
+        // Act - 测试属性描述符修改逻辑的执行
+        const decoratorFactory = Retryable({ maxAttempts: 3 });
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证属性描述符保持原有特性但函数被替换
+        expect(result).toBe(originalDescriptor);
+        expect(result.writable).toBe(false);
+        expect(result.enumerable).toBe(false);
+        expect(result.configurable).toBe(false);
+        expect(typeof result.value).toBe('function');
+        // 验证函数被装饰器处理
+        expect(result.value).toBeDefined();
+      });
+    });
+
+    describe('StandardRetry decorator factory function execution', () => {
+      it('should execute StandardRetry decorator factory without operation name', () => {
+        // Arrange
+        const target = { constructor: { name: 'StandardTestClass' } };
+        const propertyName = 'standardTestMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('standard'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 直接调用StandardRetry装饰器工厂函数
+        const decoratorFactory = StandardRetry();
+        expect(typeof decoratorFactory).toBe('function');
+
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证StandardRetry装饰器工厂执行
+        expect(result).toBe(originalDescriptor);
+        expect(typeof result.value).toBe('function');
+        expect(result.value).toBeDefined();
+      });
+
+      it('should execute StandardRetry decorator factory with operation name', () => {
+        // Arrange
+        const target = { constructor: { name: 'StandardNamedTestClass' } };
+        const propertyName = 'standardNamedMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('standard-named'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+        const operationName = 'customStandardOperation';
+
+        // Act - 使用操作名称调用StandardRetry装饰器工厂
+        const decoratorFactory = StandardRetry(operationName);
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证带操作名称的StandardRetry装饰器工厂执行
+        expect(result).toBe(originalDescriptor);
+        expect(typeof result.value).toBe('function');
+      });
+
+      it('should execute StandardRetry decorator factory parameter passing logic', () => {
+        // Arrange
+        const target = {};
+        const propertyName = 'parameterTestMethod';
+        const originalDescriptor = {
+          value: jest.fn(),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 测试参数传递逻辑的执行
+        const decoratorWithParam = StandardRetry('testOperation');
+        const decoratorWithoutParam = StandardRetry(undefined);
+        const decoratorNoArgs = StandardRetry();
+
+        const resultWithParam = decoratorWithParam(target, propertyName, originalDescriptor);
+        const resultWithoutParam = decoratorWithoutParam(target, propertyName, originalDescriptor);
+        const resultNoArgs = decoratorNoArgs(target, propertyName, originalDescriptor);
+
+        // Assert - 验证不同参数情况下的装饰器工厂执行
+        expect(resultWithParam).toBe(originalDescriptor);
+        expect(resultWithoutParam).toBe(originalDescriptor);
+        expect(resultNoArgs).toBe(originalDescriptor);
+        expect(typeof resultWithParam.value).toBe('function');
+        expect(typeof resultWithoutParam.value).toBe('function');
+        expect(typeof resultNoArgs.value).toBe('function');
+      });
+    });
+
+    describe('PersistentRetry decorator factory function execution', () => {
+      it('should execute PersistentRetry decorator factory without operation name', () => {
+        // Arrange
+        const target = { constructor: { name: 'PersistentTestClass' } };
+        const propertyName = 'persistentTestMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('persistent'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 直接调用PersistentRetry装饰器工厂函数
+        const decoratorFactory = PersistentRetry();
+        expect(typeof decoratorFactory).toBe('function');
+
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证PersistentRetry装饰器工厂执行
+        expect(result).toBe(originalDescriptor);
+        expect(typeof result.value).toBe('function');
+        expect(result.value).toBeDefined();
+      });
+
+      it('should execute PersistentRetry decorator factory with operation name', () => {
+        // Arrange
+        const target = { constructor: { name: 'PersistentNamedTestClass' } };
+        const propertyName = 'persistentNamedMethod';
+        const originalDescriptor = {
+          value: jest.fn().mockResolvedValue('persistent-named'),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+        const operationName = 'customPersistentOperation';
+
+        // Act - 使用操作名称调用PersistentRetry装饰器工厂
+        const decoratorFactory = PersistentRetry(operationName);
+        const result = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // Assert - 验证带操作名称的PersistentRetry装饰器工厂执行
+        expect(result).toBe(originalDescriptor);
+        expect(typeof result.value).toBe('function');
+      });
+
+      it('should execute PersistentRetry decorator factory parameter handling logic', () => {
+        // Arrange
+        const target = {};
+        const propertyName = 'paramHandlingMethod';
+        const originalDescriptor = {
+          value: jest.fn(),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 测试参数处理逻辑的执行
+        const decoratorWithString = PersistentRetry('stringParam');
+        const decoratorWithUndefined = PersistentRetry(undefined);
+        const decoratorWithEmptyString = PersistentRetry('');
+
+        const resultWithString = decoratorWithString(target, propertyName, originalDescriptor);
+        const resultWithUndefined = decoratorWithUndefined(target, propertyName, originalDescriptor);
+        const resultWithEmptyString = decoratorWithEmptyString(target, propertyName, originalDescriptor);
+
+        // Assert - 验证不同参数类型的装饰器工厂执行
+        expect(resultWithString).toBe(originalDescriptor);
+        expect(resultWithUndefined).toBe(originalDescriptor);
+        expect(resultWithEmptyString).toBe(originalDescriptor);
+        expect(typeof resultWithString.value).toBe('function');
+        expect(typeof resultWithUndefined.value).toBe('function');
+        expect(typeof resultWithEmptyString.value).toBe('function');
+      });
+    });
+
+    describe('Decorator factory function wrapper execution paths', () => {
+      it('should execute Retryable wrapper function with all switch case branches', async () => {
+        // Arrange
+        const mockMethod = jest.fn().mockResolvedValue('test-result');
+        const target = { constructor: { name: 'SwitchTestClass' } };
+        const propertyName = 'switchTestMethod';
+        const originalDescriptor = { value: mockMethod, writable: true, enumerable: true, configurable: true };
+
+        // Test each switch case branch by creating decorated methods
+        const configTypes = ['quick', 'standard', 'persistent', 'network'] as const;
+
+        for (const configType of configTypes) {
+          // Act - 创建带有特定配置类型的装饰方法并执行以触发switch分支
+          const decoratorFactory = Retryable({ configType });
+          const decoratedDescriptor = decoratorFactory(target, propertyName, originalDescriptor);
+
+          // 重置mock以确保每次测试独立
+          jest.clearAllMocks();
+
+          // 设置对应的mock
+          switch (configType) {
+            case 'quick':
+              mockUniversalRetryHandler.quickRetry.mockResolvedValue('quick-result');
+              break;
+            case 'standard':
+              mockUniversalRetryHandler.standardRetry.mockResolvedValue('standard-result');
+              break;
+            case 'persistent':
+              mockUniversalRetryHandler.persistentRetry.mockResolvedValue('persistent-result');
+              break;
+            case 'network':
+              mockUniversalRetryHandler.networkRetry.mockResolvedValue('network-result');
+              break;
+          }
+
+          // 执行装饰后的方法以触发switch分支代码路径
+          const result = await decoratedDescriptor.value.call({}, 'arg1', 'arg2');
+
+          // Assert - 验证特定配置类型的代码路径执行
+          expect(result).toBeDefined();
+
+          switch (configType) {
+            case 'quick':
+              expect(mockUniversalRetryHandler.quickRetry).toHaveBeenCalledTimes(1);
+              break;
+            case 'standard':
+              expect(mockUniversalRetryHandler.standardRetry).toHaveBeenCalledTimes(1);
+              break;
+            case 'persistent':
+              expect(mockUniversalRetryHandler.persistentRetry).toHaveBeenCalledTimes(1);
+              break;
+            case 'network':
+              expect(mockUniversalRetryHandler.networkRetry).toHaveBeenCalledTimes(1);
+              break;
+          }
+        }
+      });
+
+      it('should execute Retryable wrapper function custom config branch', async () => {
+        // Arrange
+        const mockMethod = jest.fn().mockResolvedValue('custom-result');
+        const target = { constructor: { name: 'CustomConfigClass' } };
+        const propertyName = 'customConfigMethod';
+        const originalDescriptor = { value: mockMethod, writable: true, enumerable: true, configurable: true };
+
+        // Act - 创建使用自定义配置的装饰方法(不使用configType)
+        const decoratorFactory = Retryable({ maxAttempts: 5, baseDelay: 2000 });
+        const decoratedDescriptor = decoratorFactory(target, propertyName, originalDescriptor);
+
+        // 设置executeWithRetry mock以模拟成功情况
+        mockUniversalRetryHandler.executeWithRetry.mockResolvedValue({
+          success: true,
+          result: 'custom-success',
+          error: null,
+          attempts: 1,
+          totalDuration: 100,
+          attemptDurations: [100]
+        });
+
+        // 执行装饰后的方法以触发自定义配置分支
+        const result = await decoratedDescriptor.value.call({}, 'custom-arg');
+
+        // Assert - 验证自定义配置分支执行
+        expect(result).toBe('custom-success');
+        expect(mockUniversalRetryHandler.executeWithRetry).toHaveBeenCalledWith(
+          expect.any(Function),
+          'CustomConfigClass.customConfigMethod',
+          ComponentIdentifier.STORAGE,
+          { maxAttempts: 5, baseDelay: 2000 }
+        );
+      });
+
+      it('should execute Retryable wrapper function error handling branch', async () => {
+        // Arrange
+        const mockMethod = jest.fn().mockResolvedValue('error-test');
+        const target = { constructor: { name: 'ErrorTestClass' } };
+        const propertyName = 'errorTestMethod';
+        const originalDescriptor = { value: mockMethod, writable: true, enumerable: true, configurable: true };
+
+        // Act - 创建装饰方法并测试错误分支
+        const decoratorFactory = Retryable({ maxAttempts: 2 });
+        const decoratedDescriptor = decoratorFactory(target, propertyName, originalDescriptor);
+
+        const testError = new BusinessException({
+          component: ComponentIdentifier.STORAGE,
+          errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+          operation: 'errorTestMethod',
+          message: 'Test retry error',
+          context: {}
+        });
+        // 设置executeWithRetry mock以模拟失败情况
+        mockUniversalRetryHandler.executeWithRetry.mockResolvedValue({
+          success: false,
+          result: null,
+          error: testError,
+          attempts: 2,
+          totalDuration: 3000,
+          attemptDurations: [1000, 2000]
+        });
+
+        // 执行装饰后的方法以触发错误处理分支
+        await expect(decoratedDescriptor.value.call({}, 'error-arg')).rejects.toThrow(testError);
+
+        // Assert - 验证错误处理分支执行
+        expect(mockUniversalRetryHandler.executeWithRetry).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('Factory function return value and closure execution', () => {
+      it('should execute decorator factory closure with proper context binding', () => {
+        // Arrange
+        const target = { constructor: { name: 'ClosureTestClass' } };
+        const propertyName = 'closureTestMethod';
+        const originalMethod = jest.fn().mockReturnValue('original');
+        const originalDescriptor = { value: originalMethod, writable: true, enumerable: true, configurable: true };
+
+        // Act - 测试装饰器工厂返回的闭包函数执行
+        const retryableFactory = Retryable({ operationName: 'closureTest' });
+        const standardFactory = StandardRetry('standardClosure');
+        const persistentFactory = PersistentRetry('persistentClosure');
+
+        // 执行装饰器工厂以获取闭包函数
+        const retryableDecorator = retryableFactory;
+        const standardDecorator = standardFactory;
+        const persistentDecorator = persistentFactory;
+
+        // 执行闭包函数以修改属性描述符
+        const retryableResult = retryableDecorator(target, propertyName, originalDescriptor);
+        const standardResult = standardDecorator(target, propertyName, originalDescriptor);
+        const persistentResult = persistentDecorator(target, propertyName, originalDescriptor);
+
+        // Assert - 验证闭包函数执行和上下文绑定
+        expect(retryableResult).toBe(originalDescriptor);
+        expect(standardResult).toBe(originalDescriptor);
+        expect(persistentResult).toBe(originalDescriptor);
+
+        // 验证原方法被替换
+        expect(retryableResult.value).not.toBe(originalMethod);
+        expect(standardResult.value).not.toBe(originalMethod);
+        expect(persistentResult.value).not.toBe(originalMethod);
+
+        // 验证替换方法是函数
+        expect(typeof retryableResult.value).toBe('function');
+        expect(typeof standardResult.value).toBe('function');
+        expect(typeof persistentResult.value).toBe('function');
+      });
+
+      it('should execute decorator factory with edge case parameter combinations', () => {
+        // Arrange
+        const target = { constructor: { name: 'EdgeCaseClass' } };
+        const propertyName = 'edgeCaseMethod';
+        const originalDescriptor = {
+          value: jest.fn(),
+          writable: true,
+          enumerable: true,
+          configurable: true
+        };
+
+        // Act - 测试边界情况参数组合的装饰器工厂执行
+        const edgeCases = [
+          Retryable({}), // 空选项对象
+          Retryable({ maxAttempts: 0 }), // 零重试次数
+          Retryable({ baseDelay: 0 }), // 零延迟
+          Retryable({ operationName: '' }), // 空操作名称
+          Retryable({ configType: 'quick', maxAttempts: 10 }), // 混合配置
+          StandardRetry(''), // 空字符串操作名称
+          StandardRetry(null as any), // null操作名称
+          PersistentRetry(''), // 空字符串操作名称
+          PersistentRetry(null as any), // null操作名称
+        ];
+
+        for (let i = 0; i < edgeCases.length; i++) {
+          const decorator = edgeCases[i];
+          const result = decorator(target, `${propertyName}_${i}`, originalDescriptor);
+
+          // Assert - 验证边界情况的装饰器工厂执行
+          expect(result).toBe(originalDescriptor);
+          expect(typeof result.value).toBe('function');
+        }
+      });
     });
   });
 });

@@ -67,6 +67,9 @@ export class ApiKey {
   @Prop()
   lastAccessedAt?: Date;
 
+  @Prop()
+  deletedAt?: Date;
+
   @Prop({ trim: true, maxlength: 500 })
   description?: string;
 

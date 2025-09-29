@@ -11,6 +11,9 @@ import {
   FlexibleMappingTestResultDto,
 } from '@core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 import { Types } from 'mongoose';
+import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
+import { Reflector } from '@nestjs/core';
+import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
 
 describe('MappingRuleController', () => {
   let controller: MappingRuleController;
@@ -67,6 +70,17 @@ describe('MappingRuleController', () => {
       getPersistedTemplateById: jest.fn(),
     };
 
+    // 添加模拟的AuthPerformanceService和Reflector
+    const mockAuthPerformanceService = {
+      recordAuthFlowPerformance: jest.fn(),
+      recordAuthCachePerformance: jest.fn(),
+      recordAuthFlowStats: jest.fn(),
+    };
+
+    const mockReflector = {
+      getAllAndOverride: jest.fn().mockReturnValue(true), // 默认将所有装饰器视为公开
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MappingRuleController],
       providers: [
@@ -81,6 +95,18 @@ describe('MappingRuleController', () => {
         {
           provide: PersistedTemplateService,
           useValue: mockPersistedTemplateService
+        },
+        {
+          provide: ApiKeyAuthGuard,
+          useValue: { canActivate: () => true }
+        },
+        {
+          provide: Reflector,
+          useValue: mockReflector
+        },
+        {
+          provide: AuthPerformanceService,
+          useValue: mockAuthPerformanceService
         }
       ],
     }).compile();

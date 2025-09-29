@@ -365,18 +365,19 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
 
     // 定义模式匹配规则和置信度
     const patterns = [
-      { pattern: /quote|price/, ruleType: "quote_fields", confidence: 0.9 },
       { pattern: /option/, ruleType: "option_fields", confidence: 0.95 },
       { pattern: /futures?/, ruleType: "futures_fields", confidence: 0.95 },
       { pattern: /forex|currency/, ruleType: "forex_fields", confidence: 0.9 },
       { pattern: /crypto|bitcoin|eth/, ruleType: "crypto_fields", confidence: 0.9 },
       { pattern: /market/, ruleType: "market_data_fields", confidence: 0.8 },
       { pattern: /trading/, ruleType: "trading_data_fields", confidence: 0.8 },
-      { pattern: /info|basic/, ruleType: "basic_info_fields", confidence: 0.85 },
-      { pattern: /company/, ruleType: "company_info_fields", confidence: 0.9 },
       { pattern: /historical?|history/, ruleType: "historical_data_fields", confidence: 0.9 },
       { pattern: /news/, ruleType: "news_fields", confidence: 0.95 },
       { pattern: /announcement/, ruleType: "announcement_fields", confidence: 0.95 },
+      { pattern: /info|basic/, ruleType: "basic_info_fields", confidence: 0.85 },
+      { pattern: /company/, ruleType: "company_info_fields", confidence: 0.9 },
+      // 将宽泛的规则移到最后
+      { pattern: /quote|price/, ruleType: "quote_fields", confidence: 0.9 },
     ];
 
     for (const { pattern, ruleType, confidence } of patterns) {

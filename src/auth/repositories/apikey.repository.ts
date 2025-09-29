@@ -236,7 +236,10 @@ export class ApiKeyRepository {
     DatabaseValidationUtils.validateObjectId(id, "API Key ID");
 
     return this.apiKeyModel
-      .findByIdAndUpdate(id, { status: OperationStatus.DELETED }, { new: true })
+      .findByIdAndUpdate(id, { 
+        status: OperationStatus.DELETED,
+        deletedAt: new Date()
+      }, { new: true })
       .exec();
   }
 

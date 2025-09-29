@@ -411,8 +411,10 @@ export class DataTransformerService {
 
     resultsNested.forEach((result) => {
       if (result.status === "fulfilled") {
-        finalResponses.push(...result.value);
-        successCount += result.value.length;
+        // 修复：过滤掉 undefined 的结果，只添加有效的结果
+        const validResults = result.value.filter(r => r !== undefined);
+        finalResponses.push(...validResults);
+        successCount += validResults.length;
       } else {
         // This case should be rare if the inner try/catch is correct
         failedCount++;
@@ -420,6 +422,11 @@ export class DataTransformerService {
           { operation, error: result.reason.message },
           "Group Promise rejected in transformBatch",
         );
+        
+        // 如果设置了 continueOnError，我们不会重新抛出异常，但应该记录错误
+        if (!options.continueOnError) {
+          throw result.reason;
+        }
       }
     });
 
@@ -557,6 +564,9 @@ export class DataTransformerService {
       ) {
         throw error; // 直接传播业务逻辑异常
       }
+      
+      // 修复：确保所有其他类型的异常也被抛出，而不是静默处理
+      throw error;
     }
   }
 

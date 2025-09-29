@@ -405,4 +405,212 @@ describe('DataTransformRequestDto', () => {
       expect(dto).toBeDefined();
     });
   });
+
+  describe('Edge Cases and Additional Coverage', () => {
+    it('should fail validation for null provider', async () => {
+      const invalidRequest = {
+        provider: null, // null value
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: { test: 'data' },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, invalidRequest);
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.some(error => error.property === 'provider')).toBe(true);
+    });
+
+    it('should fail validation for non-string provider', async () => {
+      const invalidRequest = {
+        provider: 123, // number instead of string
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: { test: 'data' },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, invalidRequest);
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.some(error => error.property === 'provider')).toBe(true);
+    });
+
+    it('should fail validation for null transDataRuleListType', async () => {
+      const invalidRequest = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: null, // null value
+        rawData: { test: 'data' },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, invalidRequest);
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.some(error => error.property === 'transDataRuleListType')).toBe(true);
+    });
+
+    it('should fail validation for empty transDataRuleListType', async () => {
+      const invalidRequest = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: '', // empty string
+        rawData: { test: 'data' },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, invalidRequest);
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.some(error => error.property === 'transDataRuleListType')).toBe(true);
+    });
+
+    it('should fail validation for null rawData', async () => {
+      const invalidRequest = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: null, // null value
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, invalidRequest);
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.some(error => error.property === 'rawData')).toBe(true);
+    });
+
+    it('should handle options with null values', async () => {
+      const requestWithNullOptions = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: { test: 'data' },
+        options: {
+          includeMetadata: null, // null value
+          includeDebugInfo: undefined, // undefined value
+        },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, requestWithNullOptions);
+      const errors = await validate(dto);
+
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.some(error => error.property === 'options')).toBe(true);
+    });
+
+    it('should handle complex nested rawData with edge cases', async () => {
+      const complexEdgeCaseData = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: {
+          deepNested: {
+            level1: {
+              level2: {
+                level3: {
+                  value: 'deep value',
+                },
+              },
+            },
+          },
+          arrayWithNulls: [null, undefined, 0, '', false],
+          emptyObjects: [{}, { empty: undefined }],
+          specialChars: '特殊字符@#$%^&*()',
+          unicode: '🚀💰📈',
+          largeNumber: Number.MAX_SAFE_INTEGER,
+          floatPrecision: 123.456789012345,
+        },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, complexEdgeCaseData);
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+      expect(dto.rawData.deepNested.level1.level2.level3.value).toBe('deep value');
+      expect(dto.rawData.specialChars).toBe('特殊字符@#$%^&*()');
+      expect(dto.rawData.unicode).toBe('🚀💰📈');
+    });
+
+    it('should handle extremely long string values', async () => {
+      const longString = 'a'.repeat(10000); // 10k characters
+      const longStringData = {
+        provider: longString,
+        apiType: 'rest',
+        transDataRuleListType: longString,
+        rawData: { longField: longString },
+        mappingOutRuleId: longString,
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, longStringData);
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+      expect(dto.provider).toBe(longString);
+      expect(dto.transDataRuleListType).toBe(longString);
+      expect(dto.mappingOutRuleId).toBe(longString);
+    });
+
+    it('should validate options with mixed boolean types', async () => {
+      const mixedBooleanOptions = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: { test: 'data' },
+        options: {
+          includeMetadata: false,
+          includeDebugInfo: true,
+        },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, mixedBooleanOptions);
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+      expect(dto.options?.includeMetadata).toBe(false);
+      expect(dto.options?.includeDebugInfo).toBe(true);
+    });
+
+    it('should handle very large rawData objects', async () => {
+      const largeArray = Array(1000).fill(null).map((_, i) => ({ id: i, value: `item_${i}` }));
+      const largeObjectData = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: {
+          largeArray,
+          metadata: {
+            totalItems: largeArray.length,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, largeObjectData);
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+      expect(dto.rawData.largeArray).toHaveLength(1000);
+      expect(dto.rawData.metadata.totalItems).toBe(1000);
+    });
+
+    it('should handle raw data with circular references safely', async () => {
+      // Create object with circular reference (should be handled by JSON.stringify gracefully)
+      const circularData = { a: 1 };
+      const requestWithCircular = {
+        provider: 'longport',
+        apiType: 'rest',
+        transDataRuleListType: 'quote_fields',
+        rawData: circularData,
+      };
+
+      const dto = plainToClass(DataTransformRequestDto, requestWithCircular);
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+      expect(dto.rawData.a).toBe(1);
+    });
+  });
 });

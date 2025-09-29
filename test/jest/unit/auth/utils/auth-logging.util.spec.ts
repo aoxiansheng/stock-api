@@ -36,91 +36,123 @@ describe('AuthLoggingUtil', () => {
     });
 
     it('should disable debug logs in production', () => {
-      process.env.NODE_ENV = 'production';
-      const logger = AuthLoggingUtil.createOptimizedLogger('test');
-      const debugSpy = jest.fn();
-      logger.debug = debugSpy;
-      
-      logger.debug('test message');
-      
-      expect(debugSpy).not.toHaveBeenCalled();
+      // 使用isolateModules确保模块被重新加载，静态属性会重新初始化
+      jest.isolateModules(() => {
+        process.env.NODE_ENV = 'production';
+        // 重新导入模块，确保静态属性重新初始化
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const debugSpy = jest.fn();
+        const logger = AuthLoggingUtil.createOptimizedLogger('test');
+        
+        // 使用模拟函数替换debug方法
+        logger.debug = debugSpy;
+        
+        logger.debug('test message');
+        
+        expect(debugSpy).not.toHaveBeenCalled();
+      });
     });
 
     it('should enable debug logs in development', () => {
-      process.env.NODE_ENV = 'development';
-      const logger = AuthLoggingUtil.createOptimizedLogger('test');
-      const debugSpy = jest.fn();
-      (logger as any).logger = { debug: debugSpy };
-      
-      logger.debug('test message');
-      
-      // Note: This test might need adjustment based on the actual implementation
-      // Since we're mocking the logger, the behavior might differ
+      jest.isolateModules(() => {
+        process.env.NODE_ENV = 'development';
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const logger = AuthLoggingUtil.createOptimizedLogger('test');
+        const debugSpy = jest.fn();
+        (logger as any).logger = { debug: debugSpy };
+        
+        logger.debug('test message');
+        
+        // Note: This test might need adjustment based on the actual implementation
+        // Since we're mocking the logger, the behavior might differ
+      });
     });
   });
 
   describe('shouldLogVerbose', () => {
     it('should return false in production environment', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.AUTH_DEBUG_MODE = 'false';
-      
-      const result = AuthLoggingUtil.shouldLogVerbose();
-      
-      expect(result).toBe(false);
+      jest.isolateModules(() => {
+        process.env.NODE_ENV = 'production';
+        process.env.AUTH_DEBUG_MODE = 'false';
+        
+        // 重新导入模块，确保静态属性重新初始化
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogVerbose();
+        
+        expect(result).toBe(false);
+      });
     });
 
     it('should return true when debug mode is enabled', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.AUTH_DEBUG_MODE = 'true';
-      
-      const result = AuthLoggingUtil.shouldLogVerbose();
-      
-      expect(result).toBe(true);
+      jest.isolateModules(() => {
+        process.env.NODE_ENV = 'production';
+        process.env.AUTH_DEBUG_MODE = 'true';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogVerbose();
+        
+        expect(result).toBe(true);
+      });
     });
 
     it('should return true in development environment', () => {
-      process.env.NODE_ENV = 'development';
-      
-      const result = AuthLoggingUtil.shouldLogVerbose();
-      
-      expect(result).toBe(true);
+      jest.isolateModules(() => {
+        process.env.NODE_ENV = 'development';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogVerbose();
+        
+        expect(result).toBe(true);
+      });
     });
   });
 
   describe('shouldLogHighFrequency', () => {
     it('should return true when not in high traffic mode', () => {
-      process.env.AUTH_HIGH_TRAFFIC_MODE = 'false';
-      
-      const result = AuthLoggingUtil.shouldLogHighFrequency();
-      
-      expect(result).toBe(true);
+      jest.isolateModules(() => {
+        process.env.AUTH_HIGH_TRAFFIC_MODE = 'false';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogHighFrequency();
+        
+        expect(result).toBe(true);
+      });
     });
 
     it('should return false when in high traffic mode', () => {
-      process.env.AUTH_HIGH_TRAFFIC_MODE = 'true';
-      
-      const result = AuthLoggingUtil.shouldLogHighFrequency();
-      
-      expect(result).toBe(false);
+      jest.isolateModules(() => {
+        process.env.AUTH_HIGH_TRAFFIC_MODE = 'true';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogHighFrequency();
+        
+        expect(result).toBe(false);
+      });
     });
   });
 
   describe('shouldLogPerformance', () => {
     it('should return true when performance logging is explicitly enabled', () => {
-      process.env.AUTH_PERFORMANCE_LOGGING = 'true';
-      
-      const result = AuthLoggingUtil.shouldLogPerformance();
-      
-      expect(result).toBe(true);
+      jest.isolateModules(() => {
+        process.env.AUTH_PERFORMANCE_LOGGING = 'true';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogPerformance();
+        
+        expect(result).toBe(true);
+      });
     });
 
     it('should return false when performance optimization is enabled and not explicitly enabled', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.AUTH_PERFORMANCE_LOGGING = 'false';
-      
-      const result = AuthLoggingUtil.shouldLogPerformance();
-      
-      expect(result).toBe(false);
+      jest.isolateModules(() => {
+        process.env.NODE_ENV = 'production';
+        process.env.AUTH_PERFORMANCE_LOGGING = 'false';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldLogPerformance();
+        
+        expect(result).toBe(false);
+      });
     });
   });
 
@@ -165,21 +197,27 @@ describe('AuthLoggingUtil', () => {
 
   describe('shouldSampleLog', () => {
     it('should return true when not in high traffic mode', () => {
-      process.env.AUTH_HIGH_TRAFFIC_MODE = 'false';
-      
-      const result = AuthLoggingUtil.shouldSampleLog('test-operation');
-      
-      expect(result).toBe(true);
+      jest.isolateModules(() => {
+        process.env.AUTH_HIGH_TRAFFIC_MODE = 'false';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        const result = AuthLoggingUtil.shouldSampleLog('test-operation');
+        
+        expect(result).toBe(true);
+      });
     });
 
     it('should sample logs in high traffic mode', () => {
-      process.env.AUTH_HIGH_TRAFFIC_MODE = 'true';
-      
-      // Since sampling uses a hash function, we can't predict the exact result
-      // but we can check that it returns a boolean
-      const result = AuthLoggingUtil.shouldSampleLog('test-operation');
-      
-      expect(typeof result).toBe('boolean');
+      jest.isolateModules(() => {
+        process.env.AUTH_HIGH_TRAFFIC_MODE = 'true';
+        
+        const { AuthLoggingUtil } = require('@auth/utils/auth-logging.util');
+        // Since sampling uses a hash function, we can't predict the exact result
+        // but we can check that it returns a boolean
+        const result = AuthLoggingUtil.shouldSampleLog('test-operation');
+        
+        expect(typeof result).toBe('boolean');
+      });
     });
   });
 

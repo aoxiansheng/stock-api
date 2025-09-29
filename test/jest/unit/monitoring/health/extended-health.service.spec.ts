@@ -411,5 +411,367 @@ describe('ExtendedHealthService', () => {
       const isStale = (service as any).isValidationStale();
       expect(isStale).toBe(false);
     });
+
+    it('should return true when lastValidation is null', () => {
+      (service as any).lastValidation = null;
+
+      const isStale = (service as any).isValidationStale();
+      expect(isStale).toBe(true);
+    });
+  });
+
+  describe('Configuration Health Edge Cases', () => {
+    it('should handle configuration validation with errors and warnings', async () => {
+      (service as any).lastValidation = {
+        overall: {
+          isValid: false,
+          errors: ['Missing required config'],
+          warnings: ['Deprecated setting used'],
+          validatedAt: new Date(),
+        },
+      };
+
+      const result = await service.getConfigHealthStatus();
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Missing required config');
+      expect(result.warnings).toContain('Deprecated setting used');
+    });
+
+    it('should refresh stale validation automatically', async () => {
+      // Set stale validation
+      (service as any).lastValidation = {
+        overall: {
+          isValid: false,
+          errors: ['Old error'],
+          warnings: [],
+          validatedAt: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
+        },
+      };
+
+      const result = await service.getConfigHealthStatus();
+
+      // Should create fresh validation
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+  });
+
+  describe('Dependencies Health Edge Cases', () => {
+    it('should handle MongoDB timeout scenarios', async () => {
+      const mongoClient = require('mongodb').MongoClient;
+      mongoClient().connect.mockImplementation(() =>
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timeout')), 100)
+        )
+      );
+
+      const result = await service.getDependenciesHealthStatus();
+
+      expect(result.mongodb.status).toBe('error');
+      expect(result.mongodb.error).toBe('Connection timeout');
+    });
+
+    it('should handle Redis connection with custom environment variables', async () => {
+      const originalHost = process.env.REDIS_HOST;
+      const originalPort = process.env.REDIS_PORT;
+
+      process.env.REDIS_HOST = 'custom-redis-host';
+      process.env.REDIS_PORT = '6380';
+
+      redisClient.connect.mockResolvedValue(undefined);
+      redisClient.ping.mockResolvedValue('PONG');
+      redisClient.quit.mockResolvedValue('OK');
+
+      const result = await (service as any).checkRedisHealth();
+
+      expect(result.status).toBe('connected');
+      expect(result.responseTime).toBeGreaterThan(0);
+
+      // Restore environment variables
+      if (originalHost) process.env.REDIS_HOST = originalHost;
+      else delete process.env.REDIS_HOST;
+      if (originalPort) process.env.REDIS_PORT = originalPort;
+      else delete process.env.REDIS_PORT;
+    });
+
+    it('should handle partial LongPort configuration', async () => {
+      // Set only some LongPort variables
+      process.env.LONGPORT_APP_KEY = 'test-key';
+      delete process.env.LONGPORT_APP_SECRET;
+      delete process.env.LONGPORT_ACCESS_TOKEN;
+
+      const result = await (service as any).checkLongPortHealth();
+
+      expect(result.status).toBe('not_configured');
+
+      // Clean up
+      delete process.env.LONGPORT_APP_KEY;
+    });
+
+    it('should handle Promise.allSettled rejection scenarios', async () => {
+      // Mock checkMongoDBHealth to reject
+      jest.spyOn(service as any, 'checkMongoDBHealth').mockRejectedValue(new Error('MongoDB check failed'));
+      jest.spyOn(service as any, 'checkRedisHealth').mockResolvedValue({ status: 'connected', responseTime: 10 });
+      jest.spyOn(service as any, 'checkLongPortHealth').mockResolvedValue({ status: 'available' });
+
+      const result = await (service as any).getDependenciesHealth();
+
+      expect(result.mongodb.status).toBe('error');
+      expect(result.mongodb.error).toBe('Check failed');
+      expect(result.redis.status).toBe('connected');
+      expect(result.externalServices.longport.status).toBe('available');
+    });
+  });
+
+  describe('Health Score Edge Cases', () => {
+    it('should handle configuration failure in health score calculation', () => {
+      const failedConfigResult = {
+        status: 'rejected' as const,
+        reason: new Error('Config validation failed'),
+      };
+
+      const dependencies = {
+        mongodb: { status: 'connected' as const, responseTime: 10 },
+        redis: { status: 'connected' as const, responseTime: 5 },
+        externalServices: { longport: { status: 'available' as const } },
+      };
+
+      const score = (service as any).calculateHealthScore(failedConfigResult, dependencies);
+
+      expect(score).toBeLessThan(100);
+      expect(score).toBeGreaterThanOrEqual(0);
+      expect(score).toBe(70); // 100 - 30 for config failure
+    });
+
+    it('should handle configuration with multiple errors and warnings', () => {
+      const configResult = {
+        status: 'fulfilled' as const,
+        value: {
+          overall: {
+            isValid: false,
+            errors: ['Error 1', 'Error 2'],
+            warnings: ['Warning 1', 'Warning 2', 'Warning 3'],
+            validatedAt: new Date(),
+          },
+        },
+      };
+
+      const dependencies = {
+        mongodb: { status: 'connected' as const, responseTime: 10 },
+        redis: { status: 'connected' as const, responseTime: 5 },
+        externalServices: { longport: { status: 'available' as const } },
+      };
+
+      const score = (service as any).calculateHealthScore(configResult, dependencies);
+
+      expect(score).toBe(55); // 100 - (2*15) - (3*5) = 55
+    });
+
+    it('should clamp health score to valid range', () => {
+      const configResult = {
+        status: 'fulfilled' as const,
+        value: {
+          overall: {
+            isValid: false,
+            errors: ['Error 1', 'Error 2', 'Error 3', 'Error 4', 'Error 5', 'Error 6', 'Error 7'], // 7 errors = 105 points
+            warnings: [],
+            validatedAt: new Date(),
+          },
+        },
+      };
+
+      const dependencies = {
+        mongodb: { status: 'error' as const, error: 'Connection failed' },
+        redis: { status: 'error' as const, error: 'Connection failed' },
+        externalServices: { longport: { status: 'unavailable' as const } },
+      };
+
+      const score = (service as any).calculateHealthScore(configResult, dependencies);
+
+      expect(score).toBe(0); // Should clamp to 0
+    });
+
+    it('should handle undefined dependencies gracefully', () => {
+      const configResult = {
+        status: 'fulfilled' as const,
+        value: {
+          overall: {
+            isValid: true,
+            errors: [],
+            warnings: [],
+            validatedAt: new Date(),
+          },
+        },
+      };
+
+      const score = (service as any).calculateHealthScore(configResult, undefined);
+
+      expect(score).toBe(100); // Should handle undefined dependencies
+    });
+  });
+
+  describe('Recommendations Edge Cases', () => {
+    it('should generate comprehensive recommendations for multiple issues', () => {
+      const configResult = {
+        status: 'fulfilled' as const,
+        value: {
+          overall: {
+            isValid: false,
+            errors: ['Config error'],
+            warnings: ['Config warning'],
+            validatedAt: new Date(),
+          },
+        },
+      };
+
+      const dependencies = {
+        mongodb: { status: 'error' as const, error: 'MongoDB down' },
+        redis: { status: 'error' as const, error: 'Redis down' },
+        externalServices: { longport: { status: 'not_configured' as const } },
+      };
+
+      const recommendations = (service as any).generateRecommendations(configResult, dependencies);
+
+      expect(recommendations).toContain('Fix configuration errors before production deployment');
+      expect(recommendations).toContain('Review configuration warnings for optimal setup');
+      expect(recommendations).toContain('Ensure MongoDB is running and accessible');
+      expect(recommendations).toContain('Ensure Redis is running and accessible');
+      expect(recommendations).toContain('Consider configuring LongPort API for full functionality');
+    });
+
+    it('should handle failed configuration result in recommendations', () => {
+      const configResult = {
+        status: 'rejected' as const,
+        reason: new Error('Config system failure'),
+      };
+
+      const dependencies = {
+        mongodb: { status: 'connected' as const, responseTime: 10 },
+        redis: { status: 'connected' as const, responseTime: 5 },
+        externalServices: { longport: { status: 'available' as const } },
+      };
+
+      const recommendations = (service as any).generateRecommendations(configResult, dependencies);
+
+      expect(recommendations).toContain('Fix configuration validation system');
+    });
+  });
+
+  describe('System Information Edge Cases', () => {
+    it('should handle missing arrayBuffers in memory usage', async () => {
+      const originalMemoryUsage = process.memoryUsage;
+      (process.memoryUsage as any) = jest.fn().mockReturnValue({
+        rss: 0,
+        external: 1000000,
+        heapUsed: 50000000,
+        heapTotal: 100000000,
+        // arrayBuffers not present (older Node.js versions)
+      });
+
+      const systemInfo = await (service as any).getSystemInfo();
+
+      expect(systemInfo.memory.used).toBe(50000000);
+      expect(systemInfo.memory.total).toBe(101000000); // heapTotal + external + 0 (for missing arrayBuffers)
+
+      process.memoryUsage = originalMemoryUsage;
+    });
+
+    it('should handle CPU usage calculation', async () => {
+      const originalCpuUsage = process.cpuUsage;
+      (process.cpuUsage as any) = jest.fn().mockReturnValue({
+        user: 1000000, // 1 second in microseconds
+        system: 500000,
+      });
+
+      const systemInfo = await (service as any).getSystemInfo();
+
+      expect(systemInfo.cpu.usage).toBe(1); // 1000000 / 1000000 = 1 second
+
+      process.cpuUsage = originalCpuUsage;
+    });
+  });
+
+  describe('Startup Check Edge Cases', () => {
+    it('should cache startup check results', async () => {
+      const mockHealthResult = {
+        status: 'healthy' as const,
+        timestamp: new Date(),
+        checks: [],
+      };
+
+      healthCheckService.checkHealth.mockResolvedValue(mockHealthResult);
+
+      await service.performStartupCheck();
+
+      // Verify the result is cached
+      expect((service as any).lastHealthCheck).toBe(mockHealthResult);
+    });
+
+    it('should include startup information in full health status', async () => {
+      const mockHealthResult = {
+        status: 'healthy' as const,
+        timestamp: new Date(),
+        checks: [
+          { name: 'database', status: 'healthy' as const, duration: 100, message: 'OK' },
+          { name: 'cache', status: 'unhealthy' as const, duration: 200, message: 'Failed' },
+        ],
+      };
+
+      (service as any).lastHealthCheck = mockHealthResult;
+
+      const result = await service.getFullHealthStatus();
+
+      expect(result.startup).toBeDefined();
+      expect(result.startup.lastCheck).toBeDefined();
+      expect(result.startup.success).toBe(true);
+      expect(result.startup.phases).toHaveLength(2);
+      expect(result.startup.phases[0].name).toBe('database');
+      expect(result.startup.phases[0].success).toBe(true);
+      expect(result.startup.phases[1].name).toBe('cache');
+      expect(result.startup.phases[1].success).toBe(false);
+      expect(result.startup.phases[1].error).toBe('Failed');
+    });
+  });
+
+  describe('Parallel Operations and Performance', () => {
+    it('should handle concurrent getFullHealthStatus calls', async () => {
+      const promises = Array.from({ length: 3 }, () => service.getFullHealthStatus());
+      const results = await Promise.all(promises);
+
+      expect(results).toHaveLength(3);
+      results.forEach(result => {
+        expect(result.status).toBeDefined();
+        expect(result.healthScore).toBeDefined();
+        expect(result.timestamp).toBeDefined();
+      });
+    });
+
+    it('should measure execution time in getFullHealthStatus', async () => {
+      const startTime = Date.now();
+      await service.getFullHealthStatus();
+      const endTime = Date.now();
+
+      // Should complete within reasonable time
+      expect(endTime - startTime).toBeLessThan(5000); // 5 seconds max
+    });
+
+    it('should handle Promise.allSettled timeout scenarios', async () => {
+      // Mock slow getSystemInfo
+      jest.spyOn(service as any, 'getSystemInfo').mockImplementation(() =>
+        new Promise(resolve => setTimeout(() => resolve({
+          nodeVersion: process.version,
+          platform: process.platform,
+          architecture: process.arch,
+          memory: { used: 0, total: 0, percentage: 0 },
+          cpu: { usage: 0 },
+        }), 100))
+      );
+
+      const result = await service.getFullHealthStatus();
+
+      expect(result).toBeDefined();
+      expect(result.system).toBeDefined();
+    });
   });
 });

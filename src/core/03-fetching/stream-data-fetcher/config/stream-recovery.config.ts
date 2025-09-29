@@ -81,83 +81,131 @@ export class StreamRecoveryConfigService {
     this.config = this.loadConfig();
   }
 
+  /**
+   * 安全解析整数，如果解析失败则返回默认值
+   * @param value 要解析的值
+   * @param defaultValue 默认值
+   * @returns 解析后的整数或默认值
+   */
+  private parseIntWithDefault(value: string | undefined, defaultValue: number): number {
+    if (!value) return defaultValue;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? defaultValue : parsed;
+  }
+
+  /**
+   * 安全解析浮点数，如果解析失败则返回默认值
+   * @param value 要解析的值
+   * @param defaultValue 默认值
+   * @returns 解析后的浮点数或默认值
+   */
+  private parseFloatWithDefault(value: string | undefined, defaultValue: number): number {
+    if (!value) return defaultValue;
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  }
+
   private loadConfig(): StreamRecoveryConfig {
     return {
       queue: {
         name: process.env.RECOVERY_QUEUE_NAME || "stream-recovery",
         redis: {
           host: process.env.REDIS_HOST || "localhost",
-          port: parseInt(process.env.REDIS_PORT || "6379"),
+          port: this.parseIntWithDefault(process.env.REDIS_PORT, 6379),
         },
       },
 
       worker: {
-        concurrency: parseInt(process.env.RECOVERY_WORKER_CONCURRENCY || "4"),
-        maxRetries: parseInt(process.env.RECOVERY_MAX_RETRIES || "3"),
-        retryDelay: parseInt(process.env.RECOVERY_RETRY_DELAY || "5000"),
+        concurrency: this.parseIntWithDefault(process.env.RECOVERY_WORKER_CONCURRENCY, 4),
+        maxRetries: this.parseIntWithDefault(process.env.RECOVERY_MAX_RETRIES, 3),
+        retryDelay: this.parseIntWithDefault(process.env.RECOVERY_RETRY_DELAY, 5000),
       },
 
       rateLimit: {
         default: {
-          maxQPS: parseInt(process.env.RECOVERY_DEFAULT_QPS || "100"),
-          burstSize: parseInt(process.env.RECOVERY_DEFAULT_BURST || "150"),
-          window: parseInt(process.env.RECOVERY_RATE_WINDOW || "1000"),
+          maxQPS: this.parseIntWithDefault(process.env.RECOVERY_DEFAULT_QPS, 100),
+          burstSize: this.parseIntWithDefault(process.env.RECOVERY_DEFAULT_BURST, 150),
+          window: this.parseIntWithDefault(process.env.RECOVERY_RATE_WINDOW, 1000),
         },
         providers: {
           longport: {
-            maxQPS: parseInt(process.env.RECOVERY_LONGPORT_QPS || "200"),
-            burstSize: parseInt(process.env.RECOVERY_LONGPORT_BURST || "250"),
-            window: parseInt(process.env.STREAM_RATE_WINDOW || "60000"),
+            maxQPS: this.parseIntWithDefault(process.env.RECOVERY_LONGPORT_QPS, 200),
+            burstSize: this.parseIntWithDefault(process.env.RECOVERY_LONGPORT_BURST, 250),
+            window: this.parseIntWithDefault(process.env.STREAM_RATE_WINDOW, 60000),
           },
           itick: {
-            maxQPS: parseInt(process.env.RECOVERY_ITICK_QPS || "50"),
-            burstSize: parseInt(process.env.RECOVERY_ITICK_BURST || "75"),
-            window: parseInt(process.env.STREAM_RATE_WINDOW || "60000"),
+            maxQPS: this.parseIntWithDefault(process.env.RECOVERY_ITICK_QPS, 50),
+            burstSize: this.parseIntWithDefault(process.env.RECOVERY_ITICK_BURST, 75),
+            window: this.parseIntWithDefault(process.env.STREAM_RATE_WINDOW, 60000),
           },
         },
       },
 
       priorityWeights: {
-        high: parseInt(process.env.RECOVERY_PRIORITY_HIGH || "100"),
-        normal: parseInt(process.env.RECOVERY_PRIORITY_NORMAL || "50"),
-        low: parseInt(process.env.RECOVERY_PRIORITY_LOW || "10"),
+        high: this.parseIntWithDefault(process.env.RECOVERY_PRIORITY_HIGH, 100),
+        normal: this.parseIntWithDefault(process.env.RECOVERY_PRIORITY_NORMAL, 50),
+        low: this.parseIntWithDefault(process.env.RECOVERY_PRIORITY_LOW, 10),
       },
 
       recovery: {
-        maxRecoveryWindow: parseInt(
-          process.env.RECOVERY_MAX_WINDOW || "300000",
+        maxRecoveryWindow: this.parseIntWithDefault(
+          process.env.RECOVERY_MAX_WINDOW, 
+          300000,
         ), // 5分钟
-        batchSize: parseInt(process.env.RECOVERY_BATCH_SIZE || "100"),
-        maxDataPoints: parseInt(
-          process.env.RECOVERY_MAX_DATA_POINTS || "10000",
+        batchSize: this.parseIntWithDefault(process.env.RECOVERY_BATCH_SIZE, 100),
+        maxDataPoints: this.parseIntWithDefault(
+          process.env.RECOVERY_MAX_DATA_POINTS, 
+          10000,
         ),
       },
 
       reconnect: {
-        maxAttempts: parseInt(process.env.RECONNECT_MAX_ATTEMPTS || "5"),
+        maxAttempts: this.parseIntWithDefault(process.env.RECONNECT_MAX_ATTEMPTS, 5),
         delayStrategy: {
-          type: (process.env.RECONNECT_DELAY_TYPE as any) || "exponential",
-          initialDelay: parseInt(process.env.RECONNECT_INITIAL_DELAY || "1000"),
-          maxDelay: parseInt(process.env.RECONNECT_MAX_DELAY || "30000"),
-          factor: parseFloat(process.env.RECONNECT_DELAY_FACTOR || "2"),
+          type: this.validateDelayStrategyType(process.env.RECONNECT_DELAY_TYPE),
+          initialDelay: this.parseIntWithDefault(process.env.RECONNECT_INITIAL_DELAY, 1000),
+          maxDelay: this.parseIntWithDefault(process.env.RECONNECT_MAX_DELAY, 30000),
+          factor: this.parseFloatWithDefault(process.env.RECONNECT_DELAY_FACTOR, 2),
         },
         autoRestoreSubscriptions:
           process.env.RECONNECT_AUTO_RESTORE !== "false",
         autoRecoverData: process.env.RECONNECT_AUTO_RECOVER !== "false",
         recoveryPriority:
-          (process.env.RECONNECT_RECOVERY_PRIORITY as any) || "normal",
-        heartbeatTimeout: parseInt(
-          process.env.RECONNECT_HEARTBEAT_TIMEOUT || "60000",
+          this.validatePriorityType(process.env.RECONNECT_RECOVERY_PRIORITY) || "normal",
+        heartbeatTimeout: this.parseIntWithDefault(
+          process.env.RECONNECT_HEARTBEAT_TIMEOUT, 
+          60000,
         ),
       },
 
       cleanup: {
-        removeOnComplete: parseInt(
-          process.env.RECOVERY_CLEANUP_COMPLETE || "1000",
+        removeOnComplete: this.parseIntWithDefault(
+          process.env.RECOVERY_CLEANUP_COMPLETE, 
+          1000,
         ),
-        removeOnFail: parseInt(process.env.RECOVERY_CLEANUP_FAIL || "5000"),
+        removeOnFail: this.parseIntWithDefault(process.env.RECOVERY_CLEANUP_FAIL, 5000),
       },
     };
+  }
+
+  /**
+   * 验证延迟策略类型
+   */
+  private validateDelayStrategyType(type: string | undefined): "fixed" | "exponential" | "linear" {
+    if (type === "fixed" || type === "linear" || type === "exponential") {
+      return type;
+    }
+    return "exponential"; // 默认值
+  }
+
+  /**
+   * 验证优先级类型
+   */
+  private validatePriorityType(priority: string | undefined): "high" | "normal" | "low" | undefined {
+    if (priority === "high" || priority === "normal" || priority === "low") {
+      return priority as "high" | "normal" | "low";
+    }
+    return undefined; // 使用默认值
   }
 
   /**

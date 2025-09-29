@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 
 import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
 import { FlexibleMappingRuleService } from '@core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
@@ -336,16 +336,44 @@ describe('DataTransformerService', () => {
     });
 
     it('should handle partial failures with continueOnError option', async () => {
-      flexibleMappingRuleService.applyFlexibleMappingRule
-        .mockResolvedValueOnce(mockTransformResult)
-        .mockRejectedValueOnce(new Error('Transformation failed'));
+      // 创建两个不同规则组的请求
+      const mixedBatchRequests = [
+        // 第一组 - 这组会成功
+        {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { last_done: 385.6 },
+          apiType: 'rest' as const,
+        },
+        // 第二组 - 这组会失败
+        {
+          provider: 'different-provider',
+          transDataRuleListType: 'different-type',
+          rawData: { data: 'test' },
+          apiType: 'rest' as const,
+        },
+      ];
+
+      // 为第一组请求设置成功
+      flexibleMappingRuleService.findBestMatchingRule
+        .mockImplementation((provider) => {
+          if (provider === 'longport') {
+            return Promise.resolve(mockMappingRule);
+          } else {
+            return Promise.reject(new Error('Rule not found for different provider'));
+          }
+        });
+      
+      flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+      flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
 
       const result = await service.transformBatch({
-        requests: mockBatchRequests,
+        requests: mixedBatchRequests,
         options: { continueOnError: true }
       });
 
-      expect(result).toHaveLength(1); // Only successful transformation
+      expect(result).toHaveLength(1); // 只有成功的组的结果
+      expect(result[0].transformedData).toEqual(mockTransformResult.transformedData);
     });
 
     it('should emit batch metrics on completion', async () => {
@@ -513,6 +541,307 @@ describe('DataTransformerService', () => {
 
       expect(result).toBeDefined();
       expect(result.metadata.recordsProcessed).toBe(1000);
+    });
+  });
+
+  describe('Additional Coverage for Missing Branches', () => {
+    describe('_executeSingleTransform Method Coverage', () => {
+      it('should handle failed single transformation result', async () => {
+        const failedResult = {
+          success: false,
+          transformedData: null,
+          errorMessage: 'Transformation rule application failed',
+          mappingStats: {
+            totalMappings: 2,
+            successfulMappings: 0,
+            failedMappings: 2,
+            successRate: 0.0,
+          },
+        };
+
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(failedResult);
+
+        // Test private method via transformBatch which calls _executeSingleTransform
+        const requests = [{
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest' as const,
+        }];
+
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+
+        await expect(service.transformBatch({ requests })).rejects.toThrow();
+      });
+
+      it('should handle _executeSingleTransform with undefined error message', async () => {
+        const failedResultNoMessage = {
+          success: false,
+          transformedData: null,
+          errorMessage: undefined, // Test undefined error message path
+          mappingStats: {
+            totalMappings: 2,
+            successfulMappings: 0,
+            failedMappings: 2,
+            successRate: 0.0,
+          },
+        };
+
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(failedResultNoMessage);
+
+        const requests = [{
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest' as const,
+        }];
+
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+
+        await expect(service.transformBatch({ requests })).rejects.toThrow('Single transformation failed');
+      });
+
+      it('should handle slow single transformation with performance warning', async () => {
+        // Mock a slow transformation
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockImplementation(
+          () => new Promise(resolve =>
+            setTimeout(() => resolve(mockTransformResult), 1100) // > 1000ms threshold
+          )
+        );
+
+        const requests = [{
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest' as const,
+        }];
+
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+
+        const result = await service.transformBatch({ requests });
+
+        expect(result).toBeDefined();
+        expect(result.length).toBe(1);
+      });
+
+      it('should handle _executeSingleTransform with business logic exceptions', async () => {
+        const unauthorizedError = new UnauthorizedException('Access denied');
+        flexibleMappingRuleService.getRuleDocumentById.mockRejectedValue(unauthorizedError);
+
+        const requests = [{
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest' as const,
+        }];
+
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+
+        await expect(service.transformBatch({ requests })).rejects.toThrow(UnauthorizedException);
+      });
+
+      it('should handle _executeSingleTransform with ForbiddenException', async () => {
+        const forbiddenError = new ForbiddenException('Operation not allowed');
+        flexibleMappingRuleService.getRuleDocumentById.mockRejectedValue(forbiddenError);
+
+        const requests = [{
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest' as const,
+        }];
+
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+
+        await expect(service.transformBatch({ requests })).rejects.toThrow(ForbiddenException);
+      });
+    });
+
+    describe('Transform Method Edge Cases', () => {
+      it('should handle includeMetadata option correctly', async () => {
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
+
+        const requestWithMetadata: DataTransformRequestDto = {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest',
+          options: {
+            includeMetadata: true,
+            includeDebugInfo: false,
+          },
+        };
+
+        const result = await service.transform(requestWithMetadata);
+
+        expect(result.metadata.transformationsApplied).toBeDefined();
+        expect(Array.isArray(result.metadata.transformationsApplied)).toBe(true);
+      });
+
+      it('should handle includeDebugInfo option correctly', async () => {
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
+
+        const requestWithDebugInfo: DataTransformRequestDto = {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest',
+          options: {
+            includeDebugInfo: true,
+          },
+        };
+
+        const result = await service.transform(requestWithDebugInfo);
+
+        expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalledWith(
+          mockRuleDocument,
+          { test: 'data' },
+          true // includeDebugInfo
+        );
+        expect(result).toBeDefined();
+      });
+
+      it('should handle undefined options gracefully', async () => {
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
+
+        const requestWithoutOptions: DataTransformRequestDto = {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest',
+          // options: undefined
+        };
+
+        const result = await service.transform(requestWithoutOptions);
+
+        expect(flexibleMappingRuleService.applyFlexibleMappingRule).toHaveBeenCalledWith(
+          mockRuleDocument,
+          { test: 'data' },
+          false // default includeDebugInfo
+        );
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe('findMappingRule Method Edge Cases', () => {
+      it('should handle raw data sample with field mapping validation', async () => {
+        const sampleData = {
+          last_done: 385.6,
+          change_rate: -0.0108,
+          nonMatchingField: 'shouldNotMatch'
+        };
+
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
+
+        const request: DataTransformRequestDto = {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: sampleData,
+          apiType: 'rest',
+        };
+
+        const result = await service.transform(request);
+
+        expect(result).toBeDefined();
+        expect(flexibleMappingRuleService.findBestMatchingRule).toHaveBeenCalledWith(
+          'longport',
+          'rest',
+          'quote_fields'
+        );
+      });
+
+      it('should handle stream API type in findMappingRule', async () => {
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
+
+        const streamRequest: DataTransformRequestDto = {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'stream',
+        };
+
+        const result = await service.transform(streamRequest);
+
+        expect(result).toBeDefined();
+        expect(flexibleMappingRuleService.findBestMatchingRule).toHaveBeenCalledWith(
+          'longport',
+          'stream',
+          'quote_fields'
+        );
+      });
+    });
+
+    describe('TransformBatch Continue On Error Option', () => {
+      it('should handle continueOnError option in transformBatch', async () => {
+        flexibleMappingRuleService.findBestMatchingRule
+          .mockResolvedValueOnce(mockMappingRule)
+          .mockRejectedValueOnce(new Error('Rule not found for second request'));
+
+        const mixedRequests = [
+          {
+            provider: 'longport',
+            transDataRuleListType: 'quote_fields',
+            rawData: { test: 'data1' },
+            apiType: 'rest' as const,
+          },
+          {
+            provider: 'different-provider',
+            transDataRuleListType: 'different-type',
+            rawData: { test: 'data2' },
+            apiType: 'rest' as const,
+          },
+        ];
+
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockResolvedValue(mockTransformResult);
+
+        const result = await service.transformBatch({
+          requests: mixedRequests,
+          options: { continueOnError: true }
+        });
+
+        // Should return results only for successful transformations
+        expect(result.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('Performance Threshold Testing', () => {
+      it('should log warning for slow transformations', async () => {
+        flexibleMappingRuleService.findBestMatchingRule.mockResolvedValue(mockMappingRule);
+        flexibleMappingRuleService.getRuleDocumentById.mockResolvedValue(mockRuleDocument);
+
+        // Mock slow transformation
+        flexibleMappingRuleService.applyFlexibleMappingRule.mockImplementation(
+          () => new Promise(resolve =>
+            setTimeout(() => resolve(mockTransformResult), 1100) // > 1000ms threshold
+          )
+        );
+
+        const request: DataTransformRequestDto = {
+          provider: 'longport',
+          transDataRuleListType: 'quote_fields',
+          rawData: { test: 'data' },
+          apiType: 'rest',
+        };
+
+        const result = await service.transform(request);
+
+        expect(result).toBeDefined();
+        expect(result.metadata.processingTimeMs).toBeGreaterThan(1000);
+      });
     });
   });
 });

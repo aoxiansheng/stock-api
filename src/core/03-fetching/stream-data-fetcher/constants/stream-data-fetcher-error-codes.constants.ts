@@ -136,199 +136,240 @@ export const StreamDataFetcherErrorCategories = {
   /**
    * 判断是否为验证类错误
    */
-  isValidationError: (errorCode: string): boolean => {
+  isValidationError: (errorCode: StreamDataFetcherErrorCode): boolean => {
     return errorCode.includes('VALIDATION');
   },
 
   /**
    * 判断是否为业务逻辑错误
    */
-  isBusinessError: (errorCode: string): boolean => {
+  isBusinessError: (errorCode: StreamDataFetcherErrorCode): boolean => {
     return errorCode.includes('BUSINESS');
   },
 
   /**
    * 判断是否为系统资源错误
    */
-  isSystemError: (errorCode: string): boolean => {
+  isSystemError: (errorCode: StreamDataFetcherErrorCode): boolean => {
     return errorCode.includes('SYSTEM');
   },
 
   /**
    * 判断是否为外部依赖错误
    */
-  isExternalError: (errorCode: string): boolean => {
+  isExternalError: (errorCode: StreamDataFetcherErrorCode): boolean => {
     return errorCode.includes('EXTERNAL');
   },
 
   /**
    * 判断错误是否可重试
    */
-  isRetryable: (errorCode: string): boolean => {
-    // 外部服务错误通常可重试
-    if (errorCode.includes('EXTERNAL')) {
-      // 除了认证失败和协议错误
-      return !errorCode.includes('AUTHENTICATION_FAILED') &&
-             !errorCode.includes('PROTOCOL_ERROR') &&
-             !errorCode.includes('SSL_HANDSHAKE_FAILED');
-    }
-
-    // 系统资源错误中的超时和负载问题可重试
-    if (errorCode.includes('TIMEOUT') ||
-        errorCode.includes('OVERLOAD') ||
-        errorCode.includes('PRESSURE') ||
-        errorCode.includes('EXHAUSTED') ||
-        errorCode.includes('SATURATED')) {
-      return true;
-    }
-
-    // 连接相关错误可重试
-    if (errorCode.includes('CONNECTION_FAILED') ||
-        errorCode.includes('WEBSOCKET_UNAVAILABLE') ||
-        errorCode.includes('NETWORK_CONNECTION_ERROR') ||
-        errorCode.includes('NETWORK_TIMEOUT')) {
-      return true;
-    }
-
-    // 临时状态错误可重试
-    if (errorCode.includes('STATE_TRANSITION_FAILED') ||
-        errorCode.includes('STREAM_PROCESSING_BACKLOG') ||
-        errorCode.includes('BUFFER_OVERFLOW')) {
-      return true;
-    }
-
-    return false;
+  isRetryable: (errorCode: StreamDataFetcherErrorCode): boolean => {
+    // 定义明确可重试错误集合
+    const retryableErrors = new Set<StreamDataFetcherErrorCode>([
+      // 系统超时错误
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_TIMEOUT,
+      STREAM_DATA_FETCHER_ERROR_CODES.HEARTBEAT_TIMEOUT,
+      STREAM_DATA_FETCHER_ERROR_CODES.SUBSCRIPTION_TIMEOUT,
+      STREAM_DATA_FETCHER_ERROR_CODES.DATA_PROCESSING_TIMEOUT,
+      STREAM_DATA_FETCHER_ERROR_CODES.RECONNECTION_TIMEOUT,
+      STREAM_DATA_FETCHER_ERROR_CODES.NETWORK_TIMEOUT,
+      
+      // 资源临时不可用错误
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_POOL_EXHAUSTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.MEMORY_PRESSURE_DETECTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.CPU_OVERLOAD,
+      STREAM_DATA_FETCHER_ERROR_CODES.THREAD_POOL_SATURATED,
+      
+      // 状态错误
+      STREAM_DATA_FETCHER_ERROR_CODES.STATE_TRANSITION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.STREAM_PROCESSING_BACKLOG,
+      STREAM_DATA_FETCHER_ERROR_CODES.STREAM_BUFFER_OVERFLOW,
+      
+      // 连接错误
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_CONNECTION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.NETWORK_CONNECTION_ERROR,
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_WEBSOCKET_UNAVAILABLE,
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_RATE_LIMITED,
+      STREAM_DATA_FETCHER_ERROR_CODES.CACHE_CONNECTION_FAILED,
+    ]);
+    
+    return retryableErrors.has(errorCode);
   },
 
   /**
    * 获取错误的恢复建议
    */
-  getRecoveryAction: (errorCode: string): 'retry' | 'reconnect' | 'fallback' | 'abort' => {
-    if (StreamDataFetcherErrorCategories.isRetryable(errorCode)) {
-      // 连接相关错误建议重连
-      if (errorCode.includes('CONNECTION') ||
-          errorCode.includes('WEBSOCKET') ||
-          errorCode.includes('NETWORK')) {
-        return 'reconnect';
-      }
-      return 'retry';
+  getRecoveryAction: (errorCode: StreamDataFetcherErrorCode): 'retry' | 'reconnect' | 'fallback' | 'abort' => {
+    // 需要重连的错误
+    const reconnectErrors = new Set<StreamDataFetcherErrorCode>([
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_CONNECTION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.NETWORK_CONNECTION_ERROR,
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_WEBSOCKET_UNAVAILABLE,
+      STREAM_DATA_FETCHER_ERROR_CODES.NETWORK_TIMEOUT,
+    ]);
+    
+    if (reconnectErrors.has(errorCode)) {
+      return 'reconnect';
     }
-
-    if (StreamDataFetcherErrorCategories.isExternalError(errorCode) ||
-        StreamDataFetcherErrorCategories.isSystemError(errorCode)) {
+    
+    // 需要备选方案的错误
+    const fallbackErrors = new Set<StreamDataFetcherErrorCode>([
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_AUTHENTICATION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+      STREAM_DATA_FETCHER_ERROR_CODES.SSL_HANDSHAKE_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.WEBSOCKET_PROTOCOL_ERROR,
+    ]);
+    
+    if (fallbackErrors.has(errorCode) || 
+        (StreamDataFetcherErrorCategories.isExternalError(errorCode) && !StreamDataFetcherErrorCategories.isRetryable(errorCode)) ||
+        (StreamDataFetcherErrorCategories.isSystemError(errorCode) && !StreamDataFetcherErrorCategories.isRetryable(errorCode))) {
       return 'fallback';
     }
-
+    
+    // 可重试的错误
+    if (StreamDataFetcherErrorCategories.isRetryable(errorCode)) {
+      return 'retry';
+    }
+    
+    // 默认不可恢复
     return 'abort';
   },
 
   /**
    * 获取错误严重级别
    */
-  getSeverityLevel: (errorCode: string): 'low' | 'medium' | 'high' | 'critical' => {
+  getSeverityLevel: (errorCode: StreamDataFetcherErrorCode): 'low' | 'medium' | 'high' | 'critical' => {
+    // 定义严重级别错误集合
+    const criticalErrors = new Set<StreamDataFetcherErrorCode>([
+      // 数据完整性问题
+      STREAM_DATA_FETCHER_ERROR_CODES.STREAM_DATA_CORRUPTION,
+      STREAM_DATA_FETCHER_ERROR_CODES.CLIENT_STATE_CORRUPTION,
+      
+      // 资源耗尽问题
+      STREAM_DATA_FETCHER_ERROR_CODES.MEMORY_LEAK_DETECTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_POOL_EXHAUSTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.THREAD_POOL_SATURATED,
+      STREAM_DATA_FETCHER_ERROR_CODES.CPU_OVERLOAD,
+      
+      // 基础设施问题
+      STREAM_DATA_FETCHER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_WEBSOCKET_UNAVAILABLE,
+      STREAM_DATA_FETCHER_ERROR_CODES.SSL_HANDSHAKE_FAILED,
+    ]);
+    
+    if (criticalErrors.has(errorCode)) {
+      return 'critical';
+    }
+    
+    // 定义高级别错误集合
+    const highErrors = new Set<StreamDataFetcherErrorCode>([
+      // 认证和会话问题
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_AUTHENTICATION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.SESSION_EXPIRED,
+      STREAM_DATA_FETCHER_ERROR_CODES.UNAUTHORIZED_SUBSCRIPTION,
+      
+      // 数据问题
+      STREAM_DATA_FETCHER_ERROR_CODES.DATA_SEQUENCE_ERROR,
+      STREAM_DATA_FETCHER_ERROR_CODES.RECOVERY_STATE_MISMATCH,
+    ]);
+    
+    if (highErrors.has(errorCode) || 
+        (StreamDataFetcherErrorCategories.isSystemError(errorCode) && !criticalErrors.has(errorCode)) || 
+        (StreamDataFetcherErrorCategories.isExternalError(errorCode) && !criticalErrors.has(errorCode))) {
+      return 'high';
+    }
+    
     // 验证错误通常是低级别
     if (StreamDataFetcherErrorCategories.isValidationError(errorCode)) {
       return 'low';
     }
-
-    // 业务逻辑错误根据类型判断
-    if (StreamDataFetcherErrorCategories.isBusinessError(errorCode)) {
-      // 数据完整性和安全错误较严重
-      if (errorCode.includes('DATA_CORRUPTION') ||
-          errorCode.includes('STATE_CORRUPTION') ||
-          errorCode.includes('AUTHENTICATION_FAILED') ||
-          errorCode.includes('UNAUTHORIZED')) {
-        return 'critical';
-      }
-
-      if (errorCode.includes('CONNECTION_AUTHENTICATION_FAILED') ||
-          errorCode.includes('SESSION_EXPIRED') ||
-          errorCode.includes('DATA_SEQUENCE_ERROR')) {
-        return 'high';
-      }
-
-      return 'medium';
-    }
-
-    // 系统资源错误
-    if (StreamDataFetcherErrorCategories.isSystemError(errorCode)) {
-      // 内存和连接池问题是关键级别
-      if (errorCode.includes('MEMORY_LEAK') ||
-          errorCode.includes('CONNECTION_POOL_EXHAUSTED') ||
-          errorCode.includes('THREAD_POOL_SATURATED') ||
-          errorCode.includes('CPU_OVERLOAD')) {
-        return 'critical';
-      }
-      return 'high';
-    }
-
-    // 外部依赖错误
-    if (StreamDataFetcherErrorCategories.isExternalError(errorCode)) {
-      // 基础设施失败是关键级别
-      if (errorCode.includes('INFRASTRUCTURE_FAILURE') ||
-          errorCode.includes('PROVIDER_WEBSOCKET_UNAVAILABLE') ||
-          errorCode.includes('SSL_HANDSHAKE_FAILED')) {
-        return 'critical';
-      }
-      return 'high';
-    }
-
+    
+    // 其他错误为中等级别
     return 'medium';
   },
 
   /**
    * 判断是否需要立即重连
    */
-  requiresImmediateReconnection: (errorCode: string): boolean => {
-    return errorCode.includes('CONNECTION_FAILED') ||
-           errorCode.includes('WEBSOCKET_UNAVAILABLE') ||
-           errorCode.includes('NETWORK_CONNECTION_ERROR') ||
-           errorCode.includes('HEARTBEAT_TIMEOUT') ||
-           errorCode.includes('SESSION_EXPIRED');
+  requiresImmediateReconnection: (errorCode: StreamDataFetcherErrorCode): boolean => {
+    const immediateReconnectionErrors = new Set<StreamDataFetcherErrorCode>([
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_CONNECTION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.NETWORK_CONNECTION_ERROR,
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_WEBSOCKET_UNAVAILABLE,
+      STREAM_DATA_FETCHER_ERROR_CODES.HEARTBEAT_TIMEOUT,
+      STREAM_DATA_FETCHER_ERROR_CODES.SESSION_EXPIRED,
+    ]);
+    
+    return immediateReconnectionErrors.has(errorCode);
   },
 
   /**
    * 判断是否需要降级服务
    */
-  requiresServiceDegradation: (errorCode: string): boolean => {
-    return errorCode.includes('PROVIDER_WEBSOCKET_UNAVAILABLE') ||
-           errorCode.includes('INFRASTRUCTURE_FAILURE') ||
-           errorCode.includes('CONNECTION_POOL_EXHAUSTED') ||
-           errorCode.includes('MEMORY_PRESSURE_DETECTED') ||
-           errorCode.includes('CPU_OVERLOAD');
+  requiresServiceDegradation: (errorCode: StreamDataFetcherErrorCode): boolean => {
+    const serviceDegradationErrors = new Set<StreamDataFetcherErrorCode>([
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_WEBSOCKET_UNAVAILABLE,
+      STREAM_DATA_FETCHER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_POOL_EXHAUSTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.MEMORY_PRESSURE_DETECTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.CPU_OVERLOAD,
+    ]);
+    
+    return serviceDegradationErrors.has(errorCode);
   },
 
   /**
    * 判断是否需要立即告警
    */
-  requiresImmediateAlert: (errorCode: string): boolean => {
-    return errorCode.includes('CRITICAL') ||
-           errorCode.includes('DATA_CORRUPTION') ||
-           errorCode.includes('STATE_CORRUPTION') ||
-           errorCode.includes('MEMORY_LEAK') ||
-           errorCode.includes('INFRASTRUCTURE_FAILURE') ||
-           errorCode.includes('AUTHENTICATION_FAILED');
+  requiresImmediateAlert: (errorCode: StreamDataFetcherErrorCode): boolean => {
+    const immediateAlertErrors = new Set<StreamDataFetcherErrorCode>([
+      // 数据和状态损坏
+      STREAM_DATA_FETCHER_ERROR_CODES.STREAM_DATA_CORRUPTION,
+      STREAM_DATA_FETCHER_ERROR_CODES.CLIENT_STATE_CORRUPTION,
+      
+      // 严重资源问题
+      STREAM_DATA_FETCHER_ERROR_CODES.MEMORY_LEAK_DETECTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_POOL_EXHAUSTED,
+      
+      // 基础设施问题
+      STREAM_DATA_FETCHER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+      
+      // 认证问题
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_AUTHENTICATION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_AUTHENTICATION_FAILED,
+    ]);
+    
+    return immediateAlertErrors.has(errorCode);
   },
 
   /**
    * 判断是否需要清理资源
    */
-  requiresResourceCleanup: (errorCode: string): boolean => {
-    return errorCode.includes('MEMORY_PRESSURE') ||
-           errorCode.includes('MEMORY_LEAK') ||
-           errorCode.includes('BUFFER_OVERFLOW') ||
-           errorCode.includes('CONNECTION_POOL_EXHAUSTED') ||
-           errorCode.includes('THREAD_POOL_SATURATED');
+  requiresResourceCleanup: (errorCode: StreamDataFetcherErrorCode): boolean => {
+    const resourceCleanupErrors = new Set<StreamDataFetcherErrorCode>([
+      STREAM_DATA_FETCHER_ERROR_CODES.MEMORY_PRESSURE_DETECTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.MEMORY_LEAK_DETECTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.STREAM_BUFFER_OVERFLOW,
+      STREAM_DATA_FETCHER_ERROR_CODES.CONNECTION_POOL_EXHAUSTED,
+      STREAM_DATA_FETCHER_ERROR_CODES.THREAD_POOL_SATURATED,
+    ]);
+    
+    return resourceCleanupErrors.has(errorCode);
   },
 
   /**
    * 判断是否需要状态恢复
    */
-  requiresStateRecovery: (errorCode: string): boolean => {
-    return errorCode.includes('STATE_CORRUPTION') ||
-           errorCode.includes('CLIENT_STATE_CORRUPTION') ||
-           errorCode.includes('RECOVERY_STATE_MISMATCH') ||
-           errorCode.includes('CHECKPOINT_VALIDATION_FAILED');
+  requiresStateRecovery: (errorCode: StreamDataFetcherErrorCode): boolean => {
+    const stateRecoveryErrors = new Set<StreamDataFetcherErrorCode>([
+      STREAM_DATA_FETCHER_ERROR_CODES.CLIENT_STATE_CORRUPTION,
+      STREAM_DATA_FETCHER_ERROR_CODES.RECOVERY_STATE_MISMATCH,
+      STREAM_DATA_FETCHER_ERROR_CODES.CHECKPOINT_VALIDATION_FAILED,
+      STREAM_DATA_FETCHER_ERROR_CODES.STATE_PERSISTENCE_FAILED,
+    ]);
+    
+    return stateRecoveryErrors.has(errorCode);
   }
 };
 

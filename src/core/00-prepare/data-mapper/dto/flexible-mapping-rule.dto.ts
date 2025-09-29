@@ -85,6 +85,7 @@ export class FlexibleFieldMappingDto {
     required: false,
   })
   @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   fallbackPaths?: string[];
 
@@ -146,6 +147,7 @@ export class CreateFlexibleMappingRuleDto {
     description: "字段映射列表",
     type: [FlexibleFieldMappingDto],
   })
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FlexibleFieldMappingDto)
   fieldMappings: FlexibleFieldMappingDto[];

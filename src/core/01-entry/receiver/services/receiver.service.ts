@@ -554,10 +554,12 @@ export class ReceiverService implements OnModuleDestroy {
         }),
       );
 
-      if (error instanceof NotFoundException) {
+      // 关键修复：如果错误已经是我们自定义的业务异常，直接重新抛出，避免信息丢失
+      if (error instanceof BadRequestException || error instanceof NotFoundException || (error.constructor.name === 'BusinessException')) {
         throw error;
       }
 
+      // 对于未知错误，再进行包装
       throw UniversalExceptionFactory.createBusinessException({
         component: ComponentIdentifier.RECEIVER,
         errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
@@ -847,22 +849,29 @@ export class ReceiverService implements OnModuleDestroy {
     setImmediate(() => {
       if (this.isDestroyed) return; // 防止在模块销毁后执行
 
+      const tags: Record<string, any> = {
+        endpoint,
+        method,
+        status_code: statusCode,
+        component: "receiver",
+        operation: metadata.operation || "unknown",
+        provider: metadata.provider || "unknown",
+        symbols_count: metadata.symbolsCount || 0,
+        market: metadata.market || "unknown",
+      };
+
+      // 关键修复：当请求失败时，在 tags 中添加 error 字段
+      if (statusCode >= 400 && metadata.error) {
+        tags.error = metadata.error;
+      }
+
       this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
         timestamp: new Date(),
         source: "receiver",
         metricType: "api",
         metricName: "request_processed",
         metricValue: processingTimeMs,
-        tags: {
-          endpoint,
-          method,
-          status_code: statusCode,
-          component: "receiver",
-          operation: metadata.operation || "unknown",
-          provider: metadata.provider || "unknown",
-          symbols_count: metadata.symbolsCount || 0,
-          market: metadata.market || "unknown",
-        },
+        tags,
       });
     });
   }

@@ -81,7 +81,7 @@ describe('DataFetchRequestDto', () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe('provider');
-      expect(errors[0].constraints).toHaveProperty('isString');
+      expect(errors[0].constraints).toHaveProperty('isNotEmpty');
     });
 
     it('should fail with missing provider', async () => {
@@ -111,7 +111,7 @@ describe('DataFetchRequestDto', () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe('capability');
-      expect(errors[0].constraints).toHaveProperty('isString');
+      expect(errors[0].constraints).toHaveProperty('isNotEmpty');
     });
 
     it('should fail with empty symbols array', async () => {

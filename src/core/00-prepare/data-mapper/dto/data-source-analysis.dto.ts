@@ -11,8 +11,10 @@ import {
   IsArray,
   ValidateNested,
   MaxLength,
+  IsDefined,
+  IsNotEmpty,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
 import {
   API_TYPE_VALUES,
@@ -233,7 +235,8 @@ export class CreateDataSourceTemplateDto {
   @ApiProperty({ description: "是否设为默认模板", default: false })
   @IsBoolean()
   @IsOptional()
-  isDefault?: boolean = false;
+  @Transform(({ value }) => value === undefined ? false : value)
+  isDefault?: boolean;
 
   @ApiProperty({ description: "模板可靠性评分", minimum: 0, maximum: 1 })
   @IsNumber()
@@ -276,10 +279,12 @@ export class FieldMappingSuggestionDto {
   @ApiProperty({ description: "源字段信息", type: ExtractedFieldDto })
   @ValidateNested()
   @Type(() => ExtractedFieldDto)
+  @IsDefined()
   sourceField: ExtractedFieldDto;
 
   @ApiProperty({ description: "目标字段名称", example: "lastPrice" })
   @IsString()
+  @IsNotEmpty()
   targetField: string;
 
   @ApiProperty({
@@ -291,6 +296,7 @@ export class FieldMappingSuggestionDto {
   @IsNumber()
   @Min(0)
   @Max(1)
+  @IsDefined()
   confidence: number;
 
   @ApiProperty({

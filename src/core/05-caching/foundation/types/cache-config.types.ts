@@ -22,6 +22,7 @@ export type CacheStatusType = typeof CACHE_STATUS[keyof typeof CACHE_STATUS];
 
 /**
  * 基础缓存配置接口
+ * Foundation 层的标准配置定义
  */
 export interface BaseCacheConfig {
   /** 缓存实例名称 */

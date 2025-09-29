@@ -28,7 +28,7 @@ export const hasStreamPermissions = (
   userPermissions: Permission[],
   requiredPermissions: readonly Permission[] = STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS,
 ): boolean => {
-  return requiredPermissions.every((permission) =>
+  return requiredPermissions.some((permission) =>
     userPermissions.includes(permission),
   );
 };

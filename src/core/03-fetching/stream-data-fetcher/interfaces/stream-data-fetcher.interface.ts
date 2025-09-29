@@ -302,6 +302,21 @@ export class StreamDataFetcherException extends Error {
     super(message);
     this.name = "StreamDataFetcherException";
   }
+
+  /**
+   * 自定义JSON序列化方法
+   * 确保异常对象能够正确序列化，包含所有重要属性
+   */
+  toJSON(): Record<string, any> {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      provider: this.provider,
+      capability: this.capability,
+      stack: this.stack,
+    };
+  }
 }
 
 /**
@@ -317,6 +332,17 @@ export class StreamConnectionException extends StreamDataFetcherException {
     super(message, "STREAM_CONNECTION_ERROR", provider, capability);
     this.name = "StreamConnectionException";
   }
+
+  /**
+   * 自定义JSON序列化方法
+   * 包含连接异常特有的connectionId属性
+   */
+  toJSON(): Record<string, any> {
+    return {
+      ...super.toJSON(),
+      connectionId: this.connectionId,
+    };
+  }
 }
 
 /**
@@ -331,5 +357,16 @@ export class StreamSubscriptionException extends StreamDataFetcherException {
   ) {
     super(message, "STREAM_SUBSCRIPTION_ERROR", provider, capability);
     this.name = "StreamSubscriptionException";
+  }
+
+  /**
+   * 自定义JSON序列化方法
+   * 包含订阅异常特有的symbols属性
+   */
+  toJSON(): Record<string, any> {
+    return {
+      ...super.toJSON(),
+      symbols: this.symbols,
+    };
   }
 }

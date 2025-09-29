@@ -509,5 +509,234 @@ describe('HealthCheckService', () => {
       // would take 300ms+ if sequential
       expect(totalTime).toBeLessThan(200);
     });
+
+    it('should handle mixed success and failure scenarios', async () => {
+      // Mock MongoDB success but Redis failure
+      const mockConnection = {
+        db: {
+          admin: jest.fn(() => ({
+            ping: jest.fn().mockResolvedValue({}),
+          })),
+        },
+        close: jest.fn().mockResolvedValue(undefined),
+        asPromise: jest.fn().mockReturnThis(),
+      };
+      (mongoose.createConnection as jest.Mock).mockReturnValue(mockConnection);
+
+      const mockRedis = {
+        connect: jest.fn().mockRejectedValue(new Error('Redis unavailable')),
+        ping: jest.fn(),
+        quit: jest.fn(),
+      };
+      (Redis as jest.MockedClass<typeof Redis>).mockImplementation(() => mockRedis as any);
+
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'MONGODB_URI') return 'mongodb://localhost:27017/test';
+        if (key === 'REDIS_URL') return 'redis://localhost:6379';
+        return undefined;
+      });
+
+      const result = await service.checkHealth();
+
+      expect(result.status).toBe('unhealthy');
+
+      const mongoCheck = result.checks.find(check => check.name === 'mongodb');
+      const redisCheck = result.checks.find(check => check.name === 'redis');
+      const memoryCheck = result.checks.find(check => check.name === 'memory');
+
+      expect(mongoCheck.status).toBe('healthy');
+      expect(redisCheck.status).toBe('unhealthy');
+      expect(memoryCheck.status).toBe('healthy');
+    });
+
+    it('should include timestamp and maintain consistency', async () => {
+      const beforeTime = new Date();
+
+      const mockConnection = {
+        db: {
+          admin: jest.fn(() => ({
+            ping: jest.fn().mockResolvedValue({}),
+          })),
+        },
+        close: jest.fn().mockResolvedValue(undefined),
+        asPromise: jest.fn().mockReturnThis(),
+      };
+      (mongoose.createConnection as jest.Mock).mockReturnValue(mockConnection);
+
+      const mockRedis = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        ping: jest.fn().mockResolvedValue('PONG'),
+        quit: jest.fn().mockResolvedValue('OK'),
+      };
+      (Redis as jest.MockedClass<typeof Redis>).mockImplementation(() => mockRedis as any);
+
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'MONGODB_URI') return 'mongodb://localhost:27017/test';
+        if (key === 'REDIS_URL') return 'redis://localhost:6379';
+        return undefined;
+      });
+
+      const result = await service.checkHealth();
+      const afterTime = new Date();
+
+      expect(result.timestamp).toBeInstanceOf(Date);
+      expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
+      expect(result.timestamp.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    });
+  });
+
+  describe('Concurrent Operations', () => {
+    it('should handle multiple concurrent health checks', async () => {
+      const mockConnection = {
+        db: {
+          admin: jest.fn(() => ({
+            ping: jest.fn().mockResolvedValue({}),
+          })),
+        },
+        close: jest.fn().mockResolvedValue(undefined),
+        asPromise: jest.fn().mockReturnThis(),
+      };
+      (mongoose.createConnection as jest.Mock).mockReturnValue(mockConnection);
+
+      const mockRedis = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        ping: jest.fn().mockResolvedValue('PONG'),
+        quit: jest.fn().mockResolvedValue('OK'),
+      };
+      (Redis as jest.MockedClass<typeof Redis>).mockImplementation(() => mockRedis as any);
+
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'MONGODB_URI') return 'mongodb://localhost:27017/test';
+        if (key === 'REDIS_URL') return 'redis://localhost:6379';
+        return undefined;
+      });
+
+      // Run multiple health checks concurrently
+      const promises = Array.from({ length: 3 }, () => service.checkHealth());
+      const results = await Promise.all(promises);
+
+      expect(results).toHaveLength(3);
+      results.forEach(result => {
+        expect(result.status).toBe('healthy');
+        expect(result.checks).toHaveLength(3);
+        expect(result.timestamp).toBeInstanceOf(Date);
+      });
+    });
+  });
+
+  describe('Edge Cases and Boundary Testing', () => {
+    it('should handle connection cleanup failure gracefully', async () => {
+      const mockConnection = {
+        db: {
+          admin: jest.fn(() => ({
+            ping: jest.fn().mockResolvedValue({}),
+          })),
+        },
+        close: jest.fn().mockRejectedValue(new Error('Cleanup failed')),
+        asPromise: jest.fn().mockReturnThis(),
+      };
+      (mongoose.createConnection as jest.Mock).mockReturnValue(mockConnection);
+
+      configService.get.mockReturnValue('mongodb://localhost:27017/test');
+
+      // Should still report healthy if ping succeeds, even if cleanup fails
+      const result = await (service as any).checkMongoDB();
+      expect(result.status).toBe('healthy');
+    });
+
+    it('should handle Redis quit failure gracefully', async () => {
+      const mockRedis = {
+        connect: jest.fn().mockResolvedValue(undefined),
+        ping: jest.fn().mockResolvedValue('PONG'),
+        quit: jest.fn().mockRejectedValue(new Error('Quit failed')),
+      };
+      (Redis as jest.MockedClass<typeof Redis>).mockImplementation(() => mockRedis as any);
+
+      configService.get.mockReturnValue('redis://localhost:6379');
+
+      // Should still report healthy if ping succeeds, even if quit fails
+      const result = await (service as any).checkRedis();
+      expect(result.status).toBe('healthy');
+    });
+
+    it('should handle asPromise method failure', async () => {
+      const mockConnection = {
+        db: {
+          admin: jest.fn(() => ({
+            ping: jest.fn().mockResolvedValue({}),
+          })),
+        },
+        close: jest.fn().mockResolvedValue(undefined),
+        asPromise: jest.fn().mockImplementation(() => {
+          throw new Error('asPromise failed');
+        }),
+      };
+      (mongoose.createConnection as jest.Mock).mockReturnValue(mockConnection);
+
+      configService.get.mockReturnValue('mongodb://localhost:27017/test');
+
+      const result = await (service as any).checkMongoDB();
+      expect(result.status).toBe('unhealthy');
+      expect(result.message).toContain('MongoDB连接失败: asPromise failed');
+    });
+
+    it('should measure accurate duration for slow operations', async () => {
+      const delay = 50;
+      const mockConnection = {
+        db: {
+          admin: jest.fn(() => ({
+            ping: jest.fn().mockImplementation(() =>
+              new Promise(resolve => setTimeout(resolve, delay))
+            ),
+          })),
+        },
+        close: jest.fn().mockResolvedValue(undefined),
+        asPromise: jest.fn().mockReturnThis(),
+      };
+      (mongoose.createConnection as jest.Mock).mockReturnValue(mockConnection);
+
+      configService.get.mockReturnValue('mongodb://localhost:27017/test');
+
+      const result = await (service as any).checkMongoDB();
+
+      expect(result.duration).toBeGreaterThanOrEqual(delay);
+      expect(result.duration).toBeLessThan(delay + 100); // Allow some variance
+    });
+
+    it('should handle extremely high memory usage correctly', () => {
+      const originalMemoryUsage = process.memoryUsage;
+      (process.memoryUsage as any) = jest.fn().mockReturnValue({
+        rss: 0,
+        external: 0,
+        arrayBuffers: 0,
+        heapUsed: 99 * 1024 * 1024, // 99MB
+        heapTotal: 100 * 1024 * 1024, // 100MB
+      });
+
+      const result = (service as any).checkMemory();
+
+      expect(result.status).toBe('unhealthy');
+      expect(result.message).toContain('99%');
+
+      process.memoryUsage = originalMemoryUsage;
+    });
+
+    it('should handle zero memory usage edge case', () => {
+      const originalMemoryUsage = process.memoryUsage;
+      (process.memoryUsage as any) = jest.fn().mockReturnValue({
+        rss: 0,
+        external: 0,
+        arrayBuffers: 0,
+        heapUsed: 0,
+        heapTotal: 100 * 1024 * 1024, // 100MB
+      });
+
+      const result = (service as any).checkMemory();
+
+      expect(result.status).toBe('healthy');
+      expect(result.message).toContain('0%');
+
+      process.memoryUsage = originalMemoryUsage;
+    });
   });
 });

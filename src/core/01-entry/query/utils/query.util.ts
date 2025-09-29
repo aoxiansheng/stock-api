@@ -37,12 +37,35 @@ export const buildStorageKey = (
  * @returns 如果数据是新鲜的则返回 true，否则返回 false
  */
 export const validateDataFreshness = (data: any, maxAge?: number): boolean => {
-  if (!maxAge) {
+  // 处理 maxAge=0、NaN 的情况
+  if (maxAge === undefined || maxAge === null) {
     return true; // 如果未指定最大年龄，则始终认为数据是新鲜的
   }
+
+  // 处理无效的 maxAge 值
+  if (isNaN(maxAge) || maxAge <= 0) {
+    return false; // maxAge 为 0、负数或 NaN 时数据视为过期
+  }
+
   const timestamp = data?.timestamp || data?._timestamp;
   if (!timestamp) {
     return false; // 如果没有时间戳，则认为数据不新鲜
   }
-  return Date.now() - new Date(timestamp).getTime() <= maxAge * 1000;
+
+  // 处理字符串形式的时间戳数字
+  let timestampValue: number;
+  if (typeof timestamp === 'string' && !isNaN(Number(timestamp))) {
+    // 处理字符串形式的数字时间戳
+    timestampValue = Number(timestamp);
+  } else {
+    // 处理其他形式的时间戳
+    timestampValue = new Date(timestamp).getTime();
+  }
+
+  // 处理无效的时间戳
+  if (isNaN(timestampValue)) {
+    return false;
+  }
+
+  return Date.now() - timestampValue <= maxAge * 1000;
 };

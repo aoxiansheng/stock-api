@@ -8,6 +8,7 @@ import {
   IsObject,
   IsEnum,
   ArrayNotEmpty,
+  IsNotEmpty,
 } from "class-validator";
 import { API_TYPE_VALUES } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
 import type { ApiType } from "../../../00-prepare/data-mapper/constants/data-mapper.constants";
@@ -21,6 +22,7 @@ export class DataFetchRequestDto {
     example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
   @IsString()
+  @IsNotEmpty()
   provider: string;
 
   @ApiProperty({
@@ -28,6 +30,7 @@ export class DataFetchRequestDto {
     example: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   })
   @IsString()
+  @IsNotEmpty()
   capability: string;
 
   @ApiProperty({

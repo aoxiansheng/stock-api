@@ -8,7 +8,7 @@
  * - EXTERNAL: 外部依赖错误 (900-999)
  */
 
-export const SYMBOL_MAPPER_ERROR_CODES = {
+export const SYMBOL_MAPPER_ERROR_CODES = Object.freeze({
   // ==================== 验证类错误 (001-299) ====================
 
   // 符号验证 (001-099)
@@ -34,7 +34,6 @@ export const SYMBOL_MAPPER_ERROR_CODES = {
   MALFORMED_MAPPING_PATTERN: 'SYMBOL_MAPPER_VALIDATION_201',
   MISSING_MAPPING_FIELDS: 'SYMBOL_MAPPER_VALIDATION_202',
   INVALID_MAPPING_PRIORITY: 'SYMBOL_MAPPER_VALIDATION_203',
-  CIRCULAR_MAPPING_DETECTED: 'SYMBOL_MAPPER_VALIDATION_204',
   CONFLICTING_MAPPING_RULES: 'SYMBOL_MAPPER_VALIDATION_205',
 
   // ==================== 业务逻辑错误 (300-599) ====================
@@ -46,6 +45,7 @@ export const SYMBOL_MAPPER_ERROR_CODES = {
   MAPPING_CONFIG_DISABLED: 'SYMBOL_MAPPER_BUSINESS_303',
   MAPPING_CONFIG_CORRUPTED: 'SYMBOL_MAPPER_BUSINESS_304',
   MAPPING_CONFIG_VERSION_MISMATCH: 'SYMBOL_MAPPER_BUSINESS_305',
+  CIRCULAR_MAPPING_DETECTED: 'SYMBOL_MAPPER_BUSINESS_306',
 
   // 数据源错误 (400-499)
   DATA_SOURCE_NOT_FOUND: 'SYMBOL_MAPPER_BUSINESS_400',
@@ -118,89 +118,138 @@ export const SYMBOL_MAPPER_ERROR_CODES = {
   DNS_RESOLUTION_FAILED: 'SYMBOL_MAPPER_EXTERNAL_982',
   SSL_CERTIFICATE_ERROR: 'SYMBOL_MAPPER_EXTERNAL_983',
   INFRASTRUCTURE_FAILURE: 'SYMBOL_MAPPER_EXTERNAL_984',
-} as const;
+});
 
 // 错误码类型定义
-export type SymbolMapperErrorCode = typeof SYMBOL_MAPPER_ERROR_CODES[keyof typeof SYMBOL_MAPPER_ERROR_CODES];
+export type SymbolMapperErrorCode = (typeof SYMBOL_MAPPER_ERROR_CODES)[keyof typeof SYMBOL_MAPPER_ERROR_CODES];
+
+// 定义需要特殊处理的错误码集合，提高代码可读性和可维护性
+const RETRYABLE_SYSTEM_CODES = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.PROCESSING_TIMEOUT,
+  SYMBOL_MAPPER_ERROR_CODES.CPU_OVERLOAD,
+  SYMBOL_MAPPER_ERROR_CODES.CACHE_MEMORY_PRESSURE,
+  SYMBOL_MAPPER_ERROR_CODES.THREAD_POOL_EXHAUSTED,
+  SYMBOL_MAPPER_ERROR_CODES.RESOURCE_CONTENTION,
+  SYMBOL_MAPPER_ERROR_CODES.CACHE_OPERATION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.CACHE_MISS_CRITICAL,
+]);
+
+const RETRYABLE_BUSINESS_CODES = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.SYMBOL_MAPPING_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.MAPPING_RULE_EXECUTION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_UNAVAILABLE,
+]);
+
+const NON_RETRYABLE_EXTERNAL_CODES = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.PROVIDER_AUTHENTICATION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.PROVIDER_DATA_FORMAT_ERROR,
+  SYMBOL_MAPPER_ERROR_CODES.DATABASE_CONSTRAINT_VIOLATION,
+]);
+
+const HIGH_SEVERITY_BUSINESS_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_CORRUPTED,
+  SYMBOL_MAPPER_ERROR_CODES.CIRCULAR_MAPPING_DETECTED,
+  SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_AUTHENTICATION_FAILED,
+]);
+
+const CRITICAL_SYSTEM_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.MEMORY_LIMIT_EXCEEDED,
+  SYMBOL_MAPPER_ERROR_CODES.SERVICE_INITIALIZATION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.RULE_ENGINE_STARTUP_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.CPU_OVERLOAD,
+]);
+
+const CRITICAL_EXTERNAL_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.DATABASE_CONNECTION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+  SYMBOL_MAPPER_ERROR_CODES.MONGODB_AGGREGATION_FAILED,
+]);
+
+const CACHE_CLEANUP_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.CACHE_MEMORY_PRESSURE,
+  SYMBOL_MAPPER_ERROR_CODES.LRU_CACHE_OVERFLOW,
+  SYMBOL_MAPPER_ERROR_CODES.CACHE_INVALIDATION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_CORRUPTED,
+]);
+
+const RULE_RELOAD_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_CORRUPTED,
+  SYMBOL_MAPPER_ERROR_CODES.RULE_ENGINE_STARTUP_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_VERSION_MISMATCH,
+  SYMBOL_MAPPER_ERROR_CODES.CONFIGURATION_RELOAD_FAILED,
+]);
+
+const SERVICE_DEGRADATION_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.DATABASE_CONNECTION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.CACHE_SERVICE_UNAVAILABLE,
+  SYMBOL_MAPPER_ERROR_CODES.MEMORY_LIMIT_EXCEEDED,
+  SYMBOL_MAPPER_ERROR_CODES.CPU_OVERLOAD,
+  SYMBOL_MAPPER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+]);
+
+const IMMEDIATE_ALERT_ERRORS = new Set<SymbolMapperErrorCode>([
+  SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_CORRUPTED,
+  SYMBOL_MAPPER_ERROR_CODES.SERVICE_INITIALIZATION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.DATABASE_CONNECTION_FAILED,
+  SYMBOL_MAPPER_ERROR_CODES.INFRASTRUCTURE_FAILURE,
+  SYMBOL_MAPPER_ERROR_CODES.CIRCULAR_MAPPING_DETECTED,
+]);
 
 // 错误分类辅助函数
 export const SymbolMapperErrorCategories = {
   /**
    * 判断是否为验证类错误
    */
-  isValidationError: (errorCode: string): boolean => {
-    return errorCode.includes('VALIDATION');
+  isValidationError: (errorCode: SymbolMapperErrorCode): boolean => {
+    return errorCode.startsWith('SYMBOL_MAPPER_VALIDATION');
   },
 
   /**
    * 判断是否为业务逻辑错误
    */
-  isBusinessError: (errorCode: string): boolean => {
-    return errorCode.includes('BUSINESS');
+  isBusinessError: (errorCode: SymbolMapperErrorCode): boolean => {
+    return errorCode.startsWith('SYMBOL_MAPPER_BUSINESS');
   },
 
   /**
    * 判断是否为系统资源错误
    */
-  isSystemError: (errorCode: string): boolean => {
-    return errorCode.includes('SYSTEM');
+  isSystemError: (errorCode: SymbolMapperErrorCode): boolean => {
+    return errorCode.startsWith('SYMBOL_MAPPER_SYSTEM');
   },
 
   /**
    * 判断是否为外部依赖错误
    */
-  isExternalError: (errorCode: string): boolean => {
-    return errorCode.includes('EXTERNAL');
+  isExternalError: (errorCode: SymbolMapperErrorCode): boolean => {
+    return errorCode.startsWith('SYMBOL_MAPPER_EXTERNAL');
   },
 
   /**
    * 判断错误是否可重试
    */
-  isRetryable: (errorCode: string): boolean => {
-    // 外部依赖错误通常可重试
-    if (errorCode.includes('EXTERNAL')) {
-      // 除了认证失败和数据格式错误
-      return !errorCode.includes('AUTHENTICATION_FAILED') &&
-             !errorCode.includes('DATA_FORMAT_ERROR') &&
-             !errorCode.includes('CONSTRAINT_VIOLATION');
+  isRetryable: (errorCode: SymbolMapperErrorCode): boolean => {
+    if (SymbolMapperErrorCategories.isExternalError(errorCode)) {
+      return !NON_RETRYABLE_EXTERNAL_CODES.has(errorCode);
     }
-
-    // 系统资源错误中的超时和负载问题可重试
-    if (errorCode.includes('TIMEOUT') ||
-        errorCode.includes('OVERLOAD') ||
-        errorCode.includes('MEMORY_PRESSURE') ||
-        errorCode.includes('THREAD_POOL_EXHAUSTED') ||
-        errorCode.includes('RESOURCE_CONTENTION')) {
-      return true;
+    if (SymbolMapperErrorCategories.isSystemError(errorCode)) {
+      return RETRYABLE_SYSTEM_CODES.has(errorCode);
     }
-
-    // 缓存相关错误可重试
-    if (errorCode.includes('CACHE_OPERATION_FAILED') ||
-        errorCode.includes('CACHE_MISS_CRITICAL') ||
-        errorCode.includes('REDIS_CONNECTION_FAILED')) {
-      return true;
+    if (SymbolMapperErrorCategories.isBusinessError(errorCode)) {
+      return RETRYABLE_BUSINESS_CODES.has(errorCode);
     }
-
-    // 某些业务错误可重试（如映射失败）
-    if (errorCode.includes('SYMBOL_MAPPING_FAILED') ||
-        errorCode.includes('MAPPING_RULE_EXECUTION_FAILED') ||
-        errorCode.includes('DATA_SOURCE_UNAVAILABLE')) {
-      return true;
-    }
-
     return false;
   },
 
   /**
    * 获取错误的恢复建议
    */
-  getRecoveryAction: (errorCode: string): 'retry' | 'fallback' | 'abort' => {
+  getRecoveryAction: (errorCode: SymbolMapperErrorCode): 'retry' | 'fallback' | 'abort' => {
     if (SymbolMapperErrorCategories.isRetryable(errorCode)) {
       return 'retry';
     }
 
-    if (SymbolMapperErrorCategories.isExternalError(errorCode) ||
-        SymbolMapperErrorCategories.isSystemError(errorCode)) {
+    if (SymbolMapperErrorCategories.isExternalError(errorCode) || SymbolMapperErrorCategories.isSystemError(errorCode)) {
       return 'fallback';
     }
 
@@ -210,41 +259,27 @@ export const SymbolMapperErrorCategories = {
   /**
    * 获取错误严重级别
    */
-  getSeverityLevel: (errorCode: string): 'low' | 'medium' | 'high' | 'critical' => {
-    // 验证错误通常是低级别
+  getSeverityLevel: (errorCode: SymbolMapperErrorCode): 'low' | 'medium' | 'high' | 'critical' => {
     if (SymbolMapperErrorCategories.isValidationError(errorCode)) {
       return 'low';
     }
 
-    // 业务逻辑错误根据类型判断
     if (SymbolMapperErrorCategories.isBusinessError(errorCode)) {
-      // 映射配置和规则错误较严重
-      if (errorCode.includes('MAPPING_CONFIG_CORRUPTED') ||
-          errorCode.includes('CIRCULAR_MAPPING_DETECTED') ||
-          errorCode.includes('DATA_SOURCE_AUTHENTICATION_FAILED')) {
+      if (HIGH_SEVERITY_BUSINESS_ERRORS.has(errorCode)) {
         return 'high';
       }
       return 'medium';
     }
 
-    // 系统资源错误
     if (SymbolMapperErrorCategories.isSystemError(errorCode)) {
-      // 内存和服务初始化失败是关键级别
-      if (errorCode.includes('MEMORY_LIMIT_EXCEEDED') ||
-          errorCode.includes('SERVICE_INITIALIZATION_FAILED') ||
-          errorCode.includes('RULE_ENGINE_STARTUP_FAILED') ||
-          errorCode.includes('CPU_OVERLOAD')) {
+      if (CRITICAL_SYSTEM_ERRORS.has(errorCode)) {
         return 'critical';
       }
       return 'high';
     }
 
-    // 外部依赖错误
     if (SymbolMapperErrorCategories.isExternalError(errorCode)) {
-      // 数据库和基础设施失败是关键级别
-      if (errorCode.includes('DATABASE_CONNECTION_FAILED') ||
-          errorCode.includes('INFRASTRUCTURE_FAILURE') ||
-          errorCode.includes('MONGODB_AGGREGATION_FAILED')) {
+      if (CRITICAL_EXTERNAL_ERRORS.has(errorCode)) {
         return 'critical';
       }
       return 'high';
@@ -256,49 +291,34 @@ export const SymbolMapperErrorCategories = {
   /**
    * 判断是否需要清理缓存
    */
-  requiresCacheCleanup: (errorCode: string): boolean => {
-    return errorCode.includes('CACHE_MEMORY_PRESSURE') ||
-           errorCode.includes('LRU_CACHE_OVERFLOW') ||
-           errorCode.includes('CACHE_INVALIDATION_FAILED') ||
-           errorCode.includes('MAPPING_CONFIG_CORRUPTED');
+  requiresCacheCleanup: (errorCode: SymbolMapperErrorCode): boolean => {
+    return CACHE_CLEANUP_ERRORS.has(errorCode);
   },
 
   /**
    * 判断是否需要重新加载规则
    */
-  requiresRuleReload: (errorCode: string): boolean => {
-    return errorCode.includes('MAPPING_CONFIG_CORRUPTED') ||
-           errorCode.includes('RULE_ENGINE_STARTUP_FAILED') ||
-           errorCode.includes('MAPPING_CONFIG_VERSION_MISMATCH') ||
-           errorCode.includes('CONFIGURATION_RELOAD_FAILED');
+  requiresRuleReload: (errorCode: SymbolMapperErrorCode): boolean => {
+    return RULE_RELOAD_ERRORS.has(errorCode);
   },
 
   /**
    * 判断是否需要降级服务
    */
-  requiresServiceDegradation: (errorCode: string): boolean => {
-    return errorCode.includes('DATABASE_CONNECTION_FAILED') ||
-           errorCode.includes('CACHE_SERVICE_UNAVAILABLE') ||
-           errorCode.includes('MEMORY_LIMIT_EXCEEDED') ||
-           errorCode.includes('CPU_OVERLOAD') ||
-           errorCode.includes('INFRASTRUCTURE_FAILURE');
+  requiresServiceDegradation: (errorCode: SymbolMapperErrorCode): boolean => {
+    return SERVICE_DEGRADATION_ERRORS.has(errorCode);
   },
 
   /**
    * 判断是否需要立即告警
    */
-  requiresImmediateAlert: (errorCode: string): boolean => {
-    return errorCode.includes('CRITICAL') ||
-           errorCode.includes('MAPPING_CONFIG_CORRUPTED') ||
-           errorCode.includes('SERVICE_INITIALIZATION_FAILED') ||
-           errorCode.includes('DATABASE_CONNECTION_FAILED') ||
-           errorCode.includes('INFRASTRUCTURE_FAILURE') ||
-           errorCode.includes('CIRCULAR_MAPPING_DETECTED');
-  }
+  requiresImmediateAlert: (errorCode: SymbolMapperErrorCode): boolean => {
+    return IMMEDIATE_ALERT_ERRORS.has(errorCode) || SymbolMapperErrorCategories.getSeverityLevel(errorCode) === 'critical';
+  },
 };
 
 // 错误码说明映射（用于开发和调试）
-export const SYMBOL_MAPPER_ERROR_DESCRIPTIONS = {
+export const SYMBOL_MAPPER_ERROR_DESCRIPTIONS = Object.freeze({
   [SYMBOL_MAPPER_ERROR_CODES.INVALID_SYMBOL_FORMAT]: 'Symbol format is invalid or malformed',
   [SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND]: 'Symbol mapping configuration not found',
   [SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_ALREADY_EXISTS]: 'Symbol mapping configuration already exists',
@@ -311,4 +331,4 @@ export const SYMBOL_MAPPER_ERROR_DESCRIPTIONS = {
   [SYMBOL_MAPPER_ERROR_CODES.PROVIDER_API_UNAVAILABLE]: 'External symbol provider API is unavailable',
   [SYMBOL_MAPPER_ERROR_CODES.CIRCULAR_MAPPING_DETECTED]: 'Circular dependency detected in mapping rules',
   // 可根据需要添加更多描述
-} as const;
+});

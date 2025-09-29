@@ -540,21 +540,23 @@ describe('Stream Receiver Utils', () => {
       // Calculate stats
       const stats = ConnectionStatsUtils.calculateHealthStats(healthMap);
       expect(stats.total).toBe(5);
-      expect(stats.poor).toBe(2); // conn1 and conn2
+      expect(stats.poor).toBe(1); // conn1 is poor (2 errors)
+      expect(stats.critical).toBe(1); // conn2 is critical (3 errors)
       expect(stats.excellent).toBe(3); // conn3, conn4, conn5
 
       // Check if warning needed
       const shouldWarn = ConnectionStatsUtils.shouldWarnAboutHealth(stats);
-      expect(shouldWarn).toBe(false); // Only 40% poor, threshold is 20% unhealthy
+      expect(shouldWarn).toBe(false); // Unhealthy status has stricter thresholds than quality
 
-      // Find connections to clean up (poor quality)
-      const poorConnections = CollectionUtils.filterMapKeys(healthMap, (health) =>
-        health.connectionQuality === 'poor'
+      // Find connections to clean up (unhealthy quality)
+      const connectionsToCleanUp = CollectionUtils.filterMapKeys(
+        healthMap,
+        (health) => health.connectionQuality === 'poor' || health.connectionQuality === 'critical',
       );
-      expect(poorConnections).toEqual(['conn1', 'conn2']);
+      expect(connectionsToCleanUp.sort()).toEqual(['conn1', 'conn2'].sort());
 
-      // Clean up poor connections
-      const deletedCount = CollectionUtils.deleteBatch(healthMap, poorConnections);
+      // Clean up unhealthy connections
+      const deletedCount = CollectionUtils.deleteBatch(healthMap, connectionsToCleanUp);
       expect(deletedCount).toBe(2);
       expect(healthMap.size).toBe(3);
     });

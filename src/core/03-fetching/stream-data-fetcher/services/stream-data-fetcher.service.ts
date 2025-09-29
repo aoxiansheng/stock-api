@@ -1946,7 +1946,7 @@ export class StreamDataFetcherService
         cleanedConnections++;
 
         this.logger.debug("清理了僵尸连接", {
-          connectionId: connection.id.substring(0, 8),
+          connectionId: connection.id ? connection.id.substring(0, 8) : 'unknown',
           connectionKey,
         });
       }

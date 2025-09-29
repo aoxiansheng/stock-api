@@ -9,6 +9,7 @@ import { MonitoringModule } from '@monitoring/monitoring.module';
 import { AuthModule } from '@auth/module/auth.module';
 import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+import { createSimpleEventEmitterMock } from '@test/testbasic/mocks';
 
 describe('SymbolTransformerModule', () => {
   let module: TestingModule;
@@ -21,9 +22,8 @@ describe('SymbolTransformerModule', () => {
       mapSymbols: jest.fn(),
     };
 
-    const mockEventEmitter = {
-      emit: jest.fn(),
-    };
+    // 使用可复用的EventEmitter mock
+    const mockEventEmitter = createSimpleEventEmitterMock();
 
     const mockMarketInferenceService = {
       inferMarketLabels: jest.fn(),
@@ -324,6 +324,163 @@ describe('SymbolTransformerModule', () => {
 
       // Clean up
       await Promise.all(modules.map(mod => mod.close()));
+    });
+  });
+
+  describe('Advanced Module Testing', () => {
+    it('should handle circular dependency prevention', async () => {
+      // 验证模块不会创建循环依赖
+      const testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+      }).compile();
+
+      // 检查模块的providers和exports不会形成循环
+      const service = testModule.get<SymbolTransformerService>(SymbolTransformerService);
+      expect(service).toBeDefined();
+
+      await testModule.close();
+    });
+
+    it('should support lazy loading of dependencies', async () => {
+      // 模拟延迟加载场景
+      let initialized = false;
+
+      const lazyMock = {
+        mapSymbols: jest.fn().mockImplementation(async () => {
+          initialized = true;
+          return { mappingDetails: {}, failedSymbols: [] };
+        }),
+      };
+
+      const testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+      })
+        .overrideProvider(SymbolMapperCacheStandardizedService)
+        .useValue(lazyMock)
+        .compile();
+
+      expect(initialized).toBe(false);
+
+      const service = testModule.get<SymbolTransformerService>(SymbolTransformerService);
+      await service.transformSymbols('longport', ['AAPL']);
+
+      expect(initialized).toBe(true);
+
+      await testModule.close();
+    });
+
+    it('should handle module reinitialization correctly', async () => {
+      // 创建、销毁、重新创建模块
+      let testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+      }).compile();
+
+      const service1 = testModule.get<SymbolTransformerService>(SymbolTransformerService);
+      expect(service1).toBeDefined();
+
+      await testModule.close();
+
+      // 重新创建
+      testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+      }).compile();
+
+      const service2 = testModule.get<SymbolTransformerService>(SymbolTransformerService);
+      expect(service2).toBeDefined();
+
+      await testModule.close();
+    });
+
+    it('should handle module with custom providers', async () => {
+      // 自定义provider注入
+      const customProvider = {
+        provide: 'CUSTOM_CONFIG',
+        useValue: {
+          maxBatchSize: 1000,
+          timeout: 5000,
+        },
+      };
+
+      const testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+        providers: [customProvider],
+      }).compile();
+
+      const config = testModule.get('CUSTOM_CONFIG');
+      expect(config).toEqual({
+        maxBatchSize: 1000,
+        timeout: 5000,
+      });
+
+      await testModule.close();
+    });
+  });
+
+  describe('Module Stress Testing', () => {
+    it('should handle rapid sequential module operations', async () => {
+      const testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+      }).compile();
+
+      const service = testModule.get<SymbolTransformerService>(SymbolTransformerService);
+
+      // Mock 依赖
+      const cacheService = testModule.get<SymbolMapperCacheStandardizedService>(SymbolMapperCacheStandardizedService);
+      (cacheService.mapSymbols as jest.Mock).mockResolvedValue({
+        mappingDetails: { 'AAPL': 'AAPL.US' },
+        failedSymbols: [],
+      });
+
+      const marketInference = testModule.get<MarketInferenceService>(MarketInferenceService);
+      (marketInference.inferMarketLabels as jest.Mock).mockReturnValue(['US']);
+
+      // 快速连续调用
+      const promises = [];
+      for (let i = 0; i < 100; i++) {
+        promises.push(service.transformSymbols('longport', [`SYMBOL${i}`]));
+      }
+
+      const results = await Promise.all(promises);
+      expect(results).toHaveLength(100);
+
+      await testModule.close();
+    });
+
+    it('should handle memory-intensive operations', async () => {
+      const testModule = await Test.createTestingModule({
+        imports: [SymbolTransformerModule],
+      }).compile();
+
+      const service = testModule.get<SymbolTransformerService>(SymbolTransformerService);
+      const cacheService = testModule.get<SymbolMapperCacheStandardizedService>(SymbolMapperCacheStandardizedService);
+
+      // 创建大量符号
+      const largeSymbolSet = Array.from({ length: 1000 }, (_, i) => `SYM${i}`);
+      const largeMappingDetails = largeSymbolSet.reduce((acc, sym) => {
+        acc[sym] = `${sym}.US`;
+        return acc;
+      }, {} as Record<string, string>);
+
+      (cacheService.mapSymbols as jest.Mock).mockResolvedValue({
+        mappingDetails: largeMappingDetails,
+        failedSymbols: [],
+        provider: 'longport',
+        direction: 'TO_STANDARD',
+        totalProcessed: 1000,
+        cacheHits: 500,
+        processingTimeMs: 500,
+      });
+
+      const marketInference = testModule.get<MarketInferenceService>(MarketInferenceService);
+      (marketInference.inferMarketLabels as jest.Mock).mockReturnValue(['US']);
+
+      // 执行大批量转换
+      const result = await service.transformSymbols('longport', largeSymbolSet);
+
+      expect(result.mappedSymbols).toHaveLength(1000);
+      expect(result.metadata.totalSymbols).toBe(1000);
+
+      await testModule.close();
     });
   });
 });

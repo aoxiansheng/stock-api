@@ -1,113 +1,92 @@
 /**
- * 基础缓存配置接口
- * 定义所有缓存模块通用的配置结构和标准
+ * 基础缓存配置扩展接口
+ * 继承Foundation层的BaseCacheConfig，添加basic-cache模块特有的配置
  *
  * 设计原则：
- * 1. 通用性：涵盖所有缓存场景的基础配置项
- * 2. 可扩展：支持模块级个性化扩展
- * 3. 类型安全：严格的TypeScript类型定义
- * 4. 现代化：使用统一的缓存键命名规范，移除历史兼容层
+ * 1. 继承Foundation层标准配置
+ * 2. 扩展模块特有配置项
+ * 3. 保持依赖方向正确性（basic-cache -> foundation）
  */
+
+import { BaseCacheConfig as FoundationBaseCacheConfig } from '../../../foundation/types/cache-config.types';
 
 // Compression types - inlined since the constants file was unused
 type CompressionDataType = "stream" | "batch" | "static" | "large";
 type CompressionStrategyName = "REALTIME" | "BATCH" | "STORAGE" | "ARCHIVE";
 
 /**
- * 基础缓存配置接口
- * 所有缓存模块都应继承此接口
+ * 扩展缓存配置接口
+ * 继承Foundation层BaseCacheConfig，添加basic-cache模块特有配置
  */
-export interface BaseCacheConfig {
-  // ============================================================================
-  // TTL 配置 (Time To Live)
-  // ============================================================================
-
-  /** 默认TTL时间 (秒) */
-  defaultTTL: number;
-
-  /** 最小TTL时间 (秒) - 防止设置过短的缓存时间 */
-  minTTL: number;
-
-  /** 最大TTL时间 (秒) - 防止设置过长的缓存时间 */
-  maxTTL: number;
-
+export interface ExtendedBaseCacheConfig extends FoundationBaseCacheConfig {
   // ============================================================================
   // 容量配置
   // ============================================================================
 
   /** 最大缓存条目数 */
-  maxCacheSize: number;
+  readonly maxCacheEntries: number;
 
   /** 批量操作最大条目数 */
-  maxBatchSize: number;
+  readonly maxBatchSize: number;
 
   // ============================================================================
   // 清理配置
   // ============================================================================
 
   /** 清理任务执行间隔 (毫秒) */
-  cleanupInterval: number;
+  readonly cleanupIntervalMs: number;
 
   /** 单次清理最大处理条目数 */
-  maxCleanupItems: number;
+  readonly maxCleanupItems: number;
 
   /** 内存使用率清理阈值 (0-1) */
-  memoryCleanupThreshold: number;
+  readonly memoryCleanupThreshold: number;
 
   // ============================================================================
-  // 压缩配置
+  // 压缩配置扩展
   // ============================================================================
-
-  /** 压缩阈值 (字节) */
-  compressionThreshold: number;
-
-  /** 是否启用压缩 */
-  compressionEnabled: boolean;
 
   /** 压缩数据类型 - 用于选择压缩策略 */
-  compressionDataType: CompressionDataType;
+  readonly compressionDataType: CompressionDataType;
 
   /** 压缩策略名称 */
-  compressionStrategy?: CompressionStrategyName;
+  readonly compressionStrategy?: CompressionStrategyName;
 
   // ============================================================================
-  // 性能监控配置
+  // 性能监控配置扩展
   // ============================================================================
 
   /** 慢操作阈值 (毫秒) - 超过此时间的操作被记录为慢查询 */
-  slowOperationThreshold: number;
+  readonly slowOperationThresholdMs: number;
 
   /** 统计日志输出间隔 (毫秒) */
-  statsLogInterval: number;
-
-  /** 是否启用性能监控 */
-  performanceMonitoring: boolean;
-
-  /** 是否启用详细日志 */
-  verboseLogging: boolean;
+  readonly statsLogIntervalMs: number;
 
   // ============================================================================
   // 错误处理配置
   // ============================================================================
 
   /** 最大重试次数 */
-  maxRetryAttempts: number;
+  readonly maxRetryAttempts: number;
 
   /** 重试基础延迟 (毫秒) */
-  retryBaseDelay: number;
+  readonly baseRetryDelayMs: number;
 
   /** 重试延迟倍数 */
-  retryDelayMultiplier: number;
+  readonly retryDelayMultiplier: number;
 
   /** 是否在错误时启用降级策略 */
-  enableFallback: boolean;
+  readonly enableFallback: boolean;
 }
+
+// 为了向后兼容，将ExtendedBaseCacheConfig别名为BaseCacheConfig
+export { ExtendedBaseCacheConfig as BaseCacheConfig };
 
 /**
  * 通用缓存配置接口
- * 继承基础配置，用于标准的键值对缓存
+ * 继承扩展基础配置，用于标准的键值对缓存
  */
-export interface CommonCacheConfig extends BaseCacheConfig {
+export interface CommonCacheConfig extends ExtendedBaseCacheConfig {
   /** 键前缀 */
   keyPrefix: string;
 
@@ -126,9 +105,9 @@ export interface CommonCacheConfig extends BaseCacheConfig {
 
 /**
  * 符号映射缓存配置接口
- * 继承基础配置，专门用于符号映射的多层缓存
+ * 继承扩展基础配置，专门用于符号映射的多层缓存
  */
-export interface SymbolMapperCacheConfig extends BaseCacheConfig {
+export interface SymbolMapperCacheConfig extends ExtendedBaseCacheConfig {
   /** L1缓存配置 (规则缓存) */
   l1Cache: {
     maxSize: number;
@@ -163,24 +142,22 @@ export interface CacheConfigValidator {
    * 验证TTL配置
    */
   validateTTLConfig(
-    config: Pick<BaseCacheConfig, "defaultTTL" | "minTTL" | "maxTTL">,
+    config: Pick<FoundationBaseCacheConfig, "defaultTtlSeconds" | "minTtlSeconds" | "maxTtlSeconds">,
   ): string[];
 
   /**
    * 验证容量配置
    */
   validateCapacityConfig(
-    config: Pick<BaseCacheConfig, "maxCacheSize" | "maxBatchSize">,
+    config: Pick<ExtendedBaseCacheConfig, "maxCacheEntries" | "maxBatchSize">,
   ): string[];
 
   /**
    * 验证压缩配置
    */
   validateCompressionConfig(
-    config: Pick<
-      BaseCacheConfig,
-      "compressionThreshold" | "compressionEnabled" | "compressionDataType"
-    >,
+    config: Pick<FoundationBaseCacheConfig, "compressionThresholdBytes" | "compressionEnabled"> &
+           Pick<ExtendedBaseCacheConfig, "compressionDataType">,
   ): string[];
 
   /**
@@ -188,8 +165,8 @@ export interface CacheConfigValidator {
    */
   validatePerformanceConfig(
     config: Pick<
-      BaseCacheConfig,
-      "slowOperationThreshold" | "statsLogInterval"
+      ExtendedBaseCacheConfig,
+      "slowOperationThresholdMs" | "statsLogIntervalMs"
     >,
   ): string[];
 }
@@ -199,27 +176,10 @@ export interface CacheConfigValidator {
  * 用于从环境变量创建配置
  */
 export type EnvConfigMapping = {
-  [K in keyof BaseCacheConfig]: {
+  [K in keyof ExtendedBaseCacheConfig]: {
     envKey: string;
-    defaultValue: BaseCacheConfig[K];
-    parser: (value: string) => BaseCacheConfig[K];
+    defaultValue: ExtendedBaseCacheConfig[K];
+    parser: (value: string) => ExtendedBaseCacheConfig[K];
   };
 };
 
-/**
- * 缓存配置事件类型
- */
-export type CacheConfigEvent = {
-  type: "config_updated" | "config_validated" | "config_error";
-  config: BaseCacheConfig;
-  timestamp: Date;
-  source: string;
-  details?: any;
-};
-
-/**
- * 缓存配置监听器接口
- */
-export interface CacheConfigListener {
-  onConfigChange(event: CacheConfigEvent): void;
-}

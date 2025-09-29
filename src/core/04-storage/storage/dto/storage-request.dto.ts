@@ -7,6 +7,9 @@ import {
   IsNumber,
   IsEnum,
   ValidateNested,
+  IsBoolean,
+  Min,
+  IsNotEmpty,
 } from "class-validator";
 import { MaxValueSize } from "@common/validators/value-size.validator";
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
@@ -21,6 +24,7 @@ export class StorageOptionsDto {
   })
   @IsOptional()
   @IsNumber()
+  @Min(0)
   persistentTtlSeconds?: number;
 
   @ApiPropertyOptional({
@@ -28,6 +32,7 @@ export class StorageOptionsDto {
     default: false,
   })
   @IsOptional()
+  @IsBoolean()
   compress?: boolean;
 
   @ApiPropertyOptional({ description: "Custom storage tags for organization" })
@@ -83,6 +88,7 @@ export class StoreDataDto {
 export class RetrieveDataDto {
   @ApiProperty({ description: "Storage key to retrieve" })
   @IsString()
+  @IsNotEmpty()
   key: string;
 
   @ApiPropertyOptional({

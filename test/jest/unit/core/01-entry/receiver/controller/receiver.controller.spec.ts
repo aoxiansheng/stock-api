@@ -6,6 +6,9 @@ import { DataRequestDto } from '@core/01-entry/receiver/dto/data-request.dto';
 import { DataResponseDto, ResponseMetadataDto } from '@core/01-entry/receiver/dto/data-response.dto';
 import { StorageMode } from '@core/01-entry/receiver/enums/storage-mode.enum';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
+import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
+import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
+import { Reflector } from '@nestjs/core';
 
 describe('ReceiverController', () => {
   let controller: ReceiverController;
@@ -20,6 +23,19 @@ describe('ReceiverController', () => {
     const mockReceiverService = {
       handleRequest: jest.fn(),
     };
+    
+    // 创建 AuthPerformanceService 的模拟实现
+    const mockAuthPerformanceService = {
+      recordAuthFlowPerformance: jest.fn(),
+      recordAuthCachePerformance: jest.fn(),
+      recordAuthFlowStats: jest.fn(),
+    };
+
+    // 创建 ApiKeyAuthGuard 的模拟实现
+    const mockApiKeyAuthGuard = {
+      canActivate: jest.fn().mockReturnValue(true),
+      handleRequest: jest.fn().mockReturnValue(true),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReceiverController],
@@ -28,8 +44,21 @@ describe('ReceiverController', () => {
           provide: ReceiverService,
           useValue: mockReceiverService,
         },
+        {
+          provide: Reflector,
+          useValue: {
+            getAllAndOverride: jest.fn(),
+          },
+        },
+        {
+          provide: AuthPerformanceService,
+          useValue: mockAuthPerformanceService,
+        },
       ],
-    }).compile();
+    })
+    .overrideGuard(ApiKeyAuthGuard)
+    .useValue(mockApiKeyAuthGuard)
+    .compile();
 
     controller = module.get<ReceiverController>(ReceiverController);
     receiverService = module.get(ReceiverService);
@@ -608,6 +637,64 @@ describe('ReceiverController', () => {
       // Verify the detailed request was passed to service
       expect(receiverService.handleRequest).toHaveBeenCalledWith(detailedRequest);
     });
+
+    it('should log success status correctly for fully successful requests', async () => {
+      // Setup - fully successful response
+      const fullySuccessfulResponse = new DataResponseDto(
+        [{ symbol: 'AAPL', lastPrice: 195.89 }],
+        new ResponseMetadataDto(mockProvider, mockReceiverType, mockRequestId, 100, false, 1, 1)
+      );
+
+      receiverService.handleRequest.mockResolvedValue(fullySuccessfulResponse);
+
+      // Execute
+      await controller.handleDataRequest(mockRequest);
+
+      // Verify service was called
+      expect(receiverService.handleRequest).toHaveBeenCalledWith(mockRequest);
+    });
+
+    it('should log success status correctly for partially failed requests', async () => {
+      // Setup - partially failed response
+      const partiallyFailedResponse = new DataResponseDto(
+        [{ symbol: 'AAPL', lastPrice: 195.89 }],
+        new ResponseMetadataDto(mockProvider, mockReceiverType, mockRequestId, 150, true, 2, 1)
+      );
+
+      receiverService.handleRequest.mockResolvedValue(partiallyFailedResponse);
+
+      // Execute
+      await controller.handleDataRequest(mockRequest);
+
+      // Verify service was called and response indicates partial failure
+      expect(receiverService.handleRequest).toHaveBeenCalledWith(mockRequest);
+    });
+
+    it('should log all metadata fields in completion log', async () => {
+      // Setup
+      const detailedMetadata = new ResponseMetadataDto(
+        'test-provider',
+        'get-stock-basic-info',
+        'detailed-request-id',
+        275,
+        false,
+        5,
+        5
+      );
+
+      const detailedResponse = new DataResponseDto(
+        [{ symbol: 'TEST', data: 'test-data' }],
+        detailedMetadata
+      );
+
+      receiverService.handleRequest.mockResolvedValue(detailedResponse);
+
+      // Execute
+      await controller.handleDataRequest(mockRequest);
+
+      // Verify all metadata is accessible for logging
+      expect(receiverService.handleRequest).toHaveBeenCalledWith(mockRequest);
+    });
   });
 
   describe('validation integration', () => {
@@ -633,6 +720,121 @@ describe('ReceiverController', () => {
       // Verify
       expect(result).toBeInstanceOf(DataResponseDto);
       expect(receiverService.handleRequest).toHaveBeenCalledWith(validRequest);
+    });
+  });
+
+  describe('constructor and initialization', () => {
+    it('should initialize controller with receiverService dependency', () => {
+      expect(controller).toBeDefined();
+      expect(controller).toBeInstanceOf(ReceiverController);
+    });
+
+    it('should have logger initialized', () => {
+      // Verify logger is properly initialized (logger is private but we can test behavior)
+      expect(controller).toBeDefined();
+    });
+  });
+
+  describe('decorator verification', () => {
+    it('should have proper method decorators applied', () => {
+      // Test that the controller method exists and is callable
+      expect(typeof controller.handleDataRequest).toBe('function');
+    });
+  });
+
+  describe('edge cases and boundary conditions', () => {
+    it('should handle empty symbols array edge case', async () => {
+      const emptyRequest: DataRequestDto = {
+        symbols: [],
+        receiverType: mockReceiverType,
+      };
+
+      const emptyResponse = new DataResponseDto(
+        [],
+        new ResponseMetadataDto(mockProvider, mockReceiverType, mockRequestId, 50, false, 0, 0)
+      );
+
+      receiverService.handleRequest.mockResolvedValue(emptyResponse);
+
+      const result = await controller.handleDataRequest(emptyRequest);
+
+      expect(result.data).toHaveLength(0);
+      expect(result.metadata.totalRequested).toBe(0);
+      expect(result.metadata.successfullyProcessed).toBe(0);
+    });
+
+    it('should handle single symbol request', async () => {
+      const singleRequest: DataRequestDto = {
+        symbols: ['AAPL'],
+        receiverType: mockReceiverType,
+      };
+
+      const singleResponse = new DataResponseDto(
+        [{ symbol: 'AAPL', lastPrice: 195.89 }],
+        new ResponseMetadataDto(mockProvider, mockReceiverType, mockRequestId, 75, false, 1, 1)
+      );
+
+      receiverService.handleRequest.mockResolvedValue(singleResponse);
+
+      const result = await controller.handleDataRequest(singleRequest);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].symbol).toBe('AAPL');
+    });
+
+    it('should handle maximum boundary symbol count', async () => {
+      const maxSymbolsRequest: DataRequestDto = {
+        symbols: Array.from({ length: 200 }, (_, i) => `SYM${i}`),
+        receiverType: mockReceiverType,
+      };
+
+      const maxResponse = new DataResponseDto(
+        Array.from({ length: 200 }, (_, i) => ({ symbol: `SYM${i}`, lastPrice: 100 + i })),
+        new ResponseMetadataDto(mockProvider, mockReceiverType, mockRequestId, 800, false, 200, 200)
+      );
+
+      receiverService.handleRequest.mockResolvedValue(maxResponse);
+
+      const result = await controller.handleDataRequest(maxSymbolsRequest);
+
+      expect(result.data).toHaveLength(200);
+      expect(result.metadata.totalRequested).toBe(200);
+    });
+  });
+
+  describe('service integration edge cases', () => {
+    it('should handle service returning null data gracefully', async () => {
+      const nullDataResponse = new DataResponseDto(
+        null as any,
+        new ResponseMetadataDto(mockProvider, mockReceiverType, mockRequestId, 100, true, 1, 0)
+      );
+
+      receiverService.handleRequest.mockResolvedValue(nullDataResponse);
+
+      const result = await controller.handleDataRequest({
+        symbols: ['INVALID'],
+        receiverType: mockReceiverType,
+      });
+
+      expect(result.data).toBeNull();
+      expect(result.metadata.hasPartialFailures).toBe(true);
+    });
+
+    it('should handle undefined metadata gracefully', async () => {
+      const incompleteResponse = new DataResponseDto(
+        [{ symbol: 'TEST', lastPrice: 100 }],
+        undefined as any
+      );
+
+      receiverService.handleRequest.mockResolvedValue(incompleteResponse);
+
+      const result = await controller.handleDataRequest({
+        symbols: ['TEST'],
+        receiverType: mockReceiverType,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.metadata).toBeUndefined();
     });
   });
 
@@ -682,7 +884,7 @@ describe('ReceiverController', () => {
       expect(result.data).toEqual(expectedData);
       expect(result.metadata).toMatchObject({
         provider: mockProvider,
-        receiverType: mockReceiverType,
+        capability: mockReceiverType, // 修改: receiverType 改为 capability
         requestId: mockRequestId,
         processingTimeMs: 150,
         hasPartialFailures: false,

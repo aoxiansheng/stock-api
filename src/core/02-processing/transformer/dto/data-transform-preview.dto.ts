@@ -7,7 +7,58 @@ import {
   IsObject,
   IsArray,
   ValidateNested,
+  IsBoolean,
+  IsNotIn,
+  ValidateIf,
+  registerDecorator,
+  ValidationOptions,
+  ValidationArguments,
 } from "class-validator";
+
+// 自定义验证器：检测循环引用标记
+function NoCircularReference(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      name: 'noCircularReference',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          return !hasCircularReferenceMarker(value);
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} contains circular reference`;
+        },
+      },
+    });
+  };
+}
+
+// 辅助函数：检查对象是否包含循环引用标记
+function hasCircularReferenceMarker(obj: any): boolean {
+  if (typeof obj === 'string' && obj === '[CIRCULAR_REFERENCE_INVALID]') {
+    return true;
+  }
+  
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.some(item => hasCircularReferenceMarker(item));
+  }
+  
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      if (hasCircularReferenceMarker(obj[key])) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
 
 export class TransformMappingRuleInfoDto {
   @ApiProperty({ description: "映射规则ID" })
@@ -64,13 +115,19 @@ export class TransformPreviewDto {
   @IsObject()
   transformMappingRule: TransformMappingRuleInfoDto;
 
-  @ApiProperty({ description: "输入数据示例" })
+  @ApiProperty({
+    description: "示例输入数据",
+  })
   @IsObject()
-  sampleInput: Record<string, any>;
+  @NoCircularReference({ message: 'sampleInput contains circular reference' })
+  sampleInput: any;
 
-  @ApiProperty({ description: "预期输出数据" })
+  @ApiProperty({
+    description: "预期输出数据",
+  })
   @IsObject()
-  expectedOutput: Record<string, any>;
+  @NoCircularReference({ message: 'expectedOutput contains circular reference' })
+  expectedOutput: any;
 
   @ApiProperty({
     description: "字段映射预览列表",
@@ -88,6 +145,8 @@ export class DataBatchTransformOptionsDto {
     required: false,
     default: false,
   })
-  @IsOptional()
+  @ValidateIf((o) => o.continueOnError !== undefined)
+  @IsBoolean({ message: 'continueOnError must be a boolean value' })
+  @IsNotIn([null], { message: 'continueOnError cannot be null' })
   continueOnError?: boolean;
 }

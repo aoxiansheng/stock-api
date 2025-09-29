@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { getModelToken } from '@nestjs/mongoose';
+import { Reflector } from '@nestjs/core';
 
 import { SymbolMapperModule } from '../../../../../../../src/core/00-prepare/symbol-mapper/module/symbol-mapper.module';
 import { SymbolMapperController } from '../../../../../../../src/core/00-prepare/symbol-mapper/controller/symbol-mapper.controller';
@@ -12,6 +14,14 @@ import { PaginationService } from '@common/modules/pagination/services/paginatio
 import { SharedServicesModule } from '../../../../../../../src/core/shared/module/shared-services.module';
 import { DatabaseModule } from '../../../../../../../src/database/database.module';
 import { SymbolMapperCacheModule } from '../../../../../../../src/core/05-caching/module/symbol-mapper-cache/module/symbol-mapper-cache.module';
+import { SymbolMapperCacheStandardizedService } from '../../../../../../../src/core/05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service';
+import { FeatureFlags } from '@config/feature-flags.config';
+import { SymbolMappingRuleDocument } from '../../../../../../../src/core/00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
+import { AuthPerformanceService } from '../../../../../../../src/auth/services/infrastructure/auth-performance.service';
+import { ApiKeyAuthGuard } from '../../../../../../../src/auth/guards/apikey-auth.guard';
+
+// 声明MockSymbolMapperModule类，以便能在测试中获取
+class MockSymbolMapperModule {}
 
 describe('SymbolMapperModule', () => {
   let module: TestingModule;
@@ -44,15 +54,6 @@ describe('SymbolMapperModule', () => {
       ],
       providers: [
         {
-          provide: 'FeatureFlags',
-          useValue: {
-            symbolMapper: {
-              enableCache: true,
-              enableMonitoring: true,
-            },
-          },
-        },
-        {
           provide: EventEmitter2,
           useValue: {
             emit: jest.fn(),
@@ -71,8 +72,30 @@ describe('SymbolMapperModule', () => {
       .overrideModule(AuthModule)
       .useModule({
         module: class MockAuthModule {},
-        providers: [],
-        exports: [],
+        providers: [
+          {
+            provide: AuthPerformanceService,
+            useValue: {
+              recordAuthFlowPerformance: jest.fn(),
+              recordAuthCachePerformance: jest.fn(),
+              recordAuthFlowStats: jest.fn(),
+            },
+          },
+          {
+            provide: Reflector,
+            useValue: {
+              getAllAndOverride: jest.fn(),
+            }
+          },
+          {
+            provide: ApiKeyAuthGuard,
+            useFactory: (reflector, authPerformanceService) => {
+              return new ApiKeyAuthGuard(reflector, authPerformanceService);
+            },
+            inject: [Reflector, AuthPerformanceService],
+          }
+        ],
+        exports: [AuthPerformanceService, ApiKeyAuthGuard, Reflector],
       })
       .overrideModule(PaginationModule)
       .useModule({
@@ -92,14 +115,98 @@ describe('SymbolMapperModule', () => {
       .overrideModule(SharedServicesModule)
       .useModule({
         module: class MockSharedServicesModule {},
-        providers: [],
-        exports: [],
+        providers: [
+          {
+            provide: FeatureFlags,
+            useValue: {
+              symbolMapper: {
+                enableCache: true,
+                enableMonitoring: true,
+              },
+            },
+          },
+        ],
+        exports: [FeatureFlags],
       })
       .overrideModule(SymbolMapperCacheModule)
       .useModule({
         module: class MockSymbolMapperCacheModule {},
         providers: [],
         exports: [],
+      })
+      // 添加对 SymbolMapperModule 的覆盖，将 EventEmitter2 注入到模块上下文中
+      .overrideModule(SymbolMapperModule)
+      .useModule({
+        module: MockSymbolMapperModule,
+        providers: [
+          // 注入模型 token 的 mock 以满足 Repository 的构造依赖
+          {
+            provide: getModelToken(SymbolMappingRuleDocument.name),
+            useValue: {},
+          },
+          SymbolMapperService,
+          SymbolMappingRepository,
+          {
+            provide: EventEmitter2,
+            useValue: {
+              emit: jest.fn(),
+              on: jest.fn(),
+              removeListener: jest.fn(),
+            },
+          },
+          {
+            provide: PaginationService,
+            useValue: {
+              createPaginationDto: jest.fn(),
+              applyCursor: jest.fn(),
+              buildQuery: jest.fn(),
+            },
+          },
+          {
+            provide: FeatureFlags,
+            useValue: {
+              symbolMapper: {
+                enableCache: true,
+                enableMonitoring: true,
+              },
+            },
+          },
+          {
+            provide: SymbolMapperCacheStandardizedService,
+            useValue: {
+              getMapping: jest.fn(),
+              getMappingRule: jest.fn(),
+              cacheMapping: jest.fn(),
+              invalidateCache: jest.fn(),
+            },
+          },
+          // 添加AuthPerformanceService到MockSymbolMapperModule上下文
+          {
+            provide: AuthPerformanceService,
+            useValue: {
+              recordAuthFlowPerformance: jest.fn(),
+              recordAuthCachePerformance: jest.fn(),
+              recordAuthFlowStats: jest.fn(),
+            },
+          },
+          // 添加Reflector到MockSymbolMapperModule上下文
+          {
+            provide: Reflector,
+            useValue: {
+              getAllAndOverride: jest.fn().mockReturnValue(false),
+            }
+          },
+          // 添加ApiKeyAuthGuard到MockSymbolMapperModule上下文
+          {
+            provide: ApiKeyAuthGuard,
+            useFactory: (reflector, authPerformanceService) => {
+              return new ApiKeyAuthGuard(reflector, authPerformanceService);
+            },
+            inject: [Reflector, AuthPerformanceService],
+          }
+        ],
+        controllers: [SymbolMapperController],
+        exports: [SymbolMapperService],
       })
       .compile();
   });
@@ -116,7 +223,7 @@ describe('SymbolMapperModule', () => {
     });
 
     it('should have SymbolMapperModule defined', () => {
-      const symbolMapperModule = module.get(SymbolMapperModule);
+      const symbolMapperModule = module.get(MockSymbolMapperModule);
       expect(symbolMapperModule).toBeDefined();
     });
   });

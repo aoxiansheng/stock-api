@@ -633,6 +633,10 @@ describe('FlexibleMappingRule Schema', () => {
 
       // Update the document
       savedRule.description = 'Updated description';
+      
+      // 添加延时确保时间戳更新
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
       const updatedRule = await savedRule.save();
 
       expect(updatedRule.updatedAt).not.toEqual(updatedRule.createdAt);

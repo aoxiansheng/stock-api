@@ -34,12 +34,20 @@ export class SymbolsRequiredForBySymbolsQueryConstraint
 
   defaultMessage(args: ValidationArguments) {
     const object = args.object as QueryRequestDto;
+    const symbols = args.value as string[] | undefined;
+    
     if (!object) {
       return "";
     }
+    
     if (object.queryType === QueryType.BY_SYMBOLS) {
-      return "symbols字段对于BY_SYMBOLS查询类型是必需的，且不能为空";
+      // 只在验证失败时才返回错误信息
+      const isValid = symbols !== undefined && Array.isArray(symbols) && symbols.length > 0;
+      if (!isValid) {
+        return "symbols字段对于BY_SYMBOLS查询类型是必需的，且不能为空";
+      }
     }
+    
     return "";
   }
 }

@@ -10,7 +10,7 @@
  * - SYSTEM (600-899): Memory/CPU, timeout, configuration errors
  * - EXTERNAL (900-999): Database, third-party API, network errors
  */
-export const SHARED_ERROR_CODES = {
+export const SHARED_ERROR_CODES = Object.freeze({
   // Validation Errors (001-299)
   INVALID_PATH_FORMAT: 'SHARED_VALIDATION_001',
   PATH_DEPTH_EXCEEDED: 'SHARED_VALIDATION_002',
@@ -37,6 +37,6 @@ export const SHARED_ERROR_CODES = {
   REDIS_SNAPSHOT_ERROR: 'SHARED_EXTERNAL_901',
   PROVIDER_CONNECTION_FAILED: 'SHARED_EXTERNAL_950',
   PROVIDER_SERVICE_UNAVAILABLE: 'SHARED_EXTERNAL_951',
-} as const;
+} as const);
 
 export type SharedErrorCode = typeof SHARED_ERROR_CODES[keyof typeof SHARED_ERROR_CODES];

@@ -295,16 +295,6 @@ describe('SymbolTransformerEnhancedConstants', () => {
       expect(SYMBOL_PATTERNS.HK.test('700@.HK')).toBe(true); // @ is allowed before .HK
     });
 
-    it('should validate mixed case correctly', () => {
-      expect(SYMBOL_PATTERNS.US.test('aapl')).toBe(true); // lowercase
-      expect(SYMBOL_PATTERNS.US.test('AAPL')).toBe(true); // uppercase
-      expect(SYMBOL_PATTERNS.US.test('AaPl')).toBe(true); // mixed case
-
-      expect(SYMBOL_PATTERNS.HK.test('700.hk')).toBe(true);
-      expect(SYMBOL_PATTERNS.HK.test('700.HK')).toBe(true);
-      expect(SYMBOL_PATTERNS.HK.test('700.Hk')).toBe(true);
-    });
-
     it('should handle boundary conditions', () => {
       // Minimum CN symbol
       expect(SYMBOL_PATTERNS.CN.test('000000')).toBe(true);

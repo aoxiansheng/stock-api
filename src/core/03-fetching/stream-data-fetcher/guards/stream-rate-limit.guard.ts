@@ -77,12 +77,16 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
 
     this.cleanupTimer = setTimeout(() => {
       try {
-        this.cleanupExpiredCounters();
+        if (!this.isDestroyed) {
+          this.cleanupExpiredCounters();
+        }
       } catch (error) {
         this.logger.error("清理过程异常", error);
       } finally {
         // 递归调度下一次清理
-        this.scheduleNextCleanup();
+        if (!this.isDestroyed) {
+          this.scheduleNextCleanup();
+        }
       }
     }, 60 * 1000);
   }
@@ -132,6 +136,15 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
     const config =
       this.reflector.get(STREAM_RATE_LIMIT_KEY, context.getHandler()) ||
       this.defaultConfig;
+
+    // 如果速率限制被禁用，直接允许请求
+    if (!config.enabled) {
+      this.logger.debug("速率限制已禁用，允许请求通过", {
+        endpoint: request.url,
+        clientIP: this.getClientIP(request)
+      });
+      return true;
+    }
 
     // 获取客户端标识
     const clientIP = this.getClientIP(request);
@@ -266,12 +279,23 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
     clientIP: string,
     config: HttpRateLimitConfig,
   ): boolean {
-    if (!config.burst || this.isDestroyed) return true;
+    // 如果guard已销毁，拒绝请求
+    if (this.isDestroyed) return false;
+    
+    // 如果没有配置burst或者burst为undefined/null，跳过突发限制
+    if (config.burst === undefined || config.burst === null) return true;
+    
+    // 如果burst为0，直接拒绝所有请求
+    if (config.burst === 0) return false;
 
     const now = Date.now();
-    const counter = this.ipRequestCounts.get(clientIP);
+    let counter = this.ipRequestCounts.get(clientIP);
 
-    if (!counter) return true;
+    if (!counter) {
+      // 如果计数器不存在，创建一个新的
+      counter = { count: 0, lastReset: now, burstCount: 0, lastBurst: now };
+      this.ipRequestCounts.set(clientIP, counter);
+    }
 
     // 10秒的突发窗口
     const burstWindow = 10 * 1000;
@@ -334,13 +358,19 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
    * 清理过期的计数器
    */
   private cleanupExpiredCounters(): void {
+    if (this.isDestroyed) return;
+
     const now = Date.now();
     const expiredThreshold = 10 * 60 * 1000; // 10分钟
+
+    let deletedIPCounters = 0;
+    let deletedUserCounters = 0;
 
     // 清理IP计数器
     for (const [key, counter] of this.ipRequestCounts.entries()) {
       if (now - counter.lastReset > expiredThreshold) {
         this.ipRequestCounts.delete(key);
+        deletedIPCounters++;
       }
     }
 
@@ -348,13 +378,23 @@ export class StreamRateLimitGuard implements CanActivate, OnModuleDestroy {
     for (const [key, counter] of this.userRequestCounts.entries()) {
       if (now - counter.lastReset > expiredThreshold) {
         this.userRequestCounts.delete(key);
+        deletedUserCounters++;
       }
     }
 
     this.logger.debug("过期计数器已清理", {
+      deletedIPCounters,
+      deletedUserCounters,
       remainingIPCounters: this.ipRequestCounts.size,
       remainingUserCounters: this.userRequestCounts.size,
     });
+  }
+
+  /**
+   * 手动触发清理过期计数器 - 用于测试和调试
+   */
+  public forceCleanup(): void {
+    this.cleanupExpiredCounters();
   }
 
   /**

@@ -1,15 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { PermissionService } from '@auth/services/infrastructure/permission.service';
 import { CacheService } from '@cache/services/cache.service';
 import { Permission, UserRole } from '@auth/enums/user-role.enum';
 import { AuthSubject, AuthSubjectType } from '@auth/interfaces/auth-subject.interface';
-
-// 创建一个模拟的统一配置对象
-const mockAuthConfig = {
-  cache: {
-    permissionCacheTtl: 300,
-  },
-};
+import { TestAuthModule } from '@test/testbasic/modules/test-auth.module';
 
 // 创建一个模拟的AuthSubject实现
 class MockAuthSubject implements AuthSubject {
@@ -67,40 +60,52 @@ class MockAuthSubject implements AuthSubject {
 describe('PermissionService', () => {
   let service: PermissionService;
   let cacheService: jest.Mocked<CacheService>;
+  let testContext: any;
+
+  beforeAll(async () => {
+    const { UnitTestSetup } = require('@test/testbasic/setup/unit-test-setup');
+    testContext = await UnitTestSetup.createTestContext(async () => {
+      return await UnitTestSetup.createBasicTestModule({
+        providers: [
+          PermissionService,
+          // Mock CacheService for test control
+          {
+            provide: CacheService,
+            useValue: {
+              get: jest.fn(),
+              set: jest.fn(),
+              delByPattern: jest.fn(),
+            },
+          },
+          // Provide auth config
+          {
+            provide: 'authUnified',
+            useValue: {
+              cache: {
+                permissionCacheTtl: 300,
+              },
+            },
+          },
+        ],
+      });
+    });
+    await testContext.setup();
+  });
 
   beforeEach(async () => {
-    const mockCacheService = {
-      get: jest.fn(),
-      set: jest.fn(),
-      delByPattern: jest.fn(),
-    };
+    service = await testContext.getService(PermissionService);
+    cacheService = await testContext.getService(CacheService);
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PermissionService,
-        {
-          provide: CacheService,
-          useValue: mockCacheService,
-        },
-        {
-          provide: 'authUnified',
-          useValue: mockAuthConfig,
-        },
-      ],
-    }).compile();
-
-    service = module.get<PermissionService>(PermissionService);
-    cacheService = module.get(CacheService);
-  });
-
-  afterEach(() => {
+    // Reset mocks before each test
     jest.clearAllMocks();
   });
+
+  afterAll(() => testContext.cleanup());
 
   describe('checkPermissions', () => {
     it('应该成功检查权限并缓存结果', async () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
         Permission.DATA_WRITE,
       ]);
@@ -130,7 +135,7 @@ describe('PermissionService', () => {
 
     it('应该在缓存中有结果时直接返回缓存结果', async () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
       ]);
       const cachedResult = {
@@ -154,7 +159,7 @@ describe('PermissionService', () => {
 
     it('应该在权限不足时返回拒绝结果', async () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
       ]);
       const requiredPermissions = [Permission.DATA_WRITE];
@@ -173,24 +178,17 @@ describe('PermissionService', () => {
       expect(result).toEqual({
         allowed: false,
         missingPermissions: [Permission.DATA_WRITE],
-        missingRoles: [UserRole.DEVELOPER],
+        missingRoles: [],
         duration: expect.any(Number),
         details: expect.stringContaining('权限检查失败'),
       });
     });
 
     it('应该在主体ID无效时返回拒绝结果', async () => {
-      // Arrange
+      // Arrange - use clearly invalid ID format (not 24-char hex)
       const subject = new MockAuthSubject('invalid-id', UserRole.DEVELOPER, [
         Permission.DATA_READ,
       ]);
-
-      // Mock DatabaseValidationUtils.isValidObjectId to return false
-      jest.mock('@common/utils/database.utils', () => ({
-        DatabaseValidationUtils: {
-          isValidObjectId: jest.fn().mockReturnValue(false),
-        },
-      }));
 
       // Act
       const result = await service.checkPermissions(subject, [Permission.DATA_READ]);
@@ -209,7 +207,7 @@ describe('PermissionService', () => {
   describe('getEffectivePermissions', () => {
     it('应该返回主体的有效权限', () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
         Permission.DATA_WRITE,
       ]);
@@ -244,7 +242,7 @@ describe('PermissionService', () => {
   describe('createPermissionContext', () => {
     it('应该成功创建权限上下文', async () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
         Permission.DATA_WRITE,
       ]);
@@ -287,7 +285,7 @@ describe('PermissionService', () => {
   describe('invalidateCacheFor', () => {
     it('应该成功使主体的权限缓存失效', async () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
       ]);
       cacheService.delByPattern.mockResolvedValue(5); // 模拟删除了5个键
@@ -297,22 +295,15 @@ describe('PermissionService', () => {
 
       // Assert
       expect(cacheService.delByPattern).toHaveBeenCalledWith(
-        'perm:MOCK:user123:*',
+        'perm:jwt_user:507f1f77bcf86cd799439011:*',
       );
     });
 
     it('应该在主体ID无效时抛出错误', async () => {
-      // Arrange
+      // Arrange - use clearly invalid ID format (not 24-char hex)
       const subject = new MockAuthSubject('invalid-id', UserRole.DEVELOPER, [
         Permission.DATA_READ,
       ]);
-
-      // Mock DatabaseValidationUtils.isValidObjectId to return false
-      jest.mock('@common/utils/database.utils', () => ({
-        DatabaseValidationUtils: {
-          isValidObjectId: jest.fn().mockReturnValue(false),
-        },
-      }));
 
       // Act & Assert
       await expect(service.invalidateCacheFor(subject)).rejects.toThrow(
@@ -322,7 +313,7 @@ describe('PermissionService', () => {
 
     it('应该在缓存删除失败时抛出错误', async () => {
       // Arrange
-      const subject = new MockAuthSubject('user123', UserRole.DEVELOPER, [
+      const subject = new MockAuthSubject('507f1f77bcf86cd799439011', UserRole.DEVELOPER, [
         Permission.DATA_READ,
       ]);
       cacheService.delByPattern.mockRejectedValue(new Error('Cache error'));

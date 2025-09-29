@@ -297,9 +297,11 @@ export class StorageController {
       preferredType,
     });
 
+    const isValidType = Object.values(StorageType).includes(preferredType as StorageType);
+
     const request: RetrieveDataDto = {
       key,
-      preferredType: (preferredType as StorageType) || StorageType.PERSISTENT, // 仅支持数据库存储
+      preferredType: isValidType ? (preferredType as StorageType) : StorageType.PERSISTENT, // 仅支持数据库存储
     };
 
     return this.retrieveData(request);
@@ -365,21 +367,24 @@ export class StorageController {
     @Param("key") key: string,
     @Query("storageType") storageType?: string,
   ) {
+    const isValidType = Object.values(StorageType).includes(storageType as StorageType);
+    const resolvedStorageType = isValidType ? (storageType as StorageType) : StorageType.PERSISTENT;
+
     this.logger.log(`API Request: Delete data`, {
       key,
-      storageType: (storageType as StorageType) || StorageType.PERSISTENT,
+      storageType: resolvedStorageType,
     });
 
     try {
       const deleted = await this.storageService.deleteData(
         key,
-        (storageType as StorageType) || StorageType.PERSISTENT,
+        resolvedStorageType,
       );
 
       this.logger.log(`API Success: Data deletion completed`, {
         key,
         deleted,
-        storageType: storageType || StorageType.PERSISTENT,
+        storageType: resolvedStorageType,
       });
 
       // 遵循控制器编写规范：让拦截器自动处理响应格式化

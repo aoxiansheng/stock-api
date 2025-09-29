@@ -73,7 +73,7 @@ export class SymbolMapperController {
       this.logger.error(`API错误: 数据源映射配置创建失败`, {
         dataSourceName: createDto.dataSourceName,
         error: error.message,
-        errorType: error.constructor.name,
+        errorType: error.constructor?.name,
       });
       throw error;
     }
@@ -109,7 +109,7 @@ export class SymbolMapperController {
       this.logger.error(`API错误: 映射规则添加失败`, {
         dataSourceName: addDto.dataSourceName,
         error: error.message,
-        errorType: error.constructor.name,
+        errorType: error.constructor?.name,
       });
       throw error;
     }
@@ -259,7 +259,7 @@ export class SymbolMapperController {
     } catch (error: any) {
       this.logger.error(`API错误: 获取符号映射规则失败`, {
         error: error.message,
-        errorType: error.constructor.name,
+        errorType: error.constructor?.name,
       });
       throw error;
     }
@@ -379,7 +379,7 @@ export class SymbolMapperController {
       this.logger.error(`API错误: 批量删除失败`, {
         dataSourceName,
         error: error.message,
-        errorType: error.constructor.name,
+        errorType: error.constructor?.name,
       });
       throw error;
     }
@@ -421,7 +421,7 @@ export class SymbolMapperController {
         dataSourceName,
         standardSymbol,
         error: error.message,
-        errorType: error.constructor.name,
+        errorType: error.constructor?.name,
       });
       throw error;
     }

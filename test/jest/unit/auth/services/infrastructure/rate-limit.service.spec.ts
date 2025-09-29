@@ -59,7 +59,8 @@ describe('RateLimitService', () => {
   describe('checkRateLimit', () => {
     it('应该成功检查固定窗口频率限制', async () => {
       // Arrange
-      const mockResult = [1, 50]; // [current, remaining]
+      // 修复：正确模拟 Redis pipeline.exec() 返回的嵌套数组格式
+      const mockResult = [[null, 50], [null, 'OK']]; // [[err, value], [err, value]]
       (cacheService as any).exec.mockResolvedValue(mockResult);
       
       // Act

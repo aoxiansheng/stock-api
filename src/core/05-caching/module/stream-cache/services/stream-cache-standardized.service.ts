@@ -35,12 +35,12 @@ import {
   CacheErrorStatistics,
   DiagnosticsResult,
   SelfHealingResult,
-} from '../../../foundation/interfaces/standard-cache-module.interface';
+} from "../../../foundation/interfaces/standard-cache-module.interface";
 
 import {
   CacheUnifiedConfigInterface,
   CacheConfigValidationResult,
-} from '../../../foundation/types/cache-config.types';
+} from "../../../foundation/types/cache-config.types";
 
 import {
   ModuleInitOptions,
@@ -49,7 +49,7 @@ import {
   ConnectionInfo,
   ImportOptions,
   ImportResult,
-} from '../../../foundation/types/cache-module.types';
+} from "../../../foundation/types/cache-module.types";
 
 import {
   BaseCacheResult,
@@ -61,27 +61,27 @@ import {
   CacheOperationOptions,
   BatchOperationOptions,
   CacheBatchResult,
-} from '../../../foundation/types/cache-result.types';
+} from "../../../foundation/types/cache-result.types";
 
 import {
   CACHE_STATUS,
   CACHE_OPERATIONS,
   CACHE_ERROR_CODES,
-} from '../../../foundation/constants/cache-operations.constants';
+} from "../../../foundation/constants/cache-operations.constants";
 
 // Stream-specific imports
 import {
   IStreamCache,
   StreamDataPoint,
   StreamCacheConfig,
-} from '../interfaces/stream-cache.interface';
+} from "../interfaces/stream-cache.interface";
 
 import {
   STREAM_CACHE_CONFIG,
   DEFAULT_STREAM_CACHE_CONFIG,
-} from '../constants/stream-cache.constants';
+} from "../constants/stream-cache.constants";
 
-import { STREAM_CACHE_ERROR_CODES } from '../constants/stream-cache-error-codes.constants';
+import { STREAM_CACHE_ERROR_CODES } from "../constants/stream-cache-error-codes.constants";
 
 // Common imports
 import { createLogger } from "@common/logging/index";
@@ -89,7 +89,7 @@ import {
   UniversalExceptionFactory,
   BusinessErrorCode,
   ComponentIdentifier,
-  UniversalRetryHandler
+  UniversalRetryHandler,
 } from "@common/core/exceptions";
 
 // Monitoring contracts
@@ -123,31 +123,49 @@ interface StreamCacheHealthStatus {
  */
 @Injectable()
 export class StreamCacheStandardizedService
-  implements StandardCacheModuleInterface, IStreamCache, OnModuleInit, OnModuleDestroy {
-
+  implements
+    StandardCacheModuleInterface,
+    IStreamCache,
+    OnModuleInit,
+    OnModuleDestroy
+{
   // ========================================
   // 模块标识与元数据
   // ========================================
 
-  readonly moduleType = 'stream';
-  readonly moduleCategory: 'specialized' = 'specialized';
-  readonly name = 'StreamCacheStandardized';
-  readonly version = '2.0.0';
+  readonly moduleType = "stream";
+  readonly moduleCategory: "specialized" = "specialized";
+  readonly name = "StreamCacheStandardized";
+  readonly version = "2.0.0";
 
   /** 支持的功能特性 */
   get supportedFeatures(): string[] {
     return [
-      'get', 'set', 'delete', 'exists', 'ttl', 'expire',
-      'batch-operations', 'hot-cache', 'warm-cache', 'compression',
-      'health-check', 'performance-metrics', 'self-healing',
-      'stream-data', 'incremental-queries', 'redis-pipeline',
-      'lru-eviction', 'smart-tiering', 'data-compression'
+      "get",
+      "set",
+      "delete",
+      "exists",
+      "ttl",
+      "expire",
+      "batch-operations",
+      "hot-cache",
+      "warm-cache",
+      "compression",
+      "health-check",
+      "performance-metrics",
+      "self-healing",
+      "stream-data",
+      "incremental-queries",
+      "redis-pipeline",
+      "lru-eviction",
+      "smart-tiering",
+      "data-compression",
     ];
   }
 
   /** 依赖的其他模块 */
   get dependencies(): string[] {
-    return ['basic']; // 依赖基础缓存模块
+    return ["basic"]; // 依赖基础缓存模块
   }
 
   /** 模块优先级 - 高优先级，用于实时数据 */
@@ -157,7 +175,7 @@ export class StreamCacheStandardizedService
 
   /** 模块描述 */
   get description(): string {
-    return 'Specialized stream cache with hot/warm dual-layer architecture for real-time data processing';
+    return "Specialized stream cache with hot/warm dual-layer architecture for real-time data processing";
   }
 
   // ========================================
@@ -171,8 +189,8 @@ export class StreamCacheStandardizedService
 
   // 模块状态
   private _moduleStatus: ModuleStatus = {
-    status: 'initializing',
-    message: 'Stream cache module is starting...',
+    status: "initializing",
+    message: "Stream cache module is starting...",
     lastUpdated: Date.now(),
   };
 
@@ -235,10 +253,24 @@ export class StreamCacheStandardizedService
   constructor(
     @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly eventBus: EventEmitter2,
-    @Inject(STREAM_CACHE_CONFIG_TOKEN) streamConfigPartial?: Partial<StreamCacheConfig>,
+    @Inject(STREAM_CACHE_CONFIG_TOKEN)
+    streamConfigPartial?: Partial<StreamCacheConfig>,
   ) {
     // 合并流缓存配置
-    this.streamConfig = { ...DEFAULT_STREAM_CACHE_CONFIG, ...streamConfigPartial };
+    this.streamConfig = {
+      ...DEFAULT_STREAM_CACHE_CONFIG,
+      ...streamConfigPartial,
+      // Ensure all required properties are present from BaseCacheConfig
+      maxCacheEntries:
+        streamConfigPartial?.maxCacheEntries ||
+        DEFAULT_STREAM_CACHE_CONFIG.maxCacheSize,
+      compressionThresholdBytes:
+        streamConfigPartial?.compressionThresholdBytes ||
+        DEFAULT_STREAM_CACHE_CONFIG.compressionThreshold,
+      performanceMonitoringEnabled:
+        streamConfigPartial?.performanceMonitoringEnabled ||
+        DEFAULT_STREAM_CACHE_CONFIG.performanceMonitoring,
+    } as StreamCacheConfig;
 
     this.logger.log("StreamCacheStandardizedService initialized", {
       moduleType: this.moduleType,
@@ -254,17 +286,20 @@ export class StreamCacheStandardizedService
   // ========================================
 
   async onModuleInit(): Promise<void> {
-    this.logger.log('StreamCacheStandardizedService module initializing...');
+    this.logger.log("StreamCacheStandardizedService module initializing...");
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.destroy();
   }
 
-  async initialize(config: CacheUnifiedConfigInterface, options?: ModuleInitOptions): Promise<void> {
+  async initialize(
+    config: CacheUnifiedConfigInterface,
+    options?: ModuleInitOptions,
+  ): Promise<void> {
     this._moduleStatus = {
-      status: 'initializing',
-      message: 'Stream cache initializing...',
+      status: "initializing",
+      message: "Stream cache initializing...",
       lastUpdated: Date.now(),
     };
 
@@ -279,8 +314,8 @@ export class StreamCacheStandardizedService
       await this.redisClient.ping();
 
       this._moduleStatus = {
-        status: 'ready',
-        message: 'Stream cache initialized successfully',
+        status: "ready",
+        message: "Stream cache initialized successfully",
         lastUpdated: Date.now(),
         startedAt: Date.now(),
       };
@@ -288,10 +323,10 @@ export class StreamCacheStandardizedService
       this._isInitialized = true;
       this._isHealthy = true;
 
-      this.logger.log('Stream cache module initialized successfully');
+      this.logger.log("Stream cache module initialized successfully");
     } catch (error) {
       this._moduleStatus = {
-        status: 'error',
+        status: "error",
         message: `Stream cache initialization failed: ${error.message}`,
         lastUpdated: Date.now(),
       };
@@ -321,7 +356,7 @@ export class StreamCacheStandardizedService
     // 清理Hot Cache
     this.hotCache.clear();
 
-    this.logger.log('Stream cache module destroyed successfully');
+    this.logger.log("Stream cache module destroyed successfully");
   }
 
   // ========================================
@@ -347,16 +382,19 @@ export class StreamCacheStandardizedService
   /**
    * 映射流缓存配置到统一配置接口
    */
-  private mapStreamConfigToUnified(streamConfig: StreamCacheConfig): CacheUnifiedConfigInterface {
+  private mapStreamConfigToUnified(
+    streamConfig: StreamCacheConfig,
+  ): CacheUnifiedConfigInterface {
     return {
-      name: 'stream-cache',
+      name: "stream-cache",
       defaultTtlSeconds: streamConfig.warmCacheTTL,
       maxTtlSeconds: Math.max(streamConfig.warmCacheTTL * 2, 3600),
       minTtlSeconds: Math.min(streamConfig.hotCacheTTL / 1000, 1),
       compressionEnabled: streamConfig.compressionEnabled || true,
-      compressionThresholdBytes: streamConfig.compressionThreshold || 1024,
-      metricsEnabled: streamConfig.performanceMonitoring || true,
-      performanceMonitoringEnabled: streamConfig.performanceMonitoring || true,
+      compressionThresholdBytes: streamConfig.compressionThresholdBytes || 1024,
+      metricsEnabled: streamConfig.performanceMonitoringEnabled || true,
+      performanceMonitoringEnabled:
+        streamConfig.performanceMonitoringEnabled || true,
 
       ttl: {
         realTimeTtlSeconds: streamConfig.hotCacheTTL / 1000,
@@ -370,16 +408,16 @@ export class StreamCacheStandardizedService
         maxMemoryMb: 256, // 流缓存使用较少内存
         defaultBatchSize: streamConfig.streamBatchSize || 50,
         maxConcurrentOperations: 100,
-        slowOperationThresholdMs: streamConfig.slowOperationThreshold || 100,
+        slowOperationThresholdMs: streamConfig.slowOperationThresholdMs || 100,
         connectionTimeoutMs: streamConfig.connectionTimeout,
         operationTimeoutMs: streamConfig.connectionTimeout,
       },
 
       intervals: {
-        cleanupIntervalMs: streamConfig.cleanupInterval,
+        cleanupIntervalMs: streamConfig.cleanupIntervalMs || 30000,
         healthCheckIntervalMs: streamConfig.heartbeatInterval * 2,
-        metricsCollectionIntervalMs: streamConfig.statsLogInterval || 60000,
-        statsLogIntervalMs: streamConfig.statsLogInterval || 60000,
+        metricsCollectionIntervalMs: streamConfig.statsLogIntervalMs || 60000,
+        statsLogIntervalMs: streamConfig.statsLogIntervalMs || 60000,
         heartbeatIntervalMs: streamConfig.heartbeatInterval,
       },
 
@@ -393,7 +431,7 @@ export class StreamCacheStandardizedService
 
       retry: {
         maxRetryAttempts: streamConfig.maxRetryAttempts || 3,
-        baseRetryDelayMs: streamConfig.retryBaseDelay || 100,
+        baseRetryDelayMs: streamConfig.baseRetryDelayMs || 100,
         retryDelayMultiplier: streamConfig.retryDelayMultiplier || 2,
         maxRetryDelayMs: 10000,
         exponentialBackoffEnabled: true,
@@ -405,7 +443,9 @@ export class StreamCacheStandardizedService
     return this.streamConfig as T;
   }
 
-  validateModuleSpecificConfig<T = StreamCacheConfig>(config: T): CacheConfigValidationResult {
+  validateModuleSpecificConfig<T = StreamCacheConfig>(
+    config: T,
+  ): CacheConfigValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -413,21 +453,21 @@ export class StreamCacheStandardizedService
 
     // 验证流缓存特定配置
     if (streamConfig.hotCacheTTL && streamConfig.hotCacheTTL < 1000) {
-      errors.push('hotCacheTTL must be at least 1000ms');
+      errors.push("hotCacheTTL must be at least 1000ms");
     }
 
     if (streamConfig.warmCacheTTL && streamConfig.warmCacheTTL < 5) {
-      errors.push('warmCacheTTL must be at least 5 seconds');
+      errors.push("warmCacheTTL must be at least 5 seconds");
     }
 
     if (streamConfig.maxHotCacheSize && streamConfig.maxHotCacheSize < 10) {
-      errors.push('maxHotCacheSize must be at least 10');
+      errors.push("maxHotCacheSize must be at least 10");
     }
 
     // 业务逻辑验证
     if (streamConfig.hotCacheTTL && streamConfig.warmCacheTTL) {
       if (streamConfig.hotCacheTTL / 1000 > streamConfig.warmCacheTTL) {
-        warnings.push('Hot cache TTL is longer than warm cache TTL');
+        warnings.push("Hot cache TTL is longer than warm cache TTL");
       }
     }
 
@@ -438,13 +478,16 @@ export class StreamCacheStandardizedService
     };
   }
 
-  async applyConfigUpdate(newConfig: Partial<CacheUnifiedConfigInterface>): Promise<void> {
+  async applyConfigUpdate(
+    newConfig: Partial<CacheUnifiedConfigInterface>,
+  ): Promise<void> {
     // 更新统一配置
     this._config = { ...this._config, ...newConfig };
 
     // 如果有流缓存特定的配置更新，也要应用
     if (newConfig.performance?.defaultBatchSize) {
-      this.streamConfig.streamBatchSize = newConfig.performance.defaultBatchSize;
+      this.streamConfig.streamBatchSize =
+        newConfig.performance.defaultBatchSize;
     }
 
     if (newConfig.ttl?.realTimeTtlSeconds) {
@@ -458,17 +501,19 @@ export class StreamCacheStandardizedService
     this.logger.log(`Stream cache configuration updated`);
   }
 
-  validateConfig(config: Partial<CacheUnifiedConfigInterface>): CacheConfigValidationResult {
+  validateConfig(
+    config: Partial<CacheUnifiedConfigInterface>,
+  ): CacheConfigValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
     // 基础验证
     if (config.defaultTtlSeconds && config.defaultTtlSeconds < 1) {
-      errors.push('defaultTtlSeconds must be at least 1');
+      errors.push("defaultTtlSeconds must be at least 1");
     }
 
     if (config.limits?.maxCacheEntries && config.limits.maxCacheEntries < 10) {
-      errors.push('maxCacheEntries must be at least 10');
+      errors.push("maxCacheEntries must be at least 10");
     }
 
     return {
@@ -482,7 +527,10 @@ export class StreamCacheStandardizedService
   // 核心缓存操作 - StandardCacheModuleInterface
   // ========================================
 
-  async get<T = StreamDataPoint[]>(key: string, options?: CacheOperationOptions): Promise<CacheGetResult<T>> {
+  async get<T = StreamDataPoint[]>(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<CacheGetResult<T>> {
     const startTime = Date.now();
 
     try {
@@ -496,7 +544,7 @@ export class StreamCacheStandardizedService
         this.operationStats.hotCacheHits++;
         this.operationStats.totalDuration += duration;
 
-        this.recordPerformance('get', duration, true);
+        this.recordPerformance("get", duration, true);
         this.emitCacheMetric("get", true, duration, {
           cacheType: "stream-cache",
           layer: "hot",
@@ -508,7 +556,7 @@ export class StreamCacheStandardizedService
           operation: CACHE_OPERATIONS.GET,
           data: hotCacheData as T,
           hit: true,
-          cacheLevel: 'hot-cache',
+          cacheLevel: "hot-cache",
           remainingTtl: Math.floor(this.streamConfig.hotCacheTTL / 1000),
           timestamp: Date.now(),
           duration,
@@ -524,7 +572,7 @@ export class StreamCacheStandardizedService
         this.operationStats.warmCacheHits++;
         this.operationStats.totalDuration += duration;
 
-        this.recordPerformance('get', duration, true);
+        this.recordPerformance("get", duration, true);
 
         // 提升到 Hot Cache
         this.setToHotCache(key, warmCacheData);
@@ -540,7 +588,7 @@ export class StreamCacheStandardizedService
           operation: CACHE_OPERATIONS.GET,
           data: warmCacheData as T,
           hit: true,
-          cacheLevel: 'warm-cache',
+          cacheLevel: "warm-cache",
           remainingTtl: this.streamConfig.warmCacheTTL,
           timestamp: Date.now(),
           duration,
@@ -553,7 +601,7 @@ export class StreamCacheStandardizedService
       this.operationStats.totalMisses++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance('get', duration, true);
+      this.recordPerformance("get", duration, true);
       this.emitCacheMetric("get", false, duration, {
         cacheType: "stream-cache",
         layer: "miss",
@@ -565,20 +613,19 @@ export class StreamCacheStandardizedService
         operation: CACHE_OPERATIONS.GET,
         data: null as T,
         hit: false,
-        cacheLevel: 'none',
+        cacheLevel: "none",
         remainingTtl: 0,
         timestamp: Date.now(),
         duration,
         key,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
       this.operationStats.errorCount++;
       this.operationStats.totalDuration += duration;
 
-      this.recordError(error, { operation: 'get', key });
-      this.recordPerformance('get', duration, false);
+      this.recordError(error, { operation: "get", key });
+      this.recordPerformance("get", duration, false);
 
       return {
         success: false,
@@ -586,7 +633,7 @@ export class StreamCacheStandardizedService
         operation: CACHE_OPERATIONS.GET,
         data: null as T,
         hit: false,
-        cacheLevel: 'error',
+        cacheLevel: "error",
         remainingTtl: 0,
         error: error.message,
         errorCode: CACHE_ERROR_CODES.OPERATION_FAILED,
@@ -600,7 +647,7 @@ export class StreamCacheStandardizedService
   async set<T = StreamDataPoint[]>(
     key: string,
     value: T,
-    options?: CacheOperationOptions
+    options?: CacheOperationOptions,
   ): Promise<CacheSetResult> {
     const startTime = Date.now();
 
@@ -613,7 +660,7 @@ export class StreamCacheStandardizedService
           data: false,
           ttl: 0,
           replaced: false,
-          error: 'Value cannot be empty',
+          error: "Value cannot be empty",
           errorCode: CACHE_ERROR_CODES.INVALID_PARAMETER,
           timestamp: Date.now(),
           duration: Date.now() - startTime,
@@ -622,7 +669,9 @@ export class StreamCacheStandardizedService
       }
 
       // 数据压缩
-      const compressedData = this.compressData(Array.isArray(value) ? value : [value]);
+      const compressedData = this.compressData(
+        Array.isArray(value) ? value : [value],
+      );
       const dataSize = JSON.stringify(compressedData).length;
 
       // TTL处理
@@ -632,7 +681,9 @@ export class StreamCacheStandardizedService
       const priority = (options as any)?.priority || "auto";
       const shouldUseHotCache =
         priority === "hot" ||
-        (priority === "auto" && dataSize < 10000 && compressedData.length < 100);
+        (priority === "auto" &&
+          dataSize < 10000 &&
+          compressedData.length < 100);
 
       if (shouldUseHotCache) {
         this.setToHotCache(key, compressedData);
@@ -645,12 +696,13 @@ export class StreamCacheStandardizedService
       this.operationStats.totalOperations++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance('set', duration, true);
+      this.recordPerformance("set", duration, true);
       this.emitCacheMetric("set", true, duration, {
         cacheType: "stream-cache",
         layer: shouldUseHotCache ? "both" : "warm",
         dataSize,
-        compressionRatio: compressedData.length / (Array.isArray(value) ? value.length : 1),
+        compressionRatio:
+          compressedData.length / (Array.isArray(value) ? value.length : 1),
       });
 
       return {
@@ -664,14 +716,13 @@ export class StreamCacheStandardizedService
         duration,
         key,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
       this.operationStats.errorCount++;
       this.operationStats.totalDuration += duration;
 
-      this.recordError(error, { operation: 'set', key });
-      this.recordPerformance('set', duration, false);
+      this.recordError(error, { operation: "set", key });
+      this.recordPerformance("set", duration, false);
 
       return {
         success: false,
@@ -689,7 +740,10 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async delete(key: string, options?: CacheOperationOptions): Promise<CacheDeleteResult> {
+  async delete(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<CacheDeleteResult> {
     const startTime = Date.now();
 
     try {
@@ -704,14 +758,17 @@ export class StreamCacheStandardizedService
         const result = await this.redisClient.del(this.buildWarmCacheKey(key));
         warmCacheDeleted = result > 0;
       } catch (error) {
-        this.logger.warn("Warm cache deletion failed", { key, error: error.message });
+        this.logger.warn("Warm cache deletion failed", {
+          key,
+          error: error.message,
+        });
       }
 
       const duration = Date.now() - startTime;
       this.operationStats.totalOperations++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance('delete', duration, true);
+      this.recordPerformance("delete", duration, true);
 
       return {
         success: true,
@@ -724,14 +781,13 @@ export class StreamCacheStandardizedService
         duration,
         key,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
       this.operationStats.errorCount++;
       this.operationStats.totalDuration += duration;
 
-      this.recordError(error, { operation: 'delete', key });
-      this.recordPerformance('delete', duration, false);
+      this.recordError(error, { operation: "delete", key });
+      this.recordPerformance("delete", duration, false);
 
       return {
         success: false,
@@ -749,14 +805,20 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async exists(key: string, options?: CacheOperationOptions): Promise<BaseCacheResult<boolean>> {
+  async exists(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<boolean>> {
     const startTime = Date.now();
 
     try {
       // 检查 Hot Cache
       if (this.hotCache.has(key)) {
         const entry = this.hotCache.get(key);
-        if (entry && Date.now() - entry.timestamp <= this.streamConfig.hotCacheTTL) {
+        if (
+          entry &&
+          Date.now() - entry.timestamp <= this.streamConfig.hotCacheTTL
+        ) {
           return {
             success: true,
             status: CACHE_STATUS.SUCCESS,
@@ -770,7 +832,9 @@ export class StreamCacheStandardizedService
       }
 
       // 检查 Warm Cache
-      const warmExists = await this.redisClient.exists(this.buildWarmCacheKey(key));
+      const warmExists = await this.redisClient.exists(
+        this.buildWarmCacheKey(key),
+      );
 
       return {
         success: true,
@@ -781,9 +845,8 @@ export class StreamCacheStandardizedService
         duration: Date.now() - startTime,
         key,
       };
-
     } catch (error) {
-      this.recordError(error, { operation: 'exists', key });
+      this.recordError(error, { operation: "exists", key });
 
       return {
         success: false,
@@ -798,7 +861,10 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async ttl(key: string, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
+  async ttl(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<number>> {
     const startTime = Date.now();
 
     try {
@@ -806,7 +872,10 @@ export class StreamCacheStandardizedService
       if (this.hotCache.has(key)) {
         const entry = this.hotCache.get(key);
         if (entry) {
-          const remainingTtl = Math.max(0, this.streamConfig.hotCacheTTL - (Date.now() - entry.timestamp));
+          const remainingTtl = Math.max(
+            0,
+            this.streamConfig.hotCacheTTL - (Date.now() - entry.timestamp),
+          );
           if (remainingTtl > 0) {
             return {
               success: true,
@@ -833,9 +902,8 @@ export class StreamCacheStandardizedService
         duration: Date.now() - startTime,
         key,
       };
-
     } catch (error) {
-      this.recordError(error, { operation: 'ttl', key });
+      this.recordError(error, { operation: "ttl", key });
 
       return {
         success: false,
@@ -850,7 +918,11 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async expire(key: string, ttl: number, options?: CacheOperationOptions): Promise<BaseCacheResult<boolean>> {
+  async expire(
+    key: string,
+    ttl: number,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<boolean>> {
     const startTime = Date.now();
 
     try {
@@ -861,13 +933,17 @@ export class StreamCacheStandardizedService
         const entry = this.hotCache.get(key);
         if (entry) {
           // 调整时间戳使其在指定TTL后过期
-          entry.timestamp = Date.now() - (this.streamConfig.hotCacheTTL - (ttl * 1000));
+          entry.timestamp =
+            Date.now() - (this.streamConfig.hotCacheTTL - ttl * 1000);
           success = true;
         }
       }
 
       // 更新 Warm Cache TTL
-      const warmResult = await this.redisClient.expire(this.buildWarmCacheKey(key), ttl);
+      const warmResult = await this.redisClient.expire(
+        this.buildWarmCacheKey(key),
+        ttl,
+      );
       success = success || warmResult === 1;
 
       return {
@@ -879,9 +955,8 @@ export class StreamCacheStandardizedService
         duration: Date.now() - startTime,
         key,
       };
-
     } catch (error) {
-      this.recordError(error, { operation: 'expire', key });
+      this.recordError(error, { operation: "expire", key });
 
       return {
         success: false,
@@ -900,12 +975,19 @@ export class StreamCacheStandardizedService
   // 必需的StandardCacheModuleInterface方法
   // ========================================
 
-  async increment(key: string, delta: number = 1, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
+  async increment(
+    key: string,
+    delta: number = 1,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<number>> {
     const startTime = Date.now();
 
     try {
-      const result = await this.redisClient.incrby(this.buildWarmCacheKey(key), delta);
-      
+      const result = await this.redisClient.incrby(
+        this.buildWarmCacheKey(key),
+        delta,
+      );
+
       return {
         success: true,
         status: CACHE_STATUS.SUCCESS,
@@ -916,8 +998,8 @@ export class StreamCacheStandardizedService
         key,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'increment', key });
-      
+      this.recordError(error, { operation: "increment", key });
+
       return {
         success: false,
         status: CACHE_STATUS.ERROR,
@@ -931,12 +1013,19 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async decrement(key: string, delta: number = 1, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
+  async decrement(
+    key: string,
+    delta: number = 1,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<number>> {
     const startTime = Date.now();
 
     try {
-      const result = await this.redisClient.decrby(this.buildWarmCacheKey(key), delta);
-      
+      const result = await this.redisClient.decrby(
+        this.buildWarmCacheKey(key),
+        delta,
+      );
+
       return {
         success: true,
         status: CACHE_STATUS.SUCCESS,
@@ -947,8 +1036,8 @@ export class StreamCacheStandardizedService
         key,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'decrement', key });
-      
+      this.recordError(error, { operation: "decrement", key });
+
       return {
         success: false,
         status: CACHE_STATUS.ERROR,
@@ -962,7 +1051,11 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async setIfNotExists(key: string, value: any, options?: CacheOperationOptions): Promise<CacheSetResult> {
+  async setIfNotExists(
+    key: string,
+    value: any,
+    options?: CacheOperationOptions,
+  ): Promise<CacheSetResult> {
     const startTime = Date.now();
 
     try {
@@ -995,7 +1088,7 @@ export class StreamCacheStandardizedService
         key,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'setIfNotExists', key });
+      this.recordError(error, { operation: "setIfNotExists", key });
 
       return {
         success: false,
@@ -1012,7 +1105,10 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async batchGet<T = any>(keys: string[], options?: BatchOperationOptions): Promise<CacheBatchResult<T>> {
+  async batchGet<T = any>(
+    keys: string[],
+    options?: BatchOperationOptions,
+  ): Promise<CacheBatchResult<T>> {
     const startTime = Date.now();
     const results: BaseCacheResult<T>[] = [];
 
@@ -1035,17 +1131,17 @@ export class StreamCacheStandardizedService
         success: true,
         status: CACHE_STATUS.SUCCESS,
         operation: CACHE_OPERATIONS.GET,
-        data: results.map(r => r.data),
+        data: results.map((r) => r.data),
         results,
         totalCount: keys.length,
-        successCount: results.filter(r => r.success).length,
-        failureCount: results.filter(r => !r.success).length,
-        failedKeys: results.filter(r => !r.success).map(r => r.key || ''),
+        successCount: results.filter((r) => r.success).length,
+        failureCount: results.filter((r) => !r.success).length,
+        failedKeys: results.filter((r) => !r.success).map((r) => r.key || ""),
         timestamp: Date.now(),
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'batchGet', keys });
+      this.recordError(error, { operation: "batchGet", keys });
 
       return {
         success: false,
@@ -1064,13 +1160,19 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async batchSet<T = any>(items: Array<{ key: string; value: T; ttl?: number }>, options?: BatchOperationOptions): Promise<CacheBatchResult<boolean>> {
+  async batchSet<T = any>(
+    items: Array<{ key: string; value: T; ttl?: number }>,
+    options?: BatchOperationOptions,
+  ): Promise<CacheBatchResult<boolean>> {
     const startTime = Date.now();
     const results: BaseCacheResult<boolean>[] = [];
 
     try {
       for (const item of items) {
-        const result = await this.set(item.key, item.value, { ...options, ttl: item.ttl });
+        const result = await this.set(item.key, item.value, {
+          ...options,
+          ttl: item.ttl,
+        });
         results.push({
           success: result.success,
           status: result.status,
@@ -1087,17 +1189,20 @@ export class StreamCacheStandardizedService
         success: true,
         status: CACHE_STATUS.SUCCESS,
         operation: CACHE_OPERATIONS.SET,
-        data: results.map(r => r.data),
+        data: results.map((r) => r.data),
         results,
         totalCount: items.length,
-        successCount: results.filter(r => r.success).length,
-        failureCount: results.filter(r => !r.success).length,
-        failedKeys: results.filter(r => !r.success).map(r => r.key || ''),
+        successCount: results.filter((r) => r.success).length,
+        failureCount: results.filter((r) => !r.success).length,
+        failedKeys: results.filter((r) => !r.success).map((r) => r.key || ""),
         timestamp: Date.now(),
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'batchSet', itemCount: items.length });
+      this.recordError(error, {
+        operation: "batchSet",
+        itemCount: items.length,
+      });
 
       return {
         success: false,
@@ -1108,7 +1213,7 @@ export class StreamCacheStandardizedService
         totalCount: items.length,
         successCount: 0,
         failureCount: items.length,
-        failedKeys: items.map(item => item.key),
+        failedKeys: items.map((item) => item.key),
         error: error.message,
         timestamp: Date.now(),
         duration: Date.now() - startTime,
@@ -1116,7 +1221,10 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async batchDelete(keys: string[], options?: BatchOperationOptions): Promise<CacheBatchResult<boolean>> {
+  async batchDelete(
+    keys: string[],
+    options?: BatchOperationOptions,
+  ): Promise<CacheBatchResult<boolean>> {
     const startTime = Date.now();
     const results: BaseCacheResult<boolean>[] = [];
 
@@ -1139,17 +1247,17 @@ export class StreamCacheStandardizedService
         success: true,
         status: CACHE_STATUS.SUCCESS,
         operation: CACHE_OPERATIONS.DELETE,
-        data: results.map(r => r.data),
+        data: results.map((r) => r.data),
         results,
         totalCount: keys.length,
-        successCount: results.filter(r => r.success).length,
-        failureCount: results.filter(r => !r.success).length,
-        failedKeys: results.filter(r => !r.success).map(r => r.key || ''),
+        successCount: results.filter((r) => r.success).length,
+        failureCount: results.filter((r) => !r.success).length,
+        failedKeys: results.filter((r) => !r.success).map((r) => r.key || ""),
         timestamp: Date.now(),
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'batchDelete', keys });
+      this.recordError(error, { operation: "batchDelete", keys });
 
       return {
         success: false,
@@ -1194,7 +1302,10 @@ export class StreamCacheStandardizedService
   /**
    * 获取自指定时间戳以来的数据 - IStreamCache接口实现
    */
-  async getDataSince(key: string, since: number): Promise<StreamDataPoint[] | null> {
+  async getDataSince(
+    key: string,
+    since: number,
+  ): Promise<StreamDataPoint[] | null> {
     try {
       const allData = await this.getData(key);
       if (!allData) return null;
@@ -1211,7 +1322,7 @@ export class StreamCacheStandardizedService
 
       return incrementalData.length > 0 ? incrementalData : null;
     } catch (error) {
-      this.recordError(error, { operation: 'getDataSince', key });
+      this.recordError(error, { operation: "getDataSince", key });
       return null;
     }
   }
@@ -1220,7 +1331,9 @@ export class StreamCacheStandardizedService
    * 批量获取数据 - IStreamCache接口实现
    * 增强版：使用Redis Pipeline优化 + 降级策略
    */
-  async getBatchData(keys: string[]): Promise<Record<string, StreamDataPoint[] | null>> {
+  async getBatchData(
+    keys: string[],
+  ): Promise<Record<string, StreamDataPoint[] | null>> {
     const result: Record<string, StreamDataPoint[] | null> = {};
 
     if (!keys || keys.length === 0) return result;
@@ -1237,7 +1350,7 @@ export class StreamCacheStandardizedService
         } catch (pipelineError) {
           this.logger.warn("Pipeline批量获取失败，降级到单个获取", {
             batch,
-            error: pipelineError.message
+            error: pipelineError.message,
           });
           // 降级到单个获取
           await this.fallbackToSingleGets(batch, result);
@@ -1246,12 +1359,15 @@ export class StreamCacheStandardizedService
 
       return result;
     } catch (error) {
-      this.recordError(error, { operation: 'getBatchData', keys: keys.join(",") });
+      this.recordError(error, {
+        operation: "getBatchData",
+        keys: keys.join(","),
+      });
 
       // 最终降级：使用原始的batchGet方法
       this.logger.warn("批量获取完全失败，使用原始方法", {
         error: error.message,
-        keyCount: keys.length
+        keyCount: keys.length,
       });
 
       const batchResult = await this.batchGet<StreamDataPoint[]>(keys);
@@ -1274,15 +1390,24 @@ export class StreamCacheStandardizedService
   /**
    * 清空所有缓存 - IStreamCache接口实现
    */
-  async clearAll(options: { force?: boolean; preserveActive?: boolean; maxAge?: number } = {}): Promise<void> {
-    await this.clear('*', options as CacheOperationOptions);
+  async clearAll(
+    options: {
+      force?: boolean;
+      preserveActive?: boolean;
+      maxAge?: number;
+    } = {},
+  ): Promise<void> {
+    await this.clear("*", options as CacheOperationOptions);
   }
 
   // ========================================
   // 清理操作增强实现
   // ========================================
 
-  async clear(pattern?: string, options?: CacheOperationOptions): Promise<CacheDeleteResult> {
+  async clear(
+    pattern?: string,
+    options?: CacheOperationOptions,
+  ): Promise<CacheDeleteResult> {
     const startTime = Date.now();
 
     try {
@@ -1300,7 +1425,10 @@ export class StreamCacheStandardizedService
 
       if (preserveActive) {
         // 保留活跃流数据，只清理过期数据
-        const expiredKeys = await this.clearExpiredOnly(warmCachePattern, maxAge || 3600);
+        const expiredKeys = await this.clearExpiredOnly(
+          warmCachePattern,
+          maxAge || 3600,
+        );
         deletedCount = expiredKeys.length;
         deletedKeys = expiredKeys;
       } else {
@@ -1323,7 +1451,7 @@ export class StreamCacheStandardizedService
       this.operationStats.totalOperations++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance('clear', duration, true);
+      this.recordPerformance("clear", duration, true);
 
       return {
         success: true,
@@ -1335,14 +1463,13 @@ export class StreamCacheStandardizedService
         timestamp: Date.now(),
         duration,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
       this.operationStats.errorCount++;
       this.operationStats.totalDuration += duration;
 
-      this.recordError(error, { operation: 'clear' });
-      this.recordPerformance('clear', duration, false);
+      this.recordError(error, { operation: "clear" });
+      this.recordPerformance("clear", duration, false);
 
       return {
         success: false,
@@ -1371,10 +1498,19 @@ export class StreamCacheStandardizedService
       avgResponseTime,
       p95ResponseTime: avgResponseTime * 1.5, // 估算
       p99ResponseTime: avgResponseTime * 2.0, // 估算
-      throughput: totalOps / ((Date.now() - this.operationStats.lastResetTime) / 1000),
-      hitRate: this.operationStats.totalHits / Math.max(1, this.operationStats.totalHits + this.operationStats.totalMisses),
+      throughput:
+        totalOps / ((Date.now() - this.operationStats.lastResetTime) / 1000),
+      hitRate:
+        this.operationStats.totalHits /
+        Math.max(
+          1,
+          this.operationStats.totalHits + this.operationStats.totalMisses,
+        ),
       errorRate: this.operationStats.errorCount / totalOps,
-      memoryEfficiency: Math.min(1.0, this.hotCache.size / this.streamConfig.maxHotCacheSize),
+      memoryEfficiency: Math.min(
+        1.0,
+        this.hotCache.size / this.streamConfig.maxHotCacheSize,
+      ),
       cpuUsage: 0, // 需要外部监控
       networkUsage: 0, // 需要外部监控
     };
@@ -1402,22 +1538,31 @@ export class StreamCacheStandardizedService
       estimatedRemainingCapacity: {
         keys: maxKeys - currentKeys,
         memoryBytes: maxMemory - currentMemory,
-        estimatedFullInMs: currentKeys === 0 ? -1 :
-          (maxKeys - currentKeys) * ((Date.now() - this.operationStats.lastResetTime) / currentKeys),
+        estimatedFullInMs:
+          currentKeys === 0
+            ? -1
+            : (maxKeys - currentKeys) *
+              ((Date.now() - this.operationStats.lastResetTime) / currentKeys),
       },
     };
   }
 
   async getErrorStatistics(): Promise<CacheErrorStatistics> {
     const errorsByType: Record<string, number> = {};
-    const errorsBySeverity: Record<'low' | 'medium' | 'high' | 'critical', number> = {
-      low: 0, medium: 0, high: 0, critical: 0
+    const errorsBySeverity: Record<
+      "low" | "medium" | "high" | "critical",
+      number
+    > = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
     };
 
     // 分析错误历史
-    this.errorHistory.forEach(error => {
-      const type = error.type || 'unknown';
-      const severity = error.severity || 'medium';
+    this.errorHistory.forEach((error) => {
+      const type = error.type || "unknown";
+      const severity = error.severity || "medium";
 
       errorsByType[type] = (errorsByType[type] || 0) + 1;
       errorsBySeverity[severity as keyof typeof errorsBySeverity]++;
@@ -1441,26 +1586,26 @@ export class StreamCacheStandardizedService
     try {
       await this.redisClient.ping();
       checks.push({
-        name: 'redis_connection',
-        status: 'pass' as const,
+        name: "redis_connection",
+        status: "pass" as const,
         score: 100,
-        message: 'Redis connection is healthy',
+        message: "Redis connection is healthy",
       });
     } catch (error) {
       overallScore -= 30;
       checks.push({
-        name: 'redis_connection',
-        status: 'fail' as const,
+        name: "redis_connection",
+        status: "fail" as const,
         score: 0,
-        message: 'Redis connection failed',
-        recommendation: 'Check Redis server status and connection settings',
+        message: "Redis connection failed",
+        recommendation: "Check Redis server status and connection settings",
       });
       issues.push({
-        severity: 'critical' as const,
-        category: 'connectivity',
-        description: 'Redis connection is unavailable',
-        impact: 'Warm cache operations will fail',
-        solution: 'Restart Redis service or check network connectivity',
+        severity: "critical" as const,
+        category: "connectivity",
+        description: "Redis connection is unavailable",
+        impact: "Warm cache operations will fail",
+        solution: "Restart Redis service or check network connectivity",
       });
     }
 
@@ -1469,23 +1614,24 @@ export class StreamCacheStandardizedService
     if (capacityInfo.memoryUtilization > 0.9) {
       overallScore -= 20;
       checks.push({
-        name: 'memory_usage',
-        status: 'warn' as const,
+        name: "memory_usage",
+        status: "warn" as const,
         score: 70,
         message: `Memory utilization is high: ${(capacityInfo.memoryUtilization * 100).toFixed(1)}%`,
-        recommendation: 'Consider increasing memory limits or implementing more aggressive cleanup',
+        recommendation:
+          "Consider increasing memory limits or implementing more aggressive cleanup",
       });
       issues.push({
-        severity: 'high' as const,
-        category: 'performance',
-        description: 'Memory utilization exceeds 90%',
-        impact: 'Cache performance may degrade',
-        solution: 'Increase memory allocation or optimize data compression',
+        severity: "high" as const,
+        category: "performance",
+        description: "Memory utilization exceeds 90%",
+        impact: "Cache performance may degrade",
+        solution: "Increase memory allocation or optimize data compression",
       });
     } else {
       checks.push({
-        name: 'memory_usage',
-        status: 'pass' as const,
+        name: "memory_usage",
+        status: "pass" as const,
         score: 100,
         message: `Memory utilization is healthy: ${(capacityInfo.memoryUtilization * 100).toFixed(1)}%`,
       });
@@ -1496,16 +1642,16 @@ export class StreamCacheStandardizedService
     if (perfMetrics.errorRate > 0.05) {
       overallScore -= 15;
       checks.push({
-        name: 'error_rate',
-        status: 'warn' as const,
+        name: "error_rate",
+        status: "warn" as const,
         score: 80,
         message: `Error rate is elevated: ${(perfMetrics.errorRate * 100).toFixed(2)}%`,
-        recommendation: 'Investigate error patterns and improve error handling',
+        recommendation: "Investigate error patterns and improve error handling",
       });
     } else {
       checks.push({
-        name: 'error_rate',
-        status: 'pass' as const,
+        name: "error_rate",
+        status: "pass" as const,
         score: 100,
         message: `Error rate is acceptable: ${(perfMetrics.errorRate * 100).toFixed(2)}%`,
       });
@@ -1516,14 +1662,14 @@ export class StreamCacheStandardizedService
       checks,
       issues,
       performanceRecommendations: [
-        'Monitor hit rate and adjust TTL strategies if needed',
-        'Consider implementing data partitioning for large datasets',
-        'Regularly analyze access patterns for optimization opportunities',
+        "Monitor hit rate and adjust TTL strategies if needed",
+        "Consider implementing data partitioning for large datasets",
+        "Regularly analyze access patterns for optimization opportunities",
       ],
       configurationRecommendations: [
-        'Ensure hot cache size is appropriate for workload',
-        'Verify compression settings are optimal for data types',
-        'Review cleanup intervals based on data volatility',
+        "Ensure hot cache size is appropriate for workload",
+        "Verify compression settings are optimal for data types",
+        "Review cleanup intervals based on data volatility",
       ],
     };
   }
@@ -1538,22 +1684,22 @@ export class StreamCacheStandardizedService
     } catch (error) {
       try {
         // 尝试重新连接（这里简化处理）
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         await this.redisClient.ping();
 
         fixes.push({
-          issue: 'redis_connection_failed',
-          action: 'attempted_reconnection',
+          issue: "redis_connection_failed",
+          action: "attempted_reconnection",
           success: true,
-          message: 'Redis connection restored',
+          message: "Redis connection restored",
         });
         successfulFixes++;
       } catch (reconnectError) {
         fixes.push({
-          issue: 'redis_connection_failed',
-          action: 'attempted_reconnection',
+          issue: "redis_connection_failed",
+          action: "attempted_reconnection",
           success: false,
-          message: 'Failed to restore Redis connection',
+          message: "Failed to restore Redis connection",
         });
       }
     }
@@ -1562,18 +1708,18 @@ export class StreamCacheStandardizedService
     try {
       this.cleanupExpiredEntries();
       fixes.push({
-        issue: 'memory_cleanup',
-        action: 'cleaned_expired_entries',
+        issue: "memory_cleanup",
+        action: "cleaned_expired_entries",
         success: true,
-        message: 'Cleaned up expired hot cache entries',
+        message: "Cleaned up expired hot cache entries",
       });
       successfulFixes++;
     } catch (error) {
       fixes.push({
-        issue: 'memory_cleanup',
-        action: 'cleaned_expired_entries',
+        issue: "memory_cleanup",
+        action: "cleaned_expired_entries",
         success: false,
-        message: 'Failed to clean up expired entries',
+        message: "Failed to clean up expired entries",
       });
     }
 
@@ -1582,7 +1728,7 @@ export class StreamCacheStandardizedService
       attemptedFixes: fixes.length,
       successfulFixes,
       fixes,
-      remainingIssues: fixes.filter(f => !f.success).map(f => f.issue),
+      remainingIssues: fixes.filter((f) => !f.success).map((f) => f.issue),
     };
   }
 
@@ -1613,7 +1759,8 @@ export class StreamCacheStandardizedService
         // Note: Additional stream-specific stats could be added to metadata
         lastCleanupTime: Date.now(),
       },
-      timeRangeMs: timeRangeMs || (Date.now() - this.operationStats.lastResetTime),
+      timeRangeMs:
+        timeRangeMs || Date.now() - this.operationStats.lastResetTime,
       collectionTime: Date.now(),
       timestamp: Date.now(),
       metadata: {
@@ -1621,7 +1768,7 @@ export class StreamCacheStandardizedService
         hotCacheHits: this.operationStats.hotCacheHits,
         warmCacheHits: this.operationStats.warmCacheHits,
         compressionRatio: 0.8, // 估算值
-        cacheType: 'stream-cache',
+        cacheType: "stream-cache",
         version: this.version,
       },
     };
@@ -1668,17 +1815,17 @@ export class StreamCacheStandardizedService
       if (capacityInfo.memoryUtilization > 0.9) {
         healthScore -= 20;
         checks.push({
-          name: 'memory_usage',
-          status: 'warn' as const,
+          name: "memory_usage",
+          status: "warn" as const,
           value: capacityInfo.memoryUtilization,
-          description: 'Memory utilization high',
+          description: "Memory utilization high",
         });
       } else {
         checks.push({
-          name: 'memory_usage',
-          status: 'pass' as const,
+          name: "memory_usage",
+          status: "pass" as const,
           value: capacityInfo.memoryUtilization,
-          description: 'Memory utilization normal',
+          description: "Memory utilization normal",
         });
       }
 
@@ -1686,17 +1833,17 @@ export class StreamCacheStandardizedService
       if (perfMetrics.errorRate > 0.05) {
         healthScore -= 15;
         checks.push({
-          name: 'error_rate',
-          status: 'warn' as const,
+          name: "error_rate",
+          status: "warn" as const,
           value: perfMetrics.errorRate,
-          description: 'Error rate elevated',
+          description: "Error rate elevated",
         });
       } else {
         checks.push({
-          name: 'error_rate',
-          status: 'pass' as const,
+          name: "error_rate",
+          status: "pass" as const,
           value: perfMetrics.errorRate,
-          description: 'Error rate acceptable',
+          description: "Error rate acceptable",
         });
       }
 
@@ -1704,17 +1851,17 @@ export class StreamCacheStandardizedService
       if (perfMetrics.hitRate < 0.7) {
         healthScore -= 10;
         checks.push({
-          name: 'hit_rate',
-          status: 'warn' as const,
+          name: "hit_rate",
+          status: "warn" as const,
           value: perfMetrics.hitRate,
-          description: 'Hit rate below optimal',
+          description: "Hit rate below optimal",
         });
       } else {
         checks.push({
-          name: 'hit_rate',
-          status: 'pass' as const,
+          name: "hit_rate",
+          status: "pass" as const,
           value: perfMetrics.hitRate,
-          description: 'Hit rate healthy',
+          description: "Hit rate healthy",
         });
       }
 
@@ -1724,37 +1871,49 @@ export class StreamCacheStandardizedService
         operation: CACHE_OPERATIONS.GET,
         data: {
           connectionStatus: CACHE_STATUS.CONNECTED,
-          memoryStatus: capacityInfo.memoryUtilization > 0.9 ? 'critical' : 'healthy',
-          performanceStatus: perfMetrics.errorRate > 0.05 ? 'degraded' : 'healthy',
-          errorRateStatus: perfMetrics.errorRate > 0.1 ? 'critical' : perfMetrics.errorRate > 0.05 ? 'warning' : 'healthy',
+          memoryStatus:
+            capacityInfo.memoryUtilization > 0.9 ? "critical" : "healthy",
+          performanceStatus:
+            perfMetrics.errorRate > 0.05 ? "degraded" : "healthy",
+          errorRateStatus:
+            perfMetrics.errorRate > 0.1
+              ? "critical"
+              : perfMetrics.errorRate > 0.05
+                ? "warning"
+                : "healthy",
           lastCheckTime: Date.now(),
-          uptimeMs: this._moduleStatus.startedAt ? Date.now() - this._moduleStatus.startedAt : 0,
+          uptimeMs: this._moduleStatus.startedAt
+            ? Date.now() - this._moduleStatus.startedAt
+            : 0,
         },
         checks,
         healthScore,
         timestamp: Date.now(),
       };
-
     } catch (error) {
-      this.recordError(error, { operation: 'healthCheck' });
+      this.recordError(error, { operation: "healthCheck" });
       return {
         success: false,
         status: CACHE_STATUS.ERROR,
         operation: CACHE_OPERATIONS.GET,
         data: {
           connectionStatus: CACHE_STATUS.ERROR,
-          memoryStatus: 'critical',
-          performanceStatus: 'poor',
-          errorRateStatus: 'critical',
+          memoryStatus: "critical",
+          performanceStatus: "poor",
+          errorRateStatus: "critical",
           lastCheckTime: Date.now(),
-          uptimeMs: this._moduleStatus.startedAt ? Date.now() - this._moduleStatus.startedAt : 0,
+          uptimeMs: this._moduleStatus.startedAt
+            ? Date.now() - this._moduleStatus.startedAt
+            : 0,
         },
-        checks: [{
-          name: 'basic_health',
-          status: 'fail',
-          value: false,
-          description: `Health check failed: ${error.message}`,
-        }],
+        checks: [
+          {
+            name: "basic_health",
+            status: "fail",
+            value: false,
+            description: `Health check failed: ${error.message}`,
+          },
+        ],
         healthScore: 0,
         error: error.message,
         timestamp: Date.now(),
@@ -1774,7 +1933,10 @@ export class StreamCacheStandardizedService
         totalMemoryBytes: capacityInfo.maxMemory,
         memoryUsageRatio: capacityInfo.memoryUtilization,
         keyCount: capacityInfo.currentKeys,
-        avgKeySize: capacityInfo.currentKeys > 0 ? capacityInfo.currentMemory / capacityInfo.currentKeys : 0,
+        avgKeySize:
+          capacityInfo.currentKeys > 0
+            ? capacityInfo.currentMemory / capacityInfo.currentKeys
+            : 0,
       },
       timestamp: Date.now(),
     };
@@ -1791,8 +1953,8 @@ export class StreamCacheStandardizedService
         status: CACHE_STATUS.SUCCESS,
         operation: CACHE_OPERATIONS.GET,
         data: {
-          status: 'connected',
-          address: this.redisClient.options.host || 'localhost',
+          status: "connected",
+          address: this.redisClient.options.host || "localhost",
           port: this.redisClient.options.port || 6379,
           connectedAt: this._moduleStatus.startedAt,
           lastHeartbeat: Date.now(),
@@ -1806,8 +1968,8 @@ export class StreamCacheStandardizedService
         status: CACHE_STATUS.ERROR,
         operation: CACHE_OPERATIONS.GET,
         data: {
-          status: 'disconnected',
-          address: this.redisClient.options.host || 'localhost',
+          status: "disconnected",
+          address: this.redisClient.options.host || "localhost",
           port: this.redisClient.options.port || 6379,
           connectedAt: this._moduleStatus.startedAt,
           lastHeartbeat: Date.now(),
@@ -1837,11 +1999,13 @@ export class StreamCacheStandardizedService
       // 核心系统指标上报
       this.emitSystemEvent("cache_hot_size", this.hotCache.size, {
         maxSize: this.streamConfig.maxHotCacheSize,
-        utilizationRatio: this.hotCache.size / this.streamConfig.maxHotCacheSize,
+        utilizationRatio:
+          this.hotCache.size / this.streamConfig.maxHotCacheSize,
       });
 
       // 健康状态指标 (0=unhealthy, 1=healthy)
-      const healthStatus = healthResult.success && healthResult.healthScore > 70 ? 1 : 0;
+      const healthStatus =
+        healthResult.success && healthResult.healthScore > 70 ? 1 : 0;
       this.emitSystemEvent("health_status", healthStatus, {
         healthScore: healthResult.healthScore || 0,
         connectionStatus: healthResult.success ? "connected" : "disconnected",
@@ -1890,20 +2054,19 @@ export class StreamCacheStandardizedService
         });
       }
 
-      this.logger.debug('System metrics reported successfully', {
+      this.logger.debug("System metrics reported successfully", {
         hotCacheSize: this.hotCache.size,
         memoryUsage: capacityInfo.currentMemory,
         hitRate: perfMetrics.hitRate,
         healthScore: healthResult.healthScore,
       });
-
     } catch (error) {
-      this.recordError(error, { operation: 'reportSystemMetrics' });
+      this.recordError(error, { operation: "reportSystemMetrics" });
       this.emitSystemEvent("metric_reporting_error", 1, {
         errorMessage: error.message,
         errorType: error.constructor.name,
       });
-      this.logger.error('Failed to report system metrics', {
+      this.logger.error("Failed to report system metrics", {
         error: error.message,
         stack: error.stack,
       });
@@ -1932,7 +2095,7 @@ export class StreamCacheStandardizedService
         },
       };
     } catch (error) {
-      this.recordError(error, { operation: 'getHealthStatus' });
+      this.recordError(error, { operation: "getHealthStatus" });
       return {
         status: "unhealthy",
         hotCacheSize: this.hotCache.size,
@@ -1948,7 +2111,7 @@ export class StreamCacheStandardizedService
    */
   private async getBatchWithPipeline(
     keys: string[],
-    result: Record<string, StreamDataPoint[] | null>
+    result: Record<string, StreamDataPoint[] | null>,
   ): Promise<void> {
     // 先检查Hot Cache
     const hotCacheMisses: string[] = [];
@@ -1965,7 +2128,7 @@ export class StreamCacheStandardizedService
 
     // 使用Pipeline批量获取Warm Cache
     const pipeline = this.redisClient.pipeline();
-    hotCacheMisses.forEach(key => {
+    hotCacheMisses.forEach((key) => {
       const redisKey = this.buildWarmCacheKey(key);
       pipeline.get(redisKey);
     });
@@ -1986,7 +2149,9 @@ export class StreamCacheStandardizedService
             // 提升到Hot Cache
             this.setToHotCache(key, parsedData);
           } catch (parseError) {
-            this.logger.warn(`数据解析失败: ${key}`, { error: parseError.message });
+            this.logger.warn(`数据解析失败: ${key}`, {
+              error: parseError.message,
+            });
             result[key] = null;
           }
         } else {
@@ -2002,7 +2167,7 @@ export class StreamCacheStandardizedService
    */
   private async fallbackToSingleGets(
     keys: string[],
-    result: Record<string, StreamDataPoint[] | null>
+    result: Record<string, StreamDataPoint[] | null>,
   ): Promise<void> {
     const batchPromises = keys.map(async (key) => ({
       key,
@@ -2013,14 +2178,14 @@ export class StreamCacheStandardizedService
 
     // 处理Promise.allSettled结果
     batchResults.forEach((promiseResult, index) => {
-      if (promiseResult.status === 'fulfilled') {
+      if (promiseResult.status === "fulfilled") {
         const { key, data } = promiseResult.value;
         result[key] = data;
       } else {
         // 记录失败的key，用于监控和重试
         const failedKey = keys[index];
         this.logger.warn(`批量获取失败: ${failedKey}`, {
-          error: promiseResult.reason?.message
+          error: promiseResult.reason?.message,
         });
         result[failedKey] = null;
       }
@@ -2055,7 +2220,9 @@ export class StreamCacheStandardizedService
   // 缺失的CacheServiceInterface方法
   // ========================================
 
-  async refreshConfig(newConfig: Partial<CacheUnifiedConfigInterface>): Promise<void> {
+  async refreshConfig(
+    newConfig: Partial<CacheUnifiedConfigInterface>,
+  ): Promise<void> {
     await this.applyConfigUpdate(newConfig);
   }
 
@@ -2075,7 +2242,7 @@ export class StreamCacheStandardizedService
         duration: latency,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'ping' });
+      this.recordError(error, { operation: "ping" });
 
       return {
         success: false,
@@ -2089,11 +2256,15 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async getKeys(pattern?: string, limit?: number): Promise<BaseCacheResult<string[]>> {
+  async getKeys(
+    pattern?: string,
+    limit?: number,
+  ): Promise<BaseCacheResult<string[]>> {
     const startTime = Date.now();
 
     try {
-      const searchPattern = pattern || `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
+      const searchPattern =
+        pattern || `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
       const keys = await this.scanKeysWithTimeout(searchPattern, 5000);
       const limitedKeys = limit ? keys.slice(0, limit) : keys;
 
@@ -2106,7 +2277,7 @@ export class StreamCacheStandardizedService
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'getKeys', pattern });
+      this.recordError(error, { operation: "getKeys", pattern });
 
       return {
         success: false,
@@ -2120,11 +2291,15 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async exportData(pattern?: string, format?: 'json' | 'csv'): Promise<BaseCacheResult<any>> {
+  async exportData(
+    pattern?: string,
+    format?: "json" | "csv",
+  ): Promise<BaseCacheResult<any>> {
     const startTime = Date.now();
 
     try {
-      const searchPattern = pattern || `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
+      const searchPattern =
+        pattern || `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}*`;
       const keys = await this.scanKeysWithTimeout(searchPattern, 10000);
       const exportData: Record<string, any> = {};
 
@@ -2133,7 +2308,7 @@ export class StreamCacheStandardizedService
         const batch = keys.slice(i, i + 100);
         const pipeline = this.redisClient.pipeline();
 
-        batch.forEach(key => pipeline.get(key));
+        batch.forEach((key) => pipeline.get(key));
         const results = await pipeline.exec();
 
         batch.forEach((key, index) => {
@@ -2149,12 +2324,12 @@ export class StreamCacheStandardizedService
       }
 
       let result: any = exportData;
-      if (format === 'csv') {
+      if (format === "csv") {
         // 简化的CSV转换
         const csvLines = Object.entries(exportData).map(([key, value]) => {
           return `"${key}","${JSON.stringify(value).replace(/"/g, '""')}"`;
         });
-        result = ['Key,Value', ...csvLines].join('\n');
+        result = ["Key,Value", ...csvLines].join("\n");
       }
 
       return {
@@ -2166,7 +2341,7 @@ export class StreamCacheStandardizedService
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'exportData', pattern, format });
+      this.recordError(error, { operation: "exportData", pattern, format });
 
       return {
         success: false,
@@ -2187,7 +2362,7 @@ export class StreamCacheStandardizedService
   async getOrSet<T = any>(
     key: string,
     factory: () => Promise<T>,
-    options?: CacheOperationOptions
+    options?: CacheOperationOptions,
   ): Promise<CacheGetResult<T>> {
     const startTime = Date.now();
 
@@ -2211,14 +2386,14 @@ export class StreamCacheStandardizedService
         operation: CACHE_OPERATIONS.GET,
         data: factoryData,
         hit: false,
-        cacheLevel: 'factory',
+        cacheLevel: "factory",
         remainingTtl: options?.ttl || this.streamConfig.warmCacheTTL,
         timestamp: Date.now(),
         duration: Date.now() - startTime,
         key,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'getOrSet', key });
+      this.recordError(error, { operation: "getOrSet", key });
 
       return {
         success: false,
@@ -2226,7 +2401,7 @@ export class StreamCacheStandardizedService
         operation: CACHE_OPERATIONS.GET,
         data: null as T,
         hit: false,
-        cacheLevel: 'error',
+        cacheLevel: "error",
         remainingTtl: 0,
         error: error.message,
         errorCode: CACHE_ERROR_CODES.OPERATION_FAILED,
@@ -2237,7 +2412,10 @@ export class StreamCacheStandardizedService
     }
   }
 
-  async importData(data: any, options?: ImportOptions): Promise<BaseCacheResult<ImportResult>> {
+  async importData(
+    data: any,
+    options?: ImportOptions,
+  ): Promise<BaseCacheResult<ImportResult>> {
     const startTime = Date.now();
     let total = 0;
     let successful = 0;
@@ -2247,18 +2425,21 @@ export class StreamCacheStandardizedService
     try {
       let entries: Record<string, any>;
 
-      if (typeof data === 'string') {
-        if (options?.format === 'csv') {
+      if (typeof data === "string") {
+        if (options?.format === "csv") {
           // 简化的CSV解析
-          const lines = data.split('\n');
+          const lines = data.split("\n");
           entries = {};
-          for (let i = 1; i < lines.length; i++) { // 跳过标题行
-            const [key, value] = lines[i].split(',');
+          for (let i = 1; i < lines.length; i++) {
+            // 跳过标题行
+            const [key, value] = lines[i].split(",");
             if (key && value) {
               try {
-                entries[key.replace(/"/g, '')] = JSON.parse(value.replace(/"/g, ''));
+                entries[key.replace(/"/g, "")] = JSON.parse(
+                  value.replace(/"/g, ""),
+                );
               } catch {
-                entries[key.replace(/"/g, '')] = value.replace(/"/g, '');
+                entries[key.replace(/"/g, "")] = value.replace(/"/g, "");
               }
             }
           }
@@ -2270,7 +2451,7 @@ export class StreamCacheStandardizedService
       }
 
       const overwrite = options?.overwrite ?? true;
-      const keyPrefix = options?.keyPrefix || '';
+      const keyPrefix = options?.keyPrefix || "";
 
       total = Object.keys(entries).length;
 
@@ -2288,7 +2469,9 @@ export class StreamCacheStandardizedService
         } catch (error) {
           failed++;
           failedKeys.push(fullKey);
-          this.logger.warn(`Failed to import key: ${fullKey}`, { error: error.message });
+          this.logger.warn(`Failed to import key: ${fullKey}`, {
+            error: error.message,
+          });
         }
       }
 
@@ -2310,7 +2493,12 @@ export class StreamCacheStandardizedService
         duration: Date.now() - startTime,
       };
     } catch (error) {
-      this.recordError(error, { operation: 'importData', total, successful, failed });
+      this.recordError(error, {
+        operation: "importData",
+        total,
+        successful,
+        failed,
+      });
 
       const result: ImportResult = {
         total,
@@ -2343,9 +2531,9 @@ export class StreamCacheStandardizedService
   private recordError(error: any, context: Record<string, any> = {}): void {
     const errorEntry = {
       timestamp: Date.now(),
-      type: error.constructor.name || 'UnknownError',
+      type: error.constructor.name || "UnknownError",
       severity: this.determineSeverity(error),
-      message: error.message || 'Unknown error',
+      message: error.message || "Unknown error",
       context,
     };
 
@@ -2356,13 +2544,17 @@ export class StreamCacheStandardizedService
       this.errorHistory = this.errorHistory.slice(-50);
     }
 
-    this.logger.error('Stream cache operation error', errorEntry);
+    this.logger.error("Stream cache operation error", errorEntry);
   }
 
   /**
    * 记录性能
    */
-  private recordPerformance(operation: string, duration: number, success: boolean): void {
+  private recordPerformance(
+    operation: string,
+    duration: number,
+    success: boolean,
+  ): void {
     const perfEntry = {
       operation,
       duration,
@@ -2382,13 +2574,16 @@ export class StreamCacheStandardizedService
    * 确定错误严重程度
    */
   private determineSeverity(error: any): string {
-    if (error.message?.includes('Redis') || error.message?.includes('connection')) {
-      return 'high';
+    if (
+      error.message?.includes("Redis") ||
+      error.message?.includes("connection")
+    ) {
+      return "high";
     }
-    if (error.message?.includes('timeout') || error.message?.includes('slow')) {
-      return 'medium';
+    if (error.message?.includes("timeout") || error.message?.includes("slow")) {
+      return "medium";
     }
-    return 'low';
+    return "low";
   }
 
   /**
@@ -2477,7 +2672,9 @@ export class StreamCacheStandardizedService
   /**
    * 从 Warm Cache (Redis) 获取数据
    */
-  private async getFromWarmCache(key: string): Promise<StreamDataPoint[] | null> {
+  private async getFromWarmCache(
+    key: string,
+  ): Promise<StreamDataPoint[] | null> {
     try {
       return await UniversalRetryHandler.networkRetry(
         async () => {
@@ -2489,11 +2686,14 @@ export class StreamCacheStandardizedService
           }
           return null;
         },
-        'getFromWarmCache',
-        ComponentIdentifier.STREAM_CACHE
+        "getFromWarmCache",
+        ComponentIdentifier.STREAM_CACHE,
       );
     } catch (error) {
-      this.logger.warn("Warm cache access failed", { key, error: error.message });
+      this.logger.warn("Warm cache access failed", {
+        key,
+        error: error.message,
+      });
       return null;
     }
   }
@@ -2501,7 +2701,10 @@ export class StreamCacheStandardizedService
   /**
    * 设置数据到 Warm Cache (Redis)
    */
-  private async setToWarmCache(key: string, data: StreamDataPoint[]): Promise<void> {
+  private async setToWarmCache(
+    key: string,
+    data: StreamDataPoint[],
+  ): Promise<void> {
     try {
       await UniversalRetryHandler.networkRetry(
         async () => {
@@ -2516,11 +2719,14 @@ export class StreamCacheStandardizedService
           );
           return true;
         },
-        'setToWarmCache',
-        ComponentIdentifier.STREAM_CACHE
+        "setToWarmCache",
+        ComponentIdentifier.STREAM_CACHE,
       );
     } catch (error) {
-      this.logger.warn("Warm cache set operation failed", { key, error: error.message });
+      this.logger.warn("Warm cache set operation failed", {
+        key,
+        error: error.message,
+      });
     }
   }
 
@@ -2591,10 +2797,10 @@ export class StreamCacheStandardizedService
 
     this.cacheCleanupInterval = setInterval(() => {
       this.cleanupExpiredEntries();
-    }, this.streamConfig.cleanupInterval);
+    }, this.streamConfig.cleanupIntervalMs || 30000);
 
     this.logger.debug("Cache cleanup scheduler started", {
-      interval: this.streamConfig.cleanupInterval,
+      interval: this.streamConfig.cleanupIntervalMs || 30000,
     });
   }
 
@@ -2649,15 +2855,17 @@ export class StreamCacheStandardizedService
           this.logger.warn("SCAN操作超时", {
             pattern,
             scannedKeys: keys.length,
-            timeoutMs
+            timeoutMs,
           });
           break;
         }
 
         const result = await this.redisClient.scan(
           cursor,
-          "MATCH", pattern,
-          "COUNT", 200,
+          "MATCH",
+          pattern,
+          "COUNT",
+          200,
         );
         cursor = result[0];
         keys.push(...result[1]);
@@ -2665,7 +2873,7 @@ export class StreamCacheStandardizedService
         if (keys.length > 10000) {
           this.logger.warn("SCAN发现大量keys，分批处理", {
             pattern,
-            keysFound: keys.length
+            keysFound: keys.length,
           });
           break;
         }
@@ -2687,7 +2895,13 @@ export class StreamCacheStandardizedService
     const batchSize = 500;
 
     do {
-      const result = await this.redisClient.scan(cursor, "MATCH", pattern, "COUNT", 100);
+      const result = await this.redisClient.scan(
+        cursor,
+        "MATCH",
+        pattern,
+        "COUNT",
+        100,
+      );
       cursor = result[0];
       const keys = result[1];
 
@@ -2697,12 +2911,12 @@ export class StreamCacheStandardizedService
 
         this.logger.debug("分批清理进度", {
           clearedKeys: totalCleared,
-          currentBatch: keys.length
+          currentBatch: keys.length,
         });
       }
 
       if (keys.length === batchSize) {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
     } while (cursor !== "0");
 
@@ -2713,7 +2927,10 @@ export class StreamCacheStandardizedService
   /**
    * 只清理过期数据，保留活跃流
    */
-  private async clearExpiredOnly(pattern: string, maxAgeSeconds: number): Promise<string[]> {
+  private async clearExpiredOnly(
+    pattern: string,
+    maxAgeSeconds: number,
+  ): Promise<string[]> {
     const keys = await this.scanKeysWithTimeout(pattern);
     const expiredKeys: string[] = [];
 
@@ -2721,12 +2938,15 @@ export class StreamCacheStandardizedService
       const batch = keys.slice(i, i + 100);
       const pipeline = this.redisClient.pipeline();
 
-      batch.forEach(key => pipeline.ttl(key));
+      batch.forEach((key) => pipeline.ttl(key));
       const ttlResults = await pipeline.exec();
 
       batch.forEach((key, index) => {
         const [error, ttl] = ttlResults[index];
-        if (!error && (ttl === -1 || (typeof ttl === 'number' && ttl > maxAgeSeconds))) {
+        if (
+          !error &&
+          (ttl === -1 || (typeof ttl === "number" && ttl > maxAgeSeconds))
+        ) {
           expiredKeys.push(key);
         }
       });
@@ -2745,7 +2965,7 @@ export class StreamCacheStandardizedService
    */
   private async getCacheStats(): Promise<{ keyCount: number }> {
     try {
-      const info = await this.redisClient.info('keyspace');
+      const info = await this.redisClient.info("keyspace");
       const dbMatch = info.match(/db\d+:keys=(\d+)/);
       const keyCount = dbMatch ? parseInt(dbMatch[1]) : 0;
 

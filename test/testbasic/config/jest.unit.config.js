@@ -1,11 +1,11 @@
 const { pathsToModuleNameMapper } = require('ts-jest');
-const { compilerOptions } = require('../../tsconfig.json');
+const { compilerOptions } = require('../../../tsconfig.json');
 
 module.exports = {
   displayName: 'unit',
   preset: 'ts-jest',
   testEnvironment: 'node',
-  rootDir: '../../',
+  rootDir: '../../../',
   
   // 测试文件匹配模式
   testMatch: [
@@ -24,10 +24,24 @@ module.exports = {
     prefix: '<rootDir>/',
   }),
   
-  // TypeScript 配置
+  // TypeScript 配置 - 使用现代 ts-jest 语法
   transform: {
-    '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        module: 'commonjs',
+      },
+      useESM: false,
+    }],
+    '^.+\\.js$': ['ts-jest', {
+      tsconfig: {
+        module: 'commonjs',
+      },
+      useESM: false,
+    }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*\\.mjs$))',
+  ],
   
   // 模块文件扩展名
   moduleFileExtensions: ['js', 'json', 'ts'],
@@ -67,12 +81,7 @@ module.exports = {
   // 超时设置
   testTimeout: 30000,
   
-  // 环境变量
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
+  // 移除已弃用的 globals 配置，使用现代 transform 配置
   
   // 清理模拟
   clearMocks: true,

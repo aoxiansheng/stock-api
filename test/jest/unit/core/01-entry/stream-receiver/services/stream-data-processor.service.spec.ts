@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StreamDataProcessorService } from '@core/01-entry/stream-receiver/services/stream-data-processor.service';
 import { DataTransformerService } from '@core/02-processing/transformer/services/data-transformer.service';
 import { QuoteData, DataProcessingCallbacks } from '@core/01-entry/stream-receiver/interfaces/data-processing.interface';
@@ -9,6 +10,7 @@ describe('StreamDataProcessorService', () => {
   let module: TestingModule;
   let configService: jest.Mocked<ConfigService>;
   let dataTransformerService: jest.Mocked<DataTransformerService>;
+  let eventEmitter: jest.Mocked<EventEmitter2>;
 
   const mockQuoteData: QuoteData = {
     rawData: { symbol: '700.HK', price: 350.0 },
@@ -29,22 +31,24 @@ describe('StreamDataProcessorService', () => {
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn().mockImplementation((key: string) => {
+      get: jest.fn().mockImplementation((key: string, defaultValue?: any) => {
         switch (key) {
-          case 'streamReceiverConfig':
-            return {
-              dataProcessing: {
-                transformTimeoutMs: 5000,
-                cacheTimeoutMs: 3000,
-                broadcastTimeoutMs: 2000,
-                enablePerformanceMetrics: true,
-                enableRetry: true,
-                maxRetryAttempts: 3,
-                retryDelayBase: 100
-              }
-            };
+          case 'DATA_PROCESSING_TRANSFORM_TIMEOUT':
+            return 5000;
+          case 'DATA_PROCESSING_CACHE_TIMEOUT':
+            return 3000;
+          case 'DATA_PROCESSING_BROADCAST_TIMEOUT':
+            return 2000;
+          case 'DATA_PROCESSING_ENABLE_METRICS':
+            return true;
+          case 'DATA_PROCESSING_ENABLE_RETRY':
+            return true;
+          case 'DATA_PROCESSING_MAX_RETRY':
+            return 3;
+          case 'DATA_PROCESSING_RETRY_DELAY_BASE':
+            return 100;
           default:
-            return {};
+            return defaultValue;
         }
       }),
     };
@@ -53,18 +57,23 @@ describe('StreamDataProcessorService', () => {
       transform: jest.fn(),
       transformBatch: jest.fn(),
     };
+    const mockEventEmitter = {
+      emit: jest.fn(),
+    };
 
     module = await Test.createTestingModule({
       providers: [
         StreamDataProcessorService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: DataTransformerService, useValue: mockDataTransformerService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
     service = module.get<StreamDataProcessorService>(StreamDataProcessorService);
     configService = module.get(ConfigService);
     dataTransformerService = module.get(DataTransformerService);
+    eventEmitter = module.get(EventEmitter2);
   });
 
   afterEach(async () => {
@@ -79,7 +88,13 @@ describe('StreamDataProcessorService', () => {
     });
 
     it('should load configuration from ConfigService', () => {
-      expect(configService.get).toHaveBeenCalledWith('streamReceiverConfig');
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_TRANSFORM_TIMEOUT", 5000);
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_CACHE_TIMEOUT", 3000);
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_BROADCAST_TIMEOUT", 2000);
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_ENABLE_METRICS", true);
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_ENABLE_RETRY", true);
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_MAX_RETRY", 3);
+      expect(configService.get).toHaveBeenCalledWith("DATA_PROCESSING_RETRY_DELAY_BASE", 100);
     });
   });
 
@@ -184,6 +199,36 @@ describe('StreamDataProcessorService', () => {
       await expect(
         service.processDataThroughPipeline([invalidQuote], 'longport', 'stream-quote')
       ).resolves.not.toThrow();
+    });
+  });
+
+  describe('Private Method Edge Cases', () => {
+    it('should handle intelligent mapping with case insensitive patterns', () => {
+      // Test case insensitive pattern matching
+      expect(service['mapCapabilityToTransformRuleType']('QUOTE-DATA')).toBe('quote_fields');
+      expect(service['mapCapabilityToTransformRuleType']('Option-Stream')).toBe('option_fields');
+      expect(service['mapCapabilityToTransformRuleType']('FUTURES-PRICE')).toBe('futures_fields');
+    });
+
+    it('should handle edge cases in capability mapping patterns', () => {
+      // Mock the private method to test its logic directly
+      // This is generally not recommended but useful here for focused testing
+      expect(service['mapCapabilityToTransformRuleType']('quote')).toBe('quote_fields');
+      expect(service['mapCapabilityToTransformRuleType']('future')).toBe('futures_fields'); // Should match 'futures?' pattern
+      expect(service['mapCapabilityToTransformRuleType']('eth-price')).toBe('crypto_fields');
+      expect(service['mapCapabilityToTransformRuleType']('bitcoin-data')).toBe('crypto_fields');
+    });
+
+    it('should prioritize direct mapping over intelligent mapping', () => {
+      // Even though 'ws-stock-quote' contains 'quote', it should use direct mapping
+      expect(service['mapCapabilityToTransformRuleType']('ws-stock-quote')).toBe('quote_fields');
+      // This ensures direct mapping takes precedence
+    });
+
+    it('should handle complex capability strings', () => {
+      expect(service['mapCapabilityToTransformRuleType']('real-time-forex-currency-exchange')).toBe('forex_fields');
+      expect(service['mapCapabilityToTransformRuleType']('historical-stock-price-data')).toBe('historical_data_fields');
+      expect(service['mapCapabilityToTransformRuleType']('company-financial-info-basic')).toBe('basic_info_fields');
     });
   });
 });

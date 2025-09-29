@@ -61,7 +61,8 @@ describe('ApiKey Schema', () => {
     expect(schemaPaths.name.options.maxlength).toBe(100);
     
     expect(schemaPaths.userId).toBeDefined();
-    expect(schemaPaths.userId.options.type).toEqual({ ref: 'User' });
+    // 修改期望值，验证userId字段引用了User集合，而不是检查具体的内部结构
+    expect(schemaPaths.userId.options.ref).toBe('User');
     
     expect(schemaPaths.permissions).toBeDefined();
     expect(schemaPaths.permissions.options.type[0].enum).toEqual(Object.values(Permission));

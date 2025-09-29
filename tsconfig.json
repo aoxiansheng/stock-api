@@ -27,7 +27,7 @@
       "@notification/*": ["src/notification/*"],
       "@scripts/*": ["src/scripts/*"],
       "@test/*": ["test/*"],
-      "@test-config/*": ["test/config/*"],
+      "@test-config/*": ["test/testbasic/config/*"],
       "@src/*": ["src/*"]
     },
     "incremental": true,

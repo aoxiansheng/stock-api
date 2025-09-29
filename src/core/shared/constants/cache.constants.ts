@@ -27,7 +27,7 @@ export enum MappingDirection {
  */
 export type MappingDirectionType = keyof typeof MappingDirection;
 
-export const SHARED_CACHE_CONSTANTS = {
+export const SHARED_CACHE_CONSTANTS = Object.freeze({
   /**
    * 内存缓存最大大小限制（防止内存溢出）
    *
@@ -37,26 +37,26 @@ export const SHARED_CACHE_CONSTANTS = {
    */
   MAX_CACHE_SIZE: 10000,
 
-} as const;
+} as const);
 
 /**
  * 缓存清理配置
  * 用于LRU增量清理算法的核心参数
  */
-export const CACHE_CLEANUP = {
+export const CACHE_CLEANUP = Object.freeze({
   RETENTION_RATIO: 0.25, // 内存压力时保留25%的缓存条目
   // ✅ LRU_SORT_BATCH_SIZE 已迁移至统一配置: CacheUnifiedConfig.lruSortBatchSize
   // 使用: this.configService.get<CacheUnifiedConfigValidation>('cacheUnified')?.lruSortBatchSize || 1000
   CLEANUP_STRATEGY: "incremental", // 标识使用增量清理而非全清空
-} as const;
+} as const);
 
 /**
  * 内存监控配置
  */
-export const MEMORY_MONITORING = {
+export const MEMORY_MONITORING = Object.freeze({
   CHECK_INTERVAL: 60000, // 内存检查间隔 (60秒/1分钟) - 与FeatureFlags保持一致
   CLEANUP_THRESHOLD: 0.85, // 内存清理阈值 (85%)
   MAX_RECONNECT_DELAY: 30000, // 最大重连延迟 (30秒)
   MIN_RECONNECT_DELAY: 1000, // 最小重连延迟 (1秒)
-} as const;
+} as const);
 

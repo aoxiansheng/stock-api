@@ -5,3 +5,4 @@
 export enum StorageType {
   PERSISTENT = "persistent",
 }
+Object.freeze(StorageType);

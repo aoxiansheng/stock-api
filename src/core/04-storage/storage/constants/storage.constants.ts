@@ -22,14 +22,46 @@ export {
 } from './storage-error-codes.constants';
 
 /**
+ * 安全地从环境变量中解析整数，处理'0'和无效值。
+ * @param value 环境变量的值
+ * @param defaultValue 默认值
+ * @returns 解析后的整数或默认值
+ */
+const parseEnvInt = (value: string | undefined, defaultValue: number): number => {
+  if (value === undefined || value === null || value.trim() === '') {
+    return defaultValue;
+  }
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+};
+
+/**
+ * 安全地从环境变量中解析浮点数，处理'0'和无效值。
+ * @param value 环境变量的值
+ * @param defaultValue 默认值
+ * @returns 解析后的浮点数或默认值
+ */
+const parseEnvFloat = (value: string | undefined, defaultValue: number): number => {
+  if (value === undefined || value === null || value.trim() === '') {
+    return defaultValue;
+  }
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? defaultValue : parsed;
+};
+
+/**
  * 存储配置常量
  */
 export const STORAGE_CONFIG = Object.freeze({
   DEFAULT_CACHE_TTL: 3600, // 默认缓存TTL（1小时）
-  DEFAULT_COMPRESSION_THRESHOLD:
-    parseInt(process.env.STORAGE_COMPRESS_THRESHOLD) || 5 * 1024, // 默认压缩阈值（5KB）
-  DEFAULT_COMPRESSION_RATIO:
-    parseFloat(process.env.STORAGE_COMPRESS_RATIO) || 0.8, // 默认压缩比例（80%）
+  DEFAULT_COMPRESSION_THRESHOLD: parseEnvInt(
+    process.env.STORAGE_COMPRESS_THRESHOLD,
+    5 * 1024,
+  ), // 默认压缩阈值（5KB）
+  DEFAULT_COMPRESSION_RATIO: parseEnvFloat(
+    process.env.STORAGE_COMPRESS_RATIO,
+    0.8,
+  ), // 默认压缩比例（80%）
   MAX_KEY_LENGTH: 250, // 最大键长度
   MAX_DATA_SIZE_MB: 16, // 最大数据大小（16MB）
   MAX_BATCH_SIZE: BATCH_SIZE_SEMANTICS.PERFORMANCE.LARGE_BATCH, // 最大批量操作大小 - 使用统一配置

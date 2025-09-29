@@ -72,11 +72,12 @@ describe('StorageType Enum', () => {
     it('should maintain immutability', () => {
       const originalValue = StorageType.PERSISTENT;
 
+      // Attempting to modify the frozen enum should throw an error in strict mode.
       expect(() => {
         (StorageType as any).PERSISTENT = 'modified';
-      }).not.toThrow();
+      }).toThrow();
 
-      // Even if assignment doesn't throw, value should remain the same in strict mode
+      // The value should remain unchanged.
       expect(StorageType.PERSISTENT).toBe(originalValue);
     });
   });

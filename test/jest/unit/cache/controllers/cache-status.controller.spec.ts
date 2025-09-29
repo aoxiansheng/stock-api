@@ -2,29 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CacheStatusController } from '@cache/controllers/cache-status.controller';
 import { CacheService } from '@cache/services/cache.service';
 import { CACHE_STATUS } from '@cache/constants/status/cache-status.constants';
-
-// Mock PaginationService since it may not be available
-class PaginationService {
-  normalizePaginationQuery = jest.fn();
-  createPaginatedResponse = jest.fn();
-}
-
-// Mock DTOs since they may not exist
-interface CacheKeyPatternAnalysisQueryDto {
-  page?: number;
-  limit?: number;
-  pattern?: string;
-  minHits?: number;
-}
-
-interface CachePerformanceMonitoringQueryDto {
-  page?: number;
-  limit?: number;
-  operation?: string;
-  slowOperationsOnly?: boolean;
-  startTime?: string;
-  endTime?: string;
-}
+import { PaginationService } from '@common/modules/pagination/services/pagination.service';
+import {
+  CacheKeyPatternAnalysisQueryDto,
+  CachePerformanceMonitoringQueryDto,
+} from '@cache/dto/cache-internal.dto';
 
 // Mock PaginationService
 const mockPaginationService = {

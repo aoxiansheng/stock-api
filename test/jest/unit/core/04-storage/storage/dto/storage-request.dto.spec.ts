@@ -18,7 +18,7 @@ describe('Storage Request DTOs', () => {
         market: 'test-market',
         options: {
           compress: false,
-          tags: ['tag1', 'tag2'],
+          tags: { tag1: 'value1' },
           persistentTtlSeconds: 3600,
         },
       };
@@ -169,8 +169,7 @@ describe('Storage Request DTOs', () => {
     it('should fail validation with missing required fields', async () => {
       // Arrange
       const invalidData = {
-        key: 'test-key',
-        // Missing storageType
+        // Missing key
       };
 
       // Act
@@ -181,14 +180,14 @@ describe('Storage Request DTOs', () => {
       expect(errors.length).toBeGreaterThan(0);
 
       const errorMessages = errors.flatMap(error => Object.values(error.constraints || {}));
-      expect(errorMessages.some(msg => msg.includes('storageType'))).toBe(true);
+      expect(errorMessages.some(msg => msg.includes('key'))).toBe(true);
     });
 
     it('should fail validation with invalid storage type', async () => {
       // Arrange
       const invalidData = {
         key: 'test-key',
-        storageType: 'INVALID_TYPE',
+        preferredType: 'INVALID_TYPE',
       };
 
       // Act
@@ -199,14 +198,14 @@ describe('Storage Request DTOs', () => {
       expect(errors.length).toBeGreaterThan(0);
 
       const errorMessages = errors.flatMap(error => Object.values(error.constraints || {}));
-      expect(errorMessages.some(msg => msg.includes('storageType'))).toBe(true);
+      expect(errorMessages.some(msg => msg.includes('preferredType'))).toBe(true);
     });
 
     it('should fail validation with empty key', async () => {
       // Arrange
       const invalidData = {
         key: '', // Empty string
-        storageType: StorageType.PERSISTENT,
+        preferredType: StorageType.PERSISTENT,
       };
 
       // Act
@@ -226,7 +225,7 @@ describe('Storage Request DTOs', () => {
       // Arrange
       const validData = {
         compress: true,
-        tags: ['tag1', 'tag2'],
+        tags: { tag1: 'value1', tag2: 'value2' },
         persistentTtlSeconds: 3600,
       };
 
@@ -275,7 +274,7 @@ describe('Storage Request DTOs', () => {
       // Arrange
       const invalidData = {
         compress: 'invalid', // Should be boolean
-        tags: ['tag1'],
+        tags: { tag1: 'value1' },
         persistentTtlSeconds: 3600,
       };
 
@@ -294,7 +293,7 @@ describe('Storage Request DTOs', () => {
       // Arrange
       const invalidData = {
         compress: true,
-        tags: 'not-an-array', // Should be array
+        tags: 'not-an-object', // Should be object
         persistentTtlSeconds: 3600,
       };
 
@@ -313,7 +312,7 @@ describe('Storage Request DTOs', () => {
       // Arrange
       const invalidData = {
         compress: true,
-        tags: ['tag1'],
+        tags: { tag1: 'value1' },
         persistentTtlSeconds: -100, // Should be positive
       };
 
@@ -332,7 +331,7 @@ describe('Storage Request DTOs', () => {
       // Arrange
       const invalidData = {
         compress: true,
-        tags: [123, 'valid-tag'], // Should all be strings
+        tags: 123, // Should be an object
         persistentTtlSeconds: 3600,
       };
 
@@ -346,24 +345,282 @@ describe('Storage Request DTOs', () => {
       const tagsError = errors.find(error => error.property === 'tags');
       expect(tagsError).toBeDefined();
     });
+  });
 
-    it('should fail validation with empty tag strings', async () => {
+  // ==================== 构造函数和实例化函数覆盖测试 ====================
+  describe('Constructor and Instantiation Function Coverage', () => {
+    describe('StoreDataDto constructor coverage', () => {
+      it('should create StoreDataDto instance and assign all properties', () => {
+        // Arrange
+        const dto = new StoreDataDto();
+
+        // Act - 设置所有属性以覆盖属性赋值
+        dto.key = 'constructor-test-key';
+        dto.data = { constructorTest: true, value: 42 };
+        dto.storageType = StorageType.PERSISTENT;
+        dto.storageClassification = StorageClassification.STOCK_QUOTE;
+        dto.provider = 'constructor-provider';
+        dto.market = 'constructor-market';
+        dto.options = new StorageOptionsDto();
+
+        // Assert - 验证所有属性赋值
+        expect(dto).toBeInstanceOf(StoreDataDto);
+        expect(dto.key).toBe('constructor-test-key');
+        expect(dto.data.constructorTest).toBe(true);
+        expect(dto.storageType).toBe(StorageType.PERSISTENT);
+        expect(dto.storageClassification).toBe(StorageClassification.STOCK_QUOTE);
+        expect(dto.provider).toBe('constructor-provider');
+        expect(dto.market).toBe('constructor-market');
+        expect(dto.options).toBeInstanceOf(StorageOptionsDto);
+      });
+
+      it('should handle different data types in StoreDataDto', () => {
+        // Arrange - 测试不同数据类型的处理
+        const testCases = [
+          { data: null, description: 'null data' },
+          { data: undefined, description: 'undefined data' },
+          { data: 'string data', description: 'string data' },
+          { data: 12345, description: 'number data' },
+          { data: true, description: 'boolean data' },
+          { data: [], description: 'array data' },
+          { data: { nested: { deep: 'object' } }, description: 'nested object' }
+        ];
+
+        for (const testCase of testCases) {
+          // Act
+          const dto = new StoreDataDto();
+          dto.key = `test-${testCase.description}`;
+          dto.data = testCase.data;
+          dto.storageType = StorageType.PERSISTENT;
+          dto.storageClassification = StorageClassification.STOCK_QUOTE;
+          dto.provider = 'test-provider';
+          dto.market = 'test-market';
+
+          // Assert
+          expect(dto.data).toEqual(testCase.data);
+          expect(dto.key).toBe(`test-${testCase.description}`);
+        }
+      });
+    });
+
+    describe('RetrieveDataDto constructor coverage', () => {
+      it('should create RetrieveDataDto instance and assign properties', () => {
+        // Arrange & Act
+        const dto = new RetrieveDataDto();
+        dto.key = 'retrieve-constructor-key';
+        dto.preferredType = StorageType.PERSISTENT;
+
+        // Assert
+        expect(dto).toBeInstanceOf(RetrieveDataDto);
+        expect(dto.key).toBe('retrieve-constructor-key');
+        expect(dto.preferredType).toBe(StorageType.PERSISTENT);
+      });
+
+      it('should handle different storage types in RetrieveDataDto', () => {
+        // Arrange - 测试不同存储类型
+        const storageTypes = [StorageType.PERSISTENT];
+
+        for (const storageType of storageTypes) {
+          // Act
+          const dto = new RetrieveDataDto();
+          dto.key = `test-${storageType}`;
+          dto.preferredType = storageType;
+
+          // Assert
+          expect(dto.preferredType).toBe(storageType);
+          expect(dto.key).toBe(`test-${storageType}`);
+        }
+      });
+
+      it('should handle special characters in key for RetrieveDataDto', () => {
+        // Arrange - 测试特殊字符处理
+        const specialKeys = [
+          'key-with-dashes',
+          'key_with_underscores',
+          'key.with.dots',
+          'key:with:colons',
+          'key/with/slashes',
+          'key with spaces',
+          'key-with-unicode-字符',
+          'key-with-emoji-🚀'
+        ];
+
+        for (const specialKey of specialKeys) {
+          // Act
+          const dto = new RetrieveDataDto();
+          dto.key = specialKey;
+          dto.preferredType = StorageType.PERSISTENT;
+
+          // Assert
+          expect(dto.key).toBe(specialKey);
+          expect(dto.preferredType).toBe(StorageType.PERSISTENT);
+        }
+      });
+    });
+
+    describe('StorageOptionsDto constructor coverage', () => {
+      it('should create StorageOptionsDto instance and assign all properties', () => {
+        // Arrange & Act
+        const dto = new StorageOptionsDto();
+        dto.compress = true;
+        dto.tags = { tag1: 'value1', tag2: 'value2', tag3: 'value3' };
+        dto.persistentTtlSeconds = 7200;
+
+        // Assert
+        expect(dto).toBeInstanceOf(StorageOptionsDto);
+        expect(dto.compress).toBe(true);
+        expect(dto.tags).toEqual({ tag1: 'value1', tag2: 'value2', tag3: 'value3' });
+        expect(dto.persistentTtlSeconds).toBe(7200);
+      });
+
+      it('should handle different boolean values for compress', () => {
+        // Arrange - 测试不同布尔值
+        const booleanValues = [true, false];
+
+        for (const boolValue of booleanValues) {
+          // Act
+          const dto = new StorageOptionsDto();
+          dto.compress = boolValue;
+
+          // Assert
+          expect(dto.compress).toBe(boolValue);
+          expect(typeof dto.compress).toBe('boolean');
+        }
+      });
+
+      it('should handle different tag objects', () => {
+        // Arrange - 测试不同标签对象
+        const tagObjects = [
+          {},
+          { singleTag: 'single-value' },
+          { tag1: 'value1', tag2: 'value2' },
+          { tag1: 'value1', tag2: 'value2', tag3: 'value3', tag4: 'value4', tag5: 'value5' },
+          { 'tag-with-dashes': 'dash-value', 'tag_with_underscores': 'underscore-value', 'tagWithCamelCase': 'camel-value' },
+          { 'unicode-tag-中文': 'unicode-value', 'emoji-tag-🏷️': 'emoji-value' }
+        ];
+
+        for (const tagObj of tagObjects) {
+          // Act
+          const dto = new StorageOptionsDto();
+          dto.tags = tagObj;
+
+          // Assert
+          expect(dto.tags).toEqual(tagObj);
+          expect(typeof dto.tags).toBe('object');
+          expect(Object.keys(dto.tags).length).toBe(Object.keys(tagObj).length);
+        }
+      });
+
+      it('should handle different TTL values', () => {
+        // Arrange - 测试不同TTL值
+        const ttlValues = [
+          0,
+          1,
+          60,
+          300,
+          1800,
+          3600,
+          7200,
+          86400,
+          604800,
+          2592000
+        ];
+
+        for (const ttl of ttlValues) {
+          // Act
+          const dto = new StorageOptionsDto();
+          dto.persistentTtlSeconds = ttl;
+
+          // Assert
+          expect(dto.persistentTtlSeconds).toBe(ttl);
+          expect(typeof dto.persistentTtlSeconds).toBe('number');
+        }
+      });
+
+      it('should handle undefined optional properties', () => {
+        // Arrange & Act
+        const dto = new StorageOptionsDto();
+
+        // 不设置任何属性，测试undefined处理
+
+        // Assert
+        expect(dto.compress).toBeUndefined();
+        expect(dto.tags).toBeUndefined();
+        expect(dto.persistentTtlSeconds).toBeUndefined();
+      });
+
+      it('should handle mixed property combinations', () => {
+        // Arrange - 测试不同属性组合
+        const combinations = [
+          { compress: true },
+          { tags: { tagA: 'valueA' } },
+          { persistentTtlSeconds: 3600 },
+          { compress: false, tags: { tagB: 'valueB', tagC: 'valueC' } },
+          { compress: true, persistentTtlSeconds: 1800 },
+          { tags: { tagD: 'valueD' }, persistentTtlSeconds: 900 },
+          { compress: false, tags: { tagE: 'valueE' }, persistentTtlSeconds: 7200 }
+        ];
+
+        for (const combination of combinations) {
+          // Act
+          const dto = new StorageOptionsDto();
+          Object.assign(dto, combination);
+
+          // Assert
+          Object.keys(combination).forEach(key => {
+            expect(dto[key]).toEqual(combination[key]);
+          });
+        }
+      });
+    });
+  });
+
+  // ==================== 对象属性访问覆盖测试 ====================
+  describe('Object Property Access Coverage', () => {
+    it('should cover all property getters and setters', () => {
       // Arrange
-      const invalidData = {
-        compress: true,
-        tags: ['', 'valid-tag'], // Empty strings not allowed
-        persistentTtlSeconds: 3600,
-      };
+      const storeDto = new StoreDataDto();
+      const retrieveDto = new RetrieveDataDto();
+      const optionsDto = new StorageOptionsDto();
 
-      // Act
-      const dto = plainToClass(StorageOptionsDto, invalidData);
-      const errors = await validate(dto);
+      // Act & Assert - StoreDataDto properties
+      storeDto.key = 'property-access-test';
+      expect(storeDto.key).toBe('property-access-test');
 
-      // Assert
-      expect(errors.length).toBeGreaterThan(0);
+      storeDto.data = { accessTest: true };
+      expect(storeDto.data.accessTest).toBe(true);
 
-      const tagsError = errors.find(error => error.property === 'tags');
-      expect(tagsError).toBeDefined();
+      storeDto.storageType = StorageType.PERSISTENT;
+      expect(storeDto.storageType).toBe(StorageType.PERSISTENT);
+
+      storeDto.storageClassification = StorageClassification.STOCK_QUOTE;
+      expect(storeDto.storageClassification).toBe(StorageClassification.STOCK_QUOTE);
+
+      storeDto.provider = 'access-provider';
+      expect(storeDto.provider).toBe('access-provider');
+
+      storeDto.market = 'access-market';
+      expect(storeDto.market).toBe('access-market');
+
+      storeDto.options = optionsDto;
+      expect(storeDto.options).toBe(optionsDto);
+
+      // Act & Assert - RetrieveDataDto properties
+      retrieveDto.key = 'retrieve-access-test';
+      expect(retrieveDto.key).toBe('retrieve-access-test');
+
+      retrieveDto.preferredType = StorageType.PERSISTENT;
+      expect(retrieveDto.preferredType).toBe(StorageType.PERSISTENT);
+
+      // Act & Assert - StorageOptionsDto properties
+      optionsDto.compress = true;
+      expect(optionsDto.compress).toBe(true);
+
+      optionsDto.tags = { accessTag: 'access-value' };
+      expect(optionsDto.tags).toEqual({ accessTag: 'access-value' });
+
+      optionsDto.persistentTtlSeconds = 1200;
+      expect(optionsDto.persistentTtlSeconds).toBe(1200);
     });
   });
 });

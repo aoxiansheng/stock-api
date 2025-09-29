@@ -94,10 +94,10 @@ describe('SymbolMappingRuleSchema', () => {
 
       expect(ruleSchema.paths['standardSymbol'].isRequired).toBe(true);
       expect(ruleSchema.paths['sdkSymbol'].isRequired).toBe(true);
-      expect(ruleSchema.paths['market'].isRequired).toBe(false);
-      expect(ruleSchema.paths['symbolType'].isRequired).toBe(false);
-      expect(ruleSchema.paths['isActive'].isRequired).toBe(false);
-      expect(ruleSchema.paths['description'].isRequired).toBe(false);
+      expect(ruleSchema.paths['market'].isRequired).toBeUndefined();
+      expect(ruleSchema.paths['symbolType'].isRequired).toBeUndefined();
+      expect(ruleSchema.paths['isActive'].isRequired).toBeUndefined();
+      expect(ruleSchema.paths['description'].isRequired).toBeUndefined();
     });
 
     it('should not have _id field (configured as false)', () => {
@@ -262,7 +262,33 @@ describe('SymbolMappingRuleSchema', () => {
 
   describe('Custom JSON serialization', () => {
     it('should customize toJSON output', async () => {
-      const document = new symbolMappingRuleModel(validDocumentData);
+      // 使用在describe('SymbolMappingRuleDocument schema')中定义的validDocumentData
+      // 这个变量包含两个SymbolMappingRule项
+      const document = new symbolMappingRuleModel({
+        dataSourceName: 'longport',
+        SymbolMappingRule: [
+          {
+            standardSymbol: '700.HK',
+            sdkSymbol: '00700',
+            market: 'HK',
+            symbolType: 'stock',
+            isActive: true,
+            description: 'Tencent Holdings Limited',
+          },
+          {
+            standardSymbol: 'AAPL.US',
+            sdkSymbol: 'AAPL',
+            market: 'US',
+            symbolType: 'stock',
+            isActive: true,
+            description: 'Apple Inc.',
+          },
+        ],
+        description: 'LongPort symbol mapping configuration',
+        version: '1.0.0',
+        isActive: true,
+        createdBy: 'admin',
+      });
       const savedDocument = await document.save();
 
       const jsonOutput = savedDocument.toJSON();
@@ -275,7 +301,21 @@ describe('SymbolMappingRuleSchema', () => {
     });
 
     it('should convert _id to string in JSON output', async () => {
-      const document = new symbolMappingRuleModel(validDocumentData);
+      const validData = {
+        dataSourceName: 'longport',
+        SymbolMappingRule: [
+          {
+            standardSymbol: '700.HK',
+            sdkSymbol: '00700',
+            market: 'HK',
+            symbolType: 'stock',
+            isActive: true,
+            description: 'Tencent Holdings Limited',
+          }
+        ],
+        isActive: true,
+      };
+      const document = new symbolMappingRuleModel(validData);
       const savedDocument = await document.save();
 
       const jsonOutput = savedDocument.toJSON();
@@ -286,10 +326,36 @@ describe('SymbolMappingRuleSchema', () => {
   });
 
   describe('Document type definitions', () => {
+    const typedValidDocumentData = {
+      dataSourceName: 'longport',
+      SymbolMappingRule: [
+        {
+          standardSymbol: '700.HK',
+          sdkSymbol: '00700',
+          market: 'HK',
+          symbolType: 'stock',
+          isActive: true,
+          description: 'Tencent Holdings Limited',
+        },
+        {
+          standardSymbol: 'AAPL.US',
+          sdkSymbol: 'AAPL',
+          market: 'US',
+          symbolType: 'stock',
+          isActive: true,
+          description: 'Apple Inc.',
+        },
+      ],
+      description: 'LongPort symbol mapping configuration',
+      version: '1.0.0',
+      isActive: true,
+      createdBy: 'admin',
+    };
+    
     it('should extend Document with timestamps', () => {
       // This test ensures the TypeScript type definition is correct
       const createDocument = (): SymbolMappingRuleDocumentType => {
-        const doc = new symbolMappingRuleModel(validDocumentData) as SymbolMappingRuleDocumentType;
+        const doc = new symbolMappingRuleModel(typedValidDocumentData) as SymbolMappingRuleDocumentType;
         return doc;
       };
 
@@ -303,7 +369,7 @@ describe('SymbolMappingRuleSchema', () => {
     });
 
     it('should include timestamps in type', async () => {
-      const document = new symbolMappingRuleModel(validDocumentData);
+      const document = new symbolMappingRuleModel(typedValidDocumentData);
       const savedDocument = await document.save() as SymbolMappingRuleDocumentType;
 
       expect(savedDocument.createdAt).toBeInstanceOf(Date);
@@ -370,22 +436,4 @@ describe('SymbolMappingRuleSchema', () => {
       expect(rule.description).toBe('Tencent Holdings Limited');
     });
   });
-
-  const validDocumentData = {
-    dataSourceName: 'longport',
-    SymbolMappingRule: [
-      {
-        standardSymbol: '700.HK',
-        sdkSymbol: '00700',
-        market: 'HK',
-        symbolType: 'stock',
-        isActive: true,
-        description: 'Tencent Holdings Limited',
-      },
-    ],
-    description: 'LongPort symbol mapping configuration',
-    version: '1.0.0',
-    isActive: true,
-    createdBy: 'admin',
-  };
 });

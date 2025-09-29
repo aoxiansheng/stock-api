@@ -6,6 +6,7 @@ import { CreateApiKeyDto } from '@auth/dto/apikey.dto';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
 import { AUTH_ERROR_CODES } from '@auth/constants/auth-error-codes.constants';
 import { Permission } from '@auth/enums/user-role.enum';
+import { Types } from 'mongoose';
 
 const mockAuthConfig = {
   limits: {
@@ -19,6 +20,8 @@ const mockAuthConfig = {
 describe('SecurityPolicyService', () => {
   let service: SecurityPolicyService;
   let userAuthService: jest.Mocked<UserAuthenticationService>;
+  // 创建有效的MongoDB ObjectId
+  const validUserId = new Types.ObjectId().toString();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -94,24 +97,24 @@ describe('SecurityPolicyService', () => {
     const validDto: CreateApiKeyDto = { name: 'Test Key', permissions: [Permission.DATA_READ] };
 
     it('should pass for valid API key data', async () => {
-      await expect(service.validateApiKeyCreationPolicy('userid', validDto)).resolves.toBeUndefined();
+      await expect(service.validateApiKeyCreationPolicy(validUserId, validDto)).resolves.toBeUndefined();
     });
 
     it('should fail if API key limit is reached', async () => {
       const existingKeys = new Array(mockAuthConfig.limits.maxApiKeysPerUser).fill({});
       (userAuthService.getAllUsers as jest.Mock).mockResolvedValue(existingKeys);
       // This test is now conceptual as checkApiKeyLimit is commented out
-      // await expect(service.validateApiKeyCreationPolicy('userid', validDto)).rejects.toThrow();
+      // await expect(service.validateApiKeyCreationPolicy(validUserId, validDto)).rejects.toThrow();
     });
 
     it('should fail for invalid API key name', async () => {
         const dto = { ...validDto, name: '@Invalid' };
-        await expect(service.validateApiKeyCreationPolicy('userid', dto)).rejects.toThrow('API key name can only contain letters, numbers, spaces, underscores and hyphens');
+        await expect(service.validateApiKeyCreationPolicy(validUserId, dto)).rejects.toThrow('API key name can only contain letters, numbers, spaces, underscores and hyphens');
     });
 
     it('should fail for empty permissions', async () => {
         const dto = { ...validDto, permissions: [] };
-        await expect(service.validateApiKeyCreationPolicy('userid', dto)).rejects.toThrow('API key must have at least one permission');
+        await expect(service.validateApiKeyCreationPolicy(validUserId, dto)).rejects.toThrow('API key must have at least one permission');
     });
   });
 

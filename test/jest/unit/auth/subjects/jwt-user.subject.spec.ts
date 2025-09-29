@@ -5,7 +5,7 @@ import { AuthSubjectType } from '@auth/interfaces/auth-subject.interface';
 
 describe('JwtUserSubject', () => {
   const mockUser = {
-    id: 'user123',
+    id: '507f1f77bcf86cd799439011',
     username: 'testuser',
     email: 'test@example.com',
     role: UserRole.DEVELOPER,
@@ -19,7 +19,7 @@ describe('JwtUserSubject', () => {
 
       expect(subject).toBeDefined();
       expect(subject.type).toBe(AuthSubjectType.JWT_USER);
-      expect(subject.id).toBe('user123');
+      expect(subject.id).toBe('507f1f77bcf86cd799439011');
       expect(subject.role).toBe(UserRole.DEVELOPER);
       expect(subject.permissions).toEqual(RolePermissions[UserRole.DEVELOPER]);
       expect(subject.metadata).toEqual({
@@ -31,10 +31,10 @@ describe('JwtUserSubject', () => {
     });
 
     it('should create a JWT user subject with _id field', () => {
-      const userWithId = { ...mockUser, _id: 'user456', id: undefined };
+      const userWithId = { ...mockUser, _id: '507f1f77bcf86cd799439012', id: undefined };
       const subject = new JwtUserSubject(userWithId);
 
-      expect(subject.id).toBe('user456');
+      expect(subject.id).toBe('507f1f77bcf86cd799439012');
     });
 
     it('should throw error when user ID is missing', () => {
@@ -143,7 +143,7 @@ describe('JwtUserSubject', () => {
       const subject = new JwtUserSubject(mockUser);
       const displayName = subject.getDisplayName();
       
-      expect(displayName).toBe('JWT用户: testuser (DEVELOPER)');
+      expect(displayName).toBe('JWT用户: testuser (developer)');
     });
 
     it('should return unknown when username is missing', () => {
@@ -151,7 +151,7 @@ describe('JwtUserSubject', () => {
       const subject = new JwtUserSubject(userWithoutUsername);
       const displayName = subject.getDisplayName();
       
-      expect(displayName).toBe('JWT用户: unknown (DEVELOPER)');
+      expect(displayName).toBe('JWT用户: unknown (developer)');
     });
   });
 
@@ -221,7 +221,7 @@ describe('JwtUserSubject', () => {
       
       expect(json).toEqual({
         type: AuthSubjectType.JWT_USER,
-        id: 'user123',
+        id: '507f1f77bcf86cd799439011',
         role: UserRole.DEVELOPER,
         permissions: RolePermissions[UserRole.DEVELOPER],
         metadata: {
@@ -236,7 +236,7 @@ describe('JwtUserSubject', () => {
     it('should correctly handle ADMIN role permissions', () => {
       const adminUser = { ...mockUser, role: UserRole.ADMIN };
       const subject = new JwtUserSubject(adminUser);
-      
+
       expect(subject.permissions).toEqual(RolePermissions[UserRole.ADMIN]);
       expect(subject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
     });
@@ -253,6 +253,243 @@ describe('JwtUserSubject', () => {
       // Admin should have both basic and admin permissions
       expect(adminSubject.hasPermission(Permission.DATA_READ)).toBe(true);
       expect(adminSubject.hasPermission(Permission.SYSTEM_ADMIN)).toBe(true);
+    });
+
+    it('should handle unknown role permissions', () => {
+      const unknownRoleUser = { ...mockUser, role: 'PUBLIC' as UserRole };
+      const subject = new JwtUserSubject(unknownRoleUser);
+
+      expect(subject.permissions).toEqual([]);
+      expect(subject.hasRole('PUBLIC' as UserRole)).toBe(true);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle user with _id instead of id', () => {
+      const userWithMongoId = {
+        _id: { toString: () => '507f1f77bcf86cd799439011' },
+        username: 'testuser',
+        role: UserRole.DEVELOPER,
+        status: 'active'
+      };
+
+      const subject = new JwtUserSubject(userWithMongoId);
+      expect(subject.id).toBe('507f1f77bcf86cd799439011');
+    });
+
+    it('should handle user with both id and _id (prefer id)', () => {
+      const userWithBothIds = {
+        id: '507f1f77bcf86cd799439013',
+        _id: { toString: () => '507f1f77bcf86cd799439014' },
+        username: 'testuser',
+        role: UserRole.DEVELOPER,
+        status: 'active'
+      };
+
+      const subject = new JwtUserSubject(userWithBothIds);
+      expect(subject.id).toBe('507f1f77bcf86cd799439013');
+    });
+
+    it('should throw error for invalid ObjectId format', () => {
+      const userWithInvalidId = {
+        id: 'invalid-id',
+        username: 'testuser',
+        role: UserRole.DEVELOPER,
+        status: 'active'
+      };
+
+      expect(() => new JwtUserSubject(userWithInvalidId)).toThrow('JWT用户主体ID格式无效');
+    });
+
+    it('should handle null role', () => {
+      const userWithNullRole = {
+        ...mockUser,
+        role: null
+      };
+
+      expect(() => new JwtUserSubject(userWithNullRole)).toThrow('JWT用户主体缺少必要的角色字段');
+    });
+
+    it('should handle undefined role', () => {
+      const userWithoutRole = { ...mockUser };
+      delete userWithoutRole.role;
+
+      expect(() => new JwtUserSubject(userWithoutRole)).toThrow('JWT用户主体缺少必要的角色字段');
+    });
+
+    it('should handle user with unknown role', () => {
+      const userWithUnknownRole = {
+        ...mockUser,
+        role: 'UNKNOWN_ROLE' as UserRole
+      };
+
+      const subject = new JwtUserSubject(userWithUnknownRole);
+      expect(subject.permissions).toEqual([]);
+    });
+
+    it('should handle user with missing metadata fields', () => {
+      const minimalUser = {
+        id: '507f1f77bcf86cd799439015',
+        role: UserRole.DEVELOPER
+      };
+
+      const subject = new JwtUserSubject(minimalUser);
+      expect(subject.metadata.username).toBeUndefined();
+      expect(subject.metadata.email).toBeUndefined();
+      expect(subject.metadata.status).toBeUndefined();
+      expect(subject.metadata.lastAccessedAt).toBeUndefined();
+    });
+
+    it('should handle getDisplayName with null username', () => {
+      const userWithNullUsername = {
+        ...mockUser,
+        username: null
+      };
+
+      const subject = new JwtUserSubject(userWithNullUsername);
+      expect(subject.getDisplayName()).toBe('JWT用户: unknown (developer)');
+    });
+
+    it('should handle getDisplayName with empty string username', () => {
+      const userWithEmptyUsername = {
+        ...mockUser,
+        username: ''
+      };
+
+      const subject = new JwtUserSubject(userWithEmptyUsername);
+      expect(subject.getDisplayName()).toBe('JWT用户: unknown (developer)');
+    });
+
+    it('should handle hasAnyRole with single role array', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasRole = subject.hasAnyRole([UserRole.DEVELOPER]);
+
+      expect(hasRole).toBe(true);
+    });
+
+    it('should handle hasAnyRole with multiple roles including user role', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasRole = subject.hasAnyRole([UserRole.ADMIN, UserRole.DEVELOPER]);
+
+      expect(hasRole).toBe(true);
+    });
+
+    it('should handle hasAnyRole with multiple roles not including user role', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasRole = subject.hasAnyRole([UserRole.ADMIN]);
+
+      expect(hasRole).toBe(false);
+    });
+
+    it('should handle permissions array modifications', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const effectivePermissions = subject.getEffectivePermissions();
+
+      // Modifying the returned array should not affect the original
+      effectivePermissions.push(Permission.SYSTEM_ADMIN);
+      expect(subject.permissions).not.toContain(Permission.SYSTEM_ADMIN);
+    });
+
+    it('should validate toJSON excludes sensitive metadata', () => {
+      const userWithSensitiveData = {
+        ...mockUser,
+        password: 'secret',
+        email: 'test@example.com',
+        lastAccessedAt: new Date()
+      };
+
+      const subject = new JwtUserSubject(userWithSensitiveData);
+      const json = subject.toJSON();
+
+      expect(json.metadata).not.toHaveProperty('password');
+      expect(json.metadata).not.toHaveProperty('email');
+      expect(json.metadata).not.toHaveProperty('lastAccessedAt');
+      expect(json.metadata).toHaveProperty('username');
+      expect(json.metadata).toHaveProperty('status');
+    });
+
+    it('should handle complex user object with extra properties', () => {
+      const complexUser = {
+        ...mockUser,
+        extraProperty: 'extra',
+        nestedObject: { prop: 'value' },
+        arrayProperty: [1, 2, 3]
+      };
+
+      const subject = new JwtUserSubject(complexUser);
+      expect(subject.id).toBe(mockUser.id);
+      expect(subject.role).toBe(mockUser.role);
+      // Extra properties should not interfere with construction
+    });
+
+    it('should handle permissions with undefined rolePermissions mapping', () => {
+      const userWithUndefinedRole = {
+        ...mockUser,
+        role: 'NON_EXISTENT_ROLE' as UserRole
+      };
+
+      const subject = new JwtUserSubject(userWithUndefinedRole);
+      expect(subject.permissions).toEqual([]);
+      expect(subject.hasPermission(Permission.DATA_READ)).toBe(false);
+    });
+
+    it('should handle edge case ObjectId validation error messages', () => {
+      const userWithVeryInvalidId = {
+        id: 'abc',
+        username: 'testuser',
+        role: UserRole.DEVELOPER
+      };
+
+      expect(() => new JwtUserSubject(userWithVeryInvalidId)).toThrow(/JWT用户主体ID格式无效/);
+    });
+
+    it('should handle missing both id and _id', () => {
+      const userWithoutIds = {
+        username: 'testuser',
+        role: UserRole.DEVELOPER,
+        status: 'active'
+      };
+
+      expect(() => new JwtUserSubject(userWithoutIds)).toThrow('JWT用户主体缺少必要的ID字段');
+    });
+
+    it('should handle _id with null toString', () => {
+      const userWithNullToString = {
+        _id: { toString: () => null },
+        username: 'testuser',
+        role: UserRole.DEVELOPER,
+        status: 'active'
+      };
+
+      expect(() => new JwtUserSubject(userWithNullToString)).toThrow('JWT用户主体缺少必要的ID字段');
+    });
+
+    it('should handle hasPermission with null permission', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasPermission = subject.hasPermission(null as any);
+
+      expect(hasPermission).toBe(false);
+    });
+
+    it('should handle hasPermission with undefined permission', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasPermission = subject.hasPermission(undefined as any);
+
+      expect(hasPermission).toBe(false);
+    });
+
+    it('should handle hasAllPermissions with mixed valid and invalid permissions', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasAll = subject.hasAllPermissions([Permission.DATA_READ, 'INVALID' as any]);
+
+      expect(hasAll).toBe(false);
+    });
+
+    it('should handle hasAnyPermission with all invalid permissions', () => {
+      const subject = new JwtUserSubject(mockUser);
+      const hasAny = subject.hasAnyPermission(['INVALID1' as any, 'INVALID2' as any]);
+
+      expect(hasAny).toBe(false);
     });
   });
 });

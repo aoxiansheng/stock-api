@@ -65,9 +65,11 @@ describe('SymbolMappingRepository', () => {
   };
 
   beforeEach(async () => {
-    const mockModelValue = {
-      new: jest.fn(),
-      constructor: jest.fn(),
+    // Create a mock function that can be used as a constructor
+    const mockConstructor = jest.fn();
+
+    // Assign static method mocks as properties of the mock constructor
+    const mockModelValue = Object.assign(mockConstructor, {
       findById: jest.fn(),
       findOne: jest.fn(),
       find: jest.fn(),
@@ -79,14 +81,7 @@ describe('SymbolMappingRepository', () => {
       distinct: jest.fn(),
       aggregate: jest.fn(),
       watch: jest.fn(),
-    };
-
-    // Make the mock model constructor return a mock document
-    mockModelValue.new.mockImplementation((data) => ({
-      ...mockDocumentData,
-      ...data,
-      save: jest.fn().mockResolvedValue({ ...mockDocumentData, ...data }),
-    }));
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

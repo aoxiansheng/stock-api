@@ -142,6 +142,11 @@ export class QueryResultProcessorService {
     includeFields?: string[],
     excludeFields?: string[],
   ): Partial<T> {
+    // 处理 item 为 null 或 undefined 的情况
+    if (item === null || item === undefined) {
+      return {} as Partial<T>;
+    }
+
     if (!includeFields && !excludeFields) return item;
 
     const result: Partial<T> = {};

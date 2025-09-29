@@ -44,7 +44,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain(expect.stringContaining('无效的符号格式'));
+      expect(result.errors[0]).toContain('无效的符号格式');
       expect(result.errors[0]).toContain('INVALID');
       expect(result.errors[0]).toContain('BADFORMAT');
     });
@@ -59,7 +59,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(true);
-      expect(result.warnings).toContain(expect.stringContaining('发现重复符号'));
+      expect(result.warnings[0]).toContain('发现重复符号');
       expect(result.warnings[0]).toContain('aapl.us');
     });
 
@@ -73,7 +73,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain(expect.stringContaining('不支持的WebSocket能力类型'));
+      expect(result.errors[0]).toContain('不支持的WebSocket能力类型');
       expect(result.errors[0]).toContain('invalid-capability');
     });
 
@@ -88,7 +88,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(true);
-      expect(result.warnings).toContain(expect.stringContaining('未知的数据提供商'));
+      expect(result.warnings[0]).toContain('未知的数据提供商');
       expect(result.warnings[0]).toContain('unknown-provider');
     });
 
@@ -101,7 +101,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('缺少认证信息：需要提供JWT Token或API Key + Access Token');
+      expect(result.errors[0]).toContain('缺少认证信息：需要提供JWT Token或API Key + Access Token');
     });
 
     it('should validate API key authentication', () => {
@@ -129,7 +129,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('API Key格式无效');
+      expect(result.errors[0]).toContain('API Key格式无效');
     });
 
     it('should detect invalid access token format', () => {
@@ -143,7 +143,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Access Token格式无效');
+      expect(result.errors[0]).toContain('Access Token格式无效');
     });
 
     it('should warn when both JWT and API key provided', () => {
@@ -158,7 +158,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateSubscribeRequest(dto);
 
       expect(result.isValid).toBe(true);
-      expect(result.warnings).toContain('同时提供了JWT Token和API Key，将优先使用JWT Token');
+      expect(result.warnings[0]).toContain('同时提供了JWT Token和API Key，将优先使用JWT Token');
     });
   });
 
@@ -185,7 +185,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateUnsubscribeRequest(dto);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain(expect.stringContaining('无效的符号格式'));
+      expect(result.errors[0]).toContain('无效的符号格式');
       expect(result.errors[0]).toContain('INVALID');
     });
 
@@ -198,7 +198,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateUnsubscribeRequest(dto);
 
       expect(result.isValid).toBe(true);
-      expect(result.warnings).toContain(expect.stringContaining('发现重复符号'));
+      expect(result.warnings[0]).toContain('发现重复符号');
     });
   });
 
@@ -360,7 +360,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateStreamData(null);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('流数据不能为空');
+      expect(result.errors[0]).toContain('流数据不能为空');
     });
 
     it('should require symbol field', () => {
@@ -372,7 +372,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateStreamData(data);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('流数据缺少symbol字段');
+      expect(result.errors[0]).toContain('流数据缺少symbol字段');
     });
 
     it('should require timestamp field', () => {
@@ -384,7 +384,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateStreamData(data);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('流数据缺少时间戳字段');
+      expect(result.errors[0]).toContain('流数据缺少时间戳字段');
     });
 
     it('should accept time field as alternative to timestamp', () => {
@@ -410,7 +410,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateStreamData(invalidPriceData);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('价格字段必须是正数');
+      expect(result.errors[0]).toContain('价格字段必须是正数');
     });
 
     it('should validate volume field type and value', () => {
@@ -423,7 +423,7 @@ describe('StreamDataValidator', () => {
       const result = validator.validateStreamData(invalidVolumeData);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('成交量字段必须是非负数');
+      expect(result.errors[0]).toContain('成交量字段必须是非负数');
     });
 
     it('should warn about non-standard symbol formats', () => {
@@ -435,7 +435,8 @@ describe('StreamDataValidator', () => {
       const result = validator.validateStreamData(data);
 
       expect(result.isValid).toBe(true);
-      expect(result.warnings).toContain('符号格式可能不标准: NONSTANDARD');
+      expect(result.warnings[0]).toContain('符号格式可能不标准');
+      expect(result.warnings[0]).toContain('NONSTANDARD');
     });
 
     it('should sanitize symbol in stream data', () => {
@@ -464,6 +465,7 @@ describe('StreamDataValidator', () => {
       expect(result.validData).toHaveLength(3);
       expect(result.invalidData).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
     });
 
     it('should separate valid and invalid data', () => {
@@ -478,8 +480,8 @@ describe('StreamDataValidator', () => {
       expect(result.validData).toHaveLength(1);
       expect(result.invalidData).toHaveLength(2);
       expect(result.errors).toHaveLength(2);
-      expect(result.errors[0]).toContain('[1]');
-      expect(result.errors[1]).toContain('[2]');
+      expect(result.errors[0]).toMatch(/^\[1\]/);
+      expect(result.errors[1]).toMatch(/^\[2\]/);
     });
 
     it('should include index information in error messages', () => {
@@ -491,10 +493,12 @@ describe('StreamDataValidator', () => {
 
       const result = validator.validateBatchStreamData(dataArray);
 
-      expect(result.errors).toHaveLength(3);
+      expect(result.errors).toHaveLength(2);
+      expect(result.warnings).toHaveLength(1);
       expect(result.errors[0]).toMatch(/^\[0\]/);
       expect(result.errors[1]).toMatch(/^\[1\]/);
-      expect(result.errors[2]).toMatch(/^\[2\]/);
+      expect(result.warnings[0]).toMatch(/^\[2\]/);
+      expect(result.warnings[0]).toContain('符号格式可能不标准');
     });
 
     it('should handle empty batch', () => {
@@ -603,7 +607,16 @@ describe('StreamDataValidator', () => {
     });
 
     it('should validate symbols efficiently', () => {
-      const manySymbols = Array(1000).fill(null).map((_, i) => `STOCK${i}.US`);
+      const toBase26 = (n: number): string => {
+        let s = '';
+        if (n < 0) return '';
+        do {
+          s = String.fromCharCode(65 + (n % 26)) + s;
+          n = Math.floor(n / 26) - 1;
+        } while (n >= 0);
+        return s;
+      };
+      const manySymbols = Array(1000).fill(null).map((_, i) => toBase26(i) + '.US');
 
       const startTime = Date.now();
       const result = validator.validateSymbols(manySymbols);

@@ -68,7 +68,7 @@ describe('AlertQueryService', () => {
       createPagination: jest.fn().mockImplementation((page, limit, total) => ({
         total,
         totalPages: Math.ceil(total / limit),
-        currentPage: page,
+        page: page,
         hasNext: page * limit < total,
         hasPrev: page > 1
       }))
@@ -214,7 +214,7 @@ describe('AlertQueryService', () => {
       mockPaginationService.createPagination.mockReturnValue({
         total: 2,
         totalPages: 1,
-        currentPage: 2,
+        page: 2,
         hasNext: false,
         hasPrev: true
       });
@@ -447,8 +447,10 @@ describe('AlertQueryService', () => {
 
     it('should handle search alerts errors', async () => {
       mockAlertHistoryRepository.searchByKeyword.mockRejectedValue(new Error('Search failed'));
+      // 模拟降级后的 find 方法也失败
+      mockAlertHistoryRepository.find.mockRejectedValue(new Error('Find failed'));
 
-      await expect(service.searchAlerts('test')).rejects.toThrow('Search failed');
+      await expect(service.searchAlerts('test')).rejects.toThrow('Find failed');
     });
 
     it('should fallback to find when search fails', async () => {
@@ -639,10 +641,18 @@ describe('AlertQueryService', () => {
 
       const result = await service.exportAlerts({}, 'json');
 
+      // 创建期望的告警对象，日期转为ISO字符串格式
+      const expectedAlert = {
+        ...mockAlert,
+        startTime: mockAlert.startTime.toISOString(),
+        // 如果有endTime也需要转换
+        endTime: mockAlert.endTime?.toISOString()
+      };
+
       expect(result.filename).toMatch(/alerts_export_\d{4}-\d{2}-\d{2}\.json/);
       expect(result.mimeType).toBe('application/json');
       expect(typeof result.data).toBe('string');
-      expect(JSON.parse(result.data)).toEqual([mockAlert]);
+      expect(JSON.parse(result.data)).toEqual([expectedAlert]);
     });
 
     it('should export alerts as CSV', async () => {

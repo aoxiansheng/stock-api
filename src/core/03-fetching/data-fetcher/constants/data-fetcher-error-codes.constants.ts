@@ -2,7 +2,9 @@
  * DATA_FETCHER компонент - константы кодов ошибок
  */
 
-export const DATA_FETCHER_ERROR_CODES = {
+import { deepFreeze } from '@common/utils/object-immutability.util';
+
+export const DATA_FETCHER_ERROR_CODES = deepFreeze({
   // Валидационные ошибки (001-299)
   MISSING_REQUIRED_PARAMS: 'DATA_FETCHER_VALIDATION_001',
   INVALID_SYMBOLS: 'DATA_FETCHER_VALIDATION_002',
@@ -26,4 +28,4 @@ export const DATA_FETCHER_ERROR_CODES = {
   PROVIDER_UNAVAILABLE: 'DATA_FETCHER_EXTERNAL_900',
   PROVIDER_RATE_LIMITED: 'DATA_FETCHER_EXTERNAL_901',
   NETWORK_ERROR: 'DATA_FETCHER_EXTERNAL_902',
-} as const; 
+}); 

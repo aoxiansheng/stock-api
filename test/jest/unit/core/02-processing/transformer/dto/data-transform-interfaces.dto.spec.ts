@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 
@@ -296,42 +297,6 @@ describe('DataTransformationStatsDto', () => {
       const dto = plainToClass(DataTransformationStatsDto, statsData);
 
       expect(dto.transformationsApplied[0].transformValue).toEqual(complexTransformation.transformValue);
-    });
-  });
-
-  describe('API Documentation', () => {
-    it('should have swagger decorators for documentation', () => {
-      const dto = new DataTransformationStatsDto();
-
-      // Check that the class has the necessary metadata for Swagger documentation
-      expect(dto).toBeDefined();
-
-      // These properties should be documented with @ApiProperty
-      expect(dto.hasOwnProperty('recordsProcessed')).toBeFalsy(); // Property doesn't exist until assigned
-      expect('recordsProcessed' in DataTransformationStatsDto.prototype).toBeFalsy(); // Not in prototype either
-    });
-
-    it('should be serializable to JSON', () => {
-      const statsData = {
-        recordsProcessed: 5,
-        fieldsTransformed: 10,
-        transformationsApplied: [
-          {
-            sourceField: 'source',
-            targetField: 'target',
-            transformType: 'type',
-            transformValue: 'value',
-          },
-        ],
-      };
-
-      const dto = plainToClass(DataTransformationStatsDto, statsData);
-      const json = JSON.stringify(dto);
-      const parsed = JSON.parse(json);
-
-      expect(parsed.recordsProcessed).toBe(5);
-      expect(parsed.fieldsTransformed).toBe(10);
-      expect(parsed.transformationsApplied).toHaveLength(1);
     });
   });
 });

@@ -61,53 +61,63 @@ export class DataSourceAnalyzerService {
    * 🔍 从数据中提取字段信息
    */
   private extractFieldsFromData(data: any, parentPath: string = ""): any[] {
+    // 存储提取出的字段
     const fields: any[] = [];
 
+    // 检查数据是否有效
     if (!data || typeof data !== "object") {
       return fields;
     }
 
-    if (Array.isArray(data)) {
-      // 处理数组：分析第一个元素的结构
-      if (data.length > 0) {
-        const arrayElementFields = this.extractFieldsFromData(
-          data[0],
-          `${parentPath}[0]`,
-        );
-        fields.push(...arrayElementFields);
-      }
-      return fields;
-    }
-
     // 处理对象
-    for (const [key, value] of Object.entries(data)) {
-      const fieldPath = parentPath ? `${parentPath}.${key}` : key;
-      const fieldType = this.determineFieldType(value);
-
-      fields.push({
-        fieldPath,
-        fieldName: key,
-        fieldType,
-        sampleValue: this.getSampleValue(value),
-        confidence: 0.9,
-        isNested: typeof value === "object" && value !== null,
-        nestingLevel: fieldPath.split(".").length - 1,
+    if (!Array.isArray(data)) {
+      // 对象的每个属性
+      Object.entries(data).forEach(([key, value]) => {
+        const fieldPath = parentPath ? `${parentPath}.${key}` : key;
+        const fieldType = this.determineFieldType(value);
+        
+        // 添加当前字段
+        fields.push({
+          fieldPath,
+          fieldName: key,
+          fieldType,
+          sampleValue: this.getSampleValue(value),
+          confidence: 0.9,
+          isNested: typeof value === "object" && value !== null,
+          nestingLevel: fieldPath.split(".").length - 1,
+        });
+        
+        // 递归处理嵌套对象或数组
+        if (typeof value === "object" && value !== null) {
+          // 数组或对象
+          const nestedFields = this.extractFieldsFromData(value, fieldPath);
+          fields.push(...nestedFields);
+        }
       });
-
-      // 递归处理嵌套对象
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-        const nestedFields = this.extractFieldsFromData(value, fieldPath);
-        fields.push(...nestedFields);
+    } 
+    // 处理数组，但仅在有父路径时（即作为对象的属性时）
+    else if (parentPath) {
+      // 处理数组中的第一个对象元素
+      if (data.length > 0 && typeof data[0] === "object" && data[0] !== null) {
+        Object.entries(data[0]).forEach(([key, value]) => {
+          const itemPath = `${parentPath}[0].${key}`;
+          
+          fields.push({
+            fieldPath: itemPath,
+            fieldName: key,
+            fieldType: this.determineFieldType(value),
+            sampleValue: this.getSampleValue(value),
+            confidence: 0.9,
+            isNested: typeof value === "object" && value !== null,
+            nestingLevel: itemPath.split(".").length - 1,
+          });
+        });
       }
     }
 
     return fields;
   }
-
+  
   /**
    * 🎯 确定字段类型
    */
@@ -161,21 +171,31 @@ export class DataSourceAnalyzerService {
       return 0;
     }
 
-    // 基础置信度
-    let confidence = 0.7;
+    // 基础置信度（降低基础值）
+    let confidence = 0.6;
 
     // 字段数量奖励
     if (extractedFields.length >= 5) {
       confidence += 0.1;
     }
 
-    // 数据完整性检查
-    const nonNullFields = extractedFields.filter(
-      (f) => f.sampleValue !== null && f.sampleValue !== undefined,
+    // 数据完整性检查（增强空值检测）
+    const nonEmptyFields = extractedFields.filter(
+      (f) => f.sampleValue !== null && 
+             f.sampleValue !== undefined && 
+             f.sampleValue !== "" &&
+             (f.sampleValue !== "{...}" || f.sampleValue !== "[...]")
     );
 
-    const completenessRatio = nonNullFields.length / extractedFields.length;
-    confidence += completenessRatio * 0.2;
+    const completenessRatio = nonEmptyFields.length / extractedFields.length;
+    
+    // 调整加分公式，更强调数据完整性
+    confidence += completenessRatio * 0.15;
+    
+    // 对于低完整性数据额外减分
+    if (completenessRatio < 0.8) {
+      confidence -= (1 - completenessRatio) * 0.15;
+    }
 
     // 确保置信度在0-1之间
     return Math.min(Math.max(confidence, 0), 1);

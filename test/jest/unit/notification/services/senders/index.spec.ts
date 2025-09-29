@@ -1,4 +1,11 @@
-// index.spec.ts - 测试占位代码
-// 路径: unit/notification/services/senders/index.spec.ts
+import * as Senders from '@notification/services/senders';
 
-// TODO: 实现具体的测试用例
+describe('Notification Senders Index', () => {
+  it('should export all sender classes', () => {
+    expect(Senders.SlackSender).toBeDefined();
+    expect(Senders.EmailSender).toBeDefined();
+    expect(Senders.DingTalkSender).toBeDefined();
+    expect(Senders.WebhookSender).toBeDefined();
+    expect(Senders.LogSender).toBeDefined();
+  });
+});

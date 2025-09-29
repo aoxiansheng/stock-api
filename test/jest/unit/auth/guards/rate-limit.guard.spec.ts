@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { RateLimitGuard, RATE_LIMIT_KEY, RateLimit } from '@auth/guards/rate-limit.guard';
@@ -6,11 +5,14 @@ import { RateLimitService } from '@auth/services/infrastructure/rate-limit.servi
 import { IS_PUBLIC_KEY } from '@auth/decorators/public.decorator';
 import { AuthenticatedRequest } from '@auth/interfaces/authenticated-request.interface';
 import { RateLimitStrategy } from '@auth/constants';
+import { UnitTestSetup } from '@test/testbasic/setup/unit-test-setup';
+import { TestingModule } from '@nestjs/testing';
 
 describe('RateLimitGuard', () => {
   let guard: RateLimitGuard;
   let reflector: jest.Mocked<Reflector>;
   let rateLimitService: jest.Mocked<RateLimitService>;
+  let testContext: TestingModule;
 
   const mockExecutionContext = {
     getHandler: jest.fn(),
@@ -47,8 +49,8 @@ describe('RateLimitGuard', () => {
     getAllAndOverride: jest.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    testContext = await UnitTestSetup.createBasicTestModule({
       providers: [
         RateLimitGuard,
         {
@@ -60,12 +62,24 @@ describe('RateLimitGuard', () => {
           useValue: mockReflector,
         },
       ],
-    }).compile();
+    });
 
-    guard = module.get<RateLimitGuard>(RateLimitGuard);
-    reflector = module.get(Reflector);
-    rateLimitService = module.get(RateLimitService);
+    await testContext.init();
 
+    guard = await UnitTestSetup.validateServiceInjection<RateLimitGuard>(
+      testContext,
+      RateLimitGuard,
+      RateLimitGuard
+    );
+    reflector = UnitTestSetup.getService<jest.Mocked<Reflector>>(testContext, Reflector);
+    rateLimitService = UnitTestSetup.getService<jest.Mocked<RateLimitService>>(testContext, RateLimitService);
+  });
+
+  afterAll(async () => {
+    await UnitTestSetup.cleanupModule(testContext);
+  });
+
+  beforeEach(() => {
     // Reset all mocks before each test
     jest.clearAllMocks();
 
@@ -169,8 +183,12 @@ describe('RateLimitGuard', () => {
 
       it('should use custom rate limit strategy from decorator', async () => {
         const customConfig = { strategy: RateLimitStrategy.FIXED_WINDOW };
-        reflector.getAllAndOverride.mockReturnValueOnce(false); // isPublic = false
-        reflector.getAllAndOverride.mockReturnValueOnce(customConfig); // rate limit config
+
+        // 重置Mock状态并重新设置
+        jest.clearAllMocks();
+        reflector.getAllAndOverride
+          .mockReturnValueOnce(false) // isPublic = false
+          .mockReturnValueOnce(customConfig); // rate limit config
 
         const rateLimitResult = { allowed: true, limit: 100, current: 50, remaining: 50, resetTime: Date.now() + 60000, retryAfter: 0 };
         rateLimitService.checkRateLimit.mockResolvedValue(rateLimitResult);
@@ -344,9 +362,8 @@ describe('RateLimitGuard', () => {
     });
 
     it('should handle concurrent requests properly', async () => {
-      reflector.getAllAndOverride
-        .mockReturnValueOnce(false) // isPublic = false
-        .mockReturnValueOnce(undefined); // rate limit config
+      // 清除之前的Mock设置
+      jest.clearAllMocks();
 
       const rateLimitResults = [
         { allowed: true, limit: 100, current: 50, remaining: 50, resetTime: Date.now() + 60000, retryAfter: 0 },
@@ -354,7 +371,17 @@ describe('RateLimitGuard', () => {
         { allowed: false, limit: 100, current: 105, remaining: -5, resetTime: Date.now() + 60000, retryAfter: 60 },
       ];
 
-      rateLimitService.checkRateLimit.mockResolvedValueOnce(rateLimitResults[0])
+      // 为每个请求单独设置Mock
+      reflector.getAllAndOverride
+        .mockReturnValueOnce(false) // isPublic = false (第一次调用)
+        .mockReturnValueOnce(undefined) // rate limit config (第一次调用)
+        .mockReturnValueOnce(false) // isPublic = false (第二次调用)
+        .mockReturnValueOnce(undefined) // rate limit config (第二次调用)
+        .mockReturnValueOnce(false) // isPublic = false (第三次调用)
+        .mockReturnValueOnce(undefined); // rate limit config (第三次调用)
+
+      rateLimitService.checkRateLimit
+        .mockResolvedValueOnce(rateLimitResults[0])
         .mockResolvedValueOnce(rateLimitResults[1])
         .mockResolvedValueOnce(rateLimitResults[2]);
 

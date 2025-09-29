@@ -40,7 +40,7 @@ export enum ErrorType {
 export const SYMBOL_PATTERNS = deepFreeze({
   CN: /^\d{6}$/, // A股：6位数字 (例如: 000001, 600000)
   US: /^[A-Z]+$/, // 美股：纯字母 (例如: AAPL, GOOGL)
-  HK: /\.HK$/i, // 港股：.HK后缀 (例如: 700.HK, 0700.HK)
+  HK: /^.+\.HK$/i, // 港股：.HK后缀 (例如: 700.HK, 0700.HK)
 } as const);
 
 // ====================== 市场类型常量 ======================

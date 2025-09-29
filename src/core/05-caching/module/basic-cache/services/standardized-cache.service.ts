@@ -20,19 +20,25 @@
  * - 统一接口规范
  */
 
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import Redis from 'ioredis';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+  Inject,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import Redis from "ioredis";
 
 // Foundation layer imports
-import { StandardCacheModuleInterface } from '../../../foundation/interfaces/standard-cache-module.interface';
+import { StandardCacheModuleInterface } from "../../../foundation/interfaces/standard-cache-module.interface";
 import {
   CachePerformanceMetrics,
   CacheCapacityInfo,
   CacheErrorStatistics,
   DiagnosticsResult,
-} from '../../../foundation/interfaces/standard-cache-module.interface';
+} from "../../../foundation/interfaces/standard-cache-module.interface";
 
 import {
   BaseCacheResult,
@@ -44,25 +50,28 @@ import {
   CacheHealthResult,
   CacheOperationOptions,
   BatchOperationOptions,
-} from '../../../foundation/types/cache-result.types';
+} from "../../../foundation/types/cache-result.types";
 
 import type {
   CacheUnifiedConfigInterface,
   CacheConfigValidationResult,
-} from '../../../foundation/types/cache-config.types';
+} from "../../../foundation/types/cache-config.types";
 
-import { ModuleInitOptions, ModuleStatus } from '../../../foundation/types/cache-module.types';
+import {
+  ModuleInitOptions,
+  ModuleStatus,
+} from "../../../foundation/types/cache-module.types";
 
 // Service dependencies
-import { CacheCompressionService } from './cache-compression.service';
+import { CacheCompressionService } from "./cache-compression.service";
 
 // Constants and utilities
-import { CACHE_CONFIG } from '../constants/cache-config.constants';
-import { REDIS_SPECIAL_VALUES } from '../constants/cache.constants';
-import { RedisValueUtils } from '../utils/redis-value.utils';
-import { createLogger } from '@common/logging/index';
-import { CACHE_REDIS_CLIENT_TOKEN } from '../../../../../monitoring/contracts';
-import { SYSTEM_STATUS_EVENTS } from '../../../../../monitoring/contracts/events/system-status.events';
+import { CACHE_CONFIG } from "../constants/cache-config.constants";
+import { REDIS_SPECIAL_VALUES } from "../constants/cache.constants";
+import { RedisValueUtils } from "../utils/redis-value.utils";
+import { createLogger } from "@common/logging/index";
+import { CACHE_REDIS_CLIENT_TOKEN } from "../../../../../monitoring/contracts";
+import { SYSTEM_STATUS_EVENTS } from "../../../../../monitoring/contracts/events/system-status.events";
 
 /**
  * 解压操作并发控制工具
@@ -104,20 +113,22 @@ class DecompressionSemaphore {
  * 直接实现 StandardCacheModuleInterface，消除委托层开销
  */
 @Injectable()
-export class StandardizedCacheService implements StandardCacheModuleInterface, OnModuleInit, OnModuleDestroy {
+export class StandardizedCacheService
+  implements StandardCacheModuleInterface, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = createLogger(StandardizedCacheService.name);
 
   // Module metadata (required by StandardCacheModuleInterface)
-  readonly moduleType = 'basic-cache';
-  readonly moduleCategory = 'foundation' as const;
+  readonly moduleType = "basic-cache";
+  readonly moduleCategory = "foundation" as const;
   readonly supportedFeatures = [
-    'redis-distributed-cache',
-    'compression',
-    'batch-operations',
-    'monitoring',
-    'fault-tolerance',
-    'concurrent-decompression',
-    'intelligent-ttl',
+    "redis-distributed-cache",
+    "compression",
+    "batch-operations",
+    "monitoring",
+    "fault-tolerance",
+    "concurrent-decompression",
+    "intelligent-ttl",
   ];
   readonly dependencies: string[] = [];
   readonly priority = 10; // Foundation service priority
@@ -152,21 +163,21 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     private readonly eventBus: EventEmitter2,
     private readonly configService: ConfigService,
   ) {
-    this.logger.log('StandardizedCacheService initialized');
+    this.logger.log("StandardizedCacheService initialized");
   }
 
   // ==================== Module Interface Implementation ====================
 
   get name(): string {
-    return 'standardized-cache';
+    return "standardized-cache";
   }
 
   get version(): string {
-    return '1.0.0';
+    return "1.0.0";
   }
 
   get description(): string {
-    return 'Unified Redis-based distributed cache with compression, monitoring, and fault-tolerance';
+    return "Unified Redis-based distributed cache with compression, monitoring, and fault-tolerance";
   }
 
   get isInitialized(): boolean {
@@ -189,7 +200,7 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
   async initialize(config: any, options?: ModuleInitOptions): Promise<void> {
     try {
-      this.logger.log('Initializing StandardizedCacheService...');
+      this.logger.log("Initializing StandardizedCacheService...");
 
       this.config = config;
       this._isInitialized = true;
@@ -199,15 +210,15 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       await this.redis.ping();
 
       // Emit initialization event
-      this.eventBus.emit('cache.module.initialized', {
-        module: 'standardized-cache',
+      this.eventBus.emit("cache.module.initialized", {
+        module: "standardized-cache",
         timestamp: new Date(),
       });
 
-      this.logger.log('StandardizedCacheService initialized successfully');
+      this.logger.log("StandardizedCacheService initialized successfully");
     } catch (error) {
       this._isHealthy = false;
-      this.logger.error('Failed to initialize StandardizedCacheService', error);
+      this.logger.error("Failed to initialize StandardizedCacheService", error);
       throw error;
     }
   }
@@ -222,7 +233,7 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
   async onModuleDestroy(): Promise<void> {
     try {
-      this.logger.log('Destroying StandardizedCacheService...');
+      this.logger.log("Destroying StandardizedCacheService...");
 
       // Set destruction flag to prevent async operations
       this.isDestroyed = true;
@@ -231,59 +242,69 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       this._isInitialized = false;
 
       // Emit destruction event
-      this.eventBus.emit('cache.module.destroyed', {
-        module: 'standardized-cache',
+      this.eventBus.emit("cache.module.destroyed", {
+        module: "standardized-cache",
         timestamp: new Date(),
       });
 
-      this.logger.log('StandardizedCacheService destroyed successfully');
+      this.logger.log("StandardizedCacheService destroyed successfully");
     } catch (error) {
-      this.logger.error('Error during StandardizedCacheService destruction', error);
+      this.logger.error(
+        "Error during StandardizedCacheService destruction",
+        error,
+      );
     }
   }
 
   getStatus(): ModuleStatus {
     return {
       status: this._isInitialized
-        ? (this._isHealthy ? 'ready' : 'error')
-        : 'initializing',
-      message: this._isHealthy ? 'Service is healthy' : 'Service has issues',
+        ? this._isHealthy
+          ? "ready"
+          : "error"
+        : "initializing",
+      message: this._isHealthy ? "Service is healthy" : "Service has issues",
       lastUpdated: Date.now(),
       startedAt: Date.now(),
       metrics: {
         totalOperations: this.stats.operations,
         avgResponseTime: this.calculateAverageResponseTime(),
-        errorRate: this.stats.operations > 0 ? (this.stats.errors / this.stats.operations) * 100 : 0,
+        errorRate:
+          this.stats.operations > 0
+            ? (this.stats.errors / this.stats.operations) * 100
+            : 0,
       },
     };
   }
 
-  validateConfig(config: Partial<CacheUnifiedConfigInterface>): CacheConfigValidationResult {
+  validateConfig(
+    config: Partial<CacheUnifiedConfigInterface>,
+  ): CacheConfigValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
     // Basic cache specific validation
-    if (!config || typeof config !== 'object') {
-      errors.push('Configuration is required for standardized cache');
+    if (!config || typeof config !== "object") {
+      errors.push("Configuration is required for standardized cache");
     }
 
     // Validate TTL configuration
     if (config.ttl) {
       if (config.ttl.realTimeTtlSeconds < 1) {
-        errors.push('Real-time TTL must be at least 1 second');
+        errors.push("Real-time TTL must be at least 1 second");
       }
       if (config.ttl.batchQueryTtlSeconds < config.ttl.realTimeTtlSeconds) {
-        warnings.push('Batch query TTL should be longer than real-time TTL');
+        warnings.push("Batch query TTL should be longer than real-time TTL");
       }
     }
 
     // Validate performance configuration
     if (config.performance) {
       if (config.performance.maxMemoryMb < 1) {
-        errors.push('Max memory must be at least 1MB');
+        errors.push("Max memory must be at least 1MB");
       }
       if (config.performance.defaultBatchSize < 1) {
-        errors.push('Default batch size must be at least 1');
+        errors.push("Default batch size must be at least 1");
       }
     }
 
@@ -299,7 +320,7 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   getModuleSpecificConfig<T = any>(): T {
     return {
       redis: {
-        host: 'localhost',
+        host: "localhost",
         port: 6379,
         db: 0,
       },
@@ -319,17 +340,23 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     } as T;
   }
 
-  validateModuleSpecificConfig<T = any>(config: T): CacheConfigValidationResult {
+  validateModuleSpecificConfig<T = any>(
+    config: T,
+  ): CacheConfigValidationResult {
     // Standardized cache specific validation
     return { isValid: true, errors: [], warnings: [] };
   }
 
-  async applyConfigUpdate(newConfig: Partial<CacheUnifiedConfigInterface>): Promise<void> {
+  async applyConfigUpdate(
+    newConfig: Partial<CacheUnifiedConfigInterface>,
+  ): Promise<void> {
     this.config = { ...this.config, ...newConfig };
-    this.logger.log('Standardized cache configuration updated');
+    this.logger.log("Standardized cache configuration updated");
   }
 
-  async refreshConfig(newConfig: Partial<CacheUnifiedConfigInterface>): Promise<void> {
+  async refreshConfig(
+    newConfig: Partial<CacheUnifiedConfigInterface>,
+  ): Promise<void> {
     await this.applyConfigUpdate(newConfig);
   }
 
@@ -472,7 +499,9 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
    */
   cleanup(): void {
     this.isDestroyed = true;
-    this.logger.log("StandardizedCacheService cleaned up - async operations disabled");
+    this.logger.log(
+      "StandardizedCacheService cleaned up - async operations disabled",
+    );
   }
 
   // ==================== Cache Operations (Core CRUD) ====================
@@ -598,7 +627,10 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 获取单个缓存数据
    */
-  async get<T = any>(key: string, options?: CacheOperationOptions): Promise<CacheGetResult<T>> {
+  async get<T = any>(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<CacheGetResult<T>> {
     this.stats.operations++;
     const startTime = Date.now();
 
@@ -623,8 +655,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: Date.now(),
         duration: Date.now() - startTime,
         key,
@@ -644,8 +676,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: Date.now(),
         duration,
         key,
@@ -659,7 +691,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 设置单个缓存数据
    */
-  async set<T = any>(key: string, value: T, options?: CacheOperationOptions): Promise<CacheSetResult> {
+  async set<T = any>(
+    key: string,
+    value: T,
+    options?: CacheOperationOptions,
+  ): Promise<CacheSetResult> {
     this.stats.operations++;
     const startTime = Date.now();
 
@@ -699,8 +735,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success,
-        status: success ? 'success' : 'error',
-        operation: 'set',
+        status: success ? "success" : "error",
+        operation: "set",
         timestamp: Date.now(),
         duration,
         key,
@@ -720,8 +756,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'set',
+        status: "error",
+        operation: "set",
         timestamp: Date.now(),
         duration,
         key,
@@ -735,7 +771,10 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 删除缓存数据
    */
-  async delete(key: string, options?: CacheOperationOptions): Promise<CacheDeleteResult> {
+  async delete(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<CacheDeleteResult> {
     this.stats.operations++;
     const startTime = Date.now();
 
@@ -752,8 +791,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'delete',
+        status: "success",
+        operation: "delete",
         timestamp: Date.now(),
         duration,
         key,
@@ -773,8 +812,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'delete',
+        status: "error",
+        operation: "delete",
         timestamp: Date.now(),
         duration,
         key,
@@ -788,7 +827,10 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 检查键是否存在
    */
-  async exists(key: string, options?: CacheOperationOptions): Promise<BaseCacheResult<boolean>> {
+  async exists(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<boolean>> {
     this.stats.operations++;
     const startTime = Date.now();
 
@@ -800,8 +842,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: Date.now(),
         duration,
         data: exists === 1,
@@ -817,8 +859,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: Date.now(),
         duration,
         data: false,
@@ -830,7 +872,10 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 获取键的TTL
    */
-  async ttl(key: string, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
+  async ttl(
+    key: string,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<number>> {
     this.stats.operations++;
     const startTime = Date.now();
 
@@ -843,8 +888,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: Date.now(),
         duration,
         data: ttlSeconds || -1,
@@ -860,8 +905,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: Date.now(),
         duration,
         data: -1,
@@ -873,7 +918,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 设置键的过期时间
    */
-  async expire(key: string, ttl: number, options?: CacheOperationOptions): Promise<BaseCacheResult<boolean>> {
+  async expire(
+    key: string,
+    ttl: number,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<boolean>> {
     this.stats.operations++;
     const startTime = Date.now();
 
@@ -886,8 +935,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'set',
+        status: "success",
+        operation: "set",
         timestamp: Date.now(),
         duration,
         data: success,
@@ -904,8 +953,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'set',
+        status: "error",
+        operation: "set",
         timestamp: Date.now(),
         duration,
         data: false,
@@ -919,15 +968,18 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 批量获取缓存数据
    */
-  async batchGet<T = any>(keys: string[], options?: BatchOperationOptions): Promise<CacheBatchResult<T>> {
+  async batchGet<T = any>(
+    keys: string[],
+    options?: BatchOperationOptions,
+  ): Promise<CacheBatchResult<T>> {
     this.stats.operations++;
     const startTime = Date.now();
 
     if (keys.length === 0) {
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: Date.now(),
         duration: 0,
         data: [],
@@ -959,8 +1011,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
           return {
             success: true,
-            status: 'success' as const,
-            operation: 'get' as const,
+            status: "success" as const,
+            operation: "get" as const,
             timestamp: Date.now(),
             duration: 0,
             data,
@@ -981,11 +1033,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: Date.now(),
         duration,
-        data: results.map(r => r.data),
+        data: results.map((r) => r.data),
         successCount,
         failureCount,
         totalCount: keys.length,
@@ -1005,8 +1057,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       // 返回所有失败结果
       const failedResults = keys.map(() => ({
         success: false,
-        status: 'error' as const,
-        operation: 'get' as const,
+        status: "error" as const,
+        operation: "get" as const,
         timestamp: Date.now(),
         duration: 0,
         data: null,
@@ -1015,8 +1067,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: Date.now(),
         duration,
         data: [],
@@ -1032,15 +1084,18 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 批量设置缓存数据
    */
-  async batchSet<T = any>(items: Array<{key: string, value: T, ttl?: number}>, options?: BatchOperationOptions): Promise<CacheBatchResult<boolean>> {
+  async batchSet<T = any>(
+    items: Array<{ key: string; value: T; ttl?: number }>,
+    options?: BatchOperationOptions,
+  ): Promise<CacheBatchResult<boolean>> {
     this.stats.operations++;
     const startTime = Date.now();
 
     if (items.length === 0) {
       return {
         success: true,
-        status: 'success',
-        operation: 'set',
+        status: "success",
+        operation: "set",
         timestamp: Date.now(),
         duration: 0,
         data: [],
@@ -1074,7 +1129,7 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
             key,
             data: processedData,
             compressed: isCompressed,
-            ttl: ttl || CACHE_CONFIG.TTL.DEFAULT_SECONDS
+            ttl: ttl || CACHE_CONFIG.TTL.DEFAULT_SECONDS,
           };
         }),
       );
@@ -1098,8 +1153,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
         const success = pipelineResults?.[index]?.[1] === "OK";
         return {
           success,
-          status: success ? 'success' as const : 'error' as const,
-          operation: 'set' as const,
+          status: success ? ("success" as const) : ("error" as const),
+          operation: "set" as const,
           timestamp: Date.now(),
           duration: 0,
           data: success,
@@ -1120,11 +1175,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: successCount > 0,
-        status: successCount === items.length ? 'success' : 'error',
-        operation: 'set',
+        status: successCount === items.length ? "success" : "error",
+        operation: "set",
         timestamp: Date.now(),
         duration,
-        data: results.map(r => r.data),
+        data: results.map((r) => r.data),
         successCount,
         failureCount,
         totalCount: items.length,
@@ -1144,8 +1199,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       // 返回所有失败结果
       const failedResults = items.map(() => ({
         success: false,
-        status: 'error' as const,
-        operation: 'set' as const,
+        status: "error" as const,
+        operation: "set" as const,
         timestamp: Date.now(),
         duration: 0,
         data: false,
@@ -1154,8 +1209,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'set',
+        status: "error",
+        operation: "set",
         timestamp: Date.now(),
         duration,
         data: [],
@@ -1171,15 +1226,18 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 批量删除缓存数据
    */
-  async batchDelete(keys: string[], options?: BatchOperationOptions): Promise<CacheBatchResult<boolean>> {
+  async batchDelete(
+    keys: string[],
+    options?: BatchOperationOptions,
+  ): Promise<CacheBatchResult<boolean>> {
     this.stats.operations++;
     const startTime = Date.now();
 
     if (keys.length === 0) {
       return {
         success: true,
-        status: 'success',
-        operation: 'delete',
+        status: "success",
+        operation: "delete",
         timestamp: Date.now(),
         duration: 0,
         data: [],
@@ -1197,8 +1255,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       // 简化处理：假设删除是原子操作
       const results = keys.map(() => ({
         success: true,
-        status: 'success' as const,
-        operation: 'delete' as const,
+        status: "success" as const,
+        operation: "delete" as const,
         timestamp: Date.now(),
         duration: 0,
         data: true,
@@ -1216,11 +1274,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: deletedCount > 0,
-        status: deletedCount === keys.length ? 'success' : 'error',
-        operation: 'delete',
+        status: deletedCount === keys.length ? "success" : "error",
+        operation: "delete",
         timestamp: Date.now(),
         duration,
-        data: results.map(r => r.data),
+        data: results.map((r) => r.data),
         successCount,
         failureCount,
         totalCount: keys.length,
@@ -1240,8 +1298,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       // 返回所有失败结果
       const failedResults = keys.map(() => ({
         success: false,
-        status: 'error' as const,
-        operation: 'delete' as const,
+        status: "error" as const,
+        operation: "delete" as const,
         timestamp: Date.now(),
         duration: 0,
         data: false,
@@ -1250,8 +1308,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'delete',
+        status: "error",
+        operation: "delete",
         timestamp: Date.now(),
         duration,
         data: [],
@@ -1267,12 +1325,15 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
   /**
    * 清理缓存数据（按模式）
    */
-  async clear(pattern?: string, options?: CacheOperationOptions): Promise<CacheDeleteResult> {
+  async clear(
+    pattern?: string,
+    options?: CacheOperationOptions,
+  ): Promise<CacheDeleteResult> {
     this.stats.operations++;
     const startTime = Date.now();
 
     try {
-      const searchPattern = pattern || '*';
+      const searchPattern = pattern || "*";
 
       // 获取匹配的键
       const keys = await this.redis.keys(searchPattern);
@@ -1281,8 +1342,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       if (keys.length === 0) {
         return {
           success: true,
-          status: 'success',
-          operation: 'delete',
+          status: "success",
+          operation: "delete",
           timestamp: Date.now(),
           duration,
           key: searchPattern,
@@ -1303,8 +1364,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'delete',
+        status: "success",
+        operation: "delete",
         timestamp: Date.now(),
         duration: finalDuration,
         key: searchPattern,
@@ -1324,11 +1385,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: false,
-        status: 'error',
-        operation: 'delete',
+        status: "error",
+        operation: "delete",
         timestamp: Date.now(),
         duration,
-        key: pattern || '*',
+        key: pattern || "*",
         data: false,
         deletedCount: 0,
         error: error instanceof Error ? error.message : String(error),
@@ -1338,28 +1399,40 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
   // ==================== Advanced Operations ====================
 
-  async increment(key: string, increment?: number, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
+  async increment(
+    key: string,
+    increment?: number,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<number>> {
     // TODO: 实现数字递增
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
-  async decrement(key: string, decrement?: number, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
+  async decrement(
+    key: string,
+    decrement?: number,
+    options?: CacheOperationOptions,
+  ): Promise<BaseCacheResult<number>> {
     // TODO: 实现数字递减
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
   async getOrSet<T = any>(
     key: string,
     factory: () => Promise<T> | T,
-    options?: CacheOperationOptions
+    options?: CacheOperationOptions,
   ): Promise<CacheGetResult<T>> {
     // TODO: 实现获取或设置
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
-  async setIfNotExists<T = any>(key: string, value: T, options?: CacheOperationOptions): Promise<CacheSetResult> {
+  async setIfNotExists<T = any>(
+    key: string,
+    value: T,
+    options?: CacheOperationOptions,
+  ): Promise<CacheSetResult> {
     // TODO: 实现条件设置
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
   // ==================== Monitoring Methods ====================
@@ -1369,14 +1442,16 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
    */
   async getStats(timeRangeMs?: number): Promise<CacheStatsResult> {
     const totalOperations = this.stats.operations;
-    const hitRate = totalOperations > 0 ? (this.stats.cacheHits / totalOperations) * 100 : 0;
-    const errorRate = totalOperations > 0 ? (this.stats.errors / totalOperations) * 100 : 0;
+    const hitRate =
+      totalOperations > 0 ? (this.stats.cacheHits / totalOperations) * 100 : 0;
+    const errorRate =
+      totalOperations > 0 ? (this.stats.errors / totalOperations) * 100 : 0;
     const startTime = Date.now();
 
     return {
       success: true,
-      status: 'success',
-      operation: 'get',
+      status: "success",
+      operation: "get",
       timestamp: startTime,
       data: {
         hits: this.stats.cacheHits,
@@ -1411,8 +1486,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     const startTime = Date.now();
     return {
       success: true,
-      status: 'success',
-      operation: 'set',
+      status: "success",
+      operation: "set",
       timestamp: startTime,
       duration: Date.now() - startTime,
       data: true,
@@ -1433,33 +1508,33 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       // 获取Redis info
       const info = await this.redis.info();
-      const isHealthy = info.includes('redis_version');
+      const isHealthy = info.includes("redis_version");
 
       const checks = [
         {
-          name: 'Redis Connection',
-          status: 'pass' as const,
-          description: 'Redis connection is active',
+          name: "Redis Connection",
+          status: "pass" as const,
+          description: "Redis connection is active",
           duration: pingDuration,
         },
         {
-          name: 'Response Time',
-          status: pingDuration < 100 ? 'pass' as const : 'warn' as const,
+          name: "Response Time",
+          status: pingDuration < 100 ? ("pass" as const) : ("warn" as const),
           description: `Ping response: ${pingDuration}ms`,
           duration: pingDuration,
-        }
+        },
       ];
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: startTime,
         data: {
-          connectionStatus: isHealthy ? 'connected' : 'disconnected',
-          memoryStatus: 'healthy',
-          performanceStatus: pingDuration < 100 ? 'healthy' : 'degraded',
-          errorRateStatus: this.stats.errors < 10 ? 'healthy' : 'critical',
+          connectionStatus: isHealthy ? "connected" : "disconnected",
+          memoryStatus: "healthy",
+          performanceStatus: pingDuration < 100 ? "healthy" : "degraded",
+          errorRateStatus: this.stats.errors < 10 ? "healthy" : "critical",
           lastCheckTime: Date.now(),
           uptimeMs: Date.now(),
         },
@@ -1469,24 +1544,24 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     } catch (error) {
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: startTime,
         data: {
-          connectionStatus: 'disconnected',
-          memoryStatus: 'critical',
-          performanceStatus: 'poor',
-          errorRateStatus: 'critical',
+          connectionStatus: "disconnected",
+          memoryStatus: "critical",
+          performanceStatus: "poor",
+          errorRateStatus: "critical",
           lastCheckTime: Date.now(),
           uptimeMs: Date.now(),
         },
         checks: [
           {
-            name: 'Redis Connection',
-            status: 'fail',
+            name: "Redis Connection",
+            status: "fail",
             description: `Connection failed: ${error.message}`,
             duration: Date.now() - startTime,
-          }
+          },
         ],
         healthScore: 0,
         error: error instanceof Error ? error.message : String(error),
@@ -1501,17 +1576,20 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     const startTime = Date.now();
 
     try {
-      const memoryInfo = await this.redis.info('memory');
+      const memoryInfo = await this.redis.info("memory");
       const memoryData = this.parseRedisInfo(memoryInfo);
 
-      const usedMemory = parseInt(memoryData.used_memory || '0', 10);
-      const totalMemory = parseInt(memoryData.total_system_memory || '0', 10);
-      const keyCount = parseInt(memoryData.db0?.split(',')[0]?.split('=')[1] || '0', 10);
+      const usedMemory = parseInt(memoryData.used_memory || "0", 10);
+      const totalMemory = parseInt(memoryData.total_system_memory || "0", 10);
+      const keyCount = parseInt(
+        memoryData.db0?.split(",")[0]?.split("=")[1] || "0",
+        10,
+      );
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: startTime,
         duration: Date.now() - startTime,
         data: {
@@ -1525,8 +1603,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     } catch (error) {
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: startTime,
         duration: Date.now() - startTime,
         data: {
@@ -1548,35 +1626,35 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     const startTime = Date.now();
 
     try {
-      const info = await this.redis.info('server');
+      const info = await this.redis.info("server");
       const serverData = this.parseRedisInfo(info);
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: startTime,
         duration: Date.now() - startTime,
         data: {
-          status: 'connected',
-          address: 'localhost',
+          status: "connected",
+          address: "localhost",
           port: 6379,
-          redisVersion: serverData.redis_version || 'unknown',
+          redisVersion: serverData.redis_version || "unknown",
           connectedAt: Date.now(),
           lastHeartbeat: Date.now(),
-          uptime: parseInt(serverData.uptime_in_seconds || '0', 10),
+          uptime: parseInt(serverData.uptime_in_seconds || "0", 10),
         },
       };
     } catch (error) {
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: startTime,
         duration: Date.now() - startTime,
         data: {
-          status: 'disconnected',
-          address: 'localhost',
+          status: "disconnected",
+          address: "localhost",
           port: 6379,
           connectedAt: null,
           lastHeartbeat: null,
@@ -1599,8 +1677,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
 
       return {
         success: true,
-        status: 'success',
-        operation: 'get',
+        status: "success",
+        operation: "get",
         timestamp: startTime,
         duration,
         data: duration,
@@ -1608,8 +1686,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     } catch (error) {
       return {
         success: false,
-        status: 'error',
-        operation: 'get',
+        status: "error",
+        operation: "get",
         timestamp: startTime,
         duration: Date.now() - startTime,
         data: -1,
@@ -1623,11 +1701,11 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
    */
   private parseRedisInfo(infoText: string): Record<string, any> {
     const result: Record<string, any> = {};
-    const lines = infoText.split('\r\n');
+    const lines = infoText.split("\r\n");
 
     for (const line of lines) {
-      if (line.includes(':')) {
-        const [key, value] = line.split(':');
+      if (line.includes(":")) {
+        const [key, value] = line.split(":");
         result[key] = value;
       }
     }
@@ -1635,19 +1713,25 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     return result;
   }
 
-  async getKeys(pattern?: string, limit?: number): Promise<BaseCacheResult<string[]>> {
+  async getKeys(
+    pattern?: string,
+    limit?: number,
+  ): Promise<BaseCacheResult<string[]>> {
     // TODO: 实现键列表获取
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
-  async exportData(pattern?: string, format?: 'json' | 'csv'): Promise<BaseCacheResult<any>> {
+  async exportData(
+    pattern?: string,
+    format?: "json" | "csv",
+  ): Promise<BaseCacheResult<any>> {
     // TODO: 实现数据导出
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
   async importData(data: any, options?: any): Promise<BaseCacheResult<any>> {
     // TODO: 实现数据导入
-    throw new Error('Method not implemented');
+    throw new Error("Method not implemented");
   }
 
   // ==================== Standardized Monitoring ====================
@@ -1668,7 +1752,7 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       throughput: this.calculateThroughput(),
       hitRate,
       errorRate,
-      memoryEfficiency: 0.90, // Redis is generally very efficient
+      memoryEfficiency: 0.9, // Redis is generally very efficient
       cpuUsage: 0, // 需要系统监控集成
       networkUsage: 0, // 需要系统监控集成
     };
@@ -1679,12 +1763,16 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
    */
   async getCapacityInfo(): Promise<CacheCapacityInfo> {
     try {
-      const memoryInfo = await this.redis.info('memory');
+      const memoryInfo = await this.redis.info("memory");
       const memoryData = this.parseRedisInfo(memoryInfo);
 
-      const currentMemory = parseInt(memoryData.used_memory || '0', 10);
-      const maxMemory = parseInt(memoryData.maxmemory || '0', 10) || 1024 * 1024 * 1024; // 1GB default
-      const currentKeys = parseInt(memoryData.db0?.split(',')[0]?.split('=')[1] || '0', 10);
+      const currentMemory = parseInt(memoryData.used_memory || "0", 10);
+      const maxMemory =
+        parseInt(memoryData.maxmemory || "0", 10) || 1024 * 1024 * 1024; // 1GB default
+      const currentKeys = parseInt(
+        memoryData.db0?.split(",")[0]?.split("=")[1] || "0",
+        10,
+      );
 
       return {
         currentKeys,
@@ -1724,16 +1812,16 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
     return {
       totalErrors: this.stats.errors,
       errorsByType: {
-        'connection': 0,
-        'timeout': 0,
-        'compression': 0,
-        'serialization': 0,
+        connection: 0,
+        timeout: 0,
+        compression: 0,
+        serialization: 0,
       },
       errorsBySeverity: {
         low: 0,
         medium: 0,
         high: 0,
-        critical: 0
+        critical: 0,
       },
       recentErrors: [], // 需要错误历史记录系统
       errorTrend: [], // 需要时序数据收集
@@ -1744,8 +1832,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
    * 运行诊断
    */
   async runDiagnostics(): Promise<DiagnosticsResult> {
-    const issues: DiagnosticsResult['issues'] = [];
-    const checks: DiagnosticsResult['checks'] = [];
+    const issues: DiagnosticsResult["issues"] = [];
+    const checks: DiagnosticsResult["checks"] = [];
     let totalScore = 0;
     let checkCount = 0;
 
@@ -1755,93 +1843,115 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       await this.redis.ping();
       const pingDuration = Date.now() - pingStart;
 
-      const connectionScore = pingDuration < 50 ? 100 : pingDuration < 100 ? 80 : 50;
+      const connectionScore =
+        pingDuration < 50 ? 100 : pingDuration < 100 ? 80 : 50;
       checks.push({
-        name: 'Redis Connection',
-        status: pingDuration < 100 ? 'pass' : 'warn',
+        name: "Redis Connection",
+        status: pingDuration < 100 ? "pass" : "warn",
         score: connectionScore,
         message: `Ping response: ${pingDuration}ms`,
-        recommendation: pingDuration > 100 ? 'Check network latency and Redis server performance' : undefined,
+        recommendation:
+          pingDuration > 100
+            ? "Check network latency and Redis server performance"
+            : undefined,
       });
       totalScore += connectionScore;
       checkCount++;
 
       // 性能检查
-      const errorRate = this.stats.operations > 0 ? (this.stats.errors / this.stats.operations) * 100 : 0;
+      const errorRate =
+        this.stats.operations > 0
+          ? (this.stats.errors / this.stats.operations) * 100
+          : 0;
       const performanceScore = errorRate < 1 ? 100 : errorRate < 5 ? 80 : 50;
       checks.push({
-        name: 'Performance',
-        status: errorRate < 5 ? 'pass' : 'warn',
+        name: "Performance",
+        status: errorRate < 5 ? "pass" : "warn",
         score: performanceScore,
         message: `Error rate: ${errorRate.toFixed(2)}%`,
-        recommendation: errorRate > 5 ? 'Investigate error causes and optimize operations' : undefined,
+        recommendation:
+          errorRate > 5
+            ? "Investigate error causes and optimize operations"
+            : undefined,
       });
       totalScore += performanceScore;
       checkCount++;
 
       // 内存检查
       try {
-        const memoryInfo = await this.redis.info('memory');
+        const memoryInfo = await this.redis.info("memory");
         const memoryData = this.parseRedisInfo(memoryInfo);
-        const usedMemory = parseInt(memoryData.used_memory || '0', 10);
-        const maxMemory = parseInt(memoryData.maxmemory || '0', 10) || 1024 * 1024 * 1024;
+        const usedMemory = parseInt(memoryData.used_memory || "0", 10);
+        const maxMemory =
+          parseInt(memoryData.maxmemory || "0", 10) || 1024 * 1024 * 1024;
         const memoryUsage = usedMemory / maxMemory;
 
-        const memoryScore = memoryUsage < 0.8 ? 100 : memoryUsage < 0.9 ? 80 : 50;
+        const memoryScore =
+          memoryUsage < 0.8 ? 100 : memoryUsage < 0.9 ? 80 : 50;
         checks.push({
-          name: 'Memory Usage',
-          status: memoryUsage < 0.9 ? 'pass' : 'warn',
+          name: "Memory Usage",
+          status: memoryUsage < 0.9 ? "pass" : "warn",
           score: memoryScore,
           message: `Memory usage: ${(memoryUsage * 100).toFixed(1)}%`,
-          recommendation: memoryUsage > 0.8 ? 'Consider increasing Redis memory limit or optimizing data storage' : undefined,
+          recommendation:
+            memoryUsage > 0.8
+              ? "Consider increasing Redis memory limit or optimizing data storage"
+              : undefined,
         });
         totalScore += memoryScore;
         checkCount++;
 
         if (memoryUsage > 0.95) {
           issues.push({
-            severity: 'critical',
-            category: 'memory',
-            description: 'Redis memory usage is critically high',
-            impact: 'May cause Redis to start evicting keys or crash',
-            solution: 'Increase Redis memory limit or optimize data usage',
+            severity: "critical",
+            category: "memory",
+            description: "Redis memory usage is critically high",
+            impact: "May cause Redis to start evicting keys or crash",
+            solution: "Increase Redis memory limit or optimize data usage",
           });
         }
       } catch (memoryError) {
         checks.push({
-          name: 'Memory Usage',
-          status: 'fail',
+          name: "Memory Usage",
+          status: "fail",
           score: 0,
           message: `Memory check failed: ${memoryError.message}`,
         });
       }
-
     } catch (connectionError) {
       checks.push({
-        name: 'Redis Connection',
-        status: 'fail',
+        name: "Redis Connection",
+        status: "fail",
         score: 0,
         message: `Connection failed: ${connectionError.message}`,
       });
 
       issues.push({
-        severity: 'critical',
-        category: 'connectivity',
-        description: 'Redis connection is not available',
-        impact: 'All cache operations will fail',
-        solution: 'Check Redis server status and connection configuration',
+        severity: "critical",
+        category: "connectivity",
+        description: "Redis connection is not available",
+        impact: "All cache operations will fail",
+        solution: "Check Redis server status and connection configuration",
       });
     }
 
-    const overallHealthScore = checkCount > 0 ? Math.round(totalScore / checkCount) : 0;
+    const overallHealthScore =
+      checkCount > 0 ? Math.round(totalScore / checkCount) : 0;
 
     // 性能建议
     const performanceRecommendations: string[] = [];
     if (this.stats.compressionSaves === 0 && this.stats.operations > 100) {
-      performanceRecommendations.push('Consider enabling compression for large data payloads');
+      performanceRecommendations.push(
+        "Consider enabling compression for large data payloads",
+      );
     }
-    if (this.stats.decompressionOperations > this.stats.compressionSaves * 0.8) {
-      performanceRecommendations.push('High decompression activity detected, monitor CPU usage');
+    if (
+      this.stats.decompressionOperations >
+      this.stats.compressionSaves * 0.8
+    ) {
+      performanceRecommendations.push(
+        "High decompression activity detected, monitor CPU usage",
+      );
     }
 
     return {
@@ -1850,8 +1960,8 @@ export class StandardizedCacheService implements StandardCacheModuleInterface, O
       issues,
       performanceRecommendations,
       configurationRecommendations: [
-        'Regular health checks recommended every 5 minutes',
-        'Consider setting up monitoring alerts for error rates > 5%',
+        "Regular health checks recommended every 5 minutes",
+        "Consider setting up monitoring alerts for error rates > 5%",
       ],
     };
   }

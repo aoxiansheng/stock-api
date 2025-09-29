@@ -1,287 +1,360 @@
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ApiKeyRepository } from '@auth/repositories/apikey.repository';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { ApiKey, ApiKeyDocument } from '@auth/schemas/apikey.schema';
+import { ApiKey, ApiKeyDocument, ApiKeySchema } from '@auth/schemas/apikey.schema';
 import { Permission } from '@auth/enums/user-role.enum';
 import { OperationStatus } from '@common/types/enums/shared-base.enum';
+import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { UnitTestSetup } from '@test/testbasic/setup/unit-test-setup';
+import { TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 
 describe('ApiKeyRepository', () => {
   let repository: ApiKeyRepository;
-  let apiKeyModel: jest.Mocked<Model<ApiKeyDocument>>;
-  let paginationService: jest.Mocked<PaginationService>;
+  let apiKeyModel: Model<ApiKeyDocument>;
+  let paginationService: PaginationService;
+  let testContext: TestingModule;
 
-  const mockApiKey: ApiKeyDocument = {
-    id: '60f7e2c3e4b2b8001f9b3b3a',
-    userId: new Types.ObjectId('60f7e2c3e4b2b8001f9b3b3b'),
-    appKey: 'app-key',
-    accessToken: 'access-token',
-    name: 'Test API Key',
-    permissions: [Permission.DATA_READ],
-    status: OperationStatus.ACTIVE,
-    rateLimit: {
-      requestLimit: 1000,
-      window: '1h',
-    },
-    expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-    totalRequestCount: 0,
-    lastAccessedAt: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    save: jest.fn().mockResolvedValue(this),
-    toJSON: jest.fn().mockReturnValue({
-      id: '60f7e2c3e4b2b8001f9b3b3a',
-      userId: '60f7e2c3e4b2b8001f9b3b3b',
-      appKey: 'app-key',
-      name: 'Test API Key',
-      permissions: [Permission.DATA_READ],
-      status: OperationStatus.ACTIVE,
-    }),
-  } as unknown as ApiKeyDocument;
-
-  beforeEach(async () => {
-    const mockApiKeyModel = {
-      new: jest.fn().mockImplementation(dto => ({ ...dto, save: jest.fn().mockResolvedValue({ ...mockApiKey, ...dto }) })),
-      constructor: jest.fn().mockResolvedValue(mockApiKey),
-      save: jest.fn(),
-      findById: jest.fn(),
-      find: jest.fn(),
-      findOne: jest.fn(),
-      countDocuments: jest.fn(),
-      findByIdAndUpdate: jest.fn(),
-      findByIdAndDelete: jest.fn(),
-      updateMany: jest.fn(),
-      aggregate: jest.fn(),
-    };
-
-    const mockPaginationService = {
-      normalizePaginationQuery: jest.fn().mockImplementation((query) => ({ page: query.page || 1, limit: query.limit || 10 })),
-      calculateSkip: jest.fn().mockImplementation((page, limit) => (page - 1) * limit),
-      createPagination: jest.fn().mockImplementation((page, limit, total) => ({
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      })),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    testContext = await UnitTestSetup.createBasicTestModule({
+      imports: [
+        MongooseModule.forRootAsync({
+          useFactory: async (configService: ConfigService) => ({
+            uri: configService.get<string>('MONGODB_URI'),
+          }),
+          inject: [ConfigService],
+        }),
+        MongooseModule.forFeature([{ name: ApiKey.name, schema: ApiKeySchema }]),
+      ],
       providers: [
         ApiKeyRepository,
-        {
-          provide: getModelToken(ApiKey.name),
-          useValue: mockApiKeyModel,
-        },
-        {
-          provide: PaginationService,
-          useValue: mockPaginationService,
-        },
+        PaginationService,
       ],
-    }).compile();
+    });
 
-    repository = module.get<ApiKeyRepository>(ApiKeyRepository);
-    apiKeyModel = module.get(getModelToken(ApiKey.name));
-    paginationService = module.get(PaginationService);
+    await testContext.init();
+
+    repository = await UnitTestSetup.validateServiceInjection<ApiKeyRepository>(
+      testContext,
+      ApiKeyRepository,
+      ApiKeyRepository
+    );
+    apiKeyModel = UnitTestSetup.getService<Model<ApiKeyDocument>>(
+      testContext,
+      getModelToken(ApiKey.name)
+    );
+    paginationService = await UnitTestSetup.validateServiceInjection<PaginationService>(
+      testContext,
+      PaginationService,
+      PaginationService
+    );
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  afterAll(async () => {
+    await UnitTestSetup.cleanupModule(testContext);
+  });
+
+  beforeEach(async () => {
+    // 清理测试数据
+    if (apiKeyModel) {
+      await apiKeyModel.deleteMany({});
+    }
   });
 
   describe('create', () => {
     it('should create a new API Key successfully', async () => {
+      const testUserId = new Types.ObjectId();
       const apiKeyData: Partial<ApiKey> = {
-        userId: new Types.ObjectId('60f7e2c3e4b2b8001f9b3b3b'),
-        appKey: 'app-key',
-        accessToken: 'access-token',
+        userId: testUserId,
+        appKey: `app-key-${Date.now()}`,
+        accessToken: `access-token-${Date.now()}`,
         name: 'Test API Key',
         permissions: [Permission.DATA_READ],
         status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       };
 
       const result = await repository.create(apiKeyData);
 
       expect(result).toBeDefined();
-      expect(result.appKey).toEqual(apiKeyData.appKey);
+      expect(result.appKey).toBe(apiKeyData.appKey);
+      expect(result.accessToken).toBe(apiKeyData.accessToken);
+      expect(result.name).toBe(apiKeyData.name);
+      expect(result.userId.toString()).toBe(testUserId.toString());
+      expect(result.permissions).toEqual([Permission.DATA_READ]);
+      expect(result.status).toBe(OperationStatus.ACTIVE);
+
+      // 验证数据库中确实创建了记录
+      const foundInDb = await apiKeyModel.findById(result.id);
+      expect(foundInDb).toBeDefined();
+      expect(foundInDb.appKey).toBe(apiKeyData.appKey);
     });
 
     it('should create an API Key without a userId', async () => {
       const apiKeyData: Partial<ApiKey> = {
-        appKey: 'app-key-no-user',
-        accessToken: 'access-token-no-user',
+        appKey: `app-key-no-user-${Date.now()}`,
+        accessToken: `access-token-no-user-${Date.now()}`,
         name: 'Test API Key No User',
         permissions: [Permission.DATA_READ],
         status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
       };
 
       const result = await repository.create(apiKeyData);
+
       expect(result).toBeDefined();
+      expect(result.appKey).toBe(apiKeyData.appKey);
       expect(result.userId).toBeUndefined();
+
+      // 验证数据库中确实创建了记录
+      const foundInDb = await apiKeyModel.findById(result.id);
+      expect(foundInDb).toBeDefined();
+      expect(foundInDb.userId).toBeUndefined();
     });
 
     it('should throw an error for an invalid userId format', async () => {
-      const apiKeyData = { userId: 'invalid-id' };
-      await expect(repository.create(apiKeyData as any)).rejects.toThrow('用户ID格式无效');
+      const apiKeyData = {
+        userId: 'invalid-id',
+        appKey: `app-key-invalid-${Date.now()}`,
+        accessToken: `access-token-invalid-${Date.now()}`,
+      };
+
+      await expect(repository.create(apiKeyData as any)).rejects.toThrow('无效的用户ID格式');
+    });
+
+    it('should create API Key with default values', async () => {
+      const apiKeyData: Partial<ApiKey> = {
+        appKey: `app-key-defaults-${Date.now()}`,
+        accessToken: `access-token-defaults-${Date.now()}`,
+        name: 'Test Default Values',
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
+      };
+
+      const result = await repository.create(apiKeyData);
+
+      expect(result).toBeDefined();
+      expect(result.permissions).toBeDefined();
+      expect(result.status).toBeDefined();
+      expect(result.totalRequestCount).toBe(0);
+      expect((result as any).createdAt).toBeDefined();
+      expect((result as any).updatedAt).toBeDefined();
     });
   });
 
   describe('findById', () => {
+    let createdApiKey: ApiKeyDocument;
+
+    beforeEach(async () => {
+      // 创建测试数据
+      const testData = {
+        appKey: `test-app-key-${Date.now()}`,
+        accessToken: `test-access-token-${Date.now()}`,
+        name: 'Test API Key for findById',
+        permissions: [Permission.DATA_READ],
+        status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
+      };
+
+      createdApiKey = await repository.create(testData);
+    });
+
     it('should find an API Key by ID successfully', async () => {
-      const apiKeyId = '60f7e2c3e4b2b8001f9b3b3a';
-      (apiKeyModel.findById as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(mockApiKey) });
-      const result = await repository.findById(apiKeyId);
-      expect(result).toEqual(mockApiKey);
-      expect(apiKeyModel.findById).toHaveBeenCalledWith(apiKeyId);
+      const result = await repository.findById(createdApiKey.id);
+
+      expect(result).toBeDefined();
+      expect(result.id.toString()).toBe(createdApiKey.id.toString());
+      expect(result.appKey).toBe(createdApiKey.appKey);
+      expect(result.accessToken).toBe(createdApiKey.accessToken);
+      expect(result.name).toBe(createdApiKey.name);
     });
 
     it('should return null if API Key is not found', async () => {
-      const apiKeyId = '60f7e2c3e4b2b8001f9b3b3c';
-      (apiKeyModel.findById as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
-      const result = await repository.findById(apiKeyId);
+      const nonExistentId = new Types.ObjectId().toString();
+      const result = await repository.findById(nonExistentId);
       expect(result).toBeNull();
     });
 
     it('should throw an error for an invalid ID format', async () => {
-      await expect(repository.findById('invalid-id')).rejects.toThrow('API Key ID格式无效');
+      await expect(repository.findById('invalid-id')).rejects.toThrow('无效的API Key ID格式');
+    });
+
+    it('should throw an error for empty ID', async () => {
+      await expect(repository.findById('')).rejects.toThrow('无效的API Key ID格式');
+    });
+
+    it('should throw an error for null ID', async () => {
+      await expect(repository.findById(null as any)).rejects.toThrow('无效的API Key ID格式');
     });
   });
 
-  describe('findAllPaginated', () => {
-    it('should return paginated API keys for a user', async () => {
-      const page = 1, limit = 10, userId = '60f7e2c3e4b2b8001f9b3b3b';
-      const apiKeys = [mockApiKey];
-      const total = 1;
+  describe('findByAppKey', () => {
+    let testApiKey: ApiKeyDocument;
 
-      (apiKeyModel.find as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue(apiKeys),
+    beforeEach(async () => {
+      testApiKey = await repository.create({
+        appKey: `unique-app-key-${Date.now()}`,
+        accessToken: `unique-access-token-${Date.now()}`,
+        name: 'Test findByAppKey',
+        permissions: [Permission.DATA_READ],
+        status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
       });
-      (apiKeyModel.countDocuments as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(total) });
-
-      const result = await repository.findAllPaginated(page, limit, userId);
-
-      expect(result.apiKeys).toEqual(apiKeys);
-      expect(result.total).toBe(total);
-      expect(apiKeyModel.find).toHaveBeenCalledWith({ userId, status: OperationStatus.ACTIVE });
     });
 
-    it('should return all paginated API keys when includeInactive is true', async () => {
-      const page = 1, limit = 10, userId = '60f7e2c3e4b2b8001f9b3b3b';
-      (apiKeyModel.find as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([mockApiKey]),
+    it('should find API key by app key', async () => {
+      const result = await repository.findByAppKey(testApiKey.appKey);
+
+      expect(result).toBeDefined();
+      expect(result.appKey).toBe(testApiKey.appKey);
+      expect(result.id.toString()).toBe(testApiKey.id.toString());
+    });
+
+    it('should return null for non-existent app key', async () => {
+      const result = await repository.findByAppKey('non-existent-app-key');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByAccessToken', () => {
+    let testApiKey: ApiKeyDocument;
+
+    beforeEach(async () => {
+      testApiKey = await repository.create({
+        appKey: `app-key-token-test-${Date.now()}`,
+        accessToken: `unique-access-token-${Date.now()}`,
+        name: 'Test findByAccessToken',
+        permissions: [Permission.DATA_READ],
+        status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
       });
-      (apiKeyModel.countDocuments as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
-
-      await repository.findAllPaginated(page, limit, userId, true);
-      expect(apiKeyModel.find).toHaveBeenCalledWith({ userId });
     });
 
-    it('should return paginated API keys without a userId', async () => {
-        const page = 1, limit = 10;
-        (apiKeyModel.find as jest.Mock).mockReturnValue({
-            select: jest.fn().mockReturnThis(),
-            sort: jest.fn().mockReturnThis(),
-            skip: jest.fn().mockReturnThis(),
-            limit: jest.fn().mockReturnThis(),
-            exec: jest.fn().mockResolvedValue([mockApiKey]),
-        });
-        (apiKeyModel.countDocuments as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(1) });
+    it('should find API key by access token', async () => {
+      const result = await repository.findByAccessToken(testApiKey.accessToken);
 
-        await repository.findAllPaginated(page, limit);
-        expect(apiKeyModel.find).toHaveBeenCalledWith({ status: OperationStatus.ACTIVE });
+      expect(result).toBeDefined();
+      expect(result.accessToken).toBe(testApiKey.accessToken);
+      expect(result.id.toString()).toBe(testApiKey.id.toString());
+    });
+
+    it('should return null for non-existent access token', async () => {
+      const result = await repository.findByAccessToken('non-existent-access-token');
+      expect(result).toBeNull();
     });
   });
 
-  describe('getStats', () => {
-    it('should return stats for a specific user', async () => {
-      const userId = '60f7e2c3e4b2b8001f9b3b3b';
-      (apiKeyModel.countDocuments as jest.Mock)
-        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(5) })
-        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(3) })
-        .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(1) });
-      (apiKeyModel.aggregate as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue([{ totalRequests: 100, avgRequestsPerKey: 20 }]) });
+  describe('updateStatus', () => {
+    let testApiKey: ApiKeyDocument;
 
-      const result = await repository.getStats(userId);
-
-      expect(result.totalApiKeys).toBe(5);
-      expect(result.activeApiKeys).toBe(3);
-      expect(result.expiredApiKeys).toBe(1);
-      expect(result.deletedApiKeys).toBe(1);
-      expect(result.totalRequests).toBe(100);
-    });
-
-    it('should return empty stats when no API keys exist for a user', async () => {
-        const userId = '60f7e2c3e4b2b8001f9b3b3c';
-        (apiKeyModel.countDocuments as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(0) });
-        (apiKeyModel.aggregate as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue([]) });
-  
-        const result = await repository.getStats(userId);
-  
-        expect(result.totalApiKeys).toBe(0);
-        expect(result.activeApiKeys).toBe(0);
-        expect(result.expiredApiKeys).toBe(0);
-        expect(result.totalRequests).toBe(0);
+    beforeEach(async () => {
+      testApiKey = await repository.create({
+        appKey: `app-key-status-test-${Date.now()}`,
+        accessToken: `access-token-status-test-${Date.now()}`,
+        name: 'Test updateStatus',
+        status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
       });
+    });
 
-    it('should return stats for all users if no userId is provided', async () => {
-        (apiKeyModel.countDocuments as jest.Mock)
-            .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(10) })
-            .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(8) })
-            .mockReturnValueOnce({ exec: jest.fn().mockResolvedValue(2) });
-        (apiKeyModel.aggregate as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue([{ totalRequests: 500, avgRequestsPerKey: 50 }]) });
+    it('should update API key status', async () => {
+      const result = await repository.updateStatus(testApiKey.id.toString(), OperationStatus.DELETED);
 
-        const result = await repository.getStats();
+      expect(result).toBeDefined();
+      expect(result.status).toBe(OperationStatus.DELETED);
 
-        expect(result.totalApiKeys).toBe(10);
-        expect(result.activeApiKeys).toBe(8);
-        expect(result.expiredApiKeys).toBe(2);
+      // 验证数据库中的状态也被更新
+      const updatedInDb = await apiKeyModel.findById(testApiKey.id);
+      expect(updatedInDb.status).toBe(OperationStatus.DELETED);
+    });
+
+    it('should throw error for invalid ID', async () => {
+      await expect(repository.updateStatus('invalid-id', OperationStatus.DELETED))
+        .rejects.toThrow('无效的API Key ID格式');
     });
   });
 
-  // Add other simple method tests here to ensure full coverage
-  ['findByUserId', 'findActiveByUserId', 'findByAppKey', 'findByAccessToken', 'findByCredentials', 'findAllActive', 'findExpired'].forEach(method => {
-    describe(method, () => {
-        it(`should call the correct model method`, async () => {
-            const modelMock = jest.spyOn(apiKeyModel, method === 'findByCredentials' || method === 'findByAppKey' || method === 'findByAccessToken' ? 'findOne' : 'find');
-            (modelMock as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue([]) });
-            await (repository as any)[method]('test');
-            expect(modelMock).toHaveBeenCalled();
-        });
-    });
-  });
+  describe('softDelete', () => {
+    let testApiKey: ApiKeyDocument;
 
-  ['updateStatus', 'updateUsageStats', 'updateLastAccessTime', 'softDelete'].forEach(method => {
-    describe(method, () => {
-        it(`should call findByIdAndUpdate`, async () => {
-            (apiKeyModel.findByIdAndUpdate as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(mockApiKey) });
-            await (repository as any)[method]('60f7e2c3e4b2b8001f9b3b3a', {});
-            expect(apiKeyModel.findByIdAndUpdate).toHaveBeenCalled();
-        });
+    beforeEach(async () => {
+      testApiKey = await repository.create({
+        appKey: `app-key-soft-delete-${Date.now()}`,
+        accessToken: `access-token-soft-delete-${Date.now()}`,
+        name: 'Test softDelete',
+        status: OperationStatus.ACTIVE,
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
+      });
+    });
+
+    it('should soft delete API key', async () => {
+      const result = await repository.softDelete(testApiKey.id.toString());
+
+      expect(result).toBeDefined();
+
+      // 验证记录仍然存在但状态已更新
+      const deletedInDb = await apiKeyModel.findById(testApiKey.id);
+      expect(deletedInDb).toBeDefined();
+      expect(deletedInDb.status).toBe(OperationStatus.DELETED);
+      expect((deletedInDb as any).deletedAt).toBeDefined();
     });
   });
 
   describe('hardDelete', () => {
-    it('should call findByIdAndDelete', async () => {
-        (apiKeyModel.findByIdAndDelete as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue(mockApiKey) });
-        await repository.hardDelete('60f7e2c3e4b2b8001f9b3b3a');
-        expect(apiKeyModel.findByIdAndDelete).toHaveBeenCalled();
-    });
-  });
+    let testApiKey: ApiKeyDocument;
 
-  describe('softDeleteByUserId', () => {
-    it('should call updateMany', async () => {
-        (apiKeyModel.updateMany as jest.Mock).mockReturnValue({ exec: jest.fn().mockResolvedValue({ modifiedCount: 1 }) });
-        await repository.softDeleteByUserId('60f7e2c3e4b2b8001f9b3b3b');
-        expect(apiKeyModel.updateMany).toHaveBeenCalled();
+    beforeEach(async () => {
+      testApiKey = await repository.create({
+        appKey: `app-key-hard-delete-${Date.now()}`,
+        accessToken: `access-token-hard-delete-${Date.now()}`,
+        name: 'Test hardDelete',
+        status: OperationStatus.DELETED, // 通常只有软删除的记录才能被硬删除
+        rateLimit: {
+          requestLimit: 1000,
+          window: '1h',
+        },
+      });
+    });
+
+    it('should hard delete API key', async () => {
+      const originalId = testApiKey.id.toString();
+      const result = await repository.hardDelete(originalId);
+
+      expect(result).toBeDefined();
+
+      // 验证记录确实被从数据库中删除
+      const deletedInDb = await apiKeyModel.findById(originalId);
+      expect(deletedInDb).toBeNull();
+    });
+
+    it('should throw error for invalid ID', async () => {
+      await expect(repository.hardDelete('invalid-id'))
+        .rejects.toThrow('无效的API Key ID格式');
     });
   });
 });

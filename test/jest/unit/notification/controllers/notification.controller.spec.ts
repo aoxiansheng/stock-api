@@ -7,6 +7,18 @@ import {
   NotificationChannelType,
 } from '@notification/types/notification.types';
 
+// Mock logger
+const mockLogger = {
+  log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+};
+
+jest.mock('@common/logging/index', () => ({
+  createLogger: jest.fn(() => mockLogger),
+}));
+
 describe('NotificationController', () => {
   let controller: NotificationController;
   let notificationService: jest.Mocked<NotificationService>;

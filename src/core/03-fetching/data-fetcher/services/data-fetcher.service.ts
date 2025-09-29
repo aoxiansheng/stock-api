@@ -568,7 +568,7 @@ export class DataFetcherService implements IDataFetcher {
       [error.message || "未知错误"],
     );
 
-    return new DataFetchResponseDto([], metadata, true);
+    return new DataFetchResponseDto([], metadata, false);
   }
 
   /**
@@ -598,8 +598,26 @@ export class DataFetcherService implements IDataFetcher {
     params: any
   ): Promise<any> {
     const cap = this.capabilityRegistryService.getCapability(provider, capability);
-    if (!cap || typeof cap.execute !== 'function') {
-      return null;
+    if (!cap) {
+      throw UniversalExceptionFactory.createBusinessException({
+        message: DATA_FETCHER_ERROR_MESSAGES.CAPABILITY_NOT_SUPPORTED.replace(
+          "{provider}",
+          provider,
+        ).replace("{capability}", capability),
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: DATA_FETCHER_OPERATIONS.CHECK_CAPABILITY,
+        component: ComponentIdentifier.DATA_FETCHER,
+        context: { provider, capability },
+      });
+    }
+    if (typeof cap.execute !== 'function') {
+      throw UniversalExceptionFactory.createBusinessException({
+        message: `Capability ${provider}.${capability} does not have execute method`,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        operation: DATA_FETCHER_OPERATIONS.CHECK_CAPABILITY,
+        component: ComponentIdentifier.DATA_FETCHER,
+        context: { provider, capability },
+      });
     }
     return await cap.execute(params);
   }
