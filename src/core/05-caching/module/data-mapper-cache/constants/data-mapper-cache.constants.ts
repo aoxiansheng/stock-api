@@ -68,15 +68,4 @@ export const DATA_MAPPER_CACHE_CONSTANTS = {
   },
 } as const;
 
-/**
- * 缓存操作类型枚举
- */
-export enum DataMapperCacheOperation {
-  SET = "set",
-  GET = "get",
-  DELETE = "delete",
-  PATTERN_DELETE = "pattern_delete",
-  WARMUP = "warmup",
-  CLEAR = "clear",
-}
 

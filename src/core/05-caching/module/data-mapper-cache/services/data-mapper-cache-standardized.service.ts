@@ -40,7 +40,7 @@ import { ModuleInitOptions, ModuleStatus } from '../../../foundation/types/cache
 // Business logic imports
 import { IDataMapperCache } from '../interfaces/data-mapper-cache.interface';
 import { FlexibleMappingRuleResponseDto } from '../../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
-import { DATA_MAPPER_CACHE_CONSTANTS, DataMapperCacheOperation } from '../constants/data-mapper-cache.constants';
+import { DATA_MAPPER_CACHE_CONSTANTS } from '../constants/data-mapper-cache.constants';
 
 /**
  * 标准化数据映射缓存服务 (零历史包袱版本)
