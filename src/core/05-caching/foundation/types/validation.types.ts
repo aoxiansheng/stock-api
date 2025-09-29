@@ -11,7 +11,6 @@
  * 用于表示单个验证步骤的结果，包含错误和警告信息。
  * 被各种配置验证器使用，如：
  * - DataMapperCacheConfigValidator
- * - StreamCacheConfigValidator
  * - SmartCacheConfigValidator
  * - SymbolMapperCacheConfigValidator
  */

@@ -2,7 +2,6 @@ import { Module, OnModuleDestroy, OnModuleInit, Inject } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 import { StreamCacheStandardizedService } from "../services/stream-cache-standardized.service";
-// Legacy StreamCacheService removed - migrated to StreamCacheStandardizedService
 import {
   STREAM_CACHE_CONFIG,
   DEFAULT_STREAM_CACHE_CONFIG,
