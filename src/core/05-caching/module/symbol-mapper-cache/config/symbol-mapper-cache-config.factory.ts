@@ -285,17 +285,4 @@ export class SymbolMapperCacheConfigFactory {
     return errors;
   }
 
-  /**
-   * 获取当前生效的环境变量（用于调试）
-   */
-  static getCurrentEnvVars(): Record<string, string | undefined> {
-    const envKeys = Object.values(SYMBOL_MAPPER_CACHE_ENV_VARS);
-    const result: Record<string, string | undefined> = {};
-
-    envKeys.forEach((key) => {
-      result[key] = process.env[key];
-    });
-
-    return result;
-  }
 }
