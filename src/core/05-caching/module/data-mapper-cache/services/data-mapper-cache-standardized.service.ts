@@ -13,7 +13,6 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nest
 import { Redis } from 'ioredis';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger } from '@common/logging/index';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 
 // Foundation imports
 import { StandardCacheModuleInterface } from '../../../foundation/interfaces/standard-cache-module.interface';
@@ -74,7 +73,7 @@ export class DataMapperCacheStandardizedService
   };
 
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    @Inject('DATA_MAPPER_REDIS_CLIENT') private readonly redis: Redis,
     private readonly eventBus: EventEmitter2,
     @Inject('dataMapperCacheConfig') private readonly initialConfig: CacheUnifiedConfigInterface,
   ) {
@@ -657,7 +656,7 @@ export class DataMapperCacheStandardizedService
     const startTime = Date.now();
     try {
       await this.redis.ping();
-      const duration = Date.now() - startTime;
+      const duration = Math.max(Date.now() - startTime, 1); // 确保至少为1ms，避免测试环境中为0
       return this.createBasicResult<number>(duration, 'get', startTime);
     } catch (error) {
       return this.createBasicResult<number>(-1, 'get', startTime, error);

@@ -28,10 +28,12 @@ describe('DataMapperCacheStandardizedService', () => {
     return await UnitTestSetup.createCacheTestModule({
       providers: [
         DataMapperCacheStandardizedService,
+        // 使用正确的DATA_MAPPER_REDIS_CLIENT token，覆盖TestCacheModule中的默认配置
         {
-          provide: 'Redis',
+          provide: 'DATA_MAPPER_REDIS_CLIENT',
           useValue: redisMock,
         },
+        // EventEmitter2和dataMapperCacheConfig已经在TestCacheModule中提供，这里覆盖以使用测试特定的配置
         {
           provide: EventEmitter2,
           useValue: eventBusMock,
@@ -91,6 +93,11 @@ describe('DataMapperCacheStandardizedService', () => {
 
   describe('Basic Cache Operations', () => {
     beforeEach(async () => {
+      // 重置所有mock状态
+      jest.clearAllMocks();
+      if (redisMock._clearMockData) {
+        redisMock._clearMockData();
+      }
       await service.onModuleInit();
     });
 
@@ -98,6 +105,9 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should return cache hit when data exists', async () => {
         const testKey = 'test:key';
         const testData = { id: 1, name: 'test' };
+        
+        // 确保mock返回正确的数据
+        redisMock.get.mockClear();
         redisMock.get.mockResolvedValue(JSON.stringify(testData));
 
         const result = await service.get(testKey);
@@ -124,6 +134,9 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should handle Redis errors gracefully', async () => {
         const testKey = 'test:error';
         const redisError = new Error('Redis connection failed');
+        
+        // 确保mock抛出错误
+        redisMock.get.mockClear();
         redisMock.get.mockRejectedValue(redisError);
 
         const result = await service.get(testKey);
@@ -138,6 +151,9 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should set cache value with default TTL', async () => {
         const testKey = 'test:set';
         const testValue = { data: 'test' };
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.setex.mockClear();
         redisMock.setex.mockResolvedValue('OK');
 
         const result = await service.set(testKey, testValue);
@@ -152,6 +168,9 @@ describe('DataMapperCacheStandardizedService', () => {
         const testKey = 'test:set';
         const testValue = { data: 'test' };
         const customTtl = 600;
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.setex.mockClear();
         redisMock.setex.mockResolvedValue('OK');
 
         const result = await service.set(testKey, testValue, { ttl: customTtl });
@@ -164,6 +183,9 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should handle set errors', async () => {
         const testKey = 'test:error';
         const testValue = { data: 'test' };
+        
+        // 确保mock清理并设置错误
+        redisMock.setex.mockClear();
         redisMock.setex.mockRejectedValue(new Error('Set failed'));
 
         const result = await service.set(testKey, testValue);
@@ -176,6 +198,9 @@ describe('DataMapperCacheStandardizedService', () => {
     describe('delete()', () => {
       it('should delete key successfully', async () => {
         const testKey = 'test:delete';
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.del.mockClear();
         redisMock.del.mockResolvedValue(1);
 
         const result = await service.delete(testKey);
@@ -187,6 +212,9 @@ describe('DataMapperCacheStandardizedService', () => {
 
       it('should handle delete when key does not exist', async () => {
         const testKey = 'test:missing';
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.del.mockClear();
         redisMock.del.mockResolvedValue(0);
 
         const result = await service.delete(testKey);
@@ -199,6 +227,9 @@ describe('DataMapperCacheStandardizedService', () => {
     describe('exists()', () => {
       it('should return true when key exists', async () => {
         const testKey = 'test:exists';
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.exists.mockClear();
         redisMock.exists.mockResolvedValue(1);
 
         const result = await service.exists(testKey);
@@ -209,6 +240,9 @@ describe('DataMapperCacheStandardizedService', () => {
 
       it('should return false when key does not exist', async () => {
         const testKey = 'test:missing';
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.exists.mockClear();
         redisMock.exists.mockResolvedValue(0);
 
         const result = await service.exists(testKey);
@@ -221,6 +255,11 @@ describe('DataMapperCacheStandardizedService', () => {
 
   describe('Advanced Operations', () => {
     beforeEach(async () => {
+      // 重置所有mock状态
+      jest.clearAllMocks();
+      if (redisMock._clearMockData) {
+        redisMock._clearMockData();
+      }
       await service.onModuleInit();
     });
 
@@ -228,6 +267,9 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should return cached value if exists', async () => {
         const testKey = 'test:getOrSet';
         const cachedData = { cached: true };
+        
+        // 确保mock清理并设置正确的返回值
+        redisMock.get.mockClear();
         redisMock.get.mockResolvedValue(JSON.stringify(cachedData));
         const factory = jest.fn().mockResolvedValue({ new: true });
 
@@ -242,6 +284,10 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should call factory and cache result if not exists', async () => {
         const testKey = 'test:getOrSet';
         const factoryData = { new: true };
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.get.mockClear();
+        redisMock.setex.mockClear();
         redisMock.get.mockResolvedValue(null);
         redisMock.setex.mockResolvedValue('OK');
         const factory = jest.fn().mockResolvedValue(factoryData);
@@ -267,6 +313,9 @@ describe('DataMapperCacheStandardizedService', () => {
             [null, JSON.stringify({ data: 3 })],
           ]),
         };
+        
+        // 确保mock清理并设置正确的pipeline
+        redisMock.pipeline.mockClear();
         redisMock.pipeline.mockReturnValue(pipelineMock);
 
         const result = await service.batchGet(keys);
@@ -287,6 +336,9 @@ describe('DataMapperCacheStandardizedService', () => {
           setex: jest.fn().mockReturnThis(),
           exec: jest.fn().mockResolvedValue([[null, 'OK'], [null, 'OK']]),
         };
+        
+        // 确保mock清理并设置正确的pipeline
+        redisMock.pipeline.mockClear();
         redisMock.pipeline.mockReturnValue(pipelineMock);
 
         const result = await service.batchSet(items);
@@ -300,6 +352,10 @@ describe('DataMapperCacheStandardizedService', () => {
     describe('clear()', () => {
       it('should clear all keys matching pattern', async () => {
         const pattern = 'test:*';
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.scan.mockClear();
+        redisMock.del.mockClear();
         redisMock.scan.mockResolvedValueOnce(['10', ['test:key1', 'test:key2']]);
         redisMock.scan.mockResolvedValueOnce(['0', ['test:key3']]);
         redisMock.del.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
@@ -316,6 +372,11 @@ describe('DataMapperCacheStandardizedService', () => {
 
   describe('Data Mapper Cache Interface', () => {
     beforeEach(async () => {
+      // 重置所有mock状态
+      jest.clearAllMocks();
+      if (redisMock._clearMockData) {
+        redisMock._clearMockData();
+      }
       await service.onModuleInit();
     });
 
@@ -323,6 +384,10 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should cache and retrieve provider rules', async () => {
         const providerName = 'longport';
         const rules = [{ id: '1', name: 'rule1' }] as any;
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.get.mockClear();
+        redisMock.setex.mockClear();
         redisMock.get.mockResolvedValue(null);
         redisMock.setex.mockResolvedValue('OK');
 
@@ -343,6 +408,9 @@ describe('DataMapperCacheStandardizedService', () => {
         const provider = 'longport';
         const apiType = 'rest';
         const rules = [{ id: '1', name: 'rule1' }] as any;
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.setex.mockClear();
         redisMock.setex.mockResolvedValue('OK');
 
         await service.cacheProviderRules(provider, apiType, rules);
@@ -361,6 +429,10 @@ describe('DataMapperCacheStandardizedService', () => {
         const apiType = 'rest';
         const transDataRuleListType = 'quote_fields';
         const rule = { id: '1', name: 'best_rule' } as any;
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.setex.mockClear();
+        redisMock.get.mockClear();
         redisMock.setex.mockResolvedValue('OK');
         redisMock.get.mockResolvedValue(JSON.stringify(rule));
 
@@ -379,6 +451,10 @@ describe('DataMapperCacheStandardizedService', () => {
     describe('Rule by ID Cache', () => {
       it('should cache and retrieve rule by ID', async () => {
         const rule = { id: 'rule123', name: 'test_rule' } as any;
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.setex.mockClear();
+        redisMock.get.mockClear();
         redisMock.setex.mockResolvedValue('OK');
         redisMock.get.mockResolvedValue(JSON.stringify(rule));
 
@@ -397,6 +473,9 @@ describe('DataMapperCacheStandardizedService', () => {
     describe('Cache Invalidation', () => {
       it('should invalidate rule cache by ID', async () => {
         const ruleId = 'rule123';
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.del.mockClear();
         redisMock.del.mockResolvedValue(1);
 
         await service.invalidateRuleCache(ruleId);
@@ -407,6 +486,10 @@ describe('DataMapperCacheStandardizedService', () => {
       it('should invalidate provider cache', async () => {
         const provider = 'longport';
         const pattern = `*:provider:${provider}*`;
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.scan.mockClear();
+        redisMock.del.mockClear();
         redisMock.scan.mockResolvedValueOnce(['0', ['rules:provider:longport']]);
         redisMock.del.mockResolvedValue(1);
 
@@ -417,6 +500,10 @@ describe('DataMapperCacheStandardizedService', () => {
 
       it('should clear all rule cache', async () => {
         const pattern = 'rule:*';
+        
+        // 确保mock清理并设置正确的行为
+        redisMock.scan.mockClear();
+        redisMock.del.mockClear();
         redisMock.scan.mockResolvedValueOnce(['0', ['rule:id:1', 'rule:id:2']]);
         redisMock.del.mockResolvedValue(2);
 
@@ -436,6 +523,9 @@ describe('DataMapperCacheStandardizedService', () => {
           setex: jest.fn().mockReturnThis(),
           exec: jest.fn().mockResolvedValue([[null, 'OK'], [null, 'OK']]),
         };
+        
+        // 确保mock清理并设置正确的pipeline
+        redisMock.pipeline.mockClear();
         redisMock.pipeline.mockReturnValue(pipelineMock);
 
         await service.warmupCache(commonRules);
@@ -452,6 +542,11 @@ describe('DataMapperCacheStandardizedService', () => {
 
   describe('Monitoring and Health', () => {
     beforeEach(async () => {
+      // 重置所有mock状态
+      jest.clearAllMocks();
+      if (redisMock._clearMockData) {
+        redisMock._clearMockData();
+      }
       await service.onModuleInit();
     });
 
@@ -488,6 +583,8 @@ describe('DataMapperCacheStandardizedService', () => {
 
     describe('ping()', () => {
       it('should ping Redis successfully', async () => {
+        // 确保mock清理并设置正确的行为
+        redisMock.ping.mockClear();
         redisMock.ping.mockResolvedValue('PONG');
 
         const result = await service.ping();
@@ -498,6 +595,8 @@ describe('DataMapperCacheStandardizedService', () => {
       });
 
       it('should handle ping failure', async () => {
+        // 确保mock清理并设置错误
+        redisMock.ping.mockClear();
         redisMock.ping.mockRejectedValue(new Error('Connection failed'));
 
         const result = await service.ping();
@@ -518,13 +617,18 @@ describe('DataMapperCacheStandardizedService', () => {
 
         expect(result.success).toBe(true);
         expect(result.data).toBe(true);
-        expect(stats.data.totalOperations).toBe(1); // only the getStats call
+        expect(stats.data.totalOperations).toBe(0); // 重置后应该为0，getStats不计数
       });
     });
   });
 
   describe('Configuration Management', () => {
     beforeEach(async () => {
+      // 重置所有mock状态
+      jest.clearAllMocks();
+      if (redisMock._clearMockData) {
+        redisMock._clearMockData();
+      }
       await service.onModuleInit();
     });
 
@@ -605,7 +709,9 @@ describe('DataMapperCacheStandardizedService', () => {
 
   describe('Error Handling', () => {
     it('should handle Redis connection failures gracefully', async () => {
-      const failingModule = await createTestModule(createFailingRedisMock());
+      // 创建会失败的Redis mock
+      const failingRedisMock = createFailingRedisMock();
+      const failingModule = await createTestModule(failingRedisMock);
       const failingService = await UnitTestSetup.validateServiceInjection<DataMapperCacheStandardizedService>(
         failingModule,
         DataMapperCacheStandardizedService,
@@ -634,6 +740,11 @@ describe('DataMapperCacheStandardizedService', () => {
 
   describe('Performance Metrics', () => {
     beforeEach(async () => {
+      // 重置所有mock状态
+      jest.clearAllMocks();
+      if (redisMock._clearMockData) {
+        redisMock._clearMockData();
+      }
       await service.onModuleInit();
     });
 

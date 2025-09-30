@@ -129,6 +129,11 @@ export class DataMapperCacheConfigValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // 基础检查：如果config为null或undefined，直接返回
+    if (!config) {
+      return { errors, warnings };
+    }
+
     // 最佳规则 TTL 验证
     if (typeof config.bestRuleTtl !== "number" || config.bestRuleTtl <= 0) {
       errors.push("bestRuleTtl must be a positive number");
@@ -183,6 +188,11 @@ export class DataMapperCacheConfigValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // 基础检查：如果config为null或undefined，直接返回
+    if (!config) {
+      return { errors, warnings };
+    }
+
     // 慢操作阈值验证
     if (typeof config.slowOperationThreshold !== "number" || config.slowOperationThreshold <= 0) {
       errors.push("slowOperationThreshold must be a positive number");
@@ -220,6 +230,11 @@ export class DataMapperCacheConfigValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // 基础检查：如果config为null或undefined，直接返回
+    if (!config) {
+      return { errors, warnings };
+    }
+
     const timeoutFields = [
       { name: "defaultScanTimeout", max: 30000, min: 1000 },
       { name: "providerInvalidateTimeout", max: 10000, min: 500 },
@@ -252,6 +267,11 @@ export class DataMapperCacheConfigValidator {
   private static validateBatchConfig(config: any): ValidationSubResult {
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    // 基础检查：如果config为null或undefined，直接返回
+    if (!config) {
+      return { errors, warnings };
+    }
 
     // Redis 扫描批次验证
     if (config.redisScanCount !== undefined) {
@@ -301,6 +321,11 @@ export class DataMapperCacheConfigValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
+    // 基础检查：如果config为null或undefined，直接返回
+    if (!config) {
+      return { errors, warnings };
+    }
+
     // 最大键长度验证
     if (config.maxKeyLength !== undefined) {
       if (typeof config.maxKeyLength !== "number" || config.maxKeyLength <= 0) {
@@ -332,6 +357,11 @@ export class DataMapperCacheConfigValidator {
   private static validateLogicalConsistency(config: any): ValidationSubResult {
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    // 基础检查：如果config为null或undefined，直接返回
+    if (!config) {
+      return { errors, warnings };
+    }
 
     // 批处理大小不应超过最大键防护限制
     if (config.maxBatchSize && config.maxKeysPrevention) {

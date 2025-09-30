@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
 // DataMapperCacheService removed - migration completed
 import { DataMapperCacheStandardizedService } from "../services/data-mapper-cache-standardized.service";
 import { EventEmitterModule } from "@nestjs/event-emitter";
@@ -25,6 +26,75 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
     EventEmitterModule, // ✅ 事件驱动监控依赖
   ],
   providers: [
+    // 📡 Redis客户端提供者 - 专用于数据映射缓存
+    {
+      provide: 'DATA_MAPPER_REDIS_CLIENT',
+      useFactory: (configService: ConfigService) => {
+        const redisConfig = {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6379),
+          password: configService.get<string>('REDIS_PASSWORD'),
+          db: configService.get<number>('REDIS_DB', 0),
+
+          // 连接配置 - 数据映射优化
+          connectTimeout: 5000,
+          commandTimeout: 3000,
+          lazyConnect: true,
+
+          // 连接池配置
+          maxRetriesPerRequest: 3,
+          retryDelayOnFailover: 100,
+
+          // 重连配置
+          reconnectOnError: (err) => {
+            const targetError = "READONLY";
+            return err.message.includes(targetError);
+          },
+
+          // 性能优化
+          enableReadyCheck: true,
+          keepAlive: 30000,
+          enableOfflineQueue: false,
+          enableAutoPipelining: true,
+
+          // 内存优化
+          keyPrefix: "dm:", // 数据映射专用前缀
+
+          // 日志配置
+          showFriendlyErrorStack: process.env.NODE_ENV !== "production",
+        };
+
+        const redis = new Redis(redisConfig);
+
+        // 连接事件监听 - 数据映射缓存专用 (生产环境)
+        if (process.env.NODE_ENV !== 'test') {
+          redis.on("connect", () => {
+            console.log(
+              `✅ DataMapper Redis connected to ${redisConfig.host}:${redisConfig.port}`,
+            );
+          });
+
+          redis.on("error", (error) => {
+            console.error(
+              "❌ DataMapper Redis connection error:",
+              error.message,
+            );
+          });
+
+          redis.on("close", () => {
+            console.log("🔌 DataMapper Redis connection closed");
+          });
+
+          redis.on("reconnecting", (delay) => {
+            console.log(`🔄 DataMapper Redis reconnecting in ${delay}ms`);
+          });
+        }
+
+        return redis;
+      },
+      inject: [ConfigService],
+    },
+
     // 🆕 标准化服务 - Migration completed
     DataMapperCacheStandardizedService,
 
@@ -36,9 +106,9 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
     {
       provide: 'dataMapperCacheConfig',
       useFactory: (configService: ConfigService) => {
-        // Basic configuration for data mapper cache
-        // In production, this should come from proper config modules
+        // Configuration for data mapper cache with Redis settings
         return {
+          defaultTtlSeconds: 300, // 5 minutes default TTL
           redis: {
             host: configService.get('REDIS_HOST', 'localhost'),
             port: configService.get('REDIS_PORT', 6379),
@@ -73,6 +143,10 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
     // 🏷️ 别名导出便于识别
     'IDataMapperCache',
     'DataMapperCacheStandard',
+
+    // 📡 导出Redis客户端供测试和其他模块使用
+    'DATA_MAPPER_REDIS_CLIENT',
+    'dataMapperCacheConfig',
   ],
 })
 export class DataMapperCacheModule {

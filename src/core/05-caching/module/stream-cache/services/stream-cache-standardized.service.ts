@@ -99,20 +99,6 @@ import {
 } from "../../../../../monitoring/contracts";
 import { SYSTEM_STATUS_EVENTS } from "../../../../../monitoring/contracts/events/system-status.events";
 
-/**
- * 健康检查状态接口
- */
-interface StreamCacheHealthStatus {
-  status: "healthy" | "unhealthy" | "degraded";
-  hotCacheSize: number;
-  redisConnected: boolean;
-  lastError: string | null;
-  performance?: {
-    avgHotCacheHitTime: number;
-    avgWarmCacheHitTime: number;
-    compressionRatio: number;
-  };
-}
 
 /**
  * 标准化流缓存服务
@@ -1986,75 +1972,101 @@ export class StreamCacheStandardizedService
   // ========================================
 
   /**
-   * 系统级指标监控报告 - 事件驱动实现
-   * 从旧系统移植的功能，提供向后兼容性
+   * 报告系统指标 - 优化版本
+   * 使用批量发送减少事件总线压力
    */
   async reportSystemMetrics(): Promise<void> {
     try {
-      // 获取健康状态
+      // 获取所需数据
       const healthResult = await this.getHealth();
       const capacityInfo = await this.getCapacityInfo();
       const perfMetrics = await this.getPerformanceMetrics();
 
-      // 核心系统指标上报
-      this.emitSystemEvent("cache_hot_size", this.hotCache.size, {
-        maxSize: this.streamConfig.maxHotCacheSize,
-        utilizationRatio:
-          this.hotCache.size / this.streamConfig.maxHotCacheSize,
-      });
+      // 构建核心指标数组
+      const coreMetrics = [
+        {
+          metricName: "cache_hot_size",
+          metricValue: this.hotCache.size,
+          tags: {
+            maxSize: this.streamConfig.maxHotCacheSize,
+            utilizationRatio: this.hotCache.size / this.streamConfig.maxHotCacheSize,
+          },
+        },
+        {
+          metricName: "health_status",
+          metricValue: healthResult.success && healthResult.healthScore > 70 ? 1 : 0,
+          tags: {
+            healthScore: healthResult.healthScore || 0,
+            connectionStatus: healthResult.success ? "connected" : "disconnected",
+          },
+        },
+        {
+          metricName: "memory_usage_bytes",
+          metricValue: capacityInfo.currentMemory,
+          tags: {
+            maxMemory: capacityInfo.maxMemory,
+            utilizationRatio: capacityInfo.memoryUtilization,
+            keyCount: capacityInfo.currentKeys,
+          },
+        },
+        {
+          metricName: "hit_rate",
+          metricValue: perfMetrics.hitRate,
+          tags: {
+            totalHits: this.operationStats.totalHits,
+            totalMisses: this.operationStats.totalMisses,
+            hotCacheHits: this.operationStats.hotCacheHits,
+            warmCacheHits: this.operationStats.warmCacheHits,
+          },
+        },
+        {
+          metricName: "avg_response_time",
+          metricValue: perfMetrics.avgResponseTime,
+          tags: {
+            totalOperations: this.operationStats.totalOperations,
+            errorRate: perfMetrics.errorRate,
+          },
+        },
+        {
+          metricName: "error_count",
+          metricValue: this.operationStats.errorCount,
+          tags: {
+            errorRate: perfMetrics.errorRate,
+            lastResetTime: this.operationStats.lastResetTime,
+          },
+        },
+      ];
 
-      // 健康状态指标 (0=unhealthy, 1=healthy)
-      const healthStatus =
-        healthResult.success && healthResult.healthScore > 70 ? 1 : 0;
-      this.emitSystemEvent("health_status", healthStatus, {
-        healthScore: healthResult.healthScore || 0,
-        connectionStatus: healthResult.success ? "connected" : "disconnected",
-      });
-
-      // 内存使用指标
-      this.emitSystemEvent("memory_usage_bytes", capacityInfo.currentMemory, {
-        maxMemory: capacityInfo.maxMemory,
-        utilizationRatio: capacityInfo.memoryUtilization,
-        keyCount: capacityInfo.currentKeys,
-      });
-
-      // 性能指标
-      this.emitSystemEvent("hit_rate", perfMetrics.hitRate, {
-        totalHits: this.operationStats.totalHits,
-        totalMisses: this.operationStats.totalMisses,
-        hotCacheHits: this.operationStats.hotCacheHits,
-        warmCacheHits: this.operationStats.warmCacheHits,
-      });
-
-      this.emitSystemEvent("avg_response_time", perfMetrics.avgResponseTime, {
-        totalOperations: this.operationStats.totalOperations,
-        errorRate: perfMetrics.errorRate,
-      });
-
-      // 错误指标
-      this.emitSystemEvent("error_count", this.operationStats.errorCount, {
-        errorRate: perfMetrics.errorRate,
-        lastResetTime: this.operationStats.lastResetTime,
-      });
-
-      // 容量告警指标
+      // 添加容量警告指标（仅在需要时）
       if (capacityInfo.memoryUtilization > 0.8) {
-        this.emitSystemEvent("capacity_warning", 1, {
-          type: "memory_high",
-          utilizationRatio: capacityInfo.memoryUtilization,
-          threshold: 0.8,
+        coreMetrics.push({
+          metricName: "capacity_warning",
+          metricValue: 1,
+          tags: {
+            warningType: "memory_high",
+            utilizationRatio: capacityInfo.memoryUtilization,
+            threshold: 0.8,
+          } as any,
         });
       }
 
       if (capacityInfo.keyUtilization > 0.9) {
-        this.emitSystemEvent("capacity_warning", 1, {
-          type: "keys_high",
-          utilizationRatio: capacityInfo.keyUtilization,
-          threshold: 0.9,
+        coreMetrics.push({
+          metricName: "capacity_warning",
+          metricValue: 1,
+          tags: {
+            warningType: "keys_high",
+            utilizationRatio: capacityInfo.keyUtilization,
+            threshold: 0.9,
+          } as any,
         });
       }
 
-      this.logger.debug("System metrics reported successfully", {
+      // 批量发送所有核心指标
+      this.emitBatchMetrics(coreMetrics);
+
+      this.logger.debug("System metrics reported successfully (batch mode)", {
+        metricCount: coreMetrics.length,
         hotCacheSize: this.hotCache.size,
         memoryUsage: capacityInfo.currentMemory,
         hitRate: perfMetrics.hitRate,
@@ -2073,37 +2085,6 @@ export class StreamCacheStandardizedService
     }
   }
 
-  /**
-   * 向后兼容的健康状态接口
-   * 返回旧系统期望的StreamCacheHealthStatus格式
-   */
-  async getHealthStatus(): Promise<StreamCacheHealthStatus> {
-    try {
-      // 简单Redis连接测试
-      await this.redisClient.ping();
-      const perfMetrics = await this.getPerformanceMetrics();
-
-      return {
-        status: "healthy",
-        hotCacheSize: this.hotCache.size,
-        redisConnected: true,
-        lastError: null,
-        performance: {
-          avgHotCacheHitTime: perfMetrics.avgResponseTime * 0.1, // 估算Hot Cache平均响应时间
-          avgWarmCacheHitTime: perfMetrics.avgResponseTime * 0.9, // 估算Warm Cache平均响应时间
-          compressionRatio: 0.8, // 估算压缩比
-        },
-      };
-    } catch (error) {
-      this.recordError(error, { operation: "getHealthStatus" });
-      return {
-        status: "unhealthy",
-        hotCacheSize: this.hotCache.size,
-        redisConnected: false,
-        lastError: error.message,
-      };
-    }
-  }
 
   /**
    * 使用Redis Pipeline进行批量获取 - 性能优化
@@ -2211,6 +2192,52 @@ export class StreamCacheStandardizedService
           component: "StreamCacheStandardized",
           version: this.version,
           ...tags,
+        },
+      });
+    });
+  }
+
+  /**
+   * 批量发送系统指标 - 优化版本
+   * 减少事件总线压力，一次性发送所有核心指标
+   */
+  private emitBatchMetrics(metrics: Array<{
+    metricName: string;
+    metricValue: number;
+    tags?: any;
+  }>): void {
+    const config = this.getEnvironmentConfig();
+
+    // 检查是否启用批量优化
+    if (!config.batchOptimizationEnabled) {
+      // 如果禁用批量，使用单独发送
+      metrics.forEach(metric => {
+        this.emitSystemEvent(metric.metricName, metric.metricValue, metric.tags);
+      });
+      return;
+    }
+
+    this.safeAsyncExecute(() => {
+      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
+        timestamp: new Date(),
+        source: "stream-cache-standardized",
+        metricType: "batch",
+        batchSize: metrics.length,
+        batchInterval: config.batchInterval,
+        metrics: metrics.map(metric => ({
+          metricName: metric.metricName,
+          metricValue: metric.metricValue,
+          tags: {
+            component: "StreamCacheStandardized",
+            version: this.version,
+            ...metric.tags,
+          },
+        })),
+        tags: {
+          component: "StreamCacheStandardized",
+          version: this.version,
+          batchOptimization: true,
+          performanceThreshold: config.performanceThreshold,
         },
       });
     });
@@ -2526,7 +2553,8 @@ export class StreamCacheStandardizedService
   // ========================================
 
   /**
-   * 记录错误
+   * 记录错误 - 优化版本
+   * 添加性能阈值判断，仅报告重要错误或性能异常
    */
   private recordError(error: any, context: Record<string, any> = {}): void {
     const errorEntry = {
@@ -2537,6 +2565,14 @@ export class StreamCacheStandardizedService
       context,
     };
 
+    // 检查是否为性能相关错误
+    const duration = context.duration || context.durationMs || 0;
+    const operation = context.operation || "unknown";
+    const performanceThreshold = this.getPerformanceThreshold();
+
+    // 判断是否需要报告此错误
+    const shouldReport = this.shouldReportError(errorEntry, duration, performanceThreshold);
+
     this.errorHistory.push(errorEntry);
 
     // 保持错误历史记录在合理大小
@@ -2544,7 +2580,80 @@ export class StreamCacheStandardizedService
       this.errorHistory = this.errorHistory.slice(-50);
     }
 
-    this.logger.error("Stream cache operation error", errorEntry);
+    // 只在满足条件时记录日志和发送事件
+    if (shouldReport) {
+      this.logger.error("Stream cache operation error", {
+        ...errorEntry,
+        performanceIssue: duration > performanceThreshold,
+        threshold: performanceThreshold,
+      });
+
+      // 发送错误事件（仅限重要错误）
+      this.emitSystemEvent("cache_error", 1, {
+        errorType: errorEntry.type,
+        severity: errorEntry.severity,
+        operation,
+        duration,
+        exceedsThreshold: duration > performanceThreshold,
+      });
+    }
+  }
+
+  /**
+   * 获取性能阈值 - 支持环境变量配置
+   */
+  private getPerformanceThreshold(): number {
+    return parseInt(process.env.STREAM_CACHE_PERF_THRESHOLD || "100", 10);
+  }
+
+  /**
+   * 获取批量发送间隔 - 支持环境变量配置
+   */
+  private getBatchInterval(): number {
+    return parseInt(process.env.STREAM_CACHE_BATCH_INTERVAL || "5000", 10);
+  }
+
+  /**
+   * 获取环境配置的总结
+   */
+  private getEnvironmentConfig(): {
+    performanceThreshold: number;
+    batchInterval: number;
+    batchOptimizationEnabled: boolean;
+  } {
+    return {
+      performanceThreshold: this.getPerformanceThreshold(),
+      batchInterval: this.getBatchInterval(),
+      batchOptimizationEnabled: process.env.STREAM_CACHE_BATCH_ENABLED !== "false",
+    };
+  }
+
+  /**
+   * 判断是否应该报告错误
+   * 仅在错误或性能超阈值时报告
+   */
+  private shouldReportError(
+    errorEntry: any,
+    duration: number,
+    threshold: number,
+  ): boolean {
+    // 总是报告高严重性错误
+    if (errorEntry.severity === "critical" || errorEntry.severity === "high") {
+      return true;
+    }
+
+    // 报告性能超阈值的操作
+    if (duration > threshold) {
+      return true;
+    }
+
+    // 报告Redis连接错误
+    if (errorEntry.type.includes("Redis") || errorEntry.type.includes("Connection")) {
+      return true;
+    }
+
+    // 其他低严重性错误只记录，不报告
+    return false;
   }
 
   /**

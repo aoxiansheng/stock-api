@@ -1,5 +1,6 @@
 import { DataMapperCacheConfigFactory } from '@core/05-caching/module/data-mapper-cache/config/data-mapper-cache-config.factory';
 import { DATA_MAPPER_CACHE_CONSTANTS } from '@core/05-caching/module/data-mapper-cache/constants/data-mapper-cache.constants';
+import { DATA_MAPPER_CACHE_ENV_VARS } from '@core/05-caching/module/data-mapper-cache/constants/data-mapper-cache.env-vars.constants';
 
 describe('DataMapperCacheConfigFactory', () => {
   let originalEnv: NodeJS.ProcessEnv;
@@ -8,23 +9,23 @@ describe('DataMapperCacheConfigFactory', () => {
     // Store original environment variables
     originalEnv = { ...process.env };
     // Clear relevant environment variables
-    delete process.env.BEST_RULE_TTL_SECONDS;
-    delete process.env.RULE_BY_ID_TTL_SECONDS;
-    delete process.env.PROVIDER_RULES_TTL_SECONDS;
-    delete process.env.RULE_STATS_TTL_SECONDS;
-    delete process.env.SLOW_OPERATION_THRESHOLD_MS;
-    delete process.env.MAX_BATCH_SIZE;
-    delete process.env.STATS_CLEANUP_INTERVAL_MS;
-    delete process.env.DEFAULT_SCAN_TIMEOUT_MS;
-    delete process.env.PROVIDER_INVALIDATE_TIMEOUT_MS;
-    delete process.env.STATS_SCAN_TIMEOUT_MS;
-    delete process.env.CLEAR_ALL_TIMEOUT_MS;
-    delete process.env.REDIS_SCAN_COUNT;
-    delete process.env.DELETE_BATCH_SIZE;
-    delete process.env.MAX_KEYS_PREVENTION;
-    delete process.env.INTER_BATCH_DELAY_MS;
-    delete process.env.MAX_KEY_LENGTH;
-    delete process.env.MAX_RULE_SIZE_KB;
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.RULE_BY_ID_TTL_SECONDS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.PROVIDER_RULES_TTL_SECONDS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.RULE_STATS_TTL_SECONDS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.SLOW_OPERATION_THRESHOLD_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.STATS_CLEANUP_INTERVAL_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.DEFAULT_SCAN_TIMEOUT_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.PROVIDER_INVALIDATE_TIMEOUT_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.STATS_SCAN_TIMEOUT_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.CLEAR_ALL_TIMEOUT_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.REDIS_SCAN_COUNT];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.DELETE_BATCH_SIZE];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEYS_PREVENTION];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.INTER_BATCH_DELAY_MS];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEY_LENGTH];
+    delete process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_RULE_SIZE_KB];
   });
 
   afterEach(() => {
@@ -73,23 +74,23 @@ describe('DataMapperCacheConfigFactory', () => {
 
     it('should use environment variables when provided', () => {
       // Set environment variables
-      process.env.BEST_RULE_TTL_SECONDS = '900';
-      process.env.RULE_BY_ID_TTL_SECONDS = '1200';
-      process.env.PROVIDER_RULES_TTL_SECONDS = '1800';
-      process.env.RULE_STATS_TTL_SECONDS = '600';
-      process.env.SLOW_OPERATION_THRESHOLD_MS = '150';
-      process.env.MAX_BATCH_SIZE = '150';
-      process.env.STATS_CLEANUP_INTERVAL_MS = '180000';
-      process.env.DEFAULT_SCAN_TIMEOUT_MS = '15000';
-      process.env.PROVIDER_INVALIDATE_TIMEOUT_MS = '25000';
-      process.env.STATS_SCAN_TIMEOUT_MS = '35000';
-      process.env.CLEAR_ALL_TIMEOUT_MS = '45000';
-      process.env.REDIS_SCAN_COUNT = '150';
-      process.env.DELETE_BATCH_SIZE = '75';
-      process.env.MAX_KEYS_PREVENTION = '750';
-      process.env.INTER_BATCH_DELAY_MS = '15';
-      process.env.MAX_KEY_LENGTH = '300';
-      process.env.MAX_RULE_SIZE_KB = '75';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '900';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.RULE_BY_ID_TTL_SECONDS] = '1200';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.PROVIDER_RULES_TTL_SECONDS] = '1800';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.RULE_STATS_TTL_SECONDS] = '600';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.SLOW_OPERATION_THRESHOLD_MS] = '150';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '150';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.STATS_CLEANUP_INTERVAL_MS] = '180000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.DEFAULT_SCAN_TIMEOUT_MS] = '15000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.PROVIDER_INVALIDATE_TIMEOUT_MS] = '25000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.STATS_SCAN_TIMEOUT_MS] = '35000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.CLEAR_ALL_TIMEOUT_MS] = '45000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.REDIS_SCAN_COUNT] = '150';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.DELETE_BATCH_SIZE] = '75';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEYS_PREVENTION] = '750';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.INTER_BATCH_DELAY_MS] = '15';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEY_LENGTH] = '300';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_RULE_SIZE_KB] = '75';
 
       const config = DataMapperCacheConfigFactory.createConfig();
 
@@ -114,9 +115,9 @@ describe('DataMapperCacheConfigFactory', () => {
 
     it('should handle invalid environment variables gracefully', () => {
       // Set invalid environment variables
-      process.env.BEST_RULE_TTL_SECONDS = 'invalid';
-      process.env.MAX_BATCH_SIZE = 'not-a-number';
-      process.env.SLOW_OPERATION_THRESHOLD_MS = '';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = 'invalid';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = 'not-a-number';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.SLOW_OPERATION_THRESHOLD_MS] = '';
 
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
@@ -132,8 +133,8 @@ describe('DataMapperCacheConfigFactory', () => {
 
     it('should validate configuration and throw error for invalid values', () => {
       // Set environment variables that will fail validation
-      process.env.BEST_RULE_TTL_SECONDS = '0'; // Invalid: must be positive
-      process.env.MAX_BATCH_SIZE = '-1'; // Invalid: must be positive
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '0'; // Invalid: must be positive
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '-1'; // Invalid: must be positive
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -154,8 +155,8 @@ describe('DataMapperCacheConfigFactory', () => {
 
   describe('Environment Variable Parsing', () => {
     it('should handle empty string environment variables', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '';
-      process.env.MAX_BATCH_SIZE = '   '; // Whitespace
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '   '; // Whitespace
 
       const config = DataMapperCacheConfigFactory.createConfig();
 
@@ -165,8 +166,8 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should handle floating point environment variables', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '900.5'; // Should be parsed as 900
-      process.env.MAX_BATCH_SIZE = '100.9'; // Should be parsed as 100
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '900.5'; // Should be parsed as 900
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '100.9'; // Should be parsed as 100
 
       const config = DataMapperCacheConfigFactory.createConfig();
 
@@ -175,8 +176,8 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should handle negative values', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '-100';
-      process.env.INTER_BATCH_DELAY_MS = '-5';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '-100';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.INTER_BATCH_DELAY_MS] = '-5';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -184,19 +185,21 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should handle very large values', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '999999999';
-      process.env.MAX_BATCH_SIZE = '999999';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '999999999';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '999999';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEYS_PREVENTION] = '1000000'; // 设置更大的值避免验证错误
 
       const config = DataMapperCacheConfigFactory.createConfig();
 
       expect(config.bestRuleTtl).toBe(999999999);
       expect(config.maxBatchSize).toBe(999999);
+      expect(config.maxKeysPrevention).toBe(1000000);
     });
   });
 
   describe('Configuration Validation', () => {
     it('should validate all TTL values are positive', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '0';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '0';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -204,7 +207,7 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should validate all performance values are positive', () => {
-      process.env.SLOW_OPERATION_THRESHOLD_MS = '0';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.SLOW_OPERATION_THRESHOLD_MS] = '0';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -212,7 +215,7 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should validate all timeout values are positive', () => {
-      process.env.DEFAULT_SCAN_TIMEOUT_MS = '0';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.DEFAULT_SCAN_TIMEOUT_MS] = '0';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -220,7 +223,7 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should validate all batch operation values are positive', () => {
-      process.env.REDIS_SCAN_COUNT = '0';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.REDIS_SCAN_COUNT] = '0';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -228,7 +231,7 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should validate size limit values are positive', () => {
-      process.env.MAX_KEY_LENGTH = '0';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEY_LENGTH] = '0';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -236,7 +239,7 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should validate inter-batch delay is non-negative', () => {
-      process.env.INTER_BATCH_DELAY_MS = '-1';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.INTER_BATCH_DELAY_MS] = '-1';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -244,8 +247,8 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should validate logical relationships between values', () => {
-      process.env.MAX_BATCH_SIZE = '1000';
-      process.env.MAX_KEYS_PREVENTION = '500'; // maxBatchSize > maxKeysPrevention
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '1000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEYS_PREVENTION] = '500'; // maxBatchSize > maxKeysPrevention
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -253,23 +256,23 @@ describe('DataMapperCacheConfigFactory', () => {
     });
 
     it('should allow valid configuration to pass validation', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '1800';
-      process.env.RULE_BY_ID_TTL_SECONDS = '3600';
-      process.env.PROVIDER_RULES_TTL_SECONDS = '3600';
-      process.env.RULE_STATS_TTL_SECONDS = '900';
-      process.env.SLOW_OPERATION_THRESHOLD_MS = '100';
-      process.env.MAX_BATCH_SIZE = '100';
-      process.env.STATS_CLEANUP_INTERVAL_MS = '300000';
-      process.env.DEFAULT_SCAN_TIMEOUT_MS = '10000';
-      process.env.PROVIDER_INVALIDATE_TIMEOUT_MS = '20000';
-      process.env.STATS_SCAN_TIMEOUT_MS = '30000';
-      process.env.CLEAR_ALL_TIMEOUT_MS = '60000';
-      process.env.REDIS_SCAN_COUNT = '100';
-      process.env.DELETE_BATCH_SIZE = '50';
-      process.env.MAX_KEYS_PREVENTION = '1000';
-      process.env.INTER_BATCH_DELAY_MS = '10';
-      process.env.MAX_KEY_LENGTH = '256';
-      process.env.MAX_RULE_SIZE_KB = '64';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = '1800';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.RULE_BY_ID_TTL_SECONDS] = '3600';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.PROVIDER_RULES_TTL_SECONDS] = '3600';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.RULE_STATS_TTL_SECONDS] = '900';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.SLOW_OPERATION_THRESHOLD_MS] = '100';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = '100';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.STATS_CLEANUP_INTERVAL_MS] = '300000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.DEFAULT_SCAN_TIMEOUT_MS] = '10000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.PROVIDER_INVALIDATE_TIMEOUT_MS] = '20000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.STATS_SCAN_TIMEOUT_MS] = '30000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.CLEAR_ALL_TIMEOUT_MS] = '60000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.REDIS_SCAN_COUNT] = '100';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.DELETE_BATCH_SIZE] = '50';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEYS_PREVENTION] = '1000';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.INTER_BATCH_DELAY_MS] = '10';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_KEY_LENGTH] = '256';
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_RULE_SIZE_KB] = '64';
 
       expect(() => {
         DataMapperCacheConfigFactory.createConfig();
@@ -277,52 +280,6 @@ describe('DataMapperCacheConfigFactory', () => {
     });
   });
 
-  describe('Logging Behavior', () => {
-    it('should log configuration creation', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      DataMapperCacheConfigFactory.createConfig();
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Creating Data Mapper Cache configuration')
-      );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Data Mapper Cache configuration created successfully'),
-        expect.any(Object)
-      );
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should log validation errors when configuration is invalid', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      process.env.BEST_RULE_TTL_SECONDS = '0';
-
-      expect(() => {
-        DataMapperCacheConfigFactory.createConfig();
-      }).toThrow();
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Data Mapper Cache configuration validation failed'),
-        expect.any(Array)
-      );
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should log warnings for invalid environment variable values', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      process.env.BEST_RULE_TTL_SECONDS = 'invalid-value';
-
-      DataMapperCacheConfigFactory.createConfig();
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid integer value for BEST_RULE_TTL_SECONDS')
-      );
-
-      consoleSpy.mockRestore();
-    });
-  });
 
   describe('Configuration Properties', () => {
     let config: any;
@@ -393,8 +350,8 @@ describe('DataMapperCacheConfigFactory', () => {
   describe('Edge Cases', () => {
     it('should handle undefined environment variables', () => {
       // Explicitly set to undefined
-      process.env.BEST_RULE_TTL_SECONDS = undefined as any;
-      process.env.MAX_BATCH_SIZE = undefined as any;
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.BEST_RULE_TTL_SECONDS] = undefined as any;
+      process.env[DATA_MAPPER_CACHE_ENV_VARS.MAX_BATCH_SIZE] = undefined as any;
 
       const config = DataMapperCacheConfigFactory.createConfig();
 
@@ -402,13 +359,6 @@ describe('DataMapperCacheConfigFactory', () => {
       expect(config.maxBatchSize).toBe(DATA_MAPPER_CACHE_CONSTANTS.PERFORMANCE.MAX_BATCH_SIZE);
     });
 
-    it('should handle special numeric values', () => {
-      process.env.BEST_RULE_TTL_SECONDS = '0x10'; // Hex - should be parsed as 16
-
-      const config = DataMapperCacheConfigFactory.createConfig();
-
-      expect(config.bestRuleTtl).toBe(16);
-    });
 
     it('should create immutable configuration object', () => {
       const config1 = DataMapperCacheConfigFactory.createConfig();

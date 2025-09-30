@@ -1,10 +1,11 @@
-import { TestingModule } from '@nestjs/testing';
+import { TestingModule, Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { EventEmitterModule, EventEmitter2 } from '@nestjs/event-emitter';
 import { DataMapperCacheModule } from '@core/05-caching/module/data-mapper-cache/module/data-mapper-cache.module';
 import { DataMapperCacheStandardizedService } from '@core/05-caching/module/data-mapper-cache/services/data-mapper-cache-standardized.service';
 import { UnitTestSetup } from '../../../../../../../testbasic/setup/unit-test-setup';
 import { redisMockFactory } from '../../../../../../../testbasic/mocks/redis.mock';
+import { TestCacheModule } from '../../../../../../../testbasic/modules/test-cache.module';
 
 describe('DataMapperCacheModule', () => {
   let module: TestingModule;
@@ -13,8 +14,12 @@ describe('DataMapperCacheModule', () => {
   let consoleLogSpy: jest.SpyInstance;
 
   const createTestModule = async () => {
-    return await UnitTestSetup.createCacheTestModule({
-      imports: [DataMapperCacheModule],
+    const testingModuleBuilder = Test.createTestingModule({
+      imports: [
+        DataMapperCacheModule,
+        // Import TestCacheModule for other dependencies like ConfigService, EventEmitter2
+        TestCacheModule,
+      ],
       providers: [
         {
           provide: 'Redis',
@@ -22,6 +27,11 @@ describe('DataMapperCacheModule', () => {
         },
       ],
     });
+
+    // Override the Redis provider that DataMapperCacheModule tries to create
+    testingModuleBuilder.overrideProvider('DATA_MAPPER_REDIS_CLIENT').useValue(redisMockFactory());
+
+    return await testingModuleBuilder.compile();
   };
 
   beforeEach(async () => {
@@ -240,15 +250,21 @@ describe('DataMapperCacheModule', () => {
         }),
       };
 
-      const testModule = await UnitTestSetup.createCacheTestModule({
+      // Create module without TestCacheModule to avoid ConfigService conflicts
+      const testModule = await Test.createTestingModule({
         imports: [EventEmitterModule],
         providers: [
           DataMapperCacheStandardizedService,
           { provide: 'IDataMapperCache', useExisting: DataMapperCacheStandardizedService },
           { provide: 'DataMapperCacheStandard', useExisting: DataMapperCacheStandardizedService },
           {
+            provide: 'DATA_MAPPER_REDIS_CLIENT',
+            useValue: redisMockFactory(),
+          },
+          {
             provide: 'dataMapperCacheConfig',
             useFactory: (configService: ConfigService) => ({
+              defaultTtlSeconds: 300,
               redis: {
                 host: configService.get('REDIS_HOST', 'localhost'),
                 port: configService.get('REDIS_PORT', 6379),
@@ -278,12 +294,17 @@ describe('DataMapperCacheModule', () => {
             provide: ConfigService,
             useValue: mockConfigService,
           },
+          // Mock EventEmitter2
           {
-            provide: 'Redis',
-            useValue: redisMockFactory(),
+            provide: EventEmitter2,
+            useValue: {
+              emit: jest.fn(),
+              on: jest.fn(),
+              removeAllListeners: jest.fn(),
+            },
           },
         ],
-      });
+      }).compile();
 
       const config = await UnitTestSetup.validateServiceInjection(
         testModule,
@@ -303,15 +324,21 @@ describe('DataMapperCacheModule', () => {
         get: jest.fn((key: string, defaultValue?: any) => defaultValue),
       };
 
-      const testModule = await UnitTestSetup.createCacheTestModule({
+      // Create module without TestCacheModule to avoid ConfigService conflicts
+      const testModule = await Test.createTestingModule({
         imports: [EventEmitterModule],
         providers: [
           DataMapperCacheStandardizedService,
           { provide: 'IDataMapperCache', useExisting: DataMapperCacheStandardizedService },
           { provide: 'DataMapperCacheStandard', useExisting: DataMapperCacheStandardizedService },
           {
+            provide: 'DATA_MAPPER_REDIS_CLIENT',
+            useValue: redisMockFactory(),
+          },
+          {
             provide: 'dataMapperCacheConfig',
             useFactory: (configService: ConfigService) => ({
+              defaultTtlSeconds: 300,
               redis: {
                 host: configService.get('REDIS_HOST', 'localhost'),
                 port: configService.get('REDIS_PORT', 6379),
@@ -341,12 +368,17 @@ describe('DataMapperCacheModule', () => {
             provide: ConfigService,
             useValue: mockConfigService,
           },
+          // Mock EventEmitter2
           {
-            provide: 'Redis',
-            useValue: redisMockFactory(),
+            provide: EventEmitter2,
+            useValue: {
+              emit: jest.fn(),
+              on: jest.fn(),
+              removeAllListeners: jest.fn(),
+            },
           },
         ],
-      });
+      }).compile();
 
       const config = await UnitTestSetup.validateServiceInjection(
         testModule,
@@ -386,9 +418,22 @@ describe('DataMapperCacheModule', () => {
 
       await dataMapperCacheService.onModuleInit();
 
+      // Check if Redis is properly injected
+      const redisClient = (dataMapperCacheService as any).redis;
+      console.log('Redis client type:', typeof redisClient);
+      console.log('Redis client methods:', Object.getOwnPropertyNames(redisClient));
+      
+      // Test Redis directly
+      const directResult = await redisClient.get('test:key');
+      console.log('Direct Redis get result:', directResult);
+
       // Test that the service can perform Redis operations
       const result = await (dataMapperCacheService as any).get('test:key');
       expect(result).toBeDefined();
+      
+      // Debug output
+      console.log('Service get result:', JSON.stringify(result, null, 2));
+      
       expect(result.success).toBe(true);
     });
 
@@ -479,6 +524,10 @@ describe('DataMapperCacheModule', () => {
       // Test basic cache operations work through legacy interface
       const result = await (legacyService as any).get('test:key');
       expect(result).toBeDefined();
+      
+      // Debug output  
+      console.log('Legacy service get result:', JSON.stringify(result, null, 2));
+      
       expect(result.success).toBe(true);
     });
   });

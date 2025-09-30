@@ -2,13 +2,22 @@ import { DataMapperCacheConfigValidator } from '@core/05-caching/module/data-map
 
 describe('DataMapperCacheConfigValidator', () => {
   let consoleSpy: jest.SpyInstance;
+  let loggerSpy: jest.SpyInstance;
 
   beforeEach(() => {
     consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    // Mock the logger instance
+    loggerSpy = jest.spyOn((DataMapperCacheConfigValidator as any).logger, 'debug').mockImplementation();
+    jest.spyOn((DataMapperCacheConfigValidator as any).logger, 'error').mockImplementation();
+    jest.spyOn((DataMapperCacheConfigValidator as any).logger, 'warn').mockImplementation();
   });
 
   afterEach(() => {
     consoleSpy.mockRestore();
+    if (loggerSpy) {
+      loggerSpy.mockRestore();
+    }
+    jest.restoreAllMocks();
   });
 
   describe('validateConfig()', () => {
@@ -602,7 +611,7 @@ describe('DataMapperCacheConfigValidator', () => {
     });
 
     it('should log error for failed validation', () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const loggerErrorSpy = jest.spyOn((DataMapperCacheConfigValidator as any).logger, 'error');
 
       const invalidConfig = {
         bestRuleTtl: -100,
@@ -615,7 +624,7 @@ describe('DataMapperCacheConfigValidator', () => {
 
       DataMapperCacheConfigValidator.validateConfig(invalidConfig);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Data Mapper Cache configuration validation failed',
         expect.objectContaining({
           errors: expect.any(Array),
@@ -623,12 +632,10 @@ describe('DataMapperCacheConfigValidator', () => {
           config: expect.any(Object),
         })
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('should log warning for configuration with warnings', () => {
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const loggerWarnSpy = jest.spyOn((DataMapperCacheConfigValidator as any).logger, 'warn');
 
       const configWithWarnings = {
         bestRuleTtl: 7200, // Will generate warning
@@ -641,19 +648,17 @@ describe('DataMapperCacheConfigValidator', () => {
 
       DataMapperCacheConfigValidator.validateConfig(configWithWarnings);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
         'Data Mapper Cache configuration validation completed with warnings',
         expect.objectContaining({
           warnings: expect.any(Array),
           config: expect.any(Object),
         })
       );
-
-      consoleWarnSpy.mockRestore();
     });
 
     it('should sanitize sensitive information in logs', () => {
-      const consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
+      const loggerDebugSpy = jest.spyOn((DataMapperCacheConfigValidator as any).logger, 'debug');
 
       const configWithSensitiveData = {
         bestRuleTtl: 1800,
@@ -673,12 +678,13 @@ describe('DataMapperCacheConfigValidator', () => {
       DataMapperCacheConfigValidator.validateConfig(configWithSensitiveData);
 
       // Check that sensitive data was sanitized
-      const logCall = consoleDebugSpy.mock.calls.find(call =>
+      const logCall = loggerDebugSpy.mock.calls.find(call =>
         call[0] === 'Data Mapper Cache configuration validation passed'
       );
 
-      if (logCall) {
-        const loggedConfig = logCall[1].config;
+      if (logCall && logCall[1] && typeof logCall[1] === 'object') {
+        const logData = logCall[1] as { config: any };
+        const loggedConfig = logData.config;
         expect(loggedConfig).not.toHaveProperty('connectionString');
         expect(loggedConfig).not.toHaveProperty('apiKey');
         expect(loggedConfig).not.toHaveProperty('secret');
@@ -686,8 +692,6 @@ describe('DataMapperCacheConfigValidator', () => {
         expect(loggedConfig.errorMessages).toBe('[REDACTED]');
         expect(loggedConfig.successMessages).toBe('[REDACTED]');
       }
-
-      consoleDebugSpy.mockRestore();
     });
   });
 
@@ -722,6 +726,11 @@ describe('DataMapperCacheConfigValidator', () => {
         maxBatchSize: 500, // Exactly 500
         maxKeyLength: 512, // Exactly 512
         maxRuleSizeKb: 100, // Exactly 100KB
+        cacheKeys: {
+          bestRule: 'best_rule:',
+          ruleById: 'rule:id:',
+          providerRules: 'rules:provider:'
+        }
       };
 
       const result = DataMapperCacheConfigValidator.validateConfig(configWithBoundaryValues);

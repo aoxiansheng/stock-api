@@ -5,11 +5,15 @@
 
 export const redisMockFactory = () => {
   const mockData = new Map<string, any>();
+  
+  // 预设一些测试数据
+  mockData.set('test:key', JSON.stringify({ test: 'data', cached: true }));
 
   return {
     // 基础命令
     get: jest.fn().mockImplementation((key: string) => {
-      return Promise.resolve(mockData.get(key) || null);
+      const value = mockData.get(key);
+      return Promise.resolve(value || null);
     }),
 
     set: jest.fn().mockImplementation((key: string, value: any, ...args: any[]) => {
@@ -53,6 +57,7 @@ export const redisMockFactory = () => {
     }),
 
     pipeline: jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnThis(),
       setex: jest.fn().mockReturnThis(),
       set: jest.fn().mockReturnThis(),
       del: jest.fn().mockReturnThis(),
@@ -114,7 +119,23 @@ export const redisMockFactory = () => {
     }),
 
     // 扫描操作
-    scan: jest.fn().mockResolvedValue(['0', []]),
+    scan: jest.fn().mockImplementation((cursor: string, match: string, pattern: string, count: string, limit: number) => {
+      // 简化的模式匹配实现，用于测试
+      const allKeys = Array.from(mockData.keys());
+      const matchedKeys = allKeys.filter(key => {
+        if (pattern === '*') return true;
+        if (pattern.endsWith('*')) {
+          const prefix = pattern.slice(0, -1);
+          return key.startsWith(prefix);
+        }
+        if (pattern.startsWith('*')) {
+          const suffix = pattern.slice(1);
+          return key.endsWith(suffix);
+        }
+        return key === pattern;
+      });
+      return Promise.resolve([cursor === '0' ? '0' : '0', matchedKeys]);
+    }),
     sscan: jest.fn().mockResolvedValue(['0', []]),
     hscan: jest.fn().mockResolvedValue(['0', []]),
     zscan: jest.fn().mockResolvedValue(['0', []]),

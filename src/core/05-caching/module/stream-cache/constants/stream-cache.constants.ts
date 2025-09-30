@@ -9,37 +9,37 @@ import {
  * 使用Common-cache的共享常量作为基础
  */
 
-export const STREAM_CACHE_CONFIG = {
+export const STREAM_CACHE_CONFIG = Object.freeze({
   // TTL配置 - 使用共享常量
-  TTL: {
+  TTL: Object.freeze({
     HOT_CACHE_TTL_S: CACHE_CORE_TTL.REAL_TIME_TTL_SECONDS,
     WARM_CACHE_TTL_S: CACHE_CORE_TTL.BATCH_QUERY_TTL_SECONDS,
-  },
+  }),
 
   // 容量配置 - 使用共享批次大小
-  CAPACITY: {
+  CAPACITY: Object.freeze({
     MAX_HOT_CACHE_SIZE: 1000,                                    // 流缓存特有
     MAX_BATCH_SIZE: CACHE_CORE_BATCH_SIZES.STREAM_BATCH_SIZE,  // 使用流数据专用批次
-  },
+  }),
 
   // 清理配置 - 使用共享间隔
-  CLEANUP: {
+  CLEANUP: Object.freeze({
     INTERVAL_MS: CACHE_CORE_INTERVALS.CLEANUP_INTERVAL_MS,
     MAX_CLEANUP_ITEMS: CACHE_CORE_BATCH_SIZES.LARGE_BATCH_SIZE,
-  },
+  }),
 
   // 流缓存特有配置
-  STREAM_SPECIFIC: {
+  STREAM_SPECIFIC: Object.freeze({
     COMPRESSION_THRESHOLD_BYTES: 1024,        // 流数据压缩阈值
     CONNECTION_TIMEOUT_MS: CACHE_CORE_INTERVALS.CONNECTION_TIMEOUT_MS,
     HEARTBEAT_INTERVAL_MS: CACHE_CORE_INTERVALS.HEARTBEAT_INTERVAL_MS,
-  },
+  }),
 
   // 缓存键前缀 - 使用统一命名规范
-  KEYS: {
+  KEYS: Object.freeze({
     WARM_CACHE_PREFIX: "stream_cache_warm", // 统一命名: 模块_功能_类型
-  },
-} as const;
+  }),
+});
 
 /**
  * 流缓存默认配置
