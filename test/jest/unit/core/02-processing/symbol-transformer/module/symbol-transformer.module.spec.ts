@@ -5,8 +5,8 @@ import { SymbolTransformerService } from '@core/02-processing/symbol-transformer
 import { SymbolTransformerController } from '@core/02-processing/symbol-transformer/controller/symbol-transformer.controller';
 import { SymbolMapperCacheModule } from '@core/05-caching/module/symbol-mapper-cache/module/symbol-mapper-cache.module';
 import { SymbolMapperCacheStandardizedService } from '@core/05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service';
-import { MonitoringModule } from '@monitoring/monitoring.module';
-import { AuthModule } from '@auth/module/auth.module';
+// import { MonitoringModule } from '@monitoring/monitoring.module';
+import { AuthModule } from '@authv2';
 import { MarketInferenceModule } from '@common/modules/market-inference/market-inference.module';
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
 import { createSimpleEventEmitterMock } from '@test/testbasic/mocks';

@@ -22,13 +22,10 @@ import {
 } from "../dto/flexible-mapping-rule.dto";
 import { DataSourceTemplateService } from "./data-source-template.service";
 import { DataMapperCacheStandardizedService } from "../../../05-caching/module/data-mapper-cache/services/data-mapper-cache-standardized.service";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { CacheService } from "@cache/services/cache.service";
 
 // 🆕 Phase 2 模块化重构：导入内部模块化组件
 import { MappingRuleCrudModule } from './modules/mapping-rule-crud.module';
 import { MappingRuleEngineModule } from './modules/mapping-rule-engine.module';
-import { MappingRuleStatsModule } from './modules/mapping-rule-stats.module';
 
 /**
  * 灵活映射规则服务
@@ -36,7 +33,7 @@ import { MappingRuleStatsModule } from './modules/mapping-rule-stats.module';
  * Phase 2 模块化重构：采用内部模块化架构
  * - MappingRuleCrudModule: 处理 CRUD 操作
  * - MappingRuleEngineModule: 处理规则引擎和映射逻辑
- * - MappingRuleStatsModule: 处理统计和监控
+ * （已移除统计与监控模块）
  *
  * 保持向后兼容性：所有现有的公共API接口保持不变
  */
@@ -47,7 +44,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
   // 🆕 Phase 2 模块化组件：职责分离
   private readonly crudModule: MappingRuleCrudModule;
   private readonly engineModule: MappingRuleEngineModule;
-  private readonly statsModule: MappingRuleStatsModule;
+  // 已移除统计模块，避免非核心依赖与复杂度
 
   constructor(
     @InjectModel(FlexibleMappingRule.name)
@@ -57,8 +54,6 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
     private readonly paginationService: PaginationService,
     private readonly templateService: DataSourceTemplateService,
     private readonly mappingRuleCacheService: DataMapperCacheStandardizedService,
-    private readonly eventBus: EventEmitter2,
-    private readonly cacheService: CacheService,
   ) {
     // 🆕 Phase 2 模块化重构：初始化内部模块
     this.crudModule = new MappingRuleCrudModule(
@@ -69,16 +64,9 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
 
     this.engineModule = new MappingRuleEngineModule();
 
-    this.statsModule = new MappingRuleStatsModule(
-      this.ruleModel,
-      this.eventBus,
-      this.cacheService,
-    );
-
-    this.logger.log('FlexibleMappingRuleService 模块化重构完成', {
-      crudModule: '✅ 已初始化',
-      engineModule: '✅ 已初始化',
-      statsModule: '✅ 已初始化'
+    this.logger.log('FlexibleMappingRuleService 初始化完成', {
+      crudModule: '✅',
+      engineModule: '✅'
     });
   }
 
@@ -93,7 +81,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
     const rule = await this.crudModule.createRule(dto);
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
-    // 🚀 缓存新创建的规则
+    // 缓存新创建的规则
     await this.mappingRuleCacheService.cacheRuleById(ruleDto);
     if (dto.isDefault) {
       await this.mappingRuleCacheService.cacheBestMatchingRule(
@@ -119,7 +107,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
     const rule = await this.crudModule.createRuleFromSuggestions(dto, suggestions);
     const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
 
-    // 🚀 缓存新创建的规则
+    // 缓存新创建的规则
     await this.mappingRuleCacheService.cacheRuleById(ruleDto);
     if (dto.isDefault) {
       // 从 rule 文档中获取必要参数
@@ -182,8 +170,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
   }
 
   /**
-   * 🔍 根据ID获取规则 (Redis缓存优化)
-   * Phase 2 重构：保留缓存逻辑，监控委托给 StatsModule
+   * 🔍 根据ID获取规则（使用专用缓存模块）
    */
   async findRuleById(id: string): Promise<FlexibleMappingRuleResponseDto> {
     const startTime = Date.now();
@@ -193,31 +180,12 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
       const cachedRule =
         await this.mappingRuleCacheService.getCachedRuleById(id);
       if (cachedRule) {
-        // 监控事件委托给 StatsModule
-        this.statsModule.emitMonitoringEvent("cache_hit", {
-          type: "cache",
-          operation: "get",
-          duration: Date.now() - startTime,
-          cacheType: "redis",
-          key: `mapping_rule:${id}`,
-          success: true,
-        });
         return cachedRule;
       }
 
       // 2. 缓存未命中，从数据库查询
       const rule = await this.crudModule.getRuleDocumentById(id);
       const ruleDto = FlexibleMappingRuleResponseDto.fromDocument(rule);
-
-      // 监控事件委托给 StatsModule
-      this.statsModule.emitMonitoringEvent("database_query_success", {
-        type: "database",
-        operation: "findById",
-        duration: Date.now() - startTime,
-        collection: "flexibleMappingRules",
-        success: true,
-        resultCount: 1,
-      });
 
       // 3. 缓存查询结果 - 异步监控避免阻塞
       setImmediate(() => {
@@ -228,22 +196,12 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
 
       return ruleDto;
     } catch (error) {
-      // 监控事件委托给 StatsModule
-      this.statsModule.emitMonitoringEvent("rule_query_error", {
-        type: "business",
-        operation: "findRuleById",
-        duration: Date.now() - startTime,
-        success: false,
-        error: error.message,
-        ruleId: id,
-      });
       throw error;
     }
   }
 
   /**
-   * 🎯 查找最匹配的映射规则 (Redis缓存优化)
-   * Phase 2 重构：查询逻辑委托给 CrudModule，监控委托给 StatsModule
+   * 🎯 查找最匹配的映射规则（使用专用缓存模块）
    */
   async findBestMatchingRule(
     provider: string,
@@ -266,16 +224,6 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
           transDataRuleListType,
         );
       if (cachedRule) {
-        // 监控事件委托给 StatsModule
-        this.statsModule.emitMonitoringEvent("cache_hit", {
-          type: "cache",
-          operation: "get_best_matching",
-          duration: Date.now() - startTime,
-          cacheType: "redis",
-          success: true,
-          provider,
-          apiType,
-        });
         return cachedRule;
       }
 
@@ -289,18 +237,6 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
       const ruleDto = rule
         ? FlexibleMappingRuleResponseDto.fromDocument(rule)
         : null;
-
-      // 监控事件委托给 StatsModule
-      this.statsModule.emitMonitoringEvent("best_matching_rule_query", {
-        type: "database",
-        operation: "findBestMatchingRule",
-        duration: Date.now() - startTime,
-        collection: "flexibleMappingRules",
-        success: !!ruleDto,
-        provider,
-        apiType,
-        resultCount: ruleDto ? 1 : 0,
-      });
 
       // 3. 缓存查询结果（仅在找到规则时） - 异步避免阻塞
       if (ruleDto) {
@@ -323,31 +259,8 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
         });
       }
 
-      // 监控事件委托给 StatsModule
-      this.statsModule.emitMonitoringEvent("critical_path_operation", {
-        type: "business",
-        operation: "findBestMatchingRule",
-        duration: Date.now() - startTime,
-        provider,
-        apiType,
-        success: !!ruleDto,
-        cacheHit: false,
-        ruleFound: !!ruleDto,
-        category: "critical_path",
-      });
-
       return ruleDto;
     } catch (error) {
-      // 监控事件委托给 StatsModule
-      this.statsModule.emitMonitoringEvent("best_matching_rule_error", {
-        type: "business",
-        operation: "findBestMatchingRule",
-        duration: Date.now() - startTime,
-        provider,
-        apiType,
-        success: false,
-        error: error.message,
-      });
       throw error;
     }
   }
@@ -381,39 +294,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
       includeDebugInfo,
     );
 
-    try {
-      // 委托给 StatsModule 处理监控事件
-      this.statsModule.emitMonitoringEvent("rule_application", {
-        type: "business",
-        operation: "applyFlexibleMappingRule",
-        duration: Date.now() - startTime,
-        ruleId: rule._id?.toString(),
-        provider: rule.provider,
-        apiType: rule.apiType,
-        totalMappings: result.mappingStats.totalMappings,
-        successfulMappings: result.mappingStats.successfulMappings,
-        failedMappings: result.mappingStats.failedMappings,
-        successRate: Math.round(result.mappingStats.successRate * 100) / 100,
-        success: result.success,
-        category: "business_operation",
-      });
-
-      // 委托给 StatsModule 处理异步统计更新
-      setImmediate(() => {
-        if (rule._id) {
-          this.statsModule.updateRuleStats(rule._id.toString(), result.success).catch(
-            (error) => {
-              this.logger.warn("更新规则统计失败", { error: error.message });
-            },
-          );
-        }
-      });
-    } catch (monitoringError) {
-      // 监控失败不应影响业务逻辑
-      this.logger.warn("记录业务监控指标失败", {
-        error: monitoringError.message,
-      });
-    }
+    // 已移除内部统计与监控逻辑
 
     return result;
   }
@@ -525,27 +406,13 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
     }
   }
 
-  /**
-   * 🛡️ 验证缓存层JSON操作安全性
-   * Phase 2 重构：委托给 StatsModule
-   */
-  async validateCacheJsonSecurity(): Promise<{
-    jsonBombProtection: boolean;
-    dataIntegrity: boolean;
-    performanceWithinLimits: boolean;
-    errors: string[];
-  }> {
-    return this.statsModule.validateCacheJsonSecurity();
-  }
+  // 已移除：缓存层 JSON 安全性校验（非核心能力）
 
   /**
    * 🔄 清理资源（用于模块销毁时）
    * Phase 2 重构：委托给 StatsModule
    */
   onModuleDestroy(): void {
-    // 委托给 StatsModule 处理清理工作
-    this.statsModule.onDestroy();
-
     this.logger.log('FlexibleMappingRuleService 模块销毁完成');
   }
 }

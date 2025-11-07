@@ -7,7 +7,7 @@ import { DataTransformerService } from '@core/02-processing/transformer/services
 import { DataTransformRequestDto } from '@core/02-processing/transformer/dto/data-transform-request.dto';
 import { DataTransformResponseDto, DataTransformationMetadataDto } from '@core/02-processing/transformer/dto/data-transform-response.dto';
 import { TRANSFORMER_ERROR_CODES } from '@core/02-processing/transformer/constants/transformer-error-codes.constants';
-import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
+import { AuthService } from '@authv2';
 
 describe('DataTransformerController', () => {
   let controller: DataTransformerController;
@@ -64,8 +64,8 @@ describe('DataTransformerController', () => {
       transformBatch: jest.fn(),
     };
     
-    // 添加AuthPerformanceService的模拟实现
-    const mockAuthPerformanceService = {
+    // 添加AuthService的模拟实现
+    const mockAuthService = {
       recordAuthFlowPerformance: jest.fn(),
       recordAuthCachePerformance: jest.fn(),
       recordAuthFlowStats: jest.fn()
@@ -79,8 +79,8 @@ describe('DataTransformerController', () => {
           useValue: mockDataTransformerService,
         },
         {
-          provide: AuthPerformanceService,
-          useValue: mockAuthPerformanceService,
+          provide: AuthService,
+          useValue: mockAuthService,
         },
         // 提供Reflector依赖
         {

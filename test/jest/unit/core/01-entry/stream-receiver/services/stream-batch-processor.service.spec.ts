@@ -33,7 +33,7 @@ describe('StreamBatchProcessorService', () => {
     pipelineBroadcastData: jest.fn(),
     recordStreamPipelineMetrics: jest.fn(),
     recordPipelineError: jest.fn(),
-    emitMonitoringEvent: jest.fn(),
+//     emitMonitoringEvent: jest.fn(),
   };
 
   beforeEach(async () => {

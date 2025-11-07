@@ -1,7 +1,7 @@
 import { applyDecorators, UseGuards } from "@nestjs/common";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { Permission } from "@authv2/enums";
 import { WsAuthGuard } from "../guards/ws-auth.guard";
-import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
+import { RequirePermissions } from "@authv2/decorators";
 
 /**
  * WebSocket 认证装饰器

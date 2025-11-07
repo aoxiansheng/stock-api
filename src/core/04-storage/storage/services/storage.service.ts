@@ -13,19 +13,10 @@ import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } fro
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
-import {
-  STORAGE_CONFIG,
-  STORAGE_WARNING_MESSAGES,
-  STORAGE_PERFORMANCE_THRESHOLDS,
-} from "../constants/storage.constants";
-import {
-  CacheInfoDto,
-  PersistentStatsDto,
-  PerformanceStatsDto,
-} from "../dto/storage-internal.dto";
+
+import { STORAGE_CONFIG, STORAGE_WARNING_MESSAGES } from "../constants/storage.constants";
+import { CacheInfoDto, PersistentStatsDto } from "../dto/storage-internal.dto";
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
 import { StorageQueryDto } from "../dto/storage-query.dto";
 import { StorageType } from "../enums/storage-type.enum";
@@ -48,7 +39,6 @@ export class StorageService {
   constructor(
     private readonly storageRepository: StorageRepository,
     private readonly paginationService: PaginationService,
-    private readonly eventBus: EventEmitter2,
   ) {}
 
   /**
@@ -129,18 +119,7 @@ export class StorageService {
 
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件驱动监控：数据存储成功
-      this.emitDatabaseOperationEvent("upsert", processingTimeMs, true, {
-        storage_type: "persistent",
-        data_size: dataSize,
-        compressed: compressed,
-        classification: request.storageClassification,
-        provider: request.provider,
-        market: request.market,
-        ttl_seconds: request.options?.persistentTtlSeconds,
-        has_tags: !!request.options?.tags,
-        operation_type: "store",
-      });
+      // 监控已移除，仅保留业务日志
 
       const metadata = new StorageMetadataDto(
         request.key,
@@ -160,15 +139,7 @@ export class StorageService {
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件驱动监控：数据存储失败
-      this.emitDatabaseOperationEvent("upsert", processingTimeMs, false, {
-        storage_type: "persistent",
-        error_type: error.constructor.name,
-        classification: request.storageClassification,
-        provider: request.provider,
-        key_pattern: this.extractKeyPattern(request.key),
-        operation_type: "store",
-      });
+      // 监控已移除，仅保留错误日志
 
       this.logger.error(
         `数据库存储失败: ${request.key}`,
@@ -233,20 +204,7 @@ export class StorageService {
       // 🎯 重构后：直接从数据库检索
       const response = await this.tryRetrieveFromPersistent(request, startTime);
       if (response) {
-        // ✅ 事件驱动监控：数据检索成功
-        this.emitDatabaseOperationEvent(
-          "findOne",
-          Date.now() - startTime,
-          true,
-          {
-            storage_type: "persistent",
-            data_source: "mongodb",
-            key_pattern: this.extractKeyPattern(request.key),
-            cache_hit: response.cacheInfo?.hit || false,
-            decompressed: response.metadata?.compressed || false,
-            operation_type: "retrieve",
-          },
-        );
+        // 监控已移除，仅保留业务日志
         return response;
       }
 
@@ -267,14 +225,7 @@ export class StorageService {
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件驱动监控：数据检索失败
-      this.emitDatabaseOperationEvent("findOne", processingTimeMs, false, {
-        storage_type: "persistent",
-        error_type: error.constructor.name,
-        key_pattern: this.extractKeyPattern(request.key),
-        is_not_found: error instanceof NotFoundException,
-        operation_type: "retrieve",
-      });
+      // 监控已移除，仅保留错误日志
 
       this.logger.error(
         `数据库检索失败: ${request.key}`,
@@ -348,14 +299,7 @@ export class StorageService {
 
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件驱动监控：数据删除成功
-      this.emitDatabaseOperationEvent("deleteOne", processingTimeMs, true, {
-        storage_type: "persistent",
-        deleted_count: persistentResult.deletedCount,
-        actually_deleted: deleted,
-        key_pattern: this.extractKeyPattern(key),
-        operation_type: "delete",
-      });
+      // 监控已移除，仅保留业务日志
 
       this.logger.log(`数据库删除完成: ${key}`, {
         deleted,
@@ -366,13 +310,7 @@ export class StorageService {
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件驱动监控：数据删除失败
-      this.emitDatabaseOperationEvent("deleteOne", processingTimeMs, false, {
-        storage_type: "persistent",
-        error_type: error.constructor.name,
-        key_pattern: this.extractKeyPattern(key),
-        operation_type: "delete",
-      });
+      // 监控已移除，仅保留错误日志
 
       this.logger.error(
         `数据库删除失败: ${key}`,
@@ -408,19 +346,9 @@ export class StorageService {
     try {
       const stats = new StorageStatsDto();
 
-      // 🎯 重构后：仅生成数据库统计，缓存统计由StandardizedCacheService负责
+      // 🎯 重构后：仅生成数据库统计
       const persistentStats = await this.getPersistentStats();
-
-      // 缓存统计设为空对象，提示用户使用专用缓存服务
-      stats.cache = {
-        totalKeys: 0,
-        totalMemoryUsage: 0,
-        hitRate: 0,
-        avgTtl: 0,
-      };
-
-      stats.persistent = persistentStats;
-      stats.performance = this.getPerformanceStats();
+      (stats as any).persistent = persistentStats;
 
       this.logger.log("数据库存储统计信息生成成功", {
         totalDocuments: persistentStats.totalDocuments,
@@ -466,8 +394,7 @@ export class StorageService {
     );
 
     try {
-      const { items, total } =
-        await this.storageRepository.findPaginated(query);
+      const { items, total } = await this.storageRepository.findPaginated(query);
 
       // 转换为响应DTO
       const responseItems = items.map((item) => {
@@ -496,18 +423,6 @@ export class StorageService {
 
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件驱动监控：分页查询成功
-      this.emitDatabaseOperationEvent("findPaginated", processingTimeMs, true, {
-        storage_type: "persistent",
-        page: query.page || 1,
-        limit: query.limit || 10,
-        total_results: total,
-        page_results: responseItems.length,
-        has_filters: !!(query.keySearch || query.provider || query.market),
-        filter_types: this.getFilterTypes(query),
-        operation_type: "paginated_query",
-      });
-
       this.logger.log(`分页数据检索完成`, {
         totalItems: total,
         pageItems: responseItems.length,
@@ -517,15 +432,6 @@ export class StorageService {
       return result;
     } catch (error) {
       const processingTimeMs = Date.now() - startTime;
-
-      // ✅ 事件驱动监控：分页查询失败
-      this.emitDatabaseOperationEvent("findPaginated", processingTimeMs, false, {
-        storage_type: "persistent",
-        error_type: error.constructor.name,
-        page: query.page || 1,
-        limit: query.limit || 10,
-        operation_type: "paginated_query",
-      });
 
       this.logger.error(
         `获取分页数据失败`,
@@ -631,16 +537,7 @@ export class StorageService {
     };
   }
 
-  private getPerformanceStats(): PerformanceStatsDto {
-    // 🎯 重构后：数据库性能统计，由 Prometheus 指标提供
-    // 在生产环境中应通过 Grafana/Prometheus 查询真实的性能数据
-    return {
-      avgStorageTime: 0, // 可从 storagePersistentQueryDuration 直方图计算平均值
-      avgRetrievalTime: 0, // 可从 storagePersistentQueryDuration 直方图计算平均值
-      operationsPerSecond: this.calculateOperationsPerSecond(),
-      errorRate: 0, // 可从 storagePersistentOperationsTotal 计算错误率
-    };
-  }
+  // 监控相关方法已移除
 
   private async _compressData(
     data: any,
@@ -684,25 +581,12 @@ export class StorageService {
     dataSize: number,
     compressed: boolean,
   ) {
-    const logLevel =
-      processingTimeMs > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_STORAGE_MS
-        ? "warn"
-        : "log";
-    this.logger[logLevel](`数据存储成功: ${key}`, {
+    // 简化日志，不再依据性能阈值产生监控告警
+    this.logger.log(`数据存储成功: ${key}`, {
       processingTimeMs,
       dataSize,
       compressed,
     });
-    if (logLevel === "warn") {
-      this.logger.warn(
-        `${STORAGE_WARNING_MESSAGES.SLOW_OPERATION}: ${processingTimeMs}ms`,
-      );
-    }
-    if (dataSize > STORAGE_PERFORMANCE_THRESHOLDS.LARGE_DATA_SIZE_KB * 1024) {
-      this.logger.warn(
-        `${STORAGE_WARNING_MESSAGES.LARGE_DATA_SIZE}: ${Math.round(dataSize / 1024)}KB`,
-      );
-    }
   }
 
   private logRetrievalSuccess(
@@ -710,49 +594,11 @@ export class StorageService {
     key: string,
     source: "persistent",
   ) {
-    const logLevel =
-      processingTimeMs > STORAGE_PERFORMANCE_THRESHOLDS.SLOW_RETRIEVAL_MS
-        ? "warn"
-        : "log";
-    this.logger[logLevel](`数据检索成功: ${key}`, { processingTimeMs, source });
-    if (logLevel === "warn") {
-      this.logger.warn(
-        `${STORAGE_WARNING_MESSAGES.SLOW_OPERATION}: ${processingTimeMs}ms`,
-      );
-    }
+    // 简化日志，不再依据性能阈值产生监控告警
+    this.logger.log(`数据检索成功: ${key}`, { processingTimeMs, source });
   }
 
-  private calculateOperationsPerSecond(): number {
-    // 🎯 重构后：数据库操作频率，由 Prometheus 指标提供
-    // 在生产环境中应通过 rate(storagePersistentOperationsTotal[1m]) 计算真实频率
-    return 0; // 可从 Prometheus storagePersistentOperationsTotal 指标计算速率
-  }
-
-  /**
-   * ✅ 事件驱动监控：发送数据库操作监控事件
-   * 通过事件总线异步发送监控数据，实现业务逻辑与监控的完全解耦
-   */
-  private emitDatabaseOperationEvent(
-    operation: string,
-    duration: number,
-    success: boolean,
-    metadata: Record<string, any>,
-  ): void {
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "storage_service",
-        metricType: "database",
-        metricName: success ? `${operation}_success` : `${operation}_failed`,
-        metricValue: duration,
-        tags: {
-          operation,
-          status: success ? "success" : "error",
-          ...metadata,
-        },
-      });
-    });
-  }
+  // calculateOperationsPerSecond 和 emitDatabaseOperationEvent 已移除
 
   // ✅ 新增键模式提取方法
   private extractKeyPattern(key: string): string {

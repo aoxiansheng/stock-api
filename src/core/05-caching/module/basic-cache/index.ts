@@ -1,46 +1,15 @@
 /**
- * CommonCache模块统一导出
+ * basic-cache 极简导出
  */
 
-// 核心服务
-export { StandardizedCacheService } from "./services/standardized-cache.service";
-export { CacheCompressionService } from "./services/cache-compression.service";
+// 极简服务与模块
+export { BasicCacheService } from "./services/basic-cache.service";
+export { BasicCacheModule } from "./module/basic-cache.module";
 
-// 模块
-export {
-  BasicCacheModule,
-} from "./module/basic-cache.module";
-
-// 接口
-export type {
-  CacheMetadata,
-  RedisEnvelope,
-  CacheResult,
-} from "./interfaces/cache-metadata.interface";
-
-// DTO
-export {
-  CacheRequestDto,
-  BatchCacheRequestDto,
-} from "./dto/cache-request.dto";
-export {
-  CacheResultDto,
-  BatchCacheResultDto,
-  RedisCacheRuntimeStatsDto,
-} from "./dto/cache-result.dto";
-export {
-  CacheComputeOptionsDto,
-} from "./dto/cache-compute-options.dto";
-export {
-  TtlComputeParamsDto,
-  TtlComputeResultDto
-} from "./dto/ttl-compute-params.dto";
-
-// 工具类
+// 工具类（保留键工具）
 export { CacheKeyUtils } from "./utils/cache-key.utils";
-export { RedisValueUtils } from "./utils/redis-value.utils";
 
-// 常量
+// 常量（保留通用前缀与特殊值）
 export {
   CACHE_KEY_PREFIXES,
   CACHE_RESULT_STATUS,
@@ -49,14 +18,5 @@ export {
   COMPRESSION_ALGORITHMS,
   CACHE_DEFAULTS,
   REDIS_SPECIAL_VALUES,
+  CACHE_REDIS_CLIENT_TOKEN,
 } from "./constants/cache.constants";
-export {
-  CACHE_CONFIG,
-  CACHE_STRATEGIES,
-} from "./constants/cache-config.constants";
-
-export type {
-  CacheStrategy,
-  CacheOperation,
-  CompressionAlgorithm,
-} from "./constants/cache-config.constants";

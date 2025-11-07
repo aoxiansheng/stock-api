@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { BackgroundTaskService } from '@common/infrastructure/services/background-task.service';
-import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
+// // import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
 
 // Mock the logger to avoid console output during tests
 jest.mock('@common/modules/logging', () => ({
@@ -141,7 +141,7 @@ describe('BackgroundTaskService', () => {
       jest.runOnlyPendingTimers();
 
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           source: 'background_task_service',
           metricType: 'business',
@@ -170,7 +170,7 @@ describe('BackgroundTaskService', () => {
       jest.runOnlyPendingTimers();
 
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           source: 'background_task_service',
           metricType: 'business',
@@ -233,7 +233,7 @@ describe('BackgroundTaskService', () => {
       jest.runOnlyPendingTimers();
 
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricName: 'background_task_failed',
           tags: expect.objectContaining({
@@ -259,7 +259,7 @@ describe('BackgroundTaskService', () => {
 
       expect(mockTask).toHaveBeenCalledTimes(1);
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricName: 'background_task_completed',
           tags: expect.objectContaining({
@@ -287,7 +287,7 @@ describe('BackgroundTaskService', () => {
       jest.runOnlyPendingTimers();
 
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricValue: expect.any(Number),
           tags: expect.objectContaining({
@@ -464,14 +464,14 @@ describe('BackgroundTaskService', () => {
 
       // Should have emitted both success and failure events
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricName: 'background_task_completed',
         })
       );
 
       expect(eventEmitter.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricName: 'background_task_failed',
         })

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+
 import { NotFoundException } from "@nestjs/common";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 
@@ -210,18 +210,8 @@ export abstract class BaseFetcherService {
   ) {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "base_fetcher_service",
-          metricType: "external_api",
-          metricName: `external_call_${operation}`,
-          metricValue: duration,
-          tags: {
-            status_code: statusCode,
-            status: statusCode < 400 ? "success" : "error",
-            ...metadata,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("外部调用事件发送失败", {
           error: error.message,
@@ -238,17 +228,8 @@ export abstract class BaseFetcherService {
   ) {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "base_fetcher_service",
-          metricType: "performance",
-          metricName,
-          metricValue: duration,
-          tags: {
-            status: "warning",
-            ...metadata,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("性能事件发送失败", {
           error: error.message,

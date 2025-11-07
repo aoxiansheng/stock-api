@@ -8,8 +8,7 @@ import {
 } from "@nestjs/common";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
 import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 import { StringUtils } from '../../../shared/utils/string.util';
 
 import {
@@ -75,35 +74,9 @@ export class RuleAlignmentService {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
-    private readonly eventBus: EventEmitter2,
   ) {}
 
-  /**
-   * ✅ 事件驱动监控事件发送
-   * 替代 CollectorService，使用事件总线异步发送监控事件
-   */
-  private emitMonitoringEvent(metricName: string, data: any) {
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "data_mapper_alignment",
-        metricType: data.type || "business",
-        metricName,
-        metricValue: data.duration || data.value || 1,
-        tags: {
-          component: "rule-alignment",
-          operation: data.operation,
-          status: data.success ? "success" : "error",
-          templateId: data.templateId,
-          ruleId: data.ruleId,
-          transDataRuleListType: data.transDataRuleListType,
-          alignedFields: data.alignedFields,
-          totalChanges: data.totalChanges,
-          error: data.error,
-        },
-      });
-    });
-  }
+
 
   /**
    * 🎯 基于模板一键生成规则
@@ -214,29 +187,8 @@ export class RuleAlignmentService {
         totalFields: alignmentResult.totalFields,
       });
 
-      // ✅ 轻量级成功监控 - 事件驱动
-      this.emitMonitoringEvent("rule_generated", {
-        type: "business",
-        operation: "generate-rule",
-        duration: Date.now() - startTime,
-        templateId,
-        transDataRuleListType,
-        alignedFields: alignmentResult.alignedFields,
-        success: true,
-      });
-
       return { rule, alignmentResult };
     } catch (error) {
-      // ✅ 轻量级错误监控 - 事件驱动
-      this.emitMonitoringEvent("rule_generation_failed", {
-        type: "business",
-        operation: "generate-rule",
-        duration: Date.now() - startTime,
-        templateId,
-        transDataRuleListType,
-        error: error.message,
-        success: false,
-      });
       throw error;
     }
   }
@@ -335,30 +287,8 @@ export class RuleAlignmentService {
         newMappingsCount: newFieldMappings.length,
       });
 
-      // ✅ 轻量级成功监控 - 事件驱动
-      this.emitMonitoringEvent("rule_realigned", {
-        type: "business",
-        operation: "realign-rule",
-        duration: Date.now() - startTime,
-        ruleId: dataMapperRuleId,
-        totalChanges:
-          changes.added.length +
-          changes.removed.length +
-          changes.modified.length,
-        success: true,
-      });
-
       return { rule: updatedRule, changes, alignmentResult };
     } catch (error) {
-      // ✅ 轻量级错误监控 - 事件驱动
-      this.emitMonitoringEvent("rule_realign_failed", {
-        type: "business",
-        operation: "realign-rule",
-        duration: Date.now() - startTime,
-        ruleId: dataMapperRuleId,
-        error: error.message,
-        success: false,
-      });
       throw error;
     }
   }

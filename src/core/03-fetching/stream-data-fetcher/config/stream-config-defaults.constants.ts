@@ -195,6 +195,33 @@ export class StreamConfigDefaults {
         retryDelay: STREAM_CONFIG_DEFAULTS.fetching.retryDelay, // 固定值
         batchSize: this.getEnvValue('STREAM_BATCH_SIZE', STREAM_CONFIG_DEFAULTS.fetching.batchSize),
       },
+      performance: {
+        // 现有性能参数
+        slowResponseMs: STREAM_CONFIG_DEFAULTS.fetching.timeout * 2, // 默认 2x 请求超时
+        maxTimePerSymbolMs: 500,
+        batchConcurrency: 10,
+        maxSymbolsPerBatch: STREAM_CONFIG_DEFAULTS.fetching.batchSize,
+        logSymbolsLimit: 10,
+
+        // 自适应并发控制
+        concurrency: {
+          initial: this.getEnvValue('HEALTHCHECK_CONCURRENCY', 10),
+          min: this.getEnvValue('MIN_CONCURRENCY', 2),
+          max: this.getEnvValue('MAX_CONCURRENCY', 50),
+          adjustmentFactor: 0.2,
+          stabilizationPeriodMs: 30000,
+        },
+        thresholds: {
+          responseTimeMs: { excellent: 100, good: 500, poor: 2000 },
+          successRate: { excellent: 0.98, good: 0.9, poor: 0.8 },
+        },
+        circuitBreaker: {
+          recoveryDelayMs: 60000,
+          failureThreshold: 0.5,
+        },
+        // 自适应监控频率
+        concurrencyAdjustmentIntervalMs: 30000,
+      },
       cache: {
         defaultTtl: STREAM_CONFIG_DEFAULTS.cache.defaultTtl, // 固定值，统一由其他缓存系统管理
         realtimeTtl: STREAM_CONFIG_DEFAULTS.cache.realtimeTtl, // 固定值

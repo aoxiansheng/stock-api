@@ -10,9 +10,9 @@ import { PaginationService } from '@common/modules/pagination/services/paginatio
 // To keep the test isolated, we must prevent the real modules from being loaded.
 // We replace them with simple mock classes.
 import { DatabaseModule } from '../../../../../../../src/database/database.module';
-import { AuthModule } from '../../../../../../../src/auth/module/auth.module';
+import { AuthModule } from '@authv2';
 import { PaginationModule } from '../../../../../../../src/common/modules/pagination/modules/pagination.module';
-import { MonitoringModule } from '../../../../../../../src/monitoring/monitoring.module';
+// import { MonitoringModule } from '../../../../../../../src/monitoring/monitoring.module';
 
 class MockModule {}
 
@@ -43,8 +43,8 @@ describe('StorageModule', () => {
       .useModule(MockModule)
       .overrideModule(PaginationModule)
       .useModule(MockModule)
-      .overrideModule(MonitoringModule)
-      .useModule(MockModule)
+      // .overrideModule(MonitoringModule) // 已删除 monitoring 模块
+      // .useModule(MockModule)
       // Finally, we provide a mock for the Mongoose model required by StorageRepository.
       .overrideProvider(getModelToken(StoredData.name))
       .useValue({})

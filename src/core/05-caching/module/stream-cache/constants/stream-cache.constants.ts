@@ -1,8 +1,18 @@
 import {
   CACHE_CORE_TTL,
   CACHE_CORE_INTERVALS,
-  CACHE_CORE_BATCH_SIZES
+  CACHE_CORE_BATCH_SIZES,
+  CACHE_CORE_VALUES,
 } from '../../../foundation/constants/core-values.constants';
+
+/**
+ * 依赖注入 Token
+ */
+export const STREAM_CACHE_CONFIG_TOKEN = "STREAM_CACHE_CONFIG";
+/**
+ * 流缓存专用 Redis 客户端 Token（避免与basic-cache的客户端冲突）
+ */
+export const STREAM_CACHE_REDIS_CLIENT_TOKEN = "STREAM_CACHE_REDIS_CLIENT";
 
 /**
  * 流缓存常量配置
@@ -10,34 +20,9 @@ import {
  */
 
 export const STREAM_CACHE_CONFIG = Object.freeze({
-  // TTL配置 - 使用共享常量
-  TTL: Object.freeze({
-    HOT_CACHE_TTL_S: CACHE_CORE_TTL.REAL_TIME_TTL_SECONDS,
-    WARM_CACHE_TTL_S: CACHE_CORE_TTL.BATCH_QUERY_TTL_SECONDS,
-  }),
-
-  // 容量配置 - 使用共享批次大小
-  CAPACITY: Object.freeze({
-    MAX_HOT_CACHE_SIZE: 1000,                                    // 流缓存特有
-    MAX_BATCH_SIZE: CACHE_CORE_BATCH_SIZES.STREAM_BATCH_SIZE,  // 使用流数据专用批次
-  }),
-
-  // 清理配置 - 使用共享间隔
-  CLEANUP: Object.freeze({
-    INTERVAL_MS: CACHE_CORE_INTERVALS.CLEANUP_INTERVAL_MS,
-    MAX_CLEANUP_ITEMS: CACHE_CORE_BATCH_SIZES.LARGE_BATCH_SIZE,
-  }),
-
-  // 流缓存特有配置
-  STREAM_SPECIFIC: Object.freeze({
-    COMPRESSION_THRESHOLD_BYTES: 1024,        // 流数据压缩阈值
-    CONNECTION_TIMEOUT_MS: CACHE_CORE_INTERVALS.CONNECTION_TIMEOUT_MS,
-    HEARTBEAT_INTERVAL_MS: CACHE_CORE_INTERVALS.HEARTBEAT_INTERVAL_MS,
-  }),
-
-  // 缓存键前缀 - 使用统一命名规范
+  // 缓存键前缀 - 使用统一命名规范（保持兼容）
   KEYS: Object.freeze({
-    WARM_CACHE_PREFIX: "stream_cache_warm", // 统一命名: 模块_功能_类型
+    WARM_CACHE_PREFIX: "stream_cache_warm",
   }),
 });
 
@@ -45,38 +30,31 @@ export const STREAM_CACHE_CONFIG = Object.freeze({
  * 流缓存默认配置
  */
 export const DEFAULT_STREAM_CACHE_CONFIG = {
-  // 流缓存特有配置
-  hotCacheTTL: STREAM_CACHE_CONFIG.TTL.HOT_CACHE_TTL_S,
-  warmCacheTTL: STREAM_CACHE_CONFIG.TTL.WARM_CACHE_TTL_S,
-  maxHotCacheSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_HOT_CACHE_SIZE,
-  streamBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
-  connectionTimeout: STREAM_CACHE_CONFIG.STREAM_SPECIFIC.CONNECTION_TIMEOUT_MS,
-  heartbeatInterval: STREAM_CACHE_CONFIG.STREAM_SPECIFIC.HEARTBEAT_INTERVAL_MS,
+  // 流缓存特有配置（统一：hot 毫秒、warm 秒）
+  hotCacheTTL: CACHE_CORE_TTL.REAL_TIME_TTL_SECONDS * 1000,
+  warmCacheTTL: CACHE_CORE_TTL.BATCH_QUERY_TTL_SECONDS,
+  maxHotCacheSize: 1000,
+  streamBatchSize: CACHE_CORE_BATCH_SIZES.STREAM_BATCH_SIZE,
+  connectionTimeout: CACHE_CORE_INTERVALS.CONNECTION_TIMEOUT_MS,
+  heartbeatInterval: CACHE_CORE_INTERVALS.HEARTBEAT_INTERVAL_MS,
 
-  // 基础配置 - 使用共享常量
-  defaultTTL: CACHE_CORE_TTL.DEFAULT_TTL_SECONDS,
-  minTTL: CACHE_CORE_TTL.MIN_TTL_SECONDS,
-  maxTTL: CACHE_CORE_TTL.MAX_TTL_SECONDS,
-  maxCacheSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_HOT_CACHE_SIZE,
-  maxBatchSize: STREAM_CACHE_CONFIG.CAPACITY.MAX_BATCH_SIZE,
-  cleanupInterval: STREAM_CACHE_CONFIG.CLEANUP.INTERVAL_MS,
-  maxCleanupItems: STREAM_CACHE_CONFIG.CLEANUP.MAX_CLEANUP_ITEMS,
-  memoryCleanupThreshold: 0.85,
+  // 基础配置（与 ExtendedBaseCacheConfig 命名对齐）
+  maxCacheSize: 1000,
+  maxBatchSize: CACHE_CORE_BATCH_SIZES.STREAM_BATCH_SIZE,
+  cleanupIntervalMs: CACHE_CORE_INTERVALS.CLEANUP_INTERVAL_MS,
+  maxCleanupItems: CACHE_CORE_BATCH_SIZES.LARGE_BATCH_SIZE,
+  memoryCleanupThreshold: CACHE_CORE_VALUES.DEFAULT_MEMORY_THRESHOLD,
 
   // 压缩配置
-  compressionThreshold: STREAM_CACHE_CONFIG.STREAM_SPECIFIC.COMPRESSION_THRESHOLD_BYTES,
+  compressionThreshold: CACHE_CORE_VALUES.DEFAULT_COMPRESSION_THRESHOLD,
   compressionEnabled: true,
   compressionDataType: "stream" as const,
 
-  // 性能监控配置 - 使用共享间隔
-  slowOperationThreshold: 100, // 慢操作阈值: 100ms
-  statsLogInterval: CACHE_CORE_INTERVALS.STATS_LOG_INTERVAL_MS,
-  performanceMonitoring: true,
-  verboseLogging: false,
-
-  // 错误处理配置
+  // 重试/阈值配置（最小化）
+  slowOperationThresholdMs: 100,
+  statsLogIntervalMs: CACHE_CORE_INTERVALS.STATS_LOG_INTERVAL_MS,
   maxRetryAttempts: 3,
-  retryBaseDelay: 100,
+  baseRetryDelayMs: 100,
   retryDelayMultiplier: 2,
   enableFallback: true,
 };

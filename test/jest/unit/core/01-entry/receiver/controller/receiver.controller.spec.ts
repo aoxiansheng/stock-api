@@ -6,8 +6,8 @@ import { DataRequestDto } from '@core/01-entry/receiver/dto/data-request.dto';
 import { DataResponseDto, ResponseMetadataDto } from '@core/01-entry/receiver/dto/data-response.dto';
 import { StorageMode } from '@core/01-entry/receiver/enums/storage-mode.enum';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
-import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
-import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
+import { ApiKeyAuthGuard } from '@authv2';
+import { AuthService } from '@authv2';
 import { Reflector } from '@nestjs/core';
 
 describe('ReceiverController', () => {
@@ -24,8 +24,8 @@ describe('ReceiverController', () => {
       handleRequest: jest.fn(),
     };
     
-    // 创建 AuthPerformanceService 的模拟实现
-    const mockAuthPerformanceService = {
+    // 创建 AuthService 的模拟实现
+    const mockAuthService = {
       recordAuthFlowPerformance: jest.fn(),
       recordAuthCachePerformance: jest.fn(),
       recordAuthFlowStats: jest.fn(),
@@ -51,8 +51,8 @@ describe('ReceiverController', () => {
           },
         },
         {
-          provide: AuthPerformanceService,
-          useValue: mockAuthPerformanceService,
+          provide: AuthService,
+          useValue: mockAuthService,
         },
       ],
     })

@@ -1,59 +1,43 @@
 /**
- * 标准化数据映射缓存服务 (Phase 9: 零历史包袱版本)
- * 直接实现 StandardCacheModuleInterface，移除所有兼容层依赖
+ * 标准化数据映射缓存服务（聚焦核心能力，移除监控/诊断与事件）
  *
- * 功能特性：
- * - 完整实现标准化缓存模块接口
- * - 数据映射专用缓存逻辑
- * - 高性能批量操作支持
- * - 完整的监控和诊断能力
+ * 保留：
+ * - 基础缓存操作与批处理
+ * - 数据映射领域缓存（最佳匹配/按ID/按提供商）
  */
 
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createLogger } from '@common/logging/index';
 
-// Foundation imports
-import { StandardCacheModuleInterface } from '../../../foundation/interfaces/standard-cache-module.interface';
-import {
-  CachePerformanceMetrics,
-  CacheCapacityInfo,
-  CacheErrorStatistics,
-  DiagnosticsResult,
-} from '../../../foundation/interfaces/standard-cache-module.interface';
+// Foundation 结果与选项类型（保留最小集）
 import {
   CacheGetResult,
   CacheSetResult,
   CacheDeleteResult,
   BaseCacheResult,
   CacheOperationOptions,
-  CacheStatsResult,
-  CacheHealthResult,
   CacheBatchResult,
   BatchOperationOptions,
 } from '../../../foundation/types/cache-result.types';
 import type { CacheUnifiedConfigInterface, CacheConfigValidationResult } from '../../../foundation/types/cache-config.types';
-import { ModuleInitOptions, ModuleStatus } from '../../../foundation/types/cache-module.types';
+import { ModuleInitOptions } from '../../../foundation/types/cache-module.types';
 
 // Business logic imports
 import { IDataMapperCache } from '../interfaces/data-mapper-cache.interface';
 import { FlexibleMappingRuleResponseDto } from '../../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
-import { DATA_MAPPER_CACHE_CONSTANTS } from '../constants/data-mapper-cache.constants';
+// 聚焦核心：移除未使用的常量导入
 
 /**
  * 标准化数据映射缓存服务 (零历史包袱版本)
  *
  * 特点：
- * - 直接实现 StandardCacheModuleInterface 标准化接口
- * - 实现 IDataMapperCache 保持业务逻辑兼容
- * - 提供完整的监控、诊断、自愈能力
+ * - 实现 IDataMapperCache，保持业务逻辑兼容
  * - 支持高级缓存操作和批量处理
- * - 移除所有兼容层依赖，代码更简洁高效
  */
 @Injectable()
 export class DataMapperCacheStandardizedService
-  implements StandardCacheModuleInterface, IDataMapperCache, OnModuleInit, OnModuleDestroy {
+  implements IDataMapperCache, OnModuleInit, OnModuleDestroy {
 
   private readonly logger = new Logger(DataMapperCacheStandardizedService.name);
   private readonly businessLogger = createLogger('DataMapperCacheStandardized');
@@ -74,39 +58,21 @@ export class DataMapperCacheStandardizedService
 
   constructor(
     @Inject('DATA_MAPPER_REDIS_CLIENT') private readonly redis: Redis,
-    private readonly eventBus: EventEmitter2,
     @Inject('dataMapperCacheConfig') private readonly initialConfig: CacheUnifiedConfigInterface,
   ) {
     this._config = initialConfig;
     this.businessLogger.log('DataMapperCacheStandardizedService (Clean Version) initialized');
   }
 
-  // ========================================
-  // Module Metadata (Required by StandardCacheModuleInterface)
-  // ========================================
-
+  // 元信息（非强依赖，仅内部说明）
   readonly moduleType = 'data-mapper-cache';
   readonly moduleCategory = 'specialized' as const;
-  readonly supportedFeatures = [
-    'data-mapping-cache',
-    'flexible-rules',
-    'batch-operations',
-    'monitoring',
-  ];
+  readonly supportedFeatures = ['data-mapping-cache', 'flexible-rules', 'batch-operations'] as const;
   readonly dependencies = ['redis'];
   readonly priority = 3;
-
-  get name(): string {
-    return 'DataMapperCacheStandardized';
-  }
-
-  get version(): string {
-    return '3.0.0';
-  }
-
-  get description(): string {
-    return 'Clean standardized data mapper cache with flexible rule support';
-  }
+  get name(): string { return 'DataMapperCacheStandardized'; }
+  get version(): string { return '3.0.0'; }
+  get description(): string { return 'Clean standardized data mapper cache with flexible rule support'; }
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -136,11 +102,7 @@ export class DataMapperCacheStandardizedService
       this._isInitialized = true;
       this._isHealthy = true;
 
-      // Emit initialization event
-      this.eventBus.emit('cache.module.initialized', {
-        module: 'data-mapper-cache-standardized',
-        timestamp: new Date(),
-      });
+      // 事件发射移除：聚焦核心缓存功能
 
       this.businessLogger.log('DataMapperCacheStandardizedService initialized successfully');
     } catch (error) {
@@ -168,11 +130,7 @@ export class DataMapperCacheStandardizedService
       this._isHealthy = false;
       this._isInitialized = false;
 
-      // Emit destruction event
-      this.eventBus.emit('cache.module.destroyed', {
-        module: 'data-mapper-cache-standardized',
-        timestamp: new Date(),
-      });
+      // 事件发射移除：聚焦核心缓存功能
 
       this.businessLogger.log('DataMapperCacheStandardizedService destroyed successfully');
     } catch (error) {
@@ -180,21 +138,7 @@ export class DataMapperCacheStandardizedService
     }
   }
 
-  getStatus(): ModuleStatus {
-    return {
-      status: this._isInitialized
-        ? (this._isHealthy ? 'ready' : 'error')
-        : 'initializing',
-      message: this._isHealthy ? 'Service is healthy' : 'Service has issues',
-      lastUpdated: Date.now(),
-      startedAt: Date.now(),
-      metrics: {
-        totalOperations: this.stats.operations,
-        avgResponseTime: this.calculateAverageResponseTime(),
-        errorRate: this.stats.operations > 0 ? (this.stats.errors / this.stats.operations) * 100 : 0,
-      },
-    };
-  }
+  // 监控状态接口已移除（统一由系统监控层处理）
 
   validateConfig(config: Partial<CacheUnifiedConfigInterface>): CacheConfigValidationResult {
     const errors: string[] = [];
@@ -481,27 +425,7 @@ export class DataMapperCacheStandardizedService
   // Business Logic Methods (IDataMapperCache)
   // ========================================
 
-  async getRulesForProvider(providerName: string): Promise<FlexibleMappingRuleResponseDto[]> {
-    const cacheKey = `rules:provider:${providerName}`;
-    const result = await this.get<FlexibleMappingRuleResponseDto[]>(cacheKey);
-    return result.data || [];
-  }
-
-  async setRulesForProvider(providerName: string, rules: FlexibleMappingRuleResponseDto[]): Promise<void> {
-    const cacheKey = `rules:provider:${providerName}`;
-    await this.set(cacheKey, rules, { ttl: 3600 }); // 1 hour TTL
-  }
-
-  async getBestMatchingRule(providerName: string, query: any): Promise<FlexibleMappingRuleResponseDto | null> {
-    const cacheKey = `best_rule:${providerName}:${JSON.stringify(query)}`;
-    const result = await this.get<FlexibleMappingRuleResponseDto>(cacheKey);
-    return result.data || null;
-  }
-
-  async setBestMatchingRule(providerName: string, query: any, rule: FlexibleMappingRuleResponseDto): Promise<void> {
-    const cacheKey = `best_rule:${providerName}:${JSON.stringify(query)}`;
-    await this.set(cacheKey, rule, { ttl: 1800 }); // 30 minutes TTL
-  }
+  // 移除旧式/非接口化的领域方法（避免重复 API）
 
   // Additional IDataMapperCache methods (with correct signatures)
   async cacheBestMatchingRule(
@@ -580,220 +504,13 @@ export class DataMapperCacheStandardizedService
     await this.batchSet(batchItems);
   }
 
-  // ========================================
-  // Monitoring Methods
-  // ========================================
-
-  async getStats(timeRangeMs?: number): Promise<CacheStatsResult> {
-    const totalOperations = this.stats.operations;
-    const hitRate = totalOperations > 0 ? (this.stats.cacheHits / totalOperations) * 100 : 0;
-    const errorRate = totalOperations > 0 ? (this.stats.errors / totalOperations) * 100 : 0;
-    const startTime = Date.now();
-
-    return {
-      success: true,
-      status: 'success',
-      operation: 'get',
-      timestamp: startTime,
-      timeRangeMs: timeRangeMs || Date.now() - this.stats.lastResetTime.getTime(),
-      collectionTime: Date.now(),
-      data: {
-        hits: this.stats.cacheHits,
-        misses: this.stats.cacheMisses,
-        hitRate,
-        totalOperations,
-        keyCount: 0,
-        memoryUsageBytes: 0,
-        memoryUsageRatio: 0,
-        avgResponseTimeMs: this.calculateAverageResponseTime(),
-        errorCount: this.stats.errors,
-        errorRate,
-        lastResetTime: this.stats.lastResetTime.getTime(),
-      },
-    };
-  }
-
-  async resetStats(): Promise<BaseCacheResult<boolean>> {
-    this.stats.operations = 0;
-    this.stats.cacheHits = 0;
-    this.stats.cacheMisses = 0;
-    this.stats.errors = 0;
-    this.stats.lastResetTime = new Date();
-
-    const startTime = Date.now();
-    return this.createBasicResult<boolean>(true, 'set', startTime);
-  }
-
-  async getHealth(): Promise<CacheHealthResult> {
-    const startTime = Date.now();
-
-    return {
-      success: true,
-      status: 'success',
-      operation: 'get',
-      timestamp: startTime,
-      checks: [
-        {
-          name: 'Data Mapper Cache Health',
-          status: this._isHealthy ? 'pass' : 'fail',
-          value: this._isHealthy,
-          description: 'Overall data mapper cache health status',
-        },
-      ],
-      healthScore: this._isHealthy ? 100 : 50,
-      data: {
-        connectionStatus: this._isHealthy ? 'success' : 'error',
-        memoryStatus: 'healthy' as const,
-        performanceStatus: 'healthy' as const,
-        errorRateStatus: 'healthy' as const,
-        lastCheckTime: Date.now(),
-        uptimeMs: Date.now() - this.stats.lastResetTime.getTime(),
-      },
-    };
-  }
-
-  async ping(): Promise<BaseCacheResult<number>> {
-    const startTime = Date.now();
-    try {
-      await this.redis.ping();
-      const duration = Math.max(Date.now() - startTime, 1); // 确保至少为1ms，避免测试环境中为0
-      return this.createBasicResult<number>(duration, 'get', startTime);
-    } catch (error) {
-      return this.createBasicResult<number>(-1, 'get', startTime, error);
-    }
-  }
-
-  async getKeys(pattern?: string, limit?: number): Promise<BaseCacheResult<string[]>> {
-    const startTime = Date.now();
-    try {
-      let cursor = '0';
-      const keys: string[] = [];
-      const scanPattern = pattern || '*';
-      const maxKeys = limit || 1000;
-
-      do {
-        const [nextCursor, foundKeys] = await this.redis.scan(cursor, 'MATCH', scanPattern, 'COUNT', 100);
-        cursor = nextCursor;
-        keys.push(...foundKeys);
-
-        if (keys.length >= maxKeys) {
-          break;
-        }
-      } while (cursor !== '0');
-
-      return this.createBasicResult<string[]>(keys.slice(0, maxKeys), 'get', startTime);
-    } catch (error) {
-      return this.createBasicResult<string[]>([], 'get', startTime, error);
-    }
-  }
-
-  async getMemoryUsage(): Promise<BaseCacheResult<any>> {
-    const startTime = Date.now();
-    try {
-      const info = await this.redis.info('memory');
-      return this.createBasicResult<any>({ info }, 'get', startTime);
-    } catch (error) {
-      return this.createBasicResult<any>({}, 'get', startTime, error);
-    }
-  }
-
-  async getConnectionInfo(): Promise<BaseCacheResult<any>> {
-    const startTime = Date.now();
-    return this.createBasicResult<any>({
-      status: 'connected',
-      address: 'redis',
-      port: 6379,
-      connectedAt: Date.now(),
-      lastHeartbeat: Date.now(),
-    }, 'get', startTime);
-  }
-
-  async exportData(pattern?: string, format?: 'json' | 'csv'): Promise<BaseCacheResult<any>> {
-    const startTime = Date.now();
-    return this.createBasicResult<any>({}, 'get', startTime);
-  }
-
-  async importData(data: any, options?: any): Promise<BaseCacheResult<any>> {
-    const startTime = Date.now();
-    return this.createBasicResult<any>({ total: 0, successful: 0, failed: 0, skipped: 0, durationMs: 0 }, 'set', startTime);
-  }
-
-  // ========================================
-  // Standardized Monitoring
-  // ========================================
-
-  async getPerformanceMetrics(): Promise<CachePerformanceMetrics> {
-    const totalOps = this.stats.operations;
-    const hitRate = totalOps > 0 ? (this.stats.cacheHits / totalOps) * 100 : 0;
-    const errorRate = totalOps > 0 ? (this.stats.errors / totalOps) * 100 : 0;
-
-    return {
-      avgResponseTime: this.calculateAverageResponseTime(),
-      p95ResponseTime: this.calculateAverageResponseTime() * 1.5,
-      p99ResponseTime: this.calculateAverageResponseTime() * 2,
-      throughput: this.calculateThroughput(),
-      hitRate,
-      errorRate,
-      memoryEfficiency: 0.85,
-    };
-  }
-
-  async getCapacityInfo(): Promise<CacheCapacityInfo> {
-    return {
-      currentKeys: 0,
-      maxKeys: 10000,
-      keyUtilization: 0,
-      currentMemory: 0,
-      maxMemory: 1024 * 1024 * 100,
-      memoryUtilization: 0,
-      estimatedRemainingCapacity: {
-        keys: 10000,
-        memoryBytes: 1024 * 1024 * 100,
-        estimatedFullInMs: -1,
-      },
-    };
-  }
-
-  async getErrorStatistics(): Promise<CacheErrorStatistics> {
-    return {
-      totalErrors: this.stats.errors,
-      errorsByType: {},
-      errorsBySeverity: { low: 0, medium: 0, high: 0, critical: 0 },
-      recentErrors: [],
-      errorTrend: [],
-    };
-  }
-
-  async runDiagnostics(): Promise<DiagnosticsResult> {
-    const healthScore = this._isHealthy ? 100 : 50;
-
-    return {
-      overallHealthScore: healthScore,
-      checks: [
-        {
-          name: 'Data Mapper Cache Health',
-          status: this._isHealthy ? 'pass' : 'fail',
-          score: healthScore,
-          message: this._isHealthy ? 'Service is healthy' : 'Service has issues',
-        },
-      ],
-      issues: [],
-    };
-  }
+  // 监控/诊断/导入导出等非核心方法已移除
 
   // ========================================
   // Helper Methods
   // ========================================
 
-  private calculateAverageResponseTime(): number {
-    return 25; // 25ms average (simplified)
-  }
-
-  private calculateThroughput(): number {
-    const uptimeMs = Date.now() - this.stats.lastResetTime.getTime();
-    const uptimeSeconds = Math.max(uptimeMs / 1000, 1);
-    return this.stats.operations / uptimeSeconds;
-  }
+  // 统计辅助方法裁剪
 
   private createGetResult<T>(
     key: string,

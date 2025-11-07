@@ -1,5 +1,4 @@
 import { CACHE_KEY_PREFIXES } from "../constants/cache.constants";
-import { CACHE_CONFIG } from "../constants/cache-config.constants";
 
 // 统一错误处理基础设施
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
@@ -8,6 +7,7 @@ import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } fro
  * 缓存键生成工具类
  */
 export class CacheKeyUtils {
+  private static readonly MAX_KEY_LENGTH = 512;
   /**
    * 生成缓存键
    * @param prefix 键前缀
@@ -19,15 +19,15 @@ export class CacheKeyUtils {
     const key = `${prefix}:${validParts.join(":")}`;
 
     // 验证键长度
-    if (key.length > CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH) {
+    if (key.length > this.MAX_KEY_LENGTH) {
       throw UniversalExceptionFactory.createBusinessException({
         component: ComponentIdentifier.COMMON_CACHE,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'generateCacheKey',
-        message: `Cache key too long: ${key.length} > ${CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH}`,
+          message: `Cache key too long: ${key.length} > ${this.MAX_KEY_LENGTH}`,
         context: {
           keyLength: key.length,
-          maxLength: CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH,
+          maxLength: this.MAX_KEY_LENGTH,
           prefix,
           parts: parts.filter(Boolean),
           generatedKey: key
@@ -115,15 +115,15 @@ export class CacheKeyUtils {
    */
   static prepareBatchKeys(keys: string[]): string[] {
     return keys.map((key) => {
-      if (key.length > CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH) {
+      if (key.length > this.MAX_KEY_LENGTH) {
         throw UniversalExceptionFactory.createBusinessException({
           component: ComponentIdentifier.COMMON_CACHE,
           errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
           operation: 'prepareBatchKeys',
-          message: `Cache key too long in batch operation: ${key.length} > ${CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH}`,
+          message: `Cache key too long in batch operation: ${key.length} > ${this.MAX_KEY_LENGTH}`,
           context: {
             keyLength: key.length,
-            maxLength: CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH,
+            maxLength: this.MAX_KEY_LENGTH,
             invalidKey: key,
             operation: 'batch_key_preparation'
           }
@@ -161,7 +161,7 @@ export class CacheKeyUtils {
       return false;
     }
 
-    if (key.length > CACHE_CONFIG.MEMORY.MAX_KEY_LENGTH) {
+    if (key.length > this.MAX_KEY_LENGTH) {
       return false;
     }
 

@@ -1,12 +1,7 @@
 // RECENT_METRICS_COUNT 已移动到监控配置中，通过 configService 动态获取
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { API_OPERATIONS } from "@common/constants/domain";
-import {
-  Injectable,
-  OnModuleDestroy,
-  Inject,
-  forwardRef,
-} from "@nestjs/common";
+import { Injectable, OnModuleDestroy, Inject, forwardRef, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
@@ -36,10 +31,8 @@ import {
 } from "../../../03-fetching/stream-data-fetcher/interfaces";
 import { Subject } from "rxjs";
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
-import { STREAM_RECEIVER_METRICS } from "../constants/stream-receiver-metrics.constants";
 import { MappingDirection } from "../../../shared/constants/cache.constants";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
-import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
+
 import { bufferTime, filter, mergeMap } from "rxjs/operators";
 import {
   StreamReceiverConfig,
@@ -163,8 +156,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly dataProcessor: StreamDataProcessorService,
     // ✅ 移除违规的直接 CollectorService 依赖，改用事件化监控
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
-    @Inject(forwardRef(() => RateLimitService))
-    private readonly rateLimitService?: RateLimitService, // P0修复: 连接频率限制服务 (可选)
+    @Optional() private readonly rateLimitService?: any, // 极简：不依赖旧限速服务
   ) {
     // P1重构: 初始化配置管理
     this.config = this.initializeConfig();
@@ -193,13 +185,13 @@ export class StreamReceiverService implements OnModuleDestroy {
       pipelineBroadcastData: this.pipelineBroadcastData.bind(this),
       recordStreamPipelineMetrics: this.recordStreamPipelineMetrics.bind(this),
       recordPipelineError: this.recordPipelineError.bind(this),
-      emitMonitoringEvent: this.emitMonitoringEvent.bind(this),
+
     });
 
     // 设置连接管理服务的回调函数
     this.connectionManager.setCallbacks({
       recordConnectionMetrics: this.recordConnectionMetrics.bind(this),
-      emitMonitoringEvent: this.emitMonitoringEvent.bind(this),
+  
       emitBusinessEvent: this.emitBusinessEvent.bind(this),
     });
 
@@ -210,7 +202,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       pipelineBroadcastData: this.pipelineBroadcastData.bind(this),
       recordStreamPipelineMetrics: this.recordStreamPipelineMetrics.bind(this),
       recordPipelineError: this.recordPipelineError.bind(this),
-      emitMonitoringEvent: this.emitMonitoringEvent.bind(this),
+
     });
 
     this.logger.log("专职服务回调函数初始化完成");
@@ -218,37 +210,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
   // =============== 事件化监控辅助方法 ===============
 
-  /**
-   * 🎯 事件化监控核心方法 - 发送监控事件
-   * 符合监控组件集成说明的事件驱动架构
-   */
-  private emitMonitoringEvent(
-    metricName: string,
-    metricValue: number,
-    tags: Record<string, any> = {},
-  ): void {
-    setImmediate(() => {
-      try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "stream_receiver",
-          metricType: "performance",
-          metricName,
-          metricValue,
-          tags: {
-            component: "stream-receiver",
-            ...tags,
-          },
-        });
-      } catch (error) {
-        // 监控事件发送失败不应影响业务逻辑
-        this.logger.warn("监控事件发送失败", {
-          metricName,
-          error: error.message,
-        });
-      }
-    });
-  }
+
 
   /**
    * 记录 WebSocket 连接监控事件
@@ -265,28 +227,14 @@ export class StreamReceiverService implements OnModuleDestroy {
   ): void {
     try {
       // 连接状态指标
-      this.emitMonitoringEvent(
-        "websocket_connection_events",
-        1,
-        {
-          action: connected ? "connect" : "disconnect",
-          clientId,
-          remoteAddress: metadata?.remoteAddress || "unknown",
-          apiKeyName: metadata?.apiKeyName || "unknown"
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
       // 连接计数指标 - 更新活跃连接数
       const currentConnections = this.connectionManager.getActiveConnectionsCount();
       
-      this.emitMonitoringEvent(
-        "websocket_connections_total",
-        currentConnections,
-        {
-          action: connected ? "increment" : "decrement",
-          clientId
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
       // 业务监控事件
       this.emitBusinessEvent(
@@ -327,38 +275,17 @@ export class StreamReceiverService implements OnModuleDestroy {
   ): void {
     try {
       // 连接建立时间监控
-      this.emitMonitoringEvent(
-        "websocket_connection_establishment_time",
-        connectionTime,
-        {
-          clientId,
-          latencyCategory: LatencyUtils.categorizeLatency(connectionTime),
-          authStatus
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
       // 认证状态监控
-      this.emitMonitoringEvent(
-        "websocket_authentication_events",
-        1,
-        {
-          clientId,
-          status: authStatus,
-          errorReason: errorReason || "none"
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
       // 如果认证失败，记录错误监控
       if (authStatus === 'failed') {
-        this.emitMonitoringEvent(
-          "websocket_connection_errors",
-          1,
-          {
-            clientId,
-            errorType: "authentication_failed",
-            errorReason: errorReason || "unknown"
-          }
-        );
+        // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
       }
 
     } catch (error) {
@@ -381,17 +308,8 @@ export class StreamReceiverService implements OnModuleDestroy {
   ): void {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "stream_receiver",
-          metricType: "business",
-          metricName,
-          metricValue,
-          tags: {
-            component: "stream-receiver",
-            ...tags,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("业务监控事件发送失败", {
           metricName,
@@ -405,6 +323,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    * P1重构: 初始化配置管理
    */
   private initializeConfig(): StreamReceiverConfig {
+    // P2: 环境变量极简 - 仅读取核心参数，其余使用内建默认值
     const userConfig: Partial<StreamReceiverConfig> = {
       connectionCleanupInterval: this.configService.get<number>(
         StreamReceiverConfigKeys.CONNECTION_CLEANUP_INTERVAL,
@@ -418,110 +337,12 @@ export class StreamReceiverService implements OnModuleDestroy {
         StreamReceiverConfigKeys.CONNECTION_STALE_TIMEOUT,
         defaultStreamReceiverConfig.connectionStaleTimeout,
       ),
-      maxRetryAttempts: this.configService.get<number>(
-        StreamReceiverConfigKeys.MAX_RETRY_ATTEMPTS,
-        defaultStreamReceiverConfig.maxRetryAttempts,
-      ),
-      retryDelayBase: this.configService.get<number>(
-        StreamReceiverConfigKeys.RETRY_DELAY_BASE,
-        defaultStreamReceiverConfig.retryDelayBase,
-      ),
-      circuitBreakerThreshold: this.configService.get<number>(
-        StreamReceiverConfigKeys.CIRCUIT_BREAKER_THRESHOLD,
-        defaultStreamReceiverConfig.circuitBreakerThreshold,
-      ),
-      circuitBreakerResetTimeout: this.configService.get<number>(
-        StreamReceiverConfigKeys.CIRCUIT_BREAKER_RESET_TIMEOUT,
-        defaultStreamReceiverConfig.circuitBreakerResetTimeout,
-      ),
       batchProcessingInterval: this.configService.get<number>(
         StreamReceiverConfigKeys.BATCH_PROCESSING_INTERVAL,
         defaultStreamReceiverConfig.batchProcessingInterval,
       ),
-      dynamicBatching: {
-        enabled: this.configService.get<boolean>(
-          StreamReceiverConfigKeys.DYNAMIC_BATCHING_ENABLED,
-          defaultStreamReceiverConfig.dynamicBatching.enabled,
-        ),
-        minInterval: this.configService.get<number>(
-          StreamReceiverConfigKeys.DYNAMIC_BATCHING_MIN_INTERVAL,
-          defaultStreamReceiverConfig.dynamicBatching.minInterval,
-        ),
-        maxInterval: this.configService.get<number>(
-          StreamReceiverConfigKeys.DYNAMIC_BATCHING_MAX_INTERVAL,
-          defaultStreamReceiverConfig.dynamicBatching.maxInterval,
-        ),
-        highLoadInterval: this.configService.get<number>(
-          StreamReceiverConfigKeys.DYNAMIC_BATCHING_HIGH_LOAD_INTERVAL,
-          defaultStreamReceiverConfig.dynamicBatching.highLoadInterval,
-        ),
-        lowLoadInterval: this.configService.get<number>(
-          StreamReceiverConfigKeys.DYNAMIC_BATCHING_LOW_LOAD_INTERVAL,
-          defaultStreamReceiverConfig.dynamicBatching.lowLoadInterval,
-        ),
-        loadDetection: {
-          sampleWindow: this.configService.get<number>(
-            StreamReceiverConfigKeys.DYNAMIC_BATCHING_SAMPLE_WINDOW,
-            defaultStreamReceiverConfig.dynamicBatching.loadDetection
-              .sampleWindow,
-          ),
-          highLoadThreshold: this.configService.get<number>(
-            StreamReceiverConfigKeys.DYNAMIC_BATCHING_HIGH_LOAD_THRESHOLD,
-            defaultStreamReceiverConfig.dynamicBatching.loadDetection
-              .highLoadThreshold,
-          ),
-          lowLoadThreshold: this.configService.get<number>(
-            StreamReceiverConfigKeys.DYNAMIC_BATCHING_LOW_LOAD_THRESHOLD,
-            defaultStreamReceiverConfig.dynamicBatching.loadDetection
-              .lowLoadThreshold,
-          ),
-          adjustmentStep: this.configService.get<number>(
-            StreamReceiverConfigKeys.DYNAMIC_BATCHING_ADJUSTMENT_STEP,
-            defaultStreamReceiverConfig.dynamicBatching.loadDetection
-              .adjustmentStep,
-          ),
-          adjustmentFrequency: this.configService.get<number>(
-            StreamReceiverConfigKeys.DYNAMIC_BATCHING_ADJUSTMENT_FREQUENCY,
-            defaultStreamReceiverConfig.dynamicBatching.loadDetection
-              .adjustmentFrequency,
-          ),
-        },
-      },
-      memoryMonitoring: {
-        checkInterval: this.configService.get<number>(
-          StreamReceiverConfigKeys.MEMORY_CHECK_INTERVAL,
-          defaultStreamReceiverConfig.memoryMonitoring.checkInterval,
-        ),
-        warningThreshold:
-          this.configService.get<number>(
-            StreamReceiverConfigKeys.MEMORY_WARNING_THRESHOLD,
-            defaultStreamReceiverConfig.memoryMonitoring.warningThreshold /
-              (1024 * 1024),
-          ) *
-          1024 *
-          1024, // 从MB转换为字节
-        criticalThreshold:
-          this.configService.get<number>(
-            StreamReceiverConfigKeys.MEMORY_CRITICAL_THRESHOLD,
-            defaultStreamReceiverConfig.memoryMonitoring.criticalThreshold /
-              (1024 * 1024),
-          ) *
-          1024 *
-          1024, // 从MB转换为字节
-      },
-      rateLimit: {
-        maxConnectionsPerMinute: this.configService.get<number>(
-          StreamReceiverConfigKeys.RATE_LIMIT_MAX_CONNECTIONS,
-          defaultStreamReceiverConfig.rateLimit.maxConnectionsPerMinute,
-        ),
-        windowSize: this.configService.get<number>(
-          StreamReceiverConfigKeys.RATE_LIMIT_WINDOW_SIZE,
-          defaultStreamReceiverConfig.rateLimit.windowSize,
-        ),
-      },
     };
 
-    // 合并配置
     const config = mergeStreamReceiverConfig(userConfig);
 
     // 验证配置
@@ -536,7 +357,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     this.logger.log("StreamReceiver配置已初始化", {
       maxConnections: config.maxConnections,
-      cleanupInterval: `${config.connectionCleanupInterval / STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS}s`,
+      cleanupInterval: `${Math.round(config.connectionCleanupInterval / 1000)}s`,
       batchProcessing: {
         baseInterval: `${config.batchProcessingInterval}ms`,
         dynamicEnabled: config.dynamicBatching.enabled,
@@ -546,10 +367,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         warning: `${config.memoryMonitoring.warningThreshold / (1024 * 1024)}MB`,
         critical: `${config.memoryMonitoring.criticalThreshold / (1024 * 1024)}MB`,
       },
-      rateLimit: {
-        connections: config.rateLimit.maxConnectionsPerMinute,
-        window: `${config.rateLimit.windowSize / STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS}s`,
-      },
+      // 已移除 rateLimit 的 ENV 配置输出
     });
 
     return config;
@@ -619,7 +437,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     }, this.config.memoryMonitoring.checkInterval);
 
     this.logger.log("内存监控机制已初始化", {
-      checkInterval: `${this.config.memoryMonitoring.checkInterval / STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS}s`,
+      checkInterval: `${Math.round(this.config.memoryMonitoring.checkInterval / 1000)}s`,
       warningThreshold: `${Math.round(this.config.memoryMonitoring.warningThreshold / (1024 * 1024))}MB`,
       criticalThreshold: `${Math.round(this.config.memoryMonitoring.criticalThreshold / (1024 * 1024))}MB`,
     });
@@ -701,25 +519,8 @@ export class StreamReceiverService implements OnModuleDestroy {
   ): void {
     try {
       // ✅ 事件化监控 - 内存告警事件发送
-      this.emitMonitoringEvent(
-        "memory_alert",
-        Math.round(heapUsed / (1024 * 1024)),
-        {
-          alertLevel: level,
-          heapUsedMB: Math.round(heapUsed / (1024 * 1024)),
-          connectionCount,
-          thresholdMB:
-            level === "critical"
-              ? Math.round(
-                  this.config.memoryMonitoring.criticalThreshold /
-                    (1024 * 1024),
-                )
-              : Math.round(
-                  this.config.memoryMonitoring.warningThreshold / (1024 * 1024),
-                ),
-          severity: level === "critical" ? "high" : "medium",
-        },
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn("内存告警事件发送失败", { error: error.message });
     }
@@ -1594,19 +1395,8 @@ export class StreamReceiverService implements OnModuleDestroy {
     };
   }): void {
     // ✅ 事件化监控 - 发送管道性能事件
-    this.emitMonitoringEvent("pipeline_processed", metrics.durations.total, {
-      provider: metrics.provider,
-      capability: metrics.capability,
-      quotesCount: metrics.quotesCount,
-      symbolsCount: metrics.symbolsCount,
-      quotesPerSecond: Math.round(
-        (metrics.quotesCount / metrics.durations.total) *
-          STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS,
-      ),
-      symbolsPerSecond: Math.round(
-        (metrics.symbolsCount / metrics.durations.total) * 1000,
-      ),
-    });
+    // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
     // 保留必要的调试日志
     this.logger.debug("流管道性能事件已发送", {
@@ -2222,15 +2012,14 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     // 重置计数器防止溢出
     if (
-    this.circuitBreakerState.successes >
-      STREAM_RECEIVER_METRICS.CIRCUIT_BREAKER_RESET_THRESHOLD
+      this.circuitBreakerState.successes > 1000 // 重置阈值（原常量值）
     ) {
-    this.circuitBreakerState.successes = Math.floor(
-    this.circuitBreakerState.successes / 2,
-      );
-    this.circuitBreakerState.failures = Math.floor(
-    this.circuitBreakerState.failures / 2,
-      );
+      this.circuitBreakerState.successes = Math.floor(
+      this.circuitBreakerState.successes / 2,
+        );
+      this.circuitBreakerState.failures = Math.floor(
+      this.circuitBreakerState.failures / 2,
+        );
     }
   }
 
@@ -2376,12 +2165,8 @@ export class StreamReceiverService implements OnModuleDestroy {
         const market = this.inferMarketLabel(symbol);
 
         // ✅ 事件化监控 - 延迟监控事件发送
-        this.emitMonitoringEvent("stream_latency", latencyMs, {
-          symbol,
-          provider: this.extractProviderFromSymbol(symbol),
-          market: this.inferMarketLabel(symbol),
-          latencyCategory: LatencyUtils.categorizeLatency(latencyMs),
-        });
+        // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
         this.logger.debug("流延迟指标已记录", {
           symbol,
@@ -2436,19 +2221,8 @@ export class StreamReceiverService implements OnModuleDestroy {
   ): void {
     try {
       // ✅ 事件化监控 - 批处理性能事件
-      this.emitMonitoringEvent("batch_processed", processingTimeMs, {
-        batchSize,
-        provider,
-        avgTimePerQuote: batchSize > 0 ? processingTimeMs / batchSize : 0,
-        quotesPerSecond:
-          batchSize > 0
-            ? Math.round(
-                (batchSize *
-                  STREAM_RECEIVER_METRICS.PERFORMANCE_CALCULATION_UNIT_MS) /
-                  processingTimeMs,
-              )
-            : 0,
-      });
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn(`批处理监控事件发送失败: ${error.message}`, {
         batchSize,
@@ -2565,32 +2339,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     }
   }
 
-  /**
-   * 📊 记录降级监控指标
-   */
-  private recordFallbackMetrics(batch: QuoteData[], reason: string): void {
-    try {
-      // 发送监控事件到事件总线
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.ERROR_HANDLED, {
-        timestamp: new Date(),
-        source: "presenter",
-        errorType: "system",
-        errorMessage: `Batch processing fallback triggered: ${reason}`,
-        severity: "medium",
-        operation: "batch_processing_fallback",
-        metadata: {
-          component: "stream-receiver",
-          fallbackType: "batch_processing",
-          reason,
-          batchSize: batch.length,
-          providers: Array.from(new Set(batch.map(q => q.providerName))),
-          capabilities: Array.from(new Set(batch.map(q => q.wsCapabilityType))),
-        },
-      });
-    } catch (error) {
-      this.logger.warn("降级指标记录失败", { error: error.message });
-    }
-  }
+  
 
   /**
    * 📊 记录降级失败指标
@@ -2601,20 +2350,8 @@ export class StreamReceiverService implements OnModuleDestroy {
     fallbackError: string,
   ): void {
     try {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.CRITICAL_ERROR, {
-        timestamp: new Date(),
-        source: "presenter",
-        errorType: "system",
-        errorMessage: `Fallback processing failed: ${fallbackError}`,
-        severity: "critical",
-        operation: "fallback_processing",
-        metadata: {
-          component: "stream-receiver",
-          originalReason: reason,
-          fallbackError,
-          batchSize: batch.length,
-        },
-      });
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn("降级失败指标记录失败", { error: error.message });
     }
@@ -2630,32 +2367,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     partialRecoveryResult: any,
   ): void {
     try {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.SYSTEM_PERFORMANCE_ALERT, {
-        timestamp: new Date(),
-        source: "presenter",
-        alertType: "performance",
-        severity: "warning",
-        metric: "batch_processing_degradation",
-        currentValue: analyzeResult.symbolsCount,
-        threshold: 100,
-        recommendation: `Consider scaling or provider optimization`,
-        metadata: {
-          component: "stream-receiver",
-          degradationType: "batch_processing_fallback",
-          reason,
-          impact: {
-            batchSize: batch.length,
-            affectedSymbols: analyzeResult.symbolsCount,
-            affectedProviders: analyzeResult.providersCount,
-            affectedMarkets: analyzeResult.marketsCount,
-          },
-          recovery: {
-            attempted: partialRecoveryResult.attempted,
-            successCount: partialRecoveryResult.successCount,
-            failureCount: partialRecoveryResult.failureCount,
-          },
-        },
-      });
+      // 监控已移除: eventBus.emit(SYSTEM_STATUS_EVENTS...) 已删除
     } catch (error) {
       this.logger.warn("降级事件发送失败", { error: error.message });
     }

@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { DataTransformerService } from '../../../../../../../src/core/02-processing/transformer/services/data-transformer.service';
 import { FlexibleMappingRuleService } from '../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
@@ -7,7 +6,6 @@ import { FlexibleMappingRuleService } from '../../../../../../../src/core/00-pre
 describe('DataTransformerService', () => {
   let service: DataTransformerService;
   let mockFlexibleMappingRuleService: Partial<FlexibleMappingRuleService>;
-  let mockEventEmitter: Partial<EventEmitter2>;
 
   beforeEach(async () => {
     // 模拟FlexibleMappingRuleService
@@ -42,15 +40,9 @@ describe('DataTransformerService', () => {
       }))
     };
 
-    // 模拟EventEmitter2
-    mockEventEmitter = {
-      emit: jest.fn()
-    };
-
-    // 直接创建服务，不通过NestJS的依赖注入
+    // 直接创建服务（当前实现不再依赖 EventEmitter2）
     service = new DataTransformerService(
-      mockFlexibleMappingRuleService as FlexibleMappingRuleService,
-      mockEventEmitter as EventEmitter2
+      mockFlexibleMappingRuleService as FlexibleMappingRuleService
     );
   });
 

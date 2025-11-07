@@ -13,11 +13,9 @@ import { TRANSFORMER_ERROR_CODES } from '../constants/transformer-error-codes.co
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 
 import {
-  DATATRANSFORM_ERROR_MESSAGES,
   DATATRANSFORM_CONFIG,
   DATATRANSFORM_PERFORMANCE_THRESHOLDS,
 } from "../constants/data-transformer.constants";
@@ -39,7 +37,6 @@ export class DataTransformerService {
 
   constructor(
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
   ) {}
 
   /**
@@ -186,28 +183,7 @@ export class DataTransformerService {
         }),
       );
 
-      // ✅ 事件化监控：异步、解耦、高性能
-      setImmediate(() => {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_transformer",
-          metricType: "business",
-          metricName: "transformation_completed",
-          metricValue: processingTimeMs,
-          tags: {
-            operation: "data-transformation",
-            provider: request.provider,
-            transDataRuleListType: request.transDataRuleListType,
-            status: "success",
-            recordsProcessed: stats.recordsProcessed,
-            fieldsTransformed: stats.fieldsTransformed,
-            successRate:
-              dataToProcess.length > 0
-                ? (successfulTransformations / dataToProcess.length) * 100
-                : 100,
-          },
-        });
-      });
+      // 监控事件已移除；如需性能监控，请使用外部工具（如 Prometheus）
 
       if (
         processingTimeMs >
@@ -224,24 +200,7 @@ export class DataTransformerService {
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
 
-      // ✅ 事件化错误监控
-      setImmediate(() => {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_transformer",
-          metricType: "business",
-          metricName: "transformation_failed",
-          metricValue: processingTimeMs,
-          tags: {
-            operation: "data-transformation",
-            provider: request.provider,
-            transDataRuleListType: request.transDataRuleListType,
-            status: "error",
-            error: error.message,
-            errorType: error.constructor.name,
-          },
-        });
-      });
+      // 监控事件已移除；如需性能监控，请使用外部工具（如 Prometheus）
 
       this.logger.error(
         `Data transformation failed`,
@@ -434,22 +393,8 @@ export class DataTransformerService {
 
     // ✅ 事件化批量操作监控
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "data_transformer",
-        metricType: "business",
-        metricName: "batch_transformation_completed",
-        metricValue: processingTimeMs,
-        tags: {
-          operation: "batch-data-transformation",
-          batchSize: requests.length,
-          successCount: successCount,
-          failedCount: requests.length - successCount,
-          successRate: (successCount / requests.length) * 100,
-          status: "success",
-          providers: [...new Set(requests.map((r) => r.provider))].join(","),
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
 
     this.logger.log(

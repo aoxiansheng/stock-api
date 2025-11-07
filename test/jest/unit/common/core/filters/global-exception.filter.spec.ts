@@ -6,7 +6,7 @@ import { ValidationError } from 'class-validator';
 
 import { GlobalExceptionFilter } from '@common/core/filters/global-exception.filter';
 import { BusinessException } from '@common/core/exceptions/business.exception';
-import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
+// // import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
@@ -460,7 +460,7 @@ describe('GlobalExceptionFilter', () => {
 
       setImmediate(() => {
         expect(eventEmitter.emit).toHaveBeenCalledWith(
-          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//           SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
           expect.objectContaining({
             source: 'global_exception_filter',
             metricType: 'error',

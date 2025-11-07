@@ -11,10 +11,7 @@
 
 // 核心控制器
 export { LogLevelController } from "./log-level-controller";
-export {
-  SafeLogLevelController,
-  createSafeLogLevelController,
-} from "./safe-log-level-controller";
+export { SafeLogLevelController } from "./safe-log-level-controller";
 
 // 类型定义
 export type {

@@ -1,27 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Types } from 'mongoose';
 
 import { SymbolMapperService } from '../../../../../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
 import { SymbolMappingRepository } from '../../../../../../../src/core/00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { FeatureFlags } from '@config/feature-flags.config';
-import { SymbolMapperCacheStandardizedService } from '../../../../../../../src/core/05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service';
 import { CreateSymbolMappingDto } from '../../../../../../../src/core/00-prepare/symbol-mapper/dto/create-symbol-mapping.dto';
 import { SymbolMappingQueryDto } from '../../../../../../../src/core/00-prepare/symbol-mapper/dto/symbol-mapping-query.dto';
 import { UpdateSymbolMappingDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '../../../../../../../src/core/00-prepare/symbol-mapper/dto/update-symbol-mapping.dto';
 import { SymbolMappingResponseDto } from '../../../../../../../src/core/00-prepare/symbol-mapper/dto/symbol-mapping-response.dto';
 import { SymbolMappingRuleDocumentType, SymbolMappingRule } from '../../../../../../../src/core/00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
-import { SYSTEM_STATUS_EVENTS } from '../../../../../../../src/monitoring/contracts/events/system-status.events';
+// 去监控化：不再依赖事件总线/特性开关/缓存服务
+
+
 
 describe('SymbolMapperService', () => {
   let service: SymbolMapperService;
   let mockRepository: jest.Mocked<SymbolMappingRepository>;
   let mockPaginationService: jest.Mocked<PaginationService>;
-  let mockFeatureFlags: jest.Mocked<FeatureFlags>;
-  let mockEventBus: jest.Mocked<EventEmitter2>;
-  let mockCacheService: jest.Mocked<SymbolMapperCacheStandardizedService>;
+  // 去监控化：移除 FeatureFlags/EventEmitter/Cache Service 依赖
 
   const mockObjectId = new Types.ObjectId();
   const mockDate = new Date('2023-01-01T00:00:00Z');
@@ -100,62 +97,20 @@ describe('SymbolMapperService', () => {
             createPaginatedResponseFromQuery: jest.fn(),
           },
         },
-        {
-          provide: FeatureFlags,
-          useValue: {
-            isEnabled: jest.fn(),
-          },
-        },
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-          },
-        },
-        {
-          provide: SymbolMapperCacheStandardizedService,
-          useValue: {
-            clearAllCaches: jest.fn(),
-          },
-        },
       ],
     }).compile();
 
     service = module.get<SymbolMapperService>(SymbolMapperService);
     mockRepository = module.get(SymbolMappingRepository);
     mockPaginationService = module.get(PaginationService);
-    mockFeatureFlags = module.get(FeatureFlags);
-    mockEventBus = module.get(EventEmitter2);
-    mockCacheService = module.get(SymbolMapperCacheStandardizedService);
-
-    // Setup default mock behavior
-    mockFeatureFlags.isCacheOptimizationEnabled = jest.fn().mockReturnValue(true);
+    // 去监控化：无额外默认行为
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('onModuleInit', () => {
-    it('should initialize successfully and emit monitoring event', async () => {
-      await service.onModuleInit();
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          source: 'symbol_mapper',
-          metricName: 'service_initialized',
-          metricType: 'system',
-          tags: expect.objectContaining({
-            service: 'SymbolMapperService',
-            architecture: 'event-driven',
-          }),
-        })
-      );
-    });
-  });
+  // 去监控化：移除 onModuleInit 相关测试
 
   describe('createDataSourceMapping', () => {
     it('should create new data source mapping successfully', async () => {
@@ -163,35 +118,21 @@ describe('SymbolMapperService', () => {
       mockRepository.create.mockResolvedValue(mockDocumentData as SymbolMappingRuleDocumentType);
 
       const result = await service.createDataSourceMapping(mockCreateDto);
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
 
       expect(mockRepository.exists).toHaveBeenCalledWith('longport');
       expect(mockRepository.create).toHaveBeenCalledWith(mockCreateDto);
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
       expect(result.dataSourceName).toBe('longport');
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_created',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should throw exception when data source already exists', async () => {
       mockRepository.exists.mockResolvedValue(true);
 
       await expect(service.createDataSourceMapping(mockCreateDto)).rejects.toThrow();
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
 
       expect(mockRepository.create).not.toHaveBeenCalled();
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_conflict',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should emit failure event on error', async () => {
@@ -199,15 +140,8 @@ describe('SymbolMapperService', () => {
       mockRepository.create.mockRejectedValue(new Error('Database error'));
 
       await expect(service.createDataSourceMapping(mockCreateDto)).rejects.toThrow('Database error');
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
 
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_creation_failed',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
   });
 
@@ -301,48 +235,24 @@ describe('SymbolMapperService', () => {
       mockRepository.findByDataSource.mockResolvedValue(mockDocumentData as SymbolMappingRuleDocumentType);
 
       const result = await service.getSymbolMappingByDataSource('longport');
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
 
       expect(mockRepository.findByDataSource).toHaveBeenCalledWith('longport');
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
       expect(result.dataSourceName).toBe('longport');
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_retrieved',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should throw exception and emit event when mapping not found', async () => {
       mockRepository.findByDataSource.mockResolvedValue(null);
 
       await expect(service.getSymbolMappingByDataSource('non-existent')).rejects.toThrow();
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_not_found',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
-    it('should emit error event on database error', async () => {
+    it('should propagate database error', async () => {
       mockRepository.findByDataSource.mockRejectedValue(new Error('Database error'));
 
       await expect(service.getSymbolMappingByDataSource('longport')).rejects.toThrow('Database error');
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_error',
-        })
-      );
     });
   });
 
@@ -414,47 +324,24 @@ describe('SymbolMapperService', () => {
       mockRepository.deleteById.mockResolvedValue(mockDocumentData as SymbolMappingRuleDocumentType);
 
       const result = await service.deleteSymbolMapping(validObjectId);
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
 
       expect(mockRepository.deleteById).toHaveBeenCalledWith(validObjectId);
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_deleted',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should throw exception and emit event when mapping not found', async () => {
       mockRepository.deleteById.mockResolvedValue(null);
 
       await expect(service.deleteSymbolMapping(validObjectId)).rejects.toThrow();
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_delete_not_found',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should emit failure event on error', async () => {
       mockRepository.deleteById.mockRejectedValue(new Error('Database error'));
 
       await expect(service.deleteSymbolMapping(validObjectId)).rejects.toThrow('Database error');
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_delete_failed',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
   });
 
@@ -529,50 +416,27 @@ describe('SymbolMapperService', () => {
       mockRepository.addSymbolMappingRule.mockResolvedValue(mockDocumentData as SymbolMappingRuleDocumentType);
 
       const result = await service.addSymbolMappingRule(mockAddDto);
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
 
       expect(mockRepository.addSymbolMappingRule).toHaveBeenCalledWith(
         'longport',
         mockAddDto.symbolMappingRule
       );
       expect(result).toBeInstanceOf(SymbolMappingResponseDto);
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'rule_added',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should throw exception and emit event when data source not found', async () => {
       mockRepository.addSymbolMappingRule.mockResolvedValue(null);
 
       await expect(service.addSymbolMappingRule(mockAddDto)).rejects.toThrow();
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'rule_add_datasource_not_found',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
 
     it('should emit failure event on error', async () => {
       mockRepository.addSymbolMappingRule.mockRejectedValue(new Error('Database error'));
 
       await expect(service.addSymbolMappingRule(mockAddDto)).rejects.toThrow('Database error');
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'rule_add_failed',
-        })
-      );
+      // 去监控化：不再校验事件发射
     });
   });
 
@@ -721,160 +585,7 @@ describe('SymbolMapperService', () => {
     });
   });
 
-  describe('clearCache', () => {
-    it('should delegate cache clearing to cache service', async () => {
-      mockCacheService.clearAllCaches.mockResolvedValue();
+  // 去监控化：清理缓存能力由缓存模块负责，服务不再暴露 clearCache
 
-      await service.clearCache();
-
-      expect(mockCacheService.clearAllCaches).toHaveBeenCalled();
-    });
-  });
-
-  describe('Event sanitization', () => {
-    it('should sanitize high cardinality tags', async () => {
-      // This test verifies the sanitizeEventTags method behavior indirectly
-      // by checking the emitted events during service operations
-      mockRepository.exists.mockResolvedValue(false);
-      mockRepository.create.mockResolvedValue(mockDocumentData as SymbolMappingRuleDocumentType);
-
-      await service.createDataSourceMapping(mockCreateDto);
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      // Check that the emitted event has sanitized tags
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          tags: expect.objectContaining({
-            operation: 'createDataSourceMapping',
-            status: 'success',
-            service: 'SymbolMapperService',
-            rules_batch_size: 'small', // Should be categorized instead of actual count
-          }),
-        })
-      );
-    });
-
-    it('should categorize error messages', async () => {
-      mockRepository.exists.mockResolvedValue(true);
-
-      await expect(service.createDataSourceMapping(mockCreateDto)).rejects.toThrow();
-      // 等待 setImmediate 回调执行
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          tags: expect.objectContaining({
-            conflict: 'mapping_already_exists',
-          }),
-        })
-      );
-    });
-
-    it('should categorize symbol types', async () => {
-      const hkStockDto = {
-        ...mockCreateDto,
-        SymbolMappingRule: [{
-          standardSymbol: '700.HK',
-          sdkSymbol: '00700',
-        }],
-      };
-
-      mockRepository.exists.mockResolvedValue(false);
-      mockRepository.create.mockResolvedValue(mockDocumentData as SymbolMappingRuleDocumentType);
-
-      await service.createDataSourceMapping(hkStockDto);
-      // 等待 setImmediate 回調執行
-      await new Promise(resolve => setImmediate(resolve));
-
-      // The emitted event should include categorized symbol type
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          tags: expect.not.objectContaining({
-            standardSymbol: '700.HK', // Should not include actual symbol
-          }),
-        })
-      );
-    });
-  });
-
-  describe('Error handling and monitoring events', () => {
-    it('should emit correct monitoring events for different error scenarios', async () => {
-      // Test various error scenarios and verify correct monitoring events are emitted
-      const scenarios = [
-        {
-          method: 'deleteSymbolMapping',
-          setupMock: () => mockRepository.deleteById.mockResolvedValue(null),
-          expectedEvent: 'mapping_delete_not_found',
-        },
-        {
-          method: 'getSymbolMappingByDataSource',
-          setupMock: () => mockRepository.findByDataSource.mockResolvedValue(null),
-          expectedEvent: 'mapping_not_found',
-        },
-      ];
-
-      for (const scenario of scenarios) {
-        scenario.setupMock();
-
-        try {
-          if (scenario.method === 'deleteSymbolMapping') {
-            await service.deleteSymbolMapping('507f1f77bcf86cd799439011');
-          } else if (scenario.method === 'getSymbolMappingByDataSource') {
-            await service.getSymbolMappingByDataSource('non-existent');
-          }
-        } catch (error) {
-          // Expected to throw
-        }
-        // 等待 setImmediate 回调执行
-        await new Promise(resolve => setImmediate(resolve));
-
-        expect(mockEventBus.emit).toHaveBeenCalledWith(
-          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-          expect.objectContaining({
-            metricName: scenario.expectedEvent,
-          })
-        );
-
-        jest.clearAllMocks();
-      }
-    });
-  });
-
-  describe('Performance monitoring', () => {
-    it('should track operation duration in monitoring events', async () => {
-      jest.useFakeTimers();
-      const startTime = Date.now();
-
-      mockRepository.exists.mockResolvedValue(false);
-      mockRepository.create.mockImplementation(async () => {
-        // Simulate some processing time
-        jest.advanceTimersByTime(100);
-        return mockDocumentData as SymbolMappingRuleDocumentType;
-      });
-
-      const createPromise = service.createDataSourceMapping(mockCreateDto);
-      jest.advanceTimersByTime(100);
-      await createPromise;
-      // 使用 jest 的定时器来触发 setImmediate 回调
-      jest.runOnlyPendingTimers();
-
-      expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricName: 'mapping_created',
-          tags: expect.objectContaining({
-            operation: 'createDataSourceMapping',
-          }),
-          // Should include duration measurement
-          metricValue: expect.any(Number),
-        })
-      );
-
-      jest.useRealTimers();
-    });
-  });
+  // 去监控化：移除事件清洗/分类/性能监控相关测试
 });

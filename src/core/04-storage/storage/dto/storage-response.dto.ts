@@ -37,28 +37,12 @@ export class StorageResponseDto<T = any> {
 }
 
 export class StorageStatsDto {
-  @ApiProperty({ description: "Cache statistics" })
-  cache: {
-    totalKeys: number;
-    totalMemoryUsage: number;
-    hitRate: number;
-    avgTtl: number;
-  };
-
   @ApiProperty({ description: "Persistent storage statistics" })
   persistent: {
     totalDocuments: number;
     totalSizeBytes: number;
     categoriesCounts: Record<string, number>;
     providerCounts: Record<string, number>;
-  };
-
-  @ApiProperty({ description: "Overall performance metrics" })
-  performance: {
-    avgStorageTime: number;
-    avgRetrievalTime: number;
-    operationsPerSecond: number;
-    errorRate: number;
   };
 
   @ApiProperty({ description: "Statistics generation timestamp" })

@@ -11,9 +11,9 @@ import {
   FlexibleMappingTestResultDto,
 } from '@core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 import { Types } from 'mongoose';
-import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
+import { ApiKeyAuthGuard } from '@authv2';
 import { Reflector } from '@nestjs/core';
-import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
+import { AuthService } from '@authv2';
 
 describe('MappingRuleController', () => {
   let controller: MappingRuleController;
@@ -70,8 +70,8 @@ describe('MappingRuleController', () => {
       getPersistedTemplateById: jest.fn(),
     };
 
-    // 添加模拟的AuthPerformanceService和Reflector
-    const mockAuthPerformanceService = {
+    // 添加模拟的AuthService和Reflector
+    const mockAuthService = {
       recordAuthFlowPerformance: jest.fn(),
       recordAuthCachePerformance: jest.fn(),
       recordAuthFlowStats: jest.fn(),
@@ -105,8 +105,8 @@ describe('MappingRuleController', () => {
           useValue: mockReflector
         },
         {
-          provide: AuthPerformanceService,
-          useValue: mockAuthPerformanceService
+          provide: AuthService,
+          useValue: mockAuthService
         }
       ],
     }).compile();

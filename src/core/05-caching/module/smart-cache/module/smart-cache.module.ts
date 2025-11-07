@@ -5,7 +5,6 @@ import { SharedServicesModule } from "../../../../shared/module/shared-services.
 import { BasicCacheModule } from "../../basic-cache/module/basic-cache.module";
 import { SmartCacheStandardizedService } from "../services/smart-cache-standardized.service";
 import { SmartCacheConfigFactory } from "../config/smart-cache-config.factory";
-import { SmartCachePerformanceOptimizer } from "../services/smart-cache-performance-optimizer.service";
 // 移除 CollectorModule 依赖 - 事件化监控不再需要直接导入监控模块
 
 /**
@@ -58,9 +57,6 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
     // 🆕 标准化服务 (主要服务)
     SmartCacheStandardizedService,
 
-    // 🚀 性能优化器服务
-    SmartCachePerformanceOptimizer,
-
     // 📋 配置提供者 - 使用统一配置接口的环境变量驱动工厂
     {
       provide: 'smartCacheConfig',
@@ -71,9 +67,6 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
   exports: [
     // 主要导出标准化服务
     SmartCacheStandardizedService,
-
-    // 导出性能优化器，供其他模块使用
-    SmartCachePerformanceOptimizer,
 
     // 也导出配置令牌，便于测试和配置覆盖
     'smartCacheConfig',
@@ -149,7 +142,6 @@ export function createSmartCacheModuleWithConfig(
     ],
     providers: [
       SmartCacheStandardizedService,
-      SmartCachePerformanceOptimizer,
       {
         provide: 'smartCacheConfig',
         useValue: mergedConfig,

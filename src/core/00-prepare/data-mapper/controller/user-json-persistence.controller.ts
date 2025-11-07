@@ -1,7 +1,6 @@
 import { Controller, Post, Body, HttpCode } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { ReadAccess } from "@authv2/decorators";
 import {
   ApiStandardResponses,
   ApiKeyAuthResponses,
@@ -24,7 +23,7 @@ export class UserJsonPersistenceController {
 
   @Post("analyze-source")
   @HttpCode(201)
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @ApiOperation({
     summary: "分析数据源结构",
     description:

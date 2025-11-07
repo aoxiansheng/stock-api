@@ -1,14 +1,11 @@
+import { LogLevel as SharedLogLevel } from "../../types/enums/shared-base.enum";
+
 /**
- * 日志级别枚举
+ * 日志级别类型（与共享枚举对齐）
+ * - 与 shared-base.enum 中的 LogLevel 保持一致
+ * - 额外支持 "silent" 作为底层日志库（如 pino）的关闭级别
  */
-export type LogLevel =
-  | "silent"
-  | "fatal"
-  | "error"
-  | "warn"
-  | "info"
-  | "debug"
-  | "trace";
+export type LogLevel = `${SharedLogLevel}` | "silent";
 
 /**
  * 日志级别数值映射

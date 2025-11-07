@@ -1,4 +1,4 @@
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { Permission } from "@authv2/enums";
 
 /**
  * Stream 权限相关常量

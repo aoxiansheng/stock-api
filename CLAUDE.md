@@ -42,10 +42,8 @@ npx jest path/to/test.spec.ts --testTimeout=30000      # Run with extended timeo
 bun run test:unit:auth           # Auth module unit tests
 bun run test:unit:core           # Core modules unit tests
 bun run test:unit:cache          # Cache module unit tests
-bun run test:unit:alert          # Alert system unit tests
 bun run test:unit:metrics        # Metrics monitoring unit tests
 bun run test:unit:security       # Security module unit tests
-bun run test:unit:monitoring     # System monitoring unit tests
 bun run test:unit:providers      # Data providers unit tests
 
 # Testing - Integration & E2E
@@ -390,9 +388,6 @@ DISABLE_AUTO_INIT=true  # For testing
 The system includes these key modules beyond the 7-component core:
 
 ### Operational Modules
-- **Alert Module** (`src/alert/`) - System alerting and notification management
-- **Metrics Module** (`src/metrics/`) - Performance metrics collection and analysis
-- **Monitoring Module** (`src/monitoring/`) - System health monitoring and diagnostics
 - **Security Module** (`src/security/`) - Security middleware, validation, and audit
 - **Cache Module** (`src/cache/`) - Shared caching utilities and fault-tolerance
 - **Auth Module** (`src/auth/`) - Three-tier authentication with **🆕 Unified Configuration System**
@@ -428,9 +423,7 @@ import { ResponseInterceptor } from '@common/core/interceptors';  // src/common/
 import { SymbolMapperService } from '@core/00-prepare/symbol-mapper/'; // src/core/
 import { LongportProvider } from '@providers/longport/';          // src/providers/
 import { AuthGuard } from '@auth/guards/';                       // src/auth/
-import { AlertService } from '@alert/services/';                 // src/alert/
-import { CacheService } from '@cache/services/';                 // src/cache/
-import { MonitoringService } from '@monitoring/services/';       // src/monitoring/
+import { CacheService } from '@cachev2/';                        // src/cachev2/
 ```
 
 ## Performance Optimization
@@ -584,10 +577,7 @@ src/core/
 ### Module Integration Points
 ```
 src/
-├── alert/              # System alerting (recently cleaned up)
-├── notification/       # Independent notification system (5 channels: Email, Slack, Webhook, DingTalk, Log)
 ├── auth/              # 3-tier authentication (API Key, JWT, Public) 
-├── monitoring/        # Health checks, performance metrics
 ├── providers/         # Data provider integrations (@Provider decorator)
 ├── security/          # Security middleware, audit logging  
 ├── metrics/           # Prometheus metrics (89 total metrics)
@@ -599,40 +589,8 @@ src/
 ```
 
 **Recent Architecture Changes:**
-- **🆕 Compatibility Code Cleanup (Latest)**: Major cleanup of legacy compatibility code completed
-  - Removed ~250 lines of compatibility constants and comments across monitoring configuration files
-  - Eliminated duplicate constant exports: `MONITORING_UNIFIED_TTL_CONSTANTS`, `MONITORING_EVENTS_CONSTANTS`, `MONITORING_UNIFIED_LIMITS_CONSTANTS`
-  - Updated 8 files to use modern class-based configuration instead of compatibility constants
-  - Achieved "zero legacy baggage" goal with cleaner, maintainable architecture
-- **Monitoring Cache Unification**: Major refactoring completed - removed internal MonitoringCacheService (970 lines) and unified to use general CacheService
-  - Replaced with: `MonitoringCacheKeys` utility class and `MONITORING_CACHE_TTL` constants
-  - Added fault-tolerant cache methods: `safeGet`, `safeSet`, `safeGetOrSet` in CacheService
-  - 87% code reduction while maintaining full functionality and improving fault tolerance
-  - Cache key pattern: `monitoring:health:*`, `monitoring:trend:*`, `monitoring:performance:*`
-- **Notification Module**: Recently decoupled from Alert module, now completely independent
-  - Features: Dynamic template system with Handlebars engine
-  - Templates: MongoDB-persisted, supports versioning and caching
-  - 15 REST API endpoints for template management
-  - 5 notification channels: Email, Slack, Webhook, DingTalk, Log
 - **Database Module**: Unified module for MongoDB and Redis connections
 - **AppCore Module**: Added for application lifecycle management  
-- **Alert Module**: Cleaned up of legacy compatibility layers (~2,132 lines removed)
-
-## Notification Template System
-
-### Template Management
-```bash
-# Template endpoints (require developer/admin auth)
-POST   /api/v1/templates                 # Create template
-GET    /api/v1/templates                 # List templates
-GET    /api/v1/templates/:id             # Get template
-PUT    /api/v1/templates/:id             # Update template
-DELETE /api/v1/templates/:id             # Delete template
-POST   /api/v1/templates/render          # Render template with data
-POST   /api/v1/templates/validate        # Validate template syntax
-```
-
-### Template Engine Features
 - **Handlebars Engine**: Conditional rendering, loops, helpers
 - **Custom Helpers**: Date formatting, number formatting, string processing
 - **XSS Protection**: Automatic input sanitization
@@ -717,53 +675,6 @@ await cacheService.safeGetOrSet<T>(key, factory, options); // Calls factory on f
 ```
 
 **Configuration Quality**: The cache configuration system is more mature than initially assessed, with comprehensive environment variable support and structured constant management.
-
-### Unified Monitoring Cache Architecture
-The monitoring system now uses a unified cache approach instead of a dedicated MonitoringCacheService:
-
-```typescript
-// New unified pattern (post-refactoring)
-import { CacheService } from '@cache/services/cache.service';
-import { MonitoringCacheKeys } from '@monitoring/utils/monitoring-cache-keys';
-import { MONITORING_CACHE_TTL } from '@monitoring/constants/cache-ttl.constants';
-
-// Cache key generation
-const key = MonitoringCacheKeys.health('report_abc123');     // monitoring:health:report_abc123
-const trendKey = MonitoringCacheKeys.trend('performance_1h'); // monitoring:trend:performance_1h
-
-// Fault-tolerant operations
-await this.cacheService.safeGetOrSet<HealthReportDto>(
-  key,
-  async () => generateReport(),
-  { ttl: MONITORING_CACHE_TTL.HEALTH }
-);
-```
-
-**TTL Configuration**: `src/monitoring/constants/cache-ttl.constants.ts`
-**Key Management**: `src/monitoring/utils/monitoring-cache-keys.ts`
-
-### Monitoring Configuration Best Practices (Post-Cleanup)
-After the recent compatibility code cleanup, monitoring configuration follows these patterns:
-
-```typescript
-// ✅ Correct - Use class-based configuration with ConfigService injection
-import { ConfigService } from '@nestjs/config';
-import { MonitoringUnifiedLimitsConfig } from '@monitoring/config/unified/monitoring-unified-limits.config';
-
-@Injectable()
-export class MonitoringService {
-  constructor(private readonly configService: ConfigService) {}
-
-  getBatchSize() {
-    const limitsConfig = this.configService.get<MonitoringUnifiedLimitsConfig>('monitoringUnifiedLimits');
-    return limitsConfig?.alertBatch?.small || 10; // Always provide fallback
-  }
-}
-
-// ❌ Deprecated - Compatibility constants removed
-// import { MONITORING_UNIFIED_LIMITS_CONSTANTS } from '@monitoring/config/unified';
-// const batchSize = MONITORING_UNIFIED_LIMITS_CONSTANTS.ALERT_BATCH.SMALL;
-```
 
 ### Performance Monitoring Fault Tolerance
 Performance monitoring is treated as **non-critical functionality**:
@@ -880,7 +791,6 @@ AuthUnifiedConfig
   ├── auth-cache.config.ts          
   ├── auth-limits.config.ts         
   ├── auth-unified.config.ts        
-
 
   Legacy Files (实际存在):
   src/auth/config/

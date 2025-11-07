@@ -2,13 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StreamReceiverGateway } from '@core/01-entry/stream-receiver/gateway/stream-receiver.gateway';
 import { StreamReceiverService } from '@core/01-entry/stream-receiver/services/stream-receiver.service';
 import { StreamRecoveryWorkerService } from '@core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
-import { ApiKeyManagementService } from '@auth/services/domain/apikey-management.service';
 import { WebSocketServerProvider, WEBSOCKET_SERVER_TOKEN } from '@core/03-fetching/stream-data-fetcher/providers/websocket-server.provider';
 import { StreamSubscribeDto } from '@core/01-entry/stream-receiver/dto/stream-subscribe.dto';
 import { StreamUnsubscribeDto } from '@core/01-entry/stream-receiver/dto/stream-unsubscribe.dto';
 import { Server, Socket } from 'socket.io';
 import { STREAM_PERMISSIONS } from '@core/01-entry/stream-receiver/constants/stream-permissions.constants';
 import { STREAM_RECEIVER_ERROR_CODES } from '@core/01-entry/stream-receiver/constants/stream-receiver-error-codes.constants';
+
+// Mock token for ApiKeyManagementService (removed from authv2)
+const API_KEY_MANAGEMENT_SERVICE = 'ApiKeyManagementService';
+type ApiKeyManagementService = {
+  validateApiKey: jest.Mock;
+  checkPermission: jest.Mock;
+  recordApiKeyUsage: jest.Mock;
+};
 
 describe('StreamReceiverGateway', () => {
   let gateway: StreamReceiverGateway;
@@ -166,7 +173,7 @@ describe('StreamReceiverGateway', () => {
         StreamReceiverGateway,
         { provide: StreamReceiverService, useValue: streamReceiverServiceMock },
         { provide: StreamRecoveryWorkerService, useValue: streamRecoveryWorkerMock },
-        { provide: ApiKeyManagementService, useValue: apiKeyServiceMock },
+        { provide: API_KEY_MANAGEMENT_SERVICE, useValue: apiKeyServiceMock },
         { provide: WebSocketServerProvider, useValue: webSocketProviderMock },
         { provide: WEBSOCKET_SERVER_TOKEN, useValue: webSocketProviderMock }
       ],
@@ -175,7 +182,7 @@ describe('StreamReceiverGateway', () => {
     gateway = module.get<StreamReceiverGateway>(StreamReceiverGateway);
     streamReceiverService = module.get(StreamReceiverService);
     streamRecoveryWorker = module.get(StreamRecoveryWorkerService);
-    apiKeyService = module.get(ApiKeyManagementService);
+    apiKeyService = module.get(API_KEY_MANAGEMENT_SERVICE);
     webSocketProvider = module.get(WebSocketServerProvider);
 
     // Set the server after initialization

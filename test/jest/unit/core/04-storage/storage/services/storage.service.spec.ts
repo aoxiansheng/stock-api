@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import * as zlib from 'zlib';
 
@@ -12,8 +11,7 @@ import { StorageQueryDto } from '@core/04-storage/storage/dto/storage-query.dto'
 import { StorageResponseDto, StorageStatsDto, PaginatedStorageItemDto } from '@core/04-storage/storage/dto/storage-response.dto';
 import { StorageMetadataDto } from '@core/04-storage/storage/dto/storage-metadata.dto';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
-import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
-import { STORAGE_CONFIG, STORAGE_PERFORMANCE_THRESHOLDS } from '@core/04-storage/storage/constants/storage.constants';
+import { STORAGE_CONFIG } from '@core/04-storage/storage/constants/storage.constants';
 import { SensitivityLevel } from '@core/04-storage/storage/schemas/storage.schema';
 import { StorageClassification } from '@core/shared/types/storage-classification.enum';
 
@@ -53,7 +51,7 @@ describe('StorageService', () => {
   let service: StorageService;
   let storageRepository: jest.Mocked<StorageRepository>;
   let paginationService: jest.Mocked<PaginationService>;
-  let eventBus: jest.Mocked<EventEmitter2>;
+  // 监控事件总线已移除
 
   const mockStoredDocument = {
     _id: 'test-id',
@@ -88,10 +86,6 @@ describe('StorageService', () => {
       createPagination: jest.fn(),
     };
 
-    const mockEventBus = {
-      emit: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StorageService,
@@ -103,17 +97,13 @@ describe('StorageService', () => {
           provide: PaginationService,
           useValue: mockPaginationService,
         },
-        {
-          provide: EventEmitter2,
-          useValue: mockEventBus,
-        },
       ],
     }).compile();
 
     service = module.get<StorageService>(StorageService);
     storageRepository = module.get(StorageRepository);
     paginationService = module.get(PaginationService);
-    eventBus = module.get(EventEmitter2);
+    // event bus removed
 
     // Reset all mocks
     jest.clearAllMocks();
@@ -159,17 +149,7 @@ describe('StorageService', () => {
       expect(result.data).toEqual(validStoreRequest.data);
       expect(result.metadata.key).toBe(validStoreRequest.key);
       expect(result.metadata.storageType).toBe(StorageType.PERSISTENT);
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'upsert_success',
-          tags: expect.objectContaining({
-            operation: 'upsert',
-            status: 'success',
-          }),
-        }),
-      );
+      // no monitoring emission assertions
     });
 
     it('should store data successfully with compression', async () => {
@@ -242,18 +222,6 @@ describe('StorageService', () => {
 
       // Act & Assert
       await expect(service.storeData(validStoreRequest)).rejects.toThrow();
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'upsert_failed',
-          tags: expect.objectContaining({
-            operation: 'upsert',
-            status: 'error',
-            error_type: 'Error',
-          }),
-        }),
-      );
     });
 
     it('should handle compression errors', async () => {
@@ -317,17 +285,7 @@ describe('StorageService', () => {
       expect(result).toBeInstanceOf(StorageResponseDto);
       expect(result.data).toEqual(mockStoredDocument.data);
       expect(result.metadata.key).toBe(mockStoredDocument.key);
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'find_success',
-          tags: expect.objectContaining({
-            operation: 'find',
-            status: 'success',
-          }),
-        }),
-      );
+      // no monitoring emission assertions
     });
 
     it('should retrieve and decompress compressed data successfully', async () => {
@@ -408,17 +366,6 @@ describe('StorageService', () => {
 
       // Act & Assert
       await expect(service.retrieveData(validRetrieveRequest)).rejects.toThrow();
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'find_failed',
-          tags: expect.objectContaining({
-            operation: 'find',
-            status: 'error',
-          }),
-        }),
-      );
     });
 
     it('should handle repository errors', async () => {
@@ -428,17 +375,6 @@ describe('StorageService', () => {
 
       // Act & Assert
       await expect(service.retrieveData(validRetrieveRequest)).rejects.toThrow();
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'find_failed',
-          tags: expect.objectContaining({
-            operation: 'find',
-            status: 'error',
-          }),
-        }),
-      );
     });
   });
 
@@ -455,17 +391,6 @@ describe('StorageService', () => {
       // Assert
       expect(storageRepository.deleteByKey).toHaveBeenCalledWith(testKey);
       expect(result).toBe(true);
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'deleteOne_success',
-          tags: expect.objectContaining({
-            operation: 'deleteOne',
-            status: 'success',
-          }),
-        }),
-      );
     });
 
     it('should return false when data not found for deletion', async () => {
@@ -501,17 +426,6 @@ describe('StorageService', () => {
 
       // Act & Assert
       await expect(service.deleteData(testKey)).rejects.toThrow();
-      expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-        expect.objectContaining({
-          metricType: 'database',
-          metricName: 'deleteOne_failed',
-          tags: expect.objectContaining({
-            operation: 'deleteOne',
-            status: 'error',
-          }),
-        }),
-      );
     });
   });
 
@@ -613,9 +527,7 @@ describe('StorageService', () => {
 
       // Assert
       expect(result).toBeInstanceOf(StorageStatsDto);
-      expect(result.cache).toBeDefined();
       expect(result.persistent).toBeDefined();
-      expect(result.performance).toBeDefined();
       expect(result.timestamp).toBeDefined();
     });
 
@@ -635,39 +547,7 @@ describe('StorageService', () => {
     });
   });
 
-  describe('emitDatabaseOperationEvent', () => {
-    it('should emit database operation event with correct parameters', () => {
-      // Arrange
-      const operation = 'upsert';
-      const processingTimeMs = 100;
-      const success = true;
-      const metadata = {
-        storage_type: 'persistent',
-        data_size: 500,
-      };
-
-      // Act
-      (service as any).emitDatabaseOperationEvent(operation, processingTimeMs, success, metadata);
-
-      // Assert - Need to wait for setImmediate to complete
-      setTimeout(() => {
-        expect(eventBus.emit).toHaveBeenCalledWith(
-          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
-          expect.objectContaining({
-            source: 'storage_service',
-            metricType: 'database',
-            metricName: 'upsert_success',
-            metricValue: processingTimeMs,
-            tags: expect.objectContaining({
-              operation,
-              status: 'success',
-              ...metadata,
-            }),
-          }),
-        );
-      }, 0);
-    });
-  });
+  // emitDatabaseOperationEvent 已移除
 
   describe('extractKeyPattern', () => {
     it('should extract key patterns correctly', () => {
@@ -818,16 +698,16 @@ describe('StorageService', () => {
     it('should return persistent storage statistics', async () => {
       // Arrange
       const mockStats = [
-        { _id: 'test-classification', count: 10, totalSize: 1000 },
+        { _id: 'test-classification', count: 10 },
       ];
-      storageRepository.getStorageClassificationStats.mockResolvedValue(mockStats);
+      storageRepository.getStorageClassificationStats.mockResolvedValue(mockStats as any);
 
       // Act
       const result = await (service as any).getPersistentStats();
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.classificationBreakdown).toEqual(mockStats);
+      expect(result.categoriesCounts).toEqual({ 'test-classification': 10 });
     });
 
     it('should handle persistent stats retrieval errors', async () => {
@@ -840,28 +720,7 @@ describe('StorageService', () => {
     });
   });
 
-  describe('getPerformanceStats', () => {
-    it('should return performance statistics with default values', () => {
-      // Act
-      const result = (service as any).getPerformanceStats();
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result.avgStorageTime).toBe(0);
-      expect(result.avgRetrievalTime).toBe(0);
-      expect(result.operationsPerSecond).toBeGreaterThanOrEqual(0);
-      expect(result.errorRate).toBe(0);
-    });
-
-    it('should calculate operations per second correctly', () => {
-      // Act
-      const result = (service as any).getPerformanceStats();
-
-      // Assert
-      expect(result.operationsPerSecond).toBeDefined();
-      expect(typeof result.operationsPerSecond).toBe('number');
-    });
-  });
+  // getPerformanceStats 已移除
 
   describe('Edge Cases and Error Conditions', () => {
     describe('storeData edge cases', () => {
@@ -1023,45 +882,7 @@ describe('StorageService', () => {
       });
     });
 
-    describe('Performance monitoring edge cases', () => {
-      it('should handle calculateOperationsPerSecond method', () => {
-        // Act
-        const result = (service as any).calculateOperationsPerSecond();
-
-        // Assert
-        expect(result).toBe(0); // Returns 0 as per implementation
-        expect(typeof result).toBe('number');
-      });
-
-      it('should provide consistent performance stats', () => {
-        // Act
-        const stats1 = (service as any).getPerformanceStats();
-        const stats2 = (service as any).getPerformanceStats();
-
-        // Assert
-        expect(stats1.operationsPerSecond).toBe(stats2.operationsPerSecond);
-        expect(stats1.avgStorageTime).toBe(stats2.avgStorageTime);
-        expect(stats1.avgRetrievalTime).toBe(stats2.avgRetrievalTime);
-        expect(stats1.errorRate).toBe(stats2.errorRate);
-      });
-
-      it('should handle performance metrics gracefully', () => {
-        // Act
-        const stats = (service as any).getPerformanceStats();
-
-        // Assert
-        expect(stats).toHaveProperty('avgStorageTime');
-        expect(stats).toHaveProperty('avgRetrievalTime');
-        expect(stats).toHaveProperty('operationsPerSecond');
-        expect(stats).toHaveProperty('errorRate');
-
-        // All should be numbers
-        expect(typeof stats.avgStorageTime).toBe('number');
-        expect(typeof stats.avgRetrievalTime).toBe('number');
-        expect(typeof stats.operationsPerSecond).toBe('number');
-        expect(typeof stats.errorRate).toBe('number');
-      });
-    });
+    // 监控相关方法已移除
   });
 
   describe('Advanced Integration Scenarios', () => {
@@ -1336,29 +1157,7 @@ describe('StorageService', () => {
       await expect(service.retrieveData(retrieveRequest)).rejects.toThrow();
     });
 
-    it('should handle event emission failures during operations', async () => {
-      // Arrange
-      const storeRequest = {
-        key: 'event-fail-key',
-        data: { test: 'data' },
-        storageType: StorageType.PERSISTENT,
-        storageClassification: StorageClassification.STOCK_QUOTE,
-        provider: 'test-provider',
-        market: 'test-market',
-      };
-
-      storageRepository.upsert.mockResolvedValue(mockStoredDocument as any);
-      eventBus.emit.mockImplementation(() => {
-        throw new Error('Event bus failure');
-      });
-
-      // Act - Should not fail even if event emission fails
-      const result = await service.storeData(storeRequest);
-
-      // Assert
-      expect(result).toBeInstanceOf(StorageResponseDto);
-      expect(eventBus.emit).toHaveBeenCalled();
-    });
+    // 事件总线相关测试已移除
   });
 
   describe('Performance and Resource Management', () => {
@@ -1388,9 +1187,7 @@ describe('StorageService', () => {
       expect(result).toBeInstanceOf(StorageResponseDto);
       expect(endTime - startTime).toBeGreaterThan(90); // At least 90ms due to mock delay
 
-      // Performance should be logged if exceeds threshold
-      const performanceStats = (service as any).getPerformanceStats();
-      expect(performanceStats).toBeDefined();
+      // 性能统计方法已移除
     });
 
     it('should handle concurrent pagination requests efficiently', async () => {
@@ -1645,7 +1442,7 @@ describe('StorageService', () => {
         expect(result).toBeDefined();
         expect(result).toBeInstanceOf(StorageResponseDto);
         expect(storageRepository.upsert).toHaveBeenCalled();
-        expect(eventBus.emit).toHaveBeenCalled();
+        // no monitoring emission assertions
       });
 
       it('should execute storeData without compression branch', async () => {
@@ -1744,7 +1541,6 @@ describe('StorageService', () => {
         // Assert
         expect(result).toBe(true);
         expect(storageRepository.deleteByKey).toHaveBeenCalledWith(deleteKey);
-        expect(eventBus.emit).toHaveBeenCalled();
       });
 
       it('should execute deleteData method with no documents found', async () => {
@@ -1783,7 +1579,6 @@ describe('StorageService', () => {
         expect(result).toBeDefined();
         expect(result).toBeInstanceOf(StorageStatsDto);
         expect(result.persistent).toBeDefined();
-        expect(result.performance).toBeDefined();
         expect(storageRepository.getStorageClassificationStats).toHaveBeenCalled();
         expect(storageRepository.getProviderStats).toHaveBeenCalled();
         expect(storageRepository.getSizeStats).toHaveBeenCalled();
@@ -1865,30 +1660,7 @@ describe('StorageService', () => {
       });
     });
 
-    describe('calculateOperationsPerSecond method', () => {
-      it('should execute calculateOperationsPerSecond method', () => {
-        // Act - Call the method directly
-        const result = (service as any).calculateOperationsPerSecond();
-
-        // Assert
-        expect(typeof result).toBe('number');
-        expect(result).toBeGreaterThanOrEqual(0);
-      });
-    });
-
-    describe('getPerformanceStats method', () => {
-      it('should execute getPerformanceStats method', () => {
-        // Act
-        const result = (service as any).getPerformanceStats();
-
-        // Assert
-        expect(result).toBeDefined();
-        expect(typeof result.avgStorageTime).toBe('number');
-        expect(typeof result.avgRetrievalTime).toBe('number');
-        expect(typeof result.operationsPerSecond).toBe('number');
-        expect(typeof result.errorRate).toBe('number');
-      });
-    });
+    // calculateOperationsPerSecond / getPerformanceStats 已移除
 
     describe('logStorageSuccess method', () => {
       it('should execute logStorageSuccess method', () => {
@@ -1916,22 +1688,7 @@ describe('StorageService', () => {
       });
     });
 
-    describe('emitDatabaseOperationEvent method', () => {
-      it('should execute emitDatabaseOperationEvent method', () => {
-        // Arrange
-        const operation = 'store';
-        const key = 'test-key';
-        const processingTimeMs = 75;
-
-        // Act - Should not throw
-        expect(() => {
-          (service as any).emitDatabaseOperationEvent(operation, key, processingTimeMs);
-        }).not.toThrow();
-
-        // Assert
-        expect(eventBus.emit).toHaveBeenCalled();
-      });
-    });
+    // emitDatabaseOperationEvent 已移除
 
     describe('extractKeyPattern method', () => {
       it('should execute extractKeyPattern method', () => {

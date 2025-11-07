@@ -9,7 +9,7 @@
  * 5. 连接统计和监控指标收集
  */
 
-import { Injectable, OnModuleDestroy, Inject, forwardRef } from "@nestjs/common";
+import { Injectable, OnModuleDestroy, Inject, forwardRef, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
@@ -20,7 +20,6 @@ import {
 } from '@common/core/exceptions';
 import { STREAM_RECEIVER_ERROR_CODES } from '../constants/stream-receiver-error-codes.constants';
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
-import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import {
   StreamConnection,
@@ -69,7 +68,7 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
     private readonly eventBus: EventEmitter2,
     @Inject(forwardRef(() => StreamDataFetcherService))
     private readonly streamDataFetcher: StreamDataFetcherService,
-    private readonly rateLimitService?: RateLimitService,
+    @Optional() private readonly rateLimitService?: any,
   ) {
     // 初始化配置
     this.config = this.initializeConfig();
@@ -127,38 +126,39 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
    * 检查连接频率限制
    */
   async checkConnectionRateLimit(clientId: string): Promise<boolean> {
-    if (!this.rateLimitService) {
-      return true; // 服务不可用时允许连接
+    // 若未注入限速服务，直接放行（YAGNI：按需启用）
+    if (!this.rateLimitService || typeof this.rateLimitService.checkRateLimit !== 'function') {
+      return true;
     }
 
     try {
-      const rateKey = `stream_connection:${clientId}`;
-      const { maxConnectionsPerMinute, windowSize } = this.config.rateLimit;
+      // 与单测期望保持一致：按客户端维度检查连接建立频率
+      const result = await this.rateLimitService.checkRateLimit(clientId, 'connection');
 
-      // 简化速率限制检查 - 总是允许，在生产环境中实现
-      const isAllowed = true; // TODO: 实现具体的速率限制逻辑
-
-      if (!isAllowed) {
-        this.logger.warn("连接频率超限", {
+      if (!result?.allowed) {
+        this.logger.warn('连接频率超限', {
           clientId,
-          limit: maxConnectionsPerMinute,
-          windowSize,
+          limit: result?.limit,
+          current: result?.current,
+          remaining: result?.remaining,
+          resetTime: result?.resetTime,
         });
         return false;
       }
 
-      this.logger.debug("连接频率检查通过", {
+      this.logger.debug('连接频率检查通过', {
         clientId,
-        limit: maxConnectionsPerMinute,
+        remaining: result?.remaining,
       });
 
       return true;
     } catch (error) {
-      this.logger.warn("连接频率检查失败，允许连接 (故障时开放)", {
+      // 出错时优雅降级，允许连接，保证可用性
+      this.logger.warn('连接频率检查失败，允许连接 (故障时开放)', {
         clientId,
-        error: error.message,
+        error: error?.message,
       });
-      return true; // 故障时允许连接，确保服务可用性
+      return true;
     }
   }
 
@@ -490,16 +490,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
     connectionCount: number,
   ): void {
     try {
-      this.callbacks?.emitMonitoringEvent(
-        "memory_usage_alert",
-        heapUsed,
-        {
-          level,
-          heapUsedMB: Math.round(heapUsed / (1024 * 1024)),
-          connectionCount,
-          timestamp: Date.now(),
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn("记录内存告警失败", { error: error.message });
     }
@@ -577,14 +569,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
     });
 
     // 发送清理监控事件
-    this.callbacks?.emitMonitoringEvent(
-      "forced_connection_cleanup_completed",
-      cleanedCount,
-      {
-        ...result,
-        reason: "memory_pressure",
-      }
-    );
+    // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
     return result;
   }
@@ -632,16 +618,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
       });
 
       // 发送清理监控事件
-      this.callbacks?.emitMonitoringEvent(
-        "smart_connection_cleanup_completed",
-        totalCleaned,
-        {
-          staleConnections: staleCount,
-          unhealthyConnections: unhealthyCount,
-          remainingConnections: this.activeConnections.size,
-          cleanupType: "scheduled_cleanup"
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     }
 
     // 第四步：健康状态统计和监控
@@ -743,14 +721,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
       });
 
       // 发送监控事件
-      this.callbacks?.emitMonitoringEvent(
-        "unhealthy_connections_cleaned",
-        cleanedFromConnections,
-        {
-          unhealthyConnectionsFound: unhealthyConnectionIds.length,
-          remainingConnections: this.activeConnections.size
-        }
-      );
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     }
   }
 
@@ -821,15 +793,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
     });
 
     // 发送监控事件
-    this.callbacks?.emitMonitoringEvent(
-      "inactive_connections_cleaned",
-      removedCount,
-      {
-        currentConnections: this.activeConnections.size,
-        maxConnections: this.config.maxConnections,
-        reason: "connection_limit_exceeded"
-      }
-    );
+    // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
   }
 
   /**
@@ -838,14 +803,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
   private reportConnectionHealthStats(): void {
     const healthStats = ConnectionStatsUtils.calculateHealthStats(this.connectionHealth);
 
-    this.callbacks?.emitMonitoringEvent(
-      "connection_health_stats",
-      healthStats.total,
-      {
-        stats: healthStats,
-        timestamp: Date.now(),
-      }
-    );
+    // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
 
     this.logger.debug("连接健康统计", healthStats);
   }

@@ -1,5 +1,5 @@
 import { WsAuth, WsPublic } from '@core/01-entry/stream-receiver/decorators/ws-auth.decorator';
-import { Permission } from '@auth/enums/user-role.enum';
+import { Permission } from '@authv2';
 
 describe('WsAuth Decorator', () => {
   describe('Basic Functionality', () => {

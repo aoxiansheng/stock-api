@@ -9,9 +9,7 @@ import {
   Query,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { Auth } from "../../../../auth/decorators/auth.decorator";
-import { UserRole, Permission } from "../../../../auth/enums/user-role.enum";
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
+import { AdminOnly, ReadAccess } from "@authv2/decorators";
 import {
   ApiStandardResponses,
   ApiKeyAuthResponses,
@@ -42,7 +40,7 @@ export class MappingRuleController {
   // ===============================
 
   @Post()
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @AdminOnly()
   @ApiOperation({
     summary: "创建灵活映射规则",
     description: "创建自定义的灵活映射规则",
@@ -61,7 +59,7 @@ export class MappingRuleController {
   }
 
   @Get()
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @ApiOperation({
     summary: "查询映射规则",
     description: "分页查询灵活映射规则列表",
@@ -86,7 +84,7 @@ export class MappingRuleController {
   }
 
   @Get(":id")
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @ApiOperation({
     summary: "获取规则详情",
     description: "根据ID获取映射规则详细信息",
@@ -105,7 +103,7 @@ export class MappingRuleController {
   }
 
   @Put(":id")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @AdminOnly()
   @ApiOperation({
     summary: "更新映射规则",
     description: "更新指定的映射规则",
@@ -125,7 +123,7 @@ export class MappingRuleController {
   }
 
   @Delete(":id")
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "删除映射规则",
     description: "删除指定的映射规则",
@@ -142,7 +140,7 @@ export class MappingRuleController {
   // ===============================
 
   @Post("generate-from-template/:templateId")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @AdminOnly()
   @ApiOperation({
     summary: "一键生成映射规则",
     description: "基于持久化模板自动生成字段映射规则",
@@ -166,7 +164,7 @@ export class MappingRuleController {
   }
 
   @Post("preview-alignment/:templateId")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @ReadAccess()
   @ApiOperation({
     summary: "预览字段对齐",
     description: "预览模板字段与后端标准字段的对齐结果，不创建实际规则",
@@ -203,7 +201,7 @@ export class MappingRuleController {
   // ===============================
 
   @Post(":id/realign")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @AdminOnly()
   @ApiOperation({
     summary: "重新对齐规则",
     description: "基于最新的模板重新对齐现有的映射规则",
@@ -218,7 +216,7 @@ export class MappingRuleController {
   }
 
   @Put(":id/adjust-mappings")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @AdminOnly()
   @ApiOperation({
     summary: "手动调整字段映射",
     description: "对自动生成的字段映射进行手动调整",
@@ -249,7 +247,7 @@ export class MappingRuleController {
   // ===============================
 
   @Post("test")
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @ApiOperation({
     summary: "测试映射规则",
     description: "使用示例数据测试映射规则的效果",

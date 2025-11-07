@@ -7,7 +7,6 @@ import {
   TransformFieldMappingPreviewDto,
   DataBatchTransformOptionsDto
 } from '@core/02-processing/transformer/dto/data-transform-preview.dto';
-import { safeTransform } from '@core/02-processing/transformer/utils/transform.utils';
 
 describe('TransformMappingRuleInfoDto', () => {
   describe('Validation', () => {
@@ -660,8 +659,8 @@ describe('TransformPreviewDto', () => {
         ]
       };
 
-      // 使用安全转换函数
-      const dto = safeTransform(TransformPreviewDto, originalPreview);
+      // 直接使用 class-transformer 转换（安全转换工具已移除）
+      const dto = plainToClass(TransformPreviewDto, originalPreview);
       const json = JSON.stringify(dto);
       const parsed = JSON.parse(json);
 
@@ -689,8 +688,9 @@ describe('TransformPreviewDto', () => {
         sharedDataFieldMappings: []
       };
 
-      // 使用安全转换函数
-      const dto = safeTransform(TransformPreviewDto, previewWithCircular);
+      // 直接使用 class-transformer 转换；
+      // 循环引用由 DTO 的自定义验证器在 validate 阶段识别
+      const dto = plainToClass(TransformPreviewDto, previewWithCircular);
       const errors = await validate(dto);
       
       // 验证应该失败，因为存在循环引用

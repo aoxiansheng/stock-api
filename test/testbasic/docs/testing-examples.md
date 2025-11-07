@@ -111,7 +111,7 @@ describe('AuthModule Integration Test', () => {
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestCacheModule } from '@test/testbasic/modules/test-cache.module';
-import { CacheService } from '@cache/services/cache.service';
+import { CacheService } from '@cachev2/cache.service';
 import { Redis } from 'ioredis';
 
 describe('CacheService with Redis Dependencies', () => {

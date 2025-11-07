@@ -7,9 +7,9 @@ import { MappingDirection } from '@core/shared/constants/cache.constants';
 import { createLogger } from '@common/logging/index';
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
 import { Reflector } from '@nestjs/core';
-import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
-import { AuthPerformanceService } from '@auth/services/infrastructure/auth-performance.service';
-import { UnifiedPermissionsGuard } from '@auth/guards/unified-permissions.guard';
+import { ApiKeyAuthGuard } from '@authv2';
+import { AuthService } from '@authv2';
+import { PermissionsGuard } from '@authv2';
 
 describe('SymbolTransformerController', () => {
   let controller: SymbolTransformerController;
@@ -21,8 +21,8 @@ describe('SymbolTransformerController', () => {
       transformSymbols: jest.fn(),
     };
     
-    // 模拟 AuthPerformanceService
-    const mockAuthPerformanceService = {
+    // 模拟 AuthService
+    const mockAuthService = {
       recordAuthFlowPerformance: jest.fn(),
       recordAuthCachePerformance: jest.fn(),
       recordAuthFlowStats: jest.fn(),
@@ -36,8 +36,8 @@ describe('SymbolTransformerController', () => {
           useValue: mockSymbolTransformerService,
         },
         {
-          provide: AuthPerformanceService,
-          useValue: mockAuthPerformanceService,
+          provide: AuthService,
+          useValue: mockAuthService,
         },
         {
           provide: Reflector,
@@ -59,7 +59,7 @@ describe('SymbolTransformerController', () => {
       canActivate: jest.fn().mockReturnValue(true),
     })
     // 覆盖权限守卫
-    .overrideGuard(UnifiedPermissionsGuard)
+    .overrideGuard(PermissionsGuard)
     .useValue({
       canActivate: jest.fn().mockReturnValue(true),
     })

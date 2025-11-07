@@ -79,3 +79,5 @@ SymbolMappingRuleDocumentSchema.index({
 }); // 查询索引：标准格式代码
 SymbolMappingRuleDocumentSchema.index({ "SymbolMappingRule.market": 1 }); // 查询索引：市场
 SymbolMappingRuleDocumentSchema.index({ createdAt: -1 }); // 排序索引：创建时间
+// 复合索引：支撑 exists 查询热点（dataSourceName+isActive）
+SymbolMappingRuleDocumentSchema.index({ dataSourceName: 1, isActive: 1 });

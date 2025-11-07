@@ -12,8 +12,6 @@
  */
 
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // Foundation layer imports
 import { StandardCacheModuleInterface } from '../../../foundation/interfaces/standard-cache-module.interface';
@@ -141,7 +139,7 @@ export interface CacheOrchestratorResult<T> {
 }
 
 // Constants and types
-import { SMART_CACHE_CONSTANTS } from '../constants/smart-cache.constants';
+// No direct dependency on smart cache constants to keep service minimal
 
 /**
  * Smart Cache Standardized Service (Simplified)
@@ -189,10 +187,7 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
 
   // Removed legacy orchestrator field - service is now standalone
 
-  constructor(
-    private readonly eventEmitter: EventEmitter2,
-    private readonly configService: ConfigService,
-  ) {
+  constructor() {
     this.logger.log('SmartCacheStandardizedService (Simplified) initialized');
   }
 
@@ -236,12 +231,6 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
       this._isInitialized = true;
       this._isHealthy = true;
 
-      // Emit initialization event
-      this.eventEmitter.emit('cache.module.initialized', {
-        module: 'smart-cache-standardized',
-        timestamp: new Date(),
-      });
-
       this.logger.log('SmartCacheStandardizedService initialized successfully');
     } catch (error) {
       this._isHealthy = false;
@@ -264,12 +253,6 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
 
       this._isHealthy = false;
       this._isInitialized = false;
-
-      // Emit destruction event
-      this.eventEmitter.emit('cache.module.destroyed', {
-        module: 'smart-cache-standardized',
-        timestamp: new Date(),
-      });
 
       this.logger.log('SmartCacheStandardizedService destroyed successfully');
     } catch (error) {

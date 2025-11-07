@@ -1,13 +1,9 @@
 /**
- * 数据接收验证规则常量
- * 包含验证规则、性能阈值等配置
+ * 数据接收验证规则常量（精简版）
+ * 仅保留 DTO 校验所需配置
  */
 
-import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import {
-  HTTP_TIMEOUTS,
-  BATCH_SIZE_SEMANTICS,
-} from "@common/constants/semantic";
+import { BATCH_SIZE_SEMANTICS } from "@common/constants/semantic";
 
 /**
  * 数据接收验证规则常量
@@ -23,23 +19,10 @@ export const RECEIVER_VALIDATION_RULES = Object.freeze({
 } as const);
 
 /**
- * 数据接收性能阈值常量
- */
-export const RECEIVER_PERFORMANCE_THRESHOLDS = Object.freeze({
-  SLOW_REQUEST_MS: NUMERIC_CONSTANTS.N_1000, // 慢请求阈值（毫秒）
-  MAX_SYMBOLS_PER_REQUEST: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE, // 单次请求最大股票数量 - 使用统一配置
-  LOG_SYMBOLS_LIMIT: NUMERIC_CONSTANTS.N_10, // 日志中显示的股票数量限制
-  LARGE_SYMBOL_COUNT_WARNING: NUMERIC_CONSTANTS.N_50, // 大量股票代码警告阈值
-  PROVIDER_SELECTION_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.FAST_MS, // 提供商选择超时 - 使用统一配置
-  SYMBOL_TRANSFORMATION_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 股票代码转换超时 - 使用统一配置
-  DATA_FETCHING_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 数据获取超时 - 使用统一配置
-} as const);
-
-/**
- * 市场识别规则常量 - 消除重复的配置结构
+ * 市场识别规则常量（被 common/utils/symbol-validation.util 使用）
+ * 注意：该常量为通用工具所依赖，暂保留于此，后续可迁移至 shared/constants 统一出处
  */
 export const MARKET_RECOGNITION_RULES = Object.freeze({
-  // 统一的市场配置，消除重复的结构定义
   MARKETS: Object.freeze({
     HK: Object.freeze({
       SUFFIX: ".HK",
@@ -65,12 +48,5 @@ export const MARKET_RECOGNITION_RULES = Object.freeze({
 } as const);
 
 /**
- * 请求选项验证规则常量 - 扁平化结构提升可读性
- * 经过未使用代码清理，以下4个常量已被删除（未被使用）：
- * - REQUEST_OPTIONS_PREFERRED_PROVIDER_MAX_LENGTH = 50
- * - REQUEST_OPTIONS_FIELDS_MAX_ITEMS = 50
- * - REQUEST_OPTIONS_MARKET_MAX_LENGTH = 10
- * - REQUEST_OPTIONS_MARKET_PATTERN = /^[A-Z]{2,5}$/
- *
- * 如果未来需要这些验证规则，请重新添加并确保在相应的DTO中使用
+ * 若未来需要请求选项的额外校验常量，请在被实际使用时再添加（YAGNI）。
  */

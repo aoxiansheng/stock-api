@@ -16,7 +16,7 @@ import { StorageType } from '@core/04-storage/storage/enums/storage-type.enum';
 import { StorageClassification } from '@core/shared/types/storage-classification.enum';
 import { StoreDataDto, RetrieveDataDto } from '@core/04-storage/storage/dto/storage-request.dto';
 import { StorageResponseDto, StorageStatsDto } from '@core/04-storage/storage/dto/storage-response.dto';
-import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
+import { ApiKeyAuthGuard } from '@authv2';
 
 // Mock logger
 jest.mock('@common/logging/index', () => ({
@@ -60,26 +60,14 @@ describe('StorageController', () => {
   };
 
   const mockStatsResponse: StorageStatsDto = {
-    cache: {
-      totalKeys: 15420,
-      totalMemoryUsage: 256000000,
-      hitRate: 0.87,
-      avgTtl: 2.3,
-    },
     persistent: {
       totalDocuments: 8934,
       totalSizeBytes: 1200000000,
       categoriesCounts: { 'stock_quote': 5000, 'stock_info': 3000 },
       providerCounts: { 'longport': 7000, 'yahoo': 1934 },
     },
-    performance: {
-      avgStorageTime: 8.9,
-      avgRetrievalTime: 3.2,
-      operationsPerSecond: 156.7,
-      errorRate: 0.02,
-    },
     timestamp: '2024-01-01T15:30:00.000Z',
-  };
+  } as any;
 
   beforeEach(async () => {
     const mockService = {
@@ -97,7 +85,7 @@ describe('StorageController', () => {
           useValue: mockService,
         },
         {
-          provide: 'AuthPerformanceService',
+          provide: 'AuthService',
           useValue: {
             recordAuthOperation: jest.fn(),
             getMetrics: jest.fn(),
@@ -442,42 +430,22 @@ describe('StorageController', () => {
       const result = await controller.getStorageStats();
 
       // Assert
-      expect(result.cache).toBeDefined();
-      expect(result.cache.totalKeys).toBe(15420);
-      expect(result.cache.hitRate).toBe(0.87);
-
       expect(result.persistent).toBeDefined();
       expect(result.persistent.totalDocuments).toBe(8934);
       expect(result.persistent.totalSizeBytes).toBe(1200000000);
-
-      expect(result.performance).toBeDefined();
-      expect(result.performance.operationsPerSecond).toBe(156.7);
-      expect(result.performance.errorRate).toBe(0.02);
     });
 
     it('should handle empty or minimal statistics', async () => {
       // Arrange
       const minimalStats: StorageStatsDto = {
-        cache: {
-          totalKeys: 0,
-          totalMemoryUsage: 0,
-          hitRate: 0,
-          avgTtl: 0,
-        },
         persistent: {
           totalDocuments: 0,
           totalSizeBytes: 0,
           categoriesCounts: {},
           providerCounts: {},
         },
-        performance: {
-          avgStorageTime: 0,
-          avgRetrievalTime: 0,
-          operationsPerSecond: 0,
-          errorRate: 0,
-        },
         timestamp: '2024-01-01T15:30:00.000Z',
-      };
+      } as any;
 
       mockStorageService.getStorageStats.mockResolvedValue(minimalStats);
 
@@ -486,9 +454,7 @@ describe('StorageController', () => {
 
       // Assert
       expect(result).toEqual(minimalStats);
-      expect(result.cache.totalKeys).toBe(0);
       expect(result.persistent.totalDocuments).toBe(0);
-      expect(result.performance.operationsPerSecond).toBe(0);
     });
   });
 
@@ -826,7 +792,6 @@ describe('StorageController', () => {
         if (result.cacheInfo) {
           expect(result.cacheInfo).toHaveProperty('hit');
           expect(result.cacheInfo).toHaveProperty('source');
-          expect(result.cacheInfo).toHaveProperty('ttlRemaining');
         }
       });
 
@@ -854,28 +819,14 @@ describe('StorageController', () => {
         const result = await controller.getStorageStats();
 
         // Assert
-        expect(result).toHaveProperty('cache');
         expect(result).toHaveProperty('persistent');
-        expect(result).toHaveProperty('performance');
         expect(result).toHaveProperty('timestamp');
-
-        // Cache section validation
-        expect(result.cache).toHaveProperty('totalKeys');
-        expect(result.cache).toHaveProperty('totalMemoryUsage');
-        expect(result.cache).toHaveProperty('hitRate');
-        expect(result.cache).toHaveProperty('avgTtl');
 
         // Persistent section validation
         expect(result.persistent).toHaveProperty('totalDocuments');
         expect(result.persistent).toHaveProperty('totalSizeBytes');
         expect(result.persistent).toHaveProperty('categoriesCounts');
         expect(result.persistent).toHaveProperty('providerCounts');
-
-        // Performance section validation
-        expect(result.performance).toHaveProperty('avgStorageTime');
-        expect(result.performance).toHaveProperty('avgRetrievalTime');
-        expect(result.performance).toHaveProperty('operationsPerSecond');
-        expect(result.performance).toHaveProperty('errorRate');
       });
     });
   });
@@ -984,11 +935,6 @@ describe('StorageController', () => {
         // Arrange - Test stats retrieval which is an existing method
         const statsWithEdgeCases = {
           ...mockStatsResponse,
-          cache: {
-            ...mockStatsResponse.cache,
-            totalKeys: 0,
-            hitRate: 0
-          },
           persistent: {
             ...mockStatsResponse.persistent,
             totalDocuments: 1000000, // Very large number
@@ -1003,7 +949,6 @@ describe('StorageController', () => {
 
         // Assert
         expect(result).toEqual(statsWithEdgeCases);
-        expect(result.cache.hitRate).toBe(0);
         expect(result.persistent.totalSizeBytes).toBeGreaterThan(1000000000);
       });
     });
@@ -1382,8 +1327,7 @@ describe('StorageController', () => {
           ...mockSuccessResponse,
           cacheInfo: {
             hit: true,
-            source: 'redis',
-            ttlRemaining: 3600
+            source: 'persistent'
           }
         };
 
@@ -1416,8 +1360,8 @@ describe('StorageController', () => {
       it('should execute retrieveData with cache hit/miss branches', async () => {
         // Arrange - 测试缓存命中和未命中的分支
         const testCases = [
-          { hit: true, source: 'redis', description: 'cache hit' },
-          { hit: false, source: 'mongodb', description: 'cache miss' }
+          { hit: true, source: 'persistent', description: 'db hit' },
+          { hit: false, source: 'persistent', description: 'db miss' }
         ];
 
         for (const testCase of testCases) {
@@ -1430,8 +1374,7 @@ describe('StorageController', () => {
             ...mockSuccessResponse,
             cacheInfo: {
               hit: testCase.hit,
-              source: testCase.source,
-              ttlRemaining: testCase.hit ? 3600 : 0
+              source: testCase.source
             }
           };
 
@@ -1596,27 +1539,13 @@ describe('StorageController', () => {
       it('should execute getStorageStats controller method with success branch', async () => {
         // Arrange
         const statsResponse = {
-          cache: {
-            totalKeys: 1000,
-            memoryUsed: '128MB',
-            hitRate: 0.95,
-            avgResponseTime: 1.5,
-            connectionsActive: 20
-          },
           persistent: {
             totalDocuments: 500,
-            storageSize: '500MB',
-            indexSize: '50MB',
-            avgQueryTime: 10.2,
-            connectionsActive: 5
+            totalSizeBytes: 500000000,
+            categoriesCounts: { A: 1 },
+            providerCounts: { B: 2 }
           },
-          performance: {
-            totalOperations: 50000,
-            avgStorageTime: 5.5,
-            avgRetrievalTime: 2.8,
-            errorRate: 0.01,
-            throughput: 100.5
-          }
+          timestamp: new Date().toISOString()
         };
 
         mockStorageService.getStorageStats.mockResolvedValue(statsResponse as any);
@@ -1627,8 +1556,7 @@ describe('StorageController', () => {
         // Assert - 验证实际执行
         expect(result).toEqual(statsResponse);
         expect(mockStorageService.getStorageStats).toHaveBeenCalled();
-        expect(result.cache.hitRate).toBe(0.95);
-        expect(result.performance.errorRate).toBe(0.01);
+        expect(result.persistent.totalDocuments).toBe(500);
       });
 
       it('should execute getStorageStats controller method with error branch', async () => {
@@ -1641,50 +1569,7 @@ describe('StorageController', () => {
         expect(mockStorageService.getStorageStats).toHaveBeenCalled();
       });
 
-      it('should execute getStorageStats with different performance metrics for branch coverage', async () => {
-        // Arrange - 测试不同性能指标的分支
-        const testCases = [
-          { hitRate: 0.99, errorRate: 0.001, description: 'high performance' },
-          { hitRate: 0.5, errorRate: 0.05, description: 'low performance' },
-          { hitRate: 0.0, errorRate: 0.1, description: 'poor performance' }
-        ];
-
-        for (const testCase of testCases) {
-          const statsResponse = {
-            cache: {
-              totalKeys: 1000,
-              memoryUsed: '128MB',
-              hitRate: testCase.hitRate,
-              avgResponseTime: 1.5,
-              connectionsActive: 20
-            },
-            persistent: {
-              totalDocuments: 500,
-              storageSize: '500MB',
-              indexSize: '50MB',
-              avgQueryTime: 10.2,
-              connectionsActive: 5
-            },
-            performance: {
-              totalOperations: 50000,
-              avgStorageTime: 5.5,
-              avgRetrievalTime: 2.8,
-              errorRate: testCase.errorRate,
-              throughput: 100.5
-            }
-          };
-
-          mockStorageService.getStorageStats.mockResolvedValue(statsResponse as any);
-
-          // Act - 实际执行不同分支
-          const result = await controller.getStorageStats();
-
-          // Assert
-          expect(result).toEqual(statsResponse);
-          expect(result.cache.hitRate).toBe(testCase.hitRate);
-          expect(result.performance.errorRate).toBe(testCase.errorRate);
-        }
-      });
+      // 性能/缓存相关分支测试已移除
     });
   });
 

@@ -19,6 +19,7 @@
 import {
   Injectable,
   Inject,
+  Optional,
   ServiceUnavailableException,
   Logger,
   OnModuleInit,
@@ -82,6 +83,7 @@ import {
 } from "../constants/stream-cache.constants";
 
 import { STREAM_CACHE_ERROR_CODES } from "../constants/stream-cache-error-codes.constants";
+import { STREAM_CACHE_REDIS_CLIENT_TOKEN, STREAM_CACHE_CONFIG_TOKEN } from "../constants/stream-cache.constants";
 
 // Common imports
 import { createLogger } from "@common/logging/index";
@@ -92,12 +94,6 @@ import {
   UniversalRetryHandler,
 } from "@common/core/exceptions";
 
-// Monitoring contracts
-import {
-  CACHE_REDIS_CLIENT_TOKEN,
-  STREAM_CACHE_CONFIG_TOKEN,
-} from "../../../../../monitoring/contracts";
-import { SYSTEM_STATUS_EVENTS } from "../../../../../monitoring/contracts/events/system-status.events";
 
 
 /**
@@ -195,10 +191,7 @@ export class StreamCacheStandardizedService
 
   // 定时器管理
   private cacheCleanupInterval: NodeJS.Timeout | null = null;
-
-  // 内存泄漏防护机制
-  private isDestroyed = false;
-  private readonly pendingAsyncOperations = new Set<NodeJS.Immediate>();
+  // 内存泄漏防护机制（监控精简后不再需要pending队列）
 
   // 性能监控数据
   private operationStats = {
@@ -237,10 +230,9 @@ export class StreamCacheStandardizedService
   // ========================================
 
   constructor(
-    @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
+    @Inject(STREAM_CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
     private readonly eventBus: EventEmitter2,
-    @Inject(STREAM_CACHE_CONFIG_TOKEN)
-    streamConfigPartial?: Partial<StreamCacheConfig>,
+    @Optional() @Inject(STREAM_CACHE_CONFIG_TOKEN) streamConfigPartial?: Partial<StreamCacheConfig>,
   ) {
     // 合并流缓存配置
     this.streamConfig = {
@@ -253,9 +245,9 @@ export class StreamCacheStandardizedService
       compressionThresholdBytes:
         streamConfigPartial?.compressionThresholdBytes ||
         DEFAULT_STREAM_CACHE_CONFIG.compressionThreshold,
+      // 非核心监控开关：始终为 true（或由外部配置部分覆盖）
       performanceMonitoringEnabled:
-        streamConfigPartial?.performanceMonitoringEnabled ||
-        DEFAULT_STREAM_CACHE_CONFIG.performanceMonitoring,
+        streamConfigPartial?.performanceMonitoringEnabled ?? true,
     } as StreamCacheConfig;
 
     this.logger.log("StreamCacheStandardizedService initialized", {
@@ -323,7 +315,6 @@ export class StreamCacheStandardizedService
   }
 
   async destroy(): Promise<void> {
-    this.isDestroyed = true;
     this._isInitialized = false;
     this._isHealthy = false;
 
@@ -332,13 +323,6 @@ export class StreamCacheStandardizedService
       clearInterval(this.cacheCleanupInterval);
       this.cacheCleanupInterval = null;
     }
-
-    // 清理待执行的异步操作
-    if (this.pendingAsyncOperations.size > 0) {
-      this.pendingAsyncOperations.forEach(clearImmediate);
-      this.pendingAsyncOperations.clear();
-    }
-
     // 清理Hot Cache
     this.hotCache.clear();
 
@@ -530,11 +514,7 @@ export class StreamCacheStandardizedService
         this.operationStats.hotCacheHits++;
         this.operationStats.totalDuration += duration;
 
-        this.recordPerformance("get", duration, true);
-        this.emitCacheMetric("get", true, duration, {
-          cacheType: "stream-cache",
-          layer: "hot",
-        });
+        // 监控上报已移除
 
         return {
           success: true,
@@ -558,15 +538,9 @@ export class StreamCacheStandardizedService
         this.operationStats.warmCacheHits++;
         this.operationStats.totalDuration += duration;
 
-        this.recordPerformance("get", duration, true);
-
         // 提升到 Hot Cache
         this.setToHotCache(key, warmCacheData);
-
-        this.emitCacheMetric("get", true, duration, {
-          cacheType: "stream-cache",
-          layer: "warm",
-        });
+        // 监控上报已移除
 
         return {
           success: true,
@@ -587,11 +561,7 @@ export class StreamCacheStandardizedService
       this.operationStats.totalMisses++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance("get", duration, true);
-      this.emitCacheMetric("get", false, duration, {
-        cacheType: "stream-cache",
-        layer: "miss",
-      });
+      // 监控上报已移除
 
       return {
         success: true,
@@ -611,7 +581,6 @@ export class StreamCacheStandardizedService
       this.operationStats.totalDuration += duration;
 
       this.recordError(error, { operation: "get", key });
-      this.recordPerformance("get", duration, false);
 
       return {
         success: false,
@@ -682,14 +651,7 @@ export class StreamCacheStandardizedService
       this.operationStats.totalOperations++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance("set", duration, true);
-      this.emitCacheMetric("set", true, duration, {
-        cacheType: "stream-cache",
-        layer: shouldUseHotCache ? "both" : "warm",
-        dataSize,
-        compressionRatio:
-          compressedData.length / (Array.isArray(value) ? value.length : 1),
-      });
+      // 监控上报已移除
 
       return {
         success: true,
@@ -708,7 +670,6 @@ export class StreamCacheStandardizedService
       this.operationStats.totalDuration += duration;
 
       this.recordError(error, { operation: "set", key });
-      this.recordPerformance("set", duration, false);
 
       return {
         success: false,
@@ -754,7 +715,7 @@ export class StreamCacheStandardizedService
       this.operationStats.totalOperations++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance("delete", duration, true);
+      // 监控上报已移除
 
       return {
         success: true,
@@ -773,7 +734,6 @@ export class StreamCacheStandardizedService
       this.operationStats.totalDuration += duration;
 
       this.recordError(error, { operation: "delete", key });
-      this.recordPerformance("delete", duration, false);
 
       return {
         success: false,
@@ -1099,17 +1059,19 @@ export class StreamCacheStandardizedService
     const results: BaseCacheResult<T>[] = [];
 
     try {
+      // 复用高性能批量路径（Pipeline + 降级）
+      const map = await this.getBatchData(keys);
+
       for (const key of keys) {
-        const result = await this.get<T>(key, options);
+        const data = (map[key] as unknown) as T;
         results.push({
-          success: result.success,
-          status: result.status,
-          operation: result.operation,
-          data: result.data,
-          timestamp: result.timestamp,
-          duration: result.duration,
-          key: result.key,
-          error: result.error,
+          success: true,
+          status: CACHE_STATUS.SUCCESS,
+          operation: CACHE_OPERATIONS.GET,
+          data,
+          timestamp: Date.now(),
+          duration: 0,
+          key,
         });
       }
 
@@ -1120,15 +1082,14 @@ export class StreamCacheStandardizedService
         data: results.map((r) => r.data),
         results,
         totalCount: keys.length,
-        successCount: results.filter((r) => r.success).length,
-        failureCount: results.filter((r) => !r.success).length,
-        failedKeys: results.filter((r) => !r.success).map((r) => r.key || ""),
+        successCount: results.length,
+        failureCount: 0,
+        failedKeys: [],
         timestamp: Date.now(),
         duration: Date.now() - startTime,
       };
     } catch (error) {
       this.recordError(error, { operation: "batchGet", keys });
-
       return {
         success: false,
         status: CACHE_STATUS.ERROR,
@@ -1437,7 +1398,7 @@ export class StreamCacheStandardizedService
       this.operationStats.totalOperations++;
       this.operationStats.totalDuration += duration;
 
-      this.recordPerformance("clear", duration, true);
+      // 监控上报已移除
 
       return {
         success: true,
@@ -1455,7 +1416,6 @@ export class StreamCacheStandardizedService
       this.operationStats.totalDuration += duration;
 
       this.recordError(error, { operation: "clear" });
-      this.recordPerformance("clear", duration, false);
 
       return {
         success: false,
@@ -1967,123 +1927,7 @@ export class StreamCacheStandardizedService
     }
   }
 
-  // ========================================
-  // 从旧系统移植的缺失功能
-  // ========================================
-
-  /**
-   * 报告系统指标 - 优化版本
-   * 使用批量发送减少事件总线压力
-   */
-  async reportSystemMetrics(): Promise<void> {
-    try {
-      // 获取所需数据
-      const healthResult = await this.getHealth();
-      const capacityInfo = await this.getCapacityInfo();
-      const perfMetrics = await this.getPerformanceMetrics();
-
-      // 构建核心指标数组
-      const coreMetrics = [
-        {
-          metricName: "cache_hot_size",
-          metricValue: this.hotCache.size,
-          tags: {
-            maxSize: this.streamConfig.maxHotCacheSize,
-            utilizationRatio: this.hotCache.size / this.streamConfig.maxHotCacheSize,
-          },
-        },
-        {
-          metricName: "health_status",
-          metricValue: healthResult.success && healthResult.healthScore > 70 ? 1 : 0,
-          tags: {
-            healthScore: healthResult.healthScore || 0,
-            connectionStatus: healthResult.success ? "connected" : "disconnected",
-          },
-        },
-        {
-          metricName: "memory_usage_bytes",
-          metricValue: capacityInfo.currentMemory,
-          tags: {
-            maxMemory: capacityInfo.maxMemory,
-            utilizationRatio: capacityInfo.memoryUtilization,
-            keyCount: capacityInfo.currentKeys,
-          },
-        },
-        {
-          metricName: "hit_rate",
-          metricValue: perfMetrics.hitRate,
-          tags: {
-            totalHits: this.operationStats.totalHits,
-            totalMisses: this.operationStats.totalMisses,
-            hotCacheHits: this.operationStats.hotCacheHits,
-            warmCacheHits: this.operationStats.warmCacheHits,
-          },
-        },
-        {
-          metricName: "avg_response_time",
-          metricValue: perfMetrics.avgResponseTime,
-          tags: {
-            totalOperations: this.operationStats.totalOperations,
-            errorRate: perfMetrics.errorRate,
-          },
-        },
-        {
-          metricName: "error_count",
-          metricValue: this.operationStats.errorCount,
-          tags: {
-            errorRate: perfMetrics.errorRate,
-            lastResetTime: this.operationStats.lastResetTime,
-          },
-        },
-      ];
-
-      // 添加容量警告指标（仅在需要时）
-      if (capacityInfo.memoryUtilization > 0.8) {
-        coreMetrics.push({
-          metricName: "capacity_warning",
-          metricValue: 1,
-          tags: {
-            warningType: "memory_high",
-            utilizationRatio: capacityInfo.memoryUtilization,
-            threshold: 0.8,
-          } as any,
-        });
-      }
-
-      if (capacityInfo.keyUtilization > 0.9) {
-        coreMetrics.push({
-          metricName: "capacity_warning",
-          metricValue: 1,
-          tags: {
-            warningType: "keys_high",
-            utilizationRatio: capacityInfo.keyUtilization,
-            threshold: 0.9,
-          } as any,
-        });
-      }
-
-      // 批量发送所有核心指标
-      this.emitBatchMetrics(coreMetrics);
-
-      this.logger.debug("System metrics reported successfully (batch mode)", {
-        metricCount: coreMetrics.length,
-        hotCacheSize: this.hotCache.size,
-        memoryUsage: capacityInfo.currentMemory,
-        hitRate: perfMetrics.hitRate,
-        healthScore: healthResult.healthScore,
-      });
-    } catch (error) {
-      this.recordError(error, { operation: "reportSystemMetrics" });
-      this.emitSystemEvent("metric_reporting_error", 1, {
-        errorMessage: error.message,
-        errorType: error.constructor.name,
-      });
-      this.logger.error("Failed to report system metrics", {
-        error: error.message,
-        stack: error.stack,
-      });
-    }
-  }
+  // 从旧系统移植的监控上报功能已移除（非核心）
 
 
   /**
@@ -2176,72 +2020,13 @@ export class StreamCacheStandardizedService
   /**
    * 发送系统级事件监控
    */
-  private emitSystemEvent(
-    metricName: string,
-    value: number,
-    tags: any = {},
-  ): void {
-    this.safeAsyncExecute(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream-cache-standardized",
-        metricType: "system",
-        metricName,
-        metricValue: value,
-        tags: {
-          component: "StreamCacheStandardized",
-          version: this.version,
-          ...tags,
-        },
-      });
-    });
-  }
+  // emitSystemEvent 移除
 
   /**
    * 批量发送系统指标 - 优化版本
    * 减少事件总线压力，一次性发送所有核心指标
    */
-  private emitBatchMetrics(metrics: Array<{
-    metricName: string;
-    metricValue: number;
-    tags?: any;
-  }>): void {
-    const config = this.getEnvironmentConfig();
-
-    // 检查是否启用批量优化
-    if (!config.batchOptimizationEnabled) {
-      // 如果禁用批量，使用单独发送
-      metrics.forEach(metric => {
-        this.emitSystemEvent(metric.metricName, metric.metricValue, metric.tags);
-      });
-      return;
-    }
-
-    this.safeAsyncExecute(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream-cache-standardized",
-        metricType: "batch",
-        batchSize: metrics.length,
-        batchInterval: config.batchInterval,
-        metrics: metrics.map(metric => ({
-          metricName: metric.metricName,
-          metricValue: metric.metricValue,
-          tags: {
-            component: "StreamCacheStandardized",
-            version: this.version,
-            ...metric.tags,
-          },
-        })),
-        tags: {
-          component: "StreamCacheStandardized",
-          version: this.version,
-          batchOptimization: true,
-          performanceThreshold: config.performanceThreshold,
-        },
-      });
-    });
-  }
+  // emitBatchMetrics 移除
 
   // ========================================
   // 缺失的CacheServiceInterface方法
@@ -2557,192 +2342,53 @@ export class StreamCacheStandardizedService
    * 添加性能阈值判断，仅报告重要错误或性能异常
    */
   private recordError(error: any, context: Record<string, any> = {}): void {
-    const errorEntry = {
-      timestamp: Date.now(),
-      type: error.constructor.name || "UnknownError",
-      severity: this.determineSeverity(error),
-      message: error.message || "Unknown error",
-      context,
-    };
-
-    // 检查是否为性能相关错误
-    const duration = context.duration || context.durationMs || 0;
-    const operation = context.operation || "unknown";
-    const performanceThreshold = this.getPerformanceThreshold();
-
-    // 判断是否需要报告此错误
-    const shouldReport = this.shouldReportError(errorEntry, duration, performanceThreshold);
-
-    this.errorHistory.push(errorEntry);
-
-    // 保持错误历史记录在合理大小
-    if (this.errorHistory.length > 100) {
-      this.errorHistory = this.errorHistory.slice(-50);
-    }
-
-    // 只在满足条件时记录日志和发送事件
-    if (shouldReport) {
-      this.logger.error("Stream cache operation error", {
-        ...errorEntry,
-        performanceIssue: duration > performanceThreshold,
-        threshold: performanceThreshold,
-      });
-
-      // 发送错误事件（仅限重要错误）
-      this.emitSystemEvent("cache_error", 1, {
-        errorType: errorEntry.type,
-        severity: errorEntry.severity,
-        operation,
-        duration,
-        exceedsThreshold: duration > performanceThreshold,
-      });
-    }
+    // 精简：仅记录错误日志，不做阈值/分类/事件上报
+    this.logger.error("Stream cache operation error", {
+      error: error?.message || String(error),
+      ...context,
+    });
   }
 
   /**
    * 获取性能阈值 - 支持环境变量配置
    */
-  private getPerformanceThreshold(): number {
-    return parseInt(process.env.STREAM_CACHE_PERF_THRESHOLD || "100", 10);
-  }
+  // getPerformanceThreshold 移除
 
   /**
    * 获取批量发送间隔 - 支持环境变量配置
    */
-  private getBatchInterval(): number {
-    return parseInt(process.env.STREAM_CACHE_BATCH_INTERVAL || "5000", 10);
-  }
+  // getBatchInterval 移除
 
   /**
    * 获取环境配置的总结
    */
-  private getEnvironmentConfig(): {
-    performanceThreshold: number;
-    batchInterval: number;
-    batchOptimizationEnabled: boolean;
-  } {
-    return {
-      performanceThreshold: this.getPerformanceThreshold(),
-      batchInterval: this.getBatchInterval(),
-      batchOptimizationEnabled: process.env.STREAM_CACHE_BATCH_ENABLED !== "false",
-    };
-  }
+  // getEnvironmentConfig 移除
 
   /**
    * 判断是否应该报告错误
    * 仅在错误或性能超阈值时报告
    */
-  private shouldReportError(
-    errorEntry: any,
-    duration: number,
-    threshold: number,
-  ): boolean {
-    // 总是报告高严重性错误
-    if (errorEntry.severity === "critical" || errorEntry.severity === "high") {
-      return true;
-    }
-
-    // 报告性能超阈值的操作
-    if (duration > threshold) {
-      return true;
-    }
-
-    // 报告Redis连接错误
-    if (errorEntry.type.includes("Redis") || errorEntry.type.includes("Connection")) {
-      return true;
-    }
-
-    // 其他低严重性错误只记录，不报告
-    return false;
-  }
+  // shouldReportError 移除
 
   /**
    * 记录性能
    */
-  private recordPerformance(
-    operation: string,
-    duration: number,
-    success: boolean,
-  ): void {
-    const perfEntry = {
-      operation,
-      duration,
-      success,
-      timestamp: Date.now(),
-    };
-
-    this.performanceHistory.push(perfEntry);
-
-    // 保持性能历史记录在合理大小
-    if (this.performanceHistory.length > 1000) {
-      this.performanceHistory = this.performanceHistory.slice(-500);
-    }
-  }
+  // recordPerformance 移除
 
   /**
    * 确定错误严重程度
    */
-  private determineSeverity(error: any): string {
-    if (
-      error.message?.includes("Redis") ||
-      error.message?.includes("connection")
-    ) {
-      return "high";
-    }
-    if (error.message?.includes("timeout") || error.message?.includes("slow")) {
-      return "medium";
-    }
-    return "low";
-  }
+  // determineSeverity 移除
 
   /**
    * 安全异步执行器 - 防止内存泄漏
    */
-  private safeAsyncExecute(operation: () => void): void {
-    if (this.isDestroyed) {
-      return;
-    }
-
-    const immediateId = setImmediate(() => {
-      if (!this.isDestroyed) {
-        try {
-          operation();
-        } catch (error) {
-          this.logger.warn("异步操作执行失败", { error: error.message });
-        }
-      }
-      this.pendingAsyncOperations.delete(immediateId);
-    });
-
-    this.pendingAsyncOperations.add(immediateId);
-  }
+  // safeAsyncExecute 移除
 
   /**
    * 发送缓存操作监控事件
    */
-  private emitCacheMetric(
-    operation: string,
-    success: boolean,
-    duration: number,
-    metadata: any = {},
-  ): void {
-    this.safeAsyncExecute(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream-cache-standardized",
-        metricType: "cache",
-        metricName: `cache_${operation}_${success ? "success" : "failed"}`,
-        metricValue: duration,
-        tags: {
-          operation,
-          success: success.toString(),
-          component: "StreamCacheStandardized",
-          version: this.version,
-          ...metadata,
-        },
-      });
-    });
-  }
+  // emitCacheMetric 移除
 
   /**
    * 从 Hot Cache 获取数据

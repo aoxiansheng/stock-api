@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebSocketRateLimitGuard } from '@core/03-fetching/stream-data-fetcher/guards/websocket-rate-limit.guard';
+import { StreamConfigService } from '@core/03-fetching/stream-data-fetcher/config/stream-config.service';
 import { Socket } from 'socket.io';
 import { TestWebSocketModule } from '@test/testbasic/modules/test-websocket.module';
 import { socketMockFactory } from '@test/testbasic/mocks/socket.mock';
@@ -43,35 +44,43 @@ describe('WebSocketRateLimitGuard', () => {
     
     it('should set up periodic cleanup', () => {
       const setIntervalSpy = jest.spyOn(global, 'setInterval');
-      // 创建新实例以验证setInterval被调用
-      const newGuard = new WebSocketRateLimitGuard();
+      const mockConfig = {
+        getSecurityConfig: () => ({
+          http: { rateLimitTtl: 60, rateLimitCount: 100, burstLimit: 20 },
+          websocket: {
+            maxConnectionsPerIP: 10,
+            maxConnectionsPerUser: 5,
+            messagesPerMinute: 120,
+            maxSubscriptionsPerConnection: 50,
+            burstMessages: 20,
+          },
+        }),
+      } as unknown as StreamConfigService;
+      const newGuard = new WebSocketRateLimitGuard(mockConfig);
       expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 60000);
     });
     
-    it('should load configuration from environment variables', () => {
-      const originalEnv = process.env;
-      
-      // 设置测试环境变量
-      process.env = {
-        ...originalEnv,
-        WS_MAX_CONNECTIONS_PER_IP: '5',
-        WS_MAX_CONNECTIONS_PER_USER: '3',
-        WS_MESSAGES_PER_MINUTE: '60',
-        WS_MAX_SUBSCRIPTIONS_PER_CONNECTION: '25',
-        WS_BURST_MESSAGES: '10'
-      };
-      
-      const customGuard = new WebSocketRateLimitGuard();
+    it('should load configuration from StreamConfigService', () => {
+      const mockConfig = {
+        getSecurityConfig: () => ({
+          http: { rateLimitTtl: 60, rateLimitCount: 100, burstLimit: 20 },
+          websocket: {
+            maxConnectionsPerIP: 5,
+            maxConnectionsPerUser: 3,
+            messagesPerMinute: 60,
+            maxSubscriptionsPerConnection: 25,
+            burstMessages: 10,
+          },
+        }),
+      } as unknown as StreamConfigService;
+      const customGuard = new WebSocketRateLimitGuard(mockConfig);
       const stats = customGuard.getStats();
-      
+
       expect(stats.config.maxConnectionsPerIP).toBe(5);
       expect(stats.config.maxConnectionsPerUser).toBe(3);
       expect(stats.config.messagesPerMinute).toBe(60);
       expect(stats.config.maxSubscriptionsPerConnection).toBe(25);
       expect(stats.config.burstMessages).toBe(10);
-      
-      // 恢复原始环境
-      process.env = originalEnv;
     });
   });
 

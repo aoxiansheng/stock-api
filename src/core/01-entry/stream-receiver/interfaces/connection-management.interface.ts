@@ -77,8 +77,7 @@ export interface ConnectionCleanupResult {
  * 连接管理回调接口
  */
 export interface ConnectionManagementCallbacks {
-  /** 发送监控事件回调 */
-  emitMonitoringEvent: (event: string, value: any, metadata?: any) => void;
+
   /** 发送业务事件回调 */
   emitBusinessEvent: (event: string, value: any, metadata?: any) => void;
   /** 记录连接指标回调 */

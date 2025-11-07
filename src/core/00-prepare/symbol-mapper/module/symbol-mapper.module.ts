@@ -1,14 +1,12 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 
-import { AuthModule } from "../../../../auth/module/auth.module";
+import { AuthModule as AuthV2Module } from "@authv2/auth.module";
 import { PaginationModule } from "@common/modules/pagination/modules/pagination.module";
-import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-// EventEmitter2 已在 app.module.ts 中全局配置，无需直接导入监控模块
+// 去监控化：不再依赖 SharedServicesModule/EventEmitter
 import { DatabaseModule } from "../../../../database/database.module"; // 🆕 统一数据库模块
 
-// 导入新的独立缓存模块
-import { SymbolMapperCacheModule } from "../../../05-caching/module/symbol-mapper-cache/module/symbol-mapper-cache.module";
+// 精简：符号映射模块不直接依赖缓存模块
 
 import { SymbolMappingRepository } from "../repositories/symbol-mapping.repository";
 import {
@@ -22,21 +20,21 @@ import { SymbolMapperService } from "../services/symbol-mapper.service";
   imports: [
     // 🆕 统一数据库模块 (替代重复的MongooseModule.forFeature)
     DatabaseModule,
+    // 本模块自有Schema注册
+    MongooseModule.forFeature([
+      { name: SymbolMappingRuleDocument.name, schema: SymbolMappingRuleDocumentSchema },
+    ]),
 
-    AuthModule,
+    AuthV2Module,
     PaginationModule,
-    SharedServicesModule, // 🔥 导入SharedServicesModule以获取共享服务支持
-    // 事件化监控不需要直接导入 MonitoringModule
-    SymbolMapperCacheModule, // 🎯 导入独立的缓存模块
 
-    // ✅ 使用统一DatabaseModule (CoreDatabaseModule包含SymbolMappingRuleDocument schema)
+    // ✅ Schema 就近注册，DatabaseModule 仅提供连接
   ],
   controllers: [SymbolMapperController],
   providers: [
     SymbolMapperService,
     SymbolMappingRepository,
-    // FeatureFlags 从 SharedServicesModule 获取
-    // EventEmitter2 从全局注册获取
+    // 精简：删除 FeatureFlags/EventEmitter 直接依赖
   ],
   exports: [SymbolMapperService],
 })

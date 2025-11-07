@@ -55,8 +55,6 @@ export interface BatchProcessingCallbacks {
   recordStreamPipelineMetrics: (metrics: any) => void;
   /** 记录管道错误回调 */
   recordPipelineError: (provider: string, capability: string, error: string, duration: number) => void;
-  /** 发送监控事件回调 */
-  emitMonitoringEvent: (event: string, value: any, metadata?: any) => void;
 }
 
 /**

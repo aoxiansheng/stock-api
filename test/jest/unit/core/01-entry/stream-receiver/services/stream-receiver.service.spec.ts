@@ -7,13 +7,20 @@ import { DataTransformerService } from '@core/02-processing/transformer/services
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
 import { StreamRecoveryWorkerService } from '@core/03-fetching/stream-data-fetcher/services/stream-recovery-worker.service';
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
-import { RateLimitService } from '@auth/services/infrastructure/rate-limit.service';
 import { StreamDataValidator } from '@core/01-entry/stream-receiver/validators/stream-data.validator';
 import { StreamBatchProcessorService } from '@core/01-entry/stream-receiver/services/stream-batch-processor.service';
 import { StreamConnectionManagerService } from '@core/01-entry/stream-receiver/services/stream-connection-manager.service';
 import { StreamDataProcessorService } from '@core/01-entry/stream-receiver/services/stream-data-processor.service';
 import { StreamSubscribeDto } from '@core/01-entry/stream-receiver/dto/stream-subscribe.dto';
 import { StreamUnsubscribeDto } from '@core/01-entry/stream-receiver/dto/stream-unsubscribe.dto';
+
+// Mock token for removed auth service
+const RATE_LIMIT_SERVICE = 'RateLimitService';
+
+type RateLimitService = {
+  checkRateLimit: jest.Mock;
+  recordRequest?: jest.Mock;
+};
 
 /**
  * StreamReceiverService Test Suite - Minimal Working Version
@@ -243,7 +250,7 @@ describe('StreamReceiverService', () => {
         { provide: StreamDataFetcherService, useValue: streamDataFetcherMock },
         { provide: StreamRecoveryWorkerService, useValue: recoveryWorkerMock },
         { provide: MarketInferenceService, useValue: marketInferenceMock },
-        { provide: RateLimitService, useValue: rateLimitMock },
+        { provide: RATE_LIMIT_SERVICE, useValue: rateLimitMock },
         { provide: StreamDataValidator, useValue: dataValidatorMock },
         { provide: StreamBatchProcessorService, useValue: batchProcessorMock },
         { provide: StreamConnectionManagerService, useValue: connectionManagerMock },

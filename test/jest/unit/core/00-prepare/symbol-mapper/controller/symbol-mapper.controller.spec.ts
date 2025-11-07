@@ -8,7 +8,7 @@ import { SymbolMappingQueryDto } from '../../../../../../../src/core/00-prepare/
 import { SymbolMappingResponseDto } from '../../../../../../../src/core/00-prepare/symbol-mapper/dto/symbol-mapping-response.dto';
 import { UpdateSymbolMappingDto, AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from '../../../../../../../src/core/00-prepare/symbol-mapper/dto/update-symbol-mapping.dto';
 import { PaginatedDataDto } from '@common/modules/pagination/dto/paginated-data';
-import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
+import { ApiKeyAuthGuard } from '@authv2';
 import { fail } from 'assert';
 
 describe('SymbolMapperController', () => {

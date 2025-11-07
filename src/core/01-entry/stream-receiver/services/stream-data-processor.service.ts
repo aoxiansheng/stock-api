@@ -441,13 +441,8 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
       this.callbacks?.recordStreamPipelineMetrics(metrics);
 
       // 发送监控事件
-      this.callbacks?.emitMonitoringEvent("data_pipeline_processed", metrics.quotesCount, {
-        provider: metrics.provider,
-        capability: metrics.capability,
-        symbolsCount: metrics.symbolsCount,
-        durations: metrics.durations,
-        timestamp: Date.now(),
-      });
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn("记录管道指标失败", { error: error.message });
     }

@@ -1,13 +1,7 @@
 /**
- * DataFetcher модуль константы
+ * DataFetcher 模块常量（极简统一版）
+ * 仅保留本模块实际使用到的字段，减少跨模块耦合
  */
-
-import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import {
-  HTTP_TIMEOUTS,
-  BATCH_SIZE_SEMANTICS,
-} from "@common/constants/semantic";
-import { RETRY_BUSINESS_SCENARIOS } from "@common/constants/semantic/retry-semantics.constants";
 
 /**
  * Операции компонента Data Fetcher
@@ -44,16 +38,9 @@ export const DATA_FETCHER_WARNING_MESSAGES = Object.freeze({
  * Пороговые значения производительности
  */
 export const DATA_FETCHER_PERFORMANCE_THRESHOLDS = Object.freeze({
-  /** Порог медленного ответа (мс) - использует единую конфигурацию */
-  SLOW_RESPONSE_MS: NUMERIC_CONSTANTS.N_1000,
-
-  /** Максимальное время обработки на один символ (мс) */
-  MAX_TIME_PER_SYMBOL_MS: NUMERIC_CONSTANTS.N_500,
-
-  /** Максимальное количество символов в пакете - использует единую конфигурацию */
-  MAX_SYMBOLS_PER_BATCH: BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE,
-
-  /** Ограничение количества символов для логирования */
+  /** 慢响应阈值（毫秒） */
+  SLOW_RESPONSE_MS: 1000,
+  /** 日志中符号数量限制 */
   LOG_SYMBOLS_LIMIT: 10,
 } as const);
 
@@ -61,15 +48,6 @@ export const DATA_FETCHER_PERFORMANCE_THRESHOLDS = Object.freeze({
  * Конфигурация по умолчанию
  */
 export const DATA_FETCHER_DEFAULT_CONFIG = Object.freeze({
-  /** Тип API по умолчанию */
+  /** 默认 API 类型（rest / stream） */
   DEFAULT_API_TYPE: "rest",
-
-  /** Тайм-аут по умолчанию (мс) - использует единую конфигурацию */
-  DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS,
-
-  /** Количество повторных попыток по умолчанию - использует единую конфигурацию */
-  DEFAULT_RETRY_COUNT: RETRY_BUSINESS_SCENARIOS.DATA_FETCHER.maxAttempts,
-
-  /** Размер пакета по умолчанию - использует единую конфигурацию */
-  DEFAULT_BATCH_SIZE: BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE,
 } as const);

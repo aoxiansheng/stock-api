@@ -3,6 +3,11 @@
  */
 
 /**
+ * 依赖注入 Token
+ */
+export const CACHE_REDIS_CLIENT_TOKEN = "CACHE_REDIS_CLIENT";
+
+/**
  * 缓存键前缀
  */
 export const CACHE_KEY_PREFIXES = {

@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
 import { SymbolMapperCacheStandardizedService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service";
 import { MappingDirection } from "../../../shared/constants/cache.constants";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 import {
   SymbolTransformResult,
   SymbolTransformForProviderResult,
@@ -23,7 +22,6 @@ import { SYMBOL_TRANSFORMER_ERROR_CODES } from "../constants/symbol-transformer-
  * 专门处理符号转换执行逻辑，从 SymbolMapperService 迁移
  * 职责：符号转换执行，不处理规则管理
  */
-import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
 
 @Injectable()
 export class SymbolTransformerService implements ISymbolTransformer {
@@ -31,8 +29,6 @@ export class SymbolTransformerService implements ISymbolTransformer {
 
   constructor(
     private readonly symbolMapperCacheService: SymbolMapperCacheStandardizedService, // 缓存服务（含回源逻辑）
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控（零耦合）
-    private readonly marketInferenceService: MarketInferenceService,
   ) {}
 
   /**
@@ -86,18 +82,7 @@ export class SymbolTransformerService implements ISymbolTransformer {
         },
       };
 
-      // ✅ 事件驱动监控：异步、解耦、高性能
-      this.emitMonitoringEvent("symbol_transformation_completed", {
-        provider,
-        direction,
-        duration: processingTimeMs,
-        totalSymbols: symbolArray.length,
-        successCount: response.metadata.successCount,
-        failedCount: response.metadata.failedCount,
-        successRate:
-          (response.metadata.successCount / symbolArray.length) * 100,
-        market: this.inferMarketFromSymbols(symbolArray),
-      });
+   
 
       this.logger.debug("符号转换完成", {
         requestId,
@@ -108,15 +93,7 @@ export class SymbolTransformerService implements ISymbolTransformer {
     } catch (error) {
       const processingTimeMs = Number(process.hrtime.bigint() - startTime) / 1e6;
 
-      // ✅ 事件驱动错误监控
-      this.emitMonitoringEvent("symbol_transformation_failed", {
-        provider,
-        direction,
-        duration: processingTimeMs,
-        totalSymbols: symbolArray.length,
-        error: error.message,
-        errorType: error.constructor.name,
-      });
+  
 
       this.logger.error("符号转换失败", {
         requestId,
@@ -379,67 +356,8 @@ export class SymbolTransformerService implements ISymbolTransformer {
     );
   }
 
-  /**
-   * 推断市场类型（使用预编译正则表达式）
-   */
-  private inferMarketFromSymbols(symbols: string[]): string {
-    if (!symbols || symbols.length === 0) {
-      return MARKET_TYPES.UNKNOWN;
-    }
+  // 市场推断方法已移除（不属于转换核心职责）
 
-    const labels = this.marketInferenceService.inferMarketLabels(symbols, {
-      collapseChina: true,
-    });
+  
 
-    if (labels.length === 0) {
-      return MARKET_TYPES.UNKNOWN;
-    }
-
-    const uniqueLabels = new Set(labels);
-
-    if (uniqueLabels.size === 1) {
-      const [label] = labels;
-      if (label === MARKET_TYPES.CN) {
-        return MARKET_TYPES.CN;
-      }
-      if (label === MARKET_TYPES.US) {
-        return MARKET_TYPES.US;
-      }
-      if (label === MARKET_TYPES.HK) {
-        return MARKET_TYPES.HK;
-      }
-      return MARKET_TYPES.UNKNOWN;
-    }
-
-    return MARKET_TYPES.MIXED;
-  }
-
-  /**
-   * ✅ 事件驱动监控 - 零耦合异步发送
-   */
-  private emitMonitoringEvent(metricName: string, data: any) {
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "symbol_transformer",
-        metricType: "business",
-        metricName,
-        metricValue: data.duration || data.symbolCount || 1,
-        tags: {
-          operation: "symbol-transformation",
-          provider: data.provider,
-          direction: data.direction,
-          totalSymbols: data.totalSymbols,
-          successCount: data.successCount,
-          failedCount: data.failedCount,
-          successRate: data.successRate,
-          market: data.market,
-          status: metricName.includes("failed") ? "error" : "success",
-          // 添加更多业务上下文标签
-          ...(data.error && { error_message: data.error }),
-          ...(data.errorType && { error_type: data.errorType }),
-        },
-      });
-    });
-  }
 }

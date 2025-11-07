@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotFoundException } from '@nestjs/common';
 import { BaseFetcherService } from '@core/shared/services/base-fetcher.service';
 import { UnitTestSetup } from '../../../../../testbasic/setup/unit-test-setup';
-import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
+// // import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
 
 class TestBaseFetcherService extends BaseFetcherService {
   async executeCore(params: any): Promise<any> {
@@ -96,7 +96,7 @@ describe('BaseFetcherService', () => {
       expect(result).toBe('success');
       expect(mockOperation).toHaveBeenCalledTimes(1);
       expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricType: 'external_api',
           metricName: 'external_call_test-operation',
@@ -127,7 +127,7 @@ describe('BaseFetcherService', () => {
 
       expect(mockOperation).toHaveBeenCalledTimes(2);
       expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricType: 'external_api',
           metricName: 'external_call_test-operation',
@@ -158,7 +158,7 @@ describe('BaseFetcherService', () => {
 
       expect(loggerWarnSpy).not.toHaveBeenCalled();
       expect(eventBus.emit).not.toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricType: 'performance',
         })
@@ -183,7 +183,7 @@ describe('BaseFetcherService', () => {
       );
 
       expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricType: 'performance',
           metricName: 'test-op_slow_response',
@@ -206,7 +206,7 @@ describe('BaseFetcherService', () => {
       service.publicCheckPerformanceThreshold(6000, 20, 'req-123', 'test-op', 5000);
 
       expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           tags: expect.objectContaining({
             time_per_symbol: 300,
@@ -223,7 +223,7 @@ describe('BaseFetcherService', () => {
       service.publicCheckPerformanceThreshold(6000, 0, 'req-123', 'test-op', 5000);
 
       expect(eventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           tags: expect.objectContaining({
             time_per_symbol: 0,

@@ -8,12 +8,10 @@ import {
 import { ValidationError } from "class-validator";
 import type { Request, Response } from "express";
 import { MongoError } from "mongodb";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
-import { isCacheException } from "../../../cache/exceptions";
-import { isSecurityException } from "../../../auth/exceptions/security.exceptions";
-import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+// 移除旧Auth安全异常依赖，保持过滤器纯通用
+
 import { CONSTANTS } from "@common/constants";
 import { BusinessException } from "../exceptions/business.exception";
 
@@ -74,7 +72,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     /proc\/self/gi,
   ];
 
-  constructor(private readonly eventBus: EventEmitter2) {}
+  constructor() {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -196,33 +194,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         code: mongoError.code,
         message: mongoError.message,
         stack: mongoError.stack,
-      });
-    } else if (isCacheException(exception)) {
-      // 🔧 简化: Cache异常处理 - 使用标准HttpException处理逻辑
-      const cacheError = exception as HttpException;
-      status = cacheError.getStatus();
-      message = cacheError.message;
-      errorType = "CacheError";
-
-      // 记录Cache异常详情
-      this.logger.warn("缓存异常", {
-        type: exception.constructor.name,
-        message: cacheError.message,
-        status,
-      });
-    } else if (isSecurityException(exception)) {
-      // 🔧 新增: 安全异常处理 - Auth模块增强异常
-      const securityError = exception as HttpException;
-      status = securityError.getStatus();
-      message = securityError.message;
-      errorType = "SecurityError";
-
-      // 记录安全异常详情（使用warn级别，安全异常通常不是系统错误）
-      this.logger.warn("安全异常", {
-        type: exception.constructor.name,
-        message: securityError.message,
-        status,
-        securityType: (exception as any).securityType,
       });
     } else if (this.isJWTError(exception)) {
       // JWT异常
@@ -354,22 +325,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       },
     };
 
-    // ✅ 发送异常监控事件
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "global_exception_filter",
-        metricType: "error",
-        metricName: "http_exception",
-        metricValue: 1,
-        tags: {
-          error_type: errorType,
-          status_code: status,
-          method: request?.method,
-          url: request?.url ? this.sanitizePath(request.url) : "unknown",
-        },
-      });
-    });
+
 
     try {
       response.status(status).json(errorResponse);
@@ -397,42 +353,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return businessError.errorCode;
     }
 
-    // 🔧 简化: Cache异常相关错误码
-    if (isCacheException(exception)) {
-      switch ((exception as any).constructor.name) {
-        case "CacheConnectionException":
-          return "CACHE_CONNECTION_ERROR";
-        case "CacheSerializationException":
-          return "CACHE_SERIALIZATION_ERROR";
-        default:
-          return "CACHE_ERROR";
-      }
-    }
-
-    // 🔧 新增: 安全异常相关错误码
-    if (isSecurityException(exception)) {
-      // 安全异常有自己的getErrorCode方法，直接使用
-      const securityException = exception as any;
-      if (typeof securityException.getErrorCode === "function") {
-        return securityException.getErrorCode();
-      }
-
-      // 备用：根据构造器名称返回错误码
-      switch (securityException.constructor.name) {
-        case "EnhancedPayloadTooLargeException":
-          return "PAYLOAD_TOO_LARGE";
-        case "EnhancedUnsupportedMediaTypeException":
-          return "UNSUPPORTED_MEDIA_TYPE";
-        case "InputSecurityViolationException":
-          return "INPUT_SECURITY_VIOLATION";
-        case "SecurityMiddlewareException":
-          return "SECURITY_MIDDLEWARE_ERROR";
-        case "EnhancedRateLimitException":
-          return "RATE_LIMIT_EXCEEDED";
-        default:
-          return "SECURITY_ERROR";
-      }
-    }
+    // 精简：不处理特定安全异常类型，统一走标准分支
 
     // JWT相关错误
     if (this.isJWTError(exception)) {

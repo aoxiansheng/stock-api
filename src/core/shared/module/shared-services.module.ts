@@ -5,8 +5,7 @@
 
 import { Module, Global } from "@nestjs/common";
 
-import { CacheModule } from "../../../cache/module/cache.module";
-import { MonitoringModule } from "../../../monitoring/monitoring.module";
+import { CacheModule } from "@cachev2/cache.module";
 
 import { DataChangeDetectorService } from "../services/data-change-detector.service";
 import { MarketStatusService } from "../services/market-status.service";
@@ -30,7 +29,10 @@ import { MarketInferenceModule } from '@common/modules/market-inference/market-i
 
 @Global()
 @Module({
-  imports: [CacheModule, MonitoringModule, MarketInferenceModule],
+  imports: [
+    CacheModule,
+    MarketInferenceModule, // 必须先导入才能导出
+  ],
   providers: [
     DataChangeDetectorService,
     MarketStatusService,

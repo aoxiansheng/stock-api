@@ -615,83 +615,44 @@ describe('SymbolMappingRepository', () => {
     const dataSourceName = 'longport';
     const standardSymbols = ['700.HK', 'AAPL.US'];
 
-    it('should find mappings for specific symbols', async () => {
-      const mockResult = {
-        SymbolMappingRule: [
-          {
-            standardSymbol: '700.HK',
-            sdkSymbol: '00700',
-            market: 'HK',
-            symbolType: 'stock',
-            isActive: true,
-          },
-        ],
-      };
-
-      const mockExecChain = {
-        exec: jest.fn().mockResolvedValue(mockResult),
-      };
-      mockModel.findOne.mockReturnValue(mockExecChain as any);
-
-      const result = await repository.findMappingsForSymbols(
-        dataSourceName,
-        standardSymbols
-      );
-
-      expect(mockModel.findOne).toHaveBeenCalledWith(
+    it('should use aggregation pipeline to find mappings for specified symbols', async () => {
+      const mockResults = [
         {
-          dataSourceName,
+          standardSymbol: '700.HK',
+          sdkSymbol: '00700',
+          market: 'HK',
+          symbolType: 'stock',
           isActive: true,
-          'SymbolMappingRule.standardSymbol': { $in: standardSymbols },
-          'SymbolMappingRule.isActive': { $ne: false },
         },
-        { 'SymbolMappingRule.$': 1 }
-      );
-      expect(result).toEqual(mockResult.SymbolMappingRule);
-    });
+      ];
 
-    it('should return empty array when no mappings found', async () => {
       const mockExecChain = {
-        exec: jest.fn().mockResolvedValue(null),
+        exec: jest.fn().mockResolvedValue(mockResults),
       };
-      mockModel.findOne.mockReturnValue(mockExecChain as any);
+      mockModel.aggregate.mockReturnValue(mockExecChain as any);
 
       const result = await repository.findMappingsForSymbols(
         dataSourceName,
         standardSymbols
       );
 
-      expect(result).toEqual([]);
-    });
-
-    it('should filter out inactive rules from results', async () => {
-      const mockResult = {
-        SymbolMappingRule: [
-          {
-            standardSymbol: '700.HK',
-            sdkSymbol: '00700',
+      expect(mockModel.aggregate).toHaveBeenCalledWith([
+        {
+          $match: {
+            dataSourceName,
             isActive: true,
           },
-          {
-            standardSymbol: 'AAPL.US',
-            sdkSymbol: 'AAPL',
-            isActive: false,
+        },
+        { $unwind: '$SymbolMappingRule' },
+        {
+          $match: {
+            'SymbolMappingRule.standardSymbol': { $in: standardSymbols },
+            'SymbolMappingRule.isActive': { $ne: false },
           },
-        ],
-      };
-
-      const mockExecChain = {
-        exec: jest.fn().mockResolvedValue(mockResult),
-      };
-      mockModel.findOne.mockReturnValue(mockExecChain as any);
-
-      const result = await repository.findMappingsForSymbols(
-        dataSourceName,
-        ['700.HK', 'AAPL.US']
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].standardSymbol).toBe('700.HK');
+        },
+        { $replaceRoot: { newRoot: '$SymbolMappingRule' } },
+      ]);
+      expect(result).toEqual(mockResults);
     });
   });
 
@@ -961,28 +922,7 @@ describe('SymbolMappingRepository', () => {
     });
   });
 
-  describe('watchChanges', () => {
-    it('should setup change stream with correct filters', () => {
-      const mockChangeStream = { on: jest.fn() };
-      mockModel.watch.mockReturnValue(mockChangeStream as any);
-
-      const result = repository.watchChanges();
-
-      expect(mockModel.watch).toHaveBeenCalledWith(
-        [
-          {
-            $match: {
-              operationType: { $in: ['insert', 'update', 'delete'] },
-            },
-          },
-        ],
-        {
-          fullDocument: 'updateLookup',
-        }
-      );
-      expect(result).toBe(mockChangeStream);
-    });
-  });
+  // 已移除 watchChanges 测试：仓库不再暴露变更流接口
 
   describe('getDataSourceVersions', () => {
     it('should return Map of data source versions', async () => {

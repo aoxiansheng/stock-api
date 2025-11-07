@@ -47,6 +47,26 @@ export interface StreamDataFetcherConfig {
     logSymbolsLimit: number;
     /** 批量并发限制 */
     batchConcurrency: number;
+    /** 自适应并发控制 */
+    concurrency: {
+      initial: number;
+      min: number;
+      max: number;
+      adjustmentFactor: number;
+      stabilizationPeriodMs: number;
+    };
+    /** 阈值配置 */
+    thresholds: {
+      responseTimeMs: { excellent: number; good: number; poor: number };
+      successRate: { excellent: number; good: number; poor: number };
+    };
+    /** 断路器配置 */
+    circuitBreaker: {
+      recoveryDelayMs: number;
+      failureThreshold: number; // 0-1 之间
+    };
+    /** 自适应并发监控调整周期 */
+    concurrencyAdjustmentIntervalMs: number;
   };
 
   // 轮询配置
@@ -209,11 +229,15 @@ export class StreamConfigService {
       },
 
       performance: {
-        slowResponseMs: StreamConfigDefaults.getEnvValue("STREAM_SLOW_RESPONSE_MS", 2000),
-        maxTimePerSymbolMs: StreamConfigDefaults.getEnvValue("STREAM_MAX_TIME_PER_SYMBOL_MS", 500),
-        maxSymbolsPerBatch: fullDefaults.fetching.batchSize,
-        logSymbolsLimit: StreamConfigDefaults.getEnvValue("STREAM_LOG_SYMBOLS_LIMIT", 10),
-        batchConcurrency: StreamConfigDefaults.getEnvValue("STREAM_BATCH_CONCURRENCY", 10),
+        slowResponseMs: StreamConfigDefaults.getEnvValue("STREAM_SLOW_RESPONSE_MS", fullDefaults.performance.slowResponseMs),
+        maxTimePerSymbolMs: StreamConfigDefaults.getEnvValue("STREAM_MAX_TIME_PER_SYMBOL_MS", fullDefaults.performance.maxTimePerSymbolMs),
+        maxSymbolsPerBatch: fullDefaults.performance.maxSymbolsPerBatch,
+        logSymbolsLimit: StreamConfigDefaults.getEnvValue("STREAM_LOG_SYMBOLS_LIMIT", fullDefaults.performance.logSymbolsLimit),
+        batchConcurrency: StreamConfigDefaults.getEnvValue("STREAM_BATCH_CONCURRENCY", fullDefaults.performance.batchConcurrency),
+        concurrency: fullDefaults.performance.concurrency,
+        thresholds: fullDefaults.performance.thresholds,
+        circuitBreaker: fullDefaults.performance.circuitBreaker,
+        concurrencyAdjustmentIntervalMs: fullDefaults.performance.concurrencyAdjustmentIntervalMs,
       },
 
       polling: {

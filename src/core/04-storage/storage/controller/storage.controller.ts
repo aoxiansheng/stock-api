@@ -9,13 +9,7 @@ import {
   Query,
   ValidationPipe,
 } from "@nestjs/common";
-import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-  ApiConsumes,
-  ApiQuery,
-} from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiParam, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/logging/index";
 import {
@@ -24,9 +18,7 @@ import {
   ApiKeyAuthResponses,
 } from "@common/core/decorators/swagger-responses.decorator";
 
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { AdminOnly } from "@authv2/decorators";
 
 import { StoreDataDto, RetrieveDataDto } from "../dto/storage-request.dto";
 import { StorageType } from "../enums/storage-type.enum";
@@ -43,52 +35,27 @@ export class StorageController {
 
   constructor(private readonly storageService: StorageService) {}
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_ADMIN)
+  @AdminOnly()
   @Post("store")
   @ApiOperation({
-    summary: "💾 存储数据到缓存和持久化存储",
+    summary: "💾 存储数据（仅持久化）",
     description: `
-### 功能说明
-高性能数据存储服务，支持双层存储策略（Redis缓存 + MongoDB持久化）。
-
-### 权限要求
-需要 SYSTEM_ADMIN 权限（系统管理员）
-
-### 核心特性
-- **⚡ 双层存储**: Redis缓存 + MongoDB持久化
-- **🗃️ 智能压缩**: 自动数据压缩优化
-- **⏰ TTL管理**: 灵活的缓存过期时间控制
-- **📈 性能监控**: 详细的存储性能指标
-
-### 存储类型
-- CACHE: 仅存储到Redis缓存
-- PERSISTENT: 仅存储到MongoDB
-- BOTH: 同时存储到缓存和数据库
+仅支持 MongoDB 持久化存储，提供可选压缩与过期时间（TTL）。\n\n权限：SYSTEM_ADMIN\n\n特性：\n- 仅持久化：聚焦核心，移除缓存/监控相关逻辑\n- 可选压缩：大对象按阈值自动压缩\n- 可选TTL：设置文档过期时间（MongoDB TTL 索引）
     `,
   })
   @ApiSuccessResponse({
     type: StorageResponseDto,
-    description: "数据存储成功",
+    description: "数据存储成功（持久化）",
     schema: {
       example: {
         statusCode: 200,
         message: "数据存储成功",
         data: {
-          success: true,
-          data: null,
           metadata: {
             dataSize: 1024,
             compressed: true,
             processingTimeMs: 45,
-            storageType: "both",
-            cacheWritten: true,
-            persistentWritten: true,
-          },
-          cacheInfo: {
-            hit: false,
-            source: "write",
-            ttlSet: 3600,
+            storageType: "persistent"
           },
         },
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
@@ -132,39 +99,22 @@ export class StorageController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_ADMIN)
+  @AdminOnly()
   @Post("retrieve")
   @ApiOperation({
-    summary: "📥 从存储中检索数据",
+    summary: "📥 检索数据（仅持久化）",
     description: `
-### 功能说明
-智能数据检索服务，支持缓存优先策略和自动降级回退。
-
-### 权限要求
-需要 SYSTEM_ADMIN 权限（系统管理员）
-
-### 检索策略
-- **⚡ 缓存优先**: 优先从 Redis 缓存检索
-- **🔄 自动降级**: 缓存未命中时自动从 MongoDB 检索
-- **🔄 缓存回写**: 可选将数据库数据回写到缓存
-- **📈 命中统计**: 提供详细的缓存命中信息
-
-### 检索类型
-- CACHE: 仅从缓存检索
-- PERSISTENT: 仅从数据库检索  
-- BOTH: 缓存优先，支持降级回退
+仅支持从 MongoDB 检索数据。可选返回压缩元信息。\n\n权限：SYSTEM_ADMIN
     `,
   })
   @ApiSuccessResponse({
     type: StorageResponseDto,
-    description: "数据检索成功",
+    description: "数据检索成功（持久化）",
     schema: {
       example: {
         statusCode: 200,
         message: "数据检索成功",
         data: {
-          success: true,
           data: {
             symbol: "AAPL",
             lastPrice: 195.89,
@@ -177,15 +127,9 @@ export class StorageController {
             dataSize: 512,
             compressed: false,
             processingTimeMs: 12,
-            source: "cache",
             storedAt: "2024-01-01T15:29:45.000Z",
           },
-          cacheInfo: {
-            hit: true,
-            source: "redis",
-            ttlRemaining: 3540,
-            key: "stock:AAPL:quote",
-          },
+          cacheInfo: { hit: true, source: "persistent" },
         },
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
@@ -224,26 +168,12 @@ export class StorageController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_ADMIN)
+  @AdminOnly()
   @Get("retrieve/:key")
   @ApiOperation({
-    summary: "📤 按键名检索数据 (GET方式)",
+    summary: "📤 按键检索（仅持久化）",
     description: `
-### 功能说明
-便捷的GET端点，通过键名检索数据，支持默认配置选项。
-
-### 权限要求
-需要 SYSTEM_ADMIN 权限（系统管理员）
-
-### 核心特性
-- **🔑 简单检索**: 通过URL路径直接指定键名
-- **⚙️ 默认配置**: 自动使用最佳检索策略
-- **🔄 缓存优先**: 优先从缓存检索，自动降级到数据库
-- **📊 查询参数**: 支持可选的存储类型和缓存更新参数
-
-### 查询参数
-- \`preferredType\`: 首选存储类型 (CACHE/PERSISTENT/BOTH)
+便捷 GET 端点，按键名检索，内部固定使用持久化存储。\n\n权限：SYSTEM_ADMIN
     `,
   })
   @ApiParam({
@@ -251,7 +181,7 @@ export class StorageController {
     description: "存储键名",
     example: "stock:AAPL:quote",
   })
-  @ApiQuery({ name: "preferredType", enum: StorageType, required: false })
+  
   @ApiSuccessResponse({
     type: StorageResponseDto,
     description: "按键名检索成功",
@@ -260,7 +190,6 @@ export class StorageController {
         statusCode: 200,
         message: "数据检索成功",
         data: {
-          success: true,
           data: {
             symbol: "GOOGL",
             lastPrice: 2750.8,
@@ -273,15 +202,9 @@ export class StorageController {
             dataSize: 486,
             compressed: false,
             processingTimeMs: 8,
-            source: "cache",
             storedAt: "2024-01-01T15:28:30.000Z",
           },
-          cacheInfo: {
-            hit: true,
-            source: "redis",
-            ttlRemaining: 2890,
-            key: "stock:GOOGL:quote",
-          },
+          cacheInfo: { hit: true, source: "persistent" },
         },
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
@@ -307,34 +230,12 @@ export class StorageController {
     return this.retrieveData(request);
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_ADMIN)
+  @AdminOnly()
   @Delete(":key")
   @ApiOperation({
-    summary: "🗑️ 从存储中删除数据",
+    summary: "🗑️ 删除数据（仅持久化）",
     description: `
-### 功能说明
-从缓存和/或持久化存储中删除指定的数据。
-
-### 权限要求
-需要 SYSTEM_ADMIN 权限（系统管理员）
-
-### 核心特性
-- **🎯 精确删除**: 根据键名精确删除数据
-- **🔄 双层清理**: 可同时删除缓存和数据库中的数据
-- **⚙️ 灵活配置**: 支持指定删除范围（仅缓存/仅数据库/全部）
-- **📊 删除反馈**: 返回实际删除的记录数量
-
-### 查询参数
-- \`storageType\`: 删除范围
-  - \`CACHE\`: 仅删除Redis缓存
-  - \`PERSISTENT\`: 仅删除MongoDB数据
-  - \`BOTH\`: 删除缓存和数据库（默认）
-
-### ⚠️ 注意事项
-- 删除操作不可逆，请谨慎使用
-- 建议先使用检索接口确认数据内容
-- 删除缓存数据可能影响系统性能
+从 MongoDB 删除指定 key 的数据。\n\n权限：SYSTEM_ADMIN\n\n注意：删除操作不可逆，请谨慎使用。
     `,
   })
   @ApiParam({
@@ -342,7 +243,7 @@ export class StorageController {
     description: "要删除的存储键名",
     example: "stock:AAPL:quote",
   })
-  @ApiQuery({ name: "storageType", enum: StorageType, required: false })
+  
   @ApiSuccessResponse({
     description: "数据删除成功",
     schema: {
@@ -350,13 +251,8 @@ export class StorageController {
         statusCode: 200,
         message: "数据删除成功",
         data: {
-          success: true,
           deleted: 2,
           key: "stock:AAPL:quote",
-          details: {
-            cacheDeleted: 1,
-            persistentDeleted: 1,
-          },
         },
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
       },
@@ -403,54 +299,27 @@ export class StorageController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_MONITOR)
+  @AdminOnly()
   @Get("stats")
   @ApiOperation({
-    summary: "📈 获取存储统计信息",
+    summary: "📈 获取存储统计（仅持久化）",
     description: `
-### 功能说明
-获取缓存和持久化存储的综合使用统计和性能指标。
-
-### 权限要求
-需要 SYSTEM_MONITOR 权限（系统监控）
-
-### 统计内容
-- **📊 缓存指标**: 命中率、内存使用、键数量等
-- **💾 数据库指标**: 文档数量、存储大小、索引使用
-- **⚡ 性能指标**: 平均响应时间、在处理的请求数
-- **🔄 操作统计**: 读取、写入、删除操作次数
-- **⚠️ 错误统计**: 错误率和失败原因分析
+返回持久化存储的统计信息（文档数、总大小、分类/提供商分布）。\n\n权限：SYSTEM_MONITOR
     `,
   })
   @ApiSuccessResponse({
     type: StorageStatsDto,
-    description: "存储统计信息获取成功",
+    description: "存储统计信息获取成功（持久化）",
     schema: {
       example: {
         statusCode: 200,
         message: "存储统计信息获取成功",
         data: {
-          cache: {
-            totalKeys: 15420,
-            memoryUsed: "256MB",
-            hitRate: 0.87,
-            avgResponseTime: 2.3,
-            connectionsActive: 45,
-          },
           persistent: {
             totalDocuments: 8934,
-            storageSize: "1.2GB",
-            indexSize: "128MB",
-            avgQueryTime: 15.6,
-            connectionsActive: 12,
-          },
-          performance: {
-            totalOperations: 245680,
-            avgStorageTime: 8.9,
-            avgRetrievalTime: 3.2,
-            errorRate: 0.02,
-            throughput: 156.7,
+            totalSizeBytes: 1200000000,
+            categoriesCounts: { stock_quote: 5000, stock_info: 3000 },
+            providerCounts: { longport: 7000, yahoo: 1934 }
           },
         },
         timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
@@ -466,10 +335,7 @@ export class StorageController {
       const stats = await this.storageService.getStorageStats();
 
       this.logger.log(`API Success: Storage statistics generated`, {
-        cacheKeys: stats.cache.totalKeys,
         persistentDocs: stats.persistent.totalDocuments,
-        cacheHitRate: stats.cache.hitRate,
-        errorRate: stats.performance.errorRate,
       });
 
       // 遵循控制器编写规范：让拦截器自动处理响应格式化

@@ -10,20 +10,15 @@ import {
 import { ApiType, RuleListType } from '@core/00-prepare/data-mapper/constants/data-mapper.constants';
 import { REFERENCE_DATA } from '@common/constants/domain';
 import { Reflector } from '@nestjs/core';
-import { ApiKeyAuthGuard } from '../../../../../../../src/auth/guards/apikey-auth.guard';
-import { UnifiedPermissionsGuard } from '../../../../../../../src/auth/guards/unified-permissions.guard';
-import { AuthPerformanceService } from '../../../../../../../src/auth/services/infrastructure/auth-performance.service';
+import { ApiKeyAuthGuard, PermissionsGuard, AuthService as AuthService } from '@authv2';
 
-// 模拟ApiKeyAuthGuard
-jest.mock('../../../../../../../src/auth/guards/apikey-auth.guard', () => ({
+// 模拟 authv2 guards
+jest.mock('@authv2', () => ({
+  ...jest.requireActual('@authv2'),
   ApiKeyAuthGuard: jest.fn().mockImplementation(() => ({
     canActivate: jest.fn().mockReturnValue(true),
   })),
-}));
-
-// 模拟UnifiedPermissionsGuard
-jest.mock('../../../../../../../src/auth/guards/unified-permissions.guard', () => ({
-  UnifiedPermissionsGuard: jest.fn().mockImplementation(() => ({
+  PermissionsGuard: jest.fn().mockImplementation(() => ({
     canActivate: jest.fn().mockReturnValue(true),
   })),
 }));
@@ -41,12 +36,12 @@ describe('UserJsonPersistenceController', () => {
     createTemplate: jest.fn(),
   };
 
-  // 添加 Reflector 和 AuthPerformanceService 的模拟实现
+  // 添加 Reflector 和 AuthService 的模拟实现
   const mockReflector = {
     getAllAndOverride: jest.fn().mockReturnValue(false),
   };
 
-  const mockAuthPerformanceService = {
+  const mockAuthService = {
     recordAuthFlowPerformance: jest.fn(),
   };
 
@@ -67,15 +62,15 @@ describe('UserJsonPersistenceController', () => {
           useValue: mockReflector,
         },
         {
-          provide: AuthPerformanceService,
-          useValue: mockAuthPerformanceService,
+          provide: AuthService,
+          useValue: mockAuthService,
         },
         {
           provide: ApiKeyAuthGuard,
           useValue: { canActivate: jest.fn().mockReturnValue(true) },
         },
         {
-          provide: UnifiedPermissionsGuard,
+          provide: PermissionsGuard,
           useValue: { canActivate: jest.fn().mockReturnValue(true) },
         },
       ],

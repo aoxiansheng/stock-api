@@ -139,7 +139,6 @@ export class SymbolMappingRepository {
       })
       .select("_id") // 仅选择_id字段，减少数据传输
       .lean() // 使用lean()提高性能
-      .hint({ dataSourceName: 1, isActive: 1 }) // 指定复合索引
       .exec();
 
     return !!doc;
@@ -171,26 +170,8 @@ export class SymbolMappingRepository {
     dataSourceName: string,
     standardSymbols: string[],
   ): Promise<SymbolMappingRule[]> {
-    const result = await this.symbolMappingRuleModel
-      .findOne(
-        {
-          dataSourceName,
-          isActive: true,
-          "SymbolMappingRule.standardSymbol": { $in: standardSymbols },
-          "SymbolMappingRule.isActive": { $ne: false },
-        },
-        { "SymbolMappingRule.$": 1 },
-      )
-      .exec();
-
-    if (!result) return [];
-
-    // 过滤匹配的映射规则
-    return result.SymbolMappingRule.filter(
-      (rule) =>
-        standardSymbols.includes(rule.standardSymbol) &&
-        rule.isActive !== false,
-    );
+    // 统一使用聚合查询，返回所有匹配规则，避免 $ 投影只返回第一条
+    return this.findAllMappingsForSymbols(dataSourceName, standardSymbols);
   }
 
   // 批量查询优化版本
@@ -301,23 +282,7 @@ export class SymbolMappingRepository {
     return this.symbolMappingRuleModel.find({ isActive: true }).exec();
   }
 
-  /**
-   * 🎯 监听数据变化 (Change Stream)
-   */
-  watchChanges(): any {
-    return this.symbolMappingRuleModel.watch(
-      [
-        {
-          $match: {
-            operationType: { $in: ["insert", "update", "delete"] },
-          },
-        },
-      ],
-      {
-        fullDocument: "updateLookup",
-      },
-    );
-  }
+  // 去监控化：移除 Change Stream 监听，保持仓储单一职责
 
   /**
    * 🎯 获取所有数据源的最新更新时间

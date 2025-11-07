@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { FlexibleMappingRuleService } from '../../../../../../../src/core/00-prepare/data-mapper/services/flexible-mapping-rule.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { ConfigService } from '@nestjs/config';
 // 导入模块，供后面模拟使用
 import { MappingRuleCrudModule } from '../../../../../../../src/core/00-prepare/data-mapper/services/modules/mapping-rule-crud.module';
-import { MappingRuleStatsModule } from '../../../../../../../src/core/00-prepare/data-mapper/services/modules/mapping-rule-stats.module';
 import { MappingRuleEngineModule } from '../../../../../../../src/core/00-prepare/data-mapper/services/modules/mapping-rule-engine.module';
 // Mock PaginationService
 const mockPaginationService = {
@@ -15,7 +13,6 @@ const mockPaginationService = {
 };
 import { DataSourceTemplateService } from '../../../../../../../src/core/00-prepare/data-mapper/services/data-source-template.service';
 import { DataMapperCacheStandardizedService } from '../../../../../../../src/core/05-caching/module/data-mapper-cache/services/data-mapper-cache-standardized.service';
-import { CacheService } from '@cache/services/cache.service';
 import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
@@ -33,8 +30,7 @@ describe('FlexibleMappingRuleService', () => {
   let mockPaginationServiceInstance: any;
   let mockTemplateService: jest.Mocked<DataSourceTemplateService>;
   let mockCacheService: jest.Mocked<DataMapperCacheStandardizedService>;
-  let mockEventBus: jest.Mocked<EventEmitter2>;
-  let mockGlobalCacheService: jest.Mocked<CacheService>;
+  
 
   const mockRuleDocument = {
     _id: '507f1f77bcf86cd799439011',
@@ -156,17 +152,7 @@ describe('FlexibleMappingRuleService', () => {
       incr: jest.fn().mockResolvedValue(1), // 添加缺失的incr方法
     } as any;
 
-    mockEventBus = {
-      emit: jest.fn().mockReturnValue(true),
-    } as any;
-
-    mockGlobalCacheService = {
-      get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue(true),
-      incr: jest.fn().mockResolvedValue(1), 
-      safeGet: jest.fn().mockResolvedValue(null), // 添加safeGet方法
-      expire: jest.fn().mockResolvedValue(true), // 添加expire方法
-    } as any;
+    
 
     // 添加ConfigService mock
     const mockConfigService = {
@@ -234,14 +220,7 @@ describe('FlexibleMappingRuleService', () => {
           provide: DataMapperCacheStandardizedService,
           useValue: mockCacheService,
         },
-        {
-          provide: EventEmitter2,
-          useValue: mockEventBus,
-        },
-        {
-          provide: CacheService,
-          useValue: mockGlobalCacheService,
-        },
+        
       ],
     }).compile();
 
@@ -669,24 +648,7 @@ describe('FlexibleMappingRuleService', () => {
     });
   });
 
-  describe('validateCacheJsonSecurity', () => {
-    it('should validate cache JSON security', async () => {
-      const mockValidationResult = {
-        jsonBombProtection: true,
-        dataIntegrity: true,
-        performanceWithinLimits: true,
-        errors: [],
-      };
-
-      const result = await service.validateCacheJsonSecurity();
-
-      expect(result).toBeDefined();
-      expect(typeof result.jsonBombProtection).toBe('boolean');
-      expect(typeof result.dataIntegrity).toBe('boolean');
-      expect(typeof result.performanceWithinLimits).toBe('boolean');
-      expect(Array.isArray(result.errors)).toBe(true);
-    });
-  });
+  
 
   describe('onModuleDestroy', () => {
     it('should handle module destruction gracefully', () => {

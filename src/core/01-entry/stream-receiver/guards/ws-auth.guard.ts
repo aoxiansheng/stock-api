@@ -1,15 +1,16 @@
 import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
-import { ApiKeyManagementService } from "../../../../auth/services/domain/apikey-management.service";
-import { RateLimitService } from "../../../../auth/services/infrastructure/rate-limit.service";
+import { InjectModel } from "@nestjs/mongoose";
+import type { Model } from "mongoose";
+import type { ApiKeyDocument } from "@authv2/schema";
 import { Socket } from "socket.io";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { Permission } from "@authv2/enums";
 import {
   STREAM_PERMISSIONS,
   hasStreamPermissions,
 } from "../constants/stream-permissions.constants";
 import { CONSTANTS } from "@common/constants";
-import { RateLimitStrategy } from "../../../../auth/constants";
+import { ADMIN_PROFILE, READ_PROFILE } from "@authv2/constants";
 
 // Extract rate limit strategy for backward compatibility
 // const { RateLimitStrategy } = CONSTANTS.DOMAIN.RATE_LIMIT.ENUMS;
@@ -24,8 +25,7 @@ export class WsAuthGuard implements CanActivate {
   private readonly logger = createLogger(WsAuthGuard.name);
 
   constructor(
-    private readonly apiKeyService: ApiKeyManagementService,
-    private readonly rateLimitService: RateLimitService,
+    @InjectModel('ApiKey') private readonly apiKeyModel: Model<ApiKeyDocument>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -89,11 +89,10 @@ export class WsAuthGuard implements CanActivate {
     client: Socket,
   ): Promise<boolean> {
     try {
-      // 复用现有的ApiKeyService验证逻辑
-      const apiKeyDoc = await this.apiKeyService.validateApiKey(
-        apiKey,
-        accessToken,
-      );
+      // v2 极简验证：直接查询 ApiKey 并校验状态/过期
+      const apiKeyDoc = await this.apiKeyModel
+        .findOne({ appKey: apiKey, accessToken, deletedAt: { $exists: false } })
+        .exec();
 
       if (!apiKeyDoc) {
         this.logger.warn({
@@ -108,9 +107,20 @@ export class WsAuthGuard implements CanActivate {
         return false;
       }
 
+      // 过期校验
+      if (apiKeyDoc.expiresAt && apiKeyDoc.expiresAt.getTime() < Date.now()) {
+        this.logger.warn({ message: "API Key 已过期", clientId: client.id });
+        return false;
+      }
+
+      // 由 profile 推导权限画像
+      const permissions = (apiKeyDoc as any).permissions
+        ? (apiKeyDoc as any).permissions
+        : (apiKeyDoc.profile === 'ADMIN' ? ADMIN_PROFILE : READ_PROFILE);
+
       // 检查WebSocket流权限（使用新的Permission枚举）
       const hasStreamPermission = this.checkStreamPermissions(
-        apiKeyDoc.permissions,
+        permissions as unknown as string[],
       );
 
       if (!hasStreamPermission) {
@@ -130,23 +140,19 @@ export class WsAuthGuard implements CanActivate {
         return false;
       }
 
-      // 执行限速检查（复用现有的RateLimitService）
-      const rateLimitPassed = await this.checkRateLimit(apiKeyDoc, client);
-      if (!rateLimitPassed) {
-        return false;
-      }
+      // 极简架构：移除限速检查（如需可在网关层按需加入 Throttler）
 
       // 将API Key信息附加到客户端（格式与HTTP认证一致）
       client.data.apiKey = {
         id: apiKeyDoc._id,
-        name: apiKeyDoc.name,
-        permissions: apiKeyDoc.permissions,
+        name: (apiKeyDoc as any).appKey,
+        permissions: Array.from(permissions as any),
         authType: "apikey",
       };
 
       this.logger.log({
         message: "WebSocket API Key 认证成功",
-        apiKeyName: apiKeyDoc.name,
+        apiKeyName: (apiKeyDoc as any).appKey,
         clientId: client.id,
       });
 
@@ -169,61 +175,5 @@ export class WsAuthGuard implements CanActivate {
     return hasStreamPermissions(permissions as Permission[]);
   }
 
-  /**
-   * 执行限速检查（复用现有的RateLimitService）
-   */
-  private async checkRateLimit(
-    apiKeyDoc: any,
-    client: Socket,
-  ): Promise<boolean> {
-    try {
-      // 如果API Key没有配置限速，跳过检查
-      if (!apiKeyDoc.rateLimit) {
-        return true;
-      }
-
-      // 使用默认策略执行限速检查
-      const result = await this.rateLimitService.checkRateLimit(
-        apiKeyDoc,
-        RateLimitStrategy.SLIDING_WINDOW,
-      );
-
-      if (!result.allowed) {
-        this.logger.warn({
-          message: "WebSocket API Key 频率限制超出",
-          apiKey:
-            apiKeyDoc.appKey.substring(
-              0,
-              CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
-            ) + "***",
-          limit: result.limit,
-          current: result.current,
-          clientId: client.id,
-        });
-        return false;
-      }
-
-      this.logger.debug({
-        message: "WebSocket 频率限制检查通过",
-        apiKey:
-          apiKeyDoc.appKey.substring(
-            0,
-            CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
-          ) + "***",
-        current: result.current,
-        limit: result.limit,
-        clientId: client.id,
-      });
-
-      return true;
-    } catch (error) {
-      this.logger.error({
-        message: "WebSocket 限速检查失败，允许请求通过",
-        error: error.message,
-        clientId: client.id,
-      });
-      // 限速服务出错时，允许请求通过以保证服务可用性
-      return true;
-    }
-  }
+  // 精简：去除限速检查方法
 }

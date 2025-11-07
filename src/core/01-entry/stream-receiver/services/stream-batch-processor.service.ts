@@ -20,8 +20,7 @@ import {
   BusinessErrorCode,
   ComponentIdentifier
 } from '@common/core/exceptions';
-import { STREAM_RECEIVER_ERROR_CODES } from '../constants/stream-receiver-error-codes.constants';
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
 import { API_OPERATIONS } from "@common/constants/domain";
@@ -114,14 +113,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
    * 初始化配置
    */
   private initializeConfig(): StreamReceiverConfig {
+    // P2: 仅读取批处理间隔；动态批处理默认关闭且不再从 ENV 读取
     const batchProcessingInterval = this.configService.get<number>(
       "STREAM_RECEIVER_BATCH_INTERVAL",
       defaultStreamReceiverConfig.batchProcessingInterval,
-    );
-
-    const dynamicBatchingEnabled = this.configService.get<boolean>(
-      "STREAM_RECEIVER_DYNAMIC_BATCHING_ENABLED",
-      defaultStreamReceiverConfig.dynamicBatching.enabled,
     );
 
     return {
@@ -129,7 +124,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       batchProcessingInterval,
       dynamicBatching: {
         ...defaultStreamReceiverConfig.dynamicBatching,
-        enabled: dynamicBatchingEnabled,
+        enabled: false,
       },
     };
   }
@@ -267,7 +262,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       });
 
       // 记录调整指标
-      this.recordBatchIntervalAdjustment(newInterval, averageLoad);
+      // 监控已移除: recordBatchIntervalAdjustment 调用已删除
     }
 
     // 清理旧样本，保持窗口大小
@@ -343,36 +338,6 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     this.dynamicBatchingMetrics.batchCountInWindow++;
   }
 
-  /**
-   * 记录批处理间隔调整的性能指标
-   */
-  private recordBatchIntervalAdjustment(
-    newInterval: number,
-    averageLoad: number,
-  ): void {
-    try {
-      // 发送监控事件
-      this.callbacks?.emitMonitoringEvent("batch_interval_adjusted", newInterval, {
-        previousInterval: this.dynamicBatchingState.currentInterval,
-        averageLoad,
-        loadTrend: this.dynamicBatchingMetrics.loadTrend,
-        adjustmentCount: this.dynamicBatchingState.adjustmentCount,
-      });
-
-      // 记录详细的动态批处理指标
-      this.callbacks?.emitMonitoringEvent(
-        "dynamic_batching_adjusted",
-        this.dynamicBatchingMetrics.throughputPerSecond,
-        {
-          metrics: this.dynamicBatchingMetrics,
-          state: this.dynamicBatchingState,
-          config: this.config.dynamicBatching,
-        },
-      );
-    } catch (error) {
-      this.logger.warn("记录批处理调整指标失败", { error: error.message });
-    }
-  }
 
   /**
    * 获取动态批处理状态信息
@@ -705,8 +670,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
   ): Promise<void> {
     const fallbackStartTime = Date.now();
 
-    // 记录降级事件监控指标
-    this.recordFallbackMetrics(batch, reason);
+    // 监控已移除: recordFallbackMetrics 调用已删除
 
     try {
       this.logger.log("开始降级处理", {
@@ -882,33 +846,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     }
   }
 
-  /**
-   * 记录降级监控指标
-   */
-  private recordFallbackMetrics(batch: QuoteData[], reason: string): void {
-    try {
-      // 发送监控事件到事件总线
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.ERROR_HANDLED, {
-        timestamp: new Date(),
-        source: "presenter",
-        component: "StreamBatchProcessor",
-        operation: "batch_processing_fallback",
-        level: "warn",
-        details: {
-          fallbackType: "batch_processing",
-          reason: reason,
-          batchSize: batch.length,
-          providers: Array.from(new Set(batch.map(q => q.providerName))),
-          capabilities: Array.from(new Set(batch.map(q => q.wsCapabilityType))),
-        },
-      });
-    } catch (error) {
-      this.logger.warn("记录降级指标失败", {
-        error: error.message,
-        batchSize: batch.length,
-      });
-    }
-  }
+
 
   /**
    * 记录降级失败指标
@@ -919,18 +857,8 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     fallbackError: string,
   ): void {
     try {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.CRITICAL_ERROR, {
-        timestamp: new Date(),
-        source: "presenter",
-        component: "StreamBatchProcessor",
-        operation: "batch_processing_fallback_failure",
-        level: "error",
-        details: {
-          originalReason: reason,
-          fallbackError: fallbackError,
-          batchSize: batch.length,
-        },
-      });
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn("记录降级失败指标失败", { error: error.message });
     }
@@ -967,19 +895,8 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
   ): void {
     try {
       // 发送批处理性能事件
-      this.callbacks?.emitMonitoringEvent("batch_processed", processingTimeMs, {
-        batchSize,
-        timestamp: Date.now(),
-        avgTimePerQuote: batchSize > 0 ? processingTimeMs / batchSize : 0,
-        throughputEstimate:
-          batchSize > 0
-            ? Math.round(
-                (batchSize *
-                  1000) /
-                  processingTimeMs,
-              )
-            : 0,
-      });
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
     } catch (error) {
       this.logger.warn(`批处理监控事件发送失败: ${error.message}`, {
         batchSize,

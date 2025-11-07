@@ -1,13 +1,8 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-} from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { StringUtils } from "../../../shared/utils/string.util";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 
 import { QueryConfigService } from "../config/query.config";
 import { QueryExecutionEngine } from "./query-execution-engine.service";
@@ -24,7 +19,6 @@ import {
   BulkQueryResponseDto,
 } from "../dto/query-response.dto";
 import { QueryResultProcessorService } from "./query-result-processor.service";
-import { QueryStatisticsService } from "./query-statistics.service";
 
 // 统一错误处理基础设施
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
@@ -48,9 +42,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryService.name);
 
   constructor(
-    private readonly statisticsService: QueryStatisticsService,
     private readonly resultProcessorService: QueryResultProcessorService,
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
     private readonly queryConfig: QueryConfigService,
     private readonly executionEngine: QueryExecutionEngine,
   ) {}
@@ -72,17 +64,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     // EventEmitter2 实例由 NestJS 管理，会在模块销毁时自动清理
     // 这里只需要发送一个关闭事件通知其他组件
     try {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "query_service",
-        metricType: "system",
-        metricName: "service_shutdown",
-        metricValue: 1,
-        tags: {
-          operation: "module_destroy",
-          componentType: "query",
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       this.logger.log("QueryService关闭事件已发送");
     } catch (error) {
       this.logger.warn(`QueryService关闭事件发送失败: ${error.message}`);
@@ -148,12 +131,6 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      this.statisticsService.recordQueryPerformance(
-        request.queryType,
-        executionTime,
-        false,
-        false,
-      );
 
       // ✅ 事件驱动监控：查询失败
       this.emitQueryEvent("query_failed", request, queryId, executionTime, {
@@ -356,12 +333,7 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
     return StringUtils.generateSimpleHash(requestString);
   }
 
-  /**
-   * 获取查询统计信息
-   */
-  public getQueryStats() {
-    return this.statisticsService.getQueryStats();
-  }
+  // 统计服务已移除：查询统计接口对外暴露一并删除
 
   // =============== 事件驱动监控方法 ===============
 
@@ -377,23 +349,8 @@ export class QueryService implements OnModuleInit, OnModuleDestroy {
   ): void {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "query_service",
-          metricType: "business",
-          metricName: eventType,
-          metricValue: duration,
-          tags: {
-            queryId,
-            queryType: request.queryType,
-            market: request.market || "unknown",
-            provider: request.provider || "auto",
-            symbolsCount: request.symbols?.length || 0,
-            operation: eventType,
-            componentType: "query",
-            ...additionalData,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         // 监控事件发送失败不应影响业务逻辑
         this.logger.warn(`查询监控事件发送失败: ${error.message}`, {

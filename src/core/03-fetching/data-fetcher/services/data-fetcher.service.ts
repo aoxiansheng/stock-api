@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  HttpStatus
-} from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
+import { Injectable, HttpStatus } from "@nestjs/common";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+
 import {
   BusinessException,
   UniversalExceptionFactory,
@@ -74,8 +70,7 @@ export class DataFetcherService implements IDataFetcher {
   );
 
   constructor(
-    private readonly capabilityRegistryService: EnhancedCapabilityRegistryService,
-    private readonly eventBus: EventEmitter2,
+    private readonly capabilityRegistryService: ProviderRegistryService,
   ) {}
 
   /**
@@ -156,19 +151,8 @@ export class DataFetcherService implements IDataFetcher {
       );
 
       // 发送错误事件 - 标准化：统一错误事件格式
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "data_fetcher",
-        metricType: "external_api",
-        metricName: "api_call_failed",
-        metricValue: 0,
-        tags: {
-          provider,
-          capability,
-          error: error.message,
-          status: "error"
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
 
       if (error instanceof BusinessException) {
         throw error;
@@ -311,21 +295,8 @@ export class DataFetcherService implements IDataFetcher {
 
     // 记录批量处理详细指标 - 事件驱动方式
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "data_fetcher",
-        metricType: "business",
-        metricName: "batch_processing_completed",
-        metricValue: results.length,
-        tags: {
-          totalRequests: requests.length,
-          successCount: results.filter((r) => !r.hasPartialFailures).length,
-          partialFailuresCount: results.filter((r) => r.hasPartialFailures)
-            .length,
-          componentType: "data_fetcher",
-          operation: "batch_processing",
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
 
     this.logger.debug("批量数据获取完成", {

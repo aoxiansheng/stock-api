@@ -8,8 +8,8 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
 import { UniversalExceptionFactory, ComponentIdentifier } from "@common/core/exceptions";
-import { CacheService } from "@cache/services/cache.service";
-import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+import { CacheService } from "@cachev2/cache.service";
+
 // Import from the new Market Domain layer
 import {
   Market,
@@ -497,7 +497,7 @@ export class DataChangeDetectorService {
   private async getRedisSnapshot(symbol: string): Promise<DataSnapshot | null> {
     try {
       const cacheKey = this.buildSnapshotCacheKey(symbol);
-      return await this.cacheService.safeGet<DataSnapshot>(cacheKey);
+      return await this.cacheService.get<DataSnapshot>(cacheKey);
     } catch (error) {
       // 使用统一错误处理，但不抛出异常，降级到内存缓存
       this.logger.debug("Redis快照获取失败", {
@@ -521,7 +521,7 @@ export class DataChangeDetectorService {
       const cacheKey = this.buildSnapshotCacheKey(symbol);
       const ttl = this.getSnapshotCacheTTL(symbol);
 
-      await this.cacheService.safeSet(cacheKey, snapshot, { ttl });
+      await this.cacheService.set(cacheKey, snapshot, { ttl });
       this.logger.debug("Redis快照同步成功", { symbol, cacheKey, ttl });
     } catch (error) {
       // Silent failure for async sync - don't impact main flow
@@ -620,7 +620,7 @@ export class DataChangeDetectorService {
       const cacheKey = this.buildSnapshotCacheKey(symbol);
       const ttl = this.getSnapshotCacheTTL(symbol);
 
-      await this.cacheService.safeSet(cacheKey, snapshot, { ttl });
+      await this.cacheService.set(cacheKey, snapshot, { ttl });
       this.logger.debug("Redis快照保存成功", { symbol, cacheKey, ttl });
     } catch (error) {
       // Silent failure for async save - don't impact main flow
@@ -707,18 +707,8 @@ export class DataChangeDetectorService {
   ) {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_change_detector_service",
-          metricType: "business",
-          metricName: operation,
-          metricValue: duration,
-          tags: {
-            status_code: statusCode,
-            status: statusCode < 400 ? "success" : "error",
-            ...metadata,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("检测事件发送失败", {
           error: error.message,
@@ -736,18 +726,8 @@ export class DataChangeDetectorService {
   ) {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "data_change_detector_service",
-          metricType: "cache",
-          metricName: `cache_${operation}`,
-          metricValue: duration,
-          tags: {
-            hit: hit.toString(),
-            operation,
-            ...metadata,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("缓存事件发送失败", {
           error: error.message,

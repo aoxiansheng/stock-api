@@ -9,21 +9,17 @@ import { v4 as uuidv4 } from "uuid";
 
 // 统一错误处理基础设施
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
-import { RECEIVER_ERROR_CODES } from "../constants/receiver-error-codes.constants";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { CONSTANTS } from "@common/constants";
+import { NUMERIC_CONSTANTS } from "@common/constants/core";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/constants/smart-cache.constants";
-import { MappingDirection } from "../../../shared/constants/cache.constants";
 // import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 // Market enum is now provided by cache-request.utils via the new four-layer architecture
 
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
 
 import { RequestContext } from "../interfaces/request-context.interface";
 
-import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
+import { ProviderRegistryService } from "@providersv2/provider-registry.service";
 import {
   MarketStatusService,
   // MarketStatusResult,
@@ -36,12 +32,13 @@ import { buildCacheOrchestratorRequest } from "../../../05-caching/module/smart-
 import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/data-fetcher.service"; // 🔥 新增DataFetcher导入
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
+import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
+import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 
 import {
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,
 } from "../constants/messages.constants";
-import { RECEIVER_PERFORMANCE_THRESHOLDS } from "../constants/validation.constants";
 import { RECEIVER_OPERATIONS } from "../constants/operations.constants";
 import { DataRequestDto } from "../dto/data-request.dto";
 import {
@@ -53,6 +50,7 @@ import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/
 import { StoreDataDto } from "../../../04-storage/storage/dto/storage-request.dto";
 import { StorageType } from "../../../04-storage/storage/enums/storage-type.enum";
 import { StorageClassification } from "../../../shared/types/storage-classification.enum";
+import { FIELD_MAPPING_CONFIG } from "../../../shared/types/field-naming.types";
 import { ValidationResultDto } from "../dto/validation.dto";
 import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/data-fetcher.interface"; // 🔥 导入DataFetcher类型
 // 🎯 复用 common 模块的日志配置
@@ -68,7 +66,6 @@ import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/da
  * 4. 能力调用执行
  * 5. 响应数据格式化
  */
-import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
 
 @Injectable()
 export class ReceiverService implements OnModuleDestroy {
@@ -87,12 +84,9 @@ export class ReceiverService implements OnModuleDestroy {
     private readonly storageService: StorageService,
 
     // 🎯 服务注册与状态依赖
-    private readonly capabilityRegistryService: EnhancedCapabilityRegistryService,
+    private readonly capabilityRegistryService: ProviderRegistryService,
     private readonly marketStatusService: MarketStatusService,
     private readonly marketInferenceService: MarketInferenceService,
-
-    // ✅ 事件化监控依赖 - 符合监控组件集成规范
-    private readonly eventBus: EventEmitter2, // 替换CollectorService，使用事件驱动监控
     private readonly smartCacheOrchestrator: SmartCacheStandardizedService, // 🔑 关键: 注入智能缓存编排器
   ) {}
 
@@ -115,10 +109,7 @@ export class ReceiverService implements OnModuleDestroy {
       `开始处理强时效数据请求`,
       sanitizeLogData({
         requestId,
-        symbols: request.symbols?.slice(
-          0,
-          CONSTANTS.FOUNDATION.VALUES.QUANTITIES.THREE,
-        ),
+        symbols: request.symbols?.slice(0, NUMERIC_CONSTANTS.N_3),
         receiverType: request.receiverType,
         symbolsCount: request.symbols?.length || 0,
         operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
@@ -394,7 +385,7 @@ export class ReceiverService implements OnModuleDestroy {
           warnings: validationResult.warnings,
           symbols: request.symbols?.slice(
             0,
-            CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE,
+            NUMERIC_CONSTANTS.N_5,
           ),
           operation: "validateRequest",
         }),
@@ -408,7 +399,7 @@ export class ReceiverService implements OnModuleDestroy {
         context: {
           errors: validationResult.errors,
           warnings: validationResult.warnings,
-          symbols: request.symbols?.slice(0, CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE),
+          symbols: request.symbols?.slice(0, NUMERIC_CONSTANTS.N_5),
           validationFailure: true
         }
       });
@@ -548,7 +539,7 @@ export class ReceiverService implements OnModuleDestroy {
           market,
           symbols: symbols.slice(
             0,
-            CONSTANTS.FOUNDATION.VALUES.QUANTITIES.THREE,
+            NUMERIC_CONSTANTS.N_3,
           ),
           operation: "determineOptimalProvider",
         }),
@@ -865,14 +856,8 @@ export class ReceiverService implements OnModuleDestroy {
         tags.error = metadata.error;
       }
 
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "receiver",
-        metricType: "api",
-        metricName: "request_processed",
-        metricValue: processingTimeMs,
-        tags,
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -887,19 +872,8 @@ export class ReceiverService implements OnModuleDestroy {
     setImmediate(() => {
       if (this.isDestroyed) return; // 防止在模块销毁后执行
 
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "receiver",
-        metricType: "connection",
-        metricName: "active_connections",
-        metricValue: this.activeConnections,
-        tags: {
-          component: "receiver",
-          operation: delta > 0 ? "connect" : "disconnect",
-          connection_delta: delta,
-          uptime: process.uptime(),
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -940,15 +914,7 @@ export class ReceiverService implements OnModuleDestroy {
    * 用于 Transformer 组件确定使用哪种映射规则类型
    */
   private mapReceiverTypeToTransDataRuleListType(receiverType: string): string {
-    const mapping: Record<string, string> = {
-      [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",
-      "get-stock-basic-info": "basic_info_fields",
-      "get-stock-realtime": "quote_fields",
-      "get-stock-history": "quote_fields",
-      "get-index-quote": "index_fields",
-      "get-market-status": "market_status_fields",
-    };
-
+    const mapping = FIELD_MAPPING_CONFIG.TRANS_RULE_TYPE_BY_CAPABILITY as Record<string, string>;
     const transDataRuleListType = mapping[receiverType];
     if (!transDataRuleListType) {
       this.logger.warn(`未找到 receiverType 映射，使用默认值`, {
@@ -957,7 +923,6 @@ export class ReceiverService implements OnModuleDestroy {
       });
       return "quote_fields"; // 默认使用股票报价字段映射
     }
-
     return transDataRuleListType;
   }
 
@@ -967,15 +932,7 @@ export class ReceiverService implements OnModuleDestroy {
   private mapReceiverTypeToStorageClassification(
     receiverType: string,
   ): StorageClassification {
-    const mapping: Record<string, StorageClassification> = {
-      [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: StorageClassification.STOCK_QUOTE,
-      "get-stock-basic-info": StorageClassification.STOCK_BASIC_INFO,
-      "get-stock-realtime": StorageClassification.STOCK_QUOTE,
-      "get-stock-history": StorageClassification.STOCK_CANDLE,
-      "get-index-quote": StorageClassification.INDEX_QUOTE,
-      "get-market-status": StorageClassification.MARKET_STATUS,
-    };
-
+    const mapping = FIELD_MAPPING_CONFIG.CAPABILITY_TO_CLASSIFICATION as Record<string, StorageClassification>;
     return mapping[receiverType] || StorageClassification.STOCK_QUOTE;
   }
 
@@ -1014,11 +971,11 @@ export class ReceiverService implements OnModuleDestroy {
 
     // 使用 symbols 数量做简单 TTL 调整示例（避免未使用变量警告）
     const symbolCount = symbols?.length || 0;
-    if (symbolCount > CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TWENTY) {
+    if (symbolCount > NUMERIC_CONSTANTS.N_20) {
       return Math.max(
         defaultTTL,
         (SMART_CACHE_CONSTANTS.TTL.WEAK_TIMELINESS_DEFAULT_S /
-          CONSTANTS.FOUNDATION.VALUES.QUANTITIES.FIVE) *
+          NUMERIC_CONSTANTS.N_5) *
           2,
       ); // 大批量请求给更长 TTL
     }
@@ -1082,20 +1039,8 @@ export class ReceiverService implements OnModuleDestroy {
       setImmediate(() => {
         if (!this.isDestroyed) return; // 只在销毁时发送关闭事件
 
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "receiver",
-          metricType: "lifecycle",
-          metricName: "service_shutdown",
-          metricValue: 1,
-          tags: {
-            component: "receiver",
-            operation: "module_destroy",
-            final_active_connections: this.activeConnections,
-            uptime_seconds: Math.floor(process.uptime()),
-            shutdown_reason: "module_destroy",
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       });
     } catch (error) {
       this.logger.error('发送服务关闭监控事件失败', {

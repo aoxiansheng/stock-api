@@ -2,7 +2,7 @@ import { TestingModule, Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { TestInfrastructureModule } from '../modules/test-infrastructure.module';
 import { TestCacheModule } from '../modules/test-cache.module';
-import { TestAuthModule } from '../modules/test-auth.module';
+// import { TestAuthModule } from '../modules/test-auth.module'; // 已删除 - auth 迁移到 authv2
 import { TestDatabaseModule } from '../modules/test-database.module';
 
 /**
@@ -68,31 +68,32 @@ export class UnitTestSetup {
 
   /**
    * 创建认证相关测试模块
+   * @deprecated auth 已迁移到 authv2，此方法已禁用
    */
-  static async createAuthTestModule(moduleConfig: {
-    imports?: any[];
-    providers?: any[];
-    controllers?: any[];
-    exports?: any[];
-  }): Promise<TestingModule> {
-    const { imports = [], providers = [], controllers = [], exports = [] } = moduleConfig;
+  // static async createAuthTestModule(moduleConfig: {
+  //   imports?: any[];
+  //   providers?: any[];
+  //   controllers?: any[];
+  //   exports?: any[];
+  // }): Promise<TestingModule> {
+  //   const { imports = [], providers = [], controllers = [], exports = [] } = moduleConfig;
 
-    return await Test.createTestingModule({
-      imports: [
-        TestAuthModule,  // 包含认证相关的所有Mock和配置
-        ...imports,
-      ],
-      providers: [
-        ...providers,
-      ],
-      controllers: [
-        ...controllers,
-      ],
-      exports: [
-        ...exports,
-      ],
-    }).compile();
-  }
+  //   return await Test.createTestingModule({
+  //     imports: [
+  //       TestAuthModule,  // 包含认证相关的所有Mock和配置
+  //       ...imports,
+  //     ],
+  //     providers: [
+  //       ...providers,
+  //     ],
+  //     controllers: [
+  //       ...controllers,
+  //     ],
+  //     exports: [
+  //       ...exports,
+  //     ],
+  //   }).compile();
+  // }
 
   /**
    * 创建基础测试模块（带模块覆盖功能）

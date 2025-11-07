@@ -9,9 +9,7 @@ import {
   Query,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { Auth } from "../../../../auth/decorators/auth.decorator";
-import { UserRole, Permission } from "../../../../auth/enums/user-role.enum";
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
+import { AdminOnly, ReadAccess } from "@authv2/decorators";
 import {
   ApiStandardResponses,
   ApiKeyAuthResponses,
@@ -38,7 +36,7 @@ export class TemplateAdminController {
   // ===============================
 
   @Post()
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @AdminOnly()
   @ApiOperation({
     summary: "创建数据源模板",
     description: "创建可复用的数据源模板",
@@ -57,7 +55,7 @@ export class TemplateAdminController {
   }
 
   @Get()
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @ApiOperation({
     summary: "查询数据源模板",
     description: "分页查询数据源模板列表",
@@ -80,7 +78,7 @@ export class TemplateAdminController {
   }
 
   @Get("stats")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @ReadAccess()
   @ApiOperation({
     summary: "获取统计信息",
     description: "获取模板的统计信息",
@@ -113,7 +111,7 @@ export class TemplateAdminController {
   // 原有的 /health 端点违反了架构分层原则，已迁移到全局监控组件
 
   @Get(":id")
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @ApiOperation({
     summary: "获取数据源模板详情",
     description: "根据ID获取数据源模板详细信息",
@@ -132,7 +130,7 @@ export class TemplateAdminController {
   }
 
   @Put(":id")
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "更新数据源模板",
     description: "更新指定的数据源模板",
@@ -152,7 +150,7 @@ export class TemplateAdminController {
   }
 
   @Delete(":id")
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "删除数据源模板",
     description: "删除指定的数据源模板",
@@ -169,7 +167,7 @@ export class TemplateAdminController {
   // ===============================
 
   @Get("persisted/all")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @ReadAccess()
   @ApiOperation({
     summary: "获取持久化模板列表",
     description: "查看所有已持久化的预设模板",
@@ -182,7 +180,7 @@ export class TemplateAdminController {
   }
 
   @Get("persisted/:id")
-  @Auth([UserRole.ADMIN, UserRole.DEVELOPER])
+  @ReadAccess()
   @ApiOperation({
     summary: "获取持久化模板详情",
     description: "根据ID获取持久化模板的详细信息",
@@ -195,7 +193,7 @@ export class TemplateAdminController {
   }
 
   @Put("persisted/:id")
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "编辑持久化模板",
     description: "修改已持久化的预设模板",
@@ -220,7 +218,7 @@ export class TemplateAdminController {
   }
 
   @Delete("persisted/:id")
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "删除持久化模板",
     description: "删除指定的持久化模板",

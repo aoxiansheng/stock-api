@@ -26,9 +26,7 @@ import {
   ApiStandardResponses,
 } from "@common/core/decorators/swagger-responses.decorator";
 
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { ReadAccess } from "@authv2/decorators";
 
 import { QueryRequestDto, BulkQueryRequestDto } from "../dto/query-request.dto";
 import {
@@ -49,8 +47,7 @@ export class QueryController {
 
   constructor(private readonly queryService: QueryService) {}
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.QUERY_EXECUTE)
+  @ReadAccess()
   @Post("execute")
   @HttpCode(200)
   @ApiOperation({
@@ -244,8 +241,7 @@ export class QueryController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.QUERY_EXECUTE)
+  @ReadAccess()
   @Post("bulk")
   @ApiOperation({
     summary: "Execute multiple queries in bulk",
@@ -286,8 +282,7 @@ export class QueryController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.QUERY_EXECUTE)
+  @ReadAccess()
   @Get("symbols")
   @ApiOperation({
     summary: "按股票代码快速查询（GET方式）",
@@ -437,181 +432,7 @@ export class QueryController {
     return this.executeQuery(request);
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.QUERY_EXECUTE)
-  @Get("market")
-  @ApiOperation({
-    summary: "Query data by market",
-    description: "Query all available data for a specific market",
-  })
-  @ApiSuccessResponse({ type: QueryResponseDto })
-  @ApiStandardResponses()
-  async queryByMarket(
-    @QueryParam("market") market: string,
-    @QueryParam("provider") provider?: string,
-    @QueryParam("queryTypeFilter") queryTypeFilter?: string,
-    @QueryParam("limit") limit?: number,
-    @QueryParam("page") page?: number,
-  ) {
-    if (!market) {
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.QUERY,
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: 'queryByMarket',
-        message: 'Market parameter is required',
-        context: { endpoint: '/query/market', receivedMarket: market, validationField: 'market' }
-      });
-    }
-
-    this.logger.log(`API Request: Query by market`, {
-      market,
-      provider,
-      queryTypeFilter,
-      limit,
-    });
-
-    const request: QueryRequestDto = {
-      queryType: QueryType.BY_MARKET,
-      market,
-      provider,
-      queryTypeFilter,
-      limit: limit || 100,
-      page: page || 1,
-      options: {
-        useCache: true,
-        includeMetadata: true,
-      },
-    };
-
-    return this.executeQuery(request);
-  }
-
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.QUERY_EXECUTE)
-  @Get("provider")
-  @ApiOperation({
-    summary: "Query data by provider",
-    description: "Query all available data from a specific provider",
-  })
-  @ApiSuccessResponse({ type: QueryResponseDto })
-  @ApiStandardResponses()
-  async queryByProvider(
-    @QueryParam("provider") provider: string,
-    @QueryParam("market") market?: string,
-    @QueryParam("queryTypeFilter") queryTypeFilter?: string,
-    @QueryParam("limit") limit?: number,
-    @QueryParam("page") page?: number,
-  ) {
-    if (!provider) {
-      throw UniversalExceptionFactory.createBusinessException({
-        component: ComponentIdentifier.QUERY,
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: 'queryByProvider',
-        message: 'Provider parameter is required',
-        context: { endpoint: '/query/provider', receivedProvider: provider, validationField: 'provider' }
-      });
-    }
-
-    this.logger.log(`API Request: Query by provider`, {
-      provider,
-      market,
-      queryTypeFilter,
-      limit,
-    });
-
-    const request: QueryRequestDto = {
-      queryType: QueryType.BY_PROVIDER,
-      provider,
-      market,
-      queryTypeFilter,
-      limit: limit || 100,
-      page: page || 1,
-      options: {
-        useCache: true,
-        includeMetadata: true,
-      },
-    };
-
-    return this.executeQuery(request);
-  }
-
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.SYSTEM_MONITOR)
-  @Get("stats")
-  @ApiOperation({
-    summary: "获取查询统计信息",
-    description:
-      "获取查询服务的综合统计信息，包括性能指标、查询类型分布、数据源使用情况等详细分析数据",
-  })
-  @ApiSuccessResponse({
-    description: "查询统计信息获取成功",
-    type: QueryStatsDto,
-    schema: {
-      example: {
-        statusCode: 200,
-        message: "查询统计信息获取成功",
-        data: {
-          performance: {
-            totalQueries: 15420,
-            averageExecutionTime: 127,
-            cacheHitRate: 0.82,
-            errorRate: 0.03,
-            queriesPerSecond: 45.6,
-          },
-          queryTypes: {
-            by_symbols: {
-              count: 8540,
-              averageTime: 95,
-            },
-            by_market: {
-              count: 4120,
-              averageTime: 185,
-            },
-          },
-          dataSources: {
-            cache: { queries: 12644, avgTime: 15, successRate: 0.99 },
-            persistent: { queries: 2776, avgTime: 125, successRate: 0.97 },
-            realtime: { queries: 324, avgTime: 456, successRate: 0.94 },
-          },
-          popularQueries: [
-            {
-              pattern: "AAPL,GOOGL,MSFT",
-              count: 156,
-              averageTime: 89,
-              lastExecuted: "2024-01-01T11:55:00.000Z",
-            },
-          ],
-          timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
-        },
-        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
-      },
-    },
-  })
-  @ApiStandardResponses()
-  async getQueryStats() {
-    this.logger.log(`API Request: Get query statistics`);
-
-    try {
-      const stats = await this.queryService.getQueryStats();
-
-      this.logger.log(`API Success: Query statistics generated`, {
-        totalQueries: stats.performance.totalQueries,
-        averageExecutionTime: stats.performance.averageExecutionTime,
-        cacheHitRate: stats.performance.cacheHitRate,
-        errorRate: stats.performance.errorRate,
-        queryTypesCount: Object.keys(stats.queryTypes).length,
-      });
-
-      // 遵循控制器编写规范：让拦截器自动处理响应格式化
-      return stats;
-    } catch (error: any) {
-      this.logger.error(`API Error: Failed to get query statistics`, {
-        error: error.message,
-        errorType: error.constructor.name,
-      });
-      throw error;
-    }
-  }
+  // 已移除 /query/market、/query/provider、/query/stats 端点，聚焦核心查询能力
 
   // ✅ 自定义健康检查端点已移除
   // 符合监控组件集成规范，健康检查统一由全局监控组件提供

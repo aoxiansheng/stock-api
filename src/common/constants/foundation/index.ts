@@ -35,32 +35,4 @@ export const FOUNDATION_CONSTANTS = Object.freeze({
 /**
  * Foundation层工具函数
  */
-export class FoundationUtils {
-  /**
-   * 检查数值是否在合理范围内
-   */
-  static isValidSize(value: number, maxSize: number): boolean {
-    return value > 0 && value <= maxSize;
-  }
-  /**
-   * 检查超时配置是否合理
-   */
-  static isValidTimeout(timeoutMs: number): boolean {
-    return (
-      timeoutMs >= NUMERIC_CONSTANTS.N_1000 &&
-      timeoutMs <= NUMERIC_CONSTANTS.N_3600000
-    );
-  }
-  /**
-   * 根据数据大小获取推荐的超时时间
-   */
-  static getRecommendedTimeout(dataSize: number): number {
-    if (dataSize <= NUMERIC_CONSTANTS.N_50) {
-      return CORE_TIMEOUTS.OPERATION.QUICK_MS;
-    } else if (dataSize <= NUMERIC_CONSTANTS.N_500) {
-      return CORE_TIMEOUTS.OPERATION.STANDARD_MS;
-    } else {
-      return CORE_TIMEOUTS.OPERATION.LONG_RUNNING_MS;
-    }
-  }
-}
+// 已移除 FoundationUtils（无业务引用）

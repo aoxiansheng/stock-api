@@ -6,13 +6,14 @@ import {
   Inject,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { StreamConfigService } from "../config/stream-config.service";
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
 import { v4 as uuidv4 } from "uuid";
 import { Subject, fromEvent, race, timer } from "rxjs";
 import { takeUntil, first, map } from "rxjs/operators";
-import { EnhancedCapabilityRegistryService } from "../../../../providers/services/enhanced-capability-registry.service";
+import { ProviderRegistryService } from "@providersv2/provider-registry.service";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { BaseFetcherService } from "../../../shared/services/base-fetcher.service";
 import {
@@ -106,11 +107,11 @@ export class StreamDataFetcherService
   // 自适应并发控制配置
   private concurrencyControl = {
     // 当前并发限制
-    currentConcurrency: parseInt(process.env.HEALTHCHECK_CONCURRENCY || "10"),
+    currentConcurrency: 10,
 
     // 并发限制范围
-    minConcurrency: parseInt(process.env.MIN_CONCURRENCY || "2"),
-    maxConcurrency: parseInt(process.env.MAX_CONCURRENCY || "50"),
+    minConcurrency: 2,
+    maxConcurrency: 50,
 
     // 调整阈值
     performanceThresholds: {
@@ -140,7 +141,7 @@ export class StreamDataFetcherService
   };
 
   constructor(
-    private readonly capabilityRegistry: EnhancedCapabilityRegistryService,
+    private readonly capabilityRegistry: ProviderRegistryService,
     private readonly streamCache: StreamCacheStandardizedService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly connectionPoolManager: ConnectionPoolManager,
@@ -148,8 +149,12 @@ export class StreamDataFetcherService
     protected readonly eventBus: EventEmitter2,
     // 添加配置服务以支持动态配置获取
     private readonly configService: ConfigService,
+    private readonly streamConfigService: StreamConfigService,
   ) {
     super(eventBus);
+
+    // 统一从配置服务加载并发控制默认值与阈值
+    this.loadConcurrencyConfigFromService();
 
     // P0-3: 启动定期清理机制
     this.startPeriodicMapCleanup();
@@ -180,20 +185,8 @@ export class StreamDataFetcherService
     },
   ): void {
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream_data_fetcher",
-        metricType: "infrastructure",
-        metricName,
-        metricValue: data.duration || data.count || 1,
-        tags: {
-          provider: data.provider,
-          capability: data.capability,
-          operation: data.operation || "connection",
-          status: data.status,
-          error_type: data.error_type,
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -215,21 +208,8 @@ export class StreamDataFetcherService
     },
   ): void {
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream_data_fetcher",
-        metricType: "business",
-        metricName,
-        metricValue: data.symbol_count || data.duration || 1,
-        tags: {
-          provider: data.provider,
-          capability: data.capability,
-          operation: data.action || "subscription",
-          status: data.status,
-          error_type: data.error_type,
-          symbol_count: data.symbol_count,
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -250,19 +230,8 @@ export class StreamDataFetcherService
     },
   ): void {
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream_data_fetcher",
-        metricType: "performance",
-        metricName,
-        metricValue: data.duration || data.connection_count || 1,
-        tags: {
-          operation: data.operation,
-          provider: data.provider,
-          status: data.status,
-          threshold_exceeded: data.threshold_exceeded,
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -282,20 +251,8 @@ export class StreamDataFetcherService
     },
   ): void {
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream_data_fetcher",
-        metricType: "metrics",
-        metricName,
-        metricValue: data.activeConnections || data.connectionMappings || 1,
-        tags: {
-          operation: data.operation || "metrics",
-          status: data.status || "info",
-          request_id: data.requestId,
-          active_connections: data.activeConnections,
-          connection_mappings: data.connectionMappings,
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -306,19 +263,20 @@ export class StreamDataFetcherService
    */
   private startAdaptiveConcurrencyMonitoring(): void {
     // 定期分析性能并调整并发限制
+    const intervalMs = (this.streamConfigService.getPerformanceConfig() as any)?.concurrencyAdjustmentIntervalMs ?? 30000;
     const adjustmentInterval = setInterval(() => {
       if (!this.isServiceDestroyed) {
         this.analyzePerformanceAndAdjustConcurrency();
       } else {
         clearInterval(adjustmentInterval);
       }
-    }, 30000); // 每30秒分析一次
+    }, intervalMs);
 
     this.logger.debug("自适应并发控制监控已启动", {
       currentConcurrency: this.concurrencyControl.currentConcurrency,
       minConcurrency: this.concurrencyControl.minConcurrency,
       maxConcurrency: this.concurrencyControl.maxConcurrency,
-      adjustmentInterval: "30秒",
+      adjustmentInterval: `${intervalMs / 1000}秒`,
     });
   }
 
@@ -2377,22 +2335,8 @@ export class StreamDataFetcherService
     reason: string,
   ): void {
     // 使用事件驱动方式记录并发调整指标
-    this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-      component: "stream-data-fetcher",
-      operation: "concurrency_adjustment",
-      metrics: {
-        old_concurrency: oldConcurrency,
-        new_concurrency: newConcurrency,
-        adjustment: newConcurrency - oldConcurrency,
-        reason,
-        timestamp: Date.now(),
-      },
-      metadata: {
-        active_connections: this.activeConnections.size,
-        total_operations: this.performanceMetrics.totalRequests,
-        success_rate: this.performanceMetrics.successRate,
-      },
-    });
+    // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
   }
 
   /**
@@ -2406,5 +2350,33 @@ export class StreamDataFetcherService
       operation: "connection_count_update",
       status: "success",
     });
+  }
+
+  /**
+   * 从 StreamConfigService 统一加载并发控制配置
+   */
+  private loadConcurrencyConfigFromService(): void {
+    try {
+      const perf = this.streamConfigService.getPerformanceConfig() as any;
+      if (perf?.concurrency) {
+        this.concurrencyControl.currentConcurrency = perf.concurrency.initial ?? this.concurrencyControl.currentConcurrency;
+        this.concurrencyControl.minConcurrency = perf.concurrency.min ?? this.concurrencyControl.minConcurrency;
+        this.concurrencyControl.maxConcurrency = perf.concurrency.max ?? this.concurrencyControl.maxConcurrency;
+        this.concurrencyControl.adjustmentFactor = perf.concurrency.adjustmentFactor ?? this.concurrencyControl.adjustmentFactor;
+        this.concurrencyControl.stabilizationPeriod = perf.concurrency.stabilizationPeriodMs ?? this.concurrencyControl.stabilizationPeriod;
+      }
+      if (perf?.thresholds?.responseTimeMs) {
+        this.concurrencyControl.performanceThresholds = perf.thresholds.responseTimeMs;
+      }
+      if (perf?.thresholds?.successRate) {
+        this.concurrencyControl.successRateThresholds = perf.thresholds.successRate;
+      }
+      if (perf?.circuitBreaker) {
+        this.concurrencyControl.circuitBreaker.recoveryDelay = perf.circuitBreaker.recoveryDelayMs ?? this.concurrencyControl.circuitBreaker.recoveryDelay;
+        this.concurrencyControl.circuitBreaker.failureThreshold = perf.circuitBreaker.failureThreshold ?? this.concurrencyControl.circuitBreaker.failureThreshold;
+      }
+    } catch (e) {
+      this.logger.warn("加载并发控制配置失败，使用默认值", { error: e?.message });
+    }
   }
 }

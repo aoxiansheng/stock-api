@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 
-import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   IsString,
   IsObject,
@@ -68,7 +67,7 @@ class TransformOptionsDto {
 export class DataTransformRequestDto {
   @ApiProperty({
     description: "数据提供商名称",
-    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    example: "longport",
   })
   @IsString()
   @IsNotEmpty()

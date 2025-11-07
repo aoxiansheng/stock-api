@@ -15,7 +15,6 @@
  * import {
  *   TRANSFORMATION_TYPES,
  *   API_TYPES,
- *   DATA_MAPPER_ERROR_MESSAGES,
  *   DATA_MAPPER_CONFIG
  * } from './constants/data-mapper.constants';
  *
@@ -42,12 +41,7 @@
  * @lastModified 2025-09-04
  */
 
-import { NUMERIC_CONSTANTS } from "@common/constants/core";
-import {
-  HTTP_TIMEOUTS,
-  BATCH_SIZE_SEMANTICS,
-} from "@common/constants/semantic";
-import { CORE_LIMITS } from "../../../shared/constants/limits";
+// 保持最小依赖，避免引入全局复杂常量
 
 /**
  * 数据映射错误消息常量
@@ -65,20 +59,7 @@ import { CORE_LIMITS } from "../../../shared/constants/limits";
  * @see {@link FlexibleMappingRuleService} - 主要使用这些错误消息的服务
  * @see {@link DataSourceAnalyzerService} - 数据源分析相关错误消息使用
  */
-export const DATA_MAPPER_ERROR_MESSAGES = Object.freeze({
-  MAPPING_RULE_NOT_FOUND: "映射规则未找到",
-  RULE_ID_NOT_FOUND: "指定ID的映射规则不存在",
-  INVALID_JSON_FORMAT: "无效的JSON格式",
-  JSON_DATA_REQUIRED: "需要提供jsonData或jsonString",
-  TRANSFORMATION_FAILED: "数据转换失败",
-  PATH_RESOLUTION_FAILED: "路径解析失败",
-  MAPPING_TEST_FAILED: "映射规则测试失败",
-  CUSTOM_TRANSFORMATION_NOT_SUPPORTED: "不支持自定义转换",
-  FIELD_MAPPING_ERROR: "字段映射错误",
-  RULE_CREATION_FAILED: "映射规则创建失败",
-  RULE_UPDATE_FAILED: "映射规则更新失败",
-  RULE_DELETION_FAILED: "映射规则删除失败",
-} as const);
+// 已移除：消息类常量（不属于核心功能，避免冗余）
 
 /**
  * 数据映射警告消息常量
@@ -93,15 +74,7 @@ export const DATA_MAPPER_ERROR_MESSAGES = Object.freeze({
  * this.logger.warn(DATA_MAPPER_WARNING_MESSAGES.TRANSFORMATION_FAILED_FALLBACK, { fieldPath });
  * ```
  */
-export const DATA_MAPPER_WARNING_MESSAGES = Object.freeze({
-  CUSTOM_TRANSFORMATIONS_NOT_SUPPORTED: "不支持自定义转换",
-  TRANSFORMATION_FAILED_FALLBACK: "转换失败，返回原始值",
-  PATH_NOT_FOUND: "路径未找到",
-  FIELD_NOT_MAPPED: "字段未映射",
-  EMPTY_MAPPING_RESULT: "映射结果为空",
-  LOW_SIMILARITY_SCORE: "相似度评分较低",
-  LARGE_DATASET_WARNING: "数据集较大，可能影响性能",
-} as const);
+// 已移除：警告消息常量（不属于核心功能，避免冗余）
 
 /**
  * 数据映射成功消息常量
@@ -119,15 +92,7 @@ export const DATA_MAPPER_WARNING_MESSAGES = Object.freeze({
  * };
  * ```
  */
-export const DATA_MAPPER_SUCCESS_MESSAGES = Object.freeze({
-  RULE_CREATED: "映射规则创建成功",
-  RULE_UPDATED: "映射规则更新成功",
-  RULE_DELETED: "映射规则删除成功",
-  RULE_ACTIVATED: "映射规则激活成功",
-  RULE_DEACTIVATED: "映射规则停用成功",
-  MAPPING_TEST_SUCCESSFUL: "映射规则测试成功",
-  TRANSFORMATION_SUCCESSFUL: "数据转换成功",
-} as const);
+// 已移除：成功消息常量（不属于核心功能，避免冗余）
 
 /**
  * 字段建议配置常量
@@ -147,15 +112,7 @@ export const DATA_MAPPER_SUCCESS_MESSAGES = Object.freeze({
  *
  * @see {@link DataSourceAnalyzerService.suggestFieldMappings} - 使用这些配置的主要方法
  */
-export const FIELD_SUGGESTION_CONFIG = Object.freeze({
-  SIMILARITY_THRESHOLD: 0.3, // 相似度阈值（30%）
-  MAX_SUGGESTIONS: 3, // 最大建议数量
-  MIN_FIELD_LENGTH: 1, // 最小字段长度
-  MAX_FIELD_LENGTH: 100, // 最大字段长度
-  EXACT_MATCH_SCORE: 1.0, // 完全匹配分数
-  SUBSTRING_MATCH_SCORE: 0.8, // 子字符串匹配分数
-  CASE_INSENSITIVE: true, // 忽略大小写
-} as const);
+// 已移除：字段建议配置（属辅助能力，非核心路径）
 
 /**
  * 数据映射配置常量
@@ -180,14 +137,9 @@ export const FIELD_SUGGESTION_CONFIG = Object.freeze({
  * @see {@link BaseQueryDto} - 使用分页相关配置的基础DTO
  */
 export const DATA_MAPPER_CONFIG = Object.freeze({
-  MAX_FIELD_MAPPINGS: 100, // 单个规则最大字段映射数
-  MAX_NESTED_DEPTH: 10, // 最大嵌套深度
-  MAX_ARRAY_SIZE: 1000, // 最大数组大小
-  DEFAULT_PAGE_SIZE: 10, // 默认分页大小
-  MAX_PAGE_SIZE: 100, // 最大分页大小
-  DEFAULT_TIMEOUT_MS: HTTP_TIMEOUTS.REQUEST.NORMAL_MS, // 默认超时时间 - 使用统一配置
-  MAX_RULE_NAME_LENGTH: 100, // 最大规则名称长度
-  MAX_DESCRIPTION_LENGTH: 500, // 最大描述长度
+  // 仅保留被 DTO 直接使用的校验长度，避免引入全局复杂参数
+  MAX_RULE_NAME_LENGTH: 100,
+  MAX_DESCRIPTION_LENGTH: 500,
 } as const);
 
 /**
@@ -315,7 +267,7 @@ export const API_TYPE_VALUES = Object.values(API_TYPES);
 export const RULE_LIST_TYPES = Object.freeze({
   QUOTE_FIELDS: "quote_fields",
   BASIC_INFO_FIELDS: "basic_info_fields",
-  INDEX_FIELDS: "index_fields", // 生产就绪 - 支持指数行情查询 (get-index-quote)
+  INDEX_FIELDS: "index_fields", // 仍保留，避免影响现有使用面
 } as const);
 
 /**
@@ -334,9 +286,7 @@ export type RuleListType =
  */
 export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
 
-// Note: Rule type usage status moved to production-types.config.ts (PRODUCTION_TYPE_REGISTRY)
-// for unified configuration management with enhanced features including performance profiles,
-// fallback types, and comprehensive validation.
+// 说明：已删除 production-types 配置与运行时验证工具，保持常量最小集合
 
 
 /**
@@ -345,14 +295,7 @@ export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
  * @description 定义数据转换操作的默认参数值
  * @usage 在转换规则创建和执行时提供标准默认值
  */
-export const TRANSFORMATION_DEFAULTS = Object.freeze({
-  MULTIPLY_VALUE: 1,
-  DIVIDE_VALUE: 1,
-  ADD_VALUE: 0,
-  SUBTRACT_VALUE: 0,
-  FORMAT_TEMPLATE: "{value}",
-  VALUE_PLACEHOLDER: "{value}",
-} as const);
+// 已移除：转换默认值（非必要）
 
 
 
@@ -361,16 +304,7 @@ export const TRANSFORMATION_DEFAULTS = Object.freeze({
 /**
  * 数据映射默认值常量
  */
-export const DATA_MAPPER_DEFAULTS = Object.freeze({
-  PAGE_NUMBER: 1,
-  PAGE_SIZE: 10,
-  SIMILARITY_THRESHOLD: FIELD_SUGGESTION_CONFIG.SIMILARITY_THRESHOLD,
-  MAX_SUGGESTIONS: FIELD_SUGGESTION_CONFIG.MAX_SUGGESTIONS,
-  TIMEOUT_MS: DATA_MAPPER_CONFIG.DEFAULT_TIMEOUT_MS,
-  RETRY_ATTEMPTS: CORE_LIMITS.RATE_LIMITS.MAX_RETRIES,
-  ENABLE_CACHING: true,
-  LOG_LEVEL: "info",
-} as const);
+// 已移除：默认值集合（非必要）
 
 
 
@@ -379,6 +313,5 @@ export const DATA_MAPPER_DEFAULTS = Object.freeze({
  * 已删除：DATA_MAPPER_CACHE_CONFIG 常量已迁移到专用的 DataMapperCache 模块配置中
  * 位置：src/core/05-caching/module/data-mapper-cache/constants/
  */
-
 
 

@@ -216,20 +216,4 @@ export class SafeLogLevelController {
 /**
  * 创建安全的日志级别控制器实例
  */
-export function createSafeLogLevelController(): SafeLogLevelController {
-  return SafeLogLevelController.getInstance();
-}
-
-/**
- * 安全的日志级别检查函数（全局使用）
- */
-export function safeShoudLog(context: string, level: LogLevel): boolean {
-  try {
-    const controller = SafeLogLevelController.getInstance();
-    return controller.shouldLog(context, level);
-  } catch (error) {
-    // 最后的安全网：即使SafeLogLevelController也失败时，允许所有日志
-    console.warn("⚠️ safeShoudLog failed, allowing all logs:", error);
-    return true;
-  }
-}
+// 已移除 createSafeLogLevelController 辅助方法（未在业务中使用）

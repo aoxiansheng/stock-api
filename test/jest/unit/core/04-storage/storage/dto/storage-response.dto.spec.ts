@@ -161,18 +161,11 @@ describe('StorageResponseDto', () => {
 
 describe('StorageStatsDto', () => {
   describe('Class instantiation and property coverage', () => {
-    it('should create StorageStatsDto instance with all properties', () => {
+    it('should create StorageStatsDto instance with persistent properties', () => {
       // Arrange
       const stats = new StorageStatsDto();
 
-      // Act - 设置属性以覆盖所有字段
-      stats.cache = {
-        totalKeys: 1000,
-        totalMemoryUsage: 256000000,
-        hitRate: 0.85,
-        avgTtl: 3600
-      };
-
+      // Act - 设置持久化属性
       stats.persistent = {
         totalDocuments: 500,
         totalSizeBytes: 1000000000,
@@ -180,32 +173,16 @@ describe('StorageStatsDto', () => {
         providerCounts: { 'longport': 300, 'yahoo': 200 }
       };
 
-      stats.performance = {
-        avgStorageTime: 8.5,
-        avgRetrievalTime: 3.2,
-        operationsPerSecond: 150.5,
-        errorRate: 0.02
-      };
-
       // Assert - 验证所有属性设置
       expect(stats).toBeInstanceOf(StorageStatsDto);
-      expect(stats.cache.totalKeys).toBe(1000);
       expect(stats.persistent.totalDocuments).toBe(500);
-      expect(stats.performance.operationsPerSecond).toBe(150.5);
     });
 
     it('should handle edge case values in StorageStatsDto', () => {
       // Arrange & Act
       const stats = new StorageStatsDto();
 
-      // 边界值测试
-      stats.cache = {
-        totalKeys: 0,
-        totalMemoryUsage: 0,
-        hitRate: 0.0,
-        avgTtl: 0
-      };
-
+      // 边界值测试（仅持久化）
       stats.persistent = {
         totalDocuments: 999999,
         totalSizeBytes: 999000000000,
@@ -213,17 +190,8 @@ describe('StorageStatsDto', () => {
         providerCounts: {}
       };
 
-      stats.performance = {
-        avgStorageTime: 0.0,
-        avgRetrievalTime: 0.0,
-        operationsPerSecond: 0.0,
-        errorRate: 1.0
-      };
-
       // Assert - 验证边界值处理
-      expect(stats.cache.hitRate).toBe(0.0);
       expect(stats.persistent.totalDocuments).toBe(999999);
-      expect(stats.performance.errorRate).toBe(1.0);
     });
   });
 });

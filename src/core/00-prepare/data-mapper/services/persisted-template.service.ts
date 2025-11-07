@@ -20,8 +20,7 @@ import {
   FlexibleMappingRuleDocument,
 } from "../schemas/flexible-mapping-rule.schema";
 import { RuleAlignmentService } from "./rule-alignment.service";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 
 /**
  * 🏗️ 简化的持久化模板服务
@@ -37,42 +36,9 @@ export class PersistedTemplateService {
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
     private readonly ruleAlignmentService: RuleAlignmentService,
-    private readonly eventBus: EventEmitter2,
   ) {}
 
-  /**
-   * 🎯 事件驱动监控事件发送
-   * 替代直接调用 CollectorService，使用事件总线异步发送监控事件
-   */
-  private emitMonitoringEvent(metricName: string, data: any) {
-    setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "data_mapper_template",
-        metricType: data.type || "business",
-        metricName,
-        metricValue: data.duration || data.value || 1,
-        tags: {
-          component: "persisted-template",
-          operation: data.operation,
-          status: data.success ? "success" : "error",
-          templateName: data.templateName,
-          provider: data.provider,
-          apiType: data.apiType,
-          ruleId: data.ruleId,
-          ruleName: data.ruleName,
-          result: data.result,
-          reason: data.reason,
-          error: data.error,
-          totalTemplates: data.totalTemplates,
-          created: data.created,
-          skipped: data.skipped,
-          failed: data.failed,
-          successRate: data.successRate,
-        },
-      });
-    });
-  }
+  
 
   /**
    * 预设模板的硬编码原始配置
@@ -1016,22 +982,9 @@ export class PersistedTemplateService {
           if (existingRule) {
             skipped++;
             details.push(`已跳过 ${template.name}: 规则已存在`);
-            this.logger.debug(`跳过已存在的映射规则: ${ruleName}`);
-
-            // ✅ 跳过操作监控 - 事件驱动
-            this.emitMonitoringEvent("rule_initialization_skipped", {
-              type: "business",
-              operation: "initialize_preset_rule",
-              duration: Date.now() - templateStartTime,
-              templateName: template.name,
-              provider: template.provider,
-              apiType: template.apiType,
-              result: "skipped",
-              reason: "rule_already_exists",
-              success: false,
-            });
-            continue;
-          }
+          this.logger.debug(`跳过已存在的映射规则: ${ruleName}`);
+          continue;
+        }
 
           // 使用智能对齐服务生成规则
           const { rule } =
@@ -1050,20 +1003,6 @@ export class PersistedTemplateService {
             apiType: template.apiType,
             transDataRuleListType,
           });
-
-          // ✅ 成功创建监控 - 事件驱动
-          this.emitMonitoringEvent("rule_initialization_success", {
-            type: "business",
-            operation: "initialize_preset_rule",
-            duration: Date.now() - templateStartTime,
-            templateName: template.name,
-            ruleName: rule.name,
-            provider: template.provider,
-            apiType: template.apiType,
-            ruleId: rule._id?.toString(),
-            result: "created",
-            success: true,
-          });
         } catch (error) {
           failed++;
           details.push(`失败 ${template.name}: ${error.message}`);
@@ -1072,50 +1011,14 @@ export class PersistedTemplateService {
             error: error.message,
             stack: error.stack,
           });
-
-          // ✅ 失败监控 - 事件驱动
-          this.emitMonitoringEvent("rule_initialization_failed", {
-            type: "business",
-            operation: "initialize_preset_rule",
-            duration: Date.now() - templateStartTime,
-            templateName: template.name,
-            provider: template.provider,
-            apiType: template.apiType,
-            error: error.message,
-            result: "failed",
-            success: false,
-          });
         }
       }
 
       const summary = { created, skipped, failed, details };
 
-      // ✅ 整体操作监控 - 事件驱动
-      this.emitMonitoringEvent("batch_rule_initialization_completed", {
-        type: "business",
-        operation: "initialize_preset_rules_batch",
-        duration: Date.now() - startTime,
-        totalTemplates: presetTemplates.length,
-        created,
-        skipped,
-        failed,
-        successRate:
-          presetTemplates.length > 0 ? created / presetTemplates.length : 0,
-        success: true,
-      });
-
       this.logger.log("预设映射规则初始化完成", summary);
       return summary;
     } catch (error) {
-      // ✅ 批量操作错误监控 - 事件驱动
-      this.emitMonitoringEvent("batch_rule_initialization_failed", {
-        type: "business",
-        operation: "initialize_preset_rules_batch",
-        duration: Date.now() - startTime,
-        error: error.message,
-        success: false,
-      });
-
       this.logger.error("预设映射规则初始化过程发生错误", {
         error: error.message,
         stack: error.stack,

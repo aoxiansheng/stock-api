@@ -1,3 +1,2 @@
-// basic-cache模块专有常量
+// basic-cache模块专有常量（极简）
 export * from './cache.constants';
-export * from './cache-config.constants';

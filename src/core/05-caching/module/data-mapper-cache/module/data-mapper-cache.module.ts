@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 // DataMapperCacheService removed - migration completed
 import { DataMapperCacheStandardizedService } from "../services/data-mapper-cache-standardized.service";
-import { EventEmitterModule } from "@nestjs/event-emitter";
+// import { EventEmitterModule } from "@nestjs/event-emitter";
 
 /**
  * DataMapper 缓存模块 - 标准化服务
@@ -23,7 +23,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
  */
 @Module({
   imports: [
-    EventEmitterModule, // ✅ 事件驱动监控依赖
+    // 事件驱动监控依赖已移除（聚焦核心缓存功能）
   ],
   providers: [
     // 📡 Redis客户端提供者 - 专用于数据映射缓存
@@ -99,8 +99,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
     DataMapperCacheStandardizedService,
 
     // 🏷️ 别名提供者 - 使用标准化服务
-    { provide: 'IDataMapperCache', useExisting: DataMapperCacheStandardizedService },
-    { provide: 'DataMapperCacheStandard', useExisting: DataMapperCacheStandardizedService },
+    // 别名提供者移除：仓库内无引用，避免扩大依赖面
 
     // 📋 Configuration provider for standardized service
     {
@@ -141,8 +140,7 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
     DataMapperCacheStandardizedService, // 🆕 标准化接口 - Migration completed
 
     // 🏷️ 别名导出便于识别
-    'IDataMapperCache',
-    'DataMapperCacheStandard',
+    // 别名导出移除
 
     // 📡 导出Redis客户端供测试和其他模块使用
     'DATA_MAPPER_REDIS_CLIENT',
@@ -150,11 +148,5 @@ import { EventEmitterModule } from "@nestjs/event-emitter";
   ],
 })
 export class DataMapperCacheModule {
-  constructor() {
-    // 📊 模块初始化日志
-    console.log('✅ DataMapperCacheModule initialized with standardized architecture');
-    console.log('   🆕 Standardized service: DataMapperCacheStandardizedService (StandardCacheModuleInterface)');
-    console.log('   ✅ Migration status: COMPLETED - All consumers migrated');
-    console.log('   🔄 Backward compatibility: Maintained through alias providers');
-  }
+  // 降噪：移除非必要的运行期初始化日志
 }

@@ -3,6 +3,7 @@ import { WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 import { createLogger } from "@common/logging/index";
 import { WebSocketRateLimitConfig } from "../interfaces/rate-limit.interfaces";
+import { StreamConfigService } from "../config/stream-config.service";
 
 /**
  * WebSocket DoS防护Guard
@@ -18,23 +19,8 @@ import { WebSocketRateLimitConfig } from "../interfaces/rate-limit.interfaces";
 export class WebSocketRateLimitGuard {
   private readonly logger = createLogger(WebSocketRateLimitGuard.name);
 
-  // 默认配置
-  private readonly config: WebSocketRateLimitConfig = {
-    enabled: true,
-    limit: parseInt(process.env.WS_MAX_CONNECTIONS_PER_IP || "10"),
-    windowMs: 60 * 1000, // 1分钟窗口
-    maxConnectionsPerIP: parseInt(
-      process.env.WS_MAX_CONNECTIONS_PER_IP || "10",
-    ),
-    maxConnectionsPerUser: parseInt(
-      process.env.WS_MAX_CONNECTIONS_PER_USER || "5",
-    ),
-    messagesPerMinute: parseInt(process.env.WS_MESSAGES_PER_MINUTE || "120"),
-    maxSubscriptionsPerConnection: parseInt(
-      process.env.WS_MAX_SUBSCRIPTIONS_PER_CONNECTION || "50",
-    ),
-    burstMessages: parseInt(process.env.WS_BURST_MESSAGES || "20"),
-  };
+  // 默认配置（由 StreamConfigService 统一提供，避免散落 ENV）
+  private readonly config: WebSocketRateLimitConfig;
 
   // 连接计数 - IP级别
   private readonly ipConnections = new Map<string, Set<string>>();
@@ -51,10 +37,22 @@ export class WebSocketRateLimitGuard {
   // 订阅计数
   private readonly subscriptionCounters = new Map<string, Set<string>>();
 
-  constructor() {
+  constructor(private readonly streamConfigService: StreamConfigService) {
+    const ws = this.streamConfigService.getSecurityConfig().websocket;
+    this.config = {
+      enabled: true,
+      // 将 limit 等价为每 IP 最大连接数
+      limit: ws.maxConnectionsPerIP,
+      windowMs: 60 * 1000,
+      maxConnectionsPerIP: ws.maxConnectionsPerIP,
+      maxConnectionsPerUser: ws.maxConnectionsPerUser,
+      messagesPerMinute: ws.messagesPerMinute,
+      maxSubscriptionsPerConnection: ws.maxSubscriptionsPerConnection,
+      burstMessages: ws.burstMessages,
+    };
+
     // 定期清理过期数据
     setInterval(() => this.cleanup(), 60 * 1000); // 每分钟清理
-
     this.logger.log("WebSocket DoS防护已启用", this.config);
   }
 

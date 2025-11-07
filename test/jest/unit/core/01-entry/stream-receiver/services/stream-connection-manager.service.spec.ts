@@ -3,8 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StreamConnectionManagerService } from '@core/01-entry/stream-receiver/services/stream-connection-manager.service';
 import { StreamDataFetcherService } from '@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service';
-import { RateLimitService } from '@auth/services/infrastructure/rate-limit.service';
 import { ConnectionManagementCallbacks } from '@core/01-entry/stream-receiver/interfaces/connection-management.interface';
+
+// Mock token for removed auth service
+const RATE_LIMIT_SERVICE = 'RateLimitService';
+
+type RateLimitService = {
+  checkRateLimit: jest.Mock;
+  getCurrentUsage?: jest.Mock;
+  resetRateLimit?: jest.Mock;
+  getUsageStatistics?: jest.Mock;
+};
 
 describe('StreamConnectionManagerService', () => {
   let service: StreamConnectionManagerService;
@@ -15,7 +24,7 @@ describe('StreamConnectionManagerService', () => {
   let streamDataFetcherService: jest.Mocked<StreamDataFetcherService>;
 
   const mockCallbacks: ConnectionManagementCallbacks = {
-    emitMonitoringEvent: jest.fn(),
+//     emitMonitoringEvent: jest.fn(),
     emitBusinessEvent: jest.fn(),
     recordConnectionMetrics: jest.fn(),
   };
@@ -68,7 +77,7 @@ describe('StreamConnectionManagerService', () => {
         StreamConnectionManagerService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
-        { provide: RateLimitService, useValue: mockRateLimitService },
+        { provide: RATE_LIMIT_SERVICE, useValue: mockRateLimitService },
         { provide: StreamDataFetcherService, useValue: mockStreamDataFetcherService },
       ],
     }).compile();
@@ -76,7 +85,7 @@ describe('StreamConnectionManagerService', () => {
     service = module.get<StreamConnectionManagerService>(StreamConnectionManagerService);
     configService = module.get(ConfigService);
     eventEmitter = module.get(EventEmitter2);
-    rateLimitService = module.get(RateLimitService);
+    rateLimitService = module.get(RATE_LIMIT_SERVICE);
     streamDataFetcherService = module.get(StreamDataFetcherService);
   });
 

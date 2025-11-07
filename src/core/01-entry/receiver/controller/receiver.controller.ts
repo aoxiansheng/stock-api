@@ -1,5 +1,4 @@
-import { REFERENCE_DATA } from "@common/constants/domain";
-import { API_OPERATIONS } from "@common/constants/domain";
+// 文档示例使用字面量，避免对领域常量的运行时依赖
 import {
   Controller,
   Post,
@@ -15,9 +14,7 @@ import {
   ApiKeyAuthResponses,
 } from "@common/core/decorators/swagger-responses.decorator";
 
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { ReadAccess } from "@authv2/decorators";
 
 import { DataRequestDto } from "../dto/data-request.dto";
 import { DataResponseDto } from "../dto/data-response.dto";
@@ -30,8 +27,7 @@ export class ReceiverController {
 
   constructor(private readonly receiverService: ReceiverService) {}
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Post("data")
   @HttpCode(200)
   @ApiOperation({
@@ -69,16 +65,16 @@ export class ReceiverController {
 - \`get-index-quote\`: 指数行情 (主要指数实时数据)
 
 ### 📝 示例请求
-\`\`\`json
-{
-  "symbols": ["AAPL", REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT, "000001.SZ"],
-  "receiverType": API_OPERATIONS.STOCK_DATA.GET_QUOTE,
-  "options": {
-    "realtime": true,
-    "timeout": 3000
-  }
-}
-\`\`\`
+      \`\`\`json
+      {
+        "symbols": ["AAPL.US", "00700.HK", "000001.SZ"],
+        "receiverType": "get-stock-quote",
+        "options": {
+          "realtime": true,
+          "timeout": 3000
+        }
+      }
+      \`\`\`
 
 ### ⚠️ 使用建议
 - 适合需要极低延迟的实时数据场景
@@ -108,7 +104,7 @@ export class ReceiverController {
               timestamp: "2024-01-01T15:30:01.123Z", // 毫秒级时间戳
             },
             {
-              symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+              symbol: "00700.HK",
               lastPrice: 385.6,
               change: -4.2,
               changePercent: -1.08,
@@ -122,7 +118,7 @@ export class ReceiverController {
           ],
           metadata: {
             requestId: "req_realtime_1704110400123",
-            provider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+            provider: "longport",
             processingTimeMs: 23, // 超快响应时间
             cacheUsed: false, // 强时效优先获取最新数据
             cacheTTL: 1, // 1秒缓存

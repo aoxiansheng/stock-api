@@ -10,8 +10,7 @@ import {
 
 import { IsArray, IsString, ArrayNotEmpty } from "class-validator";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { Auth } from "../../../../auth/decorators/auth.decorator";
-import { UserRole } from "../../../../auth/enums/user-role.enum";
+import { AdminOnly } from "@authv2/decorators";
 import {
   ApiStandardResponses,
   JwtAuthResponses,
@@ -39,7 +38,7 @@ export class SystemPersistenceController {
 
   @Post("persist-presets")
   @HttpCode(HttpStatus.OK)
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "持久化预设模板",
     description: "将硬编码的预设模板保存到数据库中，支持后续编辑",
@@ -57,7 +56,7 @@ export class SystemPersistenceController {
 
   @Post(":id/reset")
   @HttpCode(HttpStatus.OK)
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "重置单个预设模板",
     description: "将指定模板恢复为硬编码的原始配置",
@@ -71,7 +70,7 @@ export class SystemPersistenceController {
 
   @Post("reset-bulk")
   @HttpCode(HttpStatus.OK)
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "批量重置预设模板",
     description: "根据提供的 ID 列表批量重置预设模板",
@@ -89,7 +88,7 @@ export class SystemPersistenceController {
 
   @Post("reset-all")
   @HttpCode(HttpStatus.OK)
-  @Auth([UserRole.ADMIN])
+  @AdminOnly()
   @ApiOperation({
     summary: "全量重置预设模板",
     description: "删除所有预设模板并恢复为硬编码配置",

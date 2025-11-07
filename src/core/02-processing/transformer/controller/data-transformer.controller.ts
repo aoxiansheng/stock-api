@@ -4,7 +4,6 @@ import { createLogger } from "@common/logging/index";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
 import { TRANSFORMER_ERROR_CODES } from '../constants/transformer-error-codes.constants';
 
-import { REFERENCE_DATA } from "@common/constants/domain";
 import {
   ApiSuccessResponse,
   ApiStandardResponses,
@@ -17,8 +16,7 @@ import {
   ValidationPipe,
   BadRequestException,
 } from "@nestjs/common";
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { ReadAccess } from "@authv2/decorators";
 
 import { DataTransformRequestDto } from "../dto/data-transform-request.dto";
 import { DataTransformResponseDto } from "../dto/data-transform-response.dto";
@@ -33,7 +31,7 @@ export class DataTransformerController {
     private readonly dataTransformerService: DataTransformerService,
   ) {}
 
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @Post("data-transform")
   @ApiOperation({
     summary: "数据转换",
@@ -49,7 +47,7 @@ export class DataTransformerController {
           success: true,
           transformedData: [
             {
-              symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
+              symbol: "00700.HK",
               lastPrice: 385.6,
               change: -4.2,
               changePercent: -1.08,
@@ -62,10 +60,10 @@ export class DataTransformerController {
             processingTimeMs: 25,
             dataMapperRuleId: "rule_123",
             ruleName: "LongPort股票行情映射",
-            timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
+            timestamp: "2024-01-01T12:00:00.000Z",
           },
         },
-        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
+        timestamp: "2024-01-01T12:00:00.000Z",
       },
     },
   })
@@ -108,7 +106,7 @@ export class DataTransformerController {
     }
   }
 
-  @ApiKeyAuth([Permission.DATA_READ])
+  @ReadAccess()
   @Post("data-transform-batch")
   @ApiOperation({
     summary: "批量数据转换",
@@ -121,23 +119,23 @@ export class DataTransformerController {
         statusCode: 200,
         message: "批量数据转换成功",
         data: [
-          {
-            success: true,
-            transformedData: [
-              {
-                symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
-                lastPrice: 385.6,
-              },
-            ],
-            metadata: { recordsProcessed: 1, processingTimeMs: 25 },
-          },
+            {
+              success: true,
+              transformedData: [
+                {
+                  symbol: "00700.HK",
+                  lastPrice: 385.6,
+                },
+              ],
+              metadata: { recordsProcessed: 1, processingTimeMs: 25 },
+            },
           {
             success: true,
             transformedData: [{ symbol: "AAPL.US", lastPrice: 195.89 }],
             metadata: { recordsProcessed: 1, processingTimeMs: 28 },
           },
         ],
-        timestamp: REFERENCE_DATA.TEST_TIMESTAMPS.REFERENCE_DATE,
+        timestamp: "2024-01-01T12:00:00.000Z",
       },
     },
   })

@@ -8,7 +8,7 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger } from "@common/logging/index";
 import { UniversalExceptionFactory } from "@common/core/exceptions";
-import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+
 import { SHARED_ERROR_CODES } from "../constants/shared-error-codes.constants";
 // Import from the new Market Domain layer
 import {
@@ -815,18 +815,8 @@ export class MarketStatusService implements OnModuleDestroy {
   ) {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "market_status_service",
-          metricType: "business",
-          metricName: operation,
-          metricValue: duration,
-          tags: {
-            status_code: statusCode,
-            status: statusCode < 400 ? "success" : "error",
-            ...metadata,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("事件发送失败", { error: error.message, operation });
       }
@@ -841,18 +831,8 @@ export class MarketStatusService implements OnModuleDestroy {
   ) {
     setImmediate(() => {
       try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "market_status_service",
-          metricType: "cache",
-          metricName: `cache_${operation}`,
-          metricValue: duration,
-          tags: {
-            hit: hit.toString(),
-            operation,
-            ...metadata,
-          },
-        });
+        // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
       } catch (error) {
         this.logger.warn("缓存事件发送失败", {
           error: error.message,

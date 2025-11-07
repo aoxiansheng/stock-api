@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataChangeDetectorService, ChangeDetectionResult } from '@core/shared/services/data-change-detector.service';
-import { CacheService } from '@cache/services/cache.service';
+import { CacheService } from '@cachev2/cache.service';
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
 import { UnitTestSetup } from '../../../../../testbasic/setup/unit-test-setup';
 import { Market, MarketStatus, CHANGE_DETECTION_THRESHOLDS } from '@core/shared/constants/market.constants';
-import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
+// // import { SYSTEM_STATUS_EVENTS } from '@monitoring/contracts/events/system-status.events';
 
 describe('DataChangeDetectorService', () => {
   let service: DataChangeDetectorService;
@@ -113,8 +113,8 @@ describe('DataChangeDetectorService', () => {
   describe('detectSignificantChange', () => {
     describe('First time detection', () => {
       beforeEach(() => {
-        cacheService.safeGet.mockResolvedValue(null);
-        cacheService.safeSet.mockResolvedValue(undefined);
+        cacheService.get.mockResolvedValue(null);
+        cacheService.set.mockResolvedValue(undefined);
       });
 
       it('should detect change for first time data', async () => {
@@ -147,7 +147,7 @@ describe('DataChangeDetectorService', () => {
         await new Promise(resolve => setImmediate(resolve));
 
         expect(mockEventBus.emit).toHaveBeenCalledWith(
-          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//           SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
           expect.objectContaining({
             metricName: 'detect_significant_change_first_time',
             tags: expect.objectContaining({
@@ -168,7 +168,7 @@ describe('DataChangeDetectorService', () => {
           MarketStatus.TRADING
         );
 
-        expect(cacheService.safeSet).toHaveBeenCalled();
+        expect(cacheService.set).toHaveBeenCalled();
       });
     });
 
@@ -179,7 +179,7 @@ describe('DataChangeDetectorService', () => {
           ...mockSnapshot,
           checksum: service['calculateQuickChecksum'](mockStockData),
         };
-        cacheService.safeGet.mockResolvedValue(sameChecksumSnapshot);
+        cacheService.get.mockResolvedValue(sameChecksumSnapshot);
       });
 
       it('should detect no change when checksum matches', async () => {
@@ -214,7 +214,7 @@ describe('DataChangeDetectorService', () => {
         await new Promise(resolve => setImmediate(resolve));
 
         expect(mockEventBus.emit).toHaveBeenCalledWith(
-          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//           SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
           expect.objectContaining({
             metricName: 'detect_no_change',
             tags: expect.objectContaining({
@@ -228,8 +228,8 @@ describe('DataChangeDetectorService', () => {
 
     describe('Field change detection', () => {
       beforeEach(() => {
-        cacheService.safeGet.mockResolvedValue(mockSnapshot);
-        cacheService.safeSet.mockResolvedValue(undefined);
+        cacheService.get.mockResolvedValue(mockSnapshot);
+        cacheService.set.mockResolvedValue(undefined);
       });
 
       it('should detect significant price change', async () => {
@@ -307,7 +307,7 @@ describe('DataChangeDetectorService', () => {
 
     describe('Error handling', () => {
       it('should handle cache service errors gracefully', async () => {
-        cacheService.safeGet.mockRejectedValue(new Error('Cache service error'));
+        cacheService.get.mockRejectedValue(new Error('Cache service error'));
 
         const result = await service.detectSignificantChange(
           'AAPL',
@@ -326,7 +326,7 @@ describe('DataChangeDetectorService', () => {
         mockEventBus.emit.mockClear();
         
         const error = new Error('Service error');
-        cacheService.safeGet.mockRejectedValue(error);
+        cacheService.get.mockRejectedValue(error);
 
         // Mock the private method to throw error
         jest.spyOn(service as any, 'getLastSnapshot').mockRejectedValue(error);
@@ -344,7 +344,7 @@ describe('DataChangeDetectorService', () => {
         await new Promise(resolve => setImmediate(resolve));
 
         expect(mockEventBus.emit).toHaveBeenCalledWith(
-          SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//           SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
           expect.objectContaining({
             metricName: 'detect_significant_change_failed',
             tags: expect.objectContaining({
@@ -593,7 +593,7 @@ describe('DataChangeDetectorService', () => {
         }
 
         // Trigger cleanup by calling saveSnapshot
-        cacheService.safeSet.mockResolvedValue(undefined);
+        cacheService.set.mockResolvedValue(undefined);
         await service['saveSnapshot']('newSymbol', mockStockData);
 
         // Cache should be cleaned up
@@ -603,16 +603,16 @@ describe('DataChangeDetectorService', () => {
 
     describe('Redis cache integration', () => {
       it('should handle Redis cache hits', async () => {
-        cacheService.safeGet.mockResolvedValue(mockSnapshot);
+        cacheService.get.mockResolvedValue(mockSnapshot);
 
         const snapshot = await service['getLastSnapshot']('AAPL');
 
         expect(snapshot).toEqual(mockSnapshot);
-        expect(cacheService.safeGet).toHaveBeenCalledWith('data_change_detector:snapshot:AAPL');
+        expect(cacheService.get).toHaveBeenCalledWith('data_change_detector:snapshot:AAPL');
       });
 
       it('should fallback to memory cache when Redis fails', async () => {
-        cacheService.safeGet.mockResolvedValue(null);
+        cacheService.get.mockResolvedValue(null);
         service['snapshotCache'].set('AAPL', mockSnapshot);
 
         const snapshot = await service['getLastSnapshot']('AAPL');
@@ -621,7 +621,7 @@ describe('DataChangeDetectorService', () => {
       });
 
       it('should handle Redis errors gracefully', async () => {
-        cacheService.safeGet.mockRejectedValue(new Error('Redis error'));
+        cacheService.get.mockRejectedValue(new Error('Redis error'));
         service['snapshotCache'].set('AAPL', mockSnapshot);
 
         const snapshot = await service['getLastSnapshot']('AAPL');
@@ -642,7 +642,7 @@ describe('DataChangeDetectorService', () => {
       });
 
       const loggerWarnSpy = jest.spyOn(service['logger'], 'warn').mockImplementation();
-      cacheService.safeGet.mockResolvedValue(mockSnapshot);
+      cacheService.get.mockResolvedValue(mockSnapshot);
 
       // 直接调用emitCacheEvent方法，而不是通过detectSignificantChange
       service['emitCacheEvent']('get', true, 10, { symbol: 'AAPL' });
@@ -666,7 +666,7 @@ describe('DataChangeDetectorService', () => {
       // 确保mock被清除
       mockEventBus.emit.mockClear();
       
-      cacheService.safeGet.mockResolvedValue(mockSnapshot);
+      cacheService.get.mockResolvedValue(mockSnapshot);
 
       await service['getLastSnapshot']('AAPL');
 
@@ -674,7 +674,7 @@ describe('DataChangeDetectorService', () => {
       await new Promise(resolve => setImmediate(resolve));
 
       expect(mockEventBus.emit).toHaveBeenCalledWith(
-        SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
+//         SYSTEM_STATUS_EVENTS.METRIC_COLLECTED,
         expect.objectContaining({
           metricType: 'cache',
           metricName: 'cache_get',

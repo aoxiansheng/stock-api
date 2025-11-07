@@ -1,10 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
 import { WsAuthGuard } from '@core/01-entry/stream-receiver/guards/ws-auth.guard';
-import { ApiKeyManagementService } from '@auth/services/domain/apikey-management.service';
-import { RateLimitService } from '@auth/services/infrastructure/rate-limit.service';
-import { Permission } from '@auth/enums/user-role.enum';
+import { Permission } from '@authv2';
 import { Socket } from 'socket.io';
+
+// Mock tokens for removed auth services
+const API_KEY_MANAGEMENT_SERVICE = 'ApiKeyManagementService';
+const RATE_LIMIT_SERVICE = 'RateLimitService';
+
+type ApiKeyManagementService = {
+  validateApiKey: jest.Mock;
+  checkPermission?: jest.Mock;
+  recordApiKeyUsage?: jest.Mock;
+};
+
+type RateLimitService = {
+  checkRateLimit: jest.Mock;
+  recordRequest?: jest.Mock;
+};
 
 describe('WsAuthGuard', () => {
   let guard: WsAuthGuard;
@@ -62,14 +75,14 @@ describe('WsAuthGuard', () => {
     module = await Test.createTestingModule({
       providers: [
         WsAuthGuard,
-        { provide: ApiKeyManagementService, useValue: apiKeyServiceMock },
-        { provide: RateLimitService, useValue: rateLimitServiceMock },
+        { provide: API_KEY_MANAGEMENT_SERVICE, useValue: apiKeyServiceMock },
+        { provide: RATE_LIMIT_SERVICE, useValue: rateLimitServiceMock },
       ],
     }).compile();
 
     guard = module.get<WsAuthGuard>(WsAuthGuard);
-    apiKeyService = module.get(ApiKeyManagementService);
-    rateLimitService = module.get(RateLimitService);
+    apiKeyService = module.get(API_KEY_MANAGEMENT_SERVICE);
+    rateLimitService = module.get(RATE_LIMIT_SERVICE);
 
     // Reset mocks
     jest.clearAllMocks();

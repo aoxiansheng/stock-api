@@ -3,13 +3,11 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 import { StreamCacheStandardizedService } from "../services/stream-cache-standardized.service";
 import {
-  STREAM_CACHE_CONFIG,
   DEFAULT_STREAM_CACHE_CONFIG,
-} from "../constants/stream-cache.constants";
-import {
-  CACHE_REDIS_CLIENT_TOKEN,
   STREAM_CACHE_CONFIG_TOKEN,
-} from "../../../../../monitoring/contracts";
+  STREAM_CACHE_REDIS_CLIENT_TOKEN,
+} from "../constants/stream-cache.constants";
+
 
 /**
  * 流数据缓存模块
@@ -29,7 +27,7 @@ import {
   providers: [
     // Redis客户端提供者 - 专用于流数据缓存
     {
-      provide: CACHE_REDIS_CLIENT_TOKEN,
+      provide: STREAM_CACHE_REDIS_CLIENT_TOKEN,
       useFactory: (configService: ConfigService) => {
         const redisConfig = {
           host: configService.get<string>("redis.host", "localhost"),
@@ -98,27 +96,42 @@ import {
     {
       provide: STREAM_CACHE_CONFIG_TOKEN,
       useFactory: (configService: ConfigService) => {
+        // 统一从环境变量获取（存在则覆盖），否则使用默认值
+        const n = (key: string, def: number) => {
+          const v = configService.get<string | number>(key);
+          if (v === undefined || v === null) return def;
+          const num = typeof v === 'number' ? v : parseInt(String(v), 10);
+          return Number.isFinite(num) ? num : def;
+        };
+        const b = (key: string, def: boolean) => {
+          const v = configService.get<string | boolean>(key);
+          if (v === undefined || v === null) return def;
+          if (typeof v === 'boolean') return v;
+          const s = String(v).toLowerCase();
+          return s === 'true' || s === '1' || s === 'yes';
+        };
+
         return {
-          hotCacheTTL: configService.get<number>(
-            "stream_cache.hot_ttl_ms",
-            DEFAULT_STREAM_CACHE_CONFIG.hotCacheTTL,
-          ),
-          warmCacheTTL: configService.get<number>(
-            "stream_cache.warm_ttl_seconds",
-            DEFAULT_STREAM_CACHE_CONFIG.warmCacheTTL,
-          ),
-          maxHotCacheSize: configService.get<number>(
-            "stream_cache.max_hot_size",
-            DEFAULT_STREAM_CACHE_CONFIG.maxHotCacheSize,
-          ),
-          cleanupInterval: configService.get<number>(
-            "stream_cache.cleanup_interval_ms",
-            DEFAULT_STREAM_CACHE_CONFIG.cleanupInterval,
-          ),
-          compressionThreshold: configService.get<number>(
-            "stream_cache.compression_threshold",
-            DEFAULT_STREAM_CACHE_CONFIG.compressionThreshold,
-          ),
+          // 最小必要配置
+          hotCacheTTL: n('STREAM_CACHE_HOT_TTL_MS', DEFAULT_STREAM_CACHE_CONFIG.hotCacheTTL),
+          warmCacheTTL: n('STREAM_CACHE_WARM_TTL_SECONDS', DEFAULT_STREAM_CACHE_CONFIG.warmCacheTTL),
+          maxHotCacheSize: n('STREAM_CACHE_MAX_HOT_SIZE', DEFAULT_STREAM_CACHE_CONFIG.maxHotCacheSize),
+          streamBatchSize: n('STREAM_CACHE_BATCH_SIZE', DEFAULT_STREAM_CACHE_CONFIG.streamBatchSize),
+
+          // 其他配置保持默认（尽量精简对外环境变量）
+          connectionTimeout: DEFAULT_STREAM_CACHE_CONFIG.connectionTimeout,
+          heartbeatInterval: DEFAULT_STREAM_CACHE_CONFIG.heartbeatInterval,
+          cleanupIntervalMs: DEFAULT_STREAM_CACHE_CONFIG.cleanupIntervalMs,
+          maxCleanupItems: DEFAULT_STREAM_CACHE_CONFIG.maxCleanupItems,
+          memoryCleanupThreshold: DEFAULT_STREAM_CACHE_CONFIG.memoryCleanupThreshold,
+          compressionThresholdBytes: n('STREAM_CACHE_COMPRESSION_THRESHOLD_BYTES', DEFAULT_STREAM_CACHE_CONFIG.compressionThreshold),
+          compressionEnabled: b('STREAM_CACHE_COMPRESSION_ENABLED', DEFAULT_STREAM_CACHE_CONFIG.compressionEnabled),
+          slowOperationThresholdMs: DEFAULT_STREAM_CACHE_CONFIG.slowOperationThresholdMs,
+          statsLogIntervalMs: DEFAULT_STREAM_CACHE_CONFIG.statsLogIntervalMs,
+          maxRetryAttempts: DEFAULT_STREAM_CACHE_CONFIG.maxRetryAttempts,
+          baseRetryDelayMs: DEFAULT_STREAM_CACHE_CONFIG.baseRetryDelayMs,
+          retryDelayMultiplier: DEFAULT_STREAM_CACHE_CONFIG.retryDelayMultiplier,
+          enableFallback: DEFAULT_STREAM_CACHE_CONFIG.enableFallback,
         };
       },
       inject: [ConfigService],
@@ -132,14 +145,14 @@ import {
     // Export new standardized service for production use
     StreamCacheStandardizedService,
 
-    CACHE_REDIS_CLIENT_TOKEN,
+    STREAM_CACHE_REDIS_CLIENT_TOKEN,
     STREAM_CACHE_CONFIG_TOKEN,
   ],
 })
 export class StreamCacheModule implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
-    @Inject(CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
+    @Inject(STREAM_CACHE_REDIS_CLIENT_TOKEN) private readonly redisClient: Redis,
   ) {}
 
   async onModuleInit() {
@@ -149,9 +162,9 @@ export class StreamCacheModule implements OnModuleInit, OnModuleDestroy {
     const redisDb = this.configService.get<number>("redis.stream_cache_db", 1);
 
     console.log(`🚀 StreamCacheModule initialized`);
-    console.log(
-      `⚙️  StreamCache config: Hot TTL=${STREAM_CACHE_CONFIG.TTL.HOT_CACHE_TTL_S}s, Warm TTL=${STREAM_CACHE_CONFIG.TTL.WARM_CACHE_TTL_S}s`,
-    );
+    const hotMs = this.configService.get<number>('STREAM_CACHE_HOT_TTL_MS', DEFAULT_STREAM_CACHE_CONFIG.hotCacheTTL);
+    const warmS = this.configService.get<number>('STREAM_CACHE_WARM_TTL_SECONDS', DEFAULT_STREAM_CACHE_CONFIG.warmCacheTTL);
+    console.log(`⚙️  StreamCache config: Hot TTL=${hotMs}ms, Warm TTL=${warmS}s`);
 
     // 验证Redis连接
     try {

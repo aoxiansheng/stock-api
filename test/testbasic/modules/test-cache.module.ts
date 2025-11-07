@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CacheService } from '@cache/services/cache.service';
+import { CacheService } from '@cachev2/cache.service';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
 import { redisMockFactory, eventEmitterMockFactory } from '../mocks';
 import { TestInfrastructureModule } from './test-infrastructure.module';
@@ -30,19 +29,6 @@ import Redis from 'ioredis';
     {
       provide: EventEmitter2,
       useFactory: eventEmitterMockFactory,
-    },
-
-    // 缓存统一配置提供者
-    {
-      provide: 'cacheUnified',
-      useFactory: (configService: ConfigService) => {
-        const config = configService.get('cacheUnified');
-        if (!config) {
-          throw new Error('cacheUnified configuration not found in TestInfrastructureModule');
-        }
-        return config;
-      },
-      inject: [ConfigService],
     },
 
     // DataMapper 缓存专用Redis客户端Mock
@@ -115,7 +101,6 @@ import Redis from 'ioredis';
     Redis, // 导出Redis模拟，以支持@InjectRedis()装饰器
     'DATA_MAPPER_REDIS_CLIENT', // 导出DataMapper专用Redis客户端Mock
     EventEmitter2,
-    'cacheUnified',
     'dataMapperCacheConfig', // 导出DataMapper缓存配置
     PaginationService,
     CacheService,

@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongooseModule } from '@nestjs/mongoose';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getModelToken } from '@nestjs/mongoose';
 import { Reflector } from '@nestjs/core';
 
@@ -8,17 +7,11 @@ import { SymbolMapperModule } from '../../../../../../../src/core/00-prepare/sym
 import { SymbolMapperController } from '../../../../../../../src/core/00-prepare/symbol-mapper/controller/symbol-mapper.controller';
 import { SymbolMapperService } from '../../../../../../../src/core/00-prepare/symbol-mapper/services/symbol-mapper.service';
 import { SymbolMappingRepository } from '../../../../../../../src/core/00-prepare/symbol-mapper/repositories/symbol-mapping.repository';
-import { AuthModule } from '../../../../../../../src/auth/module/auth.module';
+import { AuthModule, AuthService as AuthService, ApiKeyAuthGuard } from '@authv2';
 import { PaginationModule } from '@common/modules/pagination/modules/pagination.module';
 import { PaginationService } from '@common/modules/pagination/services/pagination.service';
-import { SharedServicesModule } from '../../../../../../../src/core/shared/module/shared-services.module';
 import { DatabaseModule } from '../../../../../../../src/database/database.module';
-import { SymbolMapperCacheModule } from '../../../../../../../src/core/05-caching/module/symbol-mapper-cache/module/symbol-mapper-cache.module';
-import { SymbolMapperCacheStandardizedService } from '../../../../../../../src/core/05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service';
-import { FeatureFlags } from '@config/feature-flags.config';
 import { SymbolMappingRuleDocument } from '../../../../../../../src/core/00-prepare/symbol-mapper/schemas/symbol-mapping-rule.schema';
-import { AuthPerformanceService } from '../../../../../../../src/auth/services/infrastructure/auth-performance.service';
-import { ApiKeyAuthGuard } from '../../../../../../../src/auth/guards/apikey-auth.guard';
 
 // 声明MockSymbolMapperModule类，以便能在测试中获取
 class MockSymbolMapperModule {}
@@ -52,16 +45,7 @@ describe('SymbolMapperModule', () => {
         },
         SymbolMapperModule,
       ],
-      providers: [
-        {
-          provide: EventEmitter2,
-          useValue: {
-            emit: jest.fn(),
-            on: jest.fn(),
-            removeListener: jest.fn(),
-          },
-        },
-      ],
+      providers: [],
     })
       .overrideModule(DatabaseModule)
       .useModule({
@@ -74,7 +58,7 @@ describe('SymbolMapperModule', () => {
         module: class MockAuthModule {},
         providers: [
           {
-            provide: AuthPerformanceService,
+            provide: AuthService,
             useValue: {
               recordAuthFlowPerformance: jest.fn(),
               recordAuthCachePerformance: jest.fn(),
@@ -92,10 +76,10 @@ describe('SymbolMapperModule', () => {
             useFactory: (reflector, authPerformanceService) => {
               return new ApiKeyAuthGuard(reflector, authPerformanceService);
             },
-            inject: [Reflector, AuthPerformanceService],
+            inject: [Reflector, AuthService],
           }
         ],
-        exports: [AuthPerformanceService, ApiKeyAuthGuard, Reflector],
+        exports: [AuthService, ApiKeyAuthGuard, Reflector],
       })
       .overrideModule(PaginationModule)
       .useModule({
@@ -112,28 +96,7 @@ describe('SymbolMapperModule', () => {
         ],
         exports: [PaginationService],
       })
-      .overrideModule(SharedServicesModule)
-      .useModule({
-        module: class MockSharedServicesModule {},
-        providers: [
-          {
-            provide: FeatureFlags,
-            useValue: {
-              symbolMapper: {
-                enableCache: true,
-                enableMonitoring: true,
-              },
-            },
-          },
-        ],
-        exports: [FeatureFlags],
-      })
-      .overrideModule(SymbolMapperCacheModule)
-      .useModule({
-        module: class MockSymbolMapperCacheModule {},
-        providers: [],
-        exports: [],
-      })
+      // 无需覆盖 SharedServicesModule / SymbolMapperCacheModule（模块已移除依赖）
       // 添加对 SymbolMapperModule 的覆盖，将 EventEmitter2 注入到模块上下文中
       .overrideModule(SymbolMapperModule)
       .useModule({
@@ -147,14 +110,6 @@ describe('SymbolMapperModule', () => {
           SymbolMapperService,
           SymbolMappingRepository,
           {
-            provide: EventEmitter2,
-            useValue: {
-              emit: jest.fn(),
-              on: jest.fn(),
-              removeListener: jest.fn(),
-            },
-          },
-          {
             provide: PaginationService,
             useValue: {
               createPaginationDto: jest.fn(),
@@ -162,27 +117,9 @@ describe('SymbolMapperModule', () => {
               buildQuery: jest.fn(),
             },
           },
+          // 添加AuthService到MockSymbolMapperModule上下文
           {
-            provide: FeatureFlags,
-            useValue: {
-              symbolMapper: {
-                enableCache: true,
-                enableMonitoring: true,
-              },
-            },
-          },
-          {
-            provide: SymbolMapperCacheStandardizedService,
-            useValue: {
-              getMapping: jest.fn(),
-              getMappingRule: jest.fn(),
-              cacheMapping: jest.fn(),
-              invalidateCache: jest.fn(),
-            },
-          },
-          // 添加AuthPerformanceService到MockSymbolMapperModule上下文
-          {
-            provide: AuthPerformanceService,
+            provide: AuthService,
             useValue: {
               recordAuthFlowPerformance: jest.fn(),
               recordAuthCachePerformance: jest.fn(),
@@ -202,7 +139,7 @@ describe('SymbolMapperModule', () => {
             useFactory: (reflector, authPerformanceService) => {
               return new ApiKeyAuthGuard(reflector, authPerformanceService);
             },
-            inject: [Reflector, AuthPerformanceService],
+            inject: [Reflector, AuthService],
           }
         ],
         controllers: [SymbolMapperController],
@@ -269,11 +206,6 @@ describe('SymbolMapperModule', () => {
     it('should resolve SymbolMapperService dependencies', () => {
       const service = module.get<SymbolMapperService>(SymbolMapperService);
       expect(service).toBeDefined();
-
-      // Check that the service has all required dependencies injected
-      // Note: Direct access to private properties isn't possible,
-      // but we can verify the service was created successfully
-      expect(service.onModuleInit).toBeDefined();
     });
 
     it('should resolve SymbolMapperController dependencies', () => {
@@ -368,24 +300,7 @@ describe('SymbolMapperModule', () => {
     });
   });
 
-  describe('Module Lifecycle', () => {
-    it('should handle module initialization', async () => {
-      // Test module initialization lifecycle
-      expect(module).toBeDefined();
-
-      // The module should initialize without throwing errors
-      const service = module.get<SymbolMapperService>(SymbolMapperService);
-      expect(service.onModuleInit).toBeDefined();
-
-      // Test that onModuleInit can be called without errors
-      await expect(service.onModuleInit()).resolves.not.toThrow();
-    });
-
-    it('should handle module destruction gracefully', async () => {
-      // Test that the module can be closed without errors
-      await expect(module.close()).resolves.not.toThrow();
-    });
-  });
+  // 移除生命周期 onModuleInit 相关断言（服务已去监控化）
 
   describe('External Module Dependencies', () => {
     it('should declare dependency on AuthModule', () => {
@@ -399,18 +314,8 @@ describe('SymbolMapperModule', () => {
       expect(module).toBeDefined();
     });
 
-    it('should declare dependency on SharedServicesModule', () => {
-      // Verify that SharedServicesModule functionality would be available
-      expect(module).toBeDefined();
-    });
-
     it('should declare dependency on DatabaseModule', () => {
       // Verify that DatabaseModule functionality would be available
-      expect(module).toBeDefined();
-    });
-
-    it('should declare dependency on SymbolMapperCacheModule', () => {
-      // Verify that SymbolMapperCacheModule functionality would be available
       expect(module).toBeDefined();
     });
   });

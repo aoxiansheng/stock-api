@@ -20,9 +20,7 @@ import {
   ApiPaginatedResponse,
 } from "@common/core/decorators/swagger-responses.decorator";
 
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { AdminOnly, ReadAccess } from "@authv2/decorators";
 
 import { CreateSymbolMappingDto } from "../dto/create-symbol-mapping.dto";
 import { SymbolMappingQueryDto } from "../dto/symbol-mapping-query.dto";
@@ -43,8 +41,7 @@ export class SymbolMapperController {
     private readonly symbolMapperService: SymbolMapperService,
   ) {}
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Post()
   @ApiOperation({ summary: "创建数据源映射配置（管理员权限）" })
   @ApiCreatedResponse({ type: SymbolMappingResponseDto })
@@ -79,8 +76,7 @@ export class SymbolMapperController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Post("rules")
   @ApiOperation({ summary: "添加映射规则到现有数据源" })
   @ApiSuccessResponse({ type: SymbolMappingResponseDto })
@@ -115,8 +111,7 @@ export class SymbolMapperController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.CONFIG_READ)
+  @ReadAccess()
   @Get()
   @ApiOperation({ summary: "分页获取数据源映射配置列表" })
   @ApiPaginatedResponse(SymbolMappingResponseDto)
@@ -128,8 +123,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Get("data-sources")
   @ApiOperation({ summary: "获取所有数据源列表" })
   @ApiSuccessResponse({ type: [String] })
@@ -140,8 +134,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Get("markets")
   @ApiOperation({ summary: "获取所有市场列表" })
   @ApiSuccessResponse({ type: [String] })
@@ -152,8 +145,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Get("symbol-types")
   @ApiOperation({ summary: "获取所有股票类型列表" })
   @ApiSuccessResponse({ type: [String] })
@@ -164,8 +156,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Get("data-source/:dataSourceName")
   @ApiOperation({ summary: "根据数据源名称获取映射配置" })
   @ApiParam({ name: "dataSourceName", description: "数据源名称" })
@@ -182,8 +173,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Get("rules")
   @ApiOperation({
     summary: "🔄 获取所有符号映射规则",
@@ -265,8 +255,7 @@ export class SymbolMapperController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Get("rules/:provider")
   @ApiOperation({ summary: "获取指定提供商的映射规则" })
   @ApiSuccessResponse()
@@ -278,8 +267,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.CONFIG_READ)
+  @ReadAccess()
   @Get(":id")
   @ApiOperation({ summary: "根据ID获取数据源映射配置" })
   @ApiParam({ name: "id", description: "映射配置ID" })
@@ -291,8 +279,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Patch(":id")
   @ApiOperation({ summary: "更新数据源映射配置" })
   @ApiParam({ name: "id", description: "映射配置ID" })
@@ -310,8 +297,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Patch("rules/:dataSourceName/:standardSymbol")
   @ApiOperation({ summary: "更新特定的映射规则" })
   @ApiParam({ name: "dataSourceName", description: "数据源名称" })
@@ -335,8 +321,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Delete(":id")
   @ApiOperation({ summary: "删除数据源映射配置" })
   @ApiParam({ name: "id", description: "映射配置ID" })
@@ -348,8 +333,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Delete("data-source/:dataSourceName")
   @ApiOperation({ summary: "删除指定数据源的所有映射" })
   @ApiParam({ name: "dataSourceName", description: "数据源名称" })
@@ -385,8 +369,7 @@ export class SymbolMapperController {
     }
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.MAPPING_WRITE)
+  @AdminOnly()
   @Delete("rules/:dataSourceName/:standardSymbol")
   @ApiOperation({ summary: "删除特定的映射规则" })
   @ApiParam({ name: "dataSourceName", description: "数据源名称" })

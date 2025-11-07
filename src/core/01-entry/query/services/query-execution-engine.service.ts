@@ -1,16 +1,14 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/constants/smart-cache.constants";
 import { Market } from "../../../shared/constants/market.constants";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
-import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
+import { CAPABILITY_NAMES } from "../../../../providersv2/providers/constants/capability-names.constants";
 
 import { QueryConfigService } from "../config/query.config";
-import { QueryMemoryMonitorService } from "./query-memory-monitor.service";
 
 import {
   MarketStatusService,
@@ -64,6 +62,9 @@ import { QUERY_ERROR_CODES } from "../constants/query-error-codes.constants";
 @Injectable()
 export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(QueryExecutionEngine.name);
+  // 为兼容遗留未使用的方法签名，保留占位属性，实际不注入不使用
+  // 避免类型检查错误（KISS：不引入复杂监控实现）
+  private readonly memoryMonitor: any;
 
   constructor(
     private readonly storageService: StorageService,
@@ -71,10 +72,8 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     private readonly marketStatusService: MarketStatusService,
     private readonly fieldMappingService: FieldMappingService,
     private readonly paginationService: PaginationService,
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
     private readonly smartCacheOrchestrator: SmartCacheStandardizedService,
     private readonly queryConfig: QueryConfigService,
-    private readonly memoryMonitor: QueryMemoryMonitorService,
     private readonly marketInferenceService: MarketInferenceService,
   ) {}
 
@@ -101,23 +100,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     this.logger.log("QueryExecutionEngine模块正在关闭");
 
-    // 发送关闭事件通知其他组件
-    try {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "query_execution_engine",
-        metricType: "system",
-        metricName: "service_shutdown",
-        metricValue: 1,
-        tags: {
-          operation: "module_destroy",
-          componentType: "query",
-        },
-      });
-      this.logger.log("QueryExecutionEngine关闭事件已发送");
-    } catch (error) {
-      this.logger.warn(`QueryExecutionEngine关闭事件发送失败: ${error.message}`);
-    }
+    // 监控已移除: 原事件发送代码已删除
 
     // 可以在这里添加任何需要清理的资源
   }
@@ -255,13 +238,72 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    // 使用优化的批量处理管道
-    return await this.executeBatchedPipeline(
-      request,
-      validSymbols,
-      dataSources,
-      errors,
+    // 使用简化的单层批量处理管道（按 batchSize 分片）
+    return await this.executeBatchesSimple(request, validSymbols, dataSources, errors);
+  }
+
+  /**
+   * 简化的批量处理管道：仅按 maxBatchSize 分片，逐片处理
+   */
+  private async executeBatchesSimple(
+    request: QueryRequestDto,
+    validSymbols: string[],
+    dataSources: DataSourceStatsDto,
+    errors: QueryErrorInfoDto[],
+  ): Promise<QueryExecutionResultDto> {
+    const queryId = this.generateQueryId(request);
+    const startTime = Date.now();
+
+    const chunks = this.chunkArray(validSymbols, this.MAX_BATCH_SIZE);
+    const allResults: SymbolDataResultDto[] = [];
+    let totalCacheHits = 0;
+    let totalRealtimeHits = 0;
+
+    for (const chunk of chunks) {
+      const marketForChunk = this.inferMarketFromSymbols(chunk);
+      try {
+        const batchResult = await this.processReceiverBatch(
+          marketForChunk as Market,
+          chunk,
+          request,
+          queryId,
+          0,
+          0,
+        );
+        allResults.push(...batchResult.data);
+        totalCacheHits += batchResult.cacheHits;
+        totalRealtimeHits += batchResult.realtimeHits;
+        errors.push(...batchResult.marketErrors);
+      } catch (error: any) {
+        // 标记该分片内符号失败
+        chunk.forEach((symbol) =>
+          errors.push({ symbol, reason: `分片处理失败: ${error.message}` }),
+        );
+      }
+    }
+
+    // 汇总与分页
+    const combinedData = allResults.map((r) => r.data).flat();
+    const cacheUsed = allResults.some(
+      (r) => r.source === DataSourceType.DATASOURCETYPECACHE,
     );
+
+    const paginatedData = this.paginationService.createPaginatedResponseFromQuery(
+      combinedData,
+      request,
+      combinedData.length,
+    );
+
+    return {
+      results: paginatedData.items,
+      cacheUsed,
+      dataSources: {
+        cache: { hits: totalCacheHits, misses: 0 },
+        realtime: { hits: totalRealtimeHits, misses: 0 },
+      },
+      errors,
+      pagination: paginatedData.pagination,
+    };
   }
 
   /**
@@ -1247,29 +1289,7 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     market: string,
     efficiency: number,
   ): void {
-    setImmediate(() => {
-      try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "query_execution_engine",
-          metricType: "performance",
-          metricName: "batch_processing",
-          metricValue: processingTimeMs,
-          tags: {
-            batchSize,
-            market,
-            efficiency,
-            avgTimePerBatch: batchSize > 0 ? processingTimeMs / batchSize : 0,
-            operation: "batch_processing",
-            componentType: "query",
-          },
-        });
-      } catch (error) {
-        this.logger.warn(`批处理监控事件发送失败: ${error.message}`, {
-          batchSize,
-        });
-      }
-    });
+    // 监控已移除: 原事件发送代码已删除
   }
 
   /**
@@ -1281,27 +1301,6 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     duration: number,
     metadata: any,
   ): void {
-    setImmediate(() => {
-      try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "query_execution_engine",
-          metricType: "cache",
-          metricName: operation,
-          metricValue: duration,
-          tags: {
-            hit,
-            operation,
-            componentType: "query",
-            ...metadata,
-          },
-        });
-      } catch (error) {
-        this.logger.warn(`缓存监控事件发送失败: ${error.message}`, {
-          operation,
-          hit,
-        });
-      }
-    });
+    // 监控已移除: 原事件发送代码已删除
   }
 }

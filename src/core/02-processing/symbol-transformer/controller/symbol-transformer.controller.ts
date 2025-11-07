@@ -12,14 +12,9 @@ import {
   ApiSuccessResponse,
 } from "@common/core/decorators/swagger-responses.decorator";
 
-import { ApiKeyAuth } from "../../../../auth/decorators/auth.decorator";
-import { RequirePermissions } from "../../../../auth/decorators/permissions.decorator";
-import { Permission } from "../../../../auth/enums/user-role.enum";
+import { ReadAccess } from "@authv2/decorators";
 
-import {
-  TransformSymbolsDto,
-  TransformSymbolsResponseDto,
-} from "../../../00-prepare/symbol-mapper/dto/update-symbol-mapping.dto";
+import { TransformSymbolsDto, TransformSymbolsResponseDto } from "../interfaces/transform-symbols.dto";
 import { SymbolTransformerService } from "../services/symbol-transformer.service";
 import { MappingDirection } from "../../../shared/constants/cache.constants";
 
@@ -32,8 +27,7 @@ export class SymbolTransformerController {
     private readonly symbolTransformerService: SymbolTransformerService,
   ) {}
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Post("map")
   @ApiOperation({ summary: "映射单个股票代码" })
   @ApiSuccessResponse()
@@ -56,8 +50,7 @@ export class SymbolTransformerController {
     };
   }
 
-  @ApiKeyAuth()
-  @RequirePermissions(Permission.DATA_READ)
+  @ReadAccess()
   @Post("transform")
   @ApiOperation({ summary: "批量股票代码格式转换" })
   @ApiSuccessResponse({ type: TransformSymbolsResponseDto })

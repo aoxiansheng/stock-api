@@ -17,7 +17,7 @@ jest.mock('@common/logging/index', () => ({
 }));
 
 // Mock required dependencies for controller tests
-import { ApiKeyAuthGuard } from '@auth/guards/apikey-auth.guard';
+import { ApiKeyAuthGuard } from '@authv2';
 import { Reflector } from '@nestjs/core';
 
 describe('StorageController - Simple Coverage Tests', () => {
@@ -40,7 +40,7 @@ describe('StorageController - Simple Coverage Tests', () => {
           useValue: mockService,
         },
         {
-          provide: 'AuthPerformanceService',
+          provide: 'AuthService',
           useValue: {
             recordAuthOperation: jest.fn(),
             getMetrics: jest.fn(),
@@ -257,23 +257,11 @@ describe('StorageController - Simple Coverage Tests', () => {
     it('should execute getStorageStats method', async () => {
       // Arrange
       const expectedStats = new StorageStatsDto();
-      expectedStats.cache = {
-        totalKeys: 100,
-        totalMemoryUsage: 1000000,
-        hitRate: 0.85,
-        avgTtl: 3600,
-      };
-      expectedStats.persistent = {
+      (expectedStats as any).persistent = {
         totalDocuments: 50,
         totalSizeBytes: 5000000,
         categoriesCounts: { 'STOCK_QUOTE': 30, 'MARKET_DATA': 20 },
         providerCounts: { 'provider1': 25, 'provider2': 25 },
-      };
-      expectedStats.performance = {
-        avgStorageTime: 10.5,
-        avgRetrievalTime: 5.2,
-        operationsPerSecond: 120.5,
-        errorRate: 0.01,
       };
 
       mockStorageService.getStorageStats.mockResolvedValue(expectedStats as any);

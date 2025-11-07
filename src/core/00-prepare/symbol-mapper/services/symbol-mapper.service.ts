@@ -1,22 +1,14 @@
-import {
-  Injectable,
-  OnModuleInit,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
-import { SYMBOL_MAPPER_ERROR_CODES } from "../constants/symbol-mapper-error-codes.constants";
+// 删除组件内错误码常量依赖，统一使用平台级错误码
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
 import { PaginationService } from "@common/modules/pagination/services/pagination.service";
-import { FeatureFlags } from "@config/feature-flags.config";
-import { SymbolMapperCacheStandardizedService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+// 去监控化/缓存依赖：不直接依赖 FeatureFlags/EventEmitter/缓存服务
 
-import {
-  SYMBOL_MAPPER_ERROR_MESSAGES,
-  SYMBOL_MAPPER_SUCCESS_MESSAGES,
-} from "../constants/symbol-mapper.constants";
+
+// 去常量化：删除大而全常量，日志消息采用内联字符串
 import { CreateSymbolMappingDto } from "../dto/create-symbol-mapping.dto";
 import { SymbolMappingQueryDto } from "../dto/symbol-mapping-query.dto";
 import { SymbolMappingResponseDto } from "../dto/symbol-mapping-response.dto";
@@ -51,154 +43,18 @@ import {
  * 5. 映射性能监控和统计
  */
 @Injectable()
-export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
+export class SymbolMapperService implements ISymbolMapper {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(SymbolMapperService.name);
 
   constructor(
     private readonly repository: SymbolMappingRepository,
     private readonly paginationService: PaginationService,
-    private readonly featureFlags: FeatureFlags,
-    private readonly eventBus: EventEmitter2, // ✅ 事件驱动监控
-    private readonly symbolMapperCacheService: SymbolMapperCacheStandardizedService,
   ) {}
 
-  /**
-   * ✅ 事件化监控包装器 - 异步发送监控事件，完全解耦
-   */
-  private emitMonitoringEvent(metricName: string, data: any) {
-    setImmediate(() => {
-      // 🔧 修复高基数标签问题：过滤和净化标签
-      const sanitizedTags = this.sanitizeEventTags({
-        operation: data.operation,
-        status: data.success ? "success" : "error",
-        service: "SymbolMapperService",
-        ...data.tags,
-      });
+ 
 
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "symbol_mapper",
-        metricType: data.metricType || "business",
-        metricName,
-        metricValue: data.duration || data.amount || 1,
-        tags: sanitizedTags,
-      });
-    });
-  }
-
-  /**
-   * 🔧 净化事件标签，移除高基数标签
-   * 防止Prometheus内存占用激增
-   */
-  private sanitizeEventTags(tags: Record<string, any>): Record<string, string> {
-    const sanitized: Record<string, string> = {};
-
-    // ✅ 保留低基数标签
-    const allowedTags = [
-      'operation', 'status', 'service', 'collection', 
-      'conflict', 'errorType', 'architecture'
-    ];
-
-    allowedTags.forEach(key => {
-      if (tags[key] !== undefined) {
-        sanitized[key] = String(tags[key]);
-      }
-    });
-
-    // 🔧 转换高基数标签为计数标签
-    if (tags.rulesCount !== undefined) {
-      // 规则数量分组：小批量(1-10), 中批量(11-50), 大批量(50+)
-      const count = Number(tags.rulesCount) || 0;
-      sanitized.rules_batch_size = count <= 10 ? 'small' : count <= 50 ? 'medium' : 'large';
-    }
-
-    if (tags.resultCount !== undefined) {
-      sanitized.has_results = Number(tags.resultCount) > 0 ? 'true' : 'false';
-    }
-
-    if (tags.totalRules !== undefined) {
-      const total = Number(tags.totalRules) || 0;
-      sanitized.total_rules_range = total <= 20 ? 'low' : total <= 100 ? 'medium' : 'high';
-    }
-
-    // 🔧 错误消息归类（移除动态内容）
-    if (tags.error && typeof tags.error === 'string') {
-      sanitized.error_category = this.categorizeError(tags.error);
-    }
-
-    // 🔧 符号类型归类（而非具体符号）
-    if (tags.standardSymbol && typeof tags.standardSymbol === 'string') {
-      sanitized.symbol_type = this.categorizeSymbol(tags.standardSymbol);
-    }
-
-    return sanitized;
-  }
-
-  /**
-   * 🔧 错误消息归类
-   */
-  private categorizeError(errorMessage: string): string {
-    const lowerError = errorMessage.toLowerCase();
-    
-    if (lowerError.includes('not found') || lowerError.includes('不存在')) {
-      return 'not_found';
-    }
-    if (lowerError.includes('duplicate') || lowerError.includes('已存在')) {
-      return 'duplicate';
-    }
-    if (lowerError.includes('validation') || lowerError.includes('invalid')) {
-      return 'validation';
-    }
-    if (lowerError.includes('timeout') || lowerError.includes('超时')) {
-      return 'timeout';
-    }
-    if (lowerError.includes('permission') || lowerError.includes('unauthorized')) {
-      return 'permission';
-    }
-    return 'unknown';
-  }
-
-  /**
-   * 🔧 符号类型归类
-   */
-  private categorizeSymbol(symbol: string): string {
-    // 港股格式: 数字.HK
-    if (/^\d+\.HK$/i.test(symbol)) {
-      return 'hk_stock';
-    }
-    // 美股格式: 字母组合
-    if (/^[A-Z]{1,5}$/.test(symbol)) {
-      return 'us_stock';
-    }
-    // A股格式: 6位数字
-    if (/^\d{6}$/.test(symbol)) {
-      return 'cn_stock';
-    }
-    // 指数或其他
-    if (symbol.includes('INDEX') || symbol.includes('指数')) {
-      return 'index';
-    }
-    return 'other';
-  }
-
-  /**
-   * 🎯 模块初始化：事件化监控架构初始化完成
-   */
-  async onModuleInit() {
-    this.logger.log("SymbolMapperService 初始化完成，采用事件化监控架构");
-
-    // 发送服务初始化事件
-    this.emitMonitoringEvent("service_initialized", {
-      operation: "onModuleInit",
-      success: true,
-      metricType: "system",
-      tags: {
-        service: "SymbolMapperService",
-        architecture: "event-driven",
-      },
-    });
-  }
+  // 去监控化：删除 onModuleInit/事件归类等非核心逻辑
 
   // ===== 🎯 核心规则管理功能 =====
 
@@ -225,19 +81,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       // 检查数据源是否已存在
       const exists = await this.repository.exists(createDto.dataSourceName);
       if (exists) {
-        // 事件化监控 - 配置已存在
-        this.emitMonitoringEvent("mapping_conflict", {
-          operation: "createDataSourceMapping",
-          dataSourceName: createDto.dataSourceName,
-          duration: Date.now() - startTime,
-          success: false,
-          metricType: "business",
-          tags: {
-            conflict: "mapping_already_exists",
-            rulesCount: createDto.SymbolMappingRule?.length || 0,
-          },
-        });
-
         throw UniversalExceptionFactory.createBusinessException({
           message: `Symbol mapping configuration already exists for data source: ${createDto.dataSourceName}`,
           errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
@@ -246,29 +89,15 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           context: {
             dataSourceName: createDto.dataSourceName,
             dataSourceExists: true,
-            operation: 'create_mapping_config',
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_ALREADY_EXISTS
+            operation: 'create_mapping_config'
           }
         });
       }
 
       const created = await this.repository.create(createDto);
 
-      // 事件化监控 - 创建成功
-      this.emitMonitoringEvent("mapping_created", {
-        operation: "createDataSourceMapping",
-        dataSourceName: created.dataSourceName,
-        duration: Date.now() - startTime,
-        success: true,
-        metricType: "business",
-        tags: {
-          rulesCount: created.SymbolMappingRule.length,
-          id: created._id || created.id,
-        },
-      });
-
       this.logger.log(
-        SYMBOL_MAPPER_SUCCESS_MESSAGES.MAPPING_CONFIG_CREATED,
+        "映射配置创建成功",
         sanitizeLogData({
           dataSourceName: created.dataSourceName,
           id: created._id || created.id,
@@ -281,20 +110,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
         created as SymbolMappingRuleDocumentType,
       );
     } catch (error) {
-      // 事件化监控 - 创建失败
-      this.emitMonitoringEvent("mapping_creation_failed", {
-        operation: "createDataSourceMapping",
-        dataSourceName: createDto.dataSourceName,
-        duration: Date.now() - startTime,
-        success: false,
-        metricType: "business",
-        tags: {
-          error: error.message,
-          errorType: error.constructor.name,
-          rulesCount: createDto.SymbolMappingRule?.length || 0,
-        },
-      });
-
       this.logger.error(
         `数据源映射配置创建失败`,
         sanitizeLogData({
@@ -414,7 +229,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           context: {
             configId: id,
             operation: 'find_mapping_config',
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND
           }
         });
       }
@@ -467,19 +281,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       const mapping = await this.repository.findByDataSource(dataSourceName);
 
       if (!mapping) {
-        // ✅ 事件化监控 - 数据未找到
-        this.emitMonitoringEvent("mapping_not_found", {
-          operation: "getSymbolMappingByDataSource",
-          dataSourceName,
-          duration: Date.now() - startTime,
-          success: false,
-          metricType: "database",
-          tags: {
-            collection: "symbolMappings",
-            error: "Document not found",
-          },
-        });
-
         throw UniversalExceptionFactory.createBusinessException({
           message: `Data source mapping not found: ${dataSourceName}`,
           errorCode: BusinessErrorCode.DATA_NOT_FOUND,
@@ -487,24 +288,11 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           component: ComponentIdentifier.SYMBOL_MAPPER,
           context: {
             dataSourceName: dataSourceName,
-            operation: 'find_data_source_mapping',
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_MAPPING_NOT_FOUND
+            operation: 'find_data_source_mapping'
           }
         });
       }
 
-      // ✅ 事件化监控 - 数据获取成功
-      this.emitMonitoringEvent("mapping_retrieved", {
-        operation: "getSymbolMappingByDataSource",
-        dataSourceName,
-        duration: Date.now() - startTime,
-        success: true,
-        metricType: "database",
-        tags: {
-          collection: "symbolMappings",
-          resultCount: 1,
-        },
-      });
 
       this.logger.debug(
         `数据源映射配置获取成功`,
@@ -521,18 +309,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       );
     } catch (error) {
       // ✅ 事件化监控 - 错误情况
-      this.emitMonitoringEvent("mapping_error", {
-        operation: "getSymbolMappingByDataSource",
-        dataSourceName,
-        duration: Date.now() - startTime,
-        success: false,
-        metricType: "database",
-        tags: {
-          error: error.message,
-          errorType: error.constructor.name,
-          statusCode: error.status || 500,
-        },
-      });
 
       this.logger.error(
         `获取数据源映射配置失败`,
@@ -619,14 +395,13 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           context: {
             configId: id,
             updateData: updateDto,
-            operation: 'update_mapping_config',
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND
+            operation: 'update_mapping_config'
           }
         });
       }
 
       this.logger.log(
-        SYMBOL_MAPPER_SUCCESS_MESSAGES.MAPPING_CONFIG_UPDATED,
+        "映射配置更新成功",
         sanitizeLogData({
           id,
           dataSourceName: updated.dataSourceName,
@@ -658,7 +433,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
    * @returns 删除的映射配置响应DTO
    */
   async deleteSymbolMapping(id: string): Promise<SymbolMappingResponseDto> {
-    const startTime = Date.now();
     this.logger.log(`开始删除数据源映射配置`, {
       id,
       operation: "deleteSymbolMapping",
@@ -667,18 +441,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
     try {
       const deleted = await this.repository.deleteById(id);
       if (!deleted) {
-        // 事件化监控 - 映射未找到
-        this.emitMonitoringEvent("mapping_delete_not_found", {
-          operation: "deleteSymbolMapping",
-          duration: Date.now() - startTime,
-          success: false,
-          metricType: "business",
-          tags: {
-            id,
-            error: "mapping_not_found",
-          },
-        });
-
         throw UniversalExceptionFactory.createBusinessException({
           message: `Symbol mapping configuration not found for deletion: ${id}`,
           errorCode: BusinessErrorCode.DATA_NOT_FOUND,
@@ -686,26 +448,11 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           component: ComponentIdentifier.SYMBOL_MAPPER,
           context: {
             configId: id,
-            operation: 'delete_mapping_config',
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_CONFIG_NOT_FOUND
+            operation: 'delete_mapping_config'
           }
         });
       }
-
-      // 事件化监控 - 删除成功
-      this.emitMonitoringEvent("mapping_deleted", {
-        operation: "deleteSymbolMapping",
-        duration: Date.now() - startTime,
-        success: true,
-        metricType: "business",
-        tags: {
-          id,
-          dataSourceName: deleted.dataSourceName,
-          rulesCount: deleted.SymbolMappingRule.length,
-        },
-      });
-
-      this.logger.log(SYMBOL_MAPPER_SUCCESS_MESSAGES.MAPPING_CONFIG_DELETED, {
+      this.logger.log("映射配置删除成功", {
         id,
         dataSourceName: deleted.dataSourceName,
         operation: "deleteSymbolMapping",
@@ -715,19 +462,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
         deleted as SymbolMappingRuleDocumentType,
       );
     } catch (error) {
-      // 事件化监控 - 删除失败
-      this.emitMonitoringEvent("mapping_delete_failed", {
-        operation: "deleteSymbolMapping",
-        duration: Date.now() - startTime,
-        success: false,
-        metricType: "business",
-        tags: {
-          id,
-          error: error.message,
-          errorType: error.constructor.name,
-        },
-      });
-
       this.logger.error(`映射配置删除失败`, {
         id,
         error: error.message,
@@ -888,20 +622,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
       );
 
       if (!updated) {
-        // 事件化监控 - 数据源未找到
-        this.emitMonitoringEvent("rule_add_datasource_not_found", {
-          operation: "addSymbolMappingRule",
-          dataSourceName: addDto.dataSourceName,
-          duration: Date.now() - startTime,
-          success: false,
-          metricType: "business",
-          tags: {
-            standardSymbol: addDto.symbolMappingRule.standardSymbol,
-            sdkSymbol: addDto.symbolMappingRule.sdkSymbol,
-            error: "data_source_not_found",
-          },
-        });
-
         throw UniversalExceptionFactory.createBusinessException({
           message: `Data source not found for symbol mapping rule addition: ${addDto.dataSourceName}`,
           errorCode: BusinessErrorCode.DATA_NOT_FOUND,
@@ -909,24 +629,9 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           component: ComponentIdentifier.SYMBOL_MAPPER,
           context: {
             dataSourceName: addDto.dataSourceName,
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_NOT_FOUND
           }
         });
       }
-
-      // 事件化监控 - 规则添加成功
-      this.emitMonitoringEvent("rule_added", {
-        operation: "addSymbolMappingRule",
-        dataSourceName: addDto.dataSourceName,
-        duration: Date.now() - startTime,
-        success: true,
-        metricType: "business",
-        tags: {
-          standardSymbol: addDto.symbolMappingRule.standardSymbol,
-          sdkSymbol: addDto.symbolMappingRule.sdkSymbol,
-          totalRules: updated.SymbolMappingRule.length,
-        },
-      });
 
       this.logger.log(
         `映射规则添加成功`,
@@ -941,21 +646,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
         updated as SymbolMappingRuleDocumentType,
       );
     } catch (error) {
-      // 事件化监控 - 添加规则失败
-      this.emitMonitoringEvent("rule_add_failed", {
-        operation: "addSymbolMappingRule",
-        dataSourceName: addDto.dataSourceName,
-        duration: Date.now() - startTime,
-        success: false,
-        metricType: "business",
-        tags: {
-          standardSymbol: addDto.symbolMappingRule.standardSymbol,
-          sdkSymbol: addDto.symbolMappingRule.sdkSymbol,
-          error: error.message,
-          errorType: error.constructor.name,
-        },
-      });
-
       this.logger.error(
         `添加映射规则失败`,
         sanitizeLogData({
@@ -1002,7 +692,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           context: {
             dataSourceName: updateDto.dataSourceName,
             standardSymbol: updateDto.standardSymbol,
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND
           }
         });
       }
@@ -1068,7 +757,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           context: {
             dataSourceName,
             standardSymbol,
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_NOT_FOUND
           }
         });
       }
@@ -1135,7 +823,6 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
           context: {
             dataSourceName,
             newRulesCount: SymbolMappingRule.length,
-            symbolMapperErrorCode: SYMBOL_MAPPER_ERROR_CODES.DATA_SOURCE_NOT_FOUND
           }
         });
       }
@@ -1248,12 +935,9 @@ export class SymbolMapperService implements ISymbolMapper, OnModuleInit {
 
   // ===== 🎯 缓存优化相关的辅助方法 =====
 
-  /**
-   * 手动清理所有缓存（委派给缓存服务）
-   */
+  // 已移除：符号映射缓存专用服务的直接调用。保留占位以保持兼容但不执行任何操作。
   async clearCache(): Promise<void> {
-    await this.symbolMapperCacheService.clearAllCaches();
-    this.logger.log("符号映射规则缓存已清理");
+    this.logger.log("符号映射规则缓存清理（无操作）");
   }
 
 }

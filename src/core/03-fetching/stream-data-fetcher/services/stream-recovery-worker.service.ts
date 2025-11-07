@@ -9,7 +9,7 @@ import { AsyncLocalStorage } from "async_hooks";
 import { Server } from "socket.io";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
-import { SYSTEM_STATUS_EVENTS } from "../../../../monitoring/contracts/events/system-status.events";
+
 import { StreamCacheStandardizedService } from "../../../05-caching/module/stream-cache/services/stream-cache-standardized.service";
 import { StreamDataPoint } from "../../../05-caching/module/stream-cache/interfaces/stream-cache.interface";
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
@@ -130,32 +130,8 @@ export class StreamRecoveryWorkerService
     },
   ): void {
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream_recovery_worker",
-        metricType: "business",
-        metricName,
-        metricValue:
-          data.duration ||
-          data.count ||
-          data.data_points ||
-          data.batch_size ||
-          data.bytes ||
-          data.tokens ||
-          data.qps ||
-          1,
-        tags: {
-          operation: data.operation || "recovery",
-          status: data.status,
-          error_type: data.error_type,
-          client_id: data.client_id,
-          provider: data.provider,
-          job_id: data.job_id,
-          data_points: data.data_points,
-          batch_size: data.batch_size,
-          bytes: data.bytes,
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 
@@ -176,19 +152,8 @@ export class StreamRecoveryWorkerService
     },
   ): void {
     setImmediate(() => {
-      this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-        timestamp: new Date(),
-        source: "stream_recovery_worker",
-        metricType: "performance",
-        metricName,
-        metricValue: data.duration || data.qps || data.tokens_consumed || 1,
-        tags: {
-          operation: data.operation || "rate_limit",
-          status: data.status,
-          rate_limit_hit: data.rate_limit_hit,
-          tokens_consumed: data.tokens_consumed,
-        },
-      });
+      // 性能指标事件已移除（监控模块已删除）
+      // 如需性能监控，请使用外部工具（如 Prometheus）
     });
   }
 

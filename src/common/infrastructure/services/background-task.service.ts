@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { SYSTEM_STATUS_EVENTS } from "../../../monitoring/contracts/events/system-status.events";
+
 
 @Injectable()
 export class BackgroundTaskService {
@@ -93,28 +93,6 @@ export class BackgroundTaskService {
       error?: string;
     },
   ): void {
-    setImmediate(() => {
-      try {
-        this.eventBus.emit(SYSTEM_STATUS_EVENTS.METRIC_COLLECTED, {
-          timestamp: new Date(),
-          source: "background_task_service",
-          metricType: "business",
-          metricName,
-          metricValue: data.duration || 1,
-          tags: {
-            operation: "background_task",
-            task_type: data.task_type,
-            task_id: data.task_id,
-            status: data.status,
-            error: data.error,
-          },
-        });
-      } catch (error) {
-        this.logger.warn("后台任务监控事件发送失败", {
-          error: error.message,
-          metricName,
-        });
-      }
-    });
+  
   }
 }

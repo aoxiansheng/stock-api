@@ -83,31 +83,17 @@ describe('DataFetcher Constants', () => {
     });
   });
 
-  describe('DATA_FETCHER_PERFORMANCE_THRESHOLDS', () => {
-    it('should contain all required thresholds', () => {
+  describe('DATA_FETCHER_PERFORMANCE_THRESHOLDS (slimmed)', () => {
+    it('should contain required thresholds', () => {
       expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS).toHaveProperty('SLOW_RESPONSE_MS');
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS).toHaveProperty('MAX_TIME_PER_SYMBOL_MS');
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS).toHaveProperty('MAX_SYMBOLS_PER_BATCH');
       expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS).toHaveProperty('LOG_SYMBOLS_LIMIT');
     });
 
-    it('should have numeric values for thresholds', () => {
+    it('should have numeric and positive values', () => {
       expect(typeof DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS).toBe('number');
-      expect(typeof DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_TIME_PER_SYMBOL_MS).toBe('number');
-      expect(typeof DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_BATCH).toBe('number');
       expect(typeof DATA_FETCHER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT).toBe('number');
-    });
-
-    it('should have positive values', () => {
       expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS).toBeGreaterThan(0);
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_TIME_PER_SYMBOL_MS).toBeGreaterThan(0);
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_BATCH).toBeGreaterThan(0);
       expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT).toBeGreaterThan(0);
-    });
-
-    it('should use unified configuration constants', () => {
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS).toBe(NUMERIC_CONSTANTS.N_1000);
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_BATCH).toBe(BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE);
     });
 
     it('should be immutable object', () => {
@@ -117,12 +103,9 @@ describe('DataFetcher Constants', () => {
     });
   });
 
-  describe('DATA_FETCHER_DEFAULT_CONFIG', () => {
-    it('should contain all required default configuration', () => {
+  describe('DATA_FETCHER_DEFAULT_CONFIG (slimmed)', () => {
+    it('should contain required default configuration', () => {
       expect(DATA_FETCHER_DEFAULT_CONFIG).toHaveProperty('DEFAULT_API_TYPE');
-      expect(DATA_FETCHER_DEFAULT_CONFIG).toHaveProperty('DEFAULT_TIMEOUT_MS');
-      expect(DATA_FETCHER_DEFAULT_CONFIG).toHaveProperty('DEFAULT_RETRY_COUNT');
-      expect(DATA_FETCHER_DEFAULT_CONFIG).toHaveProperty('DEFAULT_BATCH_SIZE');
     });
 
     it('should have correct default API type', () => {
@@ -130,23 +113,7 @@ describe('DataFetcher Constants', () => {
       expect(['rest', 'stream']).toContain(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_API_TYPE);
     });
 
-    it('should have numeric values for timeouts and limits', () => {
-      expect(typeof DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_TIMEOUT_MS).toBe('number');
-      expect(typeof DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_RETRY_COUNT).toBe('number');
-      expect(typeof DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_BATCH_SIZE).toBe('number');
-    });
-
-    it('should have positive values for defaults', () => {
-      expect(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_TIMEOUT_MS).toBeGreaterThan(0);
-      expect(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_RETRY_COUNT).toBeGreaterThanOrEqual(0);
-      expect(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_BATCH_SIZE).toBeGreaterThan(0);
-    });
-
-    it('should use unified configuration constants', () => {
-      expect(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_TIMEOUT_MS).toBe(HTTP_TIMEOUTS.REQUEST.NORMAL_MS);
-      expect(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_RETRY_COUNT).toBe(RETRY_BUSINESS_SCENARIOS.DATA_FETCHER.maxAttempts);
-      expect(DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_BATCH_SIZE).toBe(BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE);
-    });
+    // timeout/retry/batch defaults removed from constants; verified via config service instead
 
     it('should be immutable object', () => {
       expect(() => {
@@ -156,45 +123,12 @@ describe('DataFetcher Constants', () => {
   });
 
   describe('constants integration', () => {
-    it('should properly integrate with common constants', () => {
+    it('should load shared constants', () => {
       expect(NUMERIC_CONSTANTS.N_1000).toBeDefined();
       expect(HTTP_TIMEOUTS.REQUEST.NORMAL_MS).toBeDefined();
       expect(BATCH_SIZE_SEMANTICS.BASIC.MAX_SIZE).toBeDefined();
       expect(BATCH_SIZE_SEMANTICS.BASIC.OPTIMAL_SIZE).toBeDefined();
       expect(RETRY_BUSINESS_SCENARIOS.DATA_FETCHER.maxAttempts).toBeDefined();
-    });
-
-    it('should have reasonable threshold relationships', () => {
-      // Slow response threshold should be less than timeout
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.SLOW_RESPONSE_MS).toBeLessThan(
-        DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_TIMEOUT_MS
-      );
-
-      // Max time per symbol should be reasonable for monitoring thresholds
-      const maxTimePerSymbol = DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_TIME_PER_SYMBOL_MS;
-      const maxBatchSize = DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_BATCH;
-      
-      // 基于并发处理的实际情况计算合理的批量处理时间
-      // 默认并发限制为10，1000个符号需要100批，每批最大时间约为单符号最大时间
-      const defaultConcurrency = 10; // 从 DATA_FETCHER_BATCH_CONCURRENCY 默认值
-      const batchCount = Math.ceil(maxBatchSize / defaultConcurrency);
-      const estimatedMaxBatchTime = batchCount * maxTimePerSymbol;
-
-      // 批量处理时间应该在合理范围内（考虑并发处理）
-      // 100批 × 500ms = 50秒，这对于大批量处理是合理的
-      expect(estimatedMaxBatchTime).toBeLessThan(
-        DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_TIMEOUT_MS * 3 // 放宽到3倍超时时间
-      );
-
-      // 单符号时间阈值应该小于整体超时时间
-      expect(maxTimePerSymbol).toBeLessThan(
-        DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_TIMEOUT_MS
-      );
-
-      // Log symbols limit should be reasonable
-      expect(DATA_FETCHER_PERFORMANCE_THRESHOLDS.LOG_SYMBOLS_LIMIT).toBeLessThanOrEqual(
-        DATA_FETCHER_PERFORMANCE_THRESHOLDS.MAX_SYMBOLS_PER_BATCH
-      );
     });
   });
 });

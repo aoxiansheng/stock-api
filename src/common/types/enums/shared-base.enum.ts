@@ -35,50 +35,20 @@ export enum LogLevel {
  * 统一操作状态枚举
  * 替代各个常量文件中的 "success", "error", "processing" 等状态值
  */
-export enum OperationStatus {
-  SUCCESS = "success",
-  FAILED = "failed",
-  ERROR = "error",
-  PENDING = "pending",
-  PROCESSING = "processing",
-  CANCELLED = "cancelled",
-  TIMEOUT = "timeout",
-  COMPLETED = "completed",
-  ACTIVE = "active",
-  INACTIVE = "inactive",
-  // Auth-specific statuses
-  SUSPENDED = "suspended",
-  DELETED = "deleted",
-  EXPIRED = "expired",
-  REVOKED = "revoked",
-  LOCKED = "locked",
-  PENDING_VERIFICATION = "pending_verification",
-}
+// OperationStatus 枚举请统一从 `@common/enums/operation-status.enum` 引用，
+// 以避免在多处重复定义导致的不一致。
 
 /**
  * 统一通知类型枚举
  * 替代 OPERATION_CONSTANTS.NOTIFICATION_TYPES 中的类型定义
  */
-export enum NotificationType {
-  INFO = "info",
-  SUCCESS = "success",
-  WARNING = "warning",
-  ERROR = "error",
-  CRITICAL = "critical",
-}
+// 已移除 NotificationType（仅示例/测试使用，非业务引用）
 
 /**
  * 统一数据状态枚举
  * 用于标识数据的生命周期状态
  */
-export enum DataState {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  PROCESSED = "processed",
-  FAILED = "failed",
-  CACHED = "cached",
-  EXPIRED = "expired",
-}
+// 已移除 DataState（仅示例/测试使用，非业务引用）
 
 /**
  * 统一环境类型枚举
@@ -93,9 +63,9 @@ export enum Environment {
 // 导出所有枚举的值类型，供类型检查使用
 export type AuthenticationTypeValue = `${AuthenticationType}`;
 export type LogLevelValue = `${LogLevel}`;
-export type OperationStatusValue = `${OperationStatus}`;
-export type NotificationTypeValue = `${NotificationType}`;
-export type DataStateValue = `${DataState}`;
+// 注意：OperationStatus 相关类型与工具函数已在
+// `@common/enums/operation-status.enum` 实现。
+// 已移除 NotificationTypeValue / DataStateValue 类型别名
 export type EnvironmentValue = `${Environment}`;
 
 /**
@@ -108,11 +78,7 @@ export function isValidLogLevel(level: string): level is LogLevel {
 /**
  * 工具函数：检查是否为有效的操作状态
  */
-export function isValidOperationStatus(
-  status: string,
-): status is OperationStatus {
-  return Object.values(OperationStatus).includes(status as OperationStatus);
-}
+// isValidOperationStatus 请使用 @common/enums/operation-status.enum 中的实现
 
 /**
  * 工具函数：检查是否为有效的认证类型
@@ -133,9 +99,7 @@ export function getAllLogLevels(): LogLevel[] {
 /**
  * 工具函数：获取所有可用的操作状态
  */
-export function getAllOperationStatuses(): OperationStatus[] {
-  return Object.values(OperationStatus);
-}
+// getAllOperationStatuses 请使用 @common/enums/operation-status.enum 中的实现
 
 /**
  * 工具函数：获取所有可用的认证类型
@@ -147,38 +111,19 @@ export function getAllAuthenticationTypes(): AuthenticationType[] {
 /**
  * 工具函数：检查状态是否为可用状态
  */
-export function isActiveOperationStatus(status: OperationStatus): boolean {
-  return status === OperationStatus.ACTIVE;
-}
+// isActiveOperationStatus 请使用 @common/enums/operation-status.enum 中的实现
 
 /**
  * 工具函数：检查状态是否为不可用状态
  */
-export function isInactiveOperationStatus(status: OperationStatus): boolean {
-  return [
-    OperationStatus.INACTIVE,
-    OperationStatus.SUSPENDED,
-    OperationStatus.DELETED,
-    OperationStatus.EXPIRED,
-    OperationStatus.REVOKED,
-    OperationStatus.LOCKED,
-  ].includes(status);
-}
+// isInactiveOperationStatus 请使用 @common/enums/operation-status.enum 中的实现
 
 /**
  * 工具函数：检查状态是否为临时状态
  */
-export function isTemporaryOperationStatus(status: OperationStatus): boolean {
-  return [
-    OperationStatus.PENDING,
-    OperationStatus.PENDING_VERIFICATION,
-    OperationStatus.PROCESSING,
-  ].includes(status);
-}
+// isTemporaryOperationStatus 请使用 @common/enums/operation-status.enum 中的实现
 
 /**
  * 工具函数：检查状态是否为终态
  */
-export function isFinalOperationStatus(status: OperationStatus): boolean {
-  return [OperationStatus.DELETED, OperationStatus.REVOKED].includes(status);
-}
+// isFinalOperationStatus 请使用 @common/enums/operation-status.enum 中的实现

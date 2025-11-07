@@ -14,8 +14,7 @@ import {
 } from "../providers/websocket-server.provider";
 import { WebSocketFeatureFlagsService } from "../config/websocket-feature-flags.config";
 import { SharedServicesModule } from "../../../shared/module/shared-services.module";
-import { ProvidersModule } from "../../../../providers/module/providers-sg.module";
-import { MonitoringModule } from "../../../../monitoring/monitoring.module";
+import { ProvidersV2Module } from "@providersv2";
 import { StreamCacheModule } from "../../../05-caching/module/stream-cache/module/stream-cache.module";
 
 /**
@@ -31,8 +30,7 @@ import { StreamCacheModule } from "../../../05-caching/module/stream-cache/modul
 @Module({
   imports: [
     SharedServicesModule, // 导入共享服务(包含BaseFetcherService相关依赖)
-    ProvidersModule, // 导入提供商模块以访问EnhancedCapabilityRegistryService
-    MonitoringModule, // ✅ 仅保留全局监控模块导入
+    ProvidersV2Module, // 导入极简提供商模块以访问 ProviderRegistryService
     StreamCacheModule, // 🎯 新增：导入专用流缓存模块
   ],
   providers: [

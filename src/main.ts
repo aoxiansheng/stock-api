@@ -1,7 +1,6 @@
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { EventEmitter2 } from "@nestjs/event-emitter";
 import express from "express";
 
 import { createLogger, getLogLevels } from "@common/logging/index";
@@ -13,10 +12,8 @@ import {
 import { HTTP_METHOD_ARRAYS } from "@common/constants/semantic";
 
 import { AppModule } from "./app.module";
-import { InfrastructureInterceptor } from "./monitoring/infrastructure/interceptors/infrastructure.interceptor";
-import { ApiMonitoringInterceptor } from "./monitoring/infrastructure/interceptors/api-monitoring.interceptor";
+
 // 完全事件驱动架构，移除CollectorService直接依赖
-import { SecurityMiddleware } from "./auth/middleware/security.middleware";
 import { ApplicationService } from "./appcore/core/services/application.service";
 
 async function bootstrap() {
@@ -43,18 +40,15 @@ async function bootstrap() {
     app.use("/api", express.json({ limit: "10mb" }));
     app.use("/api", express.urlencoded({ limit: "10mb", extended: true }));
 
-    // 全局安全中间件 - 通过依赖注入获取实例
-    const securityMiddleware = app.get(SecurityMiddleware);
-    app.use((req, res, next) => securityMiddleware.use(req, res, next));
+    // 精简：移除旧Auth安全中间件，保持标准校验与拦截器
 
-    // 全局前缀
-    app.setGlobalPrefix("api/v1", { exclude: ["/docs"] });
-
-    // 获取事件总线实例（统一事件化监控）
-    const eventBus = app.get(EventEmitter2);
+    // 全局前缀（排除 Swagger 相关路径）
+    app.setGlobalPrefix("api/v1", {
+      exclude: ["/api-docs"] // 排除 Swagger 文档路径（使用 /api-docs 避免路径冲突）
+    });
 
     // 全局异常过滤器
-    app.useGlobalFilters(new GlobalExceptionFilter(eventBus));
+    app.useGlobalFilters(new GlobalExceptionFilter());
 
     // 全局验证管道
     app.useGlobalPipes(
@@ -75,16 +69,13 @@ async function bootstrap() {
     // 全局性能监控拦截器 - 事件化重构
     const reflector = app.get("Reflector");
     // 完全事件驱动架构，移除CollectorService直接依赖
-    app.useGlobalInterceptors(
-      new InfrastructureInterceptor(eventBus, reflector),
-    );
 
-    // 🎯 事件驱动API监控拦截器（事件化重构）
-    const apiMonitoringInterceptor = app.get(ApiMonitoringInterceptor);
-    app.useGlobalInterceptors(apiMonitoringInterceptor);
+
+
+
 
     // 全局响应格式拦截器（最后执行）
-    app.useGlobalInterceptors(new ResponseInterceptor(eventBus));
+    app.useGlobalInterceptors(new ResponseInterceptor());
 
     // ✅ 完全事件驱动架构 - 所有监控通过依赖注入的EventEmitter2处理
     // 不再需要全局变量暴露
@@ -313,8 +304,19 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
         .build();
 
       const document = SwaggerModule.createDocument(app, config);
-      SwaggerModule.setup("docs", app, document);
-      logger.log("📚 Swagger API 文档已启用");
+      SwaggerModule.setup("api-docs", app, document, {
+        customSiteTitle: "智能股票数据系统 API 文档",
+        customCss: ".swagger-ui .topbar { display: none }",
+        swaggerOptions: {
+          persistAuthorization: true, // 持久化认证信息
+          displayRequestDuration: true, // 显示请求耗时
+          docExpansion: "none", // 默认折叠所有接口
+          filter: true, // 启用搜索过滤
+          showExtensions: true,
+          showCommonExtensions: true,
+        },
+      });
+      logger.log("📚 Swagger API 文档已启用: http://localhost:3000/api-docs");
     } catch (error) {
       logger.warn("⚠️ Swagger 配置失败，跳过 API 文档生成", {
         error: error.message,

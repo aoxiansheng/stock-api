@@ -14,8 +14,11 @@ import { Server, Socket } from "socket.io";
 import { createLogger } from "@common/logging/index";
 import { StreamReceiverService } from "../services/stream-receiver.service";
 import { StreamSubscribeDto, StreamUnsubscribeDto } from "../dto";
-import { Permission } from "../../../../auth/enums/user-role.enum";
-import { ApiKeyManagementService } from "../../../../auth/services/domain/apikey-management.service";
+import { Permission } from "@authv2/enums";
+import { InjectModel } from "@nestjs/mongoose";
+import type { Model } from "mongoose";
+import type { ApiKeyDocument } from "@authv2/schema";
+import { ADMIN_PROFILE, READ_PROFILE } from "@authv2/constants";
 import { StreamRecoveryWorkerService } from "../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service";
 import {
   WebSocketServerProvider,
@@ -69,7 +72,7 @@ export class StreamReceiverGateway
 
   constructor(
     private readonly streamReceiverService: StreamReceiverService,
-    private readonly apiKeyService: ApiKeyManagementService,
+    @InjectModel('ApiKey') private readonly apiKeyModel: Model<ApiKeyDocument>,
     @Optional()
     private readonly streamRecoveryWorker?: StreamRecoveryWorkerService,
     @Inject(WEBSOCKET_SERVER_TOKEN)
@@ -139,7 +142,7 @@ export class StreamReceiverGateway
         this.logger.log({
           message: "WebSocket 连接认证成功（中间件）",
           clientId: socket.id,
-          apiKeyName: authResult.apiKey?.name,
+          apiKeyName: authResult.apiKey?.appKey || 'unknown',
           authDuration: `${authDuration}ms`
         });
 
@@ -513,10 +516,9 @@ export class StreamReceiverGateway
       }
 
       // 验证API Key
-      const apiKeyDoc = await this.apiKeyService.validateApiKey(
-        authData.apiKey,
-        authData.accessToken,
-      );
+      const apiKeyDoc = await this.apiKeyModel
+        .findOne({ appKey: authData.apiKey, accessToken: authData.accessToken, deletedAt: { $exists: false } })
+        .exec();
 
       if (!apiKeyDoc) {
         return {
@@ -526,8 +528,11 @@ export class StreamReceiverGateway
       }
 
       // 检查流权限
+      const permissions = (apiKeyDoc as any).permissions
+        ? (apiKeyDoc as any).permissions
+        : (apiKeyDoc.profile === 'ADMIN' ? ADMIN_PROFILE : READ_PROFILE);
       const hasStreamPermission = hasStreamPermissions(
-        apiKeyDoc.permissions as Permission[],
+        permissions as Permission[],
       );
       if (!hasStreamPermission) {
         return {
@@ -539,8 +544,8 @@ export class StreamReceiverGateway
       // 将认证信息附加到客户端
       client.data.apiKey = {
         id: apiKeyDoc._id,
-        name: apiKeyDoc.name,
-        permissions: apiKeyDoc.permissions,
+        name: (apiKeyDoc as any).appKey,
+        permissions: Array.from(permissions as any),
         authType: "apikey",
       };
 

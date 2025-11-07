@@ -43,12 +43,12 @@ import {
 
 // 依赖模块导入 - 用于创建Mock模块
 import { SharedServicesModule } from '@core/shared/module/shared-services.module';
-import { ProvidersModule } from '@providers/module/providers-sg.module';
-import { MonitoringModule } from '@monitoring/monitoring.module';
+import { ProvidersV2Module } from '@providersv2';
+// import { MonitoringModule } from '@monitoring/monitoring.module';
 import { StreamCacheModule } from '@core/05-caching/module/stream-cache/module/stream-cache.module';
 
 // 导入需要Mock的具体服务类
-import { EnhancedCapabilityRegistryService } from '@providers/services/enhanced-capability-registry.service';
+import { ProviderRegistryService } from '@providersv2/provider-registry.service';
 import { StreamCacheStandardizedService } from '@core/05-caching/module/stream-cache/services/stream-cache-standardized.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
@@ -62,7 +62,7 @@ import { ConfigService } from '@nestjs/config';
 
 // Mock模块定义
 class MockSharedServicesModule {}
-class MockProvidersModule {}
+class MockProvidersV2Module {}
 class MockMonitoringModule {}
 class MockStreamCacheModule {}
 
@@ -91,7 +91,7 @@ const createConfigServiceMock = () => ({
 });
 
 // 核心依赖服务的Mock工厂
-const createEnhancedCapabilityRegistryMock = () => ({
+const createProviderRegistryMock = () => ({
   getCapability: jest.fn(),
   registerProvider: jest.fn(),
   getAllCapabilities: jest.fn().mockReturnValue(new Map()),
@@ -157,17 +157,17 @@ describe('StreamDataFetcherModule', () => {
       // 🎯 核心策略：使用overrideModule替换外部依赖模块
       .overrideModule(SharedServicesModule)
       .useModule(MockSharedServicesModule)
-      .overrideModule(ProvidersModule)  
-      .useModule(MockProvidersModule)
-      .overrideModule(MonitoringModule)
-      .useModule(MockMonitoringModule)
+      .overrideModule(ProvidersV2Module)
+      .useModule(MockProvidersV2Module)
+      // .overrideModule(MonitoringModule) // 已删除 monitoring 模块
+      // .useModule(MockMonitoringModule)
       .overrideModule(StreamCacheModule)
       .useModule(MockStreamCacheModule)
       
       // 🔧 精确策略：直接覆盖关键依赖的Provider实现
       // 这样避免了深层依赖解析和循环依赖问题
-      .overrideProvider(EnhancedCapabilityRegistryService)
-      .useValue(createEnhancedCapabilityRegistryMock())
+      .overrideProvider(ProviderRegistryService)
+      .useValue(createProviderRegistryMock())
       .overrideProvider(StreamCacheStandardizedService)
       .useValue(createStreamCacheStandardizedServiceMock())
       .overrideProvider(EventEmitter2)

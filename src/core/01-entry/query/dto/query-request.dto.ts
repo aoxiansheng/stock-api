@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { CAPABILITY_NAMES } from "../../../../providers/constants/capability-names.constants";
+import { CAPABILITY_NAMES } from "../../../../providersv2/providers/constants/capability-names.constants";
 
 import { REFERENCE_DATA } from "@common/constants/domain";
 import {

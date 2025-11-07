@@ -31,21 +31,16 @@ import { StorageModule } from "./core/04-storage/storage/module/storage.module";
 import { SmartCacheModule } from "./core/05-caching/module/smart-cache/module/smart-cache.module";
 
 // 领域模块
-import { AuthModule } from "./auth/module/auth.module";
-import { MonitoringModule } from "./monitoring/monitoring.module";
-import { AlertEnhancedModule } from "./alert/module/alert-enhanced.module";
-import { NotificationModule } from "./notification/notification.module";
-import { ProvidersModule } from "./providers/module/providers-sg.module";
-import { PermissionValidationModule } from "./auth/permission/modules/permission-validation.module";
+import { AuthModule as AuthV2Module } from "@authv2/auth.module";
+// 监控、告警、通知模块已移除 - 使用外部工具替代
+import { ProvidersV2Module } from "@providersv2";
+// 移除旧权限验证模块（精简）
 import { PaginationModule } from "./common/modules/pagination/modules/pagination.module";
 
 // 安全防护守卫
-import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
-import { ApiKeyAuthGuard } from "./auth/guards/apikey-auth.guard";
-import { UnifiedPermissionsGuard } from "./auth/guards/unified-permissions.guard";
-import { RateLimitGuard } from "./auth/guards/rate-limit.guard";
+import { JwtAuthGuard, ApiKeyAuthGuard, PermissionsGuard } from "@authv2/guards";
 
-import authConfig from "./auth/config/auth-configuration";
+// 移除旧auth配置（精简）
 
 @Global() // ✅ 添加全局装饰器，使RedisModule全局可用
 @Module({
@@ -53,8 +48,7 @@ import authConfig from "./auth/config/auth-configuration";
     // ========================================
     // 基础设施层 (Infrastructure Layer)
     // ========================================
-    // 配置模块
-    ConfigModule.forFeature(authConfig),
+    // 配置模块（移除auth旧配置）
 
     // 统一数据库模块 (替换原有MongooseModule.forRoot)
     DatabaseModule,
@@ -62,7 +56,7 @@ import authConfig from "./auth/config/auth-configuration";
     // Redis连接
     RedisModule.forRoot({
       type: "single",
-      url: `redis://${process.env.REDIS_HOST || "localhost"}:${parseInt(process.env.REDIS_PORT) || 6379}`,
+      url: process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || "localhost"}:${parseInt(process.env.REDIS_PORT) || 6379}`,
       options: {
         enableReadyCheck: false,
         maxRetriesPerRequest: parseInt(
@@ -122,12 +116,9 @@ import authConfig from "./auth/config/auth-configuration";
     // ========================================
     // 领域模块 (Domain Modules)
     // ========================================
-    AuthModule,
-    MonitoringModule,
-    AlertEnhancedModule,
-    NotificationModule, // 🔔 通知模块 (从Alert模块拆分)
-    ProvidersModule,
-    PermissionValidationModule,
+    AuthV2Module,
+    // MonitoringModule, AlertEnhancedModule, NotificationModule 已移除
+    ProvidersV2Module,
 
     // ========================================
     // 安全防护层 (Security Layer)
@@ -160,11 +151,7 @@ import authConfig from "./auth/config/auth-configuration";
     },
     {
       provide: APP_GUARD,
-      useClass: RateLimitGuard, // API Key频率限制
-    },
-    {
-      provide: APP_GUARD,
-      useClass: UnifiedPermissionsGuard, // 权限检查最后执行
+      useClass: PermissionsGuard, // 权限检查
     },
   ],
 })

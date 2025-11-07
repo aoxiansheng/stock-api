@@ -4,7 +4,7 @@ import { API_OPERATIONS } from "@common/constants/domain";
  * 🎯 统一定义查询相关的常量，确保系统一致性
  */
 
-import { OperationStatus } from "@monitoring/contracts/enums/operation-status.enum";
+import { OperationStatus } from "@common/enums/operation-status.enum";
 import { CONSTANTS } from "@common/constants";
 import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/constants/smart-cache.constants";
 
@@ -199,11 +199,15 @@ export const QUERY_STATUS = Object.freeze({
 /**
  * 统一超时配置常量
  * 合并了之前分散在多个地方的超时设置
+ *
+ * ⚠️ 修复配置关系：marketParallelTimeout 必须 > receiverBatchTimeout
+ * - QUERY_MS (marketParallelTimeout): 市场级并行处理超时，需要更长时间 → SLOW_MS (60秒)
+ * - REALTIME_FETCH_MS (receiverBatchTimeout): 单个Receiver请求超时 → NORMAL_REQUEST_MS (30秒)
  */
 export const QUERY_TIMEOUT_CONFIG = Object.freeze({
-  QUERY_MS: CONSTANTS.QUICK.TIMEOUTS.NORMAL_REQUEST_MS, // 统一查询超时
+  QUERY_MS: CONSTANTS.SEMANTIC.HTTP.TIMEOUTS.REQUEST.SLOW_MS, // 统一查询超时 (60秒 - 市场级并行处理需要更长时间)
   CACHE_MS: CONSTANTS.QUICK.TIMEOUTS.NORMAL_REQUEST_MS, // 统一缓存操作超时
-  REALTIME_FETCH_MS: CONSTANTS.SEMANTIC.HTTP.TIMEOUTS.REQUEST.SLOW_MS, // 实时数据获取超时
+  REALTIME_FETCH_MS: CONSTANTS.QUICK.TIMEOUTS.NORMAL_REQUEST_MS, // 实时数据获取超时 (30秒 - 单个Receiver请求)
   HEALTH_CHECK_MS: CONSTANTS.QUICK.TIMEOUTS.NORMAL_REQUEST_MS, // 健康检查超时
 } as const);
 

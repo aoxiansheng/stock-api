@@ -7,10 +7,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { DataFetcherModule } from '@core/03-fetching/data-fetcher/module/data-fetcher.module';
 import { DataFetcherService } from '@core/03-fetching/data-fetcher/services/data-fetcher.service';
-import { EnhancedCapabilityRegistryService } from '@providers/services/enhanced-capability-registry.service';
+import { ProviderRegistryService } from '@providersv2/provider-registry.service';
 
 // Mock ProvidersModule since it has complex dependencies
-const mockEnhancedCapabilityRegistryService = {
+const mockProviderRegistryService = {
   getCapability: jest.fn(),
   getProvider: jest.fn()
 };
@@ -19,7 +19,7 @@ describe('DataFetcherModule', () => {
   let module: TestingModule;
   let dataFetcherService: DataFetcherService;
   let eventEmitter: EventEmitter2;
-  let capabilityRegistryService: EnhancedCapabilityRegistryService;
+  let capabilityRegistryService: ProviderRegistryService;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -29,15 +29,15 @@ describe('DataFetcherModule', () => {
       providers: [
         DataFetcherService,
         {
-          provide: EnhancedCapabilityRegistryService,
-          useValue: mockEnhancedCapabilityRegistryService
+          provide: ProviderRegistryService,
+          useValue: mockProviderRegistryService
         }
       ]
     }).compile();
 
     dataFetcherService = module.get<DataFetcherService>(DataFetcherService);
     eventEmitter = module.get<EventEmitter2>(EventEmitter2);
-    capabilityRegistryService = module.get<EnhancedCapabilityRegistryService>(EnhancedCapabilityRegistryService);
+    capabilityRegistryService = module.get<ProviderRegistryService>(ProviderRegistryService);
   });
 
   afterEach(async () => {
@@ -60,9 +60,9 @@ describe('DataFetcherModule', () => {
       expect(eventEmitter).toBeInstanceOf(EventEmitter2);
     });
 
-    it('should provide EnhancedCapabilityRegistryService', () => {
+    it('should provide ProviderRegistryService', () => {
       expect(capabilityRegistryService).toBeDefined();
-      expect(capabilityRegistryService).toBe(mockEnhancedCapabilityRegistryService);
+      expect(capabilityRegistryService).toBe(mockProviderRegistryService);
     });
   });
 
@@ -151,14 +151,14 @@ describe('DataFetcherModule', () => {
   });
 
   describe('capability registry integration', () => {
-    it('should use EnhancedCapabilityRegistryService', () => {
+    it('should use ProviderRegistryService', () => {
       expect(capabilityRegistryService).toBeDefined();
       expect(capabilityRegistryService.getCapability).toBeDefined();
       expect(capabilityRegistryService.getProvider).toBeDefined();
     });
 
     it('should allow mocking of capability registry methods', () => {
-      mockEnhancedCapabilityRegistryService.getCapability.mockReturnValue({
+      mockProviderRegistryService.getCapability.mockReturnValue({
         name: 'test-capability',
         execute: jest.fn()
       });
@@ -166,14 +166,14 @@ describe('DataFetcherModule', () => {
       const result = capabilityRegistryService.getCapability('test-provider', 'test-capability');
       expect(result).toBeDefined();
       expect(result.name).toBe('test-capability');
-      expect(mockEnhancedCapabilityRegistryService.getCapability).toHaveBeenCalledWith(
+      expect(mockProviderRegistryService.getCapability).toHaveBeenCalledWith(
         'test-provider',
         'test-capability'
       );
     });
 
     it('should handle provider lookup', () => {
-      mockEnhancedCapabilityRegistryService.getProvider.mockReturnValue({
+      mockProviderRegistryService.getProvider.mockReturnValue({
         name: 'test-provider',
         getContextService: jest.fn()
       });
@@ -181,7 +181,7 @@ describe('DataFetcherModule', () => {
       const provider = capabilityRegistryService.getProvider('test-provider');
       expect(provider).toBeDefined();
       expect(provider.name).toBe('test-provider');
-      expect(mockEnhancedCapabilityRegistryService.getProvider).toHaveBeenCalledWith('test-provider');
+      expect(mockProviderRegistryService.getProvider).toHaveBeenCalledWith('test-provider');
     });
   });
 

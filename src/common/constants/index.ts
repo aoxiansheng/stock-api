@@ -82,12 +82,10 @@ export default CONSTANTS;
  * // 或直接导入配置
  * import unifiedTtlConfig from '@appcore/config/unified-ttl.config';
  * import commonConstantsConfig from '@common/config/common-constants.config';
- * import notificationConfig from '@notification/config/notification-unified.config';
  * ```
  */
 
 /**
  * 类型定义导出
  */
-export type ConstantsQuickAccess = typeof CONSTANTS.QUICK;
-export type ConstantsSystem = typeof CONSTANTS;
+// 已移除未使用的类型别名 ConstantsQuickAccess / ConstantsSystem

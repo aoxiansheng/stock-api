@@ -8,33 +8,7 @@ describe('StreamConfigService', () => {
   let service: StreamConfigService;
   let configService: ConfigService;
 
-  // 创建一个有效的默认配置用于测试
-  const createValidConfig = (): Partial<StreamDataFetcherConfig> => ({
-    connections: {
-      maxGlobal: 1000,
-      maxPerKey: 100,
-      maxPerIP: 10,
-      timeoutMs: 30000,
-    },
-    healthCheck: {
-      concurrency: 10,
-      timeoutMs: 5000,
-      retries: 1,
-      skipUnresponsive: true,
-      healthRateThreshold: 50,
-    },
-    performance: {
-      slowResponseMs: 2000,
-      maxTimePerSymbolMs: 500,
-      maxSymbolsPerBatch: 50,
-      logSymbolsLimit: 10,
-      batchConcurrency: 10,
-    },
-    polling: {
-      intervalMs: 100,
-      connectionIntervalMs: 100,
-    },
-  });
+  // 兼容新接口，移除未使用的 createValidConfig
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -48,6 +22,29 @@ describe('StreamConfigService', () => {
         maxPerUser: 5,
         timeout: 30000,
         heartbeatInterval: 25000,
+      },
+      performance: {
+        slowResponseMs: 2000,
+        maxTimePerSymbolMs: 500,
+        maxSymbolsPerBatch: 50,
+        logSymbolsLimit: 10,
+        batchConcurrency: 10,
+        concurrency: {
+          initial: 10,
+          min: 2,
+          max: 50,
+          adjustmentFactor: 0.2,
+          stabilizationPeriodMs: 30000,
+        },
+        thresholds: {
+          responseTimeMs: { excellent: 100, good: 500, poor: 2000 },
+          successRate: { excellent: 0.98, good: 0.9, poor: 0.8 },
+        },
+        circuitBreaker: {
+          recoveryDelayMs: 60000,
+          failureThreshold: 0.5,
+        },
+        concurrencyAdjustmentIntervalMs: 30000,
       },
       fetching: {
         timeout: 5000,

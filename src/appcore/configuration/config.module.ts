@@ -5,12 +5,9 @@ import * as Joi from "joi";
 // 导入所有配置
 import { appConfig } from "../config/app.config";
 import { FeatureFlags } from "../config/feature-flags.config";
-import alertConfig from "../../alert/config/alert.config";
-import { securityConfig } from "../../auth/config/security.config";
-import authUnifiedConfig from "../../auth/config/auth-unified.config";
-import cacheUnifiedConfig from "../../cache/config/cache-unified.config";
+
+// 精简：移除旧Auth配置依赖
 import commonConstantsConfig from "../../common/config/common-constants.config";
-// 通知配置由NotificationModule直接处理配置注册
 // notification-enhanced.config.ts已被删除，改用统一配置系统
 
 /**
@@ -31,12 +28,10 @@ import commonConstantsConfig from "../../common/config/common-constants.config";
         () => ({
           featureFlags: new FeatureFlags(), // 功能开关配置
         }),
-        alertConfig, // 告警配置
-        () => ({ security: securityConfig }), // 安全配置
-        authUnifiedConfig, // Auth统一配置
-        cacheUnifiedConfig, // Cache统一配置（替换unifiedTtlConfig）
+
+        // 移除旧 Auth 配置层
+        // 已移除 Cache 模块内部配置，改为组件内默认值与调用端显式 TTL
         commonConstantsConfig, // Common模块统一配置
-        // 通知配置由NotificationModule自行处理
       ],
       isGlobal: true,
       cache: true,
@@ -77,56 +72,7 @@ import commonConstantsConfig from "../../common/config/common-constants.config";
           .falsy("false")
           .optional(),
 
-        // Cache统一配置环境变量
-        CACHE_DEFAULT_TTL: Joi.number().integer().min(1).max(86400).optional(),
-        CACHE_STRONG_TTL: Joi.number().integer().min(1).max(60).optional(),
-        CACHE_REALTIME_TTL: Joi.number().integer().min(1).max(300).optional(),
-        CACHE_MONITORING_TTL: Joi.number()
-          .integer()
-          .min(60)
-          .max(3600)
-          .optional(),
-        CACHE_AUTH_TTL: Joi.number().integer().min(60).max(3600).optional(),
-        CACHE_TRANSFORMER_TTL: Joi.number()
-          .integer()
-          .min(60)
-          .max(1800)
-          .optional(),
-        CACHE_SUGGESTION_TTL: Joi.number()
-          .integer()
-          .min(60)
-          .max(1800)
-          .optional(),
-        CACHE_LONG_TERM_TTL: Joi.number()
-          .integer()
-          .min(300)
-          .max(86400)
-          .optional(),
-        CACHE_COMPRESSION_THRESHOLD: Joi.number().integer().min(0).optional(),
-        CACHE_COMPRESSION_ENABLED: Joi.boolean().optional(),
-        CACHE_MAX_ITEMS: Joi.number().integer().min(1).optional(),
-        CACHE_MAX_KEY_LENGTH: Joi.number().integer().min(1).optional(),
-        CACHE_MAX_VALUE_SIZE_MB: Joi.number().integer().min(1).optional(),
-        CACHE_SLOW_OPERATION_MS: Joi.number().integer().min(1).optional(),
-        CACHE_RETRY_DELAY_MS: Joi.number().integer().min(1).optional(),
-        CACHE_LOCK_TTL: Joi.number().integer().min(1).optional(),
-        CACHE_MAX_BATCH_SIZE: Joi.number()
-          .integer()
-          .min(1)
-          .max(1000)
-          .optional(),
-        CACHE_MAX_SIZE: Joi.number().integer().min(1000).max(100000).optional(),
-        CACHE_LRU_SORT_BATCH_SIZE: Joi.number()
-          .integer()
-          .min(100)
-          .max(10000)
-          .optional(),
-        SMART_CACHE_MAX_BATCH: Joi.number()
-          .integer()
-          .min(10)
-          .max(1000)
-          .optional(),
-        CACHE_MAX_SIZE_MB: Joi.number().integer().min(64).max(8192).optional(),
+        // Cache 组件不再依赖环境变量；TTL 由调用方传入或使用组件内默认值
 
         // Common模块配置环境变量
         DEFAULT_BATCH_SIZE: Joi.number().integer().min(1).max(10000).optional(),
