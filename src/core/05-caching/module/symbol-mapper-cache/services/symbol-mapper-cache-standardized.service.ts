@@ -16,7 +16,9 @@ import { Injectable, Logger } from '@nestjs/common';
 // Types and interfaces
 import { BatchMappingResult, SymbolMapperCacheStatsDto } from '../interfaces/cache-stats.interface';
 import { SYMBOL_MAPPER_CACHE_CONSTANTS } from '../constants/symbol-mapper-cache.constants';
-import { MappingDirection } from '../../../../shared/constants/cache.constants';
+import { MappingDirection } from '@core/shared/constants';
+import { SymbolMapperService } from '@core/00-prepare/symbol-mapper/services/symbol-mapper.service';
+import { SymbolMappingResponseDto } from '@core/00-prepare/symbol-mapper/dto/symbol-mapping-response.dto';
 
 @Injectable()
 export class SymbolMapperCacheStandardizedService {
@@ -26,6 +28,14 @@ export class SymbolMapperCacheStandardizedService {
   private readonly l1ProviderRulesCache = new Map<string, any>();
   private readonly l2SymbolMappingCache = new Map<string, any>();
   private readonly l3BatchResultCache = new Map<string, any>();
+
+  // 简易TTL/LRU配置（可由环境变量覆盖）
+  private readonly L1_MAX = parseInt(process.env.SYM_MAP_L1_MAX || '200');
+  private readonly L2_MAX = parseInt(process.env.SYM_MAP_L2_MAX || '2000');
+  private readonly L3_MAX = parseInt(process.env.SYM_MAP_L3_MAX || '500');
+  private readonly L1_TTL_SEC = parseInt(process.env.SYM_MAP_L1_TTL || '300');
+  private readonly L2_TTL_SEC = parseInt(process.env.SYM_MAP_L2_TTL || '600');
+  private readonly L3_TTL_SEC = parseInt(process.env.SYM_MAP_L3_TTL || '300');
 
   // 监控统计
   private readonly stats = {
@@ -40,7 +50,9 @@ export class SymbolMapperCacheStandardizedService {
   // Service metrics and monitoring
   private isInitialized: boolean = false;
 
-  constructor() {
+  constructor(
+    private readonly symbolMapperService: SymbolMapperService,
+  ) {
     this.logger.log('SymbolMapperCacheStandardizedService (Simplified) initialized');
     this.isInitialized = true;
   }
@@ -92,7 +104,7 @@ export class SymbolMapperCacheStandardizedService {
     }
 
     try {
-      // 简化实现：直接转换符号格式
+      // 简化实现（保留）：直接转换符号格式（作为兜底）
       const mappingDetails: Record<string, string> = {};
       const failedSymbols: string[] = [];
       let validSymbolsProcessed = 0;
@@ -105,22 +117,22 @@ export class SymbolMapperCacheStandardizedService {
           }
 
           validSymbolsProcessed++; // 计数有效处理的符号
-          
-          if (direction === MappingDirection.TO_STANDARD) {
-            mappingDetails[symbol] = this.convertToStandardFormat(symbol);
+
+          // 先查L2缓存（单符号）
+          const l2Key = this.getL2Key(provider, symbol, direction);
+          const l2Hit = this.getCache(this.l2SymbolMappingCache, l2Key);
+          if (l2Hit.hit) {
+            mappingDetails[symbol] = l2Hit.value;
           } else {
-            mappingDetails[symbol] = this.convertFromStandardFormat(symbol);
+            // 回退到简化规则（兜底）
+            const mapped = direction === MappingDirection.TO_STANDARD
+              ? this.convertToStandardFormat(symbol)
+              : this.convertFromStandardFormat(symbol);
+            mappingDetails[symbol] = mapped;
+            // 写入L2
+            this.setCache(this.l2SymbolMappingCache, l2Key, mapped, this.L2_TTL_SEC, this.L2_MAX);
           }
 
-          // 更新L2缓存
-          const cacheKey = this.getSymbolCacheKey(symbol, provider, direction);
-          this.l2SymbolMappingCache.set(cacheKey, {
-            standardSymbol: mappingDetails[symbol],
-            provider,
-            direction,
-            timestamp: Date.now(),
-            accessCount: 1,
-          });
           this.stats.l2.hits++;
         } catch (error) {
           failedSymbols.push(symbol);
@@ -144,6 +156,156 @@ export class SymbolMapperCacheStandardizedService {
       this.logger.error(`Symbol mapping failed for provider ${provider}`, error);
       throw error;
     }
+  }
+
+  // ==================== 新增：规则驱动映射API ====================
+
+  /**
+   * 按 provider 返回标准→SDK 映射（forward）与 SDK→标准（reverse），并给出映射后的数组
+   * 未命中规则时回退为原值
+   */
+  async mapToProvider(provider: string, symbols: string[]): Promise<{
+    mappedArray: string[];
+    forwardMap: Record<string, string>;
+    reverseMap: Record<string, string>;
+  }> {
+    // L3 批量缓存
+    const batchKey = this.getL3Key(provider, symbols, 'to_provider');
+    const l3Hit = this.getCache(this.l3BatchResultCache, batchKey);
+    if (l3Hit.hit) return l3Hit.value;
+
+    const rules = await this.loadProviderRules(provider);
+    const forwardMap: Record<string, string> = rules.forwardMap || {};
+    const reverseMap: Record<string, string> = rules.reverseMap || {};
+
+    const mappedArray: string[] = [];
+    for (const s of symbols) {
+      if (typeof s === 'string' && s in forwardMap) {
+        mappedArray.push(forwardMap[s]);
+        // L2写入
+        this.setCache(this.l2SymbolMappingCache, this.getL2Key(provider, s, MappingDirection.FROM_STANDARD), forwardMap[s], this.L2_TTL_SEC, this.L2_MAX);
+      } else {
+        // 尝试L2
+        const l2Key = this.getL2Key(provider, s, MappingDirection.FROM_STANDARD);
+        const l2Hit = this.getCache(this.l2SymbolMappingCache, l2Key);
+        if (l2Hit.hit) {
+          mappedArray.push(l2Hit.value);
+        } else {
+          mappedArray.push(s); // 回退原值
+          this.setCache(this.l2SymbolMappingCache, l2Key, s, this.L2_TTL_SEC, this.L2_MAX);
+        }
+      }
+    }
+
+    const batchVal = { mappedArray, forwardMap, reverseMap };
+    this.setCache(this.l3BatchResultCache, batchKey, batchVal, this.L3_TTL_SEC, this.L3_MAX);
+    return batchVal;
+  }
+
+  /**
+   * 按 provider 返回 SDK→标准（reverse）与标准→SDK（forward），并给出映射后的数组
+   */
+  async mapToStandard(provider: string, symbols: string[]): Promise<{
+    mappedArray: string[];
+    forwardMap: Record<string, string>;
+    reverseMap: Record<string, string>;
+  }> {
+    const batchKey = this.getL3Key(provider, symbols, 'to_standard');
+    const l3Hit = this.getCache(this.l3BatchResultCache, batchKey);
+    if (l3Hit.hit) return l3Hit.value;
+
+    const rules = await this.loadProviderRules(provider);
+    const forwardMap: Record<string, string> = rules.forwardMap || {};
+    const reverseMap: Record<string, string> = rules.reverseMap || {};
+
+    const mappedArray: string[] = [];
+    for (const s of symbols) {
+      if (typeof s === 'string' && s in reverseMap) {
+        mappedArray.push(reverseMap[s]);
+        this.setCache(this.l2SymbolMappingCache, this.getL2Key(provider, s, MappingDirection.TO_STANDARD), reverseMap[s], this.L2_TTL_SEC, this.L2_MAX);
+      } else {
+        const l2Key = this.getL2Key(provider, s, MappingDirection.TO_STANDARD);
+        const l2Hit = this.getCache(this.l2SymbolMappingCache, l2Key);
+        if (l2Hit.hit) {
+          mappedArray.push(l2Hit.value);
+        } else {
+          mappedArray.push(s);
+          this.setCache(this.l2SymbolMappingCache, l2Key, s, this.L2_TTL_SEC, this.L2_MAX);
+        }
+      }
+    }
+
+    const batchVal = { mappedArray, forwardMap, reverseMap };
+    this.setCache(this.l3BatchResultCache, batchKey, batchVal, this.L3_TTL_SEC, this.L3_MAX);
+    return batchVal;
+  }
+
+  /**
+   * 加载并缓存 provider 规则（forward: 标准→SDK，reverse: SDK→标准）
+   */
+  private async loadProviderRules(provider: string): Promise<{ forwardMap: Record<string,string>; reverseMap: Record<string,string> }> {
+    const cacheKey = `rules:provider:${provider}`;
+    const cached = this.getCache(this.l1ProviderRulesCache, cacheKey);
+    if (cached.hit) return cached.value;
+
+    try {
+      const dto: SymbolMappingResponseDto = await this.symbolMapperService.getSymbolMappingByDataSource(provider);
+      const forwardMap: Record<string, string> = {};
+      const reverseMap: Record<string, string> = {};
+      const rules = dto?.SymbolMappingRule || [];
+      for (const r of rules) {
+        if (!r?.standardSymbol || !r?.sdkSymbol) continue;
+        forwardMap[r.standardSymbol] = r.sdkSymbol;
+        reverseMap[r.sdkSymbol] = r.standardSymbol;
+      }
+      const result = { forwardMap, reverseMap };
+      this.setCache(this.l1ProviderRulesCache, cacheKey, result, this.L1_TTL_SEC, this.L1_MAX);
+      return result;
+    } catch (error) {
+      // 数据源不存在或查询失败：返回空规则，避免阻塞
+      const result = { forwardMap: {}, reverseMap: {} };
+      this.setCache(this.l1ProviderRulesCache, cacheKey, result, this.L1_TTL_SEC, this.L1_MAX);
+      return result;
+    }
+  }
+
+  // ==================== 辅助：TTL/LRU 封装 ====================
+  private getCache(map: Map<string, any>, key: string): { hit: boolean; value?: any } {
+    const entry = map.get(key);
+    if (!entry) return { hit: false };
+    const now = Date.now();
+    if (entry.expireAt && entry.expireAt < now) {
+      map.delete(key);
+      return { hit: false };
+    }
+    entry.usage = (entry.usage || 0) + 1;
+    return { hit: true, value: entry.value };
+  }
+
+  private setCache(map: Map<string, any>, key: string, value: any, ttlSec: number, maxSize: number): void {
+    const expireAt = Date.now() + (ttlSec * 1000);
+    map.set(key, { value, expireAt, usage: 1 });
+    if (map.size > maxSize) {
+      // 简单LRU：按 usage 升序淘汰一个
+      let minUsage = Infinity;
+      let victim: string | null = null;
+      for (const [k, v] of map.entries()) {
+        const u = v?.usage || 0;
+        if (u < minUsage && k !== key) {
+          minUsage = u; victim = k;
+        }
+      }
+      if (victim) map.delete(victim);
+    }
+  }
+
+  private getL2Key(provider: string, symbol: string, direction: MappingDirection): string {
+    return `${SYMBOL_MAPPER_CACHE_CONSTANTS.KEYS.SYMBOL_MAPPING}:${provider}:${direction}:${symbol}`;
+  }
+
+  private getL3Key(provider: string, symbols: string[], mode: 'to_provider' | 'to_standard'): string {
+    const sorted = [...symbols].filter(Boolean).sort().join(',');
+    return `${SYMBOL_MAPPER_CACHE_CONSTANTS.KEYS.BATCH_RESULT}:${provider}:${mode}:${sorted}`;
   }
 
   /**

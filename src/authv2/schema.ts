@@ -7,11 +7,20 @@ export type ApiKeyProfile = "READ" | "ADMIN";
 
 @Schema({ timestamps: true, collection: "api_keys" })
 export class ApiKey {
+  @Prop({ required: true })
+  userId: string;
+
   @Prop({ required: true, unique: true })
   appKey: string;
 
   @Prop({ required: true, unique: true })
   accessToken: string;
+
+  @Prop({ type: String, default: "" })
+  name: string;
+
+  @Prop({ type: [String], default: [] })
+  permissions: string[];
 
   // 极简：直接存档位即可（默认 READ）
   @Prop({ type: String, enum: ["READ", "ADMIN"], default: "READ" })
@@ -29,6 +38,10 @@ export class ApiKey {
 
   @Prop({})
   deletedAt?: Date;
+
+  // Mongoose timestamps (自动生成)
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);

@@ -11,6 +11,8 @@ import { DatabaseModule } from "./database/database.module"; // 🆕 统一数�
 
 // 应用服务层模块
 import { ApplicationModule } from "./appcore/core/application.module";
+import { PresetTemplatesInitializer } from "./appcore/core/services/preset-templates.initializer";
+import { PresetSymbolRulesInitializer } from "./appcore/core/services/preset-symbol-rules.initializer";
 
 // 核心业务层模块 - 准备阶段
 import { SymbolMapperModule } from "./core/00-prepare/symbol-mapper/module/symbol-mapper.module";
@@ -153,6 +155,10 @@ import { JwtAuthGuard, ApiKeyAuthGuard, PermissionsGuard } from "@authv2/guards"
       provide: APP_GUARD,
       useClass: PermissionsGuard, // 权限检查
     },
+    // 启动阶段初始化：持久化预设模板与映射规则
+     PresetTemplatesInitializer,
+    // 启动阶段初始化：持久化预设Symbol映射规则
+     PresetSymbolRulesInitializer,
   ],
 })
 export class AppModule {}

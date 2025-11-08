@@ -3,10 +3,10 @@
  * 定义专职服务之间的契约和数据结构
  */
 
-import { QuoteData } from './data-processing.interface';
+import type { QuoteData } from './data-processing.interface';
 
 // 重新导出QuoteData以供其他模块使用
-export { QuoteData } from './data-processing.interface';
+export type { QuoteData } from './data-processing.interface';
 
 
 /**

@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { SymbolMapperModule } from "@core/00-prepare/symbol-mapper/module/symbol-mapper.module";
 // 导入缓存服务
 import { SymbolMapperCacheStandardizedService } from "../services/symbol-mapper-cache-standardized.service";
 
@@ -16,7 +17,7 @@ import { SymbolMapperCacheStandardizedService } from "../services/symbol-mapper-
  * - SymbolMapperCacheStandardizedService: 标准化服务 (唯一服务)
  */
 @Module({
-  imports: [],
+  imports: [SymbolMapperModule],
   providers: [
     // 标准化服务 (唯一服务)
     SymbolMapperCacheStandardizedService,

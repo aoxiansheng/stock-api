@@ -1,5 +1,5 @@
 import { SymbolTransformResult } from "./symbol-transform-result.interface";
-import { MappingDirection } from "../../../shared/constants/cache.constants";
+import { MappingDirection } from "@core/shared/constants";
 
 /**
  * 符号转换器接口

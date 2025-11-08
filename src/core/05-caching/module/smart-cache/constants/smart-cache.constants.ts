@@ -2,7 +2,7 @@ import {
   CACHE_CORE_VALUES,
   CACHE_CORE_TTL,
   CACHE_CORE_BATCH_SIZES,
-} from '../../../foundation/constants/core-values.constants';
+} from '@core/05-caching/foundation';
 
 /**
  * Smart Cache 常量定义

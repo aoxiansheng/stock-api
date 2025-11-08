@@ -11,7 +11,9 @@
  * 注意: 这是简化版实现，主要用于类型兼容性和基础功能演示
  */
 
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { BasicCacheService } from '../../basic-cache/services/basic-cache.service';
+import { MarketStatusService } from '../../../../shared/services/market-status.service';
 
 // Foundation layer imports
 import { StandardCacheModuleInterface } from '../../../foundation/interfaces/standard-cache-module.interface';
@@ -40,43 +42,16 @@ import type {
 } from '../../../foundation/types/cache-config.types';
 
 import { ModuleInitOptions, ModuleStatus } from '../../../foundation/types/cache-module.types';
+import { CacheStrategy } from '../../../foundation';
+// 兼容历史导入：从本文件导出 CacheStrategy
+export { CacheStrategy } from '../../../foundation';
 
 // Inline cache strategy types (moved from deleted interface file)
 /**
  * 智能缓存策略枚举
  * 定义5种不同的缓存策略类型
  */
-export enum CacheStrategy {
-  /**
-   * 强时效性缓存 - 适用于Receiver
-   * 短TTL，快速失效，确保数据新鲜度
-   */
-  STRONG_TIMELINESS = "strong_timeliness",
-
-  /**
-   * 弱时效性缓存 - 适用于Query
-   * 长TTL，减少后台更新频率
-   */
-  WEAK_TIMELINESS = "weak_timeliness",
-
-  /**
-   * 市场感知缓存 - 根据市场状态动态调整
-   * 开市时短TTL，闭市时长TTL
-   */
-  MARKET_AWARE = "market_aware",
-
-  /**
-   * 无缓存策略 - 直接获取数据
-   * 用于需要实时数据的场景
-   */
-  NO_CACHE = "no_cache",
-
-  /**
-   * 自适应缓存 - 基于数据变化频率调整
-   * 动态调整TTL和更新策略
-   */
-  ADAPTIVE = "adaptive",
-}
+// 使用 Foundation 层的 CacheStrategy 枚举，避免重复定义
 
 /**
  * 智能缓存编排器请求接口
@@ -187,9 +162,18 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
 
   // Removed legacy orchestrator field - service is now standalone
 
-  constructor() {
+  constructor(
+    @Inject('smartCacheConfig') private readonly smartCacheConfig: CacheUnifiedConfigInterface,
+    private readonly basicCache: BasicCacheService,
+    private readonly marketStatusService: MarketStatusService,
+  ) {
     this.logger.log('SmartCacheStandardizedService (Simplified) initialized');
   }
+
+  // ===== In-memory cache & single-flight (for test/runtime stability) =====
+  // KISS: 使用最小实现满足强时效与并发用例（避免引入额外依赖）
+  private memCache = new Map<string, { value: any; expiresAt: number }>();
+  private inflight = new Map<string, Promise<any>>();
 
   // ==================== Module Interface Implementation ====================
 
@@ -325,10 +309,31 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
     const startTime = Date.now();
 
     try {
-      // Simplified implementation - just return cache miss for now
-      // In a real implementation, this would interact with Redis/storage
+      // 优先从 BasicCache(Redis) 读取
+      if (this.isRedisEnabled()) {
+        try {
+          const val = await this.basicCache.get<T>(key);
+          if (val !== null && val !== undefined) {
+            this.stats.cacheHits++;
+            return this.createGetResult<T>(key, val as T, true, startTime);
+          }
+        } catch (err) {
+          // 后端读取失败，降级到内存
+          this.logger.debug('BasicCache.get 失败，降级到内存缓存', { key, error: (err as any)?.message });
+        }
+      }
+
+      // 内存缓存回退
+      const now = Date.now();
+      const entry = this.memCache.get(key);
+      if (entry && entry.expiresAt > now) {
+        this.stats.cacheHits++;
+        const remaining = Math.max(0, Math.floor((entry.expiresAt - now) / 1000));
+        return this.createGetResult<T>(key, entry.value as T, true, startTime, remaining);
+      }
+      if (entry) this.memCache.delete(key);
       this.stats.cacheMisses++;
-      return this.createGetResult<T>(key, null, false, startTime);
+      return this.createGetResult<T>(key, null, false, startTime, 0);
     } catch (error) {
       this.stats.errors++;
       return this.createGetResult<T>(key, null, false, startTime, undefined, error);
@@ -338,8 +343,25 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
   async set<T = any>(key: string, value: T, options?: CacheOperationOptions): Promise<CacheSetResult> {
     this.stats.operations++;
     const startTime = Date.now();
-
-    return this.createSetResult(key, startTime);
+    try {
+      const ttlSec = Math.max(0, Number(options?.ttl ?? this.smartCacheConfig.defaultTtlSeconds));
+      // 写入 BasicCache(后端)
+      if (this.isRedisEnabled()) {
+        try {
+          await this.basicCache.set(key, value, { ttlSeconds: ttlSec });
+        } catch (err) {
+          this.logger.debug('BasicCache.set 失败，继续写入内存缓存', { key, error: (err as any)?.message });
+        }
+      }
+      // 写入内存缓存（加速本机命中/作为回退）
+      const expiresAt = ttlSec > 0 ? Date.now() + ttlSec * 1000 : Date.now();
+      if (ttlSec > 0) this.memCache.set(key, { value, expiresAt });
+      else this.memCache.delete(key);
+      return this.createSetResult(key, startTime);
+    } catch (error) {
+      this.stats.errors++;
+      return this.createSetResult(key, startTime, error);
+    }
   }
 
   async delete(key: string, options?: CacheOperationOptions): Promise<CacheDeleteResult> {
@@ -352,22 +374,32 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
   async exists(key: string, options?: CacheOperationOptions): Promise<BaseCacheResult<boolean>> {
     this.stats.operations++;
     const startTime = Date.now();
-
-    return this.createBasicResult<boolean>(false, 'get', startTime);
+    const now = Date.now();
+    const ok = (() => {
+      const e = this.memCache.get(key);
+      return !!(e && e.expiresAt > now);
+    })();
+    return this.createBasicResult<boolean>(ok, 'get', startTime);
   }
 
   async ttl(key: string, options?: CacheOperationOptions): Promise<BaseCacheResult<number>> {
     this.stats.operations++;
     const startTime = Date.now();
-
-    return this.createBasicResult<number>(300, 'get', startTime);
+    const now = Date.now();
+    const e = this.memCache.get(key);
+    const remaining = e && e.expiresAt > now ? Math.max(0, Math.floor((e.expiresAt - now) / 1000)) : 0;
+    return this.createBasicResult<number>(remaining, 'get', startTime);
   }
 
   async expire(key: string, ttl: number, options?: CacheOperationOptions): Promise<BaseCacheResult<boolean>> {
     this.stats.operations++;
     const startTime = Date.now();
-
-    return this.createBasicResult<boolean>(true, 'set', startTime);
+    const e = this.memCache.get(key);
+    if (e) {
+      e.expiresAt = Date.now() + Math.max(0, ttl) * 1000;
+      this.memCache.set(key, e);
+    }
+    return this.createBasicResult<boolean>(!!e, 'set', startTime);
   }
 
   // ==================== Batch Operations ====================
@@ -645,11 +677,9 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
     this.stats.strategyCounts[request.strategy]++;
 
     try {
-      // Try to get from cache first
+      // 1) 先查内存缓存
       const getResult = await this.get<T>(request.cacheKey);
-
-      if (getResult.hit && getResult.data) {
-        this.stats.cacheHits++;
+      if (getResult.hit && getResult.data !== undefined) {
         return {
           data: getResult.data,
           hit: true,
@@ -660,40 +690,40 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
         };
       }
 
-      // Cache miss - fetch data
-      this.stats.cacheMisses++;
-      const data = await request.fetchFn();
-
-      // Determine TTL based on strategy
-      let ttl = 300; // default 5 minutes
-      switch (request.strategy) {
-        case CacheStrategy.STRONG_TIMELINESS:
-          ttl = 5; // 5 seconds
-          break;
-        case CacheStrategy.WEAK_TIMELINESS:
-          ttl = 300; // 5 minutes
-          break;
-        case CacheStrategy.MARKET_AWARE:
-          ttl = 60; // 1 minute (simplified market aware)
-          break;
-        case CacheStrategy.NO_CACHE:
-          ttl = 0; // No caching
-          break;
-        case CacheStrategy.ADAPTIVE:
-          ttl = 120; // 2 minutes (adaptive)
-          break;
-        default:
-          ttl = 300; // default fallback
-          break;
+      // 2) NO_CACHE 策略：直接抓取，不缓存
+      const ttl = await this.resolveTtlByStrategy(request);
+      if (ttl === 0) {
+        const data = await request.fetchFn();
+        return {
+          data,
+          hit: false,
+          ttlRemaining: 0,
+          dynamicTtl: 0,
+          strategy: request.strategy,
+          storageKey: request.cacheKey,
+          timestamp: new Date().toISOString(),
+        };
       }
 
-      // Store in cache
-      await this.set(request.cacheKey, data, { ttl });
+      // 3) Single-flight：并发协同，避免同键重复抓取
+      let p = this.inflight.get(request.cacheKey);
+      if (!p) {
+        p = (async () => {
+          const data = await request.fetchFn();
+          await this.set(request.cacheKey, data as any, { ttl });
+          return data;
+        })();
+        this.inflight.set(request.cacheKey, p);
+        // 清理 inflight
+        p.finally(() => this.inflight.delete(request.cacheKey)).catch(() => this.inflight.delete(request.cacheKey));
+      }
+      const data = await p;
 
+      const remaining = ttl; // 后端TTL读取在BasicCacheService未暴露，返回动态TTL作为近似值
       return {
         data,
         hit: false,
-        ttlRemaining: ttl,
+        ttlRemaining: remaining,
         dynamicTtl: ttl,
         strategy: request.strategy,
         storageKey: request.cacheKey,
@@ -710,6 +740,45 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
         timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  private async resolveTtlByStrategy<T>(request: CacheOrchestratorRequest<T>): Promise<number> {
+    // 使用配置 + 最小市场感知
+    const cfg = this.smartCacheConfig?.ttl;
+    const fallback = this.smartCacheConfig?.defaultTtlSeconds ?? 300;
+    switch (request.strategy) {
+      case CacheStrategy.NO_CACHE:
+        return 0;
+      case CacheStrategy.STRONG_TIMELINESS:
+        return Math.max(1, cfg?.realTimeTtlSeconds ?? 1);
+      case CacheStrategy.WEAK_TIMELINESS:
+        return cfg?.batchQueryTtlSeconds ?? fallback;
+      case CacheStrategy.ADAPTIVE:
+        return cfg?.nearRealTimeTtlSeconds ?? 120;
+      case CacheStrategy.MARKET_AWARE: {
+        try {
+          // 尝试从 metadata 提供的市场状态判断是否开市；否则基于符号推断市场并查询
+          const market = (request.metadata as any)?.market || (request.metadata as any)?.marketStatus?.dominantMarket;
+          if (market) {
+            const status = await this.marketStatusService.getMarketStatus(market);
+            if (status.status === 'TRADING' || status.status === 'PRE_MARKET') {
+              return cfg?.nearRealTimeTtlSeconds ?? 60;
+            }
+            // 周末更长
+            return status.isHoliday ? (cfg?.weekendTtlSeconds ?? 3600) : (cfg?.offHoursTtlSeconds ?? 300);
+          }
+        } catch {}
+        // 回退：使用近实时TTL
+        return cfg?.nearRealTimeTtlSeconds ?? 60;
+      }
+      default:
+        return fallback;
+    }
+  }
+
+  private isRedisEnabled(): boolean {
+    const flag = process.env.SMARTCACHE_USE_REDIS;
+    return flag === undefined || flag === '' || flag.toLowerCase() === 'true';
   }
 
   // ==================== Private Helper Methods ====================

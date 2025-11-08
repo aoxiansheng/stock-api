@@ -68,7 +68,7 @@ import {
   CACHE_STATUS,
   CACHE_OPERATIONS,
   CACHE_ERROR_CODES,
-} from "../../../foundation/constants/cache-operations.constants";
+} from "../../../foundation";
 
 // Stream-specific imports
 import {

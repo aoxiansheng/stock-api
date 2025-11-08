@@ -16,7 +16,7 @@ import { ReadAccess } from "@authv2/decorators";
 
 import { TransformSymbolsDto, TransformSymbolsResponseDto } from "../interfaces/transform-symbols.dto";
 import { SymbolTransformerService } from "../services/symbol-transformer.service";
-import { MappingDirection } from "../../../shared/constants/cache.constants";
+import { MappingDirection } from "@core/shared/constants";
 
 @ApiTags("🔁 符号转换器")
 @Controller("symbol-mapper")

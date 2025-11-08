@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { SymbolMapperCacheStandardizedService } from "../../../05-caching/module/symbol-mapper-cache/services/symbol-mapper-cache-standardized.service";
-import { MappingDirection } from "../../../shared/constants/cache.constants";
+import { MappingDirection } from "@core/shared/constants";
 
 import {
   SymbolTransformResult,
@@ -28,7 +28,7 @@ export class SymbolTransformerService implements ISymbolTransformer {
   private readonly logger = createLogger("SymbolTransformer");
 
   constructor(
-    private readonly symbolMapperCacheService: SymbolMapperCacheStandardizedService, // 缓存服务（含回源逻辑）
+    private readonly symbolMapperCacheService: SymbolMapperCacheStandardizedService,
   ) {}
 
   /**
@@ -147,51 +147,24 @@ export class SymbolTransformerService implements ISymbolTransformer {
       requestId,
     });
 
-    // 分离标准格式和需要转换的符号
-    const { symbolsToTransform, standardSymbols } =
-      this.separateSymbolsByFormat(symbols);
-
-    // 转换非标准格式
-    let mappingResult = {
-      transformedSymbols: {} as Record<string, string>,
-      failedSymbols: [] as string[],
-      processingTimeMs: 0,
-    };
-
-    if (symbolsToTransform.length > 0) {
-      const result = await this.transformSymbols(
-        provider,
-        symbolsToTransform,
-        MappingDirection.TO_STANDARD,
-      );
-      mappingResult = {
-        transformedSymbols: result.mappingDetails,
-        failedSymbols: result.failedSymbols,
-        processingTimeMs: result.metadata.processingTimeMs,
-      };
-    }
-
-    // 添加标准格式符号（不需要转换）
-    standardSymbols.forEach((symbol) => {
-      mappingResult.transformedSymbols[symbol] = symbol;
-    });
+    // 使用专用缓存器：标准符号 -> Provider 符号（自动回源与缓存）
+    const { mappedArray, forwardMap, reverseMap } = await this.symbolMapperCacheService.mapToProvider(
+      provider,
+      symbols,
+    );
 
     const processingTimeMs = Number(process.hrtime.bigint() - startTime) / 1e6;
-
-    // 返回与现有实现完全一致的格式
     const response: SymbolTransformForProviderResult = {
-      transformedSymbols: Object.values(mappingResult.transformedSymbols),
+      transformedSymbols: mappedArray,
       mappingResults: {
-        transformedSymbols: mappingResult.transformedSymbols,
-        failedSymbols: mappingResult.failedSymbols,
+        transformedSymbols: forwardMap, // 标准 -> Provider
+        failedSymbols: [],
         metadata: {
           provider,
           totalSymbols: symbols.length,
-          successfulTransformations: Object.keys(
-            mappingResult.transformedSymbols,
-          ).length,
-          failedTransformations: mappingResult.failedSymbols.length,
-          processingTimeMs: processingTimeMs, // 使用标准字段名
+          successfulTransformations: Object.keys(forwardMap).length,
+          failedTransformations: 0,
+          processingTimeMs,
         },
       },
     };

@@ -94,12 +94,18 @@ export class DataFetcherService implements IDataFetcher {
       // 1. 验证提供商能力
       await this.checkCapability(provider, capability);
 
+      // 1.1 兜底：若未显式传入 contextService，则尝试从注册表获取
+      const ensuredContextService = contextService ?? (await this.getProviderContext(provider)).catch(() => undefined);
+
       // 2. 准备执行参数 - 简化：统一通过options传递，移除重复参数
+      // 将 contextService 透传给能力执行（例如 LongPort 能力需要）
+      // 注意合并顺序：显式的 contextService 放在最后，避免被 options 覆盖
       const executionParams = {
         symbols,
         requestId,
         apiType,
         ...options,
+        contextService: ensuredContextService,
       };
 
       // 3. 执行SDK调用 - 标准化监控：记录外部API调用

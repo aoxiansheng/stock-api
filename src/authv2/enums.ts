@@ -1,6 +1,6 @@
 export enum UserRole {
-  ADMIN = "admin",
-  DEVELOPER = "developer",
+  ADMIN = "ADMIN",
+  DEVELOPER = "DEVELOPER",
 }
 
 // 精简后的最小权限集合，仅用于两档权限画像

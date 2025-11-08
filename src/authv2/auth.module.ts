@@ -3,8 +3,10 @@ import { PassportModule } from "@nestjs/passport";
 import { JwtModule } from "@nestjs/jwt";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ApiKey, ApiKeySchema } from "./schema";
+import { User, UserSchema } from "./user.schema";
 import { JwtStrategy, ApiKeyStrategy } from "./strategies";
 import { AuthService } from "./service";
+import { AuthController } from "./auth.controller";
 
 @Module({
   imports: [
@@ -14,8 +16,12 @@ import { AuthService } from "./service";
       // 类型兼容处理：expiresIn 接受 ms.StringValue 或 number
       signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN as any) || "24h" },
     }),
-    MongooseModule.forFeature([{ name: "ApiKey", schema: ApiKeySchema }]),
+    MongooseModule.forFeature([
+      { name: "ApiKey", schema: ApiKeySchema },
+      { name: "User", schema: UserSchema },
+    ]),
   ],
+  controllers: [AuthController],
   providers: [JwtStrategy, ApiKeyStrategy, AuthService],
   exports: [AuthService, PassportModule, JwtModule, MongooseModule],
 })

@@ -4,7 +4,7 @@
  * 更新使用新的枚举和类型定义
  */
 
-import { MappingDirection } from "../../../../shared/constants/cache.constants";
+import { MappingDirection } from "@core/shared/constants";
 
 
 /**

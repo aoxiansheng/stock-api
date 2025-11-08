@@ -303,6 +303,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // ======== 第三部分：构造错误响应和事件发送 ========
     const errorResponse = {
+      success: false,
       statusCode: status,
       message: this.translateMessage(message, errorType),
       data: null, // 与ResponseInterceptor保持一致，错误时data为null

@@ -3,7 +3,7 @@
  * 统一缓存系统的配置类型，支持类型安全和编译时检查
  */
 
-import { CACHE_OPERATIONS, CACHE_STRATEGIES, CACHE_STATUS } from '../constants/cache-operations.constants';
+import { CACHE_OPERATIONS, CACHE_STRATEGIES, CACHE_STATUS } from '..';
 
 /**
  * 缓存操作类型联合类型

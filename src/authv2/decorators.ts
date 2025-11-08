@@ -33,10 +33,10 @@ export function MixedAuth(roles?: UserRole[], permissions?: Permission[]) {
 
 // 便捷装饰器
 export function ReadAccess() {
-  return MixedAuth([UserRole.DEVELOPER], READ_PROFILE as Permission[]);
+  // 允许 DEVELOPER 以及更高权限 ADMIN 访问只读端点
+  return MixedAuth([UserRole.DEVELOPER, UserRole.ADMIN], READ_PROFILE as Permission[]);
 }
 
 export function AdminOnly() {
   return Auth([UserRole.ADMIN], ADMIN_PROFILE as Permission[]);
 }
-

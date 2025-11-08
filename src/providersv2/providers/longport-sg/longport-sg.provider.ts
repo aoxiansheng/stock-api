@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { createLogger } from "@common/logging/index";
@@ -11,6 +12,7 @@ import { getStockQuote } from "./capabilities/get-stock-quote";
 import { LongportSgContextService } from "./services/longport-context.service";
 import { LongportSgStreamContextService } from "./services/longport-stream-context.service";
 
+@Injectable()
 export class LongportSgProvider implements IDataProvider {
   private readonly logger = createLogger(LongportSgProvider.name);
 

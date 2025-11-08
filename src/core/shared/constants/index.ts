@@ -35,3 +35,10 @@ export {
   SHARED_ERROR_CODES,
   type SharedErrorCode,
 } from "./shared-error-codes.constants";
+
+// 符号映射常量（领域层）
+export * from "./mapping.constants";
+export {
+  MappingDirection,
+  type MappingDirectionType,
+} from "./mapping.constants";

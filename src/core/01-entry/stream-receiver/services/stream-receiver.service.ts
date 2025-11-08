@@ -31,7 +31,7 @@ import {
 } from "../../../03-fetching/stream-data-fetcher/interfaces";
 import { Subject } from "rxjs";
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
-import { MappingDirection } from "../../../shared/constants/cache.constants";
+import { MappingDirection } from "@core/shared/constants";
 
 import { bufferTime, filter, mergeMap } from "rxjs/operators";
 import {

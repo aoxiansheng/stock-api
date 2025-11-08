@@ -10,7 +10,7 @@ import {
   ComponentIdentifier
 } from '@common/core/exceptions';
 import { SMART_CACHE_ERROR_CODES } from '../constants/smart-cache-error-codes.constants';
-import { CACHE_CORE_INTERVALS, CACHE_CORE_BATCH_SIZES } from "../../../foundation/constants/core-values.constants";
+import { CACHE_CORE_INTERVALS, CACHE_CORE_BATCH_SIZES } from "@core/05-caching/foundation";
 
 /**
  * SmartCache配置工厂类

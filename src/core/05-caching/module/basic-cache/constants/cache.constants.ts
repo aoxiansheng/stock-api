@@ -1,77 +1,26 @@
 /**
- * 缓存常量定义
+ * basic-cache 模块常量聚合
+ *
+ * 目标：
+ * - 作为 basic-cache 的本地常量入口
+ * - 统一从 05-caching/shared/constants/cache-unified.constants.ts 重导缓存常量（SSOT）
+ * - 提供注入令牌 CACHE_REDIS_CLIENT_TOKEN
+ * - 其他导出按需最小占位（YAGNI），后续若有真实使用再补齐
  */
 
-/**
- * 依赖注入 Token
- */
-export const CACHE_REDIS_CLIENT_TOKEN = "CACHE_REDIS_CLIENT";
+// 统一注入令牌（basic-cache 内使用）
+export const CACHE_REDIS_CLIENT_TOKEN = 'CACHE_REDIS_CLIENT' as const;
 
-/**
- * 缓存键前缀
- */
-export const CACHE_KEY_PREFIXES = {
-  STOCK_QUOTE: "stock_quote",
-  MARKET_STATUS: "market_status",
-  SYMBOL_MAPPING: "symbol_mapping",
-  PROVIDER_DATA: "provider_data",
-  USER_SESSION: "user_session",
-  API_RATE_LIMIT: "api_rate_limit",
-} as const;
+// 从统一缓存常量处重导所需常量（保持单一事实来源）
+export {
+  CACHE_KEY_PREFIXES,
+  CACHE_RESULT_STATUS,
+  CACHE_PRIORITY,
+} from '../../../foundation/constants/cache-unified.constants';
 
-/**
- * 缓存结果状态
- */
-export const CACHE_RESULT_STATUS = {
-  HIT: "hit",
-  MISS: "miss",
-  ERROR: "error",
-  TIMEOUT: "timeout",
-} as const;
+// 占位导出（按 YAGNI 最小化，若后续有真实使用场景再完善具体枚举/配置）
+export const DATA_SOURCE = Object.freeze({} as const);
+export const COMPRESSION_ALGORITHMS = Object.freeze({} as const);
+export const CACHE_DEFAULTS = Object.freeze({} as const);
+export const REDIS_SPECIAL_VALUES = Object.freeze({} as const);
 
-/**
- * 缓存优先级
- */
-export const CACHE_PRIORITY = {
-  HIGH: "high",
-  NORMAL: "normal",
-  LOW: "low",
-} as const;
-
-/**
- * 数据来源类型
- */
-export const DATA_SOURCE = {
-  CACHE: "cache",
-  FETCH: "fetch",
-  FALLBACK: "fallback",
-  DATABASE: "database",
-} as const;
-
-/**
- * 压缩算法
- */
-export const COMPRESSION_ALGORITHMS = {
-  GZIP: "gzip",
-  DEFLATE: "deflate",
-  BROTLI: "brotli",
-} as const;
-
-/**
- * 默认值常量
- * 注意：TTL_SECONDS、OPERATION_TIMEOUT、BATCH_SIZE_LIMIT 已统一到 CACHE_CONFIG 中
- */
-export const CACHE_DEFAULTS = {
-  MIN_TTL_SECONDS: 30, // 30秒
-  MAX_TTL_SECONDS: 86400, // 24小时
-  COMPRESSION_THRESHOLD: 10240, // 10KB
-} as const;
-
-/**
- * Redis特殊值
- */
-export const REDIS_SPECIAL_VALUES = {
-  PTTL_KEY_NOT_EXISTS: -2, // key不存在
-  PTTL_NO_EXPIRE: -1, // key存在但无过期时间
-  SET_SUCCESS: "OK", // set操作成功
-} as const;

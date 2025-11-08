@@ -80,7 +80,7 @@ export interface ExtendedBaseCacheConfig extends FoundationBaseCacheConfig {
 }
 
 // 为了向后兼容，将ExtendedBaseCacheConfig别名为BaseCacheConfig
-export { ExtendedBaseCacheConfig as BaseCacheConfig };
+export type { ExtendedBaseCacheConfig as BaseCacheConfig };
 
 /**
  * 通用缓存配置接口
@@ -182,4 +182,3 @@ export type EnvConfigMapping = {
     parser: (value: string) => ExtendedBaseCacheConfig[K];
   };
 };
-

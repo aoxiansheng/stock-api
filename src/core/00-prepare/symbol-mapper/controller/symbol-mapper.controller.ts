@@ -173,7 +173,7 @@ export class SymbolMapperController {
     return result;
   }
 
-  @AdminOnly()
+  @ReadAccess()
   @Get("rules")
   @ApiOperation({
     summary: "🔄 获取所有符号映射规则",
@@ -182,7 +182,7 @@ export class SymbolMapperController {
 获取系统中所有数据源的符号映射规则汇总信息。
 
 ### 权限要求
-需要 MAPPING_WRITE 权限（管理员）
+需要 DEVELOPER 或更高权限（只读访问）
 
 ### 返回内容
 - **providers**: 所有提供商列表

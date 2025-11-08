@@ -3,7 +3,7 @@ import {
   CACHE_CORE_INTERVALS,
   CACHE_CORE_BATCH_SIZES,
   CACHE_CORE_VALUES,
-} from '../../../foundation/constants/core-values.constants';
+} from '@core/05-caching/foundation';
 
 /**
  * 依赖注入 Token

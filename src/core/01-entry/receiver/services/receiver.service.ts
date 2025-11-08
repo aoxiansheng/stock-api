@@ -197,16 +197,25 @@ export class ReceiverService implements OnModuleDestroy {
           },
         );
 
+        const payload = result?.data as any;
+        const processedCount = Array.isArray(payload)
+          ? payload.length
+          : payload
+          ? 1
+          : 0;
+        const totalRequested = request.symbols.length;
+        const hasPartialFailures = processedCount < totalRequested;
+
         return new DataResponseDto(
-          result.data,
+          payload,
           new ResponseMetadataDto(
             provider,
             request.receiverType,
             requestId,
             processingTimeMs,
-            false, // hasPartialFailures
-            request.symbols.length, // totalRequested
-            request.symbols.length, // successfullyProcessed
+            hasPartialFailures,
+            totalRequested,
+            processedCount,
           ),
         );
       }
@@ -704,6 +713,34 @@ export class ReceiverService implements OnModuleDestroy {
 
       const transformedResult =
         await this.dataTransformerService.transform(transformRequest);
+
+      // 符号逆映射：将 Provider 符号还原为系统默认标准格式
+      try {
+        const fwd = mappedSymbols.mappingResults?.transformedSymbols || {};
+        const reverse: Record<string, string> = {};
+        for (const std of Object.keys(fwd)) {
+          const sdk = fwd[std];
+          if (sdk) reverse[sdk] = std;
+        }
+
+        const applyReverse = (item: any) => {
+          if (item && typeof item === 'object' && 'symbol' in item) {
+            const sv = (item as any).symbol;
+            if (typeof sv === 'string' && reverse[sv]) {
+              (item as any).symbol = reverse[sv];
+            }
+          }
+          return item;
+        };
+
+        if (Array.isArray(transformedResult.transformedData)) {
+          transformedResult.transformedData = transformedResult.transformedData.map(applyReverse);
+        } else {
+          transformedResult.transformedData = applyReverse(transformedResult.transformedData);
+        }
+      } catch (e) {
+        this.logger.warn('符号逆映射失败(已忽略)', { error: (e as any)?.message });
+      }
 
       // ✅ 新增步骤2：使用 Storage 进行统一存储
       this.logger.debug(`开始数据存储处理`, {

@@ -404,11 +404,23 @@ export class MappingRuleCrudModule {
    * 📊 计算整体置信度
    */
   private calculateOverallConfidence(fieldMappings: any[]): number {
-    if (fieldMappings.length === 0) return 0;
+    // 当为人工创建/验证的规则时，字段级 confidence 往往未提供。
+    // 设计取值：缺失则按 1.0 处理，表示“人工确认通过”。
+    // 同时对越界值进行钳制，避免 NaN/Infinity 传播到持久层。
+    if (!Array.isArray(fieldMappings) || fieldMappings.length === 0) {
+      // 空映射规则不应出现；返回 0 以体现不可用，但避免 NaN
+      return 0;
+    }
 
-    const avgConfidence =
-      fieldMappings.reduce((sum, mapping) => sum + mapping.confidence, 0) /
-      fieldMappings.length;
-    return Math.min(avgConfidence, 1.0);
+    const safeValues = fieldMappings.map((m) => {
+      const v = (m && typeof m.confidence === 'number') ? m.confidence : 1.0;
+      if (!Number.isFinite(v)) return 1.0;
+      // 钳制到 [0,1]
+      return Math.max(0, Math.min(1, v));
+    });
+
+    const sum = safeValues.reduce((acc, v) => acc + v, 0);
+    const avg = sum / safeValues.length;
+    return Math.max(0, Math.min(1, avg));
   }
 }

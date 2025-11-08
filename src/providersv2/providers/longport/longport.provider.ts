@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { createLogger } from "@common/logging/index";
@@ -12,6 +13,7 @@ import { LongportContextService } from "./services/longport-context.service";
 import { LongportStreamContextService } from "./services/longport-stream-context.service";
 import { REFERENCE_DATA } from "@common/constants/domain";
 
+@Injectable()
 export class LongportProvider implements IDataProvider {
   private readonly logger = createLogger(LongportProvider.name);
 

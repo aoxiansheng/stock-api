@@ -42,6 +42,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
 
         // 包装为标准格式 - 统一处理所有端点，包括健康检查和指标端点
         const standardResponse = {
+          success: true, // 添加 success 字段以符合标准响应格式
           statusCode,
           message: this.getDefaultMessage(statusCode),
           data: data === undefined ? null : data,
