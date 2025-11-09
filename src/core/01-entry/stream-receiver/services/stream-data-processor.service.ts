@@ -112,11 +112,11 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
   private initializeCapabilityMapping(): CapabilityMappingConfig {
     return {
       websocketCapabilities: {
-        "ws-stock-quote": "quote_fields",
-        "ws-option-quote": "option_fields",
-        "ws-futures-quote": "futures_fields",
-        "ws-forex-quote": "forex_fields",
-        "ws-crypto-quote": "crypto_fields",
+        "stream-stock-quote": "quote_fields",
+        "stream-option-quote": "option_fields",
+        "stream-futures-quote": "futures_fields",
+        "stream-forex-quote": "forex_fields",
+        "stream-crypto-quote": "crypto_fields",
       },
       restApiCapabilities: {
         [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",

@@ -46,6 +46,81 @@ export class WebSocketServerProvider {
   }
 
   /**
+   * 将客户端加入多个房间（基于Gateway Server）
+   */
+  async joinClientToRooms(clientId: string, rooms: string[] | string): Promise<boolean> {
+    const activeServer = this.getServer();
+    const targetRooms = Array.isArray(rooms) ? rooms : [rooms];
+
+    if (!this.isServerAvailable() || !activeServer) {
+      this.logger.warn("WebSocket服务器不可用，无法加入房间", {
+        clientId,
+        rooms: targetRooms,
+        serverSource: "gateway",
+      });
+      return false;
+    }
+
+    try {
+      const clientSocket = activeServer.sockets.sockets.get(clientId);
+      if (!clientSocket) {
+        this.logger.warn("客户端Socket连接不存在(加入房间跳过)", { clientId, rooms: targetRooms });
+        return false;
+      }
+
+      if (!clientSocket.connected) {
+        this.logger.warn("客户端Socket已断开(加入房间跳过)", { clientId, rooms: targetRooms });
+        return false;
+      }
+
+      for (const room of targetRooms) {
+        await clientSocket.join(room);
+      }
+
+      this.logger.debug("客户端已加入房间", { clientId, rooms: targetRooms });
+      return true;
+    } catch (error) {
+      this.logger.error("加入房间失败", { clientId, rooms: targetRooms, error: (error as any)?.message });
+      return false;
+    }
+  }
+
+  /**
+   * 将客户端从多个房间移除（基于Gateway Server）
+   */
+  async leaveClientFromRooms(clientId: string, rooms: string[] | string): Promise<boolean> {
+    const activeServer = this.getServer();
+    const targetRooms = Array.isArray(rooms) ? rooms : [rooms];
+
+    if (!this.isServerAvailable() || !activeServer) {
+      this.logger.warn("WebSocket服务器不可用，无法退出房间", {
+        clientId,
+        rooms: targetRooms,
+        serverSource: "gateway",
+      });
+      return false;
+    }
+
+    try {
+      const clientSocket = activeServer.sockets.sockets.get(clientId);
+      if (!clientSocket) {
+        this.logger.warn("客户端Socket连接不存在(退出房间跳过)", { clientId, rooms: targetRooms });
+        return false;
+      }
+
+      for (const room of targetRooms) {
+        await clientSocket.leave(room);
+      }
+
+      this.logger.debug("客户端已退出房间", { clientId, rooms: targetRooms });
+      return true;
+    } catch (error) {
+      this.logger.error("退出房间失败", { clientId, rooms: targetRooms, error: (error as any)?.message });
+      return false;
+    }
+  }
+
+  /**
    * 检查WebSocket服务器是否可用（仅Gateway模式）
    * @returns 是否可用
    */

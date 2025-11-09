@@ -9,6 +9,7 @@ import { IDataProvider } from "./../../providers/interfaces/provider.interface";
 import { getIndexQuote } from "./capabilities/get-index-quote";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getStockQuote } from "./capabilities/get-stock-quote";
+// 流式能力由 StreamDataFetcher + LongportSgStreamContextService 直接接入，无需在能力表内注册
 import { LongportSgContextService } from "./services/longport-context.service";
 import { LongportSgStreamContextService } from "./services/longport-stream-context.service";
 

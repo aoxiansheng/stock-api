@@ -70,7 +70,7 @@ export interface StreamConnectionParams {
   /** 提供商名称 (如: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, 'itick') */
   provider: string;
 
-  /** WebSocket能力类型 (如: 'ws-stock-quote', 'ws-option-quote') */
+  /** WebSocket能力类型 (如: 'stream-stock-quote', 'stream-option-quote') */
   capability: string;
 
   /** 请求ID，用于追踪和日志 */

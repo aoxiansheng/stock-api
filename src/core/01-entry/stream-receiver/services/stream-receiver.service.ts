@@ -75,6 +75,10 @@ import { StreamDataValidator } from '../validators/stream-data.validator';
 import { StreamBatchProcessorService } from './stream-batch-processor.service';
 import { StreamConnectionManagerService } from './stream-connection-manager.service';
 import { StreamDataProcessorService } from './stream-data-processor.service';
+import {
+  WebSocketServerProvider,
+  WEBSOCKET_SERVER_TOKEN,
+} from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
 
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
@@ -128,13 +132,101 @@ export class StreamReceiverService implements OnModuleDestroy {
 
   // 🔄 Stub methods for backward compatibility - delegate to dedicated services
   private async pipelineCacheData(transformedData: any[], symbols: string[]): Promise<void> {
-    // Delegate to dedicated services
-    this.logger.debug("Pipeline cache data delegated to specialized service", { symbolsCount: symbols.length });
+    try {
+      // 使用显式默认值，避免 ConfigService 第二参数误用导致返回 undefined
+      const cacheEnabled =
+        this.configService.get<boolean>('STREAM_CACHE_ENABLED') ?? true;
+      if (!cacheEnabled) {
+        this.logger.debug("流缓存已禁用，跳过缓存写入", { symbolsCount: symbols.length });
+        return;
+      }
+
+      // 通过 DataFetcher 暴露的标准化流缓存服务，避免重复注入
+      const streamCache: any = this.streamDataFetcher.getStreamDataCache?.();
+      if (!streamCache) {
+        this.logger.warn("StreamCache 服务不可用，跳过缓存写入");
+        return;
+      }
+
+      // 将转换后的数据映射为 StreamDataPoint，并按符号分组
+      const bySymbol = new Map<string, any[]>();
+      for (const item of transformedData || []) {
+        const sym = item?.symbol;
+        if (!sym) continue;
+        const ts = typeof item?.timestamp === 'number' ? item.timestamp : (item?.timestamp ? Date.parse(item.timestamp) : Date.now());
+        const point = {
+          s: sym,
+          p: item?.lastPrice ?? item?.price ?? 0,
+          v: item?.volume ?? 0,
+          t: Number.isFinite(ts) ? ts : Date.now(),
+          c: item?.change,
+          cp: item?.changePercent,
+        };
+        if (!bySymbol.has(sym)) bySymbol.set(sym, []);
+        bySymbol.get(sym)!.push(point);
+      }
+
+      // 写入缓存（Hot + Warm）；
+      // 实际Warm层Redis键格式为：stream:stream_cache_warm:quote:<symbol>
+      // 说明：底层使用专用Redis客户端(keyPrefix='stream:')与Warm前缀('stream_cache_warm:')，
+      // 因此此处传入的业务键为 'quote:<symbol>' 即可。
+      for (const [sym, points] of bySymbol.entries()) {
+        const key = `quote:${sym}`; // 实际Redis键: stream:stream_cache_warm:quote:<symbol>
+        try {
+          await streamCache.setData(key, points, 'hot');
+        } catch (err) {
+          this.logger.warn("写入StreamCache失败(忽略)", { symbol: sym, error: (err as any)?.message });
+        }
+      }
+
+      this.logger.debug("流缓存写入完成", { symbols: Array.from(bySymbol.keys()).slice(0, 5), total: bySymbol.size });
+    } catch (error) {
+      this.logger.warn("流缓存处理异常(忽略)", { error: (error as any)?.message });
+    }
   }
 
   private async pipelineBroadcastData(transformedData: any[], symbols: string[]): Promise<void> {
-    // Delegate to dedicated services
-    this.logger.debug("Pipeline broadcast data delegated to specialized service", { symbolsCount: symbols.length });
+    try {
+      // 使用显式默认值，避免 ConfigService 第二参数误用导致返回 undefined
+      const broadcastEnabled =
+        this.configService.get<boolean>('STREAM_BROADCAST_ENABLED') ?? true;
+      if (!broadcastEnabled) {
+        this.logger.debug("流广播已禁用，跳过广播", { symbolsCount: symbols.length });
+        return;
+      }
+
+      if (!this.webSocketProvider || !this.webSocketProvider.isServerAvailable()) {
+        this.logger.warn("WebSocketProvider不可用，跳过广播");
+        return;
+      }
+
+      const clientStateManager = this.streamDataFetcher.getClientStateManager?.();
+      if (!clientStateManager) {
+        this.logger.warn("ClientStateManager不可用，跳过广播");
+        return;
+      }
+
+      // 按符号聚合数据后分别广播
+      const bySymbol = new Map<string, any[]>();
+      for (const item of transformedData || []) {
+        const sym = item?.symbol;
+        if (!sym) continue;
+        if (!bySymbol.has(sym)) bySymbol.set(sym, []);
+        bySymbol.get(sym)!.push(item);
+      }
+
+      for (const [sym, items] of bySymbol.entries()) {
+        try {
+          await clientStateManager.broadcastToSymbolViaGateway(sym, items, this.webSocketProvider);
+        } catch (err) {
+          this.logger.warn("广播到房间失败(忽略)", { symbol: sym, error: (err as any)?.message });
+        }
+      }
+
+      this.logger.debug("流广播完成", { symbols: Array.from(bySymbol.keys()).slice(0, 5), total: bySymbol.size });
+    } catch (error) {
+      this.logger.warn("流广播处理异常(忽略)", { error: (error as any)?.message });
+    }
   }
 
 
@@ -157,6 +249,8 @@ export class StreamReceiverService implements OnModuleDestroy {
     // ✅ 移除违规的直接 CollectorService 依赖，改用事件化监控
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
     @Optional() private readonly rateLimitService?: any, // 极简：不依赖旧限速服务
+    @Optional() @Inject(WEBSOCKET_SERVER_TOKEN)
+    private readonly webSocketProvider?: WebSocketServerProvider,
   ) {
     // P1重构: 初始化配置管理
     this.config = this.initializeConfig();
@@ -628,6 +722,16 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 5. 设置数据接收处理
       this.setupDataReceiving(connection, providerName, wsCapabilityType);
 
+      // 6. 将客户端加入标准化符号房间，便于按symbol广播
+      try {
+        if (this.webSocketProvider && mappedSymbols?.length) {
+          const rooms = mappedSymbols.map((s) => `symbol:${s}`);
+          await this.webSocketProvider.joinClientToRooms(resolvedClientId, rooms);
+        }
+      } catch (err) {
+        this.logger.warn("加入房间失败(忽略)", { clientId: resolvedClientId, error: (err as any)?.message });
+      }
+
       this.logger.log("流数据订阅成功", {
         clientId: resolvedClientId,
         symbolsCount: mappedSymbols.length,
@@ -697,22 +801,46 @@ export class StreamReceiverService implements OnModuleDestroy {
         clientSub.providerName,
       );
 
-      // 获取连接
+      // 获取连接（通过连接管理器；仅在现有连接活跃时执行退订，避免误建新连接）
       const connectionKey = `${clientSub.providerName}:${clientSub.wsCapabilityType}`;
-      const connection = this.activeConnections.get(connectionKey);
-
-      if (connection) {
+      let connection: StreamConnection | undefined;
+      if (this.connectionManager.isConnectionActive(connectionKey)) {
+        const requestId = `unsubscribe_${Date.now()}`;
+        connection = await this.connectionManager.getOrCreateConnection(
+          clientSub.providerName,
+          clientSub.wsCapabilityType,
+          requestId,
+          symbolsToUnsubscribe,
+          clientId,
+        );
         // 从流连接取消订阅
         await this.streamDataFetcher.unsubscribeFromSymbols(
           connection,
           mappedSymbols,
         );
+      } else {
+        this.logger.warn("未找到活跃连接，跳过上游退订", {
+          clientId,
+          provider: clientSub.providerName,
+          capability: clientSub.wsCapabilityType,
+          connectionKey,
+        });
       }
 
       // 更新客户端状态
       this.streamDataFetcher
         .getClientStateManager()
         .removeClientSubscription(clientId, symbolsToUnsubscribe);
+
+      // 将客户端从房间移除
+      try {
+        if (this.webSocketProvider && mappedSymbols?.length) {
+          const rooms = mappedSymbols.map((s) => `symbol:${s}`);
+          await this.webSocketProvider.leaveClientFromRooms(clientId, rooms);
+        }
+      } catch (err) {
+        this.logger.warn("退出房间失败(忽略)", { clientId, error: (err as any)?.message });
+      }
 
       this.logger.log("流数据取消订阅成功", {
         clientId,

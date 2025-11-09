@@ -585,7 +585,7 @@ export class StreamDataFetcherService
    * // 推荐：结构化参数传递
    * const connection = await establishStreamConnection({
    *   provider: 'longport',
-   *   capability: 'ws-stock-quote',
+   *   capability: 'stream-stock-quote',
    *   requestId: 'req_123',
    *   options: { autoReconnect: true }
    * });
@@ -601,7 +601,7 @@ export class StreamDataFetcherService
    * // 兼容：分散参数传递
    * const connection = await establishStreamConnection(
    *   'longport',
-   *   'ws-stock-quote',
+   *   'stream-stock-quote',
    *   { autoReconnect: true }
    * );
    */
@@ -647,71 +647,106 @@ export class StreamDataFetcherService
           : undefined,
       });
 
-      // Phase 1.1: 获取流能力实例
-      const capabilityInstance = await this.getStreamCapability(provider, cap);
-
-      // Phase 1.2: 创建连接配置
-      const finalConfig = {
-        provider,
-        capability: cap,
-        maxReconnectAttempts: connectionConfig?.maxReconnectAttempts || 3,
-        connectionTimeoutMs: connectionConfig?.connectionTimeoutMs || 30000,
-        ...connectionConfig,
-      };
-
-      // Phase 1.3: 建立WebSocket连接
-      const connection = await (
-        capabilityInstance as {
-          connect: (config: any) => Promise<StreamConnection>;
+      // 优先使用 Provider 的 StreamContextService 建立真实连接（上下文感知）
+      const providerInstance = this.capabilityRegistry.getProvider?.(provider);
+      if (providerInstance && typeof (providerInstance as any).getStreamContextService === 'function') {
+        const ctxService = (providerInstance as any).getStreamContextService();
+        // 初始化底层SDK连接
+        if (typeof ctxService.initializeWebSocket === 'function') {
+          await ctxService.initializeWebSocket();
         }
-      ).connect(finalConfig);
 
-      if (!connection || !connection.id) {
-        throw new StreamConnectionException(
-          "连接建立失败：连接实例无效",
-          undefined,
+        // 构造连接包装器，桥接回调（仅注册一次底层回调，防止重复）
+        const startedAt = Date.now();
+        let dataProxyRegistered = false;
+        let onDataTarget: ((data: any) => void) | null = null;
+        const dataProxy = (data: any) => {
+          conn.lastActiveAt = new Date();
+          try { onDataTarget && onDataTarget(data); } catch { /* 忽略上层处理错误 */ }
+        };
+        const conn: StreamConnection = {
+          id: `${provider}_${cap}_${startedAt}`,
           provider,
-          cap,
-        );
+          capability: cap,
+          isConnected: true,
+          createdAt: new Date(startedAt),
+          lastActiveAt: new Date(startedAt),
+          subscribedSymbols: new Set<string>(),
+          options: connectionConfig || {},
+          onData: (cb) => {
+            onDataTarget = cb;
+            if (!dataProxyRegistered) {
+              try {
+                if (typeof ctxService.onQuoteUpdate === 'function') {
+                  ctxService.onQuoteUpdate(dataProxy);
+                  dataProxyRegistered = true;
+                }
+              } catch {/* 忽略注册异常 */}
+            }
+          },
+          onStatusChange: (_cb) => { /* 可选：由底层事件触发 */ },
+          onError: (_cb) => { /* 可选：由底层事件触发 */ },
+          async sendHeartbeat() {
+            try {
+              const ok = typeof ctxService.isWebSocketConnected === 'function'
+                ? !!ctxService.isWebSocketConnected()
+                : false;
+              if (!ok) throw new Error('underlying SDK connection not healthy');
+              conn.lastActiveAt = new Date();
+              return true;
+            } catch (e) {
+              // 让Tier2检测到失败，触发回收/重连逻辑
+              throw e instanceof Error ? e : new Error('heartbeat failed');
+            }
+          },
+          getStats() {
+            const now = Date.now();
+            return {
+              connectionId: conn.id,
+              status: conn.isConnected ? ("connected" as any) : ("closed" as any),
+              connectionDurationMs: now - startedAt,
+              messagesReceived: 0,
+              messagesSent: 0,
+              errorCount: 0,
+              reconnectCount: 0,
+              lastHeartbeat: new Date(),
+              avgProcessingLatencyMs: 0,
+              subscribedSymbolsCount: conn.subscribedSymbols.size,
+            };
+          },
+          async isAlive() { return conn.isConnected; },
+          async close() {
+            conn.isConnected = false;
+            try { if (typeof ctxService.cleanup === 'function') await ctxService.cleanup(); } catch {}
+          },
+        } as any;
+
+        // 事件：连接建立成功
+        this.emitConnectionEvent("connection_established", {
+          provider,
+          capability: cap,
+          duration: Date.now() - operationStartTime,
+          status: "success",
+          count: this.activeConnections.size,
+        });
+
+        operationSuccess = true;
+        // 注册到内部映射（与 capability 路径一致）
+        const connectionKey = `${provider}:${cap}:${conn.id}`;
+        this.activeConnections.set(connectionKey, conn);
+        this.connectionIdToKey.set(conn.id, connectionKey);
+        this.connectionPoolManager.registerConnection(connectionKey);
+        this.setupConnectionEventHandlers(conn);
+        return conn;
       }
 
-      // Phase 1.4: 注册连接到管理器
-      const connectionKey = `${provider}:${cap}:${connection.id}`;
-      this.activeConnections.set(connectionKey, connection);
-      this.connectionIdToKey.set(connection.id, connectionKey);
-
-      // Phase 1.5: 向连接池管理器注册
-      this.connectionPoolManager.registerConnection(connectionKey);
-
-      // Phase 1.6: 等待连接完全建立
-      await this.waitForConnectionReady(
-        connection,
-        finalConfig.connectionTimeoutMs,
+      // 若未提供上下文服务则拒绝：需要真实SDK上下文
+      throw new StreamConnectionException(
+        "Provider 未提供流上下文服务，无法建立真实连接",
+        undefined,
+        provider,
+        cap,
       );
-
-      // Phase 1.7: 设置连接事件监听
-      this.setupConnectionEventHandlers(connection);
-
-      // 发送连接成功事件
-      this.emitConnectionEvent("connection_established", {
-        provider,
-        capability: cap,
-        duration: Date.now() - operationStartTime,
-        status: "success",
-        count: this.activeConnections.size,
-      });
-
-      this.logger.log("流式连接建立成功", {
-        connectionKey,
-        provider,
-        capability: cap,
-        connectionId: connection.id.substring(0, 8),
-        totalConnections: this.activeConnections.size,
-        establishmentTime: Date.now() - operationStartTime,
-      });
-
-      operationSuccess = true;
-      return connection;
     } catch (error) {
       this.logger.error(
         "流式连接建立失败",
@@ -782,6 +817,22 @@ export class StreamDataFetcherService
         connection,
         symbols,
       );
+
+      // 防御式校验：显式检查提供者返回状态，若存在失败立即中止并抛错
+      if (
+        !subscriptionResult?.success ||
+        (subscriptionResult.failedSymbols &&
+          subscriptionResult.failedSymbols.length > 0)
+      ) {
+        throw new StreamSubscriptionException(
+          "部分或全部符号订阅失败",
+          subscriptionResult.failedSymbols?.length
+            ? subscriptionResult.failedSymbols
+            : symbols,
+          connection.provider,
+          connection.capability,
+        );
+      }
 
       // Phase 2.3: 缓存订阅信息
       await this.cacheSubscriptionInfo(
@@ -873,6 +924,22 @@ export class StreamDataFetcherService
         symbols,
       );
 
+      // 防御式校验：显式检查提供者返回状态
+      if (
+        !unsubscriptionResult?.success ||
+        (unsubscriptionResult.failedSymbols &&
+          unsubscriptionResult.failedSymbols.length > 0)
+      ) {
+        throw new StreamSubscriptionException(
+          "部分或全部符号取消订阅失败",
+          unsubscriptionResult.failedSymbols?.length
+            ? unsubscriptionResult.failedSymbols
+            : symbols,
+          connection.provider,
+          connection.capability,
+        );
+      }
+
       // Phase 3.2: 更新缓存
       await this.removeSubscriptionFromCache(connection.id, symbols);
 
@@ -916,7 +983,7 @@ export class StreamDataFetcherService
         symbol_count: symbols.length,
         duration: Date.now() - operationStartTime,
         status: "error",
-        action: "subscribe",
+        action: "unsubscribe",
         error_type: error.constructor.name,
       });
       throw error;
@@ -2175,49 +2242,54 @@ export class StreamDataFetcherService
    * 执行订阅操作的内部实现
    */
   private async performSubscription(
-    _connection: StreamConnection,
+    connection: StreamConnection,
     symbols: string[],
   ): Promise<SubscriptionResult> {
-    // 简化的订阅实现，实际应该调用连接的订阅方法
-    try {
-      // 模拟订阅操作
-      return {
-        success: true,
-        subscribedSymbols: symbols,
-        failedSymbols: [],
-      };
-    } catch (error) {
-      return {
-        success: false,
-        subscribedSymbols: [],
-        failedSymbols: symbols,
-        error: error.message,
-      };
+    const providerInstance =
+      this.capabilityRegistry.getProvider?.(connection.provider);
+    const ctxService = providerInstance?.getStreamContextService?.();
+
+    if (!ctxService || typeof ctxService.subscribe !== "function") {
+      throw new StreamSubscriptionException(
+        "Provider stream context service not available for subscribe",
+        symbols,
+        connection.provider,
+        connection.capability,
+      );
     }
+
+    // 将错误交由上层捕获：任何SDK抛错都直接冒泡
+    await ctxService.subscribe(symbols);
+    symbols.forEach((s) => connection.subscribedSymbols.add(s));
+
+    return { success: true, subscribedSymbols: symbols, failedSymbols: [] };
   }
 
   /**
    * 执行取消订阅操作的内部实现
    */
   private async performUnsubscription(
-    _connection: StreamConnection,
+    connection: StreamConnection,
     symbols: string[],
   ): Promise<UnsubscriptionResult> {
-    try {
-      // 实际的取消订阅逻辑
-      return {
-        success: true,
-        unsubscribedSymbols: symbols,
-        failedSymbols: [],
-      };
-    } catch (error) {
-      return {
-        success: false,
-        unsubscribedSymbols: [],
-        failedSymbols: symbols,
-        error: error.message,
-      };
+    const providerInstance =
+      this.capabilityRegistry.getProvider?.(connection.provider);
+    const ctxService = providerInstance?.getStreamContextService?.();
+
+    if (!ctxService || typeof ctxService.unsubscribe !== "function") {
+      throw new StreamSubscriptionException(
+        "Provider stream context service not available for unsubscribe",
+        symbols,
+        connection.provider,
+        connection.capability,
+      );
     }
+
+    // 将错误交由上层捕获：任何SDK抛错都直接冒泡
+    await ctxService.unsubscribe(symbols);
+    symbols.forEach((s) => connection.subscribedSymbols.delete(s));
+
+    return { success: true, unsubscribedSymbols: symbols, failedSymbols: [] };
   }
 
   /**

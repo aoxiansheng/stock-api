@@ -178,7 +178,7 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
     let connection = this.activeConnections.get(connectionKey);
     if (
       connection &&
-      this.streamDataFetcher.isConnectionActive(connectionKey)
+      this.streamDataFetcher.isConnectionActive(connection)
     ) {
       // 更新连接活动时间
       this.updateConnectionHealth(connection.id, {
@@ -366,7 +366,7 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
    */
   isConnectionActive(connectionKey: string): boolean {
     const connection = this.activeConnections.get(connectionKey);
-    return connection ? this.streamDataFetcher.isConnectionActive(connectionKey) : false;
+    return connection ? this.streamDataFetcher.isConnectionActive(connection) : false;
   }
 
   /**

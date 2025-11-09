@@ -629,11 +629,11 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
   private mapCapabilityToTransDataRuleListType(capability: string): string {
     const capabilityMappingTable: Record<string, string> = {
       // WebSocket 流能力映射
-      "ws-stock-quote": "quote_fields",
-      "ws-option-quote": "option_fields",
-      "ws-futures-quote": "futures_fields",
-      "ws-forex-quote": "forex_fields",
-      "ws-crypto-quote": "crypto_fields",
+      "stream-stock-quote": "quote_fields",
+      "stream-option-quote": "option_fields",
+      "stream-futures-quote": "futures_fields",
+      "stream-forex-quote": "forex_fields",
+      "stream-crypto-quote": "crypto_fields",
 
       // REST API 能力映射
       [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",
@@ -642,11 +642,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       "get-forex-quote": "forex_fields",
       "get-crypto-quote": "crypto_fields",
 
-      // 实时数据流能力
-      [API_OPERATIONS.STOCK_DATA.STREAM_QUOTE]: "quote_fields",
-      "stream-option-quote": "option_fields",
-      "stream-market-data": "market_data_fields",
-      "stream-trading-data": "trading_data_fields",
+      // 实时数据流能力（已在上方 WebSocket 流能力映射中覆盖常见项，避免重复键）
 
       // 基础信息能力
       "get-stock-info": "basic_info_fields",
