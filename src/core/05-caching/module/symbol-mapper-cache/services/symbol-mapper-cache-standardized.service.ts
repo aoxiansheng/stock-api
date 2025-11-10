@@ -72,8 +72,7 @@ export class SymbolMapperCacheStandardizedService {
     this.stats.totalQueries++;
     this.stats.operations++;
 
-    // Handle null/undefined inputs gracefully
-    if (symbols == null || symbols === undefined) {
+    if (symbols == null) {
       return {
         success: true,
         mappingDetails: {},
@@ -86,10 +85,7 @@ export class SymbolMapperCacheStandardizedService {
       };
     }
 
-    // Convert symbols to array format for consistency
     const symbolArray = Array.isArray(symbols) ? symbols : [symbols];
-
-    // Handle empty array case
     if (symbolArray.length === 0) {
       return {
         success: true,
@@ -104,54 +100,61 @@ export class SymbolMapperCacheStandardizedService {
     }
 
     try {
-      // 简化实现（保留）：直接转换符号格式（作为兜底）
+      const rules = await this.loadProviderRules(provider);
       const mappingDetails: Record<string, string> = {};
       const failedSymbols: string[] = [];
       let validSymbolsProcessed = 0;
 
-      for (const symbol of symbolArray) {
-        try {
-          // Skip invalid symbols (null, undefined, empty strings, non-string types)
-          if (symbol == null || symbol === undefined || typeof symbol !== 'string' || symbol.trim() === '') {
-            continue; // 直接跳过无效输入，不计入失败
-          }
+      for (const originalSymbol of symbolArray) {
+        const normalized = this.normalizeSymbol(originalSymbol);
+        if (!normalized) {
+          continue;
+        }
 
-          validSymbolsProcessed++; // 计数有效处理的符号
+        validSymbolsProcessed++;
 
-          // 先查L2缓存（单符号）
-          const l2Key = this.getL2Key(provider, symbol, direction);
-          const l2Hit = this.getCache(this.l2SymbolMappingCache, l2Key);
-          if (l2Hit.hit) {
-            mappingDetails[symbol] = l2Hit.value;
-          } else {
-            // 回退到简化规则（兜底）
-            const mapped = direction === MappingDirection.TO_STANDARD
-              ? this.convertToStandardFormat(symbol)
-              : this.convertFromStandardFormat(symbol);
-            mappingDetails[symbol] = mapped;
-            // 写入L2
-            this.setCache(this.l2SymbolMappingCache, l2Key, mapped, this.L2_TTL_SEC, this.L2_MAX);
-          }
+        const cacheKey = this.getL2Key(provider, normalized, direction);
+        const cacheHit = this.getCache(this.l2SymbolMappingCache, cacheKey);
+        if (cacheHit.hit) {
+          mappingDetails[originalSymbol] = cacheHit.value;
+          continue;
+        }
 
-          this.stats.l2.hits++;
-        } catch (error) {
-          failedSymbols.push(symbol);
+        let mapped: string | null = null;
+        if (direction === MappingDirection.TO_STANDARD) {
+          mapped =
+            rules.reverseMap[normalized] ??
+            (rules.forwardMap[normalized] ? normalized : normalized);
+        } else {
+          mapped =
+            rules.forwardMap[normalized] ??
+            (rules.reverseMap[normalized] ? normalized : normalized);
+        }
+
+        if (mapped) {
+          mappingDetails[originalSymbol] = mapped;
+          this.setCache(
+            this.l2SymbolMappingCache,
+            cacheKey,
+            mapped,
+            this.L2_TTL_SEC,
+            this.L2_MAX,
+          );
+        } else {
+          failedSymbols.push(originalSymbol);
         }
       }
 
-      const result: BatchMappingResult = {
-        success: true, // Always return success for graceful error handling
+      return {
+        success: true,
         mappingDetails,
         failedSymbols,
         provider,
         direction,
-        totalProcessed: validSymbolsProcessed, // 只计算有效处理的符号数量
+        totalProcessed: validSymbolsProcessed,
         cacheHits: validSymbolsProcessed - failedSymbols.length,
         processingTimeMs: Date.now() - startTime,
       };
-
-      return result;
-
     } catch (error) {
       this.logger.error(`Symbol mapping failed for provider ${provider}`, error);
       throw error;
@@ -180,19 +183,41 @@ export class SymbolMapperCacheStandardizedService {
 
     const mappedArray: string[] = [];
     for (const s of symbols) {
-      if (typeof s === 'string' && s in forwardMap) {
-        mappedArray.push(forwardMap[s]);
+      const normalized = this.normalizeSymbol(s);
+      if (!normalized) {
+        continue;
+      }
+
+      if (normalized in forwardMap) {
+        const mappedValue = forwardMap[normalized];
+        mappedArray.push(mappedValue);
         // L2写入
-        this.setCache(this.l2SymbolMappingCache, this.getL2Key(provider, s, MappingDirection.FROM_STANDARD), forwardMap[s], this.L2_TTL_SEC, this.L2_MAX);
+        this.setCache(
+          this.l2SymbolMappingCache,
+          this.getL2Key(provider, normalized, MappingDirection.FROM_STANDARD),
+          mappedValue,
+          this.L2_TTL_SEC,
+          this.L2_MAX,
+        );
       } else {
         // 尝试L2
-        const l2Key = this.getL2Key(provider, s, MappingDirection.FROM_STANDARD);
+        const l2Key = this.getL2Key(
+          provider,
+          normalized,
+          MappingDirection.FROM_STANDARD,
+        );
         const l2Hit = this.getCache(this.l2SymbolMappingCache, l2Key);
         if (l2Hit.hit) {
           mappedArray.push(l2Hit.value);
         } else {
-          mappedArray.push(s); // 回退原值
-          this.setCache(this.l2SymbolMappingCache, l2Key, s, this.L2_TTL_SEC, this.L2_MAX);
+          mappedArray.push(normalized); // 回退原值
+          this.setCache(
+            this.l2SymbolMappingCache,
+            l2Key,
+            normalized,
+            this.L2_TTL_SEC,
+            this.L2_MAX,
+          );
         }
       }
     }
@@ -220,17 +245,39 @@ export class SymbolMapperCacheStandardizedService {
 
     const mappedArray: string[] = [];
     for (const s of symbols) {
-      if (typeof s === 'string' && s in reverseMap) {
-        mappedArray.push(reverseMap[s]);
-        this.setCache(this.l2SymbolMappingCache, this.getL2Key(provider, s, MappingDirection.TO_STANDARD), reverseMap[s], this.L2_TTL_SEC, this.L2_MAX);
+      const normalized = this.normalizeSymbol(s);
+      if (!normalized) {
+        continue;
+      }
+
+      if (normalized in reverseMap) {
+        const mappedValue = reverseMap[normalized];
+        mappedArray.push(mappedValue);
+        this.setCache(
+          this.l2SymbolMappingCache,
+          this.getL2Key(provider, normalized, MappingDirection.TO_STANDARD),
+          mappedValue,
+          this.L2_TTL_SEC,
+          this.L2_MAX,
+        );
       } else {
-        const l2Key = this.getL2Key(provider, s, MappingDirection.TO_STANDARD);
+        const l2Key = this.getL2Key(
+          provider,
+          normalized,
+          MappingDirection.TO_STANDARD,
+        );
         const l2Hit = this.getCache(this.l2SymbolMappingCache, l2Key);
         if (l2Hit.hit) {
           mappedArray.push(l2Hit.value);
         } else {
-          mappedArray.push(s);
-          this.setCache(this.l2SymbolMappingCache, l2Key, s, this.L2_TTL_SEC, this.L2_MAX);
+          mappedArray.push(normalized);
+          this.setCache(
+            this.l2SymbolMappingCache,
+            l2Key,
+            normalized,
+            this.L2_TTL_SEC,
+            this.L2_MAX,
+          );
         }
       }
     }
@@ -363,28 +410,15 @@ export class SymbolMapperCacheStandardizedService {
     return `${SYMBOL_MAPPER_CACHE_CONSTANTS.KEYS.SYMBOL_MAPPING}:${provider}:${direction}:${symbol}`;
   }
 
-  /**
-   * 转换为标准格式 (简化实现)
-   */
-  private convertToStandardFormat(symbol: string): string {
-    // 示例: "700.HK" -> "00700"
-    if (symbol.includes('.HK')) {
-      const code = symbol.split('.')[0];
-      return code.padStart(5, '0');
+  private normalizeSymbol(symbol: unknown): string | null {
+    if (typeof symbol !== 'string') {
+      return null;
     }
-    return symbol;
-  }
-
-  /**
-   * 从标准格式转换 (简化实现)
-   */
-  private convertFromStandardFormat(symbol: string): string {
-    // 示例: "00700" -> "700.HK"
-    if (symbol.match(/^\d{5}$/)) {
-      const code = parseInt(symbol, 10).toString();
-      return `${code}.HK`;
+    const trimmed = symbol.trim();
+    if (!trimmed) {
+      return null;
     }
-    return symbol;
+    return trimmed.toUpperCase();
   }
 
   // ==================== 服务状态 ====================

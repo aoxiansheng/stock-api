@@ -691,15 +691,16 @@ export class StreamReceiverService implements OnModuleDestroy {
     });
 
     try {
-      // 1. 符号映射
-      const mappedSymbols = await this.mapSymbols(symbols, providerName);
+      // 1. 符号映射：标准格式与Provider专用格式分离
+      const { standardSymbols, providerSymbols } =
+        await this.resolveSymbolMappings(symbols, providerName, requestId);
 
       // 2. 更新客户端状态
       this.streamDataFetcher
         .getClientStateManager()
         .addClientSubscription(
           resolvedClientId,
-          mappedSymbols,
+          standardSymbols,
           wsCapabilityType,
           providerName,
         );
@@ -713,10 +714,10 @@ export class StreamReceiverService implements OnModuleDestroy {
         resolvedClientId,
       );
 
-      // 4. 订阅符号到流连接
+      // 4. 订阅符号到流连接（使用Provider要求的格式）
       await this.streamDataFetcher.subscribeToSymbols(
         connection,
-        mappedSymbols,
+        providerSymbols,
       );
 
       // 5. 设置数据接收处理
@@ -724,8 +725,8 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       // 6. 将客户端加入标准化符号房间，便于按symbol广播
       try {
-        if (this.webSocketProvider && mappedSymbols?.length) {
-          const rooms = mappedSymbols.map((s) => `symbol:${s}`);
+        if (this.webSocketProvider && standardSymbols?.length) {
+          const rooms = standardSymbols.map((s) => `symbol:${s}`);
           await this.webSocketProvider.joinClientToRooms(resolvedClientId, rooms);
         }
       } catch (err) {
@@ -734,7 +735,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       this.logger.log("流数据订阅成功", {
         clientId: resolvedClientId,
-        symbolsCount: mappedSymbols.length,
+        symbolsCount: standardSymbols.length,
         connectionId: connection.id,
       });
     } catch (error) {
@@ -795,17 +796,19 @@ export class StreamReceiverService implements OnModuleDestroy {
         return;
       }
 
-      // 映射符号
-      const mappedSymbols = await this.mapSymbols(
-        symbolsToUnsubscribe,
-        clientSub.providerName,
-      );
+      // 映射符号（标准化 + Provider格式）
+      const requestId = `unsubscribe_${Date.now()}`;
+      const { standardSymbols, providerSymbols } =
+        await this.resolveSymbolMappings(
+          symbolsToUnsubscribe,
+          clientSub.providerName,
+          requestId,
+        );
 
       // 获取连接（通过连接管理器；仅在现有连接活跃时执行退订，避免误建新连接）
       const connectionKey = `${clientSub.providerName}:${clientSub.wsCapabilityType}`;
       let connection: StreamConnection | undefined;
       if (this.connectionManager.isConnectionActive(connectionKey)) {
-        const requestId = `unsubscribe_${Date.now()}`;
         connection = await this.connectionManager.getOrCreateConnection(
           clientSub.providerName,
           clientSub.wsCapabilityType,
@@ -813,10 +816,10 @@ export class StreamReceiverService implements OnModuleDestroy {
           symbolsToUnsubscribe,
           clientId,
         );
-        // 从流连接取消订阅
+        // 从流连接取消订阅（Provider格式）
         await this.streamDataFetcher.unsubscribeFromSymbols(
           connection,
-          mappedSymbols,
+          providerSymbols,
         );
       } else {
         this.logger.warn("未找到活跃连接，跳过上游退订", {
@@ -830,12 +833,12 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 更新客户端状态
       this.streamDataFetcher
         .getClientStateManager()
-        .removeClientSubscription(clientId, symbolsToUnsubscribe);
+        .removeClientSubscription(clientId, standardSymbols);
 
       // 将客户端从房间移除
       try {
-        if (this.webSocketProvider && mappedSymbols?.length) {
-          const rooms = mappedSymbols.map((s) => `symbol:${s}`);
+        if (this.webSocketProvider && standardSymbols?.length) {
+          const rooms = standardSymbols.map((s) => `symbol:${s}`);
           await this.webSocketProvider.leaveClientFromRooms(clientId, rooms);
         }
       } catch (err) {
@@ -844,7 +847,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       this.logger.log("流数据取消订阅成功", {
         clientId,
-        symbolsCount: mappedSymbols.length,
+        symbolsCount: standardSymbols.length,
       });
     } catch (error) {
       this.logger.error("流数据取消订阅失败", {
@@ -896,30 +899,32 @@ export class StreamReceiverService implements OnModuleDestroy {
         });
       }
 
-      // 2. 映射符号
-      const mappedSymbols = await this.mapSymbols(symbols, providerName);
+      // 2. 映射符号（标准化 + Provider格式）
+      const { standardSymbols, providerSymbols } =
+        await this.resolveSymbolMappings(symbols, providerName, requestId);
       const rejectedSymbols: Array<{ symbol: string; reason: string }> = [];
+      const confirmedStandardSymbols: string[] = [];
+      const confirmedProviderSymbols: string[] = [];
 
-      // 检查映射失败的符号
-      symbols.forEach((symbol, index) => {
-        if (!mappedSymbols[index] || mappedSymbols[index] === symbol) {
+      standardSymbols.forEach((standardSymbol, index) => {
+        const providerSymbol = providerSymbols[index];
+        if (!standardSymbol || !providerSymbol) {
           rejectedSymbols.push({
-            symbol,
+            symbol: symbols[index],
             reason: "符号映射失败",
           });
+          return;
         }
+        confirmedStandardSymbols.push(standardSymbol);
+        confirmedProviderSymbols.push(providerSymbol);
       });
-
-      const confirmedSymbols = mappedSymbols.filter(
-        (s) => !rejectedSymbols.find((r) => r.symbol === s),
-      );
 
       // 3. 恢复客户端订阅 (已移除messageCallback wrapper)
       this.streamDataFetcher
         .getClientStateManager()
         .addClientSubscription(
           clientId,
-          confirmedSymbols,
+          confirmedStandardSymbols,
           wsCapabilityType,
           providerName,
         );
@@ -933,11 +938,13 @@ export class StreamReceiverService implements OnModuleDestroy {
         clientId,
       );
 
-      // 5. 订阅符号
-      await this.streamDataFetcher.subscribeToSymbols(
-        connection,
-        confirmedSymbols,
-      );
+      // 5. 订阅符号（Provider格式）
+      if (confirmedProviderSymbols.length > 0) {
+        await this.streamDataFetcher.subscribeToSymbols(
+          connection,
+          confirmedProviderSymbols,
+        );
+      }
 
       // 6. 判断是否需要补发数据
       const timeDiff = Date.now() - lastReceiveTimestamp;
@@ -945,13 +952,13 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       let recoveryJobId: string | undefined;
       const willRecover =
-        timeDiff <= maxRecoveryWindow && confirmedSymbols.length > 0;
+        timeDiff <= maxRecoveryWindow && confirmedStandardSymbols.length > 0;
 
       if (willRecover && this.recoveryWorker) {
         // 提交补发任务
         const recoveryJob: RecoveryJob = {
           clientId,
-          symbols: confirmedSymbols,
+          symbols: confirmedStandardSymbols,
           lastReceiveTimestamp,
           provider: providerName,
           capability: wsCapabilityType,
@@ -964,7 +971,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         this.logger.log("补发任务已提交", {
           clientId,
           jobId: recoveryJobId,
-          symbolsCount: confirmedSymbols.length,
+          symbolsCount: confirmedStandardSymbols.length,
         });
       }
 
@@ -972,7 +979,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       const response: ClientReconnectResponse = {
         success: true,
         clientId,
-        confirmedSymbols,
+        confirmedSymbols: confirmedStandardSymbols,
         rejectedSymbols:
           rejectedSymbols.length > 0 ? rejectedSymbols : undefined,
         recoveryStrategy: {
@@ -1001,7 +1008,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       this.logger.log("客户端重连成功", {
         clientId,
-        confirmedSymbolsCount: confirmedSymbols.length,
+        confirmedSymbolsCount: confirmedStandardSymbols.length,
         willRecover,
         recoveryJobId,
       });
@@ -1324,6 +1331,68 @@ export class StreamReceiverService implements OnModuleDestroy {
         error: error.message,
       });
       return symbols; // 安全降级
+    }
+  }
+
+  /**
+   * 统一解析标准符号与 Provider 符号
+   */
+  private async resolveSymbolMappings(
+    symbols: string[],
+    providerName: string,
+    requestId: string,
+  ): Promise<{ standardSymbols: string[]; providerSymbols: string[] }> {
+    const standardSymbols = await this.mapSymbols(symbols, providerName);
+    const providerSymbols = await this.mapSymbolsForProvider(
+      providerName,
+      standardSymbols,
+      symbols,
+      requestId,
+    );
+
+    return { standardSymbols, providerSymbols };
+  }
+
+  /**
+   * 将标准符号映射为 Provider 所需格式
+   */
+  private async mapSymbolsForProvider(
+    providerName: string,
+    standardSymbols: string[],
+    originalSymbols: string[],
+    requestId: string,
+  ): Promise<string[]> {
+    if (!standardSymbols?.length) {
+      return [];
+    }
+
+    try {
+      const providerResult =
+        await this.symbolTransformerService.transformSymbolsForProvider(
+          providerName,
+          standardSymbols,
+          requestId,
+        );
+
+      const mappingTable =
+        providerResult?.mappingResults?.transformedSymbols || {};
+
+      return standardSymbols.map((symbol, index) => {
+        return (
+          mappingTable[symbol] ??
+          providerResult?.transformedSymbols?.[index] ??
+          standardSymbols[index] ??
+          originalSymbols[index] ??
+          symbol
+        );
+      });
+    } catch (error) {
+      this.logger.warn("Provider 符号映射失败，使用标准符号回退", {
+        provider: providerName,
+        symbolsCount: standardSymbols.length,
+        error: (error as Error).message,
+      });
+      return standardSymbols;
     }
   }
 

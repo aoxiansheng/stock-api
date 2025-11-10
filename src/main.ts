@@ -165,7 +165,8 @@ async function bootstrap() {
           "admin@yourcompany.com",
         )
         .setLicense("MIT License", "https://opensource.org/licenses/MIT")
-        .addServer("http://localhost:3000", "开发环境")
+        // 使用当前进程端口动态声明本地 Server，避免端口描述与实际运行不一致
+        .addServer(`http://localhost:${process.env.PORT || 3000}`, "本地运行")
         .addServer("https://api.yourcompany.com", "生产环境")
 
         // API 标签分组 - 按功能模块和时效性架构组织
@@ -259,7 +260,7 @@ API Key 认证用于第三方应用和自动化脚本访问，采用双密钥验
 **🧠 弱时效接口 (分析决策专用)**:
 - 智能数据查询: POST /api/v1/query/execute
 - 批量查询: POST /api/v1/query/bulk  
-- 快速查询: GET /api/v1/query/symbols、GET /api/v1/query/market
+- 快速查询: GET /api/v1/query/symbols（按市场查询请使用 POST /api/v1/query/execute，GET 端点已移除）
   - 智能变化检测，双存储策略
   - 适合数据分析、投资研究
 
@@ -304,7 +305,8 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
           showCommonExtensions: true,
         },
       });
-      logger.log("📚 Swagger API 文档已启用: http://localhost:3000/api-docs");
+      const swaggerPort = process.env.PORT || 3000;
+      logger.log(`📚 Swagger API 文档已启用: http://localhost:${swaggerPort}/api-docs`);
     } catch (error) {
       logger.warn("⚠️ Swagger 配置失败，跳过 API 文档生成", {
         error: error.message,
@@ -329,15 +331,14 @@ Access Token 与 App Key 配合使用，提供双重安全验证：
   🚀 智能股票数据系统启动成功
   ================================================
   📍 服务地址: http://localhost:${port}
-  📚 API 文档: http://localhost:${port}/docs
+  📚 API 文档: http://localhost:${port}/api-docs
   
-  🎯 七组件核心架构已就绪：
+  🎯 六组件核心架构已就绪：
   ├── 🚀 实时流数据接口：WebSocket /api/v1/stream-receiver/connect  (无缓存)
   ├── 🚀 强时效接口: /api/v1/receiver/* (1秒缓存)
   ├── 🧠 弱时效接口: /api/v1/query/* (智能检测)
   ├── 🔄 符号映射器: /api/v1/symbol-mapper/*
   ├── 🗺️ 数据映射器: /api/v1/data-mapper/*
-  ├── ⚡ 数据转换器: /api/v1/transformer/*
   └── 💾 数据存储器: /api/v1/storage/*
   
   🔐 三层认证架构已启用

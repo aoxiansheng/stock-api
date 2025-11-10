@@ -11,7 +11,7 @@ BASE_URL="${BASE_URL:-http://localhost:3001}"
 USERNAME="${USERNAME:-smoke_user_$(date +%s)}"
 PASSWORD="${PASSWORD:-User@123456}"
 EMAIL="${EMAIL:-${USERNAME}@example.com}"
-SYMBOLS_CSV="${SYMBOLS:-AAPL.US}"
+SYMBOLS_CSV="${SYMBOLS:-00700.HK}"
 WS_CAPABILITY="${WS_CAPABILITY:-stream-stock-quote}"
 DURATION_SEC="${DURATION_SEC:-10}"
 
@@ -79,7 +79,7 @@ import { io } from 'socket.io-client'
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3001'
 const APP_KEY = process.env.APP_KEY
 const ACCESS_TOKEN = process.env.ACCESS_TOKEN
-const SYMBOLS_CSV = process.env.SYMBOLS || 'AAPL.US'
+const SYMBOLS_CSV = process.env.SYMBOLS || '00700.HK'
 const WS_CAPABILITY = process.env.WS_CAPABILITY || 'stream-stock-quote'
 const DURATION_SEC = parseInt(process.env.DURATION_SEC || '10', 10)
 const PREFERRED_PROVIDER = process.env.PREFERRED_PROVIDER || ''
