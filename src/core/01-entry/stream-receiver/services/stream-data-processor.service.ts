@@ -38,6 +38,10 @@ import {
   CapabilityMappingConfig,
   IntelligentMappingResult,
 } from "../interfaces/data-processing.interface";
+import {
+  applyStandardSymbolsToDataArray,
+  buildProviderToStandardMap,
+} from "../utils/symbol-normalization.util";
 
 @Injectable()
 export class StreamDataProcessorService implements OnModuleDestroy, IDataProcessor {
@@ -233,11 +237,23 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
         "符号标准化",
       );
       const symbolDuration = Date.now() - symbolStartTime;
+      const providerToStandardMap = buildProviderToStandardMap(
+        rawSymbols,
+        standardizedSymbols,
+      );
+      const normalizedDataArray = applyStandardSymbolsToDataArray(
+        dataArray,
+        providerToStandardMap,
+      );
 
       // Step 5: 使用标准化符号进行缓存
       const cacheStartTime = Date.now();
       await this.executeWithTimeout(
-        () => this.callbacks!.pipelineCacheData(dataArray, standardizedSymbols),
+        () =>
+          this.callbacks!.pipelineCacheData(
+            normalizedDataArray,
+            standardizedSymbols,
+          ),
         this.processingConfig.cacheTimeoutMs,
         "数据缓存",
       );
@@ -246,7 +262,11 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
       // Step 6: 使用标准化符号进行广播
       const broadcastStartTime = Date.now();
       await this.executeWithTimeout(
-        () => this.callbacks!.pipelineBroadcastData(dataArray, standardizedSymbols),
+        () =>
+          this.callbacks!.pipelineBroadcastData(
+            normalizedDataArray,
+            standardizedSymbols,
+          ),
         this.processingConfig.broadcastTimeoutMs,
         "数据广播",
       );

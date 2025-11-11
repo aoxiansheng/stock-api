@@ -39,6 +39,10 @@ import {
   FallbackAnalysisResult,
   PartialRecoveryResult,
 } from "../interfaces/batch-processing.interface";
+import {
+  applyStandardSymbolsToDataArray,
+  buildProviderToStandardMap,
+} from "../utils/symbol-normalization.util";
 
 @Injectable()
 export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProcessor {
@@ -565,15 +569,29 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
         rawSymbols,
         provider,
       );
+      const providerToStandardMap = buildProviderToStandardMap(
+        rawSymbols,
+        standardizedSymbols,
+      );
+      const normalizedDataArray = applyStandardSymbolsToDataArray(
+        dataArray,
+        providerToStandardMap,
+      );
 
       // Step 5: 缓存数据
       const cacheStartTime = Date.now();
-      await this.callbacks.pipelineCacheData(dataArray, standardizedSymbols);
+      await this.callbacks.pipelineCacheData(
+        normalizedDataArray,
+        standardizedSymbols,
+      );
       const cacheDuration = Date.now() - cacheStartTime;
 
       // Step 6: 广播数据
       const broadcastStartTime = Date.now();
-      await this.callbacks.pipelineBroadcastData(dataArray, standardizedSymbols);
+      await this.callbacks.pipelineBroadcastData(
+        normalizedDataArray,
+        standardizedSymbols,
+      );
       const broadcastDuration = Date.now() - broadcastStartTime;
 
       // Step 7: 性能监控埋点
