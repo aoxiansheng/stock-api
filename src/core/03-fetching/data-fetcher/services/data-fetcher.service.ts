@@ -73,6 +73,30 @@ export class DataFetcherService implements IDataFetcher {
     private readonly capabilityRegistryService: ProviderRegistryService,
   ) {}
 
+  private normalizeRecord(record: any): any {
+    if (!record || typeof record !== "object") {
+      return record;
+    }
+
+    try {
+      if (typeof record.toObject === "function") {
+        return record.toObject();
+      }
+      if (typeof record.toJSON === "function") {
+        const jsonValue = record.toJSON();
+        if (jsonValue && typeof jsonValue === "object") {
+          return jsonValue;
+        }
+      }
+    } catch (error) {
+      this.logger.warn("normalizeRecord failure", {
+        reason: (error as Error).message,
+      });
+    }
+
+    return record;
+  }
+
   /**
    * 从第三方SDK获取原始数据
    *
@@ -95,7 +119,18 @@ export class DataFetcherService implements IDataFetcher {
       await this.checkCapability(provider, capability);
 
       // 1.1 兜底：若未显式传入 contextService，则尝试从注册表获取
-      const ensuredContextService = contextService ?? (await this.getProviderContext(provider)).catch(() => undefined);
+      let ensuredContextService = contextService;
+      if (!ensuredContextService) {
+        try {
+          ensuredContextService = await this.getProviderContext(provider);
+        } catch (error) {
+          this.logger.debug("getProviderContext unavailable, continue without context", {
+            provider,
+            reason: (error as Error).message,
+          });
+          ensuredContextService = undefined;
+        }
+      }
 
       // 2. 准备执行参数 - 简化：统一通过options传递，移除重复参数
       // 将 contextService 透传给能力执行（例如 LongPort 能力需要）
@@ -432,7 +467,7 @@ export class DataFetcherService implements IDataFetcher {
   private processRawData(rawData: ProcessRawDataInput): any[] {
     // 确保返回数组格式 - 优先检查数组类型
     if (Array.isArray(rawData)) {
-      return rawData;
+      return rawData.map((item) => this.normalizeRecord(item));
     }
 
     // 向后兼容：处理旧格式数据
@@ -466,14 +501,14 @@ export class DataFetcherService implements IDataFetcher {
               sourceFormat: priorityKey,
               dataSize: value.length,
             });
-            return value;
+            return value.map((item) => this.normalizeRecord(item));
           }
           if (value && typeof value === "object") {
             this.logger.debug(`检测到优先级对象格式，数组化处理: ${priorityKey}`, {
               operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
               sourceFormat: priorityKey,
             });
-            return [value];
+            return [this.normalizeRecord(value)];
           }
         }
       }
@@ -490,7 +525,7 @@ export class DataFetcherService implements IDataFetcher {
             sourceFormat: key,
             dataSize: value.length,
           });
-          return value;
+          return value.map((item) => this.normalizeRecord(item));
         }
       }
 
@@ -520,12 +555,12 @@ export class DataFetcherService implements IDataFetcher {
             operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
             sourceFormat: key,
           });
-          return [value];
+          return [this.normalizeRecord(value)];
         }
       }
     }
 
-    return rawData ? [rawData] : [];
+    return rawData ? [this.normalizeRecord(rawData)] : [];
   }
 
 

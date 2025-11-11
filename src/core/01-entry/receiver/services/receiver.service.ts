@@ -719,8 +719,10 @@ export class ReceiverService implements OnModuleDestroy {
         fetchTime: fetchResult.metadata.processingTimeMs,
       });
 
+      const rawSample = Array.isArray(rawData) ? rawData[0] : rawData;
       this.logger.debug(`Raw data for transformation`, {
-        rawData: JSON.stringify(rawData),
+        rawSize: rawData?.length ?? 0,
+        rawSample,
       });
       const transformRequest: DataTransformRequestDto = {
         provider,
@@ -738,6 +740,16 @@ export class ReceiverService implements OnModuleDestroy {
 
       const transformedResult =
         await this.dataTransformerService.transform(transformRequest);
+
+      const transformedSample = Array.isArray(transformedResult.transformedData)
+        ? transformedResult.transformedData[0]
+        : transformedResult.transformedData;
+      this.logger.debug(`Transformed data sample`, {
+        requestId,
+        provider,
+        transformedSample,
+        rawSample,
+      });
 
       // 符号逆映射：将 Provider 符号还原为系统默认标准格式
       try {

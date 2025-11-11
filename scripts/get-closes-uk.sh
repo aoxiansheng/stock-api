@@ -38,6 +38,21 @@ PY
   fi
 }
 
+extract_field() {
+  local base="$1"; shift
+  local val=""
+  for key in "$@"; do
+    local path="${base}.${key}"
+    val=$(printf '%s' "$RESP" | json_get "$path" "$path")
+    if [[ -n "$val" && "$val" != "null" ]]; then
+      echo "$val"
+      return 0
+    fi
+  done
+  echo ""
+  return 1
+}
+
 echo "[基址] BASE_URL=${BASE_URL}"
 echo "[目标] SYMBOL=${SYMBOL}"
 
@@ -90,84 +105,79 @@ if [[ "$STATUS" != "200" && "$STATUS" != "201" ]]; then
   echo "请求失败，状态: $STATUS"; echo "$RESP"; exit 2
 fi
 
-# 容错提取函数（字段可能因规则不同而命名略异）
-extract_field() {
-  local base="$1"
-  local candidates=(${@:2})
-  for c in "${candidates[@]}"; do
-    local val
-    local expr="${base}.${c}"
-    val=$(printf '%s' "$RESP" | (has_jq && jq -r "$expr // empty" || python3 - "$base" "$c" <<'PY'
-import sys, json
-doc=json.load(sys.stdin)
-base=sys.argv[1]; field=sys.argv[2]
-def get(d, path):
-  cur=d
-  for p in path.split('.'):
-    if not p: continue
-    if isinstance(cur, dict): cur=cur.get(p)
-    else: return None
-  return cur
-v=get(doc, base)
-if isinstance(v, dict): v=v.get(field)
-print('' if v is None else (str(v) if not isinstance(v,(dict,list)) else ''))
-PY
-    ))
-    if [[ -n "$val" && "$val" != "null" ]]; then echo "$val"; return; fi
-  done
-  echo ""
-}
+echo "== 原始响应 =="
+if has_jq; then
+  printf '%s' "$RESP" | jq
+else
+  printf '%s\n' "$RESP"
+fi
 
-BASE_PATH='.data.data[0]'
-LAST_PRICE=$(extract_field "$BASE_PATH" 'lastPrice' 'last_done' 'lastDone' 'price' )
-PREV_CLOSE=$(extract_field "$BASE_PATH" 'previousClose' 'prevClose' 'prev_close' 'preClose')
-TRADE_STATUS=$(extract_field "$BASE_PATH" 'tradeStatus' 'marketStatus')
-TS=$(extract_field "$BASE_PATH" 'timestamp' '_timestamp')
-
-# 计算逻辑：
-# yesterdayClose = previousClose
-# todayClose:
-#  - 若交易状态显示收盘/盘后(Closed/AfterHours/Post)，使用 lastPrice 作为当日收盘
-#  - 否则（交易中或未知），回退 previousClose 作为最近交易日收盘
+BASE_ITEM='.data.data[0]'
+RAW_SYMBOL=$(extract_field "$BASE_ITEM" symbol ticker code)
+LAST_PRICE=$(extract_field "$BASE_ITEM" lastPrice last_price lastDone last_done price last close)
+PREV_CLOSE=$(extract_field "$BASE_ITEM" previousClose previous_close prevClose prev_close yesterdayClose yesterday_close)
+TRADE_STATUS=$(extract_field "$BASE_ITEM" tradeStatus trade_status marketStatus market_status status)
+TS=$(extract_field "$BASE_ITEM" timestamp time updatedAt updated_at lastUpdate last_update)
 
 norm() {
-  echo "$1" | tr '[:upper:]' '[:lower:]'
+  if [[ -z "$1" ]]; then
+    printf ''
+  else
+    printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+  fi
 }
 
-STATUS_NORM=$(norm "${TRADE_STATUS:-}")
-
-if [[ -z "${PREV_CLOSE}" ]]; then PREV_CLOSE=""; fi
-if [[ -z "${LAST_PRICE}" ]]; then LAST_PRICE=""; fi
+STATUS_TEXT=${TRADE_STATUS:-}
+STATUS_NORM=$(norm "$STATUS_TEXT")
 
 TODAY_CLOSE="$PREV_CLOSE"
 NOTE="fallback_to_previous_close"
-if [[ "$STATUS_NORM" == *"closed"* || "$STATUS_NORM" == *"after"* || "$STATUS_NORM" == *"post"* ]]; then
-  if [[ -n "$LAST_PRICE" ]]; then
-    TODAY_CLOSE="$LAST_PRICE"
-    NOTE="closed_or_afterhours_use_lastPrice"
+if [[ -n "$STATUS_NORM" ]]; then
+  if [[ "$STATUS_NORM" == *"closed"* || "$STATUS_NORM" == *"after"* || "$STATUS_NORM" == *"post"* ]]; then
+    if [[ -n "$LAST_PRICE" && "$LAST_PRICE" != "null" ]]; then
+      TODAY_CLOSE="$LAST_PRICE"
+      NOTE="closed_or_afterhours_use_lastPrice"
+    fi
   fi
 fi
 
-echo "== 结果 =="
-echo "symbol:        ${SYMBOL}"
-echo "tradeStatus:   ${TRADE_STATUS:-unknown}"
-echo "timestamp:     ${TS:-unknown}"
-echo "yesterdayClose:${PREV_CLOSE:-unknown}"
-echo "todayClose:    ${TODAY_CLOSE:-unknown}"
+RESULT_SYMBOL="$SYMBOL"
+TRADE_STATUS_DISPLAY="${TRADE_STATUS:-unknown}"
+TIMESTAMP_DISPLAY="${TS:-unknown}"
+YESTERDAY_DISPLAY="${PREV_CLOSE:-unknown}"
+TODAY_DISPLAY="${TODAY_CLOSE:-unknown}"
+
+if [[ -n "$RAW_SYMBOL" && "$RAW_SYMBOL" != "null" ]]; then
+  RESULT_SYMBOL="$RAW_SYMBOL"
+else
+  NOTE="no_data"
+fi
+
+echo "== 结果(强时效) =="
+echo "symbol:        ${RESULT_SYMBOL}"
+echo "tradeStatus:   ${TRADE_STATUS_DISPLAY}"
+echo "timestamp:     ${TIMESTAMP_DISPLAY}"
+echo "yesterdayClose:${YESTERDAY_DISPLAY}"
+echo "todayClose:    ${TODAY_DISPLAY}"
 echo "rule:          ${NOTE}"
 
-# JSON 输出（便于集成）
 if [[ "${JSON:-false}" == "true" ]]; then
   if has_jq; then
-    jq -n --arg symbol "$SYMBOL" \
-      --arg tradeStatus "${TRADE_STATUS:-}" \
-      --arg timestamp "${TS:-}" \
+    jq -n \
+      --arg symbol "$RESULT_SYMBOL" \
+      --arg tradeStatus "$TRADE_STATUS_DISPLAY" \
+      --arg timestamp "$TIMESTAMP_DISPLAY" \
       --arg yesterdayClose "${PREV_CLOSE:-}" \
       --arg todayClose "${TODAY_CLOSE:-}" \
-      --arg note "${NOTE}" '{symbol:$symbol, tradeStatus:$tradeStatus, timestamp:$timestamp, yesterdayClose: ($yesterdayClose|tonumber?), todayClose: ($todayClose|tonumber?), note:$note}'
+      --arg note "$NOTE" \
+      '{symbol:$symbol, tradeStatus:$tradeStatus, timestamp:$timestamp, yesterdayClose: ($yesterdayClose|tonumber?), todayClose: ($todayClose|tonumber?), note:$note}'
   else
+    yc="${PREV_CLOSE:-}"
+    tc="${TODAY_CLOSE:-}"
+    [[ -z "$yc" || "$yc" == "null" ]] && yc="null"
+    [[ -z "$tc" || "$tc" == "null" ]] && tc="null"
     printf '{"symbol":"%s","tradeStatus":"%s","timestamp":"%s","yesterdayClose":%s,"todayClose":%s,"note":"%s"}\n' \
-      "$SYMBOL" "${TRADE_STATUS:-}" "${TS:-}" \
-      "${PREV_CLOSE:-null}" "${TODAY_CLOSE:-null}" "$NOTE"
+      "$RESULT_SYMBOL" "$TRADE_STATUS_DISPLAY" "$TIMESTAMP_DISPLAY" \
+      "$yc" "$tc" "$NOTE"
   fi
 fi

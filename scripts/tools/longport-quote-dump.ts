@@ -10,7 +10,7 @@
  *    LONGPORT_APP_KEY
  *    LONGPORT_APP_SECRET
  *    LONGPORT_ACCESS_TOKEN
- *    LONGPORT_ENABLE_OVERNIGHT (可选，true 时返回 overnight_quote)
+ *    LONGPORT_ENABLE_OVERNIGHT (可选，true 时返回 overnight_quote，SDK 内部控制)
  *    LONGPORT_DEBUG_SYMBOLS (可选，逗号分隔符号列表，脚本未传参数时使用)
  */
 
@@ -37,6 +37,8 @@ async function main() {
   try {
     const config = Config.fromEnv();
     ctx = await QuoteContext.new(config);
+
+    // 始终直接请求官方 SDK 默认 payload，不设置任何字段/子场景过滤
     const response = await ctx.quote(symbols);
 
     // SDK 响应可能包含 toJSON/toObject 方法，优先转换为可序列化对象
@@ -48,7 +50,35 @@ async function main() {
           : (response as QuotePayload);
 
     console.info("[longport-quote-dump] === 原始响应开始 ===");
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(payload));
+    if (Array.isArray(response) && response.length > 0) {
+      const sample = response[0] as Record<string, unknown>;
+      console.info(
+        "[longport-quote-dump] sample keys",
+        Object.keys(sample || {}),
+      );
+      const pre = (sample as any)?.preMarketQuote;
+      const post = (sample as any)?.postMarketQuote;
+      const overnight = (sample as any)?.overnightQuote;
+      if (pre) {
+        console.info(
+          "[longport-quote-dump] preMarketQuote keys",
+          Object.keys(pre),
+        );
+      }
+      if (post) {
+        console.info(
+          "[longport-quote-dump] postMarketQuote keys",
+          Object.keys(post),
+        );
+      }
+      if (overnight) {
+        console.info(
+          "[longport-quote-dump] overnightQuote keys",
+          Object.keys(overnight),
+        );
+      }
+    }
     console.info("[longport-quote-dump] === 原始响应结束 ===");
   } catch (error) {
     const message =

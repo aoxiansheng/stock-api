@@ -42,10 +42,33 @@ export class RuleAlignmentService {
       "turnover", // 成交额
       "timestamp", // 时间戳
       "tradeStatus", // 交易状态
-      "preMarketPrice", // 盘前价格
-      "postMarketPrice", // 盘后价格
-      "preMarketVolume", // 盘前成交量
-      "postMarketVolume", // 盘后成交量
+      // 盘前字段
+      "preMarketPrice",
+      "preMarketHigh",
+      "preMarketLow",
+      "preMarketOpen",
+      "preMarketPrevClose",
+      "preMarketTurnover",
+      "preMarketVolume",
+      "preMarketTimestamp",
+      // 盘后字段
+      "postMarketPrice",
+      "postMarketHigh",
+      "postMarketLow",
+      "postMarketOpen",
+      "postMarketPrevClose",
+      "postMarketTurnover",
+      "postMarketVolume",
+      "postMarketTimestamp",
+      // 隔夜字段
+      "overnightPrice",
+      "overnightHigh",
+      "overnightLow",
+      "overnightOpen",
+      "overnightPrevClose",
+      "overnightTurnover",
+      "overnightVolume",
+      "overnightTimestamp",
     ],
 
     // 股票基本信息字段
@@ -591,6 +614,34 @@ export class RuleAlignmentService {
     const sourcePath = sourceField.fieldPath.toLowerCase();
     const target = targetField.toLowerCase();
     const sourceLastSegment = sourcePath.split(".").pop();
+    const sourceFieldType =
+      typeof sourceField.fieldType === "string"
+        ? sourceField.fieldType.toLowerCase()
+        : "";
+
+    const sessionContext = this.getSessionContext(target);
+    if (
+      sessionContext &&
+      !this.sourceMatchesSessionContext(sourcePath, sessionContext)
+    ) {
+      return 0.0;
+    }
+
+    if (sourceFieldType === "object") {
+      return 0.0;
+    }
+
+    if (sessionContext) {
+      const targetMetric = this.extractMetricName(target);
+      const sourceMetric = this.extractMetricName(sourceName);
+      if (
+        targetMetric &&
+        sourceMetric &&
+        !this.metricsCompatible(targetMetric, sourceMetric)
+      ) {
+        return 0.0;
+      }
+    }
 
     // 完全匹配
     if (sourceName === target || sourcePath === target) return 1.0;
@@ -636,6 +687,30 @@ export class RuleAlignmentService {
       turnover: ["turnover", "amount", "trade_amount", "trading_amount"],
       timestamp: ["timestamp", "time", "datetime", "update_time", "trade_time"],
       tradestatus: ["tradestatus", "trade_status", "status", "market_status"],
+      premarketprice: ["premarketquote.lastdone", "premarketprice"],
+      premarkethigh: ["premarketquote.high"],
+      premarketlow: ["premarketquote.low"],
+      premarketopen: ["premarketquote.open"],
+      premarketturnover: ["premarketquote.turnover"],
+      premarketvolume: ["premarketquote.volume"],
+      premarkettimestamp: ["premarketquote.timestamp"],
+      premarketprevclose: ["premarketquote.prevclose"],
+      postmarketprice: ["postmarketquote.lastdone", "postmarketprice"],
+      postmarkethigh: ["postmarketquote.high"],
+      postmarketlow: ["postmarketquote.low"],
+      postmarketopen: ["postmarketquote.open"],
+      postmarketturnover: ["postmarketquote.turnover"],
+      postmarketvolume: ["postmarketquote.volume"],
+      postmarkettimestamp: ["postmarketquote.timestamp"],
+      postmarketprevclose: ["postmarketquote.prevclose"],
+      overnightprice: ["overnightquote.lastdone", "overnightprice"],
+      overnighthigh: ["overnightquote.high"],
+      overnightlow: ["overnightquote.low"],
+      overnightopen: ["overnightquote.open"],
+      overnightprevclose: ["overnightquote.prevclose"],
+      overnightturnover: ["overnightquote.turnover"],
+      overnightvolume: ["overnightquote.volume"],
+      overnighttimestamp: ["overnightquote.timestamp"],
       namecn: ["name_cn", "namecn", "chinese_name", "cn_name"],
       nameen: ["name_en", "nameen", "english_name", "en_name"],
       exchange: ["exchange", "market", "trading_market"],
@@ -705,6 +780,67 @@ export class RuleAlignmentService {
 
     const distance = StringUtils.levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length;
+  }
+
+  private getSessionContext(targetField: string):
+    | "premarket"
+    | "postmarket"
+    | "overnight"
+    | null {
+    if (targetField.startsWith("premarket")) return "premarket";
+    if (targetField.startsWith("postmarket")) return "postmarket";
+    if (targetField.startsWith("overnight")) return "overnight";
+    return null;
+  }
+
+  private sourceMatchesSessionContext(
+    sourcePath: string,
+    context: "premarket" | "postmarket" | "overnight",
+  ): boolean {
+    const lowerPath = sourcePath.toLowerCase();
+    const lowerContext = context.toLowerCase();
+    const normalizedPath = lowerPath.replace(/[_-]/g, "");
+    const normalizedContext = lowerContext.replace(/[_-]/g, "");
+
+    return (
+      lowerPath.includes(lowerContext) ||
+      lowerPath.includes(`${lowerContext}_`) ||
+      lowerPath.includes(`${lowerContext}quote`) ||
+      normalizedPath.includes(normalizedContext)
+    );
+  }
+
+  private extractMetricName(fieldName: string): string | null {
+    if (!fieldName) {
+      return null;
+    }
+    let normalized = fieldName.toLowerCase();
+    normalized = normalized.replace(/^pre\s?market/, "");
+    normalized = normalized.replace(/^post\s?market/, "");
+    normalized = normalized.replace(/^overnight/, "");
+    return normalized || null;
+  }
+
+  private metricsCompatible(target: string, source: string): boolean {
+    const normalize = (value: string) => value.replace(/[^a-z]/g, "");
+    const canonicalMap: Record<string, string> = {
+      price: "price",
+      lastprice: "price",
+      lastdone: "price",
+      previousclose: "prevclose",
+      prevclose: "prevclose",
+      open: "open",
+      high: "high",
+      low: "low",
+      turnover: "turnover",
+      volume: "volume",
+      timestamp: "timestamp",
+    };
+
+    const targetKey = canonicalMap[normalize(target)] || normalize(target);
+    const sourceKey = canonicalMap[normalize(source)] || normalize(source);
+
+    return targetKey === sourceKey;
   }
 
 

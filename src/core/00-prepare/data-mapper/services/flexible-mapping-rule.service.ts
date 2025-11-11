@@ -293,6 +293,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
       successfulMappings: number;
       failedMappings: number;
       successRate: number;
+      optionalSkipped?: number;
     };
     debugInfo?: any[];
   }> {

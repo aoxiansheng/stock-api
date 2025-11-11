@@ -42,6 +42,7 @@ export class MappingRuleEngineModule {
       successfulMappings: number;
       failedMappings: number;
       successRate: number;
+      optionalSkipped?: number;
     };
     debugInfo?: any[];
   }> {
@@ -60,12 +61,20 @@ export class MappingRuleEngineModule {
     const debugInfo = [];
     let successfulMappings = 0;
     let failedMappings = 0;
+    let requiredMappings = 0;
+    let successfulRequiredMappings = 0;
+    let optionalSkipped = 0;
 
     for (const mapping of rule.fieldMappings) {
       // 若未显式设置 isActive，则默认视为启用
       if (mapping.isActive === false) continue;
 
       try {
+        const isRequired = mapping.isRequired === true;
+        if (isRequired) {
+          requiredMappings++;
+        }
+
         // 1. 尝试主要路径
         let sourceValue = this.getValueFromPath(
           sourceData,
@@ -84,7 +93,19 @@ export class MappingRuleEngineModule {
           }
         }
 
+        const isSessionField = /premarket|postmarket|overnight/i.test(
+          mapping.targetField,
+        );
+
         if (sourceValue !== undefined) {
+          if (isSessionField) {
+            this.logger.debug("Session field mapped", {
+              ruleId: rule._id?.toString(),
+              targetField: mapping.targetField,
+              sourcePath: mapping.sourceFieldPath,
+              value: sourceValue,
+            });
+          }
           // 3. 应用转换（如果有）
           let transformedValue = sourceValue;
           if (mapping.transform) {
@@ -105,6 +126,9 @@ export class MappingRuleEngineModule {
 
           transformedData[mapping.targetField] = transformedValue;
           successfulMappings++;
+          if (isRequired) {
+            successfulRequiredMappings++;
+          }
 
           if (includeDebugInfo) {
             debugInfo.push({
@@ -117,17 +141,50 @@ export class MappingRuleEngineModule {
             });
           }
         } else {
-          failedMappings++;
-
-          if (includeDebugInfo) {
-            debugInfo.push({
-              sourceFieldPath: mapping.sourceFieldPath,
+          if (isSessionField) {
+            this.logger.debug("Session field missing", {
+              ruleId: rule._id?.toString(),
               targetField: mapping.targetField,
-              sourceValue: undefined,
-              transformedValue: undefined,
-              success: false,
-              error: "源字段值未找到",
+              sourcePath: mapping.sourceFieldPath,
+              optional: !isRequired,
+              sourceKeys:
+                sourceData && typeof sourceData === "object"
+                  ? Object.keys(sourceData)
+                  : undefined,
+              rawValue:
+                sourceData && typeof sourceData === "object"
+                  ? (sourceData as any)[mapping.sourceFieldPath.split(".")[0]]
+                  : undefined,
             });
+          }
+
+          if (isRequired) {
+            failedMappings++;
+
+            if (includeDebugInfo) {
+              debugInfo.push({
+                sourceFieldPath: mapping.sourceFieldPath,
+                targetField: mapping.targetField,
+                sourceValue: undefined,
+                transformedValue: undefined,
+                success: false,
+                error: "源字段值未找到",
+              });
+            }
+          } else {
+            optionalSkipped++;
+
+            if (includeDebugInfo) {
+              debugInfo.push({
+                sourceFieldPath: mapping.sourceFieldPath,
+                targetField: mapping.targetField,
+                sourceValue: undefined,
+                transformedValue: undefined,
+                success: false,
+                skipped: true,
+                error: "可选字段缺失，已跳过",
+              });
+            }
           }
         }
       } catch (error) {
@@ -146,18 +203,21 @@ export class MappingRuleEngineModule {
       }
     }
 
-    const totalMappings = successfulMappings + failedMappings;
+    const totalMappings = rule.fieldMappings?.length || 0;
     const successRate =
-      totalMappings > 0 ? successfulMappings / totalMappings : 0;
+      requiredMappings > 0
+        ? successfulRequiredMappings / requiredMappings
+        : 1;
 
     const result = {
       transformedData,
-      success: successRate > 0.5, // 超过50%映射成功则认为整体成功
+      success: failedMappings === 0,
       mappingStats: {
         totalMappings,
         successfulMappings,
         failedMappings,
         successRate,
+        optionalSkipped: optionalSkipped || undefined,
       },
       debugInfo: includeDebugInfo ? debugInfo : undefined,
     };

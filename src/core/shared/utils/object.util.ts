@@ -54,6 +54,7 @@ export class ObjectUtils {
 
       for (const key of keys) {
         if (result === null || result === undefined) {
+          logger.debug('ObjectUtils path traversal aborted', { path, key, reason: 'null_result' });
           return undefined;
         }
 
@@ -105,11 +106,47 @@ export class ObjectUtils {
             ) {
               result = result[camelCaseKey];
               found = true;
+            } else {
+              const toSnakeCase = (s: string) =>
+                s
+                  .replace(/([A-Z])/g, "_$1")
+                  .replace(/[-\s]/g, "_")
+                  .toLowerCase();
+              const snakeCaseKey = toSnakeCase(key);
+              if (
+                typeof result === "object" &&
+                result !== null &&
+                Object.prototype.hasOwnProperty.call(result, snakeCaseKey)
+              ) {
+                result = result[snakeCaseKey];
+                found = true;
+              }
             }
           }
         }
 
         if (!found) {
+          if (result && typeof result === "object") {
+            const keys = Object.keys(result);
+            const insensitive = keys.find(
+              (existing) => existing.toLowerCase() === key.toLowerCase(),
+            );
+            if (insensitive) {
+              result = result[insensitive];
+              found = true;
+            }
+          }
+        }
+
+        if (!found) {
+          logger.debug('ObjectUtils key not found', {
+            path,
+            key,
+            availableKeys:
+              result && typeof result === 'object'
+                ? Object.keys(result)
+                : undefined,
+          });
           return undefined; // Key not found in current level
         }
       }

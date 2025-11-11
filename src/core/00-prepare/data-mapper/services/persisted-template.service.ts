@@ -55,14 +55,14 @@ export class PersistedTemplateService {
         "LongPort REST API 股票报价数据通用模板(适用所有市场基础字段)",
       sampleData: {
         symbol: REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
-        high: "562.500",
-        lastDone: "561.000",
-        low: "553.500",
-        open: "561.000",
-        prevClose: "561.000",
-        volume: 11790350,
-        turnover: "6586953996.000",
-        timestamp: "2025-08-11T08:08:18+00:00",
+        high: "662.000",
+        lastDone: "645.000",
+        low: "641.000",
+        open: "662.000",
+        prevClose: "649.500",
+        volume: 9648131,
+        turnover: "6251069378.000",
+        timestamp: "2025-11-11T06:37:08+00:00",
         tradeStatus: "Normal",
         overnightQuote: null,
         postMarketQuote: null,
@@ -170,7 +170,15 @@ export class PersistedTemplateService {
         turnover: "7925585994.156",
         timestamp: "2025-08-11T17:19:37+00:00",
         tradeStatus: "Normal",
-        overnightQuote: null,
+        overnightQuote: {
+          high: "228.750",
+          lastDone: "227.950",
+          low: "226.100",
+          prevClose: "228.330",
+          timestamp: "2025-08-08T02:00:00+00:00",
+          turnover: "512345678.000",
+          volume: 1523641,
+        },
         postMarketQuote: {
           high: "230.070",
           lastDone: "229.990",
@@ -249,6 +257,49 @@ export class PersistedTemplateService {
         {
           fieldPath: "tradeStatus",
           fieldName: "tradeStatus",
+          fieldType: "string",
+          confidence: 0.92,
+        },
+        // 隔夜报价字段
+        {
+          fieldPath: "overnightQuote.high",
+          fieldName: "overnightHigh",
+          fieldType: "string",
+          confidence: 0.92,
+        },
+        {
+          fieldPath: "overnightQuote.lastDone",
+          fieldName: "overnightLastDone",
+          fieldType: "string",
+          confidence: 0.92,
+        },
+        {
+          fieldPath: "overnightQuote.low",
+          fieldName: "overnightLow",
+          fieldType: "string",
+          confidence: 0.92,
+        },
+        {
+          fieldPath: "overnightQuote.prevClose",
+          fieldName: "overnightPrevClose",
+          fieldType: "string",
+          confidence: 0.92,
+        },
+        {
+          fieldPath: "overnightQuote.volume",
+          fieldName: "overnightVolume",
+          fieldType: "number",
+          confidence: 0.92,
+        },
+        {
+          fieldPath: "overnightQuote.turnover",
+          fieldName: "overnightTurnover",
+          fieldType: "string",
+          confidence: 0.92,
+        },
+        {
+          fieldPath: "overnightQuote.timestamp",
+          fieldName: "overnightTimestamp",
           fieldType: "string",
           confidence: 0.92,
         },
@@ -339,7 +390,7 @@ export class PersistedTemplateService {
           confidence: 0.92,
         },
       ],
-      totalFields: 24,
+      totalFields: 31,
       confidence: 0.92,
       isActive: true,
     },
@@ -977,10 +1028,32 @@ export class PersistedTemplateService {
             })
             .exec();
 
-          if (existingRule) {
+        if (existingRule) {
+          try {
+            const realignResult =
+              await this.ruleAlignmentService.realignExistingRule(
+                existingRule._id.toString(),
+              );
             skipped++;
-            details.push(`已跳过 ${template.name}: 规则已存在`);
-          this.logger.debug(`跳过已存在的映射规则: ${ruleName}`);
+            details.push(
+              `已对齐 ${template.name}: ${ruleName} (${realignResult.changes.added.length} added, ${realignResult.changes.removed.length} removed, ${realignResult.changes.modified.length} modified)`
+            );
+            this.logger.log(`已重新对齐映射规则: ${ruleName}`, {
+              templateId: template._id,
+              ruleId: existingRule._id,
+            });
+          } catch (realignError) {
+            failed++;
+            details.push(
+              `重新对齐失败 ${template.name}: ${realignError.message}`,
+            );
+            this.logger.error(`映射规则重新对齐失败: ${template.name}`, {
+              templateId: template._id,
+              ruleId: existingRule._id,
+              error: realignError.message,
+              stack: realignError.stack,
+            });
+          }
           continue;
         }
 
