@@ -163,6 +163,11 @@ export class RuleAlignmentService {
         }));
 
       // 5. 创建规则
+      const marketType = this.resolveMarketType(
+        template,
+        transDataRuleListType,
+      );
+
       const rule = await this.ruleModel.create({
         name: generatedRuleName,
         provider: template.provider,
@@ -178,6 +183,7 @@ export class RuleAlignmentService {
         usageCount: 0,
         successfulTransformations: 0,
         failedTransformations: 0,
+        marketType,
       });
 
       this.logger.log(`规则生成成功`, {
@@ -769,5 +775,66 @@ export class RuleAlignmentService {
       0,
     );
     return Math.min(totalConfidence / fieldMappings.length, 1.0);
+  }
+
+  private resolveMarketType(
+    template: DataSourceTemplateDocument,
+    transDataRuleListType: "quote_fields" | "basic_info_fields",
+  ): string {
+    if (!template) {
+      return "*";
+    }
+
+    if (transDataRuleListType === "basic_info_fields") {
+      return "HK/SH/SZ/US";
+    }
+
+    const apiType = (template.apiType || "").toLowerCase();
+    if (apiType === "stream") {
+      return "HK/SH/SZ/US";
+    }
+
+    const normalizedName = (template.name || "").toUpperCase();
+    if (normalizedName.includes("美股")) {
+      return "US";
+    }
+    if (normalizedName.includes("港股") && normalizedName.includes("A股")) {
+      return "HK/SH/SZ";
+    }
+
+    const symbol = this.extractSampleSymbol(template);
+    if (symbol) {
+      const upperSymbol = symbol.toUpperCase();
+      if (upperSymbol.endsWith(".US")) {
+        return "US";
+      }
+      if (upperSymbol.endsWith(".HK")) {
+        return "HK";
+      }
+      if (upperSymbol.endsWith(".SH") || upperSymbol.endsWith(".SZ")) {
+        return "SH/SZ";
+      }
+    }
+
+    return "*";
+  }
+
+  private extractSampleSymbol(
+    template: DataSourceTemplateDocument,
+  ): string | null {
+    if (!template?.sampleData) {
+      return null;
+    }
+
+    const data = template.sampleData as Record<string, any>;
+    if (typeof data.symbol === "string" && data.symbol.trim()) {
+      return data.symbol.trim();
+    }
+
+    if (Array.isArray(data.symbols) && typeof data.symbols[0] === "string") {
+      return data.symbols[0].trim();
+    }
+
+    return null;
   }
 }

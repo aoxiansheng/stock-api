@@ -96,7 +96,8 @@ extract_field() {
   local candidates=(${@:2})
   for c in "${candidates[@]}"; do
     local val
-    val=$(printf '%s' "$RESP" | (has_jq && jq -r "$base$c // empty" || python3 - "$base" "$c" <<'PY'
+    local expr="${base}.${c}"
+    val=$(printf '%s' "$RESP" | (has_jq && jq -r "$expr // empty" || python3 - "$base" "$c" <<'PY'
 import sys, json
 doc=json.load(sys.stdin)
 base=sys.argv[1]; field=sys.argv[2]
@@ -170,4 +171,3 @@ if [[ "${JSON:-false}" == "true" ]]; then
       "${PREV_CLOSE:-null}" "${TODAY_CLOSE:-null}" "$NOTE"
   fi
 fi
-
