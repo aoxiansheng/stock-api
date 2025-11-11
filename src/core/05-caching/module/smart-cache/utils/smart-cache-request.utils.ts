@@ -42,12 +42,17 @@ export function buildCacheOrchestratorRequest<T>(options: {
   marketStatus: Record<string, any>;
   strategy: CacheStrategy;
   executeOriginalDataFlow: () => Promise<T>;
+  marketType?: string;
+  market?: string;
 }): CacheOrchestratorRequest<T> {
+  const resolvedMarketType = options.marketType ?? "UNKNOWN";
+  const resolvedMarket = options.market ?? resolvedMarketType;
+
   // 构建缓存键
   const cacheKey = buildUnifiedCacheKey(
     `receiver:${options.receiverType}`,
     options.symbols,
-    { provider: options.provider },
+    { provider: options.provider, marketType: resolvedMarketType },
   );
 
   return {
@@ -60,6 +65,8 @@ export function buildCacheOrchestratorRequest<T>(options: {
       provider: options.provider,
       receiverType: options.receiverType,
       queryId: options.queryId,
+      marketType: resolvedMarketType,
+      market: resolvedMarket,
     },
   };
 }

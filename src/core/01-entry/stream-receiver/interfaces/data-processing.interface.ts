@@ -1,3 +1,5 @@
+import { MarketTypeContext } from "@core/shared/utils/market-type.util";
+
 /**
  * StreamDataProcessor 接口定义
  *
@@ -17,6 +19,7 @@ export interface QuoteData {
   wsCapabilityType: string;
   timestamp: number;
   symbols: string[];
+  marketContext: MarketTypeContext;
 }
 
 /**
@@ -149,4 +152,3 @@ export interface IntelligentMappingResult {
   method: "direct_mapping" | "intelligent_analysis" | "fallback_inference";
   matchedPattern?: string;
 }
-

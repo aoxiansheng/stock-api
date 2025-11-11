@@ -75,6 +75,9 @@ export class FlexibleMappingRule extends Document {
   @Prop({ trim: true })
   description?: string; // 规则描述
 
+  @Prop({ trim: true, default: "*" })
+  marketType?: string; // 市场类型（HK、US/CN、* 等）
+
   @Prop({ required: false }) // 临时设为可选，用于测试
   sourceTemplateId?: string; // 关联的数据源模板ID
 

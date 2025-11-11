@@ -13,7 +13,8 @@
 
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { BasicCacheService } from '../../basic-cache/services/basic-cache.service';
-import { MarketStatusService } from '../../../../shared/services/market-status.service';
+import { MarketStatusService, type MarketStatusResult } from '../../../../shared/services/market-status.service';
+import { Market, MarketStatus } from '../../../../shared/constants/market.constants';
 
 // Foundation layer imports
 import { StandardCacheModuleInterface } from '../../../foundation/interfaces/standard-cache-module.interface';
@@ -74,6 +75,7 @@ export interface CacheOrchestratorRequest<T> {
   metadata?: {
     /** 市场信息 */
     market?: any;
+    marketType?: string;
     /** 请求ID */
     requestId?: string;
     /** 数据类型 */
@@ -755,25 +757,175 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
         return cfg?.batchQueryTtlSeconds ?? fallback;
       case CacheStrategy.ADAPTIVE:
         return cfg?.nearRealTimeTtlSeconds ?? 120;
-      case CacheStrategy.MARKET_AWARE: {
-        try {
-          // 尝试从 metadata 提供的市场状态判断是否开市；否则基于符号推断市场并查询
-          const market = (request.metadata as any)?.market || (request.metadata as any)?.marketStatus?.dominantMarket;
-          if (market) {
-            const status = await this.marketStatusService.getMarketStatus(market);
-            if (status.status === 'TRADING' || status.status === 'PRE_MARKET') {
-              return cfg?.nearRealTimeTtlSeconds ?? 60;
-            }
-            // 周末更长
-            return status.isHoliday ? (cfg?.weekendTtlSeconds ?? 3600) : (cfg?.offHoursTtlSeconds ?? 300);
-          }
-        } catch {}
-        // 回退：使用近实时TTL
-        return cfg?.nearRealTimeTtlSeconds ?? 60;
-      }
+      case CacheStrategy.MARKET_AWARE:
+        return this.resolveMarketAwareTtl(request, cfg, fallback);
       default:
         return fallback;
     }
+  }
+
+  private async resolveMarketAwareTtl<T>(
+    request: CacheOrchestratorRequest<T>,
+    ttlConfig: CacheUnifiedConfigInterface['ttl'] | undefined,
+    fallback: number,
+  ): Promise<number> {
+    const metadata = request.metadata || {};
+    const candidateMarkets = this.extractCandidateMarkets(metadata);
+
+    // 1) 优先使用调用方已经计算好的市场状态，避免重复查询
+    const cachedStatus = this.extractMarketStatusFromMetadata(metadata, candidateMarkets);
+    if (cachedStatus) {
+      return this.calculateTtlFromMarketStatus(cachedStatus, ttlConfig, fallback);
+    }
+
+    // 2) 无预计算状态时，按候选市场顺序查询
+    for (const market of candidateMarkets) {
+      try {
+        const status = await this.marketStatusService.getMarketStatus(market);
+        return this.calculateTtlFromMarketStatus(status, ttlConfig, fallback);
+      } catch (error) {
+        this.logger.debug('获取市场状态用于TTL失败，尝试下一个市场', {
+          market,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // 3) 仍无法确定市场时，回退到近实时TTL
+    return ttlConfig?.nearRealTimeTtlSeconds ?? Math.min(60, fallback);
+  }
+
+  private extractMarketStatusFromMetadata(
+    metadata: Record<string, any>,
+    candidateMarkets: Market[],
+  ): MarketStatusResult | null {
+    const provided = metadata?.marketStatus;
+    if (!provided) {
+      return null;
+    }
+
+    // A) 直接是 MarketStatusResult
+    if (provided?.status && provided?.market) {
+      return provided as MarketStatusResult;
+    }
+
+    // B) Record<Market, MarketStatusResult>
+    if (typeof provided === 'object') {
+      for (const market of candidateMarkets) {
+        const keyedStatus = provided[market];
+        if (keyedStatus?.status) {
+          return keyedStatus as MarketStatusResult;
+        }
+      }
+
+      const dominant = this.toMarketEnum(provided?.dominantMarket);
+      if (dominant && provided[dominant]?.status) {
+        return provided[dominant] as MarketStatusResult;
+      }
+    }
+
+    return null;
+  }
+
+  private extractCandidateMarkets(metadata: Record<string, any>): Market[] {
+    const resolved = new Set<Market>();
+
+    const addTokens = (value?: string) => {
+      this.normalizeMarketTokens(value).forEach((token) => {
+        const normalized = this.toMarketEnum(token);
+        if (normalized) {
+          resolved.add(normalized);
+        }
+      });
+    };
+
+    addTokens(metadata?.marketType);
+    addTokens(metadata?.market);
+
+    if (Array.isArray(metadata?.marketCandidates)) {
+      metadata.marketCandidates.forEach((candidate: string) => addTokens(candidate));
+    }
+
+    const marketContext = metadata?.marketContext;
+    if (marketContext) {
+      addTokens(marketContext.marketType);
+      addTokens(marketContext.primaryMarket);
+      if (Array.isArray(marketContext.candidates)) {
+        marketContext.candidates.forEach((candidate: string) => addTokens(candidate));
+      }
+    }
+
+    const dominant = metadata?.marketStatus?.dominantMarket;
+    addTokens(dominant);
+
+    if (
+      resolved.size === 0 &&
+      metadata?.marketStatus &&
+      typeof metadata.marketStatus === 'object'
+    ) {
+      Object.keys(metadata.marketStatus).forEach((key) => {
+        const normalized = this.toMarketEnum(key);
+        if (normalized) {
+          resolved.add(normalized);
+        }
+      });
+    }
+
+    // 若仍为空，则无法得出市场，返回空数组
+    return Array.from(resolved);
+  }
+
+  private normalizeMarketTokens(value?: string): string[] {
+    if (!value || typeof value !== 'string') {
+      return [];
+    }
+
+    return value
+      .split(/[\/,|]/)
+      .map((token) => token.trim().toUpperCase())
+      .filter((token) => token.length > 0 && token !== '*' && token !== 'UNKNOWN');
+  }
+
+  private toMarketEnum(value?: string): Market | null {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.trim().toUpperCase();
+    const markets = Object.values(Market) as string[];
+    return markets.includes(normalized) ? (normalized as Market) : null;
+  }
+
+  private calculateTtlFromMarketStatus(
+    status: MarketStatusResult,
+    ttlConfig: CacheUnifiedConfigInterface['ttl'] | undefined,
+    fallback: number,
+  ): number {
+    if (!status) {
+      return ttlConfig?.nearRealTimeTtlSeconds ?? fallback;
+    }
+
+    const isTradingPhase =
+      status.status === MarketStatus.TRADING || status.status === MarketStatus.PRE_MARKET;
+    if (isTradingPhase) {
+      return Math.max(1, ttlConfig?.nearRealTimeTtlSeconds ?? 60);
+    }
+
+    const isHoliday =
+      status.isHoliday || status.status === MarketStatus.HOLIDAY || status.status === MarketStatus.WEEKEND;
+    if (isHoliday) {
+      return ttlConfig?.weekendTtlSeconds ?? 3600;
+    }
+
+    const isQuietPhase =
+      status.status === MarketStatus.LUNCH_BREAK ||
+      status.status === MarketStatus.AFTER_HOURS ||
+      status.status === MarketStatus.MARKET_CLOSED;
+    if (isQuietPhase) {
+      return ttlConfig?.offHoursTtlSeconds ?? 300;
+    }
+
+    return ttlConfig?.nearRealTimeTtlSeconds ?? fallback;
   }
 
   private isRedisEnabled(): boolean {

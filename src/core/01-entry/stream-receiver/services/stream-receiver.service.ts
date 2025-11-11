@@ -43,6 +43,10 @@ import {
 } from "../config/stream-receiver.config";
 import { QuoteData } from '../interfaces/data-processing.interface';
 import { StreamConnectionContext } from '../interfaces/connection-management.interface';
+import {
+  resolveMarketTypeFromSymbols,
+  MarketTypeContext,
+} from "@core/shared/utils/market-type.util";
 
 
 
@@ -626,11 +630,17 @@ export class StreamReceiverService implements OnModuleDestroy {
     clientIp?: string, // P0修复: 新增客户端IP参数用于频率限制
   ): Promise<void> {
     const { symbols, wsCapabilityType, preferredProvider } = subscribeDto;
+    const marketContext = resolveMarketTypeFromSymbols(
+      this.marketInferenceService,
+      symbols,
+    );
     // ✅ Phase 3 - P2: 使用传入的clientId或生成唯一ID作为回退
     const resolvedClientId =
       clientId ||
       `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const providerName = preferredProvider || this.getDefaultProvider(symbols);
+    const providerName =
+      preferredProvider ||
+      this.getDefaultProvider(symbols, marketContext);
     const requestId = `request_${Date.now()}`;
 
     // P0修复: 连接频率限制检查
@@ -688,6 +698,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       provider: providerName,
       requestId,
       contextSource: clientId ? "websocket" : "generated",
+      marketType: marketContext.marketType,
     });
 
     try {
@@ -873,7 +884,13 @@ export class StreamReceiverService implements OnModuleDestroy {
       reason,
     } = reconnectRequest;
 
-    const providerName = preferredProvider || this.getDefaultProvider(symbols);
+    const marketContext = resolveMarketTypeFromSymbols(
+      this.marketInferenceService,
+      symbols,
+    );
+    const providerName =
+      preferredProvider ||
+      this.getDefaultProvider(symbols, marketContext);
     const requestId = `reconnect_${Date.now()}`;
 
     this.logger.log("客户端重连请求", {
@@ -1530,6 +1547,10 @@ export class StreamReceiverService implements OnModuleDestroy {
     try {
       // 提取符号信息
       const symbols = this.extractSymbolsFromData(rawData);
+      const marketContext = resolveMarketTypeFromSymbols(
+        this.marketInferenceService,
+        symbols,
+      );
 
       // 推送到批量处理管道 - 使用专职批处理服务
       this.batchProcessor.addQuoteData({
@@ -1538,6 +1559,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         wsCapabilityType: capability,
         timestamp: Date.now(),
         symbols,
+        marketContext,
       });
     } catch (error) {
       this.logger.error("数据处理失败", {
@@ -1705,11 +1727,14 @@ export class StreamReceiverService implements OnModuleDestroy {
   /**
    * 获取默认Provider：第一阶段简版市场优先级策略
    */
-  private getDefaultProvider(symbols: string[]): string {
+  private getDefaultProvider(
+    symbols: string[],
+    marketContext?: MarketTypeContext,
+  ): string {
     try {
-      // 🎯 第一阶段：基于市场的简单优先级策略
-      const marketDistribution = this.analyzeMarketDistribution(symbols);
-      const primaryMarket = marketDistribution.primary;
+      const primaryMarket =
+        marketContext?.primaryMarket ||
+        this.marketInferenceService.inferDominantMarket(symbols);
 
       const provider = this.getProviderByMarketPriority(primaryMarket);
 
@@ -1731,31 +1756,6 @@ export class StreamReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * 分析市场分布：找到占比最高的市场
-   */
-  private analyzeMarketDistribution(symbols: string[]): {
-    primary: string;
-    distribution: Record<string, number>;
-  } {
-    const marketCounts: Record<string, number> = {};
-
-    symbols.forEach((symbol) => {
-      const market = this.inferMarketLabel(symbol);
-      marketCounts[market] = (marketCounts[market] || 0) + 1;
-    });
-
-    // 找到占比最高的市场
-    const sortedMarkets = Object.entries(marketCounts).sort(
-      ([, a], [, b]) => b - a,
-    );
-
-    return {
-      primary: sortedMarkets[0]?.[0] || "UNKNOWN",
-      distribution: marketCounts,
-    };
-  }
-
-  /**
    * 基于市场优先级获取Provider
    */
   private getProviderByMarketPriority(market: string): string {
@@ -1772,6 +1772,17 @@ export class StreamReceiverService implements OnModuleDestroy {
     );
   }
 
+  private buildMarketDistributionMap(
+    symbols: string[],
+  ): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    symbols.forEach((symbol) => {
+      const market = this.inferMarketLabel(symbol);
+      distribution[market] = (distribution[market] || 0) + 1;
+    });
+    return distribution;
+  }
+
   /**
    * 构建增强的连接上下文服务
    */
@@ -1782,8 +1793,11 @@ export class StreamReceiverService implements OnModuleDestroy {
     capability: string,
     clientId: string,
   ): StreamConnectionContext {
-    const marketDistribution = this.analyzeMarketDistribution(symbols);
-    const primaryMarket = marketDistribution.primary;
+    const marketContext = resolveMarketTypeFromSymbols(
+      this.marketInferenceService,
+      symbols,
+    );
+    const marketDistribution = this.buildMarketDistributionMap(symbols);
 
     return {
       // 基础信息
@@ -1793,9 +1807,9 @@ export class StreamReceiverService implements OnModuleDestroy {
       clientId,
 
       // 市场和符号信息
-      market: primaryMarket,
+      market: marketContext.primaryMarket,
       symbolsCount: symbols.length,
-      marketDistribution: marketDistribution.distribution,
+      marketDistribution,
 
       // 连接配置
       connectionConfig: {

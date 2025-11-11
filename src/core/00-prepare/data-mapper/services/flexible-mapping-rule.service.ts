@@ -88,6 +88,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
         dto.provider,
         dto.apiType,
         dto.transDataRuleListType,
+        ruleDto.marketType,
         ruleDto,
       );
     }
@@ -115,6 +116,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
         rule.provider,
         rule.apiType as "rest" | "stream",
         rule.transDataRuleListType,
+        ruleDto.marketType,
         ruleDto,
       );
     }
@@ -207,12 +209,18 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
     provider: string,
     apiType: "rest" | "stream",
     transDataRuleListType: string,
+    marketType?: string,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
     const startTime = Date.now();
     this.logger.debug(`查找最匹配的映射规则`, {
       provider,
       apiType,
       transDataRuleListType,
+    });
+
+    const normalizedMarketType = this.normalizeMarketType(marketType);
+    this.logger.debug(`映射规则 marketType`, {
+      requestedMarketType: normalizedMarketType,
     });
 
     try {
@@ -222,6 +230,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
           provider,
           apiType,
           transDataRuleListType,
+          normalizedMarketType,
         );
       if (cachedRule) {
         return cachedRule;
@@ -232,6 +241,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
         provider,
         apiType,
         transDataRuleListType,
+        normalizedMarketType,
       );
 
       const ruleDto = rule
@@ -246,6 +256,7 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
               provider,
               apiType,
               transDataRuleListType,
+              normalizedMarketType,
               ruleDto,
             )
             .catch((error) => {
@@ -377,6 +388,13 @@ export class FlexibleMappingRuleService implements OnModuleDestroy {
   async getRuleSafeData(id: string): Promise<FlexibleMappingRuleResponseDto> {
     const ruleDocument = await this.crudModule.getRuleDocumentById(id);
     return FlexibleMappingRuleResponseDto.fromDocument(ruleDocument);
+  }
+
+  private normalizeMarketType(marketType?: string): string {
+    if (!marketType || !marketType.trim()) {
+      return "*";
+    }
+    return marketType.trim().toUpperCase();
   }
 
   /**

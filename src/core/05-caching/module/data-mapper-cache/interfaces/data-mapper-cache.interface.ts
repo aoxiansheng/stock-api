@@ -12,6 +12,7 @@ export interface IDataMapperCache {
     provider: string,
     apiType: "rest" | "stream",
     transDataRuleListType: string,
+    marketType: string | undefined,
     rule: FlexibleMappingRuleResponseDto,
   ): Promise<void>;
 
@@ -19,6 +20,7 @@ export interface IDataMapperCache {
     provider: string,
     apiType: "rest" | "stream",
     transDataRuleListType: string,
+    marketType: string | undefined,
   ): Promise<FlexibleMappingRuleResponseDto | null>;
 
   /**

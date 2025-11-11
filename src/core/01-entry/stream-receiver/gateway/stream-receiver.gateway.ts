@@ -103,8 +103,7 @@ export class StreamReceiverGateway
         const authDuration = Date.now() - authStartTime;
 
         if (!authResult.success) {
-          this.logger.warn({
-            message: "WebSocket 连接认证失败（中间件）",
+          this.logger.warn("WebSocket 连接认证失败（中间件）", {
             clientId: socket.id,
             reason: authResult.reason,
           });
@@ -139,8 +138,7 @@ export class StreamReceiverGateway
           'success'
         );
 
-        this.logger.log({
-          message: "WebSocket 连接认证成功（中间件）",
+        this.logger.log("WebSocket 连接认证成功（中间件）", {
           clientId: socket.id,
           apiKeyName: authResult.apiKey?.appKey || 'unknown',
           authDuration: `${authDuration}ms`
@@ -150,8 +148,7 @@ export class StreamReceiverGateway
       } catch (error) {
         const authDuration = Date.now() - authStartTime;
         
-        this.logger.error({
-          message: "WebSocket 认证中间件处理失败",
+        this.logger.error("WebSocket 认证中间件处理失败", {
           clientId: socket.id,
           error: error.message,
         });
@@ -191,8 +188,7 @@ export class StreamReceiverGateway
   async handleConnection(client: Socket) {
     const connectionStartTime = Date.now();
     
-    this.logger.log({
-      message: "WebSocket 客户端连接",
+    this.logger.log("WebSocket 客户端连接", {
       clientId: client.id,
       remoteAddress: client.handshake.address,
     });
@@ -219,8 +215,7 @@ export class StreamReceiverGateway
    * 客户端断开连接处理
    */
   async handleDisconnect(client: Socket) {
-    this.logger.log({
-      message: "WebSocket 客户端断开连接",
+    this.logger.log("WebSocket 客户端断开连接", {
       clientId: client.id,
     });
 
@@ -241,8 +236,7 @@ export class StreamReceiverGateway
         clientId: client.id,
       });
     } catch (error) {
-      this.logger.error({
-        message: "清理客户端订阅失败",
+      this.logger.error("清理客户端订阅失败", {
         clientId: client.id,
         error: error.message,
       });
@@ -273,8 +267,7 @@ export class StreamReceiverGateway
   ) {
     try {
       // 连接级别认证已完成，直接使用已验证的信息
-      this.logger.log({
-        message: "收到 WebSocket 订阅请求",
+      this.logger.log("收到 WebSocket 订阅请求", {
         clientId: client.id,
         symbols: data.symbols,
         wsCapabilityType: data.wsCapabilityType,
@@ -300,8 +293,7 @@ export class StreamReceiverGateway
     } catch (error) {
       // 处理 WsException
       if (error instanceof WsException) {
-        this.logger.warn({
-          message: "WebSocket 订阅验证失败",
+        this.logger.warn("WebSocket 订阅验证失败", {
           clientId: client.id,
           error: error.getError(),
         });
@@ -310,8 +302,7 @@ export class StreamReceiverGateway
         return;
       }
 
-      this.logger.error({
-        message: "WebSocket 订阅处理失败",
+      this.logger.error("WebSocket 订阅处理失败", {
         clientId: client.id,
         error: error.message,
       });
@@ -334,8 +325,7 @@ export class StreamReceiverGateway
     @MessageBody() data: StreamUnsubscribeDto,
   ) {
     try {
-      this.logger.log({
-        message: "收到 WebSocket 取消订阅请求",
+      this.logger.log("收到 WebSocket 取消订阅请求", {
         clientId: client.id,
         symbols: data.symbols,
         apiKeyName: client.data?.apiKey?.name || "未知",
@@ -347,8 +337,7 @@ export class StreamReceiverGateway
       // 发送取消订阅成功确认
       client.emit("unsubscribe-ack", StreamResponses.unsubscribeSuccess(data.symbols));
     } catch (error) {
-      this.logger.error({
-        message: "WebSocket 取消订阅处理失败",
+      this.logger.error("WebSocket 取消订阅处理失败", {
         clientId: client.id,
         error: error.message,
       });
@@ -378,8 +367,7 @@ export class StreamReceiverGateway
         : null;
       client.emit("subscription-status", StreamResponses.statusSuccess(statusData));
     } catch (error) {
-      this.logger.error({
-        message: "获取订阅状态失败",
+      this.logger.error("获取订阅状态失败", {
         clientId: client.id,
         error: error.message,
       });
@@ -409,8 +397,7 @@ export class StreamReceiverGateway
     @MessageBody() data: { symbols: string[]; lastReceiveTimestamp: number },
   ) {
     try {
-      this.logger.log({
-        message: "收到客户端补发请求",
+      this.logger.log("收到客户端补发请求", {
         clientId: client.id,
         symbols: data.symbols,
         lastReceiveTimestamp: data.lastReceiveTimestamp,
@@ -439,8 +426,7 @@ export class StreamReceiverGateway
         : "possibly large";
       client.emit("recovery-started", StreamResponses.recoveryStarted(data.symbols, estimatedDataPoints));
     } catch (error) {
-      this.logger.error({
-        message: "处理客户端补发请求失败",
+      this.logger.error("处理客户端补发请求失败", {
         clientId: client.id,
         error: error.message,
       });
@@ -469,8 +455,7 @@ export class StreamReceiverGateway
 
       client.emit("recovery-status", StreamResponses.statusSuccess(status));
     } catch (error) {
-      this.logger.error({
-        message: "获取补发状态失败",
+      this.logger.error("获取补发状态失败", {
         clientId: client.id,
         error: error.message,
       });

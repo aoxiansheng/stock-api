@@ -16,6 +16,7 @@ import { SMART_CACHE_CONSTANTS } from "../../../05-caching/module/smart-cache/co
 // import { MarketStatus } from "../../../../../../../src/common/constants/domain/market-domain.constants";
 // Market enum is now provided by cache-request.utils via the new four-layer architecture
 
+import { Market } from "../../../shared/constants/market.constants";
 
 import { RequestContext } from "../interfaces/request-context.interface";
 
@@ -53,6 +54,10 @@ import { StorageClassification } from "../../../shared/types/storage-classificat
 import { FIELD_MAPPING_CONFIG } from "../../../shared/types/field-naming.types";
 import { ValidationResultDto } from "../dto/validation.dto";
 import { DataFetchParams } from "../../../03-fetching/data-fetcher/interfaces/data-fetcher.interface"; // 🔥 导入DataFetcher类型
+import {
+  resolveMarketTypeFromSymbols,
+  MarketTypeContext,
+} from "@core/shared/utils/market-type.util";
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的数据接收常量
 
@@ -120,26 +125,32 @@ export class ReceiverService implements OnModuleDestroy {
       // 1. 验证请求参数
       await this.validateRequest(request, requestId);
 
+      const marketContext = this.getMarketContext(request.symbols);
+
       // 2. 确定数据提供商
       const provider = await this.determineOptimalProvider(
         request.symbols,
         request.receiverType,
         request.options?.preferredProvider,
-        request.options?.market,
+        request.options?.market ?? marketContext.primaryMarket,
         requestId,
+        marketContext,
       );
 
       // 3. 🔑 智能缓存编排器集成 - 强时效缓存策略
       const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
       if (useSmartCache) {
         // 获取市场状态用于缓存策略决策
-        const markets = [
-          ...new Set(
-            request.symbols.map((symbol) =>
-              this.marketInferenceService.inferMarket(symbol),
-            ),
-          ),
-        ];
+        const markets =
+          marketContext.markets.length > 0
+            ? marketContext.markets.map((market) => market as Market)
+            : [
+                ...new Set(
+                  request.symbols.map((symbol) =>
+                    this.marketInferenceService.inferMarket(symbol),
+                  ),
+                ),
+              ];
         const marketStatus =
           await this.marketStatusService.getBatchMarketStatus(markets);
 
@@ -151,6 +162,8 @@ export class ReceiverService implements OnModuleDestroy {
           queryId: requestId,
           marketStatus,
           strategy: CacheStrategy.STRONG_TIMELINESS, // Receiver 强时效策略
+           marketType: marketContext.marketType,
+           market: marketContext.primaryMarket,
           executeOriginalDataFlow: async () => {
             // 内联原始数据流逻辑，移除包装器方法
             const mappedSymbols = await this.symbolTransformerService.transformSymbolsForProvider(
@@ -163,6 +176,7 @@ export class ReceiverService implements OnModuleDestroy {
               provider,
               mappedSymbols,
               requestId,
+              marketContext,
             );
             return response.data;
           },
@@ -193,7 +207,7 @@ export class ReceiverService implements OnModuleDestroy {
                 ? processingTimeMs / request.symbols.length
                 : 0,
             componentType: "receiver",
-            market: this.extractMarketFromSymbols(request.symbols),
+            market: marketContext.marketType,
           },
         );
 
@@ -234,6 +248,7 @@ export class ReceiverService implements OnModuleDestroy {
         provider,
         mappedSymbols,
         requestId,
+        marketContext,
       );
 
       const processingTimeMs = Date.now() - startTime;
@@ -255,7 +270,7 @@ export class ReceiverService implements OnModuleDestroy {
               ? processingTimeMs / request.symbols.length
               : 0,
           componentType: "receiver",
-          market: this.extractMarketFromSymbols(request.symbols),
+          market: marketContext.marketType,
         },
       );
 
@@ -322,6 +337,7 @@ export class ReceiverService implements OnModuleDestroy {
   private initializeRequestContext(request: DataRequestDto): RequestContext {
     const requestId = uuidv4();
     const startTime = Date.now();
+    const marketContext = this.getMarketContext(request.symbols);
 
     return {
       requestId,
@@ -330,8 +346,9 @@ export class ReceiverService implements OnModuleDestroy {
       metadata: {
         symbolsCount: request.symbols?.length || 0,
         receiverType: request.receiverType,
-        market: this.extractMarketFromSymbols(request.symbols),
+        market: marketContext.primaryMarket || marketContext.marketType,
       },
+      marketContext,
     };
   }
 
@@ -354,8 +371,9 @@ export class ReceiverService implements OnModuleDestroy {
       request.symbols,
       request.receiverType,
       request.options?.preferredProvider,
-      request.options?.market,
+      request.options?.market ?? context.marketContext?.primaryMarket,
       context.requestId,
+      context.marketContext,
     );
 
     // 更新上下文
@@ -489,6 +507,7 @@ export class ReceiverService implements OnModuleDestroy {
     preferredProvider?: string,
     market?: string,
     requestId?: string,
+    marketContext?: MarketTypeContext,
   ): Promise<string> {
     try {
       // 优先使用指定提供商
@@ -504,7 +523,9 @@ export class ReceiverService implements OnModuleDestroy {
 
       // 自动选择最佳提供商
       const inferredMarket =
-        market || this.marketInferenceService.inferDominantMarket(symbols);
+        market ||
+        marketContext?.primaryMarket ||
+        this.marketInferenceService.inferDominantMarket(symbols);
       const capabilityName = receiverType;
       const bestProvider = this.capabilityRegistryService.getBestProvider(
         capabilityName,
@@ -666,9 +687,12 @@ export class ReceiverService implements OnModuleDestroy {
     provider: string,
     mappedSymbols: SymbolTransformForProviderResult,
     requestId: string,
+    marketContext?: MarketTypeContext,
   ): Promise<DataResponseDto> {
     const startTime = Date.now();
     const capabilityName = request.receiverType;
+    const effectiveMarketContext =
+      marketContext ?? this.getMarketContext(request.symbols);
 
     try {
       // 🔥 关键重构：委托DataFetcher处理SDK调用
@@ -705,6 +729,7 @@ export class ReceiverService implements OnModuleDestroy {
           request.receiverType,
         ),
         rawData,
+        marketType: effectiveMarketContext.marketType,
         options: {
           includeMetadata: true,
           includeDebugInfo: false,
@@ -759,7 +784,9 @@ export class ReceiverService implements OnModuleDestroy {
           request.receiverType,
         ),
         provider,
-        market: this.extractMarketFromSymbols(request.symbols),
+        market:
+          effectiveMarketContext.primaryMarket ||
+          effectiveMarketContext.marketType,
         options: {
           compress: true,
         },
@@ -974,31 +1001,6 @@ export class ReceiverService implements OnModuleDestroy {
   }
 
   /**
-   * 从符号列表中提取主要市场信息
-   */
-  private extractMarketFromSymbols(symbols: string[]): string {
-    if (!symbols || symbols.length === 0) {
-      return "UNKNOWN";
-    }
-
-    // 取第一个符号的市场后缀作为主要市场
-    const firstSymbol = symbols[0];
-    if (firstSymbol.includes(".HK")) return "HK";
-    if (firstSymbol.includes(".US")) return "US";
-    if (firstSymbol.includes(".SZ")) return "SZ";
-    if (firstSymbol.includes(".SH")) return "SH";
-
-    // 如果没有后缀，尝试根据格式推断
-    if (/^\d{5,6}$/.test(firstSymbol)) {
-      return firstSymbol.startsWith("00") || firstSymbol.startsWith("30")
-        ? "SZ"
-        : "SH";
-    }
-
-    return "MIXED"; // 混合市场
-  }
-
-  /**
    * 根据符号和市场状态计算缓存TTL
    */
   private calculateStorageCacheTTL(symbols: string[]): number {
@@ -1020,6 +1022,13 @@ export class ReceiverService implements OnModuleDestroy {
     // 这里可以根据symbols判断市场，然后设置不同的TTL
     // 实际实现可以调用 marketStatusService 获取市场状态
     return defaultTTL;
+  }
+
+  /**
+   * 统一的市场上下文解析
+   */
+  private getMarketContext(symbols: string[]): MarketTypeContext {
+    return resolveMarketTypeFromSymbols(this.marketInferenceService, symbols);
   }
 
   /**

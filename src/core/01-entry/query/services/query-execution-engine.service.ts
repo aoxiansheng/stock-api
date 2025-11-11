@@ -22,6 +22,7 @@ import {
   buildCacheOrchestratorRequest,
 } from "../../../05-caching/module/smart-cache/utils/smart-cache-request.utils";
 import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
+import { resolveMarketTypeFromSymbols } from "@core/shared/utils/market-type.util";
 import { ReceiverService } from "../../../01-entry/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../01-entry/receiver/dto/data-response.dto";
@@ -902,6 +903,8 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
           queryId: `${queryId}_${symbol}`,
           marketStatus,
           strategy: CacheStrategy.WEAK_TIMELINESS, // Query层弱时效策略（300秒）
+          marketType: market,
+          market: market,
           executeOriginalDataFlow: () =>
             this.executeQueryToReceiverFlow(symbol, request, market),
         }),
@@ -1260,11 +1263,11 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
    * 从多个符号推断主要市场
    */
   private inferMarketFromSymbols(symbols: string[]): string {
-    if (!symbols || symbols.length === 0) return "unknown";
-
-    // 使用 MarketInferenceService 的统一方法
-    const dominantMarket = this.marketInferenceService.inferDominantMarket(symbols);
-    return dominantMarket;
+    const marketContext = resolveMarketTypeFromSymbols(
+      this.marketInferenceService,
+      symbols,
+    );
+    return marketContext.primaryMarket || "UNKNOWN";
   }
 
   /**

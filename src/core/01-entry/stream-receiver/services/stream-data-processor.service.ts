@@ -185,11 +185,15 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
 
       // Step 1: 数据转换 - 仅通过 DataTransformerService
       const transformStartTime = Date.now();
+      const marketType =
+        quotes.find((quote) => quote.marketContext?.marketType)?.marketContext
+          ?.marketType || "UNKNOWN";
       const dataTransformRequestDto: DataTransformRequestDto = {
         provider: provider,
         apiType: "stream" as const,
         transDataRuleListType: this.mapCapabilityToTransformRuleType(capability),
         rawData: quotes.map((q) => q.rawData),
+        marketType,
       };
 
       const transformedData = await this.executeWithTimeout(

@@ -432,9 +432,11 @@ export class DataMapperCacheStandardizedService
     provider: string,
     apiType: "rest" | "stream",
     transDataRuleListType: string,
+    marketType: string | undefined,
     rule: FlexibleMappingRuleResponseDto,
   ): Promise<void> {
-    const cacheKey = `best_rule:${provider}:${apiType}:${transDataRuleListType}`;
+    const keyMarketType = this.normalizeMarketType(marketType);
+    const cacheKey = `best_rule:${provider}:${apiType}:${transDataRuleListType}:${keyMarketType}`;
     await this.set(cacheKey, rule, { ttl: 1800 });
   }
 
@@ -442,8 +444,10 @@ export class DataMapperCacheStandardizedService
     provider: string,
     apiType: "rest" | "stream",
     transDataRuleListType: string,
+    marketType: string | undefined,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
-    const cacheKey = `best_rule:${provider}:${apiType}:${transDataRuleListType}`;
+    const keyMarketType = this.normalizeMarketType(marketType);
+    const cacheKey = `best_rule:${provider}:${apiType}:${transDataRuleListType}:${keyMarketType}`;
     const result = await this.get<FlexibleMappingRuleResponseDto>(cacheKey);
     return result.data || null;
   }
@@ -486,8 +490,10 @@ export class DataMapperCacheStandardizedService
   }
 
   async invalidateProviderCache(provider: string): Promise<void> {
-    const pattern = `*:provider:${provider}*`;
-    await this.clear(pattern);
+    const bestRulePattern = `best_rule:${provider}:*`;
+    await this.clear(bestRulePattern);
+    const providerRulesPattern = `rules:provider:${provider}*`;
+    await this.clear(providerRulesPattern);
   }
 
   async clearAllRuleCache(): Promise<void> {
@@ -605,5 +611,12 @@ export class DataMapperCacheStandardizedService
       totalCount: keys.length,
       error: error ? (error instanceof Error ? error.message : String(error)) : undefined,
     };
+  }
+
+  private normalizeMarketType(marketType?: string): string {
+    if (!marketType || !marketType.trim()) {
+      return "*";
+    }
+    return marketType.trim().toUpperCase();
   }
 }

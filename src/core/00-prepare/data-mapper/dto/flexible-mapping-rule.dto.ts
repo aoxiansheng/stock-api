@@ -128,6 +128,15 @@ export class CreateFlexibleMappingRuleDto {
   provider: string;
 
   @ApiProperty({
+    description: "适用市场类型（如 HK、US/CN、*）",
+    example: "HK",
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  marketType?: string;
+
+  @ApiProperty({
     description: "API 类型",
     enum: API_TYPE_VALUES,
     example: "rest",
@@ -209,6 +218,9 @@ export class FlexibleMappingRuleResponseDto {
   @ApiProperty({ description: "规则描述" })
   description?: string;
 
+  @ApiProperty({ description: "市场类型" })
+  marketType: string;
+
   @ApiProperty({ description: "数据源模板ID" })
   sourceTemplateId: string;
 
@@ -259,6 +271,7 @@ export class FlexibleMappingRuleResponseDto {
       apiType: doc.apiType,
       transDataRuleListType: doc.transDataRuleListType,
       description: doc.description,
+      marketType: doc.marketType || "*",
       sourceTemplateId: doc.sourceTemplateId,
       fieldMappings: doc.fieldMappings || [],
       isActive: doc.isActive ?? true,

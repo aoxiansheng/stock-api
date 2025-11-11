@@ -523,11 +523,15 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
       // Step 1: 数据转换
       const transformStartTime = Date.now();
+      const marketType =
+        quotes.find((quote) => quote.marketContext?.marketType)?.marketContext
+          ?.marketType || "UNKNOWN";
       const dataTransformRequestDto: DataTransformRequestDto = {
         provider: provider,
         apiType: "stream" as const,
         transDataRuleListType: this.mapCapabilityToTransDataRuleListType(capability),
         rawData: quotes.map((q) => q.rawData),
+        marketType,
       };
 
       const transformedData = await this.dataTransformerService.transform(

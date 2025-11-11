@@ -88,6 +88,7 @@ export class DataTransformerService {
         request.mappingOutRuleId,
         apiTypeCtx,
         sample,
+        request.marketType,
       );
 
       if (!transformMappingRule) {
@@ -300,7 +301,7 @@ export class DataTransformerService {
     for (const request of requests) {
       const key =
         request.mappingOutRuleId ||
-        `${request.provider}::${request.transDataRuleListType}`;
+        `${request.provider}::${request.transDataRuleListType}::${(request.marketType || "*").toUpperCase()}`;
       if (!requestsByRule.has(key)) {
         requestsByRule.set(key, []);
       }
@@ -316,6 +317,8 @@ export class DataTransformerService {
             firstReq.transDataRuleListType,
             firstReq.mappingOutRuleId,
             firstReq.apiType,
+            firstReq.rawData,
+            firstReq.marketType,
           );
 
           if (!transformMappingRule) {
@@ -526,6 +529,7 @@ export class DataTransformerService {
     ruleId?: string,
     apiType: "rest" | "stream" = "rest",
     rawDataSample?: any,
+    marketType?: string,
   ): Promise<FlexibleMappingRuleResponseDto | null> {
     if (ruleId) {
       // Use specific rule if provided - 可能抛出 NotFoundException，让它传播
@@ -537,6 +541,7 @@ export class DataTransformerService {
           provider,
           apiType,
           transDataRuleListType,
+          marketType,
         );
 
       if (bestRule && rawDataSample) {

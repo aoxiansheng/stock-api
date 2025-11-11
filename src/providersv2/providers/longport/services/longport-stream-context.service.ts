@@ -28,6 +28,8 @@ const { Config, QuoteContext, SubType } = require(
 @Injectable({ scope: Scope.DEFAULT }) // 明确声明为默认作用域（单例）
 export class LongportStreamContextService implements OnModuleDestroy {
   private readonly logger = createLogger(LongportStreamContextService.name);
+  private readonly enableRawPayloadLogging =
+    (process.env.LONGPORT_LOG_RAW_PAYLOAD ?? "false").toLowerCase() === "true";
 
   // === 单例模式实现 ===
   private static instance: LongportStreamContextService | null = null;
@@ -173,11 +175,15 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       // 设置报价数据回调
       this.quoteContext.setOnQuote((symbol, event) => {
-        this.logger.debug({
-          message: "LongPort SDK WebSocket 原始报价数据",
+        const rawPayload = this.serializeQuoteEvent(event);
+        this.logger.debug("LongPort SDK WebSocket 原始报价数据", {
           symbol,
-          event: typeof event === "object" ? event : event?.toString(),
           eventType: typeof event,
+          payloadSnapshot: this.enableRawPayloadLogging ? rawPayload : undefined,
+          payloadKeys:
+            rawPayload && typeof rawPayload === "object"
+              ? Object.keys(rawPayload as Record<string, any>)
+              : undefined,
           timestamp: Date.now(),
         });
         this.handleQuoteUpdate(event);
@@ -196,8 +202,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       this.reconnectAttempts = 0;
 
-      this.logger.log({
-        message: "LongPort WebSocket 初始化成功",
+      this.logger.log("LongPort WebSocket 初始化成功", {
         connectionId: this.connectionState.connectionId,
         status: this.connectionState.status,
         quotContextCreated: !!this.quoteContext,
@@ -210,8 +215,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       this.connectionState.healthStatus =
         CONNECTION_CONFIG.HEALTH_STATUS.FAILED;
 
-      this.logger.error({
-        message: "LongPort WebSocket 初始化失败",
+      this.logger.error("LongPort WebSocket 初始化失败", {
         error: error.message,
         connectionState: this.connectionState,
       });
@@ -236,8 +240,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
     this.connectionState.connectionId = null;
 
-    this.logger.log({
-      message: "连接断开处理完成",
+    this.logger.log("连接断开处理完成", {
       subscribedSymbolsCleared: true,
       connectionState: this.connectionState,
     });
@@ -256,8 +259,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
     this.connectionState.status = ConnectionStatus.CONNECTED;
     this.connectionState.healthStatus = CONNECTION_CONFIG.HEALTH_STATUS.HEALTHY;
 
-    this.logger.log({
-      message: "连接恢复处理完成",
+    this.logger.log("连接恢复处理完成", {
       newConnectionId: this.connectionState.connectionId,
       waitingForNewSubscriptions: true,
     });
@@ -300,8 +302,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       );
 
       if (newSymbols.length === 0) {
-        this.logger.log({
-          message: "当前连接下所有符号已订阅，跳过",
+        this.logger.log("当前连接下所有符号已订阅，跳过", {
           connectionId: this.connectionState.connectionId,
           requestedSymbols: symbols,
           alreadySubscribed: symbols.length,
@@ -310,8 +311,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       }
 
       // 执行订阅，严格按照文档参数格式
-      this.logger.debug({
-        message: "LongPort SDK 开始执行订阅",
+      this.logger.debug("LongPort SDK 开始执行订阅", {
         connectionId: this.connectionState.connectionId,
         symbols: newSymbols,
         subTypes: subTypes.map((type) => type.toString()),
@@ -321,8 +321,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       await this.quoteContext.subscribe(newSymbols, subTypes, isFirstPush);
 
-      this.logger.debug({
-        message: "LongPort SDK 订阅调用完成",
+      this.logger.debug("LongPort SDK 订阅调用完成", {
         connectionId: this.connectionState.connectionId,
         symbols: newSymbols,
         subTypesUsed: subTypes.map((type) => type.toString()),
@@ -335,8 +334,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       // 更新连接状态中的订阅计数
       this.connectionState.subscriptionCount = this.subscribedSymbols.size;
 
-      this.logger.log({
-        message: "LongPort WebSocket 订阅成功",
+      this.logger.log("LongPort WebSocket 订阅成功", {
         connectionId: this.connectionState.connectionId,
         symbols: newSymbols,
         subTypes: subTypes.map((type) => type.toString()),
@@ -349,8 +347,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       this.connectionState.healthStatus =
         CONNECTION_CONFIG.HEALTH_STATUS.DEGRADED;
 
-      this.logger.error({
-        message: "LongPort WebSocket 订阅失败",
+      this.logger.error("LongPort WebSocket 订阅失败", {
         connectionId: this.connectionState.connectionId,
         symbols,
         error: error.message,
@@ -411,15 +408,13 @@ export class LongportStreamContextService implements OnModuleDestroy {
         this.subscribedSymbols.delete(symbol),
       );
 
-      this.logger.log({
-        message: "LongPort WebSocket 取消订阅成功",
+      this.logger.log("LongPort WebSocket 取消订阅成功", {
         symbols: subscribedSymbols,
         subTypes: subTypes.map((type) => type.toString()),
         totalSubscribed: this.subscribedSymbols.size,
       });
     } catch (error) {
-      this.logger.error({
-        message: "LongPort WebSocket 取消订阅失败",
+      this.logger.error("LongPort WebSocket 取消订阅失败", {
         symbols,
         error: error.message,
         errorCode: this.parseErrorCode(error),
@@ -435,8 +430,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
     const callbackIndex = this.messageCallbacks.length;
     this.messageCallbacks.push(callback);
 
-    this.logger.debug({
-      message: "LongPort 报价回调注册",
+    this.logger.debug("LongPort 报价回调注册", {
       callbackIndex,
       totalCallbacks: this.messageCallbacks.length,
       callbackType: typeof callback,
@@ -468,8 +462,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
    */
   private handleQuoteUpdate(event: any): void {
     try {
-      this.logger.debug({
-        message: "LongPort SDK 原始事件处理开始",
+      this.logger.debug("LongPort SDK 原始事件处理开始", {
         eventType: typeof event,
         eventConstructor: event?.constructor?.name,
         eventString: event?.toString ? event.toString() : "N/A",
@@ -480,8 +473,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
       // 解析 LongPort 报价事件
       const eventData = this.parseLongportQuoteEvent(event);
 
-      this.logger.debug({
-        message: "LongPort 报价事件解析完成",
+      this.logger.debug("LongPort 报价事件解析完成", {
         parsedData: eventData,
         hasSymbol: !!eventData.symbol,
         hasPrice: !!eventData.last_done,
@@ -491,16 +483,14 @@ export class LongportStreamContextService implements OnModuleDestroy {
       // 通知所有回调
       this.messageCallbacks.forEach((callback, index) => {
         try {
-          this.logger.debug({
-            message: `调用报价回调 #${index}`,
+          this.logger.debug(`调用报价回调 #${index}`, {
             callbackIndex: index,
             totalCallbacks: this.messageCallbacks.length,
             symbol: eventData.symbol,
           });
           callback(eventData);
         } catch (error) {
-          this.logger.error({
-            message: "报价回调处理失败",
+          this.logger.error("报价回调处理失败", {
             callbackIndex: index,
             error: error.message,
             eventData,
@@ -508,14 +498,12 @@ export class LongportStreamContextService implements OnModuleDestroy {
         }
       });
 
-      this.logger.debug({
-        message: "LongPort 报价更新处理完成",
+      this.logger.debug("LongPort 报价更新处理完成", {
         symbol: eventData.symbol,
         callbacksNotified: this.messageCallbacks.length,
       });
     } catch (error) {
-      this.logger.error({
-        message: "处理报价更新失败",
+      this.logger.error("处理报价更新失败", {
         error: error.message,
         errorStack: error.stack,
         originalEvent: event,
@@ -530,8 +518,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
    */
   private parseLongportQuoteEvent(event: any): any {
     try {
-      this.logger.debug({
-        message: "LongPort 报价事件解析开始",
+      this.logger.debug("LongPort 报价事件解析开始", {
         eventType: typeof event,
         isNull: event === null,
         isUndefined: event === undefined,
@@ -548,8 +535,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
         // 尝试从toString()解析数据
         try {
           const eventString = event.toString();
-          this.logger.debug({
-            message: "LongPort 事件字符串解析",
+          this.logger.debug("LongPort 事件字符串解析", {
             eventString,
             stringLength: eventString.length,
           });
@@ -597,8 +583,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
               timestamp: parseField("timestamp"),
             };
 
-            this.logger.debug({
-              message: "LongPort 报价数据解析成功",
+            this.logger.debug("LongPort 报价数据解析成功", {
               symbol,
               quoteData,
               fieldsExtracted: Object.keys(quoteData).filter(
@@ -683,8 +668,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
         });
       }
 
-      this.logger.debug({
-        message: "LongPort 报价事件解析完成",
+      this.logger.debug("LongPort 报价事件解析完成", {
         symbol: standardizedEvent.symbol,
         hasPrice: !!standardizedEvent.last_done,
         hasVolume: !!standardizedEvent.volume,
@@ -693,8 +677,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       return standardizedEvent;
     } catch (error) {
-      this.logger.error({
-        message: "解析 LongPort 报价事件失败",
+      this.logger.error("解析 LongPort 报价事件失败", {
         error: error.message,
         errorStack: error.stack,
         event: event?.toString?.() || event,
@@ -715,6 +698,59 @@ export class LongportStreamContextService implements OnModuleDestroy {
   }
 
   /**
+   * 将 LongPort SDK 事件序列化为可记录的普通对象
+   */
+  private serializeQuoteEvent(event: any): any {
+    if (event === null || event === undefined) {
+      return event;
+    }
+
+    const tryMethods = ["toObject", "toJSON"];
+    for (const method of tryMethods) {
+      if (typeof event?.[method] === "function") {
+        try {
+          return event[method]();
+        } catch (error) {
+          this.logger.debug(`serializeQuoteEvent ${method} 调用失败，尝试下一个方法`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    if (typeof event === "object") {
+      try {
+        return JSON.parse(
+          JSON.stringify(event, (_key, value) =>
+            typeof value === "bigint" ? Number(value) : value,
+          ),
+        );
+      } catch {
+        const plainObject: Record<string, any> = {};
+        Object.entries(event).forEach(([key, value]) => {
+          plainObject[key] = this.serializePrimitive(value);
+        });
+        return plainObject;
+      }
+    }
+
+    return event;
+  }
+
+  private serializePrimitive(value: any): any {
+    if (value === null || value === undefined) {
+      return value;
+    }
+    if (typeof value === "object") {
+      return this.serializeQuoteEvent(value);
+    }
+    if (typeof value === "bigint") {
+      return Number(value);
+    }
+    return value;
+  }
+
+  /**
    * 手动重连方法
    * 由于LongPort SDK不提供连接状态监听，需要外部触发重连
    */
@@ -727,8 +763,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
-    this.logger.log({
-      message: "LongPort WebSocket 准备重连",
+    this.logger.log("LongPort WebSocket 准备重连", {
       attempt: this.reconnectAttempts,
       delay,
     });
@@ -754,8 +789,7 @@ export class LongportStreamContextService implements OnModuleDestroy {
 
       this.logger.log("LongPort WebSocket 重连成功");
     } catch (error) {
-      this.logger.error({
-        message: "LongPort WebSocket 重连失败",
+      this.logger.error("LongPort WebSocket 重连失败", {
         attempt: this.reconnectAttempts,
         error: error.message,
       });
@@ -801,15 +835,13 @@ export class LongportStreamContextService implements OnModuleDestroy {
       // 5. 重置重连计数
       this.reconnectAttempts = 0;
 
-      this.logger.log({
-        message: "LongPort WebSocket 资源清理完成",
+      this.logger.log("LongPort WebSocket 资源清理完成", {
         connectionState: this.connectionState,
         callbacksCleared: true,
         subscriptionsCleared: true,
       });
     } catch (error) {
-      this.logger.error({
-        message: "LongPort WebSocket 资源清理失败",
+      this.logger.error("LongPort WebSocket 资源清理失败", {
         error: error.message,
         errorStack: error.stack,
       });

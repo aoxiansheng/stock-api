@@ -98,6 +98,14 @@ export class DataTransformRequestDto {
   @IsString()
   mappingOutRuleId?: string;
 
+  @ApiPropertyOptional({
+    description: "市场类型（例如：HK、US、CN、US/CN、*）",
+    example: "HK",
+  })
+  @IsOptional()
+  @IsString()
+  marketType?: string;
+
   @ApiPropertyOptional({ description: "转换选项" })
   @IsOptional()
   @ValidateNested()

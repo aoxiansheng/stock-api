@@ -73,6 +73,8 @@ export class MappingRuleCrudModule {
         }
       }
 
+      const normalizedMarketType = this.normalizeMarketType(dto.marketType);
+
       // 2. 检查是否已存在相同的规则
       const existing = await this.ruleModel.findOne({
         provider: dto.provider,
@@ -116,6 +118,7 @@ export class MappingRuleCrudModule {
       // 5. 创建规则
       const rule = new this.ruleModel({
         ...dto,
+        marketType: normalizedMarketType,
         overallConfidence,
         usageCount: 0,
         successfulTransformations: 0,
@@ -195,6 +198,7 @@ export class MappingRuleCrudModule {
       fieldMappings,
       isDefault: dto.isDefault,
       version: "1.0.0",
+      marketType: "*",
     };
 
     return await this.createRule(createDto);
@@ -266,51 +270,124 @@ export class MappingRuleCrudModule {
     provider: string,
     apiType: "rest" | "stream",
     transDataRuleListType: string,
+    marketType?: string,
   ): Promise<FlexibleMappingRuleDocument | null> {
     this.logger.debug(`查找最匹配的映射规则`, {
       provider,
       apiType,
       transDataRuleListType,
+      marketType,
     });
 
     try {
-      // 首先查找默认规则
-      let rule = await this.ruleModel
-        .findOne({
+      const normalizedMarketType = this.normalizeMarketType(marketType);
+      const rules = await this.ruleModel
+        .find({
           provider,
           apiType,
           transDataRuleListType,
           isActive: true,
-          isDefault: true,
         })
-        .sort({ overallConfidence: -1 });
+        .sort({
+          overallConfidence: -1,
+          successRate: -1,
+          usageCount: -1,
+          createdAt: -1,
+        });
 
-      // 如果没有默认规则，查找最佳匹配规则
-      if (!rule) {
-        rule = await this.ruleModel
-          .findOne({
-            provider,
-            apiType,
-            transDataRuleListType,
-            isActive: true,
-          })
-          .sort({
-            overallConfidence: -1,
-            successRate: -1,
-            usageCount: -1,
-          });
+      if (rules.length === 0) {
+        return null;
       }
 
-      return rule;
+      const defaultRules = rules.filter((rule) => rule.isDefault);
+      const defaultMatch = this.selectRuleByMarketType(
+        defaultRules,
+        normalizedMarketType,
+      );
+      if (defaultMatch) {
+        return defaultMatch;
+      }
+
+      return this.selectRuleByMarketType(rules, normalizedMarketType);
     } catch (error) {
       this.logger.error("查找最匹配映射规则失败", {
         provider,
         apiType,
         transDataRuleListType,
+        marketType,
         error: error.message,
       });
       throw error;
     }
+  }
+
+  private selectRuleByMarketType(
+    rules: FlexibleMappingRuleDocument[],
+    requestedMarketType: string,
+  ): FlexibleMappingRuleDocument | null {
+    let bestRule: FlexibleMappingRuleDocument | null = null;
+    let bestPriority = Number.POSITIVE_INFINITY;
+
+    for (const rule of rules) {
+      const priority = this.getMarketMatchPriority(
+        rule.marketType,
+        requestedMarketType,
+      );
+      if (priority < bestPriority) {
+        bestPriority = priority;
+        bestRule = rule;
+        if (priority === 0) {
+          break;
+        }
+      }
+    }
+
+    return Number.isFinite(bestPriority) ? bestRule : null;
+  }
+
+  private getMarketMatchPriority(
+    ruleMarketType?: string,
+    requestedMarketType?: string,
+  ): number {
+    const normalizedRule = this.normalizeMarketType(ruleMarketType);
+    const normalizedRequest = this.normalizeMarketType(requestedMarketType);
+
+    if (normalizedRule === normalizedRequest) {
+      return 0;
+    }
+
+    if (normalizedRule === "*") {
+      return 3;
+    }
+    if (normalizedRequest === "*") {
+      return 1;
+    }
+
+    const ruleSet = new Set(normalizedRule.split("/"));
+    const requestSet = new Set(normalizedRequest.split("/"));
+
+    const requestSubsetOfRule = Array.from(requestSet).every((value) =>
+      ruleSet.has(value),
+    );
+    if (requestSubsetOfRule) {
+      return 1;
+    }
+
+    const intersection = Array.from(ruleSet).some((value) =>
+      requestSet.has(value),
+    );
+    if (intersection) {
+      return 2;
+    }
+
+    return Number.POSITIVE_INFINITY;
+  }
+
+  private normalizeMarketType(marketType?: string): string {
+    if (!marketType || !marketType.trim()) {
+      return "*";
+    }
+    return marketType.trim().toUpperCase();
   }
 
   /**
@@ -337,6 +414,10 @@ export class MappingRuleCrudModule {
         isActive: m.isActive !== false,
         isRequired: m.isRequired ?? false,
       })) as any;
+    }
+
+    if (typeof updateData.marketType === 'string') {
+      updateData.marketType = this.normalizeMarketType(updateData.marketType);
     }
 
     // 2. 更新规则

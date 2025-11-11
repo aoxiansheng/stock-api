@@ -1,3 +1,5 @@
+import { MarketTypeContext } from "@core/shared/utils/market-type.util";
+
 /**
  * 请求上下文接口
  * 用于在handleRequest方法的各个子方法间传递共享数据
@@ -25,4 +27,7 @@ export interface RequestContext {
     receiverType: string;
     market?: string;
   };
+
+  /** 市场识别上下文 */
+  marketContext?: MarketTypeContext;
 }
