@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, Optional } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 // 复用既有 Provider 与能力定义（保持最小迁移成本）
 import { LongportProvider } from "./providers/longport/longport.provider";
@@ -24,6 +25,10 @@ export class ProviderRegistryService implements OnModuleInit {
 
   private readonly providers = new Map<string, IDataProvider>();
   private readonly capabilities = new Map<string, Map<string, CapabilityMeta>>();
+  // 向后兼容历史命名，统一解析到标准 provider 名称
+  private readonly providerAliases = new Map<string, string>([
+    ["longportsg", REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
+  ]);
   private initialized = false;
 
   constructor(
@@ -80,6 +85,10 @@ export class ProviderRegistryService implements OnModuleInit {
     });
   }
 
+  private resolveProviderName(providerName: string): string {
+    return this.providerAliases.get(providerName) || providerName;
+  }
+
   // ============= 对外 API（与现有调用最小集保持一致） =============
 
   getBestProvider(capabilityName: string, market?: string): string | null {
@@ -100,16 +109,17 @@ export class ProviderRegistryService implements OnModuleInit {
   }
 
   getCapability(providerName: string, capabilityName: string): ICapability | null {
-    const meta = this.capabilities.get(providerName)?.get(capabilityName);
+    const resolvedName = this.resolveProviderName(providerName);
+    const meta = this.capabilities.get(resolvedName)?.get(capabilityName);
     return meta?.isEnabled ? meta.capability : null;
   }
 
   getProvider(providerName: string): IDataProvider | undefined {
-    return this.providers.get(providerName);
+    const resolvedName = this.resolveProviderName(providerName);
+    return this.providers.get(resolvedName);
   }
 
   getAllCapabilities(): Map<string, Map<string, CapabilityMeta>> {
     return this.capabilities;
   }
 }
-

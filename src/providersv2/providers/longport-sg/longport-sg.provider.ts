@@ -12,12 +12,13 @@ import { getStockQuote } from "./capabilities/get-stock-quote";
 // 流式能力由 StreamDataFetcher + LongportSgStreamContextService 直接接入，无需在能力表内注册
 import { LongportSgContextService } from "./services/longport-context.service";
 import { LongportSgStreamContextService } from "./services/longport-stream-context.service";
+import { REFERENCE_DATA } from "@common/constants/domain";
 
 @Injectable()
 export class LongportSgProvider implements IDataProvider {
   private readonly logger = createLogger(LongportSgProvider.name);
 
-  readonly name = "longportsg";
+  readonly name = REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG;
   readonly description = "LongPort 长桥证券数据提供商 (SG)";
   readonly capabilities: ICapability[] = [
     getStockQuote,

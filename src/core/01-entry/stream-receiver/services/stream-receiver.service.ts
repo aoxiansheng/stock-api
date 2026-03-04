@@ -83,6 +83,7 @@ import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
 } from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
+import { ProviderRegistryService } from "@providersv2/provider-registry.service";
 
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
@@ -244,6 +245,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly marketInferenceService: MarketInferenceService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
+    private readonly providerRegistryService: ProviderRegistryService,
     // 🆕 P2重构: 数据验证模块
     private readonly dataValidator: StreamDataValidator,
     // 🆕 重构: 三个专职服务
@@ -640,7 +642,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const providerName =
       preferredProvider ||
-      this.getDefaultProvider(symbols, marketContext);
+      this.getDefaultProvider(symbols, wsCapabilityType, marketContext);
     const requestId = `request_${Date.now()}`;
 
     // P0修复: 连接频率限制检查
@@ -890,7 +892,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     );
     const providerName =
       preferredProvider ||
-      this.getDefaultProvider(symbols, marketContext);
+      this.getDefaultProvider(symbols, wsCapabilityType, marketContext);
     const requestId = `reconnect_${Date.now()}`;
 
     this.logger.log("客户端重连请求", {
@@ -1670,39 +1672,27 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private extractProviderFromSymbol(symbol: string): string {
     try {
-      // 1. 首先通过符号格式推断市场
       const market = this.inferMarketLabel(symbol);
+      const capability = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
+      const provider =
+        this.providerRegistryService.getBestProvider(capability, market) ||
+        this.providerRegistryService.getBestProvider(capability) ||
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
 
-      // 2. 查找支持该市场的最佳提供商 (如果可用的话)
-      const optimalProvider = this.findOptimalProviderForMarket(market, symbol);
-      if (optimalProvider) {
-        this.logger.debug("基于能力注册表找到最佳提供商", {
-          symbol,
-          market,
-          provider: optimalProvider,
-          method: "capability_registry",
-        });
-        return optimalProvider;
-      }
-
-      // 3. 回退到改进的启发式规则 (更准确的映射)
-      const heuristicProvider = this.getProviderByHeuristics(symbol, market);
-
-      this.logger.debug("使用改进启发式推断提供商", {
+      this.logger.debug("基于注册表推断流提供商", {
         symbol,
         market,
-        provider: heuristicProvider,
-        method: "enhanced_heuristics",
+        provider,
+        method: "provider_registry",
       });
-
-      return heuristicProvider;
+      return provider;
     } catch (error) {
       this.logger.warn("提供商推断失败，使用默认提供商", {
         symbol,
         error: error.message,
         fallback: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       });
-      return REFERENCE_DATA.PROVIDER_IDS.LONGPORT; // 安全的默认值
+      return REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
     }
   }
 
@@ -1725,10 +1715,11 @@ export class StreamReceiverService implements OnModuleDestroy {
 
 
   /**
-   * 获取默认Provider：第一阶段简版市场优先级策略
+   * 获取默认Provider：基于 ProviderRegistryService 的能力+市场选择
    */
   private getDefaultProvider(
     symbols: string[],
+    capability: string,
     marketContext?: MarketTypeContext,
   ): string {
     try {
@@ -1736,16 +1727,28 @@ export class StreamReceiverService implements OnModuleDestroy {
         marketContext?.primaryMarket ||
         this.marketInferenceService.inferDominantMarket(symbols);
 
-      const provider = this.getProviderByMarketPriority(primaryMarket);
+      const provider =
+        this.providerRegistryService.getBestProvider(capability, primaryMarket) ||
+        this.providerRegistryService.getBestProvider(capability);
 
-      this.logger.debug("Market-based provider selection", {
-        primaryMarket,
-        selectedProvider: provider,
-        symbolsCount: symbols.length,
-        method: "market_priority_v1",
+      if (provider) {
+        this.logger.debug("基于能力注册表找到最佳提供商", {
+          capability,
+          market: primaryMarket,
+          provider,
+          symbolsCount: symbols.length,
+          method: "capability_registry",
+        });
+        return provider;
+      }
+
+      const fallback = this.getProviderByMarketPriority(primaryMarket);
+      this.logger.warn("未找到支持能力的Provider，使用兜底Provider", {
+        capability,
+        market: primaryMarket,
+        fallback,
       });
-
-      return provider;
+      return fallback;
     } catch (error) {
       this.logger.warn("Provider选择失败，使用默认", {
         error: error.message,
@@ -1763,7 +1766,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       HK: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 港股优先LongPort
       US: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 美股优先LongPort
       CN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // A股优先LongPort
-      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 新加坡优先LongPort
+      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG, // 新加坡优先LongPort SG
       UNKNOWN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 未知市场默认LongPort
     };
 
@@ -1853,10 +1856,12 @@ export class StreamReceiverService implements OnModuleDestroy {
     symbol: string,
   ): string | null {
     try {
-      // 🔧 配置驱动的提供商选择策略
-      const selectionStrategy = this.getProviderSelectionStrategy();
-
-      return this.selectProviderByStrategy(market, symbol, selectionStrategy);
+      const capability = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
+      return (
+        this.providerRegistryService.getBestProvider(capability, market) ||
+        this.providerRegistryService.getBestProvider(capability) ||
+        null
+      );
     } catch (error) {
       this.logger.debug("智能提供商选择失败", {
         market,
@@ -1886,11 +1891,11 @@ export class StreamReceiverService implements OnModuleDestroy {
     return {
       strategy: 'balanced', // 可配置: performance/availability/cost/balanced
       marketPriorities: {
-        HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick", "futu"],
-        US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "alpaca", "iex"],
-        CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "tushare", "sina"],
-        SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick"],
-        JP: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "quandl"],
+        HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
+        US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
+        CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
+        SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG, REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+        JP: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
         UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
       },
       fallbackProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
@@ -1980,10 +1985,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 成本优先排序 (实际应用中从配置获取成本信息)
     const costRanking = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 1, // 成本排名
-      "itick": 2,
-      "alpaca": 3,
-      "tushare": 1,
-      "sina": 1,
+      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 2,
     };
 
     return providers.sort((a, b) =>
@@ -2026,7 +2028,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       HK: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       US: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       CN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG,
       UNKNOWN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     };
 
@@ -2039,17 +2041,17 @@ export class StreamReceiverService implements OnModuleDestroy {
   private getProviderByHeuristics(symbol: string, market: string): string {
     // 基于市场的提供商优先级映射
     const marketProviderPriority: Record<string, string[]> = {
-      HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "itick"], // 港股优先LongPort
-      US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "alpaca"], // 美股优先LongPort
-      CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, "tushare"], // A股优先LongPort
-      SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 新加坡优先LongPort
+      HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG], // 港股优先LongPort
+      US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG], // 美股优先LongPort
+      CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG], // A股优先LongPort
+      SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG, REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 新加坡优先LongPort SG
       UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 未知市场默认LongPort
     };
 
     // 特殊符号的自定义映射
     const symbolSpecificMapping: Record<string, string> = {
       // 可以在这里添加特定符号的提供商映射
-      // 'AAPL.US': 'alpaca',
+      // 'AAPL.US': REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       // '00700.HK': REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
     };
 
@@ -2616,10 +2618,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 模拟性能数据 (实际应用中从监控系统获取)
     const latencyData: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 95, // 优秀
-      "itick": 85,
-      "alpaca": 80,
-      "tushare": 75,
-      "sina": 70,
+      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 90,
     };
 
     return latencyData[provider] || 60; // 默认评分
@@ -2632,10 +2631,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 基于历史可用性数据
     const reliabilityData: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 98, // 极高可靠性
-      "itick": 90,
-      "alpaca": 88,
-      "tushare": 82,
-      "sina": 75,
+      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 95,
     };
 
     return reliabilityData[provider] || 70;
@@ -2648,10 +2644,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 基于数据质量指标
     const qualityData: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 92,
-      "itick": 88,
-      "alpaca": 85,
-      "tushare": 80,
-      "sina": 72,
+      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 89,
     };
 
     // 🎯 针对特定符号类型调整评分
@@ -2668,14 +2661,9 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 🔄 检查提供商当前可用性
    */
   private isProviderAvailable(provider: string): boolean {
-    // 📊 实际应用中通过健康检查接口获取
-    // 这里使用模拟逻辑
     const availability: Record<string, boolean> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: true,
-      "itick": true,
-      "alpaca": true,
-      "tushare": Math.random() > 0.1, // 90% 可用性
-      "sina": Math.random() > 0.2,    // 80% 可用性
+      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: true,
     };
 
     return availability[provider] ?? false;
@@ -2687,11 +2675,8 @@ export class StreamReceiverService implements OnModuleDestroy {
   private getCostScore(provider: string): number {
     // 📊 成本效益评分
     const costScores: Record<string, number> = {
-      "tushare": 95,   // 免费/低成本
-      "sina": 90,
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 75, // 中等成本，高质量
-      "itick": 70,
-      "alpaca": 65,
+      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 72,
     };
 
     return costScores[provider] || 50;
