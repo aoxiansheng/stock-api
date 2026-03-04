@@ -67,6 +67,17 @@
 - 类型单文件检查：`npm run typecheck:file -- <path.ts>`。
 - 测试（Jest + ts-jest）：仓库当前内置 e2e 配置 `test/jest.e2e.config.js`，可使用 `bun run test:e2e` 或 `npx jest --config test/jest.e2e.config.js --rootDir .`。
 
+## JvQuant 调试脚本
+- 生成测试凭证：`npm run tool:bootstrap-apikey`
+  - 作用：自动注册（已存在则跳过）、登录、创建带流权限的 API Key。
+  - 默认输出：`APP_KEY`、`ACCESS_TOKEN`、`USERNAME`、`PASSWORD`。
+  - 常用参数：`BASE_URL`、`API_KEY_PROFILE`、`API_KEY_PERMISSIONS`、`API_KEY_EXPIRES_IN`。
+- 流数据验证：`npm run tool:test-jvquant-ws`
+  - 作用：连接 WebSocket 并订阅 `stream-stock-quote`（`preferredProvider=jvquant`），校验指定市场是否收到数据。
+  - 常用参数：`BASE_URL`、`APP_KEY`、`ACCESS_TOKEN`、`SYMBOLS`、`EXPECT_MARKETS`、`MIN_DATA_COUNT`、`TIMEOUT_MS`、`VERBOSE_PACKET`。
+  - 示例：
+    - `BASE_URL=http://127.0.0.1:3001 APP_KEY=... ACCESS_TOKEN=... EXPECT_MARKETS=US npm run tool:test-jvquant-ws`
+
 ## 编码风格与命名规范
 - 语言：TypeScript；缩进 2 空格；优先 `named export`；禁止无意义的缩写。
 - 文件命名：`*.module.ts`、`*.service.ts`、`*.controller.ts`、`*.constants.ts`、`*.dto.ts`、`*.enum.ts`。
