@@ -12,6 +12,7 @@ import { SymbolMapperModule } from "../../../00-prepare/symbol-mapper/module/sym
 import { SymbolTransformerModule } from "../../../02-processing/symbol-transformer/module/symbol-transformer.module";
 import { TransformerModule } from "../../../02-processing/transformer/module/data-transformer.module";
 import { StreamDataFetcherModule } from "../../../03-fetching/stream-data-fetcher/module/stream-data-fetcher.module";
+import { ProvidersV2Module } from "@providersv2";
 
 /**
  * StreamReceiver 模块 
@@ -25,6 +26,7 @@ import { WsAuthGuard } from "../guards/ws-auth.guard";
 @Module({
   imports: [
     AuthV2Module,
+    ProvidersV2Module, // 提供 ProviderRegistryService 给 StreamReceiverService
     SymbolMapperModule, // 符号映射服务
     SymbolTransformerModule, // 🔥 符号转换执行服务
     TransformerModule, // 数据转换服务 (统一处理所有转换)

@@ -82,6 +82,7 @@ export const REFERENCE_DATA = Object.freeze({
     LONGPORT_SG: "longport-sg", // 长桥新加坡 - 区域提供商
     LONGPORT_HK: "longport-hk", // 长桥香港
     LONGPORT_US: "longport-us", // 长桥美国
+    JVQUANT: "jvquant", // JvQuant WebSocket 行情提供商
 
     // 其他提供商
 

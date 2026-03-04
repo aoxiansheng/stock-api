@@ -5,6 +5,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/logging/index';
+import { API_OPERATIONS, REFERENCE_DATA } from '@common/constants/domain';
 import { StreamSubscribeDto, StreamUnsubscribeDto } from '../dto';
 
 /**
@@ -43,13 +44,14 @@ export class StreamDataValidator {
     'depth',
     'trade',
     'broker',
-    'kline'
+    'kline',
+    API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
   ];
 
   // 符号格式正则表达式
   private readonly SYMBOL_PATTERNS = {
     HK: /^[0-9]{4,5}\.HK$/i,           // 港股: 0700.HK, 00700.HK
-    US: /^[A-Z]{1,5}\.US$/i,          // 美股: AAPL.US, GOOGL.US
+    US: /^[A-Z0-9]+(?:[.\-][A-Z0-9]+){0,2}\.US$/i, // 美股: AAPL.US, BRK.B.US, BRK-B.US
     CN: /^[0-9]{6}\.(SH|SZ)$/i,       // A股: 000001.SZ, 600036.SH
     SG: /^[A-Z0-9]{3,5}\.SG$/i        // 新加坡: DBS.SG
   };
@@ -213,8 +215,14 @@ export class StreamDataValidator {
    * 验证数据提供商
    */
   isValidProvider(provider: string): boolean {
-    // 这里可以根据实际支持的提供商列表进行验证
-    const supportedProviders = ['longport', 'twelvedata', 'itick', 'yahoo'];
+    const supportedProviders = [
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG,
+      REFERENCE_DATA.PROVIDER_IDS.JVQUANT,
+      'twelvedata',
+      'itick',
+      'yahoo',
+    ];
     return supportedProviders.includes(provider.toLowerCase());
   }
 

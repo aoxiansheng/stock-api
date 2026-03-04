@@ -32,6 +32,8 @@
     "test:e2e:coverage": "jest --config test/jest.e2e.config.js --coverage --rootDir .",
     "// ========== 其他工具 ==========": "",
     "cli": "bun src/providers/cli/index.ts",
+    "tool:bootstrap-apikey": "node scripts/tools/bootstrap-apikey.js",
+    "tool:test-jvquant-ws": "node scripts/tools/test-jvquant-ws.js",
     "typecheck:file": "node scripts/tsc-single-file.js",
     "// ========== Knip 代码清理工具 ==========": "",
     "knip": "knip",

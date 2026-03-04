@@ -5,6 +5,7 @@ import { REFERENCE_DATA } from "@common/constants/domain";
 // 复用既有 Provider 与能力定义（保持最小迁移成本）
 import { LongportProvider } from "./providers/longport/longport.provider";
 import { LongportSgProvider } from "./providers/longport-sg/longport-sg.provider";
+import { JvQuantProvider } from "./providers/jvquant/jvquant.provider";
 import { ICapability } from "./providers/interfaces/capability.interface";
 import { IDataProvider } from "./providers/interfaces/provider.interface";
 
@@ -34,6 +35,7 @@ export class ProviderRegistryService implements OnModuleInit {
   constructor(
     @Optional() private readonly longportProvider?: LongportProvider,
     @Optional() private readonly longportSgProvider?: LongportSgProvider,
+    @Optional() private readonly jvQuantProvider?: JvQuantProvider,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -45,6 +47,9 @@ export class ProviderRegistryService implements OnModuleInit {
     }
     if (this.longportSgProvider) {
       this.registerProvider(this.longportSgProvider, 2);
+    }
+    if (this.jvQuantProvider) {
+      this.registerProvider(this.jvQuantProvider, 3);
     }
 
     this.initialized = true;

@@ -113,10 +113,16 @@ export class WsAuthGuard implements CanActivate {
         return false;
       }
 
-      // 由 profile 推导权限画像
-      const permissions = (apiKeyDoc as any).permissions
+      // 由 profile 推导权限画像：当 permissions 为空数组时执行回退
+      const explicitPermissions = Array.isArray((apiKeyDoc as any).permissions)
         ? (apiKeyDoc as any).permissions
-        : (apiKeyDoc.profile === 'ADMIN' ? ADMIN_PROFILE : READ_PROFILE);
+        : [];
+      const permissions =
+        explicitPermissions.length > 0
+          ? explicitPermissions
+          : apiKeyDoc.profile === "ADMIN"
+            ? ADMIN_PROFILE
+            : READ_PROFILE;
 
       // 检查WebSocket流权限（使用新的Permission枚举）
       const hasStreamPermission = this.checkStreamPermissions(

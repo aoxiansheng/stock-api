@@ -512,10 +512,16 @@ export class StreamReceiverGateway
         };
       }
 
-      // 检查流权限
-      const permissions = (apiKeyDoc as any).permissions
+      // 检查流权限：当 permissions 为空数组时，回退到 profile 权限画像
+      const explicitPermissions = Array.isArray((apiKeyDoc as any).permissions)
         ? (apiKeyDoc as any).permissions
-        : (apiKeyDoc.profile === 'ADMIN' ? ADMIN_PROFILE : READ_PROFILE);
+        : [];
+      const permissions =
+        explicitPermissions.length > 0
+          ? explicitPermissions
+          : apiKeyDoc.profile === "ADMIN"
+            ? ADMIN_PROFILE
+            : READ_PROFILE;
       const hasStreamPermission = hasStreamPermissions(
         permissions as Permission[],
       );
