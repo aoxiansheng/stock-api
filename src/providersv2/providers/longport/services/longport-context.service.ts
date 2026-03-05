@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { Config, QuoteContext } from "longport"; // REFERENCE_DATA.PROVIDER_IDS.LONGPORT
+import type { QuoteContext } from "longport"; // REFERENCE_DATA.PROVIDER_IDS.LONGPORT
 
 import { createLogger } from "@common/logging/index";
 import { REFERENCE_DATA } from "@common/constants/domain";
@@ -12,8 +12,14 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = createLogger(LongportContextService.name);
   private quoteContext: QuoteContext | null = null;
   private initializationPromise: Promise<void> | null = null;
+  private sdkPromise: Promise<typeof import("longport")> | null = null;
 
   async onModuleInit() {
+    if (process.env.NODE_ENV === "test") {
+      this.logger.log("测试环境跳过 LongPort SDK 启动预初始化");
+      return;
+    }
+
     // 模块初始化时触发，但不阻塞启动流程
     this.initialize().catch((error) => {
       this.logger.warn(
@@ -29,6 +35,15 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
     await this.close();
   }
 
+  private loadSdk(): Promise<typeof import("longport")> {
+    if (!this.sdkPromise) {
+      this.sdkPromise = Promise.resolve().then(
+        () => require("longport") as typeof import("longport"),
+      );
+    }
+    return this.sdkPromise;
+  }
+
   private initialize(): Promise<void> {
     if (this.quoteContext) {
       return Promise.resolve();
@@ -40,6 +55,7 @@ export class LongportContextService implements OnModuleInit, OnModuleDestroy {
 
     this.initializationPromise = (async () => {
       try {
+        const { Config, QuoteContext } = await this.loadSdk();
         this.logger.log("开始初始化 LongPort SDK 连接...");
         const config = Config.fromEnv();
         this.quoteContext = await QuoteContext.new(config);

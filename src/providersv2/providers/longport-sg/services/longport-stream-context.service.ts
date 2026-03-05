@@ -9,12 +9,6 @@ import {
 } from "../../../providers/constants";
 import { REFERENCE_DATA } from "@common/constants/domain";
 
-// LongPort SDK 导入
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Config, QuoteContext, SubType } = require(
-  REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-);
-
 /**
  * LongPort WebSocket 流上下文服务
  * 使用严格单例模式管理 LongPort WebSocket 连接和订阅
@@ -55,9 +49,23 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
   // === 回调和订阅管理 ===
   private messageCallbacks: ((data: any) => void)[] = [];
   private subscribedSymbols = new Set<string>(); // 当前连接下已订阅的符号
+  private sdk: any | null = null;
 
   constructor(private readonly configService: ConfigService) {
     this.logger.log("LongportSgStreamContextService 构造函数调用");
+  }
+
+  private loadSdk(): any {
+    if (!this.sdk) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      this.sdk = require(REFERENCE_DATA.PROVIDER_IDS.LONGPORT);
+    }
+    return this.sdk;
+  }
+
+  private getDefaultSubTypes(): any[] {
+    const { SubType } = this.loadSdk();
+    return [SubType.Quote];
   }
 
   /**
@@ -147,6 +155,7 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
       // 设置初始化状态
       this.connectionState.status = ConnectionStatus.INITIALIZING;
       this.logger.log("开始初始化 LongPort WebSocket 连接");
+      const { Config, QuoteContext } = this.loadSdk();
 
       // 创建 LongPort SG 配置
       // 使用 LONGPORT_SG_* 环境变量
@@ -279,7 +288,7 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
    */
   async subscribe(
     symbols: string[],
-    subTypes: any[] = [SubType.Quote],
+    subTypes: any[] = this.getDefaultSubTypes(),
     isFirstPush: boolean = true,
   ): Promise<void> {
     try {
@@ -392,7 +401,7 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
    */
   async unsubscribe(
     symbols: string[],
-    subTypes: any[] = [SubType.Quote],
+    subTypes: any[] = this.getDefaultSubTypes(),
   ): Promise<void> {
     try {
       if (!this.isWebSocketConnected() || !this.quoteContext) {
@@ -438,7 +447,7 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
   /**
    * 添加消息回调
    */
-  onQuoteUpdate(callback: (data: any) => void): void {
+  onQuoteUpdate(callback: (data: any) => void): () => void {
     const callbackIndex = this.messageCallbacks.length;
     this.messageCallbacks.push(callback);
 
@@ -449,6 +458,25 @@ export class LongportSgStreamContextService implements OnModuleDestroy {
       callbackType: typeof callback,
       isFunction: typeof callback === "function",
     });
+
+    let unregistered = false;
+    return () => {
+      if (unregistered) {
+        return;
+      }
+
+      unregistered = true;
+      const index = this.messageCallbacks.indexOf(callback);
+      if (index >= 0) {
+        this.messageCallbacks.splice(index, 1);
+      }
+
+      this.logger.debug({
+        message: "LongPort 报价回调反注册",
+        callbackIndex: index,
+        totalCallbacks: this.messageCallbacks.length,
+      });
+    };
   }
 
   /**
