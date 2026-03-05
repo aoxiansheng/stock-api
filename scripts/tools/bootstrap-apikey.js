@@ -10,7 +10,7 @@
  * 4. 输出 APP_KEY / ACCESS_TOKEN 供 WebSocket 测试使用
  *
  * 常用环境变量：
- * - BASE_URL: 服务地址（默认 http://127.0.0.1:3000）
+ * - BASE_URL: 服务地址（默认 http://127.0.0.1:3001）
  * - API_PREFIX: API 前缀（默认 /api/v1）
  * - USERNAME / PASSWORD / EMAIL: 指定用户（不传则自动生成）
  * - API_KEY_NAME: API Key 名称
@@ -19,7 +19,7 @@
  * - API_KEY_EXPIRES_IN: 过期时间（如 30d）
  */
 
-const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3000";
+const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3001";
 const API_PREFIX = process.env.API_PREFIX || "/api/v1";
 
 const ts = Date.now();

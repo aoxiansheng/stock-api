@@ -17,7 +17,8 @@
 import process from "node:process";
 import { Config, QuoteContext } from "longport";
 
-type QuotePayload = Record<string, unknown>;
+type QuotePayload = Record<string, unknown> | unknown[];
+type CallableMethod = () => Promise<unknown> | unknown;
 
 async function main() {
   const symbols = collectSymbols();
@@ -42,24 +43,20 @@ async function main() {
     const response = await ctx.quote(symbols);
 
     // SDK 响应可能包含 toJSON/toObject 方法，优先转换为可序列化对象
-    const payload: QuotePayload =
-      typeof (response as any)?.toObject === "function"
-        ? (response as any).toObject()
-        : typeof (response as any)?.toJSON === "function"
-          ? (response as any).toJSON()
-          : (response as QuotePayload);
+    const payload = toSerializablePayload(response);
 
     console.info("[longport-quote-dump] === 原始响应开始 ===");
     console.log(JSON.stringify(payload));
-    if (Array.isArray(response) && response.length > 0) {
-      const sample = response[0] as Record<string, unknown>;
+    const sample =
+      extractFirstRecordFromList(response) ?? extractFirstRecordFromList(payload);
+    if (sample) {
       console.info(
         "[longport-quote-dump] sample keys",
-        Object.keys(sample || {}),
+        Object.keys(sample),
       );
-      const pre = (sample as any)?.preMarketQuote;
-      const post = (sample as any)?.postMarketQuote;
-      const overnight = (sample as any)?.overnightQuote;
+      const pre = extractRecordField(sample, "preMarketQuote");
+      const post = extractRecordField(sample, "postMarketQuote");
+      const overnight = extractRecordField(sample, "overnightQuote");
       if (pre) {
         console.info(
           "[longport-quote-dump] preMarketQuote keys",
@@ -111,24 +108,74 @@ async function closeQuoteContext(ctx: QuoteContext | null) {
   if (!ctx) {
     return;
   }
-  const context = ctx as unknown as {
-    close?: () => Promise<void>;
-    disconnect?: () => Promise<void>;
-    destroy?: () => Promise<void>;
-  };
+  const context: unknown = ctx;
   try {
-    if (typeof context.close === "function") {
-      await context.close();
-    } else if (typeof context.disconnect === "function") {
-      await context.disconnect();
-    } else if (typeof context.destroy === "function") {
-      await context.destroy();
+    if (hasCallableMethod(context, "close")) {
+      await Promise.resolve(context.close());
+    } else if (hasCallableMethod(context, "disconnect")) {
+      await Promise.resolve(context.disconnect());
+    } else if (hasCallableMethod(context, "destroy")) {
+      await Promise.resolve(context.destroy());
     }
   } catch (error) {
     const message =
       error instanceof Error ? error.message : JSON.stringify(error);
     console.warn("[longport-quote-dump] 关闭 QuoteContext 失败：", message);
   }
+}
+
+function toSerializablePayload(response: unknown): QuotePayload {
+  if (hasCallableMethod(response, "toObject")) {
+    const converted = response.toObject();
+    if (isQuotePayload(converted)) {
+      return converted;
+    }
+  }
+
+  if (hasCallableMethod(response, "toJSON")) {
+    const converted = response.toJSON();
+    if (isQuotePayload(converted)) {
+      return converted;
+    }
+  }
+
+  if (isQuotePayload(response)) {
+    return response;
+  }
+
+  return { raw: response };
+}
+
+function isQuotePayload(value: unknown): value is QuotePayload {
+  return Array.isArray(value) || isRecord(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function hasCallableMethod<K extends string>(
+  value: unknown,
+  methodName: K,
+): value is Record<K, CallableMethod> {
+  return isRecord(value) && typeof value[methodName] === "function";
+}
+
+function extractFirstRecordFromList(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+  return isRecord(value[0]) ? value[0] : null;
+}
+
+function extractRecordField(
+  obj: Record<string, unknown>,
+  field: string,
+): Record<string, unknown> | null {
+  const value = obj[field];
+  return isRecord(value) ? value : null;
 }
 
 void main();
