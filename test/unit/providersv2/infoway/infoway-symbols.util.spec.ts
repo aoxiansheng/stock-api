@@ -1,3 +1,4 @@
+import { BusinessErrorCode } from "@common/core/exceptions";
 import {
   inferSingleInfowayMarketFromSymbols,
   normalizeAndValidateInfowaySymbols,
@@ -17,12 +18,25 @@ describe("infoway-symbols.util", () => {
   });
 
   it("symbol 格式非法时抛参数错误", () => {
+    expect.assertions(2);
     expect(() =>
       normalizeAndValidateInfowaySymbols(["AAPL"], {
         allowEmpty: true,
         maxCount: 10,
       }),
     ).toThrow("symbol 格式无效");
+
+    try {
+      normalizeAndValidateInfowaySymbols(["AAPL"], {
+        allowEmpty: true,
+        maxCount: 10,
+      });
+      throw new Error("预期抛出异常");
+    } catch (error: any) {
+      expect(error).toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      });
+    }
   });
 
   it("数量超过上限时抛参数错误", () => {
@@ -38,8 +52,14 @@ describe("infoway-symbols.util", () => {
   });
 
   it("混合市场推断时抛出显式 market 要求", () => {
-    expect(() =>
-      inferSingleInfowayMarketFromSymbols(["AAPL.US", "00700.HK"]),
-    ).toThrow("请显式传入 market");
+    expect.assertions(1);
+    try {
+      inferSingleInfowayMarketFromSymbols(["AAPL.US", "00700.HK"]);
+      throw new Error("预期抛出异常");
+    } catch (error: any) {
+      expect(error).toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      });
+    }
   });
 });

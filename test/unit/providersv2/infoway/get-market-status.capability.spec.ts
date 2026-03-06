@@ -1,3 +1,4 @@
+import { BusinessErrorCode } from "@common/core/exceptions";
 import { getMarketStatus } from "@providersv2/providers/infoway/capabilities/get-market-status";
 
 describe("get-market-status capability", () => {
@@ -21,13 +22,29 @@ describe("get-market-status capability", () => {
       getMarketStatus: jest.fn(),
     };
 
-    await expect(
-      getMarketStatus.execute({
-        market: "US",
-        symbols: ["00700.HK"],
-        contextService: contextService as any,
-      }),
-    ).rejects.toThrow("market 与 symbols 推断市场冲突");
+    await expect(getMarketStatus.execute({
+      market: "US",
+      symbols: ["00700.HK"],
+      contextService: contextService as any,
+    })).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+
+    expect(contextService.getMarketStatus).not.toHaveBeenCalled();
+  });
+
+  it("market 非法时抛 DATA_VALIDATION_FAILED", async () => {
+    const contextService = {
+      getMarketStatus: jest.fn(),
+    };
+
+    await expect(getMarketStatus.execute({
+      market: "INVALID",
+      symbols: ["AAPL.US"],
+      contextService: contextService as any,
+    })).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
 
     expect(contextService.getMarketStatus).not.toHaveBeenCalled();
   });

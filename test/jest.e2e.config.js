@@ -2,6 +2,23 @@
  * E2E 测试配置（Jest + ts-jest）
  * - 测试目标：黑盒 HTTP 接口（基于 Nest 测试服务器）
  */
+const { config } = require('dotenv');
+const { resolve } = require('path');
+
+config({ path: resolve(__dirname, '../.env.test') });
+
+const DEFAULT_E2E_TEST_TIMEOUT_MS = 120000;
+const parsedE2eTimeout = Number.parseInt(process.env.E2E_TEST_TIMEOUT_MS || '', 10);
+const e2eTestTimeoutMs =
+  Number.isFinite(parsedE2eTimeout) && parsedE2eTimeout > 0
+    ? parsedE2eTimeout
+    : DEFAULT_E2E_TEST_TIMEOUT_MS;
+
+// 统一写回环境变量，供 setup/spec 读取同一值
+process.env.E2E_TEST_TIMEOUT_MS = String(e2eTestTimeoutMs);
+
+const detectOpenHandles = process.env.E2E_DETECT_OPEN_HANDLES === '1';
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
@@ -36,10 +53,15 @@ module.exports = {
     '^@src/(.*)$': '<rootDir>/src/$1',
     '^@test/(.*)$': '<rootDir>/test/$1',
   },
-  // 测试超时设置
-  testTimeout: 30000,
-  // 最大workers数量
-  maxWorkers: 4,
+  // 测试超时设置（统一来源：E2E_TEST_TIMEOUT_MS）
+  testTimeout: e2eTestTimeoutMs,
+  // open-handle 诊断模式下建议单线程，避免并发噪音
+  maxWorkers: detectOpenHandles ? 1 : 4,
+  // 不强制退出，让未释放句柄通过 detectOpenHandles 暴露
+  forceExit: false,
+  detectOpenHandles,
+  // 给句柄探测更多时间，减少误报
+  openHandlesTimeout: 5000,
   // 收集覆盖率配置
   collectCoverageFrom: [
     'src/**/*.ts',

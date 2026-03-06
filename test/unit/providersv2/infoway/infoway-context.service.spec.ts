@@ -1,5 +1,6 @@
 import { ConfigService } from "@nestjs/config";
 
+import { BusinessErrorCode } from "@common/core/exceptions";
 import { InfowayContextService } from "@providersv2/providers/infoway/services/infoway-context.service";
 
 function createConfigService(values: Record<string, any>): ConfigService {
@@ -34,9 +35,10 @@ describe("InfowayContextService", () => {
         post: jest.fn(),
       };
 
-      await expect(service.getStockQuote(["AAPL.US"])).rejects.toThrow(
-        "INFOWAY_API_KEY 未配置",
-      );
+      await expect(service.getStockQuote(["AAPL.US"])).rejects.toMatchObject({
+        message: "INFOWAY_API_KEY 未配置",
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      });
       expect((service as any).client.post).not.toHaveBeenCalled();
     } finally {
       if (previousApiKey === undefined) {
@@ -47,7 +49,40 @@ describe("InfowayContextService", () => {
     }
   });
 
-  it("getStockQuote: 上游 ret 异常时抛固定错误", async () => {
+  it("testConnection: HTTP 与业务语义都成功时返回 true", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [],
+      },
+    });
+
+    await expect(service.testConnection()).resolves.toBe(true);
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/common/basic/markets",
+      expect.objectContaining({
+        headers: {
+          apiKey: "test-api-key",
+        },
+      }),
+    );
+  });
+
+  it("testConnection: 上游 ret 异常时返回 false（避免假阳性）", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 500,
+        msg: "maintenance",
+        data: [],
+      },
+    });
+
+    await expect(service.testConnection()).resolves.toBe(false);
+  });
+
+  it("getStockQuote: 上游 ret 异常时抛结构化业务异常", async () => {
     const service = createService();
     (service as any).client.post.mockResolvedValue({
       data: {
@@ -57,9 +92,19 @@ describe("InfowayContextService", () => {
       },
     });
 
-    await expect(service.getStockQuote(["AAPL.US"])).rejects.toThrow(
-      "Infoway quote 响应异常",
-    );
+    await expect(service.getStockQuote(["AAPL.US"])).rejects.toMatchObject({
+      message: "Infoway quote 响应异常",
+      errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+      operation: "quote",
+      context: {
+        provider: "infoway",
+        operation: "quote",
+        upstream: {
+          ret: 500,
+          msg: "upstream failed",
+        },
+      },
+    });
   });
 
   it("getStockQuote: 成功映射并过滤脏数据", async () => {
@@ -109,7 +154,7 @@ describe("InfowayContextService", () => {
     });
   });
 
-  it("getMarketStatus: data 结构异常时抛固定错误", async () => {
+  it("getMarketStatus: data 结构异常时抛结构化业务异常", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
       data: {
@@ -120,9 +165,19 @@ describe("InfowayContextService", () => {
       },
     });
 
-    await expect(service.getMarketStatus(["US"])).rejects.toThrow(
-      "Infoway market-status 响应异常",
-    );
+    await expect(service.getMarketStatus(["US"])).rejects.toMatchObject({
+      message: "Infoway market-status 响应异常",
+      errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+      operation: "market-status",
+      context: {
+        provider: "infoway",
+        operation: "market-status",
+        upstream: {
+          ret: 200,
+          msg: "",
+        },
+      },
+    });
   });
 
   it("getMarketStatus: 正确映射并按传入市场过滤", async () => {
@@ -173,7 +228,7 @@ describe("InfowayContextService", () => {
     ]);
   });
 
-  it("getStockBasicInfo: data 结构异常时抛固定错误", async () => {
+  it("getStockBasicInfo: data 结构异常时抛结构化业务异常", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
       data: {
@@ -184,9 +239,19 @@ describe("InfowayContextService", () => {
       },
     });
 
-    await expect(service.getStockBasicInfo(["AAPL.US"])).rejects.toThrow(
-      "Infoway basic-info 响应异常",
-    );
+    await expect(service.getStockBasicInfo(["AAPL.US"])).rejects.toMatchObject({
+      message: "Infoway basic-info 响应异常",
+      errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+      operation: "basic-info",
+      context: {
+        provider: "infoway",
+        operation: "basic-info",
+        upstream: {
+          ret: 200,
+          msg: "",
+        },
+      },
+    });
   });
 
   it("getStockBasicInfo: 正确映射核心字段", async () => {
@@ -239,6 +304,55 @@ describe("InfowayContextService", () => {
         sourceProvider: "infoway",
       }),
     ]);
+  });
+
+  it("getStockBasicInfo: market hint 非法时抛参数错误并阻断上游请求", async () => {
+    const service = createService();
+
+    await expect(
+      service.getStockBasicInfo(["AAPL.US"], "INVALID"),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("market 仅支持 HK/US/CN/SH/SZ"),
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+
+    expect((service as any).client.get).not.toHaveBeenCalled();
+  });
+
+  it("getStockBasicInfo: market hint 与 symbol 推断冲突时抛参数错误并阻断上游请求", async () => {
+    const service = createService();
+
+    await expect(
+      service.getStockBasicInfo(["AAPL.US"], "HK"),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("market 与 symbol 推断市场冲突"),
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+
+    expect((service as any).client.get).not.toHaveBeenCalled();
+  });
+
+  it("getStockBasicInfo: SH/SZ 在一致性校验后归并到 STOCK_CN 分组请求", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [],
+      },
+    });
+
+    await service.getStockBasicInfo(["600000.SH", "000001.SZ"], "CN");
+
+    expect((service as any).client.get).toHaveBeenCalledTimes(1);
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/common/basic/symbols/info",
+      expect.objectContaining({
+        params: {
+          type: "STOCK_CN",
+          symbols: "600000.SH,000001.SZ",
+        },
+      }),
+    );
   });
 
   it("关键数值配置非法时回退默认值", () => {

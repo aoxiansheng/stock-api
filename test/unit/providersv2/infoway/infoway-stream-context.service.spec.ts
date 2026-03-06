@@ -1,6 +1,8 @@
 import { ConfigService } from "@nestjs/config";
 
+import { BusinessErrorCode } from "@common/core/exceptions";
 import { InfowayStreamContextService } from "@providersv2/providers/infoway/services/infoway-stream-context.service";
+import { INFOWAY_SYMBOL_LIMIT } from "@providersv2/providers/infoway/utils/infoway-symbols.util";
 
 type Listener = (event?: any) => void;
 
@@ -69,9 +71,18 @@ function createConfigService(values: Record<string, any>): ConfigService {
 describe("InfowayStreamContextService", () => {
   const originalWebSocket = (globalThis as any).WebSocket;
 
+  async function flushTimers(stepMs = 1, rounds = 4): Promise<void> {
+    for (let i = 0; i < rounds; i += 1) {
+      await jest.advanceTimersByTimeAsync(stepMs);
+      await Promise.resolve();
+    }
+  }
+
   afterEach(async () => {
     (globalThis as any).WebSocket = originalWebSocket;
     HeaderCapableMockWebSocket.instances = [];
+    jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   it("握手 URL 不带 apikey，且优先使用 header 鉴权", async () => {
@@ -136,6 +147,212 @@ describe("InfowayStreamContextService", () => {
     expect((service as any).subscribedSymbols.has("AAPL.US")).toBe(false);
   });
 
+  it("subscribe 会先校验 symbols，再尝试初始化 WebSocket", async () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+    const initializeSpy = jest
+      .spyOn(service, "initializeWebSocket")
+      .mockResolvedValue();
+
+    await expect(service.subscribe(["INVALID"])).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+    expect(initializeSpy).not.toHaveBeenCalled();
+  });
+
+  it("累计订阅总量超过上限时抛业务异常并包含 existing/new/max", async () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+    const initializeSpy = jest
+      .spyOn(service, "initializeWebSocket")
+      .mockResolvedValue();
+
+    for (let i = 0; i < INFOWAY_SYMBOL_LIMIT.WS - 1; i += 1) {
+      (service as any).subscribedSymbols.add(`${i}.US`);
+    }
+
+    await expect(service.subscribe(["AAPL.US", "MSFT.US"])).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      context: {
+        provider: "infoway",
+        existing: INFOWAY_SYMBOL_LIMIT.WS - 1,
+        new: 2,
+        max: INFOWAY_SYMBOL_LIMIT.WS,
+      },
+    });
+    expect(initializeSpy).not.toHaveBeenCalled();
+  });
+
+  it("连接 close 后会触发重连调度", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    await service.initializeWebSocket();
+    await service.subscribe(["AAPL.US"]);
+
+    const scheduleReconnectSpy = jest.spyOn(service as any, "scheduleReconnect");
+    HeaderCapableMockWebSocket.instances[0].close();
+
+    expect(scheduleReconnectSpy).toHaveBeenCalledTimes(1);
+
+    (service as any).subscribedSymbols.clear();
+    await service.cleanup();
+  });
+
+  it("cleanup 触发 close 时不会调度重连", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    await service.initializeWebSocket();
+    await service.subscribe(["AAPL.US"]);
+
+    const scheduleReconnectSpy = jest.spyOn(service as any, "scheduleReconnect");
+    await service.cleanup();
+
+    expect(scheduleReconnectSpy).not.toHaveBeenCalled();
+    expect(service.isWebSocketConnected()).toBe(false);
+    expect((service as any).heartbeatTimer).toBeNull();
+  });
+
+  it("cleanup 会等待 pending connectTask 收敛且不会残留连接", async () => {
+    jest.useFakeTimers();
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    const connectPromise = service.initializeWebSocket();
+    const cleanupPromise = service.cleanup();
+
+    await flushTimers(1, 6);
+    await Promise.all([connectPromise, cleanupPromise]);
+
+    expect(service.isWebSocketConnected()).toBe(false);
+    expect((service as any).connectTask).toBeNull();
+    expect((service as any).heartbeatTimer).toBeNull();
+    expect((service as any).reconnectTimer).toBeNull();
+  });
+
+  it("重连成功后会自动重订阅已有 symbols", async () => {
+    jest.useFakeTimers();
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_RECONNECT_DELAY_MS: 1,
+        INFOWAY_WS_RECONNECT_JITTER_MS: 0,
+        INFOWAY_WS_MAX_RECONNECT_ATTEMPTS: 3,
+      }),
+    );
+
+    const connectTask = service.initializeWebSocket();
+    await jest.advanceTimersByTimeAsync(0);
+    await connectTask;
+    await service.subscribe(["AAPL.US", "MSFT.US"]);
+
+    const firstSocket = HeaderCapableMockWebSocket.instances[0];
+    expect(firstSocket.sent).toHaveLength(1);
+
+    firstSocket.close();
+    await flushTimers(1, 10);
+
+    expect(HeaderCapableMockWebSocket.instances).toHaveLength(2);
+    const reconnectedSocket = HeaderCapableMockWebSocket.instances[1];
+    expect(reconnectedSocket.sent).toHaveLength(1);
+
+    const subscribePayload = JSON.parse(reconnectedSocket.sent[0]);
+    expect(subscribePayload.code).toBe(10006);
+    expect(subscribePayload.data.arr[0].codes).toBe("AAPL.US,MSFT.US");
+
+    await service.unsubscribe(["AAPL.US", "MSFT.US"]);
+    await service.cleanup();
+  });
+
+  it("达到最大重试次数后停止重连", async () => {
+    jest.useFakeTimers();
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_RECONNECT_DELAY_MS: 1,
+        INFOWAY_WS_RECONNECT_JITTER_MS: 0,
+        INFOWAY_WS_MAX_RECONNECT_ATTEMPTS: 2,
+      }),
+    );
+
+    const initializeSpy = jest
+      .spyOn(service, "initializeWebSocket")
+      .mockRejectedValue(new Error("connect failed"));
+
+    (service as any).subscribedSymbols.add("AAPL.US");
+    (service as any).scheduleReconnect();
+    await flushTimers(1, 8);
+
+    expect(initializeSpy).toHaveBeenCalledTimes(2);
+    expect((service as any).reconnectAttempts).toBe(2);
+    expect((service as any).reconnectTimer).toBeNull();
+
+    await service.cleanup();
+  });
+
+  it("达到最大重连后清理脏订阅，并允许同符号重新订阅", async () => {
+    jest.useFakeTimers();
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_RECONNECT_DELAY_MS: 1,
+        INFOWAY_WS_RECONNECT_JITTER_MS: 0,
+        INFOWAY_WS_MAX_RECONNECT_ATTEMPTS: 2,
+      }),
+    );
+
+    const initializeSpy = jest
+      .spyOn(service, "initializeWebSocket")
+      .mockRejectedValueOnce(new Error("connect failed"))
+      .mockRejectedValueOnce(new Error("connect failed"))
+      .mockResolvedValue();
+
+    (service as any).subscribedSymbols.add("AAPL.US");
+    (service as any).scheduleReconnect();
+    await flushTimers(1, 8);
+
+    expect((service as any).subscribedSymbols.size).toBe(0);
+    expect((service as any).subscriptionsInvalidated).toBe(true);
+
+    const send = jest.fn();
+    (service as any).socket = {
+      readyState: 1,
+      send,
+    };
+
+    await service.subscribe(["AAPL.US"]);
+
+    expect(initializeSpy).toHaveBeenCalledTimes(3);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect((service as any).subscriptionsInvalidated).toBe(false);
+  });
+
   it("mapPushToQuote 遇到异常时间戳时返回 null", () => {
     const service = new InfowayStreamContextService(
       createConfigService({
@@ -195,5 +412,123 @@ describe("InfowayStreamContextService", () => {
     expect((service as any).maxReconnectAttempts).toBe(8);
     expect((service as any).klineType).toBe(1);
     expect((service as any).wsAuthFrameCode).toBe(90001);
+  });
+
+  it("INFOWAY_API_KEY 缺失时抛 CONFIGURATION_ERROR", async () => {
+    const previousApiKey = process.env.INFOWAY_API_KEY;
+    delete process.env.INFOWAY_API_KEY;
+
+    try {
+      const service = new InfowayStreamContextService(createConfigService({}));
+      await expect(service.initializeWebSocket()).rejects.toMatchObject({
+        message: "INFOWAY_API_KEY 未配置",
+        errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      });
+    } finally {
+      if (previousApiKey === undefined) {
+        delete process.env.INFOWAY_API_KEY;
+      } else {
+        process.env.INFOWAY_API_KEY = previousApiKey;
+      }
+    }
+  });
+
+  it("心跳 sendJson 异常时停止心跳并在守卫下触发重连", async () => {
+    jest.useFakeTimers();
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_HEARTBEAT_MS: 1,
+      }),
+    );
+
+    const mockSocket = {
+      readyState: 1,
+      close: jest.fn(),
+    };
+    (service as any).socket = mockSocket;
+    (service as any).subscribedSymbols.add("AAPL.US");
+
+    jest
+      .spyOn(service as any, "sendJson")
+      .mockImplementation(() => {
+        throw new Error("send failed");
+      });
+    const scheduleReconnectSpy = jest
+      .spyOn(service as any, "scheduleReconnect")
+      .mockImplementation(() => {});
+
+    (service as any).startHeartbeat();
+    await jest.advanceTimersByTimeAsync(1);
+
+    expect((service as any).heartbeatTimer).toBeNull();
+    expect((service as any).socket).toBeNull();
+    expect(mockSocket.close).toHaveBeenCalledTimes(1);
+    expect(scheduleReconnectSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("心跳 sendJson 异常但守卫不满足时不触发重连", async () => {
+    jest.useFakeTimers();
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_HEARTBEAT_MS: 1,
+      }),
+    );
+
+    (service as any).socket = {
+      readyState: 1,
+      close: jest.fn(),
+    };
+    const scheduleReconnectSpy = jest
+      .spyOn(service as any, "scheduleReconnect")
+      .mockImplementation(() => {});
+    jest
+      .spyOn(service as any, "sendJson")
+      .mockImplementation(() => {
+        throw new Error("send failed");
+      });
+
+    (service as any).startHeartbeat();
+    await jest.advanceTimersByTimeAsync(1);
+
+    expect(scheduleReconnectSpy).not.toHaveBeenCalled();
+    expect((service as any).heartbeatTimer).toBeNull();
+  });
+
+  it("心跳定时器创建后调用 unref", () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    const unref = jest.fn();
+    const timer = { unref } as any;
+    const setIntervalSpy = jest.spyOn(global, "setInterval").mockReturnValue(timer);
+
+    (service as any).startHeartbeat();
+
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+    expect(unref).toHaveBeenCalledTimes(1);
+    expect((service as any).heartbeatTimer).toBe(timer);
+  });
+
+  it("重连定时器创建后调用 unref", () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    const unref = jest.fn();
+    const timer = { unref } as any;
+    const setTimeoutSpy = jest.spyOn(global, "setTimeout").mockReturnValue(timer);
+
+    (service as any).scheduleReconnect();
+
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    expect(unref).toHaveBeenCalledTimes(1);
+    expect((service as any).reconnectTimer).toBe(timer);
   });
 });

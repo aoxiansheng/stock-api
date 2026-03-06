@@ -1,4 +1,5 @@
 import {
+  formatInfowayYmdByMarket,
   normalizeInfowayDay,
   normalizeInfowayTimestampToIso,
 } from "@providersv2/providers/infoway/utils/infoway-datetime.util";
@@ -27,5 +28,13 @@ describe("infoway-datetime.util", () => {
   it("拒绝不合理范围时间戳", () => {
     expect(normalizeInfowayTimestampToIso("100000000")).toBeNull();
     expect(normalizeInfowayTimestampToIso("9999999999999")).toBeNull();
+  });
+
+  it("按 market 时区格式化交易日日期", () => {
+    const fixed = new Date("2024-03-01T01:00:00.000Z");
+
+    expect(formatInfowayYmdByMarket(fixed, "US")).toBe("20240229");
+    expect(formatInfowayYmdByMarket(fixed, "HK")).toBe("20240301");
+    expect(formatInfowayYmdByMarket(fixed, "CN")).toBe("20240301");
   });
 });

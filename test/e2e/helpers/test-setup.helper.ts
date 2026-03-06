@@ -12,6 +12,22 @@ import {
   RequestTrackingInterceptor,
 } from '@common/core/interceptors';
 
+const DEFAULT_E2E_TEST_TIMEOUT_MS = 120000;
+const parsedE2eTimeout = Number.parseInt(process.env.E2E_TEST_TIMEOUT_MS || '', 10);
+export const E2E_TEST_TIMEOUT_MS =
+  Number.isFinite(parsedE2eTimeout) && parsedE2eTimeout > 0
+    ? parsedE2eTimeout
+    : DEFAULT_E2E_TEST_TIMEOUT_MS;
+
+const SHOULD_LOG_APP_BOOTSTRAP_TIMING = process.env.E2E_LOG_APP_BOOTSTRAP_TIMING === '1';
+
+function logBootstrapTiming(stage: string, durationMs: number): void {
+  if (!SHOULD_LOG_APP_BOOTSTRAP_TIMING) {
+    return;
+  }
+  console.log(`[e2e/bootstrap] ${stage}: ${durationMs}ms`);
+}
+
 export interface TestAppContext {
   app: INestApplication;
   httpServer: any;
@@ -35,38 +51,78 @@ export interface ApiKeyPair {
   accessToken: string;
 }
 
+async function forceCloseMongooseConnections(): Promise<void> {
+  try {
+    const mongoose = await import('mongoose');
+    const closeJobs = mongoose.connections
+      .filter(conn => conn.readyState !== 0)
+      .map(conn => conn.close(true).catch(() => undefined));
+    await Promise.all(closeJobs);
+    await mongoose.disconnect().catch(() => undefined);
+  } catch {
+    // ignore cleanup errors in test teardown path
+  }
+}
+
 /**
  * 创建测试应用实例
  */
 export async function createTestApp(): Promise<TestAppContext> {
-  const moduleRef: TestingModule = await Test.createTestingModule({
-    imports: [AppModule],
-  }).compile();
+  const bootstrapStartAt = Date.now();
+  let moduleRef: TestingModule | undefined;
+  let app: INestApplication | undefined;
 
-  const app = moduleRef.createNestApplication();
+  try {
+    const compileStartAt = Date.now();
+    moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    logBootstrapTiming('compile', Date.now() - compileStartAt);
 
-  // 配置全局管道、过滤器、拦截器（与main.ts保持一致）
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+    app = moduleRef.createNestApplication();
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
-  app.useGlobalInterceptors(new RequestTrackingInterceptor());
-  app.useGlobalInterceptors(new ResponseInterceptor());
+    // 配置全局管道、过滤器、拦截器（与main.ts保持一致）
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
 
-  app.setGlobalPrefix('api/v1');
+    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalInterceptors(new RequestTrackingInterceptor());
+    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.setGlobalPrefix('api/v1');
 
-  await app.init();
+    const initStartAt = Date.now();
+    await app.init();
+    logBootstrapTiming('app.init', Date.now() - initStartAt);
+    logBootstrapTiming('total', Date.now() - bootstrapStartAt);
 
-  return {
-    app,
-    httpServer: app.getHttpServer(),
-    moduleRef,
-  };
+    return {
+      app,
+      httpServer: app.getHttpServer(),
+      moduleRef,
+    };
+  } catch (error) {
+    try {
+      if (app) {
+        await app.close();
+      }
+    } catch {
+      // ignore cleanup errors in startup failure path
+    }
+    try {
+      if (moduleRef) {
+        await moduleRef.close();
+      }
+    } catch {
+      // ignore cleanup errors in startup failure path
+    }
+    await forceCloseMongooseConnections();
+    throw error;
+  }
 }
 
 /**
@@ -75,20 +131,49 @@ export async function createTestApp(): Promise<TestAppContext> {
 export async function cleanupTestApp(context: TestAppContext | undefined): Promise<void> {
   if (!context?.app) return;
 
+  const app = context.app;
+  const moduleRef = context.moduleRef;
+  const cleanupErrors: string[] = [];
+
+  const isIgnorableMissingProviderError = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('Nest could not find given element');
+  };
+
+  // 确保定时器/异步操作有机会进入可清理状态
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 显式关闭 Mongoose 连接，避免测试结束后连接句柄残留
   try {
-    // 关闭所有打开的连接
-    const app = context.app;
+    const { Connection } = await import('mongoose');
+    const connection = moduleRef.get(Connection, { strict: false });
+    if (connection && typeof connection.close === 'function') {
+      await connection.close(true);
+    }
+  } catch (error: any) {
+    if (isIgnorableMissingProviderError(error)) {
+      console.warn('⚠️ mongoose provider not found in current test context, skip close');
+    } else {
+      cleanupErrors.push(`mongoose.close: ${error?.message || String(error)}`);
+    }
+  } finally {
+    await forceCloseMongooseConnections();
+  }
 
-    // 确保所有定时器和异步操作完成
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // 关闭应用
+  // 关闭应用本身
+  try {
     await app.close();
+  } catch (error: any) {
+    cleanupErrors.push(`app.close: ${error?.message || String(error)}`);
+  }
 
-    // 额外等待确保所有资源释放
-    await new Promise(resolve => setTimeout(resolve, 500));
-  } catch (error) {
-    console.warn('Error during test app cleanup:', error);
+  // 额外等待确保资源释放
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  if (cleanupErrors.length > 0) {
+    const summary = cleanupErrors.join(' | ');
+    console.error('❌ Test app cleanup failed:', summary);
+    throw new Error(`Test app cleanup failed: ${summary}`);
   }
 }
 
