@@ -630,8 +630,46 @@ export class StreamReceiverService implements OnModuleDestroy {
     subscribeDto: StreamSubscribeDto,
     clientId?: string,
     clientIp?: string, // P0修复: 新增客户端IP参数用于频率限制
+    options?: { connectionAuthenticated?: boolean },
   ): Promise<void> {
-    const { symbols, wsCapabilityType, preferredProvider } = subscribeDto;
+    const validationResult =
+      options?.connectionAuthenticated === true
+        ? this.dataValidator.validateSubscribeRequest(subscribeDto, {
+            skipAuthValidation: true,
+          })
+        : this.dataValidator.validateSubscribeRequest(subscribeDto);
+    if (!validationResult.isValid) {
+      const error = UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "subscribeStream",
+        message: `Invalid subscribe request: ${validationResult.errors.join("; ")}`,
+        context: {
+          symbols: subscribeDto?.symbols,
+          wsCapabilityType: subscribeDto?.wsCapabilityType,
+          preferredProvider: subscribeDto?.preferredProvider,
+          validationErrors: validationResult.errors,
+          validationWarnings: validationResult.warnings,
+          errorType: STREAM_RECEIVER_ERROR_CODES.INVALID_SUBSCRIPTION_DATA,
+        },
+      });
+      this.logger.warn("订阅请求校验失败", {
+        clientId,
+        errors: validationResult.errors,
+      });
+      throw error;
+    }
+
+    if (validationResult.warnings.length > 0) {
+      this.logger.warn("订阅请求校验告警", {
+        clientId,
+        warnings: validationResult.warnings,
+      });
+    }
+
+    const sanitizedSubscribeDto = (validationResult.sanitizedData ||
+      subscribeDto) as StreamSubscribeDto;
+    const { symbols, wsCapabilityType, preferredProvider } = sanitizedSubscribeDto;
     const marketContext = resolveMarketTypeFromSymbols(
       this.marketInferenceService,
       symbols,
@@ -708,17 +746,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       const { standardSymbols, providerSymbols } =
         await this.resolveSymbolMappings(symbols, providerName, requestId);
 
-      // 2. 更新客户端状态
-      this.streamDataFetcher
-        .getClientStateManager()
-        .addClientSubscription(
-          resolvedClientId,
-          standardSymbols,
-          wsCapabilityType,
-          providerName,
-        );
-
-      // 3. 获取或创建流连接
+      // 2. 获取或创建流连接
       const connection = await this.connectionManager.getOrCreateConnection(
         providerName,
         wsCapabilityType,
@@ -727,11 +755,21 @@ export class StreamReceiverService implements OnModuleDestroy {
         resolvedClientId,
       );
 
-      // 4. 订阅符号到流连接（使用Provider要求的格式）
+      // 3. 订阅符号到流连接（使用Provider要求的格式）
       await this.streamDataFetcher.subscribeToSymbols(
         connection,
         providerSymbols,
       );
+
+      // 4. 订阅成功后更新客户端状态，避免失败场景产生脏状态
+      this.streamDataFetcher
+        .getClientStateManager()
+        .addClientSubscription(
+          resolvedClientId,
+          standardSymbols,
+          wsCapabilityType,
+          providerName,
+        );
 
       // 5. 设置数据接收处理
       this.setupDataReceiving(connection, providerName, wsCapabilityType);
@@ -770,7 +808,37 @@ export class StreamReceiverService implements OnModuleDestroy {
     unsubscribeDto: StreamUnsubscribeDto,
     clientId?: string,
   ): Promise<void> {
-    const { symbols } = unsubscribeDto;
+    const validationResult = this.dataValidator.validateUnsubscribeRequest(unsubscribeDto);
+    if (!validationResult.isValid) {
+      const error = UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "unsubscribeStream",
+        message: `Invalid unsubscribe request: ${validationResult.errors.join("; ")}`,
+        context: {
+          symbols: unsubscribeDto?.symbols,
+          validationErrors: validationResult.errors,
+          validationWarnings: validationResult.warnings,
+          errorType: STREAM_RECEIVER_ERROR_CODES.INVALID_UNSUBSCRIBE_DATA,
+        },
+      });
+      this.logger.warn("取消订阅请求校验失败", {
+        clientId,
+        errors: validationResult.errors,
+      });
+      throw error;
+    }
+
+    if (validationResult.warnings.length > 0) {
+      this.logger.warn("取消订阅请求校验告警", {
+        clientId,
+        warnings: validationResult.warnings,
+      });
+    }
+
+    const sanitizedUnsubscribeDto = (validationResult.sanitizedData ||
+      unsubscribeDto) as StreamUnsubscribeDto;
+    const { symbols } = sanitizedUnsubscribeDto;
     // ✅ Phase 3 - P2: 使用传入的clientId，如果没有则记录警告
     if (!clientId) {
       this.logger.warn("取消订阅缺少clientId，无法精确定位客户端订阅", {
@@ -938,17 +1006,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         confirmedProviderSymbols.push(providerSymbol);
       });
 
-      // 3. 恢复客户端订阅 (已移除messageCallback wrapper)
-      this.streamDataFetcher
-        .getClientStateManager()
-        .addClientSubscription(
-          clientId,
-          confirmedStandardSymbols,
-          wsCapabilityType,
-          providerName,
-        );
-
-      // 4. 获取或创建连接
+      // 3. 获取或创建连接
       const connection = await this.connectionManager.getOrCreateConnection(
         providerName,
         wsCapabilityType,
@@ -957,12 +1015,24 @@ export class StreamReceiverService implements OnModuleDestroy {
         clientId,
       );
 
-      // 5. 订阅符号（Provider格式）
+      // 4. 订阅符号（Provider格式）
       if (confirmedProviderSymbols.length > 0) {
         await this.streamDataFetcher.subscribeToSymbols(
           connection,
           confirmedProviderSymbols,
         );
+      }
+
+      // 5. 订阅成功后恢复客户端订阅状态
+      if (confirmedStandardSymbols.length > 0) {
+        this.streamDataFetcher
+          .getClientStateManager()
+          .addClientSubscription(
+            clientId,
+            confirmedStandardSymbols,
+            wsCapabilityType,
+            providerName,
+          );
       }
 
       // 6. 判断是否需要补发数据
@@ -2105,7 +2175,13 @@ export class StreamReceiverService implements OnModuleDestroy {
   private initializeConnectionCleanup(): void {
     // 定期清理断开的连接 - 使用专职服务
     this.cleanupTimer = setInterval(async () => {
-      await this.connectionManager.forceConnectionCleanup();
+      try {
+        await this.connectionManager.forceConnectionCleanup();
+      } catch (error) {
+        this.logger.error("连接清理任务执行失败", {
+          error: error?.message || String(error),
+        });
+      }
     }, this.config.connectionCleanupInterval);
 
     this.logger.log("连接清理机制已初始化", {

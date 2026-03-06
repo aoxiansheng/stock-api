@@ -17,7 +17,7 @@ import {
 
 // 自定义验证器：检测循环引用标记
 function NoCircularReference(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'noCircularReference',
       target: object.constructor,

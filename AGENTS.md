@@ -56,7 +56,7 @@
 
 ## 项目结构与模块组织
 - 源码：`src/`（核心：`appcore/` 配置与启动、`core/` 领域模块、`providersv2/` 外部数据源、`cachev2/` 缓存、`authv2/` 鉴权、`common/` 公共模块、`database/` 数据库整合）。入口：`src/main.ts`。
-- 文档与脚本：`docs/`、`scripts/`；构建产物：`dist/`；测试：`test/`（当前以 `test/e2e` 集成为主）。
+- 文档与脚本：`docs/`、`scripts/`；构建产物：`dist/`；测试：`test/`（`test/unit` 与 `test/e2e` 并行维护）。
 - TS 路径别名（见 `tsconfig.json`）：如 `@core/*`、`@providersv2/*`、`@cachev2/*` 等，优先使用别名而非相对路径。
 
 ## 构建、测试与本地开发
@@ -65,7 +65,7 @@
 - 构建：`bun run build`（调用 `tsc -p tsconfig.build.json` 输出到 `dist/`）。
 - 质量：`bun run lint`、`bun run format:check`、`bun run format`、`bun run security:deps`。
 - 类型单文件检查：`npm run typecheck:file -- <path.ts>`。
-- 测试（Jest + ts-jest）：仓库当前内置 e2e 配置 `test/jest.e2e.config.js`，可使用 `bun run test:e2e` 或 `npx jest --config test/jest.e2e.config.js --rootDir .`。
+- 测试（Jest + ts-jest）：单元测试使用 `test/jest.unit.config.js`，命令 `bun run test:unit` / `bun run test:unit:coverage`；集成测试使用 `test/jest.e2e.config.js`，命令 `bun run test:e2e` / `bun run test:e2e:coverage`。
 
 ## JvQuant 调试脚本
 - 生成测试凭证：`npm run tool:bootstrap-apikey`
@@ -78,13 +78,26 @@
   - 示例：
     - `BASE_URL=http://127.0.0.1:3001 APP_KEY=... ACCESS_TOKEN=... EXPECT_MARKETS=US npm run tool:test-jvquant-ws`
 
+## Infoway 调试脚本
+- REST 能力验证：`npm run tool:test-infoway-rest`
+  - 作用：调用 `receiver/data` 并验证 `preferredProvider=infoway` 的 4 个能力：
+    - `get-stock-quote`
+    - `get-stock-basic-info`
+    - `get-market-status`
+    - `get-trading-days`
+  - 常用参数：`BASE_URL`、`APP_KEY`、`ACCESS_TOKEN`、`USERNAME`、`PASSWORD`、`SYMBOLS`、`TEST_MARKET`、`BEGIN_DAY`、`END_DAY`。
+  - 安全限制：仅允许在本地/测试环境执行，禁止在生产环境直接使用该调试命令。
+  - 凭据要求：示例与日志必须使用占位符或脱敏值，不得把真实凭据写入命令历史、日志或 issue。
+  - 示例：
+    - `BASE_URL=http://127.0.0.1:3001 APP_KEY=<APP_KEY> ACCESS_TOKEN=<ACCESS_TOKEN> npm run tool:test-infoway-rest`
+
 ## 编码风格与命名规范
 - 语言：TypeScript；缩进 2 空格；优先 `named export`；禁止无意义的缩写。
 - 文件命名：`*.module.ts`、`*.service.ts`、`*.controller.ts`、`*.constants.ts`、`*.dto.ts`、`*.enum.ts`。
 - Lint/Format：ESLint（`eslint.config.mts`）+ Prettier，遵循常量与弃用规则（存在多处 `no-restricted-*` 约束，避免硬编码字符串与旧路径）。
 
 ## 测试规范
-- 框架：Jest 30.x + ts-jest；当前测试文件以 `test/e2e/*.e2e-spec.ts` 为主。
+- 框架：Jest 30.x + ts-jest；测试分层为 `test/unit/**/*.spec.ts`（单元）与 `test/e2e/**/*.e2e-spec.ts`（集成）。
 - 基本要求：新增功能需配套最小可行单元测试，逐步提升覆盖率。
 - 示例：`npx jest --passWithNoTests --runInBand` 或指定单测文件运行。
 

@@ -1,13 +1,15 @@
 import { Module } from "@nestjs/common";
 
-import { LongportModule } from "./providers/longport/module/longport.module";
-import { LongportSgModule } from "./providers/longport-sg/module/longport-sg.module";
-import { JvQuantModule } from "./providers/jvquant/module/jvquant.module";
+import { ACTIVE_PROVIDER_MANIFEST } from "./provider-id.constants";
 
 import { ProviderRegistryService } from "./provider-registry.service";
 
+export const PROVIDER_ASSEMBLY_MODULE_IMPORTS = Object.freeze(
+  ACTIVE_PROVIDER_MANIFEST.map((entry) => entry.module),
+);
+
 @Module({
-  imports: [LongportModule, LongportSgModule, JvQuantModule],
+  imports: [...PROVIDER_ASSEMBLY_MODULE_IMPORTS],
   providers: [ProviderRegistryService],
   exports: [ProviderRegistryService],
 })

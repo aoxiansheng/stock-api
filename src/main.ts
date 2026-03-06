@@ -67,7 +67,6 @@ async function bootstrap() {
     app.useGlobalInterceptors(new RequestTrackingInterceptor());
 
     // 全局性能监控拦截器 - 事件化重构
-    const reflector = app.get("Reflector");
     // 完全事件驱动架构，移除CollectorService直接依赖
 
 

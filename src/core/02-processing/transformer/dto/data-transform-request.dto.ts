@@ -6,6 +6,9 @@ import {
   IsObject,
   IsOptional,
   IsBoolean,
+  IsInt,
+  Min,
+  Max,
   IsEnum,
   IsNotEmpty,
   ValidateNested,
@@ -37,7 +40,7 @@ export class IsNonEmptyObjectOrArrayConstraint implements ValidatorConstraintInt
 }
 
 export function IsNonEmptyObjectOrArray(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -62,6 +65,33 @@ class TransformOptionsDto {
   @IsBoolean()
   includeDebugInfo?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      "符号还原时允许处理的最大数组长度（仅数组输入生效，请求值只能收紧，最终受 runtime 限制）",
+    minimum: 0,
+    maximum: 100000,
+    example: 10000,
+  })
+  @ValidateIf((o, v) => v !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  maxArraySize?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "符号还原最大并发数（仅数组输入生效，请求值只能收紧，最终受 runtime 限制）",
+    minimum: 1,
+    maximum: 256,
+    example: 16,
+  })
+  @ValidateIf((o, v) => v !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(256)
+  maxRestoreConcurrency?: number;
 }
 
 export class DataTransformRequestDto {

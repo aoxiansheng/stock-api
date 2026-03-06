@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, OnModuleDestroy } from "@nestjs/common";
 import { WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 import { createLogger } from "@common/logging/index";
@@ -16,7 +16,7 @@ import { StreamConfigService } from "../config/stream-config.service";
  * - 恶意连接检测
  */
 @Injectable()
-export class WebSocketRateLimitGuard {
+export class WebSocketRateLimitGuard implements OnModuleDestroy {
   private readonly logger = createLogger(WebSocketRateLimitGuard.name);
 
   // 默认配置（由 StreamConfigService 统一提供，避免散落 ENV）
@@ -36,6 +36,7 @@ export class WebSocketRateLimitGuard {
 
   // 订阅计数
   private readonly subscriptionCounters = new Map<string, Set<string>>();
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly streamConfigService: StreamConfigService) {
     const ws = this.streamConfigService.getSecurityConfig().websocket;
@@ -52,8 +53,16 @@ export class WebSocketRateLimitGuard {
     };
 
     // 定期清理过期数据
-    setInterval(() => this.cleanup(), 60 * 1000); // 每分钟清理
+    this.cleanupTimer = setInterval(() => this.cleanup(), 60 * 1000); // 每分钟清理
+    this.cleanupTimer.unref?.();
     this.logger.log("WebSocket DoS防护已启用", this.config);
+  }
+
+  onModuleDestroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
   }
 
   /**

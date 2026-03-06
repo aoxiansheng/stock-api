@@ -1,14 +1,17 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { SymbolMapperService } from "@core/00-prepare/symbol-mapper/services/symbol-mapper.service";
-import { AddSymbolMappingRuleDto, UpdateSymbolMappingRuleDto } from "@core/00-prepare/symbol-mapper/dto/update-symbol-mapping.dto";
+import {
+  AddSymbolMappingRuleDto,
+  UpdateSymbolMappingRuleDto,
+} from "@core/00-prepare/symbol-mapper/dto/update-symbol-mapping.dto";
 import { CreateSymbolMappingDto } from "@core/00-prepare/symbol-mapper/dto/create-symbol-mapping.dto";
 import { REFERENCE_DATA } from "@common/constants/domain";
 
 /**
  * 预设 Symbol 规则启动初始化器
  * - 在模块初始化时将预设的 symbol 映射规则写入数据库（仅 longport 数据源）
- * - 幂等：不存在则创建，存在则逐条更新/追加
+ * - 幂等：不存在则创建，存在则按标准符号 update-or-insert，避免先删后加窗口
  * - 仅持久化规则，不改变运行时转换路径
  */
 @Injectable()
@@ -72,49 +75,79 @@ export class PresetSymbolRulesInitializer implements OnModuleInit {
         return;
       }
 
-      // 已存在：逐条更新/追加（优先更新，缺失则追加）
+      // 已存在：对预设符号做 update-or-insert，避免先删后加的短暂缺失窗口
       let updated = 0;
-      let added = 0;
+      let inserted = 0;
+      let failed = 0;
       for (const r of rules) {
+        const symbolMappingRule = {
+          standardSymbol: r.standardSymbol,
+          sdkSymbol: r.sdkSymbol,
+          market: r.market,
+          symbolType: r.symbolType,
+          isActive: true,
+          description: "preset",
+        } as any;
+
         const updateDto: UpdateSymbolMappingRuleDto = {
           dataSourceName: provider,
           standardSymbol: r.standardSymbol,
-          symbolMappingRule: {
-            sdkSymbol: r.sdkSymbol,
-            market: r.market,
-            symbolType: r.symbolType,
-            isActive: true,
-            description: "preset",
-          } as any,
+          symbolMappingRule,
         };
 
         try {
           await this.symbolMapperService.updateSymbolMappingRule(updateDto);
           updated++;
-        } catch {
-          const addDto: AddSymbolMappingRuleDto = {
-            dataSourceName: provider,
-            symbolMappingRule: {
-              standardSymbol: r.standardSymbol,
-              sdkSymbol: r.sdkSymbol,
-              market: r.market,
-              symbolType: r.symbolType,
-              isActive: true,
-              description: "preset",
-            } as any,
-          };
-          try {
-            await this.symbolMapperService.addSymbolMappingRule(addDto);
-            added++;
-          } catch (err) {
-            this.logger.warn("预设符号规则写入失败(跳过)", {
+          continue;
+        } catch (err) {
+          const errorCodeRaw =
+            (err as any)?.errorCode ??
+            (err as any)?.response?.errorCode ??
+            (err as any)?.getResponse?.()?.errorCode;
+          const errorCode =
+            typeof errorCodeRaw === "string"
+              ? errorCodeRaw.toUpperCase()
+              : "";
+          const message = String((err as any)?.message ?? "").toLowerCase();
+          const fallbackByMessage =
+            message.includes("not found") || message.includes("data_not_found");
+          const shouldInsert =
+            errorCode === "DATA_NOT_FOUND" ||
+            (!errorCode && fallbackByMessage);
+
+          if (!shouldInsert) {
+            failed++;
+            this.logger.warn("预设符号规则更新失败(跳过)", {
               standardSymbol: r.standardSymbol,
               error: (err as any)?.message,
             });
+            continue;
           }
         }
+
+        const addDto: AddSymbolMappingRuleDto = {
+          dataSourceName: provider,
+          symbolMappingRule,
+        };
+
+        try {
+          await this.symbolMapperService.addSymbolMappingRule(addDto);
+          inserted++;
+        } catch (err) {
+          failed++;
+          this.logger.warn("预设符号规则插入失败(跳过)", {
+            standardSymbol: r.standardSymbol,
+            error: (err as any)?.message,
+          });
+        }
       }
-      this.logger.log("预设符号规则同步完成", { provider, updated, added });
+
+      this.logger.log("预设符号规则同步完成", {
+        provider,
+        updated,
+        inserted,
+        failed,
+      });
     } catch (error: any) {
       this.logger.warn("预设符号规则持久化失败(启动阶段)，将继续启动流程", {
         error: error?.message,

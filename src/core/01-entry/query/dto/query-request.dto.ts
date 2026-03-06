@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { CAPABILITY_NAMES } from "../../../../providersv2/providers/constants/capability-names.constants";
+import { SUPPORTED_CAPABILITY_TYPES } from "../../receiver/constants/operations.constants";
 
 import { REFERENCE_DATA } from "@common/constants/domain";
 import {
@@ -8,6 +9,7 @@ import {
   IsOptional,
   IsEnum,
   IsArray,
+  IsIn,
   ValidateNested,
   IsNumber,
   Min,
@@ -22,6 +24,10 @@ import {
 import { QueryType } from "./query-types.dto";
 import { QUERY_LIMITS } from "../constants/query.constants";
 import { BaseQueryDto } from "@common/dto/base-query.dto";
+
+export const QUERY_TYPE_FILTER_WHITELIST = Object.freeze(
+  [...SUPPORTED_CAPABILITY_TYPES] as string[],
+);
 
 /**
  * 排序方向
@@ -139,44 +145,34 @@ export class QueryRequestDto extends BaseQueryDto {
   tag?: string;
 
   /**
-   * 时间范围查询起始时间
+   * 交易日查询起始日期
    *
-   * @description 用于时间范围查询的起始时间点。当queryType为QueryType.BY_TIME_RANGE时为必需字段。
-   *              支持ISO 8601格式的时间字符串，用于查询指定时间段内的历史数据。
-   * @format ISO 8601 时间格式 (YYYY-MM-DDTHH:mm:ssZ)
-   * @example "2023-01-01T00:00:00Z" - 2023年1月1日零点开始
-   * @example "2023-06-15T09:30:00Z" - 2023年6月15日9:30开始
-   * @validation 必须早于endTime，且不能是未来时间
-   * @since v1.0.0
-   * @todo 考虑支持相对时间格式（如"1d", "1w", "1m"）
-   * @see {@link QueryType.BY_TIME_RANGE} 相关查询类型
-   * @see {@link QueryRequestDto.endTime} 结束时间字段
+   * @description 仅在 queryTypeFilter=get-trading-days 时生效，支持 YYYYMMDD 或 YYYY-MM-DD。
+   * @example "20260101" - 紧凑日期格式
+   * @example "2026-01-01" - 连字符日期格式
+   * @validation 必须早于或等于 endTime
+   * @see {@link QueryRequestDto.endTime} 结束日期字段
    */
   @ApiPropertyOptional({
-    description: "开始时间，当queryType为by_time_range时必需",
-    example: "2023-01-01T00:00:00Z",
+    description: `交易日查询起始日期（YYYYMMDD/YYYY-MM-DD，仅 queryTypeFilter=${CAPABILITY_NAMES.GET_TRADING_DAYS} 生效）`,
+    example: "20260101",
   })
   @IsOptional()
   @IsString()
   startTime?: string;
 
   /**
-   * 时间范围查询结束时间
+   * 交易日查询结束日期
    *
-   * @description 用于时间范围查询的结束时间点。当queryType为QueryType.BY_TIME_RANGE时为必需字段。
-   *              支持ISO 8601格式的时间字符串，与startTime组成完整的时间范围。
-   * @format ISO 8601 时间格式 (YYYY-MM-DDTHH:mm:ssZ)
-   * @example "2023-01-31T23:59:59Z" - 2023年1月31日23:59:59结束
-   * @example "2023-12-31T23:59:59Z" - 2023年12月31日年末结束
-   * @validation 必须晚于startTime，时间范围不能超过系统限制（如最多1年）
-   * @since v1.0.0
-   * @performance 较大旴间范围查询可能影响性能，建议分批处理
-   * @see {@link QueryType.BY_TIME_RANGE} 相关查询类型
-   * @see {@link QueryRequestDto.startTime} 开始时间字段
+   * @description 仅在 queryTypeFilter=get-trading-days 时生效，支持 YYYYMMDD 或 YYYY-MM-DD。
+   * @example "20260131" - 紧凑日期格式
+   * @example "2026-01-31" - 连字符日期格式
+   * @validation 必须晚于或等于 startTime
+   * @see {@link QueryRequestDto.startTime} 起始日期字段
    */
   @ApiPropertyOptional({
-    description: "结束时间，当queryType为by_time_range时必需",
-    example: "2023-01-31T23:59:59Z",
+    description: `交易日查询结束日期（YYYYMMDD/YYYY-MM-DD，仅 queryTypeFilter=${CAPABILITY_NAMES.GET_TRADING_DAYS} 生效）`,
+    example: "20260131",
   })
   @IsOptional()
   @IsString()
@@ -235,6 +231,7 @@ export class QueryRequestDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsString()
+  @IsIn(QUERY_TYPE_FILTER_WHITELIST)
   queryTypeFilter?: string;
 
   @ApiPropertyOptional({
@@ -251,6 +248,96 @@ export class QueryRequestDto extends BaseQueryDto {
   @ValidateNested()
   @Type(() => SortOptionsDto)
   querySort?: SortOptionsDto;
+}
+
+/**
+ * GET /query/symbols 请求参数 DTO
+ */
+export class QuerySymbolsRequestDto {
+  @ApiProperty({
+    description: "股票代码列表，多个代码用逗号分隔",
+    example: "AAPL,GOOGL,MSFT",
+  })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  symbols: string;
+
+  @ApiPropertyOptional({
+    description: "指定数据提供商（可选）",
+    example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+  })
+  @IsOptional()
+  @IsString()
+  provider?: string;
+
+  @ApiPropertyOptional({
+    description: "指定市场（可选）",
+    example: "US",
+  })
+  @IsOptional()
+  @IsString()
+  market?: string;
+
+  @ApiPropertyOptional({
+    description: "数据类别（可选）",
+    example: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @IsIn(QUERY_TYPE_FILTER_WHITELIST)
+  queryTypeFilter?: string;
+
+  @ApiPropertyOptional({
+    description: "返回结果数量限制",
+    example: 10,
+    minimum: 1,
+    maximum: 1000,
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(1000)
+  limit?: number;
+
+  @ApiPropertyOptional({
+    description: "页码，默认为1",
+    example: 1,
+    minimum: 1,
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({
+    description: "是否使用缓存",
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === "boolean" || value === undefined) {
+      return value;
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true") {
+        return true;
+      }
+      if (normalized === "false") {
+        return false;
+      }
+    }
+    return value;
+  })
+  @IsBoolean()
+  useCache?: boolean;
 }
 
 /**

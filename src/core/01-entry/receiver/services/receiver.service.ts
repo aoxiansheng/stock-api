@@ -3,6 +3,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  OnModuleInit,
   OnModuleDestroy,
 } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
@@ -40,7 +41,11 @@ import {
   RECEIVER_ERROR_MESSAGES,
   RECEIVER_WARNING_MESSAGES,
 } from "../constants/messages.constants";
-import { RECEIVER_OPERATIONS } from "../constants/operations.constants";
+import {
+  RECEIVER_OPERATIONS,
+  SUPPORTED_CAPABILITY_TYPES,
+  assertReceiverCapabilityWhitelistSync,
+} from "../constants/operations.constants";
 import { DataRequestDto } from "../dto/data-request.dto";
 import {
   DataResponseDto,
@@ -58,6 +63,11 @@ import {
   resolveMarketTypeFromSymbols,
   MarketTypeContext,
 } from "@core/shared/utils/market-type.util";
+import { validateYmdDateRange } from "@core/shared/utils/ymd-date.util";
+
+const TRADING_DAYS_MIN_YMD = "19000101";
+const TRADING_DAYS_MAX_YMD = "20991231";
+const TRADING_DAYS_MAX_SPAN_DAYS = 366;
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的数据接收常量
 
@@ -73,7 +83,7 @@ import {
  */
 
 @Injectable()
-export class ReceiverService implements OnModuleDestroy {
+export class ReceiverService implements OnModuleInit, OnModuleDestroy {
   // 🎯 使用 common 模块的日志配置
   private readonly logger = createLogger(ReceiverService.name);
   private activeConnections = 0;
@@ -94,6 +104,41 @@ export class ReceiverService implements OnModuleDestroy {
     private readonly marketInferenceService: MarketInferenceService,
     private readonly smartCacheOrchestrator: SmartCacheStandardizedService, // 🔑 关键: 注入智能缓存编排器
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.capabilityRegistryService.onModuleInit();
+
+    const activeCapabilities = this.collectActiveProviderCapabilityNames();
+    assertReceiverCapabilityWhitelistSync(
+      SUPPORTED_CAPABILITY_TYPES,
+      activeCapabilities,
+    );
+
+    this.logger.log("Receiver 能力白名单与 Provider 能力集合一致性校验通过", {
+      whitelistSize: SUPPORTED_CAPABILITY_TYPES.length,
+      activeCapabilitySize: activeCapabilities.length,
+    });
+  }
+
+  private collectActiveProviderCapabilityNames(): string[] {
+    const allCapabilities = this.capabilityRegistryService.getAllCapabilities();
+    const activeCapabilityNames: string[] = [];
+
+    for (const providerCapabilities of allCapabilities.values()) {
+      for (const [capabilityName, capabilityMeta] of providerCapabilities.entries()) {
+        if (capabilityMeta?.isEnabled === false) {
+          continue;
+        }
+
+        const actualCapabilityName = capabilityMeta?.capability?.name;
+        activeCapabilityNames.push(
+          String(actualCapabilityName || capabilityName),
+        );
+      }
+    }
+
+    return activeCapabilityNames;
+  }
 
   /**
    * 处理数据请求的主入口方法 - 强时效接口
@@ -478,6 +523,46 @@ export class ReceiverService implements OnModuleDestroy {
 
     // 🎯 移除选项参数验证
     // RequestOptionsDto 中已包含验证装饰器
+    const beginDayRaw = request.options?.beginDay as unknown;
+    const endDayRaw = request.options?.endDay as unknown;
+
+    if (
+      beginDayRaw !== undefined &&
+      beginDayRaw !== null &&
+      typeof beginDayRaw !== "string"
+    ) {
+      errors.push("beginDay 必须是字符串");
+    }
+    if (
+      endDayRaw !== undefined &&
+      endDayRaw !== null &&
+      typeof endDayRaw !== "string"
+    ) {
+      errors.push("endDay 必须是字符串");
+    }
+
+    const beginDay = typeof beginDayRaw === "string" ? beginDayRaw : undefined;
+    const endDay = typeof endDayRaw === "string" ? endDayRaw : undefined;
+    const hasTradingDayRange =
+      Boolean(beginDay && beginDay.trim()) || Boolean(endDay && endDay.trim());
+    if (
+      hasTradingDayRange &&
+      request.receiverType !== CAPABILITY_NAMES.GET_TRADING_DAYS
+    ) {
+      errors.push("beginDay/endDay 仅允许在 get-trading-days 请求中使用");
+    }
+
+    if (request.receiverType === CAPABILITY_NAMES.GET_TRADING_DAYS) {
+      const dateRangeValidation = validateYmdDateRange(beginDay, endDay, {
+        strict: true,
+        minYmd: TRADING_DAYS_MIN_YMD,
+        maxYmd: TRADING_DAYS_MAX_YMD,
+        maxSpanDays: TRADING_DAYS_MAX_SPAN_DAYS,
+      });
+      if (!dateRangeValidation.isValid && dateRangeValidation.message) {
+        errors.push(dateRangeValidation.message);
+      }
+    }
 
     if (errors.length > 0) {
       return ValidationResultDto.invalid(

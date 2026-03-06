@@ -10,6 +10,10 @@ import {
 } from "@nestjs/common";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
 import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
+import {
+  RULE_LIST_TYPES,
+  RuleListType,
+} from "../constants/data-mapper.constants";
 
 import {
   DataSourceTemplate,
@@ -21,6 +25,10 @@ import {
 } from "../schemas/flexible-mapping-rule.schema";
 import { RuleAlignmentService } from "./rule-alignment.service";
 
+type PresetRuleType = Exclude<
+  RuleListType,
+  typeof RULE_LIST_TYPES.INDEX_FIELDS
+>;
 
 /**
  * 🏗️ 简化的持久化模板服务
@@ -38,7 +46,61 @@ export class PersistedTemplateService {
     private readonly ruleAlignmentService: RuleAlignmentService,
   ) {}
 
-  
+  private createInfowayQuoteSampleData() {
+    return {
+      symbol: "AAPL.US",
+      lastPrice: 228.33,
+      previousClose: 229.09,
+      openPrice: 227.84,
+      highPrice: 229.56,
+      lowPrice: 224.76,
+      volume: 34873322,
+      turnover: 7925585994.156,
+      change: -0.76,
+      changePercent: -0.33,
+      timestamp: "2025-11-11T09:30:00+08:00",
+      tradeStatus: "Normal",
+    };
+  }
+
+  private createInfowayQuoteExtractedFields() {
+    return [
+      { fieldPath: "symbol", fieldName: "symbol", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "lastPrice", fieldName: "lastPrice", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "previousClose", fieldName: "previousClose", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "openPrice", fieldName: "openPrice", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "highPrice", fieldName: "highPrice", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "lowPrice", fieldName: "lowPrice", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "volume", fieldName: "volume", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "turnover", fieldName: "turnover", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "change", fieldName: "change", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "changePercent", fieldName: "changePercent", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "timestamp", fieldName: "timestamp", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "tradeStatus", fieldName: "tradeStatus", fieldType: "string", confidence: 0.9 },
+    ];
+  }
+
+  private createInfowayQuoteTemplate(apiType: "rest" | "stream") {
+    const isRest = apiType === "rest";
+    return {
+      name: isRest
+        ? "Infoway REST 报价模板(基于batch_kline统一字段)"
+        : "Infoway WebSocket 报价流模板(基于K线推送映射)",
+      provider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+      apiType,
+      isPreset: true,
+      isDefault: true,
+      description: isRest
+        ? "Infoway REST 行情模板（标准化报价字段）"
+        : "Infoway WebSocket 行情模板（标准化报价字段）",
+      sampleData: this.createInfowayQuoteSampleData(),
+      extractedFields: this.createInfowayQuoteExtractedFields(),
+      totalFields: 12,
+      confidence: 0.95,
+      isActive: true,
+    };
+  }
+
 
   /**
    * 预设模板的硬编码原始配置
@@ -575,6 +637,110 @@ export class PersistedTemplateService {
         },
       ],
       totalFields: 10,
+      confidence: 0.95,
+      isActive: true,
+    },
+    this.createInfowayQuoteTemplate("rest"),
+    this.createInfowayQuoteTemplate("stream"),
+    {
+      name: "Infoway REST 股票基础信息模板",
+      provider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+      apiType: "rest" as const,
+      isPreset: true,
+      isDefault: false,
+      description: "Infoway REST 基础信息模板（标准化基础信息字段）",
+      sampleData: {
+        symbol: "AAPL.US",
+        market: "US",
+        nameCn: "苹果",
+        nameEn: "Apple Inc.",
+        nameHk: "蘋果",
+        exchange: "NASD",
+        currency: "USD",
+        lotSize: 1,
+        totalShares: 14681140000,
+        circulatingShares: 14656187001,
+        hkShares: 0,
+        eps: "7.6295165089359546",
+        epsTtm: "8.0223334155249524",
+        bps: "6.0070267022860623",
+        dividendYield: "1.04",
+        stockDerivatives: ["1"],
+        board: "Unknown",
+      },
+      extractedFields: [
+        { fieldPath: "symbol", fieldName: "symbol", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "nameCn", fieldName: "nameCn", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "nameEn", fieldName: "nameEn", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "nameHk", fieldName: "nameHk", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "exchange", fieldName: "exchange", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "currency", fieldName: "currency", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "board", fieldName: "board", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "lotSize", fieldName: "lotSize", fieldType: "number", confidence: 0.95 },
+        { fieldPath: "totalShares", fieldName: "totalShares", fieldType: "number", confidence: 0.95 },
+        { fieldPath: "circulatingShares", fieldName: "circulatingShares", fieldType: "number", confidence: 0.95 },
+        { fieldPath: "hkShares", fieldName: "hkShares", fieldType: "number", confidence: 0.95 },
+        { fieldPath: "eps", fieldName: "eps", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "epsTtm", fieldName: "epsTtm", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "bps", fieldName: "bps", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "dividendYield", fieldName: "dividendYield", fieldType: "string", confidence: 0.95 },
+        {
+          fieldPath: "stockDerivatives",
+          fieldName: "stockDerivatives",
+          fieldType: "array",
+          confidence: 0.95,
+        },
+      ],
+      totalFields: 16,
+      confidence: 0.95,
+      isActive: true,
+    },
+    {
+      name: "Infoway REST 市场状态模板",
+      provider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+      apiType: "rest" as const,
+      isPreset: true,
+      isDefault: false,
+      description: "Infoway REST 市场状态模板（标准化市场状态字段）",
+      sampleData: {
+        market: "HK",
+        remark: "港股市场",
+        tradeSchedules: [
+          { beginTime: "09:30", endTime: "12:00", type: "Normal" },
+          { beginTime: "13:00", endTime: "16:00", type: "Normal" },
+        ],
+      },
+      extractedFields: [
+        { fieldPath: "market", fieldName: "market", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "remark", fieldName: "remark", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "tradeSchedules", fieldName: "tradeSchedules", fieldType: "array", confidence: 0.95 },
+      ],
+      totalFields: 3,
+      confidence: 0.95,
+      isActive: true,
+    },
+    {
+      name: "Infoway REST 交易日模板",
+      provider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+      apiType: "rest" as const,
+      isPreset: true,
+      isDefault: false,
+      description: "Infoway REST 交易日模板（标准化交易日字段）",
+      sampleData: {
+        market: "US",
+        beginDay: "20260226",
+        endDay: "20260305",
+        tradeDays: ["20260226", "20260227", "20260302", "20260303"],
+        halfTradeDays: [],
+      },
+      extractedFields: [
+        { fieldPath: "market", fieldName: "market", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "beginDay", fieldName: "beginDay", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "endDay", fieldName: "endDay", fieldType: "string", confidence: 0.95 },
+        { fieldPath: "tradeDays", fieldName: "tradeDays", fieldType: "array", confidence: 0.95 },
+        { fieldPath: "halfTradeDays", fieldName: "halfTradeDays", fieldType: "array", confidence: 0.95 },
+      ],
+      totalFields: 5,
       confidence: 0.95,
       isActive: true,
     },
@@ -1189,7 +1355,7 @@ export class PersistedTemplateService {
    */
   private determineRuleType(
     template: DataSourceTemplateDocument,
-  ): "quote_fields" | "basic_info_fields" {
+  ): PresetRuleType {
     const templateName = template.name.toLowerCase();
     const extractedFieldNames = template.extractedFields.map((field) =>
       field.fieldName.toLowerCase(),
@@ -1202,6 +1368,22 @@ export class PersistedTemplateService {
       templateName.includes("basic_info")
     ) {
       return "basic_info_fields";
+    }
+
+    if (
+      templateName.includes("市场状态") ||
+      templateName.includes("market_status") ||
+      templateName.includes("market status")
+    ) {
+      return "market_status_fields";
+    }
+
+    if (
+      templateName.includes("交易日") ||
+      templateName.includes("trading_days") ||
+      templateName.includes("trading day")
+    ) {
+      return "trading_days_fields";
     }
 
     if (templateName.includes("报价") || templateName.includes("quote")) {
@@ -1228,6 +1410,17 @@ export class PersistedTemplateService {
       "turnover",
       "timestamp",
     ];
+    const marketStatusIndicators = [
+      "tradeschedules",
+      "market",
+      "remark",
+    ];
+    const tradingDaysIndicators = [
+      "tradedays",
+      "halftradedays",
+      "beginday",
+      "endday",
+    ];
 
     const basicInfoMatches = basicInfoIndicators.filter((indicator) =>
       extractedFieldNames.some((field) => field.includes(indicator)),
@@ -1236,6 +1429,22 @@ export class PersistedTemplateService {
     const quoteMatches = quoteIndicators.filter((indicator) =>
       extractedFieldNames.some((field) => field.includes(indicator)),
     ).length;
+
+    const marketStatusMatches = marketStatusIndicators.filter((indicator) =>
+      extractedFieldNames.some((field) => field.includes(indicator)),
+    ).length;
+
+    const tradingDaysMatches = tradingDaysIndicators.filter((indicator) =>
+      extractedFieldNames.some((field) => field.includes(indicator)),
+    ).length;
+
+    if (tradingDaysMatches >= 2) {
+      return "trading_days_fields";
+    }
+
+    if (marketStatusMatches >= 2) {
+      return "market_status_fields";
+    }
 
     // 根据匹配数量判断类型
     if (basicInfoMatches > quoteMatches) {
@@ -1252,12 +1461,18 @@ export class PersistedTemplateService {
    */
   private generateRuleName(
     template: DataSourceTemplateDocument,
-    transDataRuleListType: "quote_fields" | "basic_info_fields",
+    transDataRuleListType: PresetRuleType,
   ): string {
     const provider = template.provider;
     const apiType = template.apiType.toUpperCase();
+    const transDataRuleListTypeLabelMap: Record<PresetRuleType, string> = {
+      quote_fields: "报价数据",
+      basic_info_fields: "基础信息",
+      market_status_fields: "市场状态",
+      trading_days_fields: "交易日",
+    };
     const transDataRuleListTypeLabel =
-      transDataRuleListType === "quote_fields" ? "报价数据" : "基础信息";
+      transDataRuleListTypeLabelMap[transDataRuleListType];
 
     // 基于模板名称简化
     let templateNameSimplified = template.name

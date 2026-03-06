@@ -122,8 +122,21 @@ export class JvQuantStreamContextService implements OnModuleDestroy {
     }
   }
 
-  onQuoteUpdate(callback: (data: any) => void): void {
+  onQuoteUpdate(callback: (data: any) => void): () => void {
     this.messageCallbacks.push(callback);
+
+    let unregistered = false;
+    return () => {
+      if (unregistered) {
+        return;
+      }
+
+      unregistered = true;
+      const index = this.messageCallbacks.indexOf(callback);
+      if (index >= 0) {
+        this.messageCallbacks.splice(index, 1);
+      }
+    };
   }
 
   isWebSocketConnected(): boolean {
@@ -147,6 +160,7 @@ export class JvQuantStreamContextService implements OnModuleDestroy {
     this.subscribedCodesByMarket.clear();
     this.standardSymbolMap.clear();
     this.connectTasks.clear();
+    this.messageCallbacks.length = 0;
   }
 
   async onModuleDestroy(): Promise<void> {

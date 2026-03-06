@@ -127,7 +127,38 @@ export class SymbolTransformerService implements ISymbolTransformer {
     direction: MappingDirection = MappingDirection.TO_STANDARD,
   ): Promise<string> {
     const result = await this.transformSymbols(provider, [symbol], direction);
-    return result.mappedSymbols[0] || symbol;
+    const mappedSymbol = result.mappingDetails[symbol] ?? result.mappedSymbols[0];
+    const shouldBlockSilentFallback =
+      direction === MappingDirection.TO_STANDARD &&
+      mappedSymbol === symbol &&
+      !this.isStandardFormat(symbol);
+
+    if (
+      typeof mappedSymbol === "string" &&
+      mappedSymbol.trim().length > 0 &&
+      !shouldBlockSilentFallback
+    ) {
+      return mappedSymbol;
+    }
+
+    throw UniversalExceptionFactory.createBusinessException({
+      message: `No symbol mapping found for provider '${provider}' and symbol '${symbol}'`,
+      errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+      operation: "transformSingleSymbol",
+      component: ComponentIdentifier.SYMBOL_TRANSFORMER,
+      context: {
+        provider,
+        symbol,
+        direction,
+        mappedSymbol,
+        failedSymbols: result.failedSymbols,
+        customErrorCode: SYMBOL_TRANSFORMER_ERROR_CODES.MAPPING_RULE_NOT_FOUND,
+        reason: shouldBlockSilentFallback
+          ? "provider_symbol_silent_fallback_blocked"
+          : "mapping_not_found",
+      },
+      retryable: false,
+    });
   }
 
   /**

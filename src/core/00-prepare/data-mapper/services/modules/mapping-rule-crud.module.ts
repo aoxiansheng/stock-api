@@ -24,6 +24,11 @@ import {
 } from '@core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
 import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from '@common/core/exceptions';
 import { DATA_MAPPER_ERROR_CODES } from '@core/00-prepare/data-mapper/constants/data-mapper-error-codes.constants';
+import {
+  RULE_LIST_TYPES,
+  RuleListType,
+} from '@core/00-prepare/data-mapper/constants/data-mapper.constants';
+import type { RuleLookupOptions } from '@core/00-prepare/data-mapper/types/rule-lookup-options.type';
 import { DataSourceTemplateService } from '@core/00-prepare/data-mapper/services/data-source-template.service';
 
 /**
@@ -192,7 +197,7 @@ export class MappingRuleCrudModule {
       name: dto.name,
       provider: template.provider,
       apiType: template.apiType as "rest" | "stream",
-      transDataRuleListType: "quote_fields", // 默认为报价字段，可根据需要调整
+      transDataRuleListType: RULE_LIST_TYPES.QUOTE_FIELDS, // 默认为报价字段，可根据需要调整
       description: dto.description,
       sourceTemplateId: dto.templateId,
       fieldMappings,
@@ -269,8 +274,9 @@ export class MappingRuleCrudModule {
   async findBestMatchingRuleDocument(
     provider: string,
     apiType: "rest" | "stream",
-    transDataRuleListType: string,
+    transDataRuleListType: RuleListType,
     marketType?: string,
+    options: RuleLookupOptions = {},
   ): Promise<FlexibleMappingRuleDocument | null> {
     this.logger.debug(`查找最匹配的映射规则`, {
       provider,
@@ -281,19 +287,48 @@ export class MappingRuleCrudModule {
 
     try {
       const normalizedMarketType = this.normalizeMarketType(marketType);
-      const rules = await this.ruleModel
-        .find({
-          provider,
-          apiType,
-          transDataRuleListType,
-          isActive: true,
-        })
+      const normalizedProvider = this.normalizeLookupProvider(provider);
+      const normalizedApiType = this.normalizeLookupApiType(apiType);
+      const baseFilter = {
+        provider: normalizedProvider,
+        apiType: normalizedApiType,
+        transDataRuleListType,
+        isActive: true,
+      };
+      let rules = await this.ruleModel
+        .find(baseFilter)
         .sort({
           overallConfidence: -1,
           successRate: -1,
           usageCount: -1,
           createdAt: -1,
         });
+
+      // 冷路径防御：兼容历史脏数据（大小写/前后空格）避免 miss
+      if (rules.length === 0) {
+        const legacyFilter = this.buildLegacyLookupFilter(
+          normalizedProvider,
+          normalizedApiType,
+          transDataRuleListType,
+        );
+        rules = await this.ruleModel
+          .find(legacyFilter)
+          .sort({
+            overallConfidence: -1,
+            successRate: -1,
+            usageCount: -1,
+            createdAt: -1,
+          });
+
+        if (rules.length > 0) {
+          this.logger.warn("查找最匹配映射规则命中 legacy provider/apiType 脏数据兼容路径", {
+            provider: normalizedProvider,
+            apiType: normalizedApiType,
+            transDataRuleListType,
+            matchedRules: rules.length,
+          });
+        }
+      }
 
       if (rules.length === 0) {
         return null;
@@ -303,12 +338,13 @@ export class MappingRuleCrudModule {
       const defaultMatch = this.selectRuleByMarketType(
         defaultRules,
         normalizedMarketType,
+        options,
       );
       if (defaultMatch) {
         return defaultMatch;
       }
 
-      return this.selectRuleByMarketType(rules, normalizedMarketType);
+      return this.selectRuleByMarketType(rules, normalizedMarketType, options);
     } catch (error) {
       this.logger.error("查找最匹配映射规则失败", {
         provider,
@@ -324,6 +360,7 @@ export class MappingRuleCrudModule {
   private selectRuleByMarketType(
     rules: FlexibleMappingRuleDocument[],
     requestedMarketType: string,
+    options: RuleLookupOptions = {},
   ): FlexibleMappingRuleDocument | null {
     let bestRule: FlexibleMappingRuleDocument | null = null;
     let bestPriority = Number.POSITIVE_INFINITY;
@@ -332,6 +369,7 @@ export class MappingRuleCrudModule {
       const priority = this.getMarketMatchPriority(
         rule.marketType,
         requestedMarketType,
+        options,
       );
       if (priority < bestPriority) {
         bestPriority = priority;
@@ -348,12 +386,21 @@ export class MappingRuleCrudModule {
   private getMarketMatchPriority(
     ruleMarketType?: string,
     requestedMarketType?: string,
+    options: RuleLookupOptions = {},
   ): number {
     const normalizedRule = this.normalizeMarketType(ruleMarketType);
     const normalizedRequest = this.normalizeMarketType(requestedMarketType);
 
     if (normalizedRule === normalizedRequest) {
       return 0;
+    }
+
+    if (
+      options.strictWildcardOnly &&
+      normalizedRequest === "*" &&
+      normalizedRule !== "*"
+    ) {
+      return Number.POSITIVE_INFINITY;
     }
 
     if (normalizedRule === "*") {
@@ -388,6 +435,48 @@ export class MappingRuleCrudModule {
       return "*";
     }
     return marketType.trim().toUpperCase();
+  }
+
+  private normalizeLookupProvider(provider: string): string {
+    return this.normalizeLowercaseString(provider);
+  }
+
+  private normalizeLookupApiType(apiType: "rest" | "stream"): "rest" | "stream" {
+    const normalizedApiType = this.normalizeLowercaseString(apiType);
+    if (normalizedApiType === "rest" || normalizedApiType === "stream") {
+      return normalizedApiType;
+    }
+    return apiType;
+  }
+
+  private normalizeLowercaseString(value: unknown): string {
+    if (typeof value !== "string") {
+      return "";
+    }
+    return value.trim().toLowerCase();
+  }
+
+  private buildLegacyLookupFilter(
+    provider: string,
+    apiType: "rest" | "stream",
+    transDataRuleListType: RuleListType,
+  ): {
+    provider: RegExp;
+    apiType: RegExp;
+    transDataRuleListType: RuleListType;
+    isActive: true;
+  } {
+    return {
+      provider: this.buildLegacyExactMatchRegex(provider),
+      apiType: this.buildLegacyExactMatchRegex(apiType),
+      transDataRuleListType,
+      isActive: true,
+    };
+  }
+
+  private buildLegacyExactMatchRegex(value: string): RegExp {
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`^\\s*${escaped}\\s*$`, "i");
   }
 
   /**

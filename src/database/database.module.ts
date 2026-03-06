@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
+import { readIntEnv } from "@common/utils/env.util";
 
 /**
  * 统一数据库模块
@@ -16,13 +17,44 @@ import { MongooseModule } from "@nestjs/mongoose";
  */
 @Module({
   imports: [
-    // MongoDB核心连接 - 只初始化一次
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI || "mongodb://localhost:27017/smart-stock-data",
-      {
-        maxPoolSize: parseInt(process.env.MONGODB_POOL_SIZE) || 100,
-      },
-    ),
+    (() => {
+      const isTest = process.env.NODE_ENV === "test";
+      const maxPoolSize = readIntEnv("MONGODB_POOL_SIZE", 100, {
+        min: 1,
+        max: 1000,
+      });
+      const retryAttempts = readIntEnv(
+        "MONGODB_RETRY_ATTEMPTS",
+        isTest ? 1 : 9,
+        { min: 0, max: 100 },
+      );
+      const retryDelay = readIntEnv(
+        "MONGODB_RETRY_DELAY_MS",
+        isTest ? 500 : 3000,
+        { min: 0, max: 60000 },
+      );
+      const serverSelectionTimeoutMS = readIntEnv(
+        "MONGODB_SERVER_SELECTION_TIMEOUT_MS",
+        isTest ? 3000 : 30000,
+        { min: 0, max: 120000 },
+      );
+      const connectTimeoutMS = readIntEnv(
+        "MONGODB_CONNECT_TIMEOUT_MS",
+        isTest ? 3000 : 30000,
+        { min: 0, max: 120000 },
+      );
+
+      return MongooseModule.forRoot(
+        process.env.MONGODB_URI || "mongodb://localhost:27017/smart-stock-data",
+        {
+          maxPoolSize,
+          retryAttempts,
+          retryDelay,
+          serverSelectionTimeoutMS,
+          connectTimeoutMS,
+        },
+      );
+    })(),
   ],
   exports: [
     // 导出 MongooseModule 供业务模块使用（连接复用）

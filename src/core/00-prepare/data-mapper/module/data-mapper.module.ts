@@ -18,6 +18,7 @@ import { DataSourceTemplateService } from "../services/data-source-template.serv
 import { FlexibleMappingRuleService } from "../services/flexible-mapping-rule.service";
 import { PersistedTemplateService } from "../services/persisted-template.service";
 import { RuleAlignmentService } from "../services/rule-alignment.service";
+import { MarketTypeResolverService } from "../services/market-type-resolver.service";
 
 // 🚀 简化后的Schema（只保留必要的数据结构）
 import { DataSourceTemplate, DataSourceTemplateSchema } from "../schemas/data-source-template.schema";
@@ -55,6 +56,7 @@ import {
     FlexibleMappingRuleService, // 灵活映射规则服务
     PersistedTemplateService, // 预设模板持久化服务
     RuleAlignmentService, // 规则对齐服务
+    MarketTypeResolverService, // 市场类型解析服务
     // DataMapperCacheStandardizedService 已通过 DataMapperCacheModule 导入，无需重复声明
   ],
   exports: [
@@ -64,6 +66,7 @@ import {
     FlexibleMappingRuleService, // 导出灵活映射规则服务
     PersistedTemplateService, // 导出预设模板持久化服务
     RuleAlignmentService, // 导出规则对齐服务
+    MarketTypeResolverService, // 导出市场类型解析服务
     // DataMapperCacheStandardizedService 已通过 DataMapperCacheModule 导出，无需重复导出
   ],
 })

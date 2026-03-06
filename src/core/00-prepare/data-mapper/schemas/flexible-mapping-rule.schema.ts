@@ -63,7 +63,7 @@ export class FlexibleMappingRule extends Document {
   @Prop({ required: true, trim: true })
   name: string; // 规则名称
 
-  @Prop({ required: true, trim: true, lowercase: true })
+  @Prop({ required: true, trim: true, lowercase: true, minlength: 1 })
   provider: string; // 数据提供商
 
   @Prop({ required: true, enum: API_TYPE_VALUES })

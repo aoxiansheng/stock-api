@@ -526,25 +526,35 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
 
     let cleanedCount = 0;
     for (const [connectionId, connection] of sortedConnections) {
+      let closeSucceeded = false;
       try {
-        // 尝试优雅关闭连接
-        if (typeof connection.close === "function") {
-          await connection.close();
-        }
-        this.activeConnections.delete(connectionId);
-        this.connectionHealth.delete(connection.id);
-        cleanedCount++;
-
-        this.logger.debug("强制清理非活跃连接", {
-          connectionId,
-          lastActivity: connection.lastActiveAt?.toISOString() || "unknown",
-        });
-      } catch (error) {
+        // 统一走 StreamDataFetcher 的 close 语义，确保 provider cleanup 可达
+        await this.streamDataFetcher.closeConnection(connection);
+        closeSucceeded = true;
+      } catch (error: any) {
+        const stillActive = this.isConnectionActuallyActive(connection);
         this.logger.warn("连接清理失败", {
           connectionId,
           error: error.message,
+          stillActive,
         });
+        if (stillActive) {
+          continue;
+        }
       }
+
+      const removedFromActiveConnections = this.activeConnections.delete(connectionId);
+      this.connectionHealth.delete(connection.id);
+      if (removedFromActiveConnections) {
+        cleanedCount++;
+      }
+
+      this.logger.debug("强制清理非活跃连接", {
+        connectionId,
+        lastActivity: connection.lastActiveAt?.toISOString() || "unknown",
+        closeSucceeded,
+        removedFromActiveConnections,
+      });
     }
 
     // 触发垃圾回收
@@ -573,6 +583,14 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
       // 如需监控，请使用外部工具（如 Prometheus）
 
     return result;
+  }
+
+  private isConnectionActuallyActive(connection: StreamConnection): boolean {
+    try {
+      return this.streamDataFetcher.isConnectionActive(connection);
+    } catch {
+      return !!connection.isConnected;
+    }
   }
 
   /**

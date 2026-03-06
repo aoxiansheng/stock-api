@@ -32,6 +32,19 @@ import { StreamCacheStandardizedService } from "../../../05-caching/module/strea
 import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { ConnectionPoolManager } from "./connection-pool-manager.service";
 
+type ProviderCleanupStatus =
+  | "cleaned"
+  | "no_method"
+  | "failed"
+  | "already_cleaned"
+  | "in_progress"
+  | "not_idle";
+
+interface ProviderCleanupResult {
+  status: ProviderCleanupStatus;
+  error?: string;
+}
+
 /**
  * 流数据获取器服务实现 - Stream Data Fetcher
  *
@@ -65,12 +78,29 @@ export class StreamDataFetcherService
 
   // P0-3: ID映射表，用于连接清理（内存泄漏修复目标）
   private readonly connectionIdToKey = new Map<string, string>();
+  private readonly connectionIdToPoolKey = new Map<string, string>();
+  private readonly connectionIdToClientIP = new Map<string, string>();
+  private readonly closeConnectionInFlight = new Map<string, Promise<void>>();
+  private readonly closedConnectionIds = new Map<string, number>();
+  private readonly closedConnectionErrors = new Map<string, string>();
+  private readonly closedConnectionRetryCooldownUntil = new Map<string, number>();
+  private readonly closedConnectionRetryCooldownMs = 30 * 1000;
+  private readonly closedConnectionTtlMs = 30 * 60 * 1000;
+  private readonly maxClosedConnectionRecords = 5000;
+  private readonly connectionLevelCloseHandlers = new WeakMap<
+    StreamConnection,
+    () => Promise<void>
+  >();
+  private readonly providerCleanupInProgress = new Set<string>();
+  private readonly providersCleanedAtIdle = new Set<string>();
+  private readonly providerEstablishingConnections = new Map<string, number>();
 
   // P0-2: RxJS 清理机制
   private readonly destroy$ = new Subject<void>();
 
   // P0-3: 定期清理定时器
   private cleanupTimer: NodeJS.Timeout | null = null;
+  private concurrencyAdjustmentTimer: NodeJS.Timeout | null = null;
   private isServiceDestroyed = false;
 
   // === P1-2: 自适应并发控制状态 ===
@@ -256,6 +286,22 @@ export class StreamDataFetcherService
     });
   }
 
+  private generateConnectionId(
+    provider: string,
+    capability: string,
+    timestampMs: number,
+  ): string {
+    return `${provider}_${capability}_${timestampMs}_${uuidv4()}`;
+  }
+
+  private buildPoolKey(provider: string, capability: string): string {
+    return `${provider}:${capability}`;
+  }
+
+  private buildConnectionMapKey(poolKey: string, connectionId: string): string {
+    return `${poolKey}:${connectionId}`;
+  }
+
   // === P1-2: 自适应并发控制核心方法 ===
 
   /**
@@ -264,13 +310,17 @@ export class StreamDataFetcherService
   private startAdaptiveConcurrencyMonitoring(): void {
     // 定期分析性能并调整并发限制
     const intervalMs = (this.streamConfigService.getPerformanceConfig() as any)?.concurrencyAdjustmentIntervalMs ?? 30000;
-    const adjustmentInterval = setInterval(() => {
+    this.concurrencyAdjustmentTimer = setInterval(() => {
       if (!this.isServiceDestroyed) {
         this.analyzePerformanceAndAdjustConcurrency();
       } else {
-        clearInterval(adjustmentInterval);
+        if (this.concurrencyAdjustmentTimer) {
+          clearInterval(this.concurrencyAdjustmentTimer);
+          this.concurrencyAdjustmentTimer = null;
+        }
       }
     }, intervalMs);
+    this.concurrencyAdjustmentTimer.unref?.();
 
     this.logger.debug("自适应并发控制监控已启动", {
       currentConcurrency: this.concurrencyControl.currentConcurrency,
@@ -621,19 +671,24 @@ export class StreamDataFetcherService
     // Handle overloaded signatures
     let provider: string;
     let cap: string;
+    let clientIP: string | undefined;
     let connectionConfig: Partial<StreamConnectionOptions> | undefined;
 
     if (typeof paramsOrProvider === "string") {
       provider = paramsOrProvider;
       cap = capability!;
+      clientIP = undefined;
       connectionConfig = config;
     } else {
       provider = paramsOrProvider.provider;
       cap = paramsOrProvider.capability;
+      clientIP = paramsOrProvider.clientIP;
       connectionConfig = paramsOrProvider.options;
     }
+    const poolKey = this.buildPoolKey(provider, cap);
     const operationStartTime = Date.now();
     let operationSuccess = false;
+    this.incrementProviderEstablishingConnection(provider);
 
     try {
       // P1-2: 增加活跃操作计数
@@ -642,6 +697,8 @@ export class StreamDataFetcherService
       this.logger.debug("开始建立流式连接", {
         provider,
         capability: cap,
+        poolKey,
+        clientIP,
         config: connectionConfig
           ? { ...connectionConfig, credentials: "[REDACTED]" }
           : undefined,
@@ -651,6 +708,10 @@ export class StreamDataFetcherService
       const providerInstance = this.capabilityRegistry.getProvider?.(provider);
       if (providerInstance && typeof (providerInstance as any).getStreamContextService === 'function') {
         const ctxService = (providerInstance as any).getStreamContextService();
+
+        // P0-2: 建连前先执行容量校验，超限直接拒绝且不触发 initialize/register/activeMap 写入
+        this.connectionPoolManager.canCreateConnection(poolKey, clientIP);
+
         // 初始化底层SDK连接
         if (typeof ctxService.initializeWebSocket === 'function') {
           await ctxService.initializeWebSocket();
@@ -660,12 +721,37 @@ export class StreamDataFetcherService
         const startedAt = Date.now();
         let dataProxyRegistered = false;
         let onDataTarget: ((data: any) => void) | null = null;
+        let unregisterDataProxy: (() => void) | null = null;
         const dataProxy = (data: any) => {
           conn.lastActiveAt = new Date();
           try { onDataTarget && onDataTarget(data); } catch { /* 忽略上层处理错误 */ }
         };
+        const performConnectionLevelClose = async () => {
+          if (!conn.isConnected) {
+            return;
+          }
+
+          conn.isConnected = false;
+          onDataTarget = null;
+
+          try {
+            if (typeof unregisterDataProxy === "function") {
+              unregisterDataProxy();
+            } else if (dataProxyRegistered) {
+              this.logger.warn("连接关闭时无可用反注册函数，已通过置空 onDataTarget 兜底清理", {
+                provider,
+                capability: cap,
+                connectionId: conn.id.substring(0, 8),
+              });
+            }
+          } catch {}
+
+          unregisterDataProxy = null;
+          dataProxyRegistered = false;
+        };
+
         const conn: StreamConnection = {
-          id: `${provider}_${cap}_${startedAt}`,
+          id: this.generateConnectionId(provider, cap, startedAt),
           provider,
           capability: cap,
           isConnected: true,
@@ -678,8 +764,24 @@ export class StreamDataFetcherService
             if (!dataProxyRegistered) {
               try {
                 if (typeof ctxService.onQuoteUpdate === 'function') {
-                  ctxService.onQuoteUpdate(dataProxy);
+                  const unsubscribe = ctxService.onQuoteUpdate(dataProxy);
+                  if (typeof unsubscribe === "function") {
+                    unregisterDataProxy = unsubscribe;
+                  } else {
+                    unregisterDataProxy = null;
+                    this.logger.warn("Provider onQuoteUpdate 未返回反注册函数，将使用兜底清理路径", {
+                      provider,
+                      capability: cap,
+                      connectionId: conn.id.substring(0, 8),
+                    });
+                  }
                   dataProxyRegistered = true;
+                } else {
+                  this.logger.warn("Provider 缺少 onQuoteUpdate 方法，流式回调无法注册", {
+                    provider,
+                    capability: cap,
+                    connectionId: conn.id.substring(0, 8),
+                  });
                 }
               } catch {/* 忽略注册异常 */}
             }
@@ -715,11 +817,11 @@ export class StreamDataFetcherService
             };
           },
           async isAlive() { return conn.isConnected; },
-          async close() {
-            conn.isConnected = false;
-            try { if (typeof ctxService.cleanup === 'function') await ctxService.cleanup(); } catch {}
+          close: async () => {
+            await this.closeConnection(conn);
           },
         } as any;
+        this.connectionLevelCloseHandlers.set(conn, performConnectionLevelClose);
 
         // 事件：连接建立成功
         this.emitConnectionEvent("connection_established", {
@@ -731,11 +833,22 @@ export class StreamDataFetcherService
         });
 
         operationSuccess = true;
-        // 注册到内部映射（与 capability 路径一致）
-        const connectionKey = `${provider}:${cap}:${conn.id}`;
-        this.activeConnections.set(connectionKey, conn);
-        this.connectionIdToKey.set(conn.id, connectionKey);
-        this.connectionPoolManager.registerConnection(connectionKey);
+        // P0-1: active map 使用唯一 connectionMapKey，pool manager 使用聚合 poolKey
+        const connectionMapKey = this.buildConnectionMapKey(poolKey, conn.id);
+        this.activeConnections.set(connectionMapKey, conn);
+        this.connectionIdToKey.set(conn.id, connectionMapKey);
+        this.connectionIdToPoolKey.set(conn.id, poolKey);
+        if (clientIP) {
+          this.connectionIdToClientIP.set(conn.id, clientIP);
+        }
+        this.providersCleanedAtIdle.delete(provider);
+        this.connectionPoolManager.registerConnection(poolKey, clientIP);
+        this.logger.debug("流连接已注册到连接池与active map", {
+          connectionId: conn.id.substring(0, 8),
+          poolKey,
+          connectionMapKey,
+          clientIP,
+        });
         this.setupConnectionEventHandlers(conn);
         return conn;
       }
@@ -768,6 +881,7 @@ export class StreamDataFetcherService
       });
       throw error;
     } finally {
+      this.decrementProviderEstablishingConnection(provider);
       // P1-2: 记录操作性能并减少活跃操作计数
       this.performanceMetrics.activeOperations--;
       this.recordOperationPerformance(
@@ -998,22 +1112,131 @@ export class StreamDataFetcherService
   }
 
   /**
+   * 连接关闭前 best-effort 取消订阅（失败不阻断关闭流程）
+   */
+  private async bestEffortUnsubscribeOnClose(
+    connection: StreamConnection,
+  ): Promise<void> {
+    const subscribedSymbolsSnapshot = Array.from(connection.subscribedSymbols);
+    if (subscribedSymbolsSnapshot.length === 0) {
+      return;
+    }
+
+    try {
+      await this.performUnsubscription(connection, subscribedSymbolsSnapshot);
+      this.logger.debug("连接关闭前取消订阅完成", {
+        connectionId: connection.id.substring(0, 8),
+        provider: connection.provider,
+        capability: connection.capability,
+        unsubscribedSymbols: subscribedSymbolsSnapshot.length,
+      });
+    } catch (error) {
+      this.logger.warn("连接关闭前取消订阅失败，继续执行关闭流程", {
+        connectionId: connection.id.substring(0, 8),
+        provider: connection.provider,
+        capability: connection.capability,
+        subscribedSymbols: subscribedSymbolsSnapshot.slice(0, 5),
+        totalSymbols: subscribedSymbolsSnapshot.length,
+        error: error?.message || String(error),
+      });
+    }
+  }
+
+  /**
    * Phase 4: 关闭流连接
    * @param connection 要关闭的流连接实例
    */
   async closeConnection(connection: StreamConnection): Promise<void> {
+    const inFlightClosePromise = this.closeConnectionInFlight.get(connection.id);
+    if (inFlightClosePromise) {
+      this.logger.debug("连接正在关闭中，等待同一 in-flight close 完成", {
+        connectionId: connection.id.substring(0, 8),
+        provider: connection.provider,
+        capability: connection.capability,
+      });
+      await inFlightClosePromise;
+      return;
+    }
+
+    const closePromise = this.closeConnectionInternal(connection);
+    this.closeConnectionInFlight.set(connection.id, closePromise);
+
+    try {
+      await closePromise;
+    } finally {
+      if (this.closeConnectionInFlight.get(connection.id) === closePromise) {
+        this.closeConnectionInFlight.delete(connection.id);
+      }
+    }
+  }
+
+  private async closeConnectionInternal(
+    connection: StreamConnection,
+  ): Promise<void> {
     const operationStartTime = Date.now();
     let operationSuccess = false;
+    let isRetryForHistoricalCloseError = false;
 
     try {
       // P1-2: 增加活跃操作计数
       this.performanceMetrics.activeOperations++;
 
-      const connectionKey = this.connectionIdToKey.get(connection.id);
+      const now = Date.now();
+      const closedAt = this.closedConnectionIds.get(connection.id);
+      if (closedAt !== undefined) {
+        const elapsedSinceClosed = now - closedAt;
+        if (elapsedSinceClosed <= this.closedConnectionTtlMs) {
+          const previousCloseError = this.closedConnectionErrors.get(connection.id);
+          if (previousCloseError) {
+            const retryCooldownUntil =
+              this.closedConnectionRetryCooldownUntil.get(connection.id) ?? 0;
+            if (retryCooldownUntil > now) {
+              throw new StreamConnectionException(
+                `连接已关闭，但 provider cleanup 失败: ${previousCloseError}`,
+                connection.id,
+                connection.provider,
+                connection.capability,
+              );
+            }
 
+            isRetryForHistoricalCloseError = true;
+            this.closedConnectionIds.delete(connection.id);
+            this.closedConnectionErrors.delete(connection.id);
+            this.closedConnectionRetryCooldownUntil.delete(connection.id);
+            this.logger.warn("连接命中 TTL 内历史 close 错误，触发受限重试", {
+              connectionId: connection.id.substring(0, 8),
+              provider: connection.provider,
+              capability: connection.capability,
+              elapsedSinceClosedMs: elapsedSinceClosed,
+              closedConnectionTtlMs: this.closedConnectionTtlMs,
+              retryCooldownMs: this.closedConnectionRetryCooldownMs,
+            });
+          } else {
+            this.logger.debug("连接已关闭，跳过重复 close", {
+              connectionId: connection.id.substring(0, 8),
+              provider: connection.provider,
+              capability: connection.capability,
+              elapsedSinceClosedMs: elapsedSinceClosed,
+              closedConnectionTtlMs: this.closedConnectionTtlMs,
+            });
+            operationSuccess = true;
+            return;
+          }
+        } else {
+          this.closedConnectionIds.delete(connection.id);
+          this.closedConnectionErrors.delete(connection.id);
+          this.closedConnectionRetryCooldownUntil.delete(connection.id);
+        }
+      }
+
+      const connectionMapKey = this.connectionIdToKey.get(connection.id);
+      const poolKey =
+        this.connectionIdToPoolKey.get(connection.id) ||
+        this.buildPoolKey(connection.provider, connection.capability);
       this.logger.debug("开始关闭流连接", {
         connectionId: connection.id.substring(0, 8),
-        connectionKey,
+        poolKey,
+        connectionMapKey,
         provider: connection.provider,
         capability: connection.capability,
       });
@@ -1026,30 +1249,104 @@ export class StreamDataFetcherService
         status: "success",
       });
 
-      // Phase 4.2: 执行连接关闭
-      await connection.close();
+      // Phase 4.2: 连接关闭前 best-effort 取消订阅（失败不阻断关闭流程）
+      await this.bestEffortUnsubscribeOnClose(connection);
 
-      // Phase 4.3: 清理内存映射
+      // Phase 4.3: 执行连接关闭
+      await this.executeConnectionLevelClose(connection);
+
+      // Phase 4.4: 清理内存映射
       this.cleanupConnectionFromMaps(connection.id);
 
-      // Phase 4.4: 清理缓存
+      const providerActiveConnections = this.getProviderActiveConnectionCount(
+        connection.provider,
+      );
+      const providerEstablishingConnections =
+        this.getProviderEstablishingConnectionCount(connection.provider);
+      let providerCleanupResult: ProviderCleanupResult | null = null;
+
+      if (
+        providerActiveConnections === 0 &&
+        providerEstablishingConnections === 0
+      ) {
+        providerCleanupResult = await this.cleanupProviderContextIfIdle(
+          connection.provider,
+        );
+      } else {
+        this.logger.debug("仅关闭连接，provider 非空闲，不触发 cleanup", {
+          connectionId: connection.id.substring(0, 8),
+          provider: connection.provider,
+          activeConnectionsByProvider: providerActiveConnections,
+          establishingConnectionsByProvider: providerEstablishingConnections,
+        });
+      }
+
+      // Phase 4.5: 清理缓存
       await this.clearConnectionCache(connection.id);
 
-      // Phase 4.5: 更新客户端状态
+      // Phase 4.6: 更新客户端状态
       this.clientStateManager.removeConnection(connection.id);
 
       // 更新指标
-      this.recordConnectionMetrics("connected", connection.provider);
+      this.recordConnectionMetrics("disconnected", connection.provider);
       this.updateActiveConnectionsCount(
         this.activeConnections.size,
         connection.provider,
       );
+      this.markConnectionAsClosed(connection.id);
 
+      const providerCleanupError =
+        providerCleanupResult?.status === "failed"
+          ? providerCleanupResult.error || "unknown"
+          : null;
+
+      if (providerCleanupError) {
+        this.closedConnectionErrors.set(connection.id, providerCleanupError);
+        if (isRetryForHistoricalCloseError) {
+          this.closedConnectionRetryCooldownUntil.set(
+            connection.id,
+            Date.now() + this.closedConnectionRetryCooldownMs,
+          );
+        } else {
+          this.closedConnectionRetryCooldownUntil.delete(connection.id);
+        }
+        this.logger.warn("流连接已关闭，但 provider cleanup 失败", {
+          connectionId: connection.id.substring(0, 8),
+          poolKey,
+          connectionMapKey,
+          provider: connection.provider,
+          remainingConnections: this.activeConnections.size,
+          remainingProviderConnections: providerActiveConnections,
+          remainingProviderEstablishingConnections: providerEstablishingConnections,
+          providerCleanupStatus: providerCleanupResult?.status || "not_required",
+          providerCleanupTriggered: false,
+          providerCleanupError,
+          historicalRetryAttempted: isRetryForHistoricalCloseError,
+          retryCooldownMs: this.closedConnectionRetryCooldownMs,
+          duration: Date.now() - operationStartTime,
+        });
+
+        throw new StreamConnectionException(
+          `连接已关闭，但 provider cleanup 失败: ${providerCleanupError}`,
+          connection.id,
+          connection.provider,
+          connection.capability,
+        );
+      }
+
+      this.closedConnectionErrors.delete(connection.id);
+      this.closedConnectionRetryCooldownUntil.delete(connection.id);
       this.logger.log("流连接关闭成功", {
         connectionId: connection.id.substring(0, 8),
-        connectionKey,
+        poolKey,
+        connectionMapKey,
         provider: connection.provider,
         remainingConnections: this.activeConnections.size,
+        remainingProviderConnections: providerActiveConnections,
+        remainingProviderEstablishingConnections: providerEstablishingConnections,
+        providerCleanupStatus: providerCleanupResult?.status || "not_required",
+        providerCleanupTriggered: providerCleanupResult?.status === "cleaned",
+        providerCleanupError: providerCleanupResult?.error,
         duration: Date.now() - operationStartTime,
       });
 
@@ -1077,6 +1374,133 @@ export class StreamDataFetcherService
         Date.now() - operationStartTime,
         operationSuccess,
       );
+    }
+  }
+
+  private async executeConnectionLevelClose(
+    connection: StreamConnection,
+  ): Promise<void> {
+    const closeHandler = this.connectionLevelCloseHandlers.get(connection);
+    if (closeHandler) {
+      await closeHandler();
+      return;
+    }
+
+    await connection.close();
+  }
+
+  private getProviderActiveConnectionCount(provider: string): number {
+    let count = 0;
+
+    for (const connection of this.activeConnections.values()) {
+      if (connection.provider === provider && connection.isConnected) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  private incrementProviderEstablishingConnection(provider: string): void {
+    const current = this.providerEstablishingConnections.get(provider) ?? 0;
+    this.providerEstablishingConnections.set(provider, current + 1);
+  }
+
+  private decrementProviderEstablishingConnection(provider: string): void {
+    const current = this.providerEstablishingConnections.get(provider) ?? 0;
+    if (current <= 1) {
+      this.providerEstablishingConnections.delete(provider);
+      return;
+    }
+    this.providerEstablishingConnections.set(provider, current - 1);
+  }
+
+  private getProviderEstablishingConnectionCount(provider: string): number {
+    return this.providerEstablishingConnections.get(provider) ?? 0;
+  }
+
+  private async cleanupProviderContextIfIdle(
+    provider: string,
+  ): Promise<ProviderCleanupResult> {
+    if (this.providersCleanedAtIdle.has(provider)) {
+      this.logger.debug("仅关闭连接，provider cleanup 已执行过，跳过", {
+        provider,
+      });
+      return { status: "already_cleaned" };
+    }
+
+    if (this.providerCleanupInProgress.has(provider)) {
+      this.logger.debug("仅关闭连接，provider cleanup 执行中，跳过重复触发", {
+        provider,
+      });
+      return { status: "in_progress" };
+    }
+
+    this.providerCleanupInProgress.add(provider);
+
+    try {
+      const activeConnections = this.getProviderActiveConnectionCount(provider);
+      const establishingConnections =
+        this.getProviderEstablishingConnectionCount(provider);
+      if (activeConnections > 0 || establishingConnections > 0) {
+        this.logger.debug("仅关闭连接，provider 非空闲，跳过 cleanup", {
+          provider,
+          activeConnections,
+          establishingConnections,
+        });
+        return { status: "not_idle" };
+      }
+
+      const providerInstance = this.capabilityRegistry.getProvider?.(provider);
+      const ctxService = providerInstance?.getStreamContextService?.();
+
+      if (!ctxService || typeof ctxService.cleanup !== "function") {
+        this.logger.debug("仅关闭连接，provider 无 cleanup 方法", {
+          provider,
+        });
+        this.providersCleanedAtIdle.add(provider);
+        return { status: "no_method" };
+      }
+
+      this.logger.log("触发 provider 级 cleanup", {
+        provider,
+        reason: "provider 已无活跃连接",
+      });
+
+      await ctxService.cleanup();
+      this.providersCleanedAtIdle.add(provider);
+
+      this.logger.log("provider 级 cleanup 完成", {
+        provider,
+      });
+      return { status: "cleaned" };
+    } catch (error) {
+      this.logger.warn("provider 级 cleanup 首次执行失败，准备重试一次", {
+        provider,
+        error: error?.message,
+      });
+
+      try {
+        const providerInstance = this.capabilityRegistry.getProvider?.(provider);
+        const ctxService = providerInstance?.getStreamContextService?.();
+        if (!ctxService || typeof ctxService.cleanup !== "function") {
+          this.providersCleanedAtIdle.add(provider);
+          return { status: "no_method" };
+        }
+        await ctxService.cleanup();
+        this.providersCleanedAtIdle.add(provider);
+        this.logger.log("provider 级 cleanup 重试成功", { provider });
+        return { status: "cleaned" };
+      } catch (retryError) {
+        const errorMessage = retryError?.message || error?.message || "unknown";
+        this.logger.error("provider 级 cleanup 重试后仍失败", {
+          provider,
+          error: errorMessage,
+        });
+        return { status: "failed", error: errorMessage };
+      }
+    } finally {
+      this.providerCleanupInProgress.delete(provider);
     }
   }
 
@@ -1817,18 +2241,35 @@ export class StreamDataFetcherService
    * @private
    */
   private cleanupConnectionFromMaps(connectionId: string): void {
-    const connectionKey = this.connectionIdToKey.get(connectionId);
-    if (connectionKey) {
-      // 从连接池管理器注销
-      this.connectionPoolManager.unregisterConnection(connectionKey);
+    const connectionMapKey = this.connectionIdToKey.get(connectionId);
+    const clientIP = this.connectionIdToClientIP.get(connectionId);
 
-      // 从内部Map移除
-      this.activeConnections.delete(connectionKey);
-      this.connectionIdToKey.delete(connectionId);
+    let poolKey = this.connectionIdToPoolKey.get(connectionId);
+    if (!poolKey && connectionMapKey) {
+      const connection = this.activeConnections.get(connectionMapKey);
+      if (connection) {
+        poolKey = this.buildPoolKey(connection.provider, connection.capability);
+      }
+    }
 
+    if (poolKey) {
+      this.connectionPoolManager.unregisterConnection(poolKey, clientIP);
+    }
+
+    if (connectionMapKey) {
+      this.activeConnections.delete(connectionMapKey);
+    }
+
+    this.connectionIdToKey.delete(connectionId);
+    this.connectionIdToPoolKey.delete(connectionId);
+    this.connectionIdToClientIP.delete(connectionId);
+
+    if (connectionMapKey || poolKey) {
       this.logger.debug("连接已从内部Map清理", {
         connectionId,
-        connectionKey,
+        poolKey,
+        connectionMapKey,
+        clientIP,
         remainingConnections: this.activeConnections.size,
       });
     }
@@ -1899,22 +2340,28 @@ export class StreamDataFetcherService
     const startTime = Date.now();
     let cleanedConnections = 0;
     let cleanedMappings = 0;
+    let cleanedClosedRecords = 0;
 
     this.logger.debug("开始执行Map定期清理", {
       currentActiveConnections: this.activeConnections.size,
       currentMappings: this.connectionIdToKey.size,
+      currentClosedRecords: this.closedConnectionIds.size,
     });
 
     // 1. 清理无效的连接映射（connectionIdToKey中有，但activeConnections中没有）
     const mappingEntries = Array.from(this.connectionIdToKey.entries());
-    for (const [connectionId, connectionKey] of mappingEntries) {
-      if (!this.activeConnections.has(connectionKey)) {
+    for (const [connectionId, connectionMapKey] of mappingEntries) {
+      if (!this.activeConnections.has(connectionMapKey)) {
+        const poolKey = this.connectionIdToPoolKey.get(connectionId);
         this.connectionIdToKey.delete(connectionId);
+        this.connectionIdToPoolKey.delete(connectionId);
+        this.connectionIdToClientIP.delete(connectionId);
         cleanedMappings++;
 
         this.logger.debug("清理了无效的连接映射", {
           connectionId: connectionId.substring(0, 8),
-          connectionKey,
+          poolKey,
+          connectionMapKey,
         });
       }
     }
@@ -1951,9 +2398,14 @@ export class StreamDataFetcherService
     }
 
     // 执行僵尸连接清理
-    for (const connectionKey of connectionsToRemove) {
-      const connection = this.activeConnections.get(connectionKey);
+    for (const connectionMapKey of connectionsToRemove) {
+      const connection = this.activeConnections.get(connectionMapKey);
       if (connection) {
+        const poolKey =
+          this.connectionIdToPoolKey.get(connection.id) ||
+          this.buildPoolKey(connection.provider, connection.capability);
+        const clientIP = this.connectionIdToClientIP.get(connection.id);
+
         // 发送清理监控事件
         this.emitConnectionEvent("connection_cleanup", {
           provider: connection.provider,
@@ -1963,30 +2415,44 @@ export class StreamDataFetcherService
 
         // 从映射表中清理
         this.connectionIdToKey.delete(connection.id);
-        this.activeConnections.delete(connectionKey);
+        this.connectionIdToPoolKey.delete(connection.id);
+        this.connectionIdToClientIP.delete(connection.id);
+        this.activeConnections.delete(connectionMapKey);
 
-        // 从连接池管理器中注销
-        this.connectionPoolManager.unregisterConnection(connectionKey);
+        // 从连接池管理器中注销（P0-1：使用 poolKey 维度）
+        this.connectionPoolManager.unregisterConnection(poolKey, clientIP);
 
         cleanedConnections++;
 
         this.logger.debug("清理了僵尸连接", {
           connectionId: connection.id ? connection.id.substring(0, 8) : 'unknown',
-          connectionKey,
+          poolKey,
+          connectionMapKey,
+          clientIP,
         });
       }
     }
 
+    const closedCleanupResult = this.pruneClosedConnectionIds();
+    cleanedClosedRecords =
+      closedCleanupResult.expired + closedCleanupResult.overflow;
+
     const processingTimeMs = Date.now() - startTime;
 
     // 记录清理结果
-    if (cleanedConnections > 0 || cleanedMappings > 0) {
+    if (
+      cleanedConnections > 0 ||
+      cleanedMappings > 0 ||
+      cleanedClosedRecords > 0
+    ) {
       this.logger.log("Map定期清理完成", {
         cleanedConnections,
         cleanedMappings,
+        cleanedClosedRecords,
         processingTimeMs,
         remainingConnections: this.activeConnections.size,
         remainingMappings: this.connectionIdToKey.size,
+        remainingClosedRecords: this.closedConnectionIds.size,
       });
 
       // 更新连接数指标 - 使用事件化监控
@@ -2002,6 +2468,7 @@ export class StreamDataFetcherService
         processingTimeMs,
         activeConnections: this.activeConnections.size,
         mappings: this.connectionIdToKey.size,
+        closedRecords: this.closedConnectionIds.size,
       });
     }
 
@@ -2035,6 +2502,12 @@ export class StreamDataFetcherService
       this.logger.debug("Map定期清理定时器已清理");
     }
 
+    if (this.concurrencyAdjustmentTimer) {
+      clearInterval(this.concurrencyAdjustmentTimer);
+      this.concurrencyAdjustmentTimer = null;
+      this.logger.debug("并发控制监控定时器已清理");
+    }
+
     // 发送销毁信号，清理所有 RxJS 事件监听器
     this.destroy$.next();
     this.destroy$.complete();
@@ -2059,26 +2532,41 @@ export class StreamDataFetcherService
     );
 
     // P1-2: 添加超时机制，避免销毁过程阻塞
+    let closeTimeoutTimer: NodeJS.Timeout | null = null;
     const closeTimeout = new Promise<void>((resolve) => {
-      setTimeout(() => {
+      closeTimeoutTimer = setTimeout(() => {
         this.logger.warn("连接关闭超时，强制清理");
         resolve();
       }, 10000); // 10秒超时
+      closeTimeoutTimer.unref?.();
     });
 
     try {
       await Promise.race([Promise.allSettled(closePromises), closeTimeout]);
     } catch (error) {
       this.logger.error("连接关闭过程出错", { error: error.message });
+    } finally {
+      if (closeTimeoutTimer) {
+        clearTimeout(closeTimeoutTimer);
+      }
     }
 
     // 强制清理所有内存映射
+    const closedRecordsBeforeClear = this.closedConnectionIds.size;
     this.activeConnections.clear();
     this.connectionIdToKey.clear();
+    this.connectionIdToPoolKey.clear();
+    this.connectionIdToClientIP.clear();
+    this.closeConnectionInFlight.clear();
+    this.closedConnectionIds.clear();
+    this.closedConnectionErrors.clear();
+    this.closedConnectionRetryCooldownUntil.clear();
+    this.providerEstablishingConnections.clear();
 
     this.logger.log("StreamDataFetcherService 销毁清理完成", {
       clearedConnections: this.activeConnections.size,
       clearedMappings: this.connectionIdToKey.size,
+      clearedClosedRecords: closedRecordsBeforeClear,
       // P1-2: 记录最终的性能统计
       finalPerformanceStats: {
         totalRequests: this.performanceMetrics.totalRequests,
@@ -2089,6 +2577,48 @@ export class StreamDataFetcherService
         finalConcurrency: this.concurrencyControl.currentConcurrency,
       },
     });
+  }
+
+  private markConnectionAsClosed(
+    connectionId: string,
+    closedAt: number = Date.now(),
+  ): void {
+    this.closedConnectionIds.set(connectionId, closedAt);
+    this.pruneClosedConnectionIds(closedAt);
+  }
+
+  private pruneClosedConnectionIds(
+    referenceTime: number = Date.now(),
+  ): {
+    expired: number;
+    overflow: number;
+  } {
+    let expired = 0;
+    let overflow = 0;
+
+    for (const [connectionId, closedAt] of this.closedConnectionIds.entries()) {
+      if (referenceTime - closedAt > this.closedConnectionTtlMs) {
+        this.closedConnectionIds.delete(connectionId);
+        this.closedConnectionErrors.delete(connectionId);
+        this.closedConnectionRetryCooldownUntil.delete(connectionId);
+        expired++;
+      }
+    }
+
+    while (this.closedConnectionIds.size > this.maxClosedConnectionRecords) {
+      const oldestKey = this.closedConnectionIds.keys().next().value as
+        | string
+        | undefined;
+      if (!oldestKey) {
+        break;
+      }
+      this.closedConnectionIds.delete(oldestKey);
+      this.closedConnectionErrors.delete(oldestKey);
+      this.closedConnectionRetryCooldownUntil.delete(oldestKey);
+      overflow++;
+    }
+
+    return { expired, overflow };
   }
 
   // === 私有辅助方法 ===

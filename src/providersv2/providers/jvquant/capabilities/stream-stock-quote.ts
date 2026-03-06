@@ -9,6 +9,8 @@ import { ICapability } from "../../../providers/interfaces/capability.interface"
 export const streamStockQuote: ICapability = {
   name: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
   description: "JvQuant 流式股票报价（港股/美股/沪深）",
+  transport: "websocket",
+  apiType: "stream",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],
   supportedSymbolFormats: SYMBOL_FORMATS.COMMON_MARKETS,
   async execute(params: any): Promise<any> {

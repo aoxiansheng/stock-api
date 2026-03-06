@@ -9,6 +9,12 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { createLogger } from '@common/logging/index';
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier,
+} from '@common/core/exceptions';
+import { DATA_MAPPER_ERROR_CODES } from '@core/00-prepare/data-mapper/constants/data-mapper-error-codes.constants';
 
 // Foundation 结果与选项类型（保留最小集）
 import {
@@ -26,6 +32,13 @@ import { ModuleInitOptions } from '../../../foundation/types/cache-module.types'
 // Business logic imports
 import { IDataMapperCache } from '../interfaces/data-mapper-cache.interface';
 import { FlexibleMappingRuleResponseDto } from '../../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto';
+import type { RuleLookupOptions } from '@core/00-prepare/data-mapper/types/rule-lookup-options.type';
+import type { RuleListType } from '@core/00-prepare/data-mapper/constants/data-mapper.constants';
+import { parseRuleListType } from '../../../../00-prepare/data-mapper/utils/rule-list-type.util';
+import {
+  normalizeLowercaseString,
+  normalizeUppercaseString,
+} from '../../../../00-prepare/data-mapper/utils/string-normalize.util';
 // 聚焦核心：移除未使用的常量导入
 
 /**
@@ -431,23 +444,35 @@ export class DataMapperCacheStandardizedService
   async cacheBestMatchingRule(
     provider: string,
     apiType: "rest" | "stream",
-    transDataRuleListType: string,
+    transDataRuleListType: RuleListType,
     marketType: string | undefined,
     rule: FlexibleMappingRuleResponseDto,
+    options: RuleLookupOptions = {},
   ): Promise<void> {
-    const keyMarketType = this.normalizeMarketType(marketType);
-    const cacheKey = `best_rule:${provider}:${apiType}:${transDataRuleListType}:${keyMarketType}`;
+    const cacheKey = this.buildBestRuleCacheKey(
+      provider,
+      apiType,
+      transDataRuleListType,
+      marketType,
+      options,
+    );
     await this.set(cacheKey, rule, { ttl: 1800 });
   }
 
   async getCachedBestMatchingRule(
     provider: string,
     apiType: "rest" | "stream",
-    transDataRuleListType: string,
+    transDataRuleListType: RuleListType,
     marketType: string | undefined,
+    options: RuleLookupOptions = {},
   ): Promise<FlexibleMappingRuleResponseDto | null> {
-    const keyMarketType = this.normalizeMarketType(marketType);
-    const cacheKey = `best_rule:${provider}:${apiType}:${transDataRuleListType}:${keyMarketType}`;
+    const cacheKey = this.buildBestRuleCacheKey(
+      provider,
+      apiType,
+      transDataRuleListType,
+      marketType,
+      options,
+    );
     const result = await this.get<FlexibleMappingRuleResponseDto>(cacheKey);
     return result.data || null;
   }
@@ -468,7 +493,15 @@ export class DataMapperCacheStandardizedService
     apiType: "rest" | "stream",
     rules: FlexibleMappingRuleResponseDto[],
   ): Promise<void> {
-    const cacheKey = `rules:provider:${provider}:${apiType}`;
+    const normalizedProvider = this.normalizeRequiredProviderForCacheKey(
+      provider,
+      "cacheProviderRules",
+    );
+    const normalizedApiType = this.normalizeRequiredApiTypeForCacheKey(
+      apiType,
+      "cacheProviderRules",
+    );
+    const cacheKey = `rules:provider:${normalizedProvider}:${normalizedApiType}`;
     await this.set(cacheKey, rules, { ttl: 3600 });
   }
 
@@ -476,7 +509,15 @@ export class DataMapperCacheStandardizedService
     provider: string,
     apiType: "rest" | "stream",
   ): Promise<FlexibleMappingRuleResponseDto[] | null> {
-    const cacheKey = `rules:provider:${provider}:${apiType}`;
+    const normalizedProvider = this.normalizeRequiredProviderForCacheKey(
+      provider,
+      "getCachedProviderRules",
+    );
+    const normalizedApiType = this.normalizeRequiredApiTypeForCacheKey(
+      apiType,
+      "getCachedProviderRules",
+    );
+    const cacheKey = `rules:provider:${normalizedProvider}:${normalizedApiType}`;
     const result = await this.get<FlexibleMappingRuleResponseDto[]>(cacheKey);
     return result.data || null;
   }
@@ -486,13 +527,48 @@ export class DataMapperCacheStandardizedService
     rule?: FlexibleMappingRuleResponseDto,
   ): Promise<void> {
     const cacheKey = `rule:id:${dataMapperRuleId}`;
-    await this.delete(cacheKey);
+    const deleteResult = await this.delete(cacheKey);
+    this.ensureCacheDeleteSuccess(
+      deleteResult,
+      "invalidateRuleCache:rule:id",
+      dataMapperRuleId,
+    );
+
+    const provider = this.normalizeKeyPart(rule?.provider);
+    const apiType = this.parseApiType(rule?.apiType);
+    const transDataRuleListType = parseRuleListType(rule?.transDataRuleListType);
+
+    if (
+      !provider ||
+      !apiType ||
+      !transDataRuleListType
+    ) {
+      return;
+    }
+
+    const escapedProvider = this.escapeRedisGlobLiteral(provider);
+    const escapedApiType = this.escapeRedisGlobLiteral(apiType);
+    const escapedRuleListType =
+      this.escapeRedisGlobLiteral(transDataRuleListType);
+    const bestRulePattern =
+      `best_rule:${escapedProvider}:${escapedApiType}:${escapedRuleListType}:*`;
+    const clearResult = await this.clear(bestRulePattern);
+    this.ensureCacheDeleteSuccess(
+      clearResult,
+      "invalidateRuleCache:best_rule",
+      dataMapperRuleId,
+    );
   }
 
   async invalidateProviderCache(provider: string): Promise<void> {
-    const bestRulePattern = `best_rule:${provider}:*`;
+    const normalizedProvider = this.normalizeRequiredProviderForCacheKey(
+      provider,
+      "invalidateProviderCache",
+    );
+    const escapedProvider = this.escapeRedisGlobLiteral(normalizedProvider);
+    const bestRulePattern = `best_rule:${escapedProvider}:*`;
     await this.clear(bestRulePattern);
-    const providerRulesPattern = `rules:provider:${provider}*`;
+    const providerRulesPattern = `rules:provider:${escapedProvider}:*`;
     await this.clear(providerRulesPattern);
   }
 
@@ -613,10 +689,144 @@ export class DataMapperCacheStandardizedService
     };
   }
 
+  private normalizeKeyPart(value: unknown): string {
+    return normalizeLowercaseString(value);
+  }
+
+  private normalizeRequiredProviderForCacheKey(
+    provider: unknown,
+    operation: string,
+  ): string {
+    const normalizedProvider = this.normalizeKeyPart(provider);
+    if (normalizedProvider) {
+      return normalizedProvider;
+    }
+
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation,
+      message: "Provider is required for data mapper cache key",
+      context: {
+        provider,
+        dataMapperErrorCode: DATA_MAPPER_ERROR_CODES.INVALID_MAPPING_RULE_DATA,
+      },
+      retryable: false,
+    });
+  }
+
+  private escapeRedisGlobLiteral(value: string): string {
+    return value.replace(/([*?\[\]\\])/g, '\\$1');
+  }
+
+  private parseApiType(apiType: unknown): "rest" | "stream" | null {
+    const normalizedApiType = this.normalizeKeyPart(apiType);
+    if (normalizedApiType === 'rest' || normalizedApiType === 'stream') {
+      return normalizedApiType;
+    }
+    return null;
+  }
+
+  private normalizeRequiredApiTypeForCacheKey(
+    apiType: unknown,
+    operation: string,
+  ): "rest" | "stream" {
+    const parsedApiType = this.parseApiType(apiType);
+    if (parsedApiType) {
+      return parsedApiType;
+    }
+
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation,
+      message: "Invalid apiType for data mapper cache key",
+      context: {
+        apiType,
+        dataMapperErrorCode: DATA_MAPPER_ERROR_CODES.INVALID_MAPPING_RULE_DATA,
+      },
+      retryable: false,
+    });
+  }
+
+  private normalizeRequiredRuleListTypeForCacheKey(
+    ruleListType: unknown,
+    operation: string,
+  ): RuleListType {
+    const parsedRuleListType = parseRuleListType(ruleListType);
+    if (parsedRuleListType) {
+      return parsedRuleListType;
+    }
+
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER_CACHE,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation,
+      message: "Invalid transDataRuleListType for data mapper cache key",
+      context: {
+        transDataRuleListType: ruleListType,
+        dataMapperErrorCode: DATA_MAPPER_ERROR_CODES.INVALID_MAPPING_RULE_DATA,
+      },
+      retryable: false,
+    });
+  }
+
   private normalizeMarketType(marketType?: string): string {
-    if (!marketType || !marketType.trim()) {
+    const normalizedMarketType = normalizeUppercaseString(marketType);
+    if (!normalizedMarketType) {
       return "*";
     }
-    return marketType.trim().toUpperCase();
+    return normalizedMarketType;
+  }
+
+  private ensureCacheDeleteSuccess(
+    result: CacheDeleteResult,
+    operation: string,
+    dataMapperRuleId: string,
+  ): void {
+    if (result.success) {
+      return;
+    }
+
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER_CACHE,
+      errorCode: BusinessErrorCode.CACHE_ERROR,
+      operation,
+      message: "Failed to invalidate data mapper cache",
+      context: {
+        dataMapperRuleId,
+        key: result.key,
+        cacheError: result.error,
+      },
+      retryable: true,
+    });
+  }
+
+  private normalizeRuleLookupMode(options?: RuleLookupOptions): string {
+    return options?.strictWildcardOnly ? 'strict_wildcard_only' : 'default';
+  }
+
+  private buildBestRuleCacheKey(
+    provider: string,
+    apiType: "rest" | "stream",
+    transDataRuleListType: RuleListType,
+    marketType: string | undefined,
+    options: RuleLookupOptions = {},
+  ): string {
+    const normalizedProvider = this.normalizeRequiredProviderForCacheKey(
+      provider,
+      "buildBestRuleCacheKey",
+    );
+    const normalizedApiType = this.normalizeRequiredApiTypeForCacheKey(
+      apiType,
+      "buildBestRuleCacheKey",
+    );
+    const normalizedRuleListType = this.normalizeRequiredRuleListTypeForCacheKey(
+      transDataRuleListType,
+      "buildBestRuleCacheKey",
+    );
+    const keyMarketType = this.normalizeMarketType(marketType);
+    const lookupMode = this.normalizeRuleLookupMode(options);
+    return `best_rule:${normalizedProvider}:${normalizedApiType}:${normalizedRuleListType}:${keyMarketType}:${lookupMode}`;
   }
 }

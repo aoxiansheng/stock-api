@@ -13,6 +13,12 @@ import {
   IsNotEmpty,
   MaxLength,
   IsIn,
+  Matches,
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from "class-validator";
 
 import { SUPPORTED_CAPABILITY_TYPES } from "../constants/operations.constants";
@@ -20,6 +26,72 @@ import { RECEIVER_VALIDATION_RULES } from "../constants/validation.constants";
 import { IsValidSymbolFormat } from "@common/validators/symbol-format.validator";
 import { BaseRequestOptionsDto } from "./common/base-request-options.dto";
 import { StorageMode, StorageModeUtils } from "../enums/storage-mode.enum";
+import {
+  YMD_DATE_PATTERN,
+  isValidYmdDate,
+  validateYmdDateRange,
+} from "@core/shared/utils/ymd-date.util";
+
+@ValidatorConstraint({ name: "isYmdDate", async: false })
+class IsYmdDateConstraint implements ValidatorConstraintInterface {
+  validate(value?: string): boolean {
+    if (value === undefined || value === null || value === "") {
+      return true;
+    }
+    return typeof value === "string" && isValidYmdDate(value);
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} 必须是有效日期（YYYYMMDD）`;
+  }
+}
+
+function IsYmdDate(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: "isYmdDate",
+      target: object.constructor,
+      propertyName,
+      options: validationOptions,
+      validator: IsYmdDateConstraint,
+    });
+  };
+}
+
+function IsYmdNotBefore(
+  startProperty: string,
+  validationOptions?: ValidationOptions,
+) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: "isYmdNotBefore",
+      target: object.constructor,
+      propertyName,
+      constraints: [startProperty],
+      options: validationOptions,
+      validator: {
+        validate(value: unknown, args: ValidationArguments): boolean {
+          if (value === undefined || value === null || value === "") {
+            return true;
+          }
+          const [relatedPropertyName] = args.constraints;
+          const relatedValue = (args.object as Record<string, unknown>)[
+            relatedPropertyName
+          ];
+          if (
+            typeof value !== "string" ||
+            typeof relatedValue !== "string" ||
+            !isValidYmdDate(value) ||
+            !isValidYmdDate(relatedValue)
+          ) {
+            return true;
+          }
+          return validateYmdDateRange(relatedValue, value).isValid;
+        },
+      },
+    });
+  };
+}
 
 export class RequestOptionsDto extends BaseRequestOptionsDto {
   @ApiPropertyOptional({ description: "首选数据提供商" })
@@ -42,6 +114,27 @@ export class RequestOptionsDto extends BaseRequestOptionsDto {
   @IsOptional()
   @IsString()
   market?: string;
+
+  @ApiPropertyOptional({
+    description: "交易日查询起始日（YYYYMMDD，仅 get-trading-days 使用）",
+    example: "20260101",
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(YMD_DATE_PATTERN, { message: "beginDay 必须为 YYYYMMDD 格式" })
+  @IsYmdDate()
+  beginDay?: string;
+
+  @ApiPropertyOptional({
+    description: "交易日查询结束日（YYYYMMDD，仅 get-trading-days 使用）",
+    example: "20260131",
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(YMD_DATE_PATTERN, { message: "endDay 必须为 YYYYMMDD 格式" })
+  @IsYmdDate()
+  @IsYmdNotBefore("beginDay", { message: "beginDay 不能晚于 endDay" })
+  endDay?: string;
 
   @ApiPropertyOptional({
     description: "存储模式：none=不存储，short_ttl=短时效存储，both=双存储",

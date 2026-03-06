@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Inject,
+  Optional,
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
@@ -7,12 +9,15 @@ import {
 } from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
-import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
+import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode, BusinessException } from '@common/core/exceptions';
 import { TRANSFORMER_ERROR_CODES } from '../constants/transformer-error-codes.constants';
 
 import { FlexibleMappingRuleService } from "../../../00-prepare/data-mapper/services/flexible-mapping-rule.service";
 import { FlexibleMappingRuleResponseDto } from "../../../00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
 import { ObjectUtils } from "../../../shared/utils/object.util";
+import { MappingDirection } from "@core/shared/constants";
+import { SymbolTransformerService } from "@core/02-processing/symbol-transformer/services/symbol-transformer.service";
+import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 
 
 import {
@@ -30,6 +35,21 @@ import {
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的转换常量
 
+export interface DataTransformerRuntimeConfig {
+  maxArraySize: number;
+  maxRestoreConcurrency: number;
+}
+
+const DEFAULT_DATA_TRANSFORMER_RUNTIME_CONFIG: DataTransformerRuntimeConfig =
+  Object.freeze({
+    maxArraySize: DATATRANSFORM_CONFIG.MAX_ARRAY_LENGTH,
+    maxRestoreConcurrency: 16,
+  });
+
+export const DATA_TRANSFORMER_RUNTIME_CONFIG = Symbol(
+  "DATA_TRANSFORMER_RUNTIME_CONFIG",
+);
+
 @Injectable()
 export class DataTransformerService {
   // 🎯 使用 common 模块的日志配置
@@ -37,6 +57,10 @@ export class DataTransformerService {
 
   constructor(
     private readonly flexibleMappingRuleService: FlexibleMappingRuleService,
+    private readonly symbolTransformerService: SymbolTransformerService,
+    @Optional()
+    @Inject(DATA_TRANSFORMER_RUNTIME_CONFIG)
+    private readonly runtimeConfig: DataTransformerRuntimeConfig = DEFAULT_DATA_TRANSFORMER_RUNTIME_CONFIG,
   ) {}
 
   /**
@@ -148,9 +172,14 @@ export class DataTransformerService {
       const finalData = Array.isArray(request.rawData)
         ? transformedResults
         : transformedResults[0];
+      const restoredFinalData = await this.restoreStandardSymbols(
+        request.provider,
+        finalData,
+        request.options,
+      );
 
       const stats = this.calculateTransformationStats(
-        finalData,
+        restoredFinalData,
         transformMappingRule,
       );
 
@@ -197,7 +226,7 @@ export class DataTransformerService {
         });
       }
 
-      return new DataTransformResponseDto(finalData, metadata);
+      return new DataTransformResponseDto(restoredFinalData, metadata);
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
 
@@ -216,6 +245,10 @@ export class DataTransformerService {
 
       // 🎯 区分业务逻辑异常和系统异常
       // 业务逻辑异常应该直接传播，不重新包装
+      if (BusinessException.isBusinessException(error)) {
+        throw error;
+      }
+
       if (
         error instanceof NotFoundException ||
         error instanceof BadRequestException ||
@@ -447,7 +480,11 @@ export class DataTransformerService {
         });
       }
 
-      const transformedData = result.transformedData;
+      const transformedData = await this.restoreStandardSymbols(
+        request.provider,
+        result.transformedData,
+        request.options,
+      );
 
       const stats = this.calculateTransformationStats(
         transformedData,
@@ -536,13 +573,35 @@ export class DataTransformerService {
       return await this.flexibleMappingRuleService.findRuleById(ruleId);
     } else {
       // 获取最佳匹配规则
-      const bestRule =
+      let bestRule =
         await this.flexibleMappingRuleService.findBestMatchingRule(
           provider,
           apiType,
           transDataRuleListType,
           marketType,
         );
+
+      // 市场精确匹配失败时，仅降级到“规则 marketType=*”候选，避免跨市场误匹配
+      if (
+        !bestRule &&
+        typeof marketType === "string" &&
+        marketType.trim() &&
+        marketType.trim() !== "*"
+      ) {
+        this.logger.warn("未命中市场特定映射规则，尝试使用通配市场规则", {
+          provider,
+          apiType,
+          transDataRuleListType,
+          requestedMarketType: marketType,
+        });
+
+        bestRule =
+          await this.flexibleMappingRuleService.findBestWildcardMarketRule(
+          provider,
+          apiType,
+          transDataRuleListType,
+        );
+      }
 
       if (bestRule && rawDataSample) {
         // 验证规则与原始数据的兼容性
@@ -600,5 +659,193 @@ export class DataTransformerService {
       fieldsTransformed,
       transformationsApplied,
     };
+  }
+
+  private async restoreStandardSymbols(
+    provider: string,
+    transformedData: any,
+    options?: DataTransformRequestDto["options"],
+  ): Promise<any> {
+    const mapSymbol = async (item: any): Promise<any> => {
+      if (!item || typeof item !== "object") {
+        return item;
+      }
+
+      const symbol = item.symbol;
+      if (typeof symbol !== "string" || !symbol.trim()) {
+        return item;
+      }
+
+      let restored: string;
+      try {
+        restored = await this.symbolTransformerService.transformSingleSymbol(
+          provider,
+          symbol,
+          MappingDirection.TO_STANDARD,
+        );
+      } catch (error: any) {
+        if (BusinessException.isBusinessException(error)) {
+          throw error;
+        }
+
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+          operation: "restoreStandardSymbols",
+          message: `Failed to restore symbol '${symbol}' for provider '${provider}'`,
+          context: {
+            provider,
+            symbol,
+            errorType: TRANSFORMER_ERROR_CODES.TRANSFORMATION_FAILED,
+            originalError: error?.message,
+          },
+          retryable: false,
+          originalError: error,
+        });
+      }
+
+      if (typeof restored !== "string" || !restored.trim()) {
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+          operation: "restoreStandardSymbols",
+          message: `Symbol restoration returned invalid symbol for provider '${provider}'`,
+          context: {
+            provider,
+            symbol,
+            restoredSymbol: restored,
+            errorType: TRANSFORMER_ERROR_CODES.TRANSFORMATION_FAILED,
+          },
+          retryable: false,
+        });
+      }
+
+      if (
+        restored === symbol &&
+        !SymbolValidationUtils.isValidMarketFormat(restored)
+      ) {
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: "restoreStandardSymbols",
+          message: `No standard symbol mapping found for provider '${provider}' and symbol '${symbol}'`,
+          context: {
+            provider,
+            symbol,
+            restoredSymbol: restored,
+            errorType: TRANSFORMER_ERROR_CODES.NO_MAPPING_RULE_FOUND,
+          },
+          retryable: false,
+        });
+      }
+
+      return restored === symbol ? item : { ...item, symbol: restored };
+    };
+
+    if (Array.isArray(transformedData)) {
+      const {
+        maxArraySize,
+        maxRestoreConcurrency,
+        requestMaxArraySize,
+        runtimeMaxArraySize,
+        requestMaxRestoreConcurrency,
+        runtimeMaxRestoreConcurrency,
+      } = this.resolveRestoreLimits(options);
+
+      if (transformedData.length > maxArraySize) {
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.TRANSFORMER,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: "restoreStandardSymbols",
+          message: `Array size ${transformedData.length} exceeds maxArraySize ${maxArraySize} (request=${requestMaxArraySize ?? "unset"}, runtime=${runtimeMaxArraySize}, effective=${maxArraySize})`,
+          context: {
+            provider,
+            arraySize: transformedData.length,
+            maxArraySize,
+            maxArraySizeLimit: {
+              request: requestMaxArraySize,
+              runtime: runtimeMaxArraySize,
+              effective: maxArraySize,
+            },
+            maxRestoreConcurrencyLimit: {
+              request: requestMaxRestoreConcurrency,
+              runtime: runtimeMaxRestoreConcurrency,
+              effective: maxRestoreConcurrency,
+            },
+            errorType: TRANSFORMER_ERROR_CODES.BATCH_SIZE_EXCEEDED,
+          },
+          retryable: false,
+        });
+      }
+
+      return this.mapWithConcurrencyLimit(
+        transformedData,
+        maxRestoreConcurrency,
+        mapSymbol,
+      );
+    }
+
+    return mapSymbol(transformedData);
+  }
+
+  private resolveRestoreLimits(options?: DataTransformRequestDto["options"]): {
+    maxArraySize: number;
+    maxRestoreConcurrency: number;
+    requestMaxArraySize: number | null;
+    runtimeMaxArraySize: number;
+    requestMaxRestoreConcurrency: number | null;
+    runtimeMaxRestoreConcurrency: number;
+  } {
+    const requestMaxArraySize = options?.maxArraySize ?? null;
+    const runtimeMaxArraySize = this.runtimeConfig.maxArraySize;
+    const maxArraySize =
+      requestMaxArraySize === null
+        ? runtimeMaxArraySize
+        : Math.min(requestMaxArraySize, runtimeMaxArraySize);
+
+    const requestMaxRestoreConcurrency = options?.maxRestoreConcurrency ?? null;
+    const runtimeMaxRestoreConcurrency = Math.max(
+      1,
+      this.runtimeConfig.maxRestoreConcurrency,
+    );
+    const maxRestoreConcurrency = Math.max(
+      1,
+      requestMaxRestoreConcurrency === null
+        ? runtimeMaxRestoreConcurrency
+        : Math.min(requestMaxRestoreConcurrency, runtimeMaxRestoreConcurrency),
+    );
+
+    return {
+      maxArraySize,
+      maxRestoreConcurrency,
+      requestMaxArraySize,
+      runtimeMaxArraySize,
+      requestMaxRestoreConcurrency,
+      runtimeMaxRestoreConcurrency,
+    };
+  }
+
+  private async mapWithConcurrencyLimit<T, R>(
+    items: T[],
+    maxConcurrency: number,
+    mapper: (item: T) => Promise<R>,
+  ): Promise<R[]> {
+    if (items.length === 0) {
+      return [];
+    }
+
+    const results = new Array<R>(items.length);
+    const workerCount = Math.max(1, Math.min(maxConcurrency, items.length));
+    let cursor = 0;
+
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (cursor < items.length) {
+        const currentIndex = cursor++;
+        results[currentIndex] = await mapper(items[currentIndex]);
+      }
+    });
+
+    await Promise.all(workers);
+    return results;
   }
 }

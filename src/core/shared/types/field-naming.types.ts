@@ -1,5 +1,7 @@
 import { API_OPERATIONS } from "@common/constants/domain";
 import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
+import type { RuleListType } from "@common/constants/domain/reference-data.constants";
+import { StorageClassification } from "./storage-classification.enum";
 /**
  * 字段命名重构相关的类型定义
  * 用于统一管理和映射不同组件间的字段关系
@@ -20,9 +22,6 @@ export type ReceiverType =
   | "get-stock-news"
   | "get-crypto-news";
 
-// 从统一位置导入
-import { StorageClassification } from "./storage-classification.enum";
-
 /**
  * Query 组件的过滤类型
  * 支持直接使用 StorageClassification 或 ReceiverType，以及特殊值
@@ -32,6 +31,18 @@ export type QueryTypeFilter =
   | ReceiverType
   | "all"
   | "none";
+
+const TRANS_RULE_TYPE_BY_CAPABILITY = {
+  [CAPABILITY_NAMES.GET_STOCK_QUOTE]: "quote_fields",
+  [CAPABILITY_NAMES.STREAM_STOCK_QUOTE]: "quote_fields",
+  [CAPABILITY_NAMES.GET_STOCK_BASIC_INFO]: "basic_info_fields",
+  [CAPABILITY_NAMES.GET_INDEX_QUOTE]: "index_fields",
+  [CAPABILITY_NAMES.GET_MARKET_STATUS]: "market_status_fields",
+  [CAPABILITY_NAMES.GET_TRADING_DAYS]: "trading_days_fields",
+  // 合理默认：无明确规则时使用报价字段
+  [CAPABILITY_NAMES.GET_STOCK_REALTIME]: "quote_fields",
+  [CAPABILITY_NAMES.GET_STOCK_HISTORY]: "quote_fields",
+} as const satisfies Record<string, RuleListType>;
 
 /**
  * 字段映射关系配置
@@ -78,14 +89,5 @@ export const FIELD_MAPPING_CONFIG = {
   } as const,
 
   // Receiver 能力类型到 Transformer 规则表名的映射（用于 transDataRuleListType）
-  TRANS_RULE_TYPE_BY_CAPABILITY: {
-    [CAPABILITY_NAMES.GET_STOCK_QUOTE]: "quote_fields",
-    [CAPABILITY_NAMES.STREAM_STOCK_QUOTE]: "quote_fields",
-    [CAPABILITY_NAMES.GET_STOCK_BASIC_INFO]: "basic_info_fields",
-    [CAPABILITY_NAMES.GET_INDEX_QUOTE]: "index_fields",
-    [CAPABILITY_NAMES.GET_MARKET_STATUS]: "market_status_fields",
-    // 合理默认：无明确规则时使用报价字段
-    [CAPABILITY_NAMES.GET_STOCK_REALTIME]: "quote_fields",
-    [CAPABILITY_NAMES.GET_STOCK_HISTORY]: "quote_fields",
-  } as const,
+  TRANS_RULE_TYPE_BY_CAPABILITY,
 } as const;

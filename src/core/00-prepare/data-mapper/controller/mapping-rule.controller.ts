@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  ValidationPipe,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { AdminOnly, ReadAccess } from "@authv2/decorators";
@@ -19,12 +20,17 @@ import { PaginatedDataDto } from "../../../../common/modules/pagination/dto/pagi
 import { FlexibleMappingRuleService } from "../services/flexible-mapping-rule.service";
 import { RuleAlignmentService } from "../services/rule-alignment.service";
 import { PersistedTemplateService } from "../services/persisted-template.service";
+import { GenerateRuleFromTemplateDto } from "../dto/generate-rule-from-template.dto";
 import {
   CreateFlexibleMappingRuleDto,
   FlexibleMappingRuleResponseDto,
   TestFlexibleMappingRuleDto,
   FlexibleMappingTestResultDto,
 } from "../dto/flexible-mapping-rule.dto";
+import {
+  MappingRuleListQueryDto,
+  PreviewAlignmentQueryDto,
+} from "../dto/mapping-rule-query.dto";
 
 @ApiTags("数据映射规则管理 (Mapping Rule)")
 @Controller("data-mapper/rules")
@@ -68,12 +74,10 @@ export class MappingRuleController {
   @ApiStandardResponses()
   @ApiKeyAuthResponses()
   async getFlexibleRules(
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
-    @Query("provider") provider?: string,
-    @Query("apiType") apiType?: string,
-    @Query("transDataRuleListType") transDataRuleListType?: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: MappingRuleListQueryDto,
   ): Promise<PaginatedDataDto<FlexibleMappingRuleResponseDto>> {
+    const { page, limit, provider, apiType, transDataRuleListType } = query;
     return await this.ruleService.findRules(
       page,
       limit,
@@ -150,11 +154,7 @@ export class MappingRuleController {
   @JwtAuthResponses()
   async generateRuleFromTemplate(
     @Param("templateId") templateId: string,
-    @Body()
-    body: {
-      transDataRuleListType: "quote_fields" | "basic_info_fields";
-      ruleName?: string;
-    },
+    @Body() body: GenerateRuleFromTemplateDto,
   ) {
     return await this.ruleAlignmentService.generateRuleFromTemplate(
       templateId,
@@ -174,9 +174,10 @@ export class MappingRuleController {
   @JwtAuthResponses()
   async previewFieldAlignment(
     @Param("templateId") templateId: string,
-    @Query("transDataRuleListType")
-    transDataRuleListType: "quote_fields" | "basic_info_fields",
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PreviewAlignmentQueryDto,
   ) {
+    const { transDataRuleListType } = query;
     const template =
       await this.persistedTemplateService.getPersistedTemplateById(templateId);
     const alignmentResult = await this.ruleAlignmentService.previewAlignment(

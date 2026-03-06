@@ -25,7 +25,7 @@ export function MaxValueSize(
   maxSizeBytes: number,
   validationOptions?: ValidationOptions,
 ) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: "maxValueSize",
       target: object.constructor,
@@ -65,7 +65,7 @@ export function MaxArrayLength(
   maxLength: number,
   validationOptions?: ValidationOptions,
 ) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: "maxArrayLength",
       target: object.constructor,

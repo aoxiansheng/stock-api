@@ -1,15 +1,17 @@
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { createLogger } from "@common/logging/index";
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from '@common/core/exceptions';
 import { DATA_MAPPER_ERROR_CODES } from '../constants/data-mapper-error-codes.constants';
+import {
+  RULE_LIST_TYPE_VALUES,
+  type RuleListType,
+} from "../constants/data-mapper.constants";
 
 import { StringUtils } from '../../../shared/utils/string.util';
+import { parseRuleListType } from "../utils/rule-list-type.util";
+import { MarketTypeResolverService } from "./market-type-resolver.service";
 
 import {
   DataSourceTemplate,
@@ -20,6 +22,8 @@ import {
   FlexibleMappingRuleDocument,
 } from "../schemas/flexible-mapping-rule.schema";
 
+type SupportedRuleType = RuleListType;
+
 /**
  * 🎯 规则对齐服务
  * 基于持久化模板自动生成和对齐映射规则
@@ -29,7 +33,7 @@ export class RuleAlignmentService {
   private readonly logger = createLogger(RuleAlignmentService.name);
 
   // 预设的目标字段映射（后端标准字段）
-  private readonly PRESET_TARGET_FIELDS = {
+  private readonly PRESET_TARGET_FIELDS: Record<SupportedRuleType, string[]> = {
     // 股票报价字段
     quote_fields: [
       "symbol", // 股票代码
@@ -40,6 +44,8 @@ export class RuleAlignmentService {
       "lowPrice", // 最低价
       "volume", // 成交量
       "turnover", // 成交额
+      "change", // 涨跌额
+      "changePercent", // 涨跌幅
       "timestamp", // 时间戳
       "tradeStatus", // 交易状态
       // 盘前字段
@@ -90,6 +96,38 @@ export class RuleAlignmentService {
       "dividendYield", // 股息率
       "stockDerivatives", // 衍生品类型
     ],
+
+    // 市场状态字段
+    market_status_fields: [
+      "market", // 市场
+      "remark", // 市场说明
+      "tradeSchedules", // 交易时段
+    ],
+
+    // 交易日字段
+    trading_days_fields: [
+      "market", // 市场
+      "beginDay", // 起始日
+      "endDay", // 结束日
+      "tradeDays", // 交易日
+      "halfTradeDays", // 半日市
+    ],
+
+    // 指数报价字段（与 quote_fields 共用基础行情语义）
+    index_fields: [
+      "symbol",
+      "lastPrice",
+      "previousClose",
+      "openPrice",
+      "highPrice",
+      "lowPrice",
+      "volume",
+      "turnover",
+      "change",
+      "changePercent",
+      "timestamp",
+      "tradeStatus",
+    ],
   };
 
   constructor(
@@ -97,7 +135,26 @@ export class RuleAlignmentService {
     private readonly templateModel: Model<DataSourceTemplateDocument>,
     @InjectModel(FlexibleMappingRule.name)
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,
+    private readonly marketTypeResolver: MarketTypeResolverService,
   ) {}
+
+  private createInvalidRuleTypeException(
+    operation: string,
+    transDataRuleListType: unknown,
+  ) {
+    return UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.DATA_MAPPER,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation,
+      message: `不支持的规则类型: ${String(transDataRuleListType)}`,
+      context: {
+        providedType: transDataRuleListType,
+        allowedTypes: RULE_LIST_TYPE_VALUES,
+        errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_NAME,
+      },
+      retryable: false,
+    });
+  }
 
 
 
@@ -106,7 +163,7 @@ export class RuleAlignmentService {
    */
   async generateRuleFromTemplate(
     templateId: string,
-    transDataRuleListType: "quote_fields" | "basic_info_fields",
+    transDataRuleListType: SupportedRuleType,
     ruleName?: string,
   ): Promise<{
     rule: FlexibleMappingRuleDocument;
@@ -186,7 +243,7 @@ export class RuleAlignmentService {
         }));
 
       // 5. 创建规则
-      const marketType = this.resolveMarketType(
+      const marketType = this.marketTypeResolver.resolveMarketType(
         template,
         transDataRuleListType,
       );
@@ -276,11 +333,16 @@ export class RuleAlignmentService {
         targetField: m.targetField,
       }));
 
+      const ruleType = parseRuleListType(rule.transDataRuleListType);
+      if (!ruleType) {
+        throw this.createInvalidRuleTypeException(
+          "realignExistingRule",
+          rule.transDataRuleListType,
+        );
+      }
+
       // 3. 重新对齐
-      const alignmentResult = this.autoAlignFields(
-        template,
-        rule.transDataRuleListType as any,
-      );
+      const alignmentResult = this.autoAlignFields(template, ruleType);
 
       // 4. 构建新的字段映射
       const newFieldMappings = alignmentResult.suggestions
@@ -299,6 +361,11 @@ export class RuleAlignmentService {
         newFieldMappings,
       );
 
+      const marketType = this.marketTypeResolver.resolveMarketType(
+        template,
+        ruleType,
+      );
+
       // 6. 更新规则
       const updatedRule = await this.ruleModel.findByIdAndUpdate(
         dataMapperRuleId,
@@ -306,6 +373,7 @@ export class RuleAlignmentService {
           fieldMappings: newFieldMappings,
           overallConfidence: this.calculateOverallConfidence(newFieldMappings),
           lastAlignedAt: new Date(),
+          marketType,
         },
         { new: true },
       );
@@ -438,7 +506,7 @@ export class RuleAlignmentService {
    */
   async previewAlignment(
     template: DataSourceTemplateDocument,
-    transDataRuleListType: "quote_fields" | "basic_info_fields",
+    transDataRuleListType: SupportedRuleType,
   ) {
     // 参数验证
     if (!template) {
@@ -465,17 +533,17 @@ export class RuleAlignmentService {
         retryable: false
       });
     }
-    if (
-      !["quote_fields", "basic_info_fields"].includes(transDataRuleListType)
-    ) {
+    const normalizedRuleListType = parseRuleListType(transDataRuleListType);
+    if (!normalizedRuleListType) {
       throw UniversalExceptionFactory.createBusinessException({
         component: ComponentIdentifier.DATA_MAPPER,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'previewAlignment',
-        message: 'transDataRuleListType must be quote_fields or basic_info_fields',
+        message:
+          `transDataRuleListType must be one of: ${RULE_LIST_TYPE_VALUES.join(", ")}`,
         context: {
           providedType: transDataRuleListType,
-          allowedTypes: ['quote_fields', 'basic_info_fields'],
+          allowedTypes: RULE_LIST_TYPE_VALUES,
           errorType: DATA_MAPPER_ERROR_CODES.INVALID_RULE_NAME
         },
         retryable: false
@@ -486,7 +554,7 @@ export class RuleAlignmentService {
       // 调用原私有方法逻辑
       const alignmentResult = this.autoAlignFields(
         template,
-        transDataRuleListType,
+        normalizedRuleListType,
       );
 
       this.logger.debug("字段对齐预览完成", {
@@ -526,9 +594,15 @@ export class RuleAlignmentService {
    */
   private autoAlignFields(
     template: DataSourceTemplateDocument,
-    transDataRuleListType: "quote_fields" | "basic_info_fields",
+    transDataRuleListType: SupportedRuleType,
   ) {
     const targetFields = this.PRESET_TARGET_FIELDS[transDataRuleListType];
+    if (!Array.isArray(targetFields) || targetFields.length === 0) {
+      throw this.createInvalidRuleTypeException(
+        "autoAlignFields",
+        transDataRuleListType,
+      );
+    }
     const sourceFields = template.extractedFields || [];
 
     const suggestions = [];
@@ -653,6 +727,14 @@ export class RuleAlignmentService {
     )
       return 0.9;
 
+    if (
+      target === "changepercent" &&
+      (this.hasExactToken(sourceField.fieldName, "pc") ||
+        this.hasExactToken(sourceField.fieldPath, "pc"))
+    ) {
+      return 0.9;
+    }
+
     // 常见字段映射规则
     const mappingRules = {
       symbol: ["symbol", "code", "ticker"],
@@ -685,6 +767,13 @@ export class RuleAlignmentService {
         "volume.total",
       ],
       turnover: ["turnover", "amount", "trade_amount", "trading_amount"],
+      change: ["change", "change_amount", "price_change", "delta", "pca"],
+      changepercent: [
+        "changepercent",
+        "change_percent",
+        "pct_change",
+        "percent_change",
+      ],
       timestamp: ["timestamp", "time", "datetime", "update_time", "trade_time"],
       tradestatus: ["tradestatus", "trade_status", "status", "market_status"],
       premarketprice: ["premarketquote.lastdone", "premarketprice"],
@@ -780,6 +869,17 @@ export class RuleAlignmentService {
 
     const distance = StringUtils.levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length;
+  }
+
+  private hasExactToken(value: unknown, token: string): boolean {
+    if (typeof value !== "string" || !value.trim()) {
+      return false;
+    }
+    const normalized = value
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .toLowerCase();
+    const tokens = normalized.split(/[^a-z0-9]+/).filter(Boolean);
+    return tokens.includes(token.toLowerCase());
   }
 
   private getSessionContext(targetField: string):
@@ -913,64 +1013,4 @@ export class RuleAlignmentService {
     return Math.min(totalConfidence / fieldMappings.length, 1.0);
   }
 
-  private resolveMarketType(
-    template: DataSourceTemplateDocument,
-    transDataRuleListType: "quote_fields" | "basic_info_fields",
-  ): string {
-    if (!template) {
-      return "*";
-    }
-
-    if (transDataRuleListType === "basic_info_fields") {
-      return "HK/SH/SZ/US";
-    }
-
-    const apiType = (template.apiType || "").toLowerCase();
-    if (apiType === "stream") {
-      return "HK/SH/SZ/US";
-    }
-
-    const normalizedName = (template.name || "").toUpperCase();
-    if (normalizedName.includes("美股")) {
-      return "US";
-    }
-    if (normalizedName.includes("港股") && normalizedName.includes("A股")) {
-      return "HK/SH/SZ";
-    }
-
-    const symbol = this.extractSampleSymbol(template);
-    if (symbol) {
-      const upperSymbol = symbol.toUpperCase();
-      if (upperSymbol.endsWith(".US")) {
-        return "US";
-      }
-      if (upperSymbol.endsWith(".HK")) {
-        return "HK";
-      }
-      if (upperSymbol.endsWith(".SH") || upperSymbol.endsWith(".SZ")) {
-        return "SH/SZ";
-      }
-    }
-
-    return "*";
-  }
-
-  private extractSampleSymbol(
-    template: DataSourceTemplateDocument,
-  ): string | null {
-    if (!template?.sampleData) {
-      return null;
-    }
-
-    const data = template.sampleData as Record<string, any>;
-    if (typeof data.symbol === "string" && data.symbol.trim()) {
-      return data.symbol.trim();
-    }
-
-    if (Array.isArray(data.symbols) && typeof data.symbols[0] === "string") {
-      return data.symbols[0].trim();
-    }
-
-    return null;
-  }
 }

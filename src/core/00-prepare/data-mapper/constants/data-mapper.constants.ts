@@ -42,6 +42,15 @@
  */
 
 // 保持最小依赖，避免引入全局复杂常量
+import { REFERENCE_DATA } from "@common/constants/domain";
+import {
+  RULE_LIST_TYPES,
+  RULE_LIST_TYPE_VALUES,
+} from "@common/constants/domain/reference-data.constants";
+import type {
+  NonIndexRuleListType,
+  RuleListType,
+} from "@common/constants/domain/reference-data.constants";
 
 /**
  * 数据映射错误消息常量
@@ -263,28 +272,35 @@ export const API_TYPE_VALUES = Object.values(API_TYPES);
  * @see {@link FlexibleMappingRuleService} - 规则处理中使用
  *
  * @note INDEX_FIELDS已在生产环境中使用，支持get-index-quote端点
+ *
+ * 兼容说明：
+ * - RuleListType 族常量与类型已上移到 common/domain。
+ * - 这里保留桥接导出，避免 prepare 层调用方改动 import 路径。
  */
-export const RULE_LIST_TYPES = Object.freeze({
-  QUOTE_FIELDS: "quote_fields",
-  BASIC_INFO_FIELDS: "basic_info_fields",
-  INDEX_FIELDS: "index_fields", // 仍保留，避免影响现有使用面
-} as const);
+export { RULE_LIST_TYPES, RULE_LIST_TYPE_VALUES };
+export type { RuleListType, NonIndexRuleListType };
 
 /**
- * 规则列表类型联合类型（从常量对象推导）
+ * 通用模板关键词（用于市场类型推断）
  *
- * @description TypeScript类型定义，确保规则类型的类型安全
+ * @description 注意：该关键词集合用于“模板名称”匹配，匹配前需统一转换大写
  */
-export type RuleListType =
-  (typeof RULE_LIST_TYPES)[keyof typeof RULE_LIST_TYPES];
+export const MULTI_MARKET_TEMPLATE_KEYWORDS = Object.freeze([
+  "通用",
+  "全市场",
+  "所有市场",
+  "MULTI-MARKET",
+  "MULTI MARKET",
+] as const);
 
 /**
- * 规则列表类型数组（用于枚举验证）
+ * 多市场报价 Provider 列表
  *
- * @description 从RULE_LIST_TYPES导出的数组，用于class-validator装饰器
- * @usage 在DTO验证中使用 @IsEnum(RULE_LIST_TYPE_VALUES)
+ * @description 仅用于 quote_fields 自动推断 marketType 时识别“全市场”Provider
  */
-export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
+export const MULTI_MARKET_QUOTE_PROVIDER_IDS = Object.freeze([
+  REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+]);
 
 // 说明：已删除 production-types 配置与运行时验证工具，保持常量最小集合
 
@@ -313,5 +329,3 @@ export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
  * 已删除：DATA_MAPPER_CACHE_CONFIG 常量已迁移到专用的 DataMapperCache 模块配置中
  * 位置：src/core/05-caching/module/data-mapper-cache/constants/
  */
-
-

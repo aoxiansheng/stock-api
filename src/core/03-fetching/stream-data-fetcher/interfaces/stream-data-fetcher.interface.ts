@@ -76,6 +76,9 @@ export interface StreamConnectionParams {
   /** 请求ID，用于追踪和日志 */
   requestId: string;
 
+  /** 客户端IP（可选，用于连接池按IP限流） */
+  clientIP?: string;
+
   /** 增强的连接上下文服务 */
   contextService?: StreamConnectionContext;
 

@@ -210,6 +210,32 @@ export default defineConfig([
     },
   },
   {
+    name: "shared-layer-boundary",
+    files: ["src/core/shared/**/*.{ts,js}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@core/00-prepare/**"],
+              message: "shared 层禁止依赖 prepare 层，请上移到 common/shared 抽象或通过 prepare 反向依赖。"
+            },
+            {
+              group: [
+                "../00-prepare/**",
+                "../../00-prepare/**",
+                "../../../00-prepare/**",
+                "../../../../00-prepare/**",
+              ],
+              message: "shared 层禁止相对路径依赖 prepare 层。"
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     name: "monitoring-deprecation-detection",
     files: ["src/**/*.{ts,js}"],
     rules: {
@@ -257,7 +283,6 @@ export default defineConfig([
           message: "⚠️ DEPRECATED since v1.1.0, removed in v1.2.0. Use MonitoringUnifiedTtlConfig from monitoring-unified-ttl.config.ts. See docs/monitoring-deprecation-migration-guide.md"
         }
       ],
-      "@typescript-eslint/no-unused-imports": ["error"],
       "@typescript-eslint/no-unused-vars": [
         "error",
         { 

@@ -11,6 +11,31 @@
  */
 
 /**
+ * 规则列表类型常量（共享层）
+ *
+ * 说明：
+ * - 属于跨层领域语义，避免 shared/types 反向依赖 prepare 层。
+ * - prepare 层通过桥接导出保持兼容。
+ */
+export const RULE_LIST_TYPES = Object.freeze({
+  QUOTE_FIELDS: "quote_fields",
+  BASIC_INFO_FIELDS: "basic_info_fields",
+  MARKET_STATUS_FIELDS: "market_status_fields",
+  TRADING_DAYS_FIELDS: "trading_days_fields",
+  INDEX_FIELDS: "index_fields",
+} as const);
+
+export type RuleListType =
+  (typeof RULE_LIST_TYPES)[keyof typeof RULE_LIST_TYPES];
+
+export const RULE_LIST_TYPE_VALUES = Object.values(RULE_LIST_TYPES);
+
+export type NonIndexRuleListType = Exclude<
+  RuleListType,
+  typeof RULE_LIST_TYPES.INDEX_FIELDS
+>;
+
+/**
  * 参考数据配置常量
  * 🎯 解决系统中大量硬编码的测试和示例数据
  */
@@ -83,6 +108,7 @@ export const REFERENCE_DATA = Object.freeze({
     LONGPORT_HK: "longport-hk", // 长桥香港
     LONGPORT_US: "longport-us", // 长桥美国
     JVQUANT: "jvquant", // JvQuant WebSocket 行情提供商
+    INFOWAY: "infoway", // Infoway 行情提供商（REST + WebSocket）
 
     // 其他提供商
 

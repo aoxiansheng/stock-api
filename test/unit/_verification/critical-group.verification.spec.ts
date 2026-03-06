@@ -11,9 +11,10 @@ jest.mock("@common/logging/index", () => ({
 import { DataTransformerService } from "@core/02-processing/transformer/services/data-transformer.service";
 import { sanitizeInfowayUpstreamMessage } from "@providersv2/providers/infoway/utils/infoway-error.util";
 
+// 该文件用于验证现状行为契约，避免关键行为回归。
 describe("Critical group verification", () => {
   it.each(["AAPL.US", "600000.SH", "000001.SZ"])(
-    "restoreStandardSymbols 会把已标准符号 %s 误判为未映射",
+    "restoreStandardSymbols 对已标准符号 %s 保持不变",
     async (standardSymbol) => {
       const symbolTransformerService = {
         transformSingleSymbol: jest.fn(async () => standardSymbol),
@@ -32,23 +33,19 @@ describe("Critical group verification", () => {
         (service as any).restoreStandardSymbols("longport", {
           symbol: standardSymbol,
         }),
-      ).rejects.toMatchObject({
-        message: expect.stringContaining("No standard symbol mapping found"),
-        context: expect.objectContaining({
-          symbol: standardSymbol,
-          restoredSymbol: standardSymbol,
-        }),
+      ).resolves.toMatchObject({
+        symbol: standardSymbol,
       });
     },
   );
 
-  it("sanitizeInfowayUpstreamMessage 在 Authorization: Bearer <token> 下会残留 token", () => {
+  it("sanitizeInfowayUpstreamMessage 会脱敏 Authorization Bearer token", () => {
     const token = "abc.def.ghi";
     const sanitized = sanitizeInfowayUpstreamMessage(
       `Authorization: Bearer ${token}`,
     );
 
-    expect(sanitized).toBe(`Authorization=[REDACTED] ${token}`);
-    expect(sanitized).toContain(token);
+    expect(sanitized).toBe("Authorization=[REDACTED]");
+    expect(sanitized).not.toContain(token);
   });
 });

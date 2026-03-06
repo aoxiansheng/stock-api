@@ -1,6 +1,8 @@
 import { Injectable, HttpStatus } from "@nestjs/common";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
+import type { ICapability } from "@providersv2/providers/interfaces/capability.interface";
 
 import {
   BusinessException,
@@ -46,6 +48,10 @@ interface RawData {
   [key: string]: any;
 }
 
+const STREAM_CAPABILITY_NAMES = new Set<string>([
+  CAPABILITY_NAMES.STREAM_STOCK_QUOTE.toLowerCase(),
+]);
+
 /**
  * processRawData方法的输入类型联合
  * 支持通用对象格式，通过智能字段检测实现格式自适应
@@ -61,6 +67,7 @@ type ProcessRawDataInput = RawData | any[];
 @Injectable()
 export class DataFetcherService implements IDataFetcher {
   private readonly logger = createLogger(DataFetcherService.name);
+  private readonly missingCapabilityMetadataWarnings = new Set<string>();
 
   /**
    * 批处理并发限制数量 - 通过环境变量配置，防止高并发场景资源耗尽
@@ -117,6 +124,18 @@ export class DataFetcherService implements IDataFetcher {
     try {
       // 1. 验证提供商能力
       await this.checkCapability(provider, capability);
+      const normalizedApiType = this.normalizeApiType(apiType);
+      const capabilityDefinition = this.capabilityRegistryService.getCapability(
+        provider,
+        capability,
+      );
+      this.guardAgainstStreamCapabilityOnRestChain(
+        provider,
+        capability,
+        normalizedApiType,
+        requestId,
+        capabilityDefinition,
+      );
 
       // 1.1 兜底：若未显式传入 contextService，则尝试从注册表获取
       let ensuredContextService = contextService;
@@ -138,8 +157,8 @@ export class DataFetcherService implements IDataFetcher {
       const executionParams = {
         symbols,
         requestId,
-        apiType,
         ...options,
+        apiType: normalizedApiType,
         contextService: ensuredContextService,
       };
 
@@ -640,5 +659,112 @@ export class DataFetcherService implements IDataFetcher {
   private async hasCapability(provider: string, capability: string): Promise<boolean> {
     const cap = this.capabilityRegistryService.getCapability(provider, capability);
     return !!cap;
+  }
+
+  private guardAgainstStreamCapabilityOnRestChain(
+    provider: string,
+    capability: string,
+    apiType: string,
+    requestId?: string,
+    capabilityDefinition?: ICapability | null,
+  ): void {
+    const normalizedApiType = this.normalizeApiType(apiType);
+    const isStreamCapability = this.isStreamCapability(
+      provider,
+      capability,
+      capabilityDefinition,
+    );
+    const isRestChain = normalizedApiType !== "stream";
+
+    if (!isStreamCapability || !isRestChain) {
+      return;
+    }
+
+    const misuseContext = {
+      provider,
+      capability,
+      apiType,
+      requestId,
+      expectedApiType: "stream",
+      guide: "use-stream-receiver-subscribe-flow",
+    };
+
+    this.logger.warn("Blocked stream capability misuse on REST chain", {
+      operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+      ...misuseContext,
+    });
+
+    throw UniversalExceptionFactory.createBusinessException({
+      message: `能力 ${capability} 属于实时流能力，不能通过 REST 执行链调用。请改用 StreamReceiver/StreamDataFetcher 订阅链路。`,
+      errorCode: BusinessErrorCode.INVALID_OPERATION,
+      operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+      component: ComponentIdentifier.DATA_FETCHER,
+      context: misuseContext,
+    });
+  }
+
+  private isStreamCapability(
+    provider: string,
+    capability: string,
+    capabilityDefinition?: ICapability | null,
+  ): boolean {
+    const streamCapabilityFromMetadata =
+      this.resolveStreamCapabilityFromMetadata(capabilityDefinition);
+    if (streamCapabilityFromMetadata !== null) {
+      return streamCapabilityFromMetadata;
+    }
+
+    const normalizedCapability = String(capability || "").trim().toLowerCase();
+    const isStreamFromFallback = STREAM_CAPABILITY_NAMES.has(normalizedCapability);
+    if (isStreamFromFallback) {
+      this.warnMissingCapabilityMetadata(provider, capability);
+    }
+    return isStreamFromFallback;
+  }
+
+  private warnMissingCapabilityMetadata(provider: string, capability: string): void {
+    const warningKey = `${provider}:${capability}`.toLowerCase();
+    if (this.missingCapabilityMetadataWarnings.has(warningKey)) {
+      return;
+    }
+    this.missingCapabilityMetadataWarnings.add(warningKey);
+    this.logger.warn("Capability metadata missing transport/apiType, fallback to stream name set", {
+      provider,
+      capability,
+      fallback: "STREAM_CAPABILITY_NAMES",
+    });
+  }
+
+  private resolveStreamCapabilityFromMetadata(
+    capabilityDefinition?: ICapability | null,
+  ): boolean | null {
+    if (!capabilityDefinition) {
+      return null;
+    }
+
+    const normalizedTransport = String(capabilityDefinition.transport || "")
+      .trim()
+      .toLowerCase();
+    if (normalizedTransport === "stream" || normalizedTransport === "websocket") {
+      return true;
+    }
+    if (normalizedTransport === "rest") {
+      return false;
+    }
+
+    if (capabilityDefinition.apiType) {
+      return this.normalizeApiType(capabilityDefinition.apiType) === "stream";
+    }
+
+    return null;
+  }
+
+  private normalizeApiType(apiType?: string): "rest" | "stream" {
+    const normalizedApiType = String(
+      apiType || DATA_FETCHER_DEFAULT_CONFIG.DEFAULT_API_TYPE,
+    )
+      .trim()
+      .toLowerCase();
+    return normalizedApiType === "stream" ? "stream" : "rest";
   }
 }

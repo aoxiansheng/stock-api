@@ -3,6 +3,7 @@ import {
   IsString,
   IsEnum,
   IsOptional,
+  IsNotEmpty,
   IsBoolean,
   IsNumber,
   Min,
@@ -12,19 +13,27 @@ import {
   IsObject,
   MaxLength,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 import { ApiProperty } from "@nestjs/swagger";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier,
+} from "@common/core/exceptions";
 import {
   TRANSFORMATION_TYPE_VALUES,
   API_TYPE_VALUES,
   RULE_LIST_TYPE_VALUES,
   DATA_MAPPER_CONFIG,
 } from "../constants/data-mapper.constants";
+import { DATA_MAPPER_ERROR_CODES } from "../constants/data-mapper-error-codes.constants";
 import type {
   TransformationType,
   ApiType,
   RuleListType,
 } from "../constants/data-mapper.constants";
+import { parseRuleListType } from "../utils/rule-list-type.util";
+import { normalizeTrimmedString } from "../utils/string-normalize.util";
 
 // 🆕 转换规则DTO
 export class TransformRuleDto {
@@ -124,7 +133,11 @@ export class CreateFlexibleMappingRuleDto {
     description: "提供商",
     example: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
   })
+  @Transform(({ value }) =>
+    typeof value === "string" ? normalizeTrimmedString(value) : value,
+  )
   @IsString()
+  @IsNotEmpty({ message: "provider 不能为空" })
   provider: string;
 
   @ApiProperty({
@@ -213,7 +226,7 @@ export class FlexibleMappingRuleResponseDto {
   apiType: string;
 
   @ApiProperty({ description: "规则类型" })
-  transDataRuleListType: string;
+  transDataRuleListType: RuleListType;
 
   @ApiProperty({ description: "规则描述" })
   description?: string;
@@ -264,12 +277,31 @@ export class FlexibleMappingRuleResponseDto {
   updatedAt: Date;
 
   static fromDocument(doc: any): FlexibleMappingRuleResponseDto {
+    const parsedRuleListType = parseRuleListType(doc?.transDataRuleListType);
+    if (!parsedRuleListType) {
+      const documentId = doc?._id?.toString?.() || doc?.id || "";
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "FlexibleMappingRuleResponseDto.fromDocument",
+        message: "Invalid transDataRuleListType in mapping rule document",
+        context: {
+          dataMapperErrorCode: DATA_MAPPER_ERROR_CODES.INVALID_MAPPING_RULE_DATA,
+          documentId,
+          provider: doc?.provider,
+          apiType: doc?.apiType,
+          transDataRuleListType: doc?.transDataRuleListType,
+        },
+        retryable: false,
+      });
+    }
+
     return {
       id: doc._id?.toString() || doc.id,
       name: doc.name,
       provider: doc.provider,
       apiType: doc.apiType,
-      transDataRuleListType: doc.transDataRuleListType,
+      transDataRuleListType: parsedRuleListType,
       description: doc.description,
       marketType: doc.marketType || "*",
       sourceTemplateId: doc.sourceTemplateId,

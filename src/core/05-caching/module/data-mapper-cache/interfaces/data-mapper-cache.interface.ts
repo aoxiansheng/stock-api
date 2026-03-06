@@ -1,4 +1,6 @@
 import { FlexibleMappingRuleResponseDto } from "../../../../../core/00-prepare/data-mapper/dto/flexible-mapping-rule.dto";
+import type { RuleLookupOptions } from "@core/00-prepare/data-mapper/types/rule-lookup-options.type";
+import type { RuleListType } from "@core/00-prepare/data-mapper/constants/data-mapper.constants";
 
 /**
  * DataMapper 专用缓存接口
@@ -11,16 +13,18 @@ export interface IDataMapperCache {
   cacheBestMatchingRule(
     provider: string,
     apiType: "rest" | "stream",
-    transDataRuleListType: string,
+    transDataRuleListType: RuleListType,
     marketType: string | undefined,
     rule: FlexibleMappingRuleResponseDto,
+    options?: RuleLookupOptions,
   ): Promise<void>;
 
   getCachedBestMatchingRule(
     provider: string,
     apiType: "rest" | "stream",
-    transDataRuleListType: string,
+    transDataRuleListType: RuleListType,
     marketType: string | undefined,
+    options?: RuleLookupOptions,
   ): Promise<FlexibleMappingRuleResponseDto | null>;
 
   /**

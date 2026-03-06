@@ -1,0 +1,77 @@
+脚本已给你，路径：
+  tests script
+
+  直接运行：
+
+  cd "/Users/honor/Documents/code/newstockapi/stock-api"
+
+  # 方式1：你已有 appKey/accessToken
+  APP_KEY="你的appKey" ACCESS_TOKEN="你的accessToken" node scripts/tools/test-jvquant-ws.js
+
+  # 方式2：你只有用户名密码，脚本会自动登录并创建临时 API Key（会打印出来）
+  USERNAME="你的用户名" PASSWORD="你的密码" node scripts/tools/test-jvquant-ws.js
+
+  appKey/accessToken 是你系统里 ApiKey 的一对凭证（用于 WebSocket 连接认证），不是 JVQUANT_TOKEN。
+  代码位置可见：
+
+  - 创建接口：auth.controller.ts:61
+  - 生成逻辑：service.ts:139
+  - 网关如何读取它们（handshake.auth.appKey/accessToken）：stream-receiver.gateway.ts:552
+
+  补充一点：GET /api/v1/auth/api-keys 不返回 accessToken（只返回 appKey），如果你忘了旧的 accessToken，需要新建一对。
+
+
+  - USERNAME: jvquant_u_1772642417036
+  - PASSWORD: JvQ_1772642417036_pass
+  - APP_KEY: e8385542ec654a1c9795defa442e9eeb
+  - ACCESS_TOKEN: c1dabcf40045414faa49f51fe0a19462d16f7257c9b5460787a5e0b594dcf584
+
+
+
+ APP_KEY="e8385542ec654a1c9795defa442e9eeb" ACCESS_TOKEN="c1dabcf40045414faa49f51fe0a19462d16f7257c9b5460787a5e0b594dcf584" node scripts/tools/test-jvquant-ws.js
+
+
+
+infoway(1)-> longport-sg(2) -> jvquant(3) -> longport(4) 
+
+ cd "/Users/honor/Documents/code/newstockapi/stock-api"
+  BASE_URL="http://127.0.0.1:3001" \
+  APP_KEY="e600424ba75c4e8591195c7e652a8fb6" \
+  ACCESS_TOKEN="1f903e3dca934f54af53b6349b9d0c08e8617f80ba41403cafc1aaddbfa10d9c" \
+  npm run tool:test-infoway-rest
+
+
+
+USERNAME=jvquant_u_1772679410832
+PASSWORD=JvQ_1772679410832_pass
+EMAIL=jvquant_u_1772679410832@example.com
+APP_KEY=e600424ba75c4e8591195c7e652a8fb6
+ACCESS_TOKEN=1f903e3dca934f54af53b6349b9d0c08e8617f80ba41403cafc1aaddbfa10d9c
+JWT_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OWE4ZjBmMjVmNmZhNjJiYzBiYzk1YzgiLCJyb2xlIjoiREVWRUxPUEVSIiwiaWF0IjoxNzcyNjc5NDExLCJleHAiOjE3NzI2ODMwMTF9.cAUSvvPkkvJjIQtfd4-3m215U-CpJUuedRJRAxiNqF8
+
+
+
+
+  请使用 clean-code-reviewer  做严格代码审查 D3/R4/C1 ⇒ L4
+  请使用 code-reviewer 按照作者工作流对代码进行审查,分析拆分上述工作流的预设步骤清单计划,启动 Multi-agents  ,你是主 agent。请
+  并行启动多个 agent,同时对工作流拆分任务进行推进,最后你来汇总结果,写入到指定文档.
+  审查范围： git diff 以及新建未跟踪代码
+  额外注意：项目开发中,绿地项目,不需要考虑兼容回退,不要过度开发，要求最小成本，符合第一原理实现
+  重点关注：安全性、边界条件、可维护性、重复代码、组件耦合、组件复用
+  请按“Critical/Important/Minor/Strengths/Verdict”格式输出,并且储存为 md 文件保存到
+  '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'
+ 
+
+  启动 Multi-agents  ,你是主 agent。请并行启动多个 sub-agent， 对文档 
+  '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'
+  所述问题进行合理拆分,确认是否存在,针对确认存在的问题,创建修复计划,主 agent 收集后写入到'
+  /Users/honor/Documents/code/newstockapi/stock-api/开发修复文档.md' 
+  修复计划应该完整:写清背景,修复目标,涉及代码文件，影响面分析,并且写清原子开发步骤,每一个步骤的验收条件,测试补齐，回归验证
+
+  › /Users/honor/Documents/code/newstockapi/stock-api/开发修复文档.md   先分析修复计划,然后合理并行启动多个 sub-agent，对修复
+  计划进行拆分,然后执行修复任务.拆分任务要合理,不要互相冲突,
+
+
+
+ brew services stop mongodb-community
+  brew services start mongodb-community

@@ -72,11 +72,10 @@ export class WsAuthGuard implements CanActivate {
     // 从连接握手头部获取（复用HTTP认证头部格式）
     const handshake = client.handshake;
     const headers = handshake.headers;
-    const query = handshake.query;
 
     return {
-      apiKey: headers["x-app-key"] || query.apiKey,
-      accessToken: headers["x-access-token"] || query.accessToken,
+      apiKey: headers["x-app-key"],
+      accessToken: headers["x-access-token"],
     };
   }
 

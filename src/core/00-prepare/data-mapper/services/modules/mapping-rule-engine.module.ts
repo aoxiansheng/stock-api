@@ -115,15 +115,6 @@ export class MappingRuleEngineModule {
             );
           }
 
-          // 如果目标字段名包含 "percent" 且结果仍小于 1，则认为为比率制，需要再乘 100 输出百分数
-          if (
-            typeof transformedValue === "number" &&
-            Math.abs(transformedValue) < 1 &&
-            mapping.targetField.toLowerCase().includes("percent")
-          ) {
-            transformedValue = transformedValue * 100;
-          }
-
           transformedData[mapping.targetField] = transformedValue;
           successfulMappings++;
           if (isRequired) {

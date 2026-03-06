@@ -1,11 +1,16 @@
-import { Injectable, OnModuleInit, Optional } from "@nestjs/common";
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { ModuleRef } from "@nestjs/core";
 import { createLogger } from "@common/logging/index";
-import { REFERENCE_DATA } from "@common/constants/domain";
-
-// 复用既有 Provider 与能力定义（保持最小迁移成本）
-import { LongportProvider } from "./providers/longport/longport.provider";
-import { LongportSgProvider } from "./providers/longport-sg/longport-sg.provider";
-import { JvQuantProvider } from "./providers/jvquant/jvquant.provider";
+import {
+  PROVIDER_PRIORITIES,
+  DEFAULT_PROVIDER_PRIORITY,
+} from "./provider-priority.constants";
+import {
+  ACTIVE_PROVIDER_MANIFEST,
+  PROVIDER_NAME_ALIASES,
+  type ProviderManifestEntry,
+} from "./provider-id.constants";
+import type { ProviderId } from "./provider-id.constants";
 import { ICapability } from "./providers/interfaces/capability.interface";
 import { IDataProvider } from "./providers/interfaces/provider.interface";
 
@@ -27,29 +32,25 @@ export class ProviderRegistryService implements OnModuleInit {
   private readonly providers = new Map<string, IDataProvider>();
   private readonly capabilities = new Map<string, Map<string, CapabilityMeta>>();
   // 向后兼容历史命名，统一解析到标准 provider 名称
-  private readonly providerAliases = new Map<string, string>([
-    ["longportsg", REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
-  ]);
+  private readonly providerAliases = new Map<string, string>(
+    Object.entries(PROVIDER_NAME_ALIASES),
+  );
   private initialized = false;
 
-  constructor(
-    @Optional() private readonly longportProvider?: LongportProvider,
-    @Optional() private readonly longportSgProvider?: LongportSgProvider,
-    @Optional() private readonly jvQuantProvider?: JvQuantProvider,
-  ) {}
+  constructor(private readonly moduleRef: ModuleRef) {}
 
   async onModuleInit(): Promise<void> {
     if (this.initialized) return;
+    this.assertModuleRefAvailable();
 
-    // 显式注册：按优先级注入（数值越小优先级越高）
-    if (this.longportProvider) {
-      this.registerProvider(this.longportProvider, 1);
-    }
-    if (this.longportSgProvider) {
-      this.registerProvider(this.longportSgProvider, 2);
-    }
-    if (this.jvQuantProvider) {
-      this.registerProvider(this.jvQuantProvider, 3);
+    const injectedProviders = this.resolveInjectedProvidersFromManifest();
+
+    this.assertAllProvidersHavePriority(injectedProviders);
+    this.assertNoPriorityConflicts(injectedProviders);
+
+    for (const provider of injectedProviders) {
+      const priority = this.resolveProviderPriority(provider.name);
+      this.registerProvider(provider, priority);
     }
 
     this.initialized = true;
@@ -62,15 +63,111 @@ export class ProviderRegistryService implements OnModuleInit {
     });
   }
 
+  private resolveInjectedProvidersFromManifest(): IDataProvider[] {
+    const resolvedProviders: IDataProvider[] = [];
+
+    for (const entry of ACTIVE_PROVIDER_MANIFEST) {
+      const logContext = this.buildManifestLogContext(entry);
+      try {
+        const provider = this.moduleRef.get<IDataProvider>(entry.providerToken, {
+          strict: false,
+        });
+        if (provider == null) {
+          this.logger.warn("Provider 解析为空，跳过注册", logContext);
+          continue;
+        }
+
+        resolvedProviders.push(provider);
+      } catch (error) {
+        const errorContext = {
+          ...logContext,
+          errorName: this.getErrorName(error),
+          errorMessage: this.getErrorMessage(error),
+        };
+        if (this.isMissingProviderError(error)) {
+          this.logger.warn("Provider 未注册或找不到，跳过注册", errorContext);
+          continue;
+        }
+
+        this.logger.error("Provider 注入出现非预期异常，终止初始化", errorContext);
+        throw error;
+      }
+    }
+
+    return resolvedProviders;
+  }
+
+  private assertModuleRefAvailable(): void {
+    if (this.moduleRef) {
+      return;
+    }
+    throw new Error(
+      "ProviderRegistryService 初始化失败: ModuleRef 未注入，请在测试中显式传入 ModuleRef mock",
+    );
+  }
+
+  private buildManifestLogContext(entry: ProviderManifestEntry) {
+    return {
+      id: entry.id,
+      key: entry.key,
+      providerToken: this.resolveProviderTokenName(entry.providerToken),
+    };
+  }
+
+  private resolveProviderTokenName(providerToken: ProviderManifestEntry["providerToken"]):
+    string {
+    if (typeof providerToken === "function" && providerToken.name) {
+      return providerToken.name;
+    }
+    return String(providerToken);
+  }
+
+  private isMissingProviderError(error: unknown): boolean {
+    if (this.getErrorName(error) === "UnknownElementException") {
+      return true;
+    }
+
+    const normalizedMessage = this.getErrorMessage(error).toLowerCase();
+    return (
+      normalizedMessage.includes("could not find") ||
+      normalizedMessage.includes("unknown element")
+    );
+  }
+
+  private getErrorName(error: unknown): string {
+    if (
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      typeof error.name === "string"
+    ) {
+      return error.name;
+    }
+    return "UnknownError";
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === "string") {
+      return error;
+    }
+    return String(error);
+  }
+
   private ensureProviderMaps(providerName: string) {
     if (!this.capabilities.has(providerName)) {
       this.capabilities.set(providerName, new Map());
     }
   }
 
-  private registerProvider(provider: IDataProvider, priority = 1): void {
+  private registerProvider(
+    provider: IDataProvider,
+    priority = DEFAULT_PROVIDER_PRIORITY,
+  ): void {
     if (!provider || !provider.name) return;
-    const providerName = provider.name;
+    const providerName = this.normalizeProviderName(provider.name);
 
     this.providers.set(providerName, provider);
     this.ensureProviderMaps(providerName);
@@ -90,8 +187,58 @@ export class ProviderRegistryService implements OnModuleInit {
     });
   }
 
-  private resolveProviderName(providerName: string): string {
-    return this.providerAliases.get(providerName) || providerName;
+  private resolveProviderPriority(providerName: string): number {
+    const normalizedProviderName = this.normalizeProviderName(providerName);
+    if (!(normalizedProviderName in PROVIDER_PRIORITIES)) {
+      throw new Error(`Provider 优先级缺失: provider=${normalizedProviderName}`);
+    }
+    return PROVIDER_PRIORITIES[normalizedProviderName as ProviderId];
+  }
+
+  private normalizeProviderName(providerName: string): string {
+    const normalizedName = String(providerName || "").trim().toLowerCase();
+    return this.providerAliases.get(normalizedName) || normalizedName;
+  }
+
+  private assertNoPriorityConflicts(providers: IDataProvider[]): void {
+    const priorityOwner = new Map<number, string>();
+
+    for (const provider of providers) {
+      const providerName = this.normalizeProviderName(provider.name);
+      const priority = this.resolveProviderPriority(providerName);
+      const owner = priorityOwner.get(priority);
+      if (owner && owner !== providerName) {
+        const conflictProviders = [owner, providerName].sort((a, b) =>
+          a.localeCompare(b),
+        );
+        const message = `Provider 优先级冲突: priority=${priority}, providers=[${conflictProviders.join(", ")}]`;
+        this.logger.error("Provider 优先级冲突", {
+          priority,
+          providers: conflictProviders,
+        });
+        throw new Error(message);
+      }
+      priorityOwner.set(priority, providerName);
+    }
+  }
+
+  private assertAllProvidersHavePriority(providers: IDataProvider[]): void {
+    const missingProviders = providers
+      .map((provider) => this.normalizeProviderName(provider.name))
+      .filter((providerName) => !(providerName in PROVIDER_PRIORITIES));
+
+    if (missingProviders.length === 0) {
+      return;
+    }
+
+    const uniqueSortedProviders = Array.from(new Set(missingProviders)).sort((a, b) =>
+      a.localeCompare(b),
+    );
+    const message = `Provider 优先级缺失: providers=[${uniqueSortedProviders.join(", ")}]`;
+    this.logger.error("Provider 优先级缺失", {
+      providers: uniqueSortedProviders,
+    });
+    throw new Error(message);
   }
 
   // ============= 对外 API（与现有调用最小集保持一致） =============
@@ -109,18 +256,23 @@ export class ProviderRegistryService implements OnModuleInit {
     }
 
     if (candidates.length === 0) return null;
-    candidates.sort((a, b) => a.priority - b.priority);
+    candidates.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority;
+      }
+      return a.provider.localeCompare(b.provider);
+    });
     return candidates[0].provider;
   }
 
   getCapability(providerName: string, capabilityName: string): ICapability | null {
-    const resolvedName = this.resolveProviderName(providerName);
+    const resolvedName = this.normalizeProviderName(providerName);
     const meta = this.capabilities.get(resolvedName)?.get(capabilityName);
     return meta?.isEnabled ? meta.capability : null;
   }
 
   getProvider(providerName: string): IDataProvider | undefined {
-    const resolvedName = this.resolveProviderName(providerName);
+    const resolvedName = this.normalizeProviderName(providerName);
     return this.providers.get(resolvedName);
   }
 

@@ -28,7 +28,15 @@ import {
 
 import { ReadAccess } from "@authv2/decorators";
 
-import { QueryRequestDto, BulkQueryRequestDto } from "../dto/query-request.dto";
+import {
+  QueryRequestDto,
+  BulkQueryRequestDto,
+  QuerySymbolsRequestDto,
+} from "../dto/query-request.dto";
+import {
+  QUERY_PERFORMANCE_CONFIG,
+  QUERY_VALIDATION_RULES,
+} from "../constants/query.constants";
 import {
   QueryResponseDto,
   BulkQueryResponseDto,
@@ -384,47 +392,91 @@ export class QueryController {
   })
   @ApiStandardResponses()
   async queryBySymbols(
-    @QueryParam("symbols") symbols: string,
-    @QueryParam("provider") provider?: string,
-    @QueryParam("market") market?: string,
-    @QueryParam("queryTypeFilter") queryTypeFilter?: string,
-    @QueryParam("limit") limit?: number,
-    @QueryParam("page") page?: number,
-    @QueryParam("useCache") useCache?: boolean,
+    @QueryParam(new ValidationPipe({ transform: true, whitelist: true }))
+    query: QuerySymbolsRequestDto,
   ) {
-    if (!symbols) {
+    const symbolArray = query.symbols
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (symbolArray.length === 0) {
       throw UniversalExceptionFactory.createBusinessException({
         component: ComponentIdentifier.QUERY,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'queryBySymbols',
         message: 'Symbols parameter is required',
-        context: { endpoint: '/query/symbols', receivedSymbols: symbols, validationField: 'symbols' }
+        context: {
+          endpoint: '/query/symbols',
+          receivedSymbols: query.symbols,
+          validationField: 'symbols',
+        }
       });
     }
 
-    const symbolArray = symbols
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    if (symbolArray.length > QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'queryBySymbols',
+        message: `单次查询股票代码数量不能超过${QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY}个`,
+        context: {
+          endpoint: '/query/symbols',
+          receivedCount: symbolArray.length,
+          maxAllowed: QUERY_PERFORMANCE_CONFIG.MAX_SYMBOLS_PER_QUERY,
+          validationField: 'symbols',
+        }
+      });
+    }
+
+    const invalidSymbols = symbolArray.filter((symbol) => {
+      const symbolLength = symbol.length;
+      if (
+        symbolLength < QUERY_VALIDATION_RULES.MIN_SYMBOL_LENGTH ||
+        symbolLength > QUERY_VALIDATION_RULES.MAX_SYMBOL_LENGTH
+      ) {
+        return true;
+      }
+
+      return !QUERY_VALIDATION_RULES.SYMBOL_PATTERN.test(symbol);
+    });
+
+    if (invalidSymbols.length > 0) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.QUERY,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: 'queryBySymbols',
+        message: 'symbols包含非法格式的股票代码',
+        context: {
+          endpoint: '/query/symbols',
+          invalidSymbols: invalidSymbols.slice(0, 10),
+          invalidCount: invalidSymbols.length,
+          validationField: 'symbols',
+          symbolPattern: QUERY_VALIDATION_RULES.SYMBOL_PATTERN.source,
+          minLength: QUERY_VALIDATION_RULES.MIN_SYMBOL_LENGTH,
+          maxLength: QUERY_VALIDATION_RULES.MAX_SYMBOL_LENGTH,
+        }
+      });
+    }
 
     this.logger.log(`API Request: Quick query by symbols`, {
       symbols: symbolArray.slice(0, 3),
-      provider,
-      market,
-      queryTypeFilter,
-      limit,
+      provider: query.provider,
+      market: query.market,
+      queryTypeFilter: query.queryTypeFilter,
+      limit: query.limit,
     });
 
     const request: QueryRequestDto = {
       queryType: QueryType.BY_SYMBOLS,
       symbols: symbolArray,
-      provider,
-      market,
-      queryTypeFilter: queryTypeFilter,
-      limit: limit || 100,
-      page: page || 1,
+      provider: query.provider,
+      market: query.market,
+      queryTypeFilter: query.queryTypeFilter,
+      limit: query.limit || 100,
+      page: query.page || 1,
       options: {
-        useCache: useCache !== false,
+        useCache: query.useCache !== false,
         includeMetadata: false,
       },
     };

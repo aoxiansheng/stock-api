@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  BadRequestException,
+} from "@nestjs/common";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 
@@ -23,6 +28,11 @@ import {
 } from "../../../05-caching/module/smart-cache/utils/smart-cache-request.utils";
 import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
 import { resolveMarketTypeFromSymbols } from "@core/shared/utils/market-type.util";
+import {
+  isValidYmdDate,
+  normalizeYmdDateInput,
+  validateYmdDateRange,
+} from "@core/shared/utils/ymd-date.util";
 import { ReceiverService } from "../../../01-entry/receiver/services/receiver.service";
 import { DataRequestDto } from "../../../01-entry/receiver/dto/data-request.dto";
 import { DataResponseDto } from "../../../01-entry/receiver/dto/data-response.dto";
@@ -1025,6 +1035,26 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     queryRequest: QueryRequestDto,
     symbols: string[],
   ): DataRequestDto {
+    const isTradingDaysQuery =
+      queryRequest.queryTypeFilter === CAPABILITY_NAMES.GET_TRADING_DAYS;
+    const beginDay = isTradingDaysQuery
+      ? this.toYmdDate(queryRequest.startTime, "startTime")
+      : undefined;
+    const endDay = isTradingDaysQuery
+      ? this.toYmdDate(queryRequest.endTime, "endTime")
+      : undefined;
+    if (isTradingDaysQuery) {
+      const dateRangeValidation = validateYmdDateRange(beginDay, endDay, {
+        beginLabel: "startTime",
+        endLabel: "endTime",
+      });
+      if (!dateRangeValidation.isValid) {
+        throw new BadRequestException(
+          dateRangeValidation.message || "startTime 不能晚于 endTime",
+        );
+      }
+    }
+
     return {
       symbols,
       receiverType:
@@ -1034,6 +1064,8 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
         realtime: true,
         fields: queryRequest.options?.includeFields,
         market: queryRequest.market,
+        beginDay,
+        endDay,
         timeout: queryRequest.maxAge
           ? queryRequest.maxAge * CONSTANTS.FOUNDATION.VALUES.TIME_MS.ONE_SECOND
           : undefined,
@@ -1070,6 +1102,29 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     return receiverResponse.data && Array.isArray(receiverResponse.data)
       ? receiverResponse.data[0]
       : receiverResponse.data;
+  }
+
+  private toYmdDate(
+    input: string | undefined,
+    fieldName: "startTime" | "endTime",
+  ): string | undefined {
+    const text = String(input || "").trim();
+    if (!text) {
+      return undefined;
+    }
+
+    const ymd = normalizeYmdDateInput(text);
+    if (!ymd) {
+      throw new BadRequestException(
+        `${fieldName} 格式非法，仅支持 YYYYMMDD 或 YYYY-MM-DD`,
+      );
+    }
+
+    if (!isValidYmdDate(ymd)) {
+      throw new BadRequestException(`${fieldName} 不是有效日期: ${text}`);
+    }
+
+    return ymd;
   }
 
   /**
@@ -1168,23 +1223,36 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     timeout: number,
     errorMessage: string,
   ): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(() => reject(
-          UniversalExceptionFactory.createBusinessException({
-            message: errorMessage,
-            errorCode: BusinessErrorCode.INVALID_OPERATION,
-            operation: 'withTimeout',
-            component: ComponentIdentifier.QUERY,
-            context: {
-              timeoutMs: timeout,
-              queryErrorCode: QUERY_ERROR_CODES.QUERY_TIMEOUT
-            }
-          })
-        ), timeout);
-      }),
-    ]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            UniversalExceptionFactory.createBusinessException({
+              message: errorMessage,
+              errorCode: BusinessErrorCode.INVALID_OPERATION,
+              operation: "withTimeout",
+              component: ComponentIdentifier.QUERY,
+              context: {
+                timeoutMs: timeout,
+                queryErrorCode: QUERY_ERROR_CODES.QUERY_TIMEOUT,
+              },
+            }),
+          ),
+        timeout,
+      );
+
+      if (typeof (timer as any)?.unref === "function") {
+        (timer as any).unref();
+      }
+    });
+
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    });
   }
 
   /**

@@ -5,8 +5,9 @@
 
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/logging/index';
-import { API_OPERATIONS, REFERENCE_DATA } from '@common/constants/domain';
+import { API_OPERATIONS } from '@common/constants/domain';
 import { StreamSubscribeDto, StreamUnsubscribeDto } from '../dto';
+import { ProviderRegistryService } from '@providersv2/provider-registry.service';
 
 /**
  * 验证结果接口
@@ -28,6 +29,10 @@ export interface SymbolValidationResult {
   sanitizedSymbols: string[];
 }
 
+export interface SubscribeValidationOptions {
+  skipAuthValidation?: boolean;
+}
+
 /**
  * 流数据验证器
  */
@@ -35,18 +40,30 @@ export interface SymbolValidationResult {
 export class StreamDataValidator {
   private readonly logger = createLogger('StreamDataValidator');
 
+  constructor(
+    private readonly providerRegistryService: ProviderRegistryService,
+  ) {}
+
   // 支持的市场前缀
   private readonly SUPPORTED_MARKETS = ['HK', 'US', 'CN', 'SG'];
 
   // 支持的WebSocket能力类型
   private readonly SUPPORTED_WS_CAPABILITIES = [
-    'quote',
+    API_OPERATIONS.DATA_TYPES.QUOTE,
     'depth',
     'trade',
     'broker',
     'kline',
     API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
   ];
+  private readonly STATIC_WS_CAPABILITY_SET = new Set(
+    this.SUPPORTED_WS_CAPABILITIES.map((capability) =>
+      capability.toLowerCase(),
+    ),
+  );
+  private readonly DYNAMIC_WS_CAPABILITY_CACHE_TTL_MS = 30 * 1000;
+  private dynamicWSCapabilityCache: Set<string> | null = null;
+  private dynamicWSCapabilityCacheExpiresAt = 0;
 
   // 符号格式正则表达式
   private readonly SYMBOL_PATTERNS = {
@@ -59,7 +76,10 @@ export class StreamDataValidator {
   /**
    * 验证订阅请求
    */
-  validateSubscribeRequest(dto: StreamSubscribeDto): ValidationResult {
+  validateSubscribeRequest(
+    dto: StreamSubscribeDto,
+    options?: SubscribeValidationOptions,
+  ): ValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -83,10 +103,12 @@ export class StreamDataValidator {
       warnings.push(`未知的数据提供商: ${dto.preferredProvider}`);
     }
 
-    // 验证认证信息
-    const authValidation = this.validateAuthInfo(dto);
-    errors.push(...authValidation.errors);
-    warnings.push(...authValidation.warnings);
+    // 连接级认证通过后，允许跳过消息级认证字段校验
+    if (!options?.skipAuthValidation) {
+      const authValidation = this.validateAuthInfo(dto);
+      errors.push(...authValidation.errors);
+      warnings.push(...authValidation.warnings);
+    }
 
     return {
       isValid: errors.length === 0,
@@ -130,14 +152,28 @@ export class StreamDataValidator {
   /**
    * 验证符号列表
    */
-  validateSymbols(symbols: string[]): SymbolValidationResult {
+  validateSymbols(symbols: unknown): SymbolValidationResult {
     const validSymbols: string[] = [];
     const invalidSymbols: string[] = [];
     const duplicateSymbols: string[] = [];
     const sanitizedSymbols: string[] = [];
     const seen = new Set<string>();
 
+    if (!Array.isArray(symbols)) {
+      return {
+        validSymbols,
+        invalidSymbols: ["symbols 必须是字符串数组"],
+        duplicateSymbols,
+        sanitizedSymbols,
+      };
+    }
+
     for (const symbol of symbols) {
+      if (typeof symbol !== "string") {
+        invalidSymbols.push(`非字符串符号: ${String(symbol)}`);
+        continue;
+      }
+
       // 规范化符号（大写、去空格）
       const sanitized = this.sanitizeSymbol(symbol);
 
@@ -208,22 +244,35 @@ export class StreamDataValidator {
    * 验证WebSocket能力类型
    */
   isValidWSCapability(capability: string): boolean {
-    return this.SUPPORTED_WS_CAPABILITIES.includes(capability.toLowerCase());
+    const normalizedCapability = this.normalizeCapability(capability);
+    if (!normalizedCapability) {
+      return false;
+    }
+
+    // 动态能力优先：优先使用注册表中的能力元数据判定。
+    const dynamicCapabilities = this.getDynamicWSCapabilities();
+    if (dynamicCapabilities.has(normalizedCapability)) {
+      return true;
+    }
+
+    // 静态回退：保证旧客户端能力别名持续可用。
+    return this.STATIC_WS_CAPABILITY_SET.has(normalizedCapability);
+  }
+
+  refreshWSCapabilityCache(): void {
+    this.dynamicWSCapabilityCache = null;
+    this.dynamicWSCapabilityCacheExpiresAt = 0;
   }
 
   /**
    * 验证数据提供商
    */
   isValidProvider(provider: string): boolean {
-    const supportedProviders = [
-      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-      REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG,
-      REFERENCE_DATA.PROVIDER_IDS.JVQUANT,
-      'twelvedata',
-      'itick',
-      'yahoo',
-    ];
-    return supportedProviders.includes(provider.toLowerCase());
+    const normalizedProvider = provider.trim().toLowerCase();
+    if (!normalizedProvider) {
+      return false;
+    }
+    return !!this.providerRegistryService.getProvider(normalizedProvider);
   }
 
   /**
@@ -271,6 +320,128 @@ export class StreamDataValidator {
   private isValidAccessTokenFormat(accessToken: string): boolean {
     // Access Token应该是字母数字组合，长度在16-128之间
     return /^[a-zA-Z0-9_-]{16,128}$/.test(accessToken);
+  }
+
+  private normalizeCapability(capability: string): string {
+    return String(capability || "").trim().toLowerCase();
+  }
+
+  private getDynamicWSCapabilities(): Set<string> {
+    const now = Date.now();
+    if (
+      this.dynamicWSCapabilityCache &&
+      now < this.dynamicWSCapabilityCacheExpiresAt
+    ) {
+      return this.dynamicWSCapabilityCache;
+    }
+
+    const dynamicCapabilities = this.scanDynamicWSCapabilities();
+    this.dynamicWSCapabilityCache = dynamicCapabilities;
+    this.dynamicWSCapabilityCacheExpiresAt =
+      now + this.DYNAMIC_WS_CAPABILITY_CACHE_TTL_MS;
+    return dynamicCapabilities;
+  }
+
+  private scanDynamicWSCapabilities(): Set<string> {
+    try {
+      const allCapabilities =
+        this.providerRegistryService.getAllCapabilities() as unknown;
+      if (!(allCapabilities instanceof Map)) {
+        return new Set<string>();
+      }
+
+      const result = new Set<string>();
+      for (const providerCapabilities of allCapabilities.values()) {
+        if (!(providerCapabilities instanceof Map)) {
+          continue;
+        }
+
+        for (const capabilityMeta of providerCapabilities.values()) {
+          const capability = this.extractCapabilityFromMeta(capabilityMeta);
+          if (!capability) {
+            continue;
+          }
+          if (!this.isStreamCapabilityFromMetadata(capability)) {
+            continue;
+          }
+
+          const normalizedCapability = this.normalizeCapability(capability.name);
+          if (normalizedCapability) {
+            result.add(normalizedCapability);
+          }
+        }
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.debug("动态能力解析失败，回退静态能力集合", {
+        reason: (error as Error).message,
+      });
+      return new Set<string>();
+    }
+  }
+
+  private extractCapabilityFromMeta(capabilityMeta: unknown):
+    | {
+        name: string;
+        transport?: string;
+        apiType?: string;
+      }
+    | null {
+    if (!capabilityMeta || typeof capabilityMeta !== "object") {
+      return null;
+    }
+
+    const maybeMeta = capabilityMeta as {
+      capability?: unknown;
+      name?: unknown;
+      transport?: unknown;
+      apiType?: unknown;
+    };
+
+    const rawCapability =
+      maybeMeta.capability && typeof maybeMeta.capability === "object"
+        ? (maybeMeta.capability as Record<string, unknown>)
+        : (maybeMeta as Record<string, unknown>);
+    const name = String(rawCapability.name || "").trim();
+
+    if (!name) {
+      return null;
+    }
+
+    return {
+      name,
+      transport: String(rawCapability.transport || "").trim(),
+      apiType: String(rawCapability.apiType || "").trim(),
+    };
+  }
+
+  private isStreamCapabilityFromMetadata(capability: {
+    name: string;
+    transport?: string;
+    apiType?: string;
+  }): boolean {
+    const transport = this.normalizeCapability(String(capability.transport || ""));
+    if (transport === "stream" || transport === "websocket") {
+      return true;
+    }
+    if (transport === "rest") {
+      return false;
+    }
+
+    const apiType = this.normalizeCapability(String(capability.apiType || ""));
+    if (apiType === "stream") {
+      return true;
+    }
+    if (apiType === "rest") {
+      return false;
+    }
+
+    const normalizedName = this.normalizeCapability(capability.name);
+    return (
+      normalizedName === API_OPERATIONS.STOCK_DATA.STREAM_QUOTE.toLowerCase() ||
+      normalizedName.includes("stream")
+    );
   }
 
   /**

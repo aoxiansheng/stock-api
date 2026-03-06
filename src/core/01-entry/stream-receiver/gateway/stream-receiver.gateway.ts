@@ -26,6 +26,7 @@ import {
 } from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
 import { Inject } from "@nestjs/common";
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
+import { API_OPERATIONS } from "@common/constants/domain";
 import {
   STREAM_PERMISSIONS,
   hasStreamPermissions,
@@ -278,6 +279,10 @@ export class StreamReceiverGateway
       await this.streamReceiverService.subscribeStream(
         data,
         client.id, // WebSocket客户端ID
+        undefined,
+        {
+          connectionAuthenticated: client.data?.authenticated === true,
+        },
       );
 
       // 注册客户端数据推送监听 - 通过Gateway事件系统
@@ -320,6 +325,19 @@ export class StreamReceiverGateway
    * 使用连接级别认证，无需重复验证
    */
   @SubscribeMessage("unsubscribe")
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      exceptionFactory: (errors) => {
+        const errorMessage = "Data validation failed: " +
+          errors
+            .map((e) => Object.values(e.constraints || {}).join(", "))
+            .join("; ");
+        return new WsException(errorMessage);
+      },
+    }),
+  )
   async handleUnsubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamUnsubscribeDto,
@@ -394,13 +412,22 @@ export class StreamReceiverGateway
   @SubscribeMessage("request-recovery")
   async handleRecoveryRequest(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { symbols: string[]; lastReceiveTimestamp: number },
+    @MessageBody()
+    data: {
+      symbols: string[];
+      lastReceiveTimestamp: number;
+      wsCapabilityType?: string;
+    },
   ) {
     try {
+      const recoveryCapability = this.resolveRecoveryCapability(
+        data.wsCapabilityType,
+      );
       this.logger.log("收到客户端补发请求", {
         clientId: client.id,
         symbols: data.symbols,
         lastReceiveTimestamp: data.lastReceiveTimestamp,
+        wsCapabilityType: recoveryCapability,
       });
 
       // 验证时间戳有效性
@@ -416,7 +443,7 @@ export class StreamReceiverGateway
         clientId: client.id,
         symbols: data.symbols,
         lastReceiveTimestamp: data.lastReceiveTimestamp,
-        wsCapabilityType: "quote", // 默认能力类型
+        wsCapabilityType: recoveryCapability,
         reason: "manual",
       });
 
@@ -436,6 +463,20 @@ export class StreamReceiverGateway
         "Recovery request processing failed: " + error.message
       ));
     }
+  }
+
+  private resolveRecoveryCapability(wsCapabilityType?: string): string {
+    const normalizedCapability = String(wsCapabilityType || "")
+      .trim()
+      .toLowerCase();
+    if (
+      !normalizedCapability ||
+      normalizedCapability === API_OPERATIONS.DATA_TYPES.QUOTE
+    ) {
+      return API_OPERATIONS.STOCK_DATA.STREAM_QUOTE;
+    }
+
+    return normalizedCapability;
   }
 
   /**
@@ -489,6 +530,8 @@ export class StreamReceiverGateway
     reason?: string;
     apiKey?: any;
   }> {
+    client.data.authenticated = false;
+
     try {
       // 从连接认证信息中获取API Key
       const authData = this.extractAuthFromConnection(client);
@@ -539,12 +582,14 @@ export class StreamReceiverGateway
         permissions: Array.from(permissions as any),
         authType: "apikey",
       };
+      client.data.authenticated = true;
 
       return {
         success: true,
         apiKey: apiKeyDoc,
       };
     } catch (error) {
+      client.data.authenticated = false;
       return {
         success: false,
         reason: `Authentication error: ${error.message}`,
@@ -563,14 +608,6 @@ export class StreamReceiverGateway
       return {
         apiKey: handshake.auth.appKey,
         accessToken: handshake.auth.accessToken,
-      };
-    }
-
-    // 从查询参数获取
-    if (handshake.query?.appKey && handshake.query?.accessToken) {
-      return {
-        apiKey: handshake.query.appKey,
-        accessToken: handshake.query.accessToken,
       };
     }
 
