@@ -432,20 +432,40 @@ export class StreamReceiverGateway
 
       // 验证时间戳有效性
       const timeDiff = Date.now() - data.lastReceiveTimestamp;
-      if (timeDiff > 86400000) {
-        // 24小时
-        client.emit("recovery-error", StreamResponses.recoveryWindowExceeded());
+      if (timeDiff > STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS) {
+        client.emit(
+          "recovery-error",
+          StreamResponses.recoveryWindowExceeded(
+            STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS,
+          ),
+        );
         return;
       }
 
       // 触发补发逻辑
-      await this.streamReceiverService.handleClientReconnect({
+      const reconnectResult = await this.streamReceiverService.handleClientReconnect({
         clientId: client.id,
         symbols: data.symbols,
         lastReceiveTimestamp: data.lastReceiveTimestamp,
         wsCapabilityType: recoveryCapability,
         reason: "manual",
       });
+
+      if (!reconnectResult.success || !reconnectResult.recoveryStrategy?.willRecover) {
+        client.emit(
+          "recovery-error",
+          StreamResponses.recoveryError(
+            "recovery_start_failed",
+            reconnectResult.instructions?.message ||
+              "Recovery start failed or no recoverable data in current window",
+            {
+              clientId: client.id,
+              symbolsCount: data.symbols?.length || 0,
+            },
+          ),
+        );
+        return;
+      }
 
       // 发送补发已启动的确认
       const estimatedDataPoints = timeDiff < STREAM_RECEIVER_TIMEOUTS.RECOVERY_WINDOW_MS
@@ -458,10 +478,17 @@ export class StreamReceiverGateway
         error: error.message,
       });
 
-      client.emit("recovery-error", StreamResponses.recoveryError(
-        "processing_error",
-        "Recovery request processing failed: " + error.message
-      ));
+      client.emit(
+        "recovery-error",
+        StreamResponses.recoveryError(
+          "processing_error",
+          "Recovery request processing failed: " + error.message,
+          {
+            clientId: client.id,
+            symbolsCount: data?.symbols?.length || 0,
+          },
+        ),
+      );
     }
   }
 
@@ -485,16 +512,25 @@ export class StreamReceiverGateway
   @SubscribeMessage("get-recovery-status")
   async handleGetRecoveryStatus(@ConnectedSocket() client: Socket) {
     try {
-      // 从StreamRecoveryWorker获取客户端补发状态
-      // 目前返回基础状态信息
-      const status = {
-        clientId: client.id,
-        recoveryActive: false, // 实际检查是否有活跃的补发任务需要实现
-        lastRecoveryTime: null, // 获取上次补发时间需要实现
-        pendingJobs: 0, // 获取待处理补发任务数需要实现
-      };
+      if (!this.streamRecoveryWorker) {
+        client.emit(
+          "recovery-status",
+          StreamResponses.statusError("Recovery worker is not available"),
+        );
+        return;
+      }
 
-      client.emit("recovery-status", StreamResponses.statusSuccess(status));
+      const status = await this.streamRecoveryWorker.getClientRecoveryStatus(
+        client.id,
+      );
+
+      client.emit(
+        "recovery-status",
+        StreamResponses.statusSuccess({
+          clientId: client.id,
+          ...status,
+        }),
+      );
     } catch (error) {
       this.logger.error("获取补发状态失败", {
         clientId: client.id,

@@ -104,17 +104,22 @@ export const StreamResponses = {
       estimatedDataPoints,
     }),
 
-  recoveryError: (type: string, message: string) =>
+  recoveryError: (
+    type: string,
+    message: string,
+    context?: Record<string, unknown>,
+  ) =>
     createStreamErrorResponse(
       STREAM_RECEIVER_ERROR_CODES.RECOVERY_REQUEST_FAILED,
       message,
-      { type },
+      { type, context },
     ),
 
-  recoveryWindowExceeded: () =>
+  recoveryWindowExceeded: (maxWindowMs?: number) =>
     createStreamErrorResponse(
       STREAM_RECEIVER_ERROR_CODES.RECOVERY_WINDOW_EXCEEDED,
-      "Recovery time window too large, maximum 24 hours supported",
+      "Recovery time window exceeded",
+      maxWindowMs ? { maxWindowMs } : undefined,
     ),
 
   // Validation errors

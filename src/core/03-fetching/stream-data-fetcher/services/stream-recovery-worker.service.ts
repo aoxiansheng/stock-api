@@ -74,6 +74,18 @@ export interface RecoveryMetrics {
   qps: number;
 }
 
+export interface ClientRecoveryStatus {
+  recoveryActive: boolean;
+  pendingJobs: number;
+  lastRecoveryTime: number | null;
+  lastJobId: string | null;
+}
+
+interface ClientRecoveryStatusInternal extends ClientRecoveryStatus {
+  activeJobs: number;
+  updatedAt: number;
+}
+
 @Injectable()
 export class StreamRecoveryWorkerService
   implements OnModuleInit, OnModuleDestroy
@@ -100,6 +112,15 @@ export class StreamRecoveryWorkerService
       lastRefill: number;
     }
   >();
+
+  // 客户端维度的补发状态（内存态，MVP 可接受重启丢失）
+  private readonly clientRecoveryStatus = new Map<
+    string,
+    ClientRecoveryStatusInternal
+  >();
+  private readonly clientStatusIdleTtlMs = 10 * 60 * 1000;
+  private readonly clientStatusCleanupIntervalMs = 60 * 1000;
+  private lastClientStatusCleanupAt = 0;
 
   // 配置 - 从配置服务获取
   private config: StreamRecoveryConfig;
@@ -357,6 +378,8 @@ export class StreamRecoveryWorkerService
     const startTime = Date.now();
     const { clientId, symbols, lastReceiveTimestamp, provider } = job.data;
 
+    this.markRecoveryStarted(clientId, job.id);
+
     try {
       // 检查QPS限流
       if (!this.checkRateLimit(provider)) {
@@ -437,6 +460,8 @@ export class StreamRecoveryWorkerService
         success: false,
         error: error.message,
       };
+    } finally {
+      this.markRecoveryFinished(clientId, job.id);
     }
   }
 
@@ -773,6 +798,8 @@ export class StreamRecoveryWorkerService
       symbolCount: job.symbols.length,
     });
 
+    this.markRecoverySubmitted(job.clientId, queueJob.id);
+
     return queueJob.id!;
   }
 
@@ -894,6 +921,8 @@ export class StreamRecoveryWorkerService
         symbolCount: job.symbols.length,
       });
 
+      this.markRecoverySubmitted(job.clientId, queueJob.id);
+
       return queueJob.id!;
     } catch (error) {
       this.logger.error("补发任务调度失败", {
@@ -999,8 +1028,13 @@ export class StreamRecoveryWorkerService
     try {
       const job = await this.recoveryQueue.getJob(jobId);
       if (job) {
+        const clientId = job.data?.clientId;
         await job.remove();
         this.logger.log("补发任务已取消", { jobId });
+
+        if (clientId) {
+          this.markRecoveryCancelled(clientId, job.id);
+        }
         return true;
       }
       return false;
@@ -1032,6 +1066,97 @@ export class StreamRecoveryWorkerService
       failedReason: job.failedReason,
       state: await job.getState(),
     };
+  }
+
+  /**
+   * 获取客户端补发状态（MVP：事件驱动内存态）
+   */
+  async getClientRecoveryStatus(clientId: string): Promise<ClientRecoveryStatus> {
+    this.cleanupStaleClientStatuses();
+
+    const status = this.ensureClientRecoveryStatus(clientId);
+    return {
+      recoveryActive: status.recoveryActive,
+      pendingJobs: status.pendingJobs,
+      lastRecoveryTime: status.lastRecoveryTime,
+      lastJobId: status.lastJobId,
+    };
+  }
+
+  private ensureClientRecoveryStatus(
+    clientId: string,
+  ): ClientRecoveryStatusInternal {
+    let status = this.clientRecoveryStatus.get(clientId);
+    if (!status) {
+      status = {
+        recoveryActive: false,
+        pendingJobs: 0,
+        activeJobs: 0,
+        lastRecoveryTime: null,
+        lastJobId: null,
+        updatedAt: Date.now(),
+      };
+      this.clientRecoveryStatus.set(clientId, status);
+    }
+    return status;
+  }
+
+  private markRecoverySubmitted(clientId: string, jobId?: string): void {
+    this.cleanupStaleClientStatuses();
+
+    const status = this.ensureClientRecoveryStatus(clientId);
+    status.pendingJobs += 1;
+    status.lastJobId = jobId ? String(jobId) : status.lastJobId;
+    status.updatedAt = Date.now();
+  }
+
+  private markRecoveryStarted(clientId: string, jobId?: string): void {
+    this.cleanupStaleClientStatuses();
+
+    const status = this.ensureClientRecoveryStatus(clientId);
+    status.pendingJobs = Math.max(0, status.pendingJobs - 1);
+    status.activeJobs += 1;
+    status.recoveryActive = true;
+    status.lastJobId = jobId ? String(jobId) : status.lastJobId;
+    status.updatedAt = Date.now();
+  }
+
+  private markRecoveryFinished(clientId: string, jobId?: string): void {
+    this.cleanupStaleClientStatuses();
+
+    const status = this.ensureClientRecoveryStatus(clientId);
+    status.activeJobs = Math.max(0, status.activeJobs - 1);
+    status.recoveryActive = status.activeJobs > 0;
+    status.lastRecoveryTime = Date.now();
+    status.lastJobId = jobId ? String(jobId) : status.lastJobId;
+    status.updatedAt = Date.now();
+  }
+
+  private markRecoveryCancelled(clientId: string, jobId?: string): void {
+    this.cleanupStaleClientStatuses();
+
+    const status = this.ensureClientRecoveryStatus(clientId);
+    status.pendingJobs = Math.max(0, status.pendingJobs - 1);
+    status.recoveryActive = status.activeJobs > 0;
+    status.lastRecoveryTime = Date.now();
+    status.lastJobId = jobId ? String(jobId) : status.lastJobId;
+    status.updatedAt = Date.now();
+  }
+
+  private cleanupStaleClientStatuses(now = Date.now()): void {
+    if (now - this.lastClientStatusCleanupAt < this.clientStatusCleanupIntervalMs) {
+      return;
+    }
+
+    for (const [clientId, status] of this.clientRecoveryStatus.entries()) {
+      const isIdle = status.pendingJobs === 0 && status.activeJobs === 0;
+      const isExpired = now - status.updatedAt > this.clientStatusIdleTtlMs;
+      if (isIdle && isExpired) {
+        this.clientRecoveryStatus.delete(clientId);
+      }
+    }
+
+    this.lastClientStatusCleanupAt = now;
   }
 
   /**

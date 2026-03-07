@@ -1104,9 +1104,12 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       return response;
     } catch (error) {
+      const failureMessage =
+        (error as Error)?.message || "重连失败，请重新订阅";
+
       this.logger.error("客户端重连失败", {
         clientId,
-        error: error.message,
+        error: failureMessage,
       });
 
       return {
@@ -1124,7 +1127,10 @@ export class StreamReceiverService implements OnModuleDestroy {
         },
         instructions: {
           action: "resubscribe",
-          message: "重连失败，请重新订阅",
+          message: failureMessage,
+          params: {
+            reason: failureMessage,
+          },
         },
       };
     }
