@@ -7,6 +7,7 @@ import { Market } from "../../../../core/shared/constants/market.constants";
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { IStreamCapability } from "../../../providers/interfaces/stream-capability.interface";
 import { LongportStreamContextService } from "../services/longport-stream-context.service";
+import { LONGPORT_MARKET_SG } from "../types";
 import { PROVIDER_TIMEOUT, CAPABILITY_NAMES } from "../../../providers/constants";
 
 /**
@@ -16,7 +17,7 @@ import { PROVIDER_TIMEOUT, CAPABILITY_NAMES } from "../../../providers/constants
 export const streamStockQuote: IStreamCapability = {
   name: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
   description: "获取股票实时报价数据流（WebSocket）",
-  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US, LONGPORT_MARKET_SG],
   supportedSymbolFormats: [
     REFERENCE_DATA.SAMPLE_SYMBOLS.HK_TENCENT,
     "00700.HK",

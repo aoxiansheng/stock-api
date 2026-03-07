@@ -104,7 +104,6 @@ export const REFERENCE_DATA = Object.freeze({
   PROVIDER_IDS: {
     // 主要数据提供商
     LONGPORT: "longport", // 长桥证券 - 主要提供商 (65次重复)
-    LONGPORT_SG: "longport-sg", // 长桥新加坡 - 区域提供商
     LONGPORT_HK: "longport-hk", // 长桥香港
     LONGPORT_US: "longport-us", // 长桥美国
     JVQUANT: "jvquant", // JvQuant WebSocket 行情提供商

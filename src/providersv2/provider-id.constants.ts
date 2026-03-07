@@ -3,11 +3,9 @@ import type { Type } from "@nestjs/common";
 import { REFERENCE_DATA } from "@common/constants/domain";
 
 import { LongportProvider } from "./providers/longport/longport.provider";
-import { LongportSgProvider } from "./providers/longport-sg/longport-sg.provider";
 import { JvQuantProvider } from "./providers/jvquant/jvquant.provider";
 import { InfowayProvider } from "./providers/infoway/infoway.provider";
 import { LongportModule } from "./providers/longport/module/longport.module";
-import { LongportSgModule } from "./providers/longport-sg/module/longport-sg.module";
 import { JvQuantModule } from "./providers/jvquant/module/jvquant.module";
 import { InfowayModule } from "./providers/infoway/module/infoway.module";
 import type { IDataProvider } from "./providers/interfaces/provider.interface";
@@ -29,22 +27,15 @@ const ACTIVE_PROVIDER_MANIFEST_DEFINITIONS = Object.freeze([
     aliases: [],
   },
   {
-    key: "LONGPORT_SG",
-    priority: 2,
-    module: LongportSgModule,
-    providerToken: LongportSgProvider,
-    aliases: ["longportsg"],
-  },
-  {
     key: "JVQUANT",
-    priority: 3,
+    priority: 2,
     module: JvQuantModule,
     providerToken: JvQuantProvider,
     aliases: [],
   },
   {
     key: "INFOWAY",
-    priority: 4,
+    priority: 3,
     module: InfowayModule,
     providerToken: InfowayProvider,
     aliases: [],

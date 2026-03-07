@@ -140,15 +140,6 @@ describe("provider assembly sync", () => {
         ],
         ["US", "HK"],
       ),
-      [PROVIDER_IDS.LONGPORT_SG]: createProviderWithCapabilities(
-        PROVIDER_IDS.LONGPORT_SG,
-        [
-          CAPABILITY_NAMES.GET_STOCK_QUOTE,
-          CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
-          CAPABILITY_NAMES.GET_INDEX_QUOTE,
-        ],
-        ["SG"],
-      ),
       [PROVIDER_IDS.JVQUANT]: createProviderWithCapabilities(
         PROVIDER_IDS.JVQUANT,
         [CAPABILITY_NAMES.STREAM_STOCK_QUOTE],

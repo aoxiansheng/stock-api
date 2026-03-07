@@ -8,6 +8,7 @@ jest.mock("@common/logging/index", () => ({
 }));
 
 import { BusinessErrorCode } from "@common/core/exceptions";
+import { REFERENCE_DATA } from "@common/constants/domain";
 import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
 
 type ValidationResult = {
@@ -287,6 +288,38 @@ describe("StreamReceiverService subscription lifecycle", () => {
       );
     } finally {
       setIntervalSpy.mockRestore();
+    }
+  });
+});
+
+describe("StreamReceiverService provider mapping consistency", () => {
+  it("SG 市场默认 provider 应为 longport", () => {
+    const { service } = createService();
+    const expectedProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+
+    expect((service as any).getProviderByMarketPriority("SG")).toBe(
+      expectedProvider,
+    );
+    expect((service as any).selectProviderBasic("SG")).toBe(expectedProvider);
+  });
+
+  it("SG/US/HK/CN/JP/UNKNOWN 在不同选择路径上应保持一致映射", () => {
+    const { service } = createService();
+    const expectedProvider = REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+    const markets = ["SG", "US", "HK", "CN", "JP", "UNKNOWN"];
+    const strategy = (service as any).getProviderSelectionStrategy();
+
+    for (const market of markets) {
+      expect((service as any).getProviderByMarketPriority(market)).toBe(
+        expectedProvider,
+      );
+      expect((service as any).selectProviderBasic(market)).toBe(
+        expectedProvider,
+      );
+      expect((service as any).getProviderByHeuristics("AAPL.US", market)).toBe(
+        expectedProvider,
+      );
+      expect(strategy.marketPriorities[market]).toEqual([expectedProvider]);
     }
   });
 });

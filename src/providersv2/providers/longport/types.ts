@@ -2,6 +2,8 @@
  * LongPort 数据源类型定义
  */
 
+export const LONGPORT_MARKET_SG = "SG" as const;
+
 export interface LongportQuoteData {
   symbol: string;
   last_done: number | string;

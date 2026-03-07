@@ -31,7 +31,7 @@ export class ProviderRegistryService implements OnModuleInit {
 
   private readonly providers = new Map<string, IDataProvider>();
   private readonly capabilities = new Map<string, Map<string, CapabilityMeta>>();
-  // 向后兼容历史命名，统一解析到标准 provider 名称
+  // 仅解析 manifest 中显式声明的 alias 到标准 provider 名称
   private readonly providerAliases = new Map<string, string>(
     Object.entries(PROVIDER_NAME_ALIASES),
   );

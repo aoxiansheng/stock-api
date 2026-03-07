@@ -5,7 +5,7 @@ import { CONSTANTS } from "@common/constants";
 import { Market } from "../../../../core/shared/constants/market.constants";
 
 import { ICapability } from "../../../providers/interfaces/capability.interface";
-import { LongportQuoteResponse } from "../types";
+import { LongportQuoteResponse, LONGPORT_MARKET_SG } from "../types";
 import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../../providers/constants";
 
 /**
@@ -15,7 +15,7 @@ import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../../providers/constants";
 export const getStockQuote: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_QUOTE, // receiverType
   description: "获取股票实时报价数据",
-  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US],
+  supportedMarkets: [Market.HK, Market.SZ, Market.SH, Market.US, LONGPORT_MARKET_SG],
   supportedSymbolFormats: SYMBOL_FORMATS.COMMON_MARKETS,
   rateLimit: {
     requestsPerSecond: 10,

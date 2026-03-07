@@ -1775,6 +1775,48 @@ export class StreamReceiverService implements OnModuleDestroy {
     });
   }
 
+  // 当前版本采用 canonical 单候选策略：各市场统一由 longport 提供实时流。
+  // 保留策略函数仅用于未来扩展，不在本次绿地移除范围内引入回退兼容逻辑。
+  private static readonly STREAM_MARKET_PROVIDER_PRIORITIES: Readonly<
+    Record<string, readonly string[]>
+  > = {
+    HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+    US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+    CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+    SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+    JP: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+    UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+  };
+
+  private getMarketPriorityProviders(market: string): string[] {
+    const normalizedMarket = (market || "UNKNOWN").toUpperCase();
+    const priorities =
+      StreamReceiverService.STREAM_MARKET_PROVIDER_PRIORITIES[
+        normalizedMarket
+      ] ||
+      StreamReceiverService.STREAM_MARKET_PROVIDER_PRIORITIES.UNKNOWN;
+    return [...priorities];
+  }
+
+  private getPrimaryProviderByMarket(market: string): string {
+    return (
+      this.getMarketPriorityProviders(market)[0] ||
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT
+    );
+  }
+
+  private buildMarketPrioritiesSnapshot(): Record<string, string[]> {
+    return Object.keys(
+      StreamReceiverService.STREAM_MARKET_PROVIDER_PRIORITIES,
+    ).reduce(
+      (acc, key) => {
+        acc[key] = this.getMarketPriorityProviders(key);
+        return acc;
+      },
+      {} as Record<string, string[]>,
+    );
+  }
+
   // =============== 连接健康管理方法 ===============
 
   /**
@@ -1832,17 +1874,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 基于市场优先级获取Provider
    */
   private getProviderByMarketPriority(market: string): string {
-    const marketProviderPriority: Record<string, string> = {
-      HK: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 港股优先LongPort
-      US: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 美股优先LongPort
-      CN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // A股优先LongPort
-      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG, // 新加坡优先LongPort SG
-      UNKNOWN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT, // 未知市场默认LongPort
-    };
-
-    return (
-      marketProviderPriority[market] || REFERENCE_DATA.PROVIDER_IDS.LONGPORT
-    );
+    return this.getPrimaryProviderByMarket(market);
   }
 
   private buildMarketDistributionMap(
@@ -1957,17 +1989,11 @@ export class StreamReceiverService implements OnModuleDestroy {
       dataQuality: number;
     };
   } {
-    // 🔧 从配置中获取策略，这里使用智能默认值
+    // 🔧 从配置中获取策略，这里使用智能默认值。
+    // 注意：当前 marketPriorities 为单候选映射，策略分支主要承担统一接口职责。
     return {
       strategy: 'balanced', // 可配置: performance/availability/cost/balanced
-      marketPriorities: {
-        HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
-        US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
-        CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG],
-        SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG, REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-        JP: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-        UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-      },
+      marketPriorities: this.buildMarketPrioritiesSnapshot(),
       fallbackProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
       performanceWeights: {
         latency: 0.4,      // 延迟权重 40%
@@ -2055,7 +2081,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 成本优先排序 (实际应用中从配置获取成本信息)
     const costRanking = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 1, // 成本排名
-      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 2,
+      [REFERENCE_DATA.PROVIDER_IDS.JVQUANT]: 2,
     };
 
     return providers.sort((a, b) =>
@@ -2094,30 +2120,13 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 🛡️ 基础提供商选择 (降级逻辑)
    */
   private selectProviderBasic(market: string): string | null {
-    const basicMap: Record<string, string> = {
-      HK: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-      US: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-      CN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-      SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG,
-      UNKNOWN: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-    };
-
-    return basicMap[market] || REFERENCE_DATA.PROVIDER_IDS.LONGPORT;
+    return this.getPrimaryProviderByMarket(market);
   }
 
   /**
    * 改进的启发式提供商推断
    */
   private getProviderByHeuristics(symbol: string, market: string): string {
-    // 基于市场的提供商优先级映射
-    const marketProviderPriority: Record<string, string[]> = {
-      HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG], // 港股优先LongPort
-      US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG], // 美股优先LongPort
-      CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT, REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG], // A股优先LongPort
-      SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG, REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 新加坡优先LongPort SG
-      UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT], // 未知市场默认LongPort
-    };
-
     // 特殊符号的自定义映射
     const symbolSpecificMapping: Record<string, string> = {
       // 可以在这里添加特定符号的提供商映射
@@ -2132,8 +2141,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     }
 
     // 2. 基于市场选择最佳提供商
-    const priorityList =
-      marketProviderPriority[market] || marketProviderPriority["UNKNOWN"];
+    const priorityList = this.getMarketPriorityProviders(market);
     return priorityList[0];
   }
 
@@ -2694,7 +2702,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 模拟性能数据 (实际应用中从监控系统获取)
     const latencyData: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 95, // 优秀
-      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 90,
+      [REFERENCE_DATA.PROVIDER_IDS.JVQUANT]: 90,
     };
 
     return latencyData[provider] || 60; // 默认评分
@@ -2707,7 +2715,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 基于历史可用性数据
     const reliabilityData: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 98, // 极高可靠性
-      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 95,
+      [REFERENCE_DATA.PROVIDER_IDS.JVQUANT]: 95,
     };
 
     return reliabilityData[provider] || 70;
@@ -2720,7 +2728,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 基于数据质量指标
     const qualityData: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 92,
-      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 89,
+      [REFERENCE_DATA.PROVIDER_IDS.JVQUANT]: 89,
     };
 
     // 🎯 针对特定符号类型调整评分
@@ -2739,7 +2747,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   private isProviderAvailable(provider: string): boolean {
     const availability: Record<string, boolean> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: true,
-      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: true,
+      [REFERENCE_DATA.PROVIDER_IDS.JVQUANT]: true,
     };
 
     return availability[provider] ?? false;
@@ -2752,7 +2760,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 📊 成本效益评分
     const costScores: Record<string, number> = {
       [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]: 75, // 中等成本，高质量
-      [REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG]: 72,
+      [REFERENCE_DATA.PROVIDER_IDS.JVQUANT]: 72,
     };
 
     return costScores[provider] || 50;

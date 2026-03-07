@@ -22,6 +22,7 @@ import { Market } from "../../../shared/constants/market.constants";
 import { RequestContext } from "../interfaces/request-context.interface";
 
 import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import { PROVIDER_IDS } from "@providersv2/provider-id.constants";
 import {
   MarketStatusService,
   // MarketStatusResult,
@@ -68,6 +69,9 @@ import { validateYmdDateRange } from "@core/shared/utils/ymd-date.util";
 const TRADING_DAYS_MIN_YMD = "19000101";
 const TRADING_DAYS_MAX_YMD = "20991231";
 const TRADING_DAYS_MAX_SPAN_DAYS = 366;
+const CANONICAL_PROVIDER_HINT = [...Object.values(PROVIDER_IDS)]
+  .sort((a, b) => a.localeCompare(b))
+  .join(", ");
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的数据接收常量
 
@@ -711,7 +715,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         component: ComponentIdentifier.RECEIVER,
         errorCode: BusinessErrorCode.DATA_NOT_FOUND,
         operation: 'validatePreferredProvider',
-        message: `Preferred provider '${preferredProvider}' does not support receiver type '${receiverType}'`,
+        message: `Preferred provider '${preferredProvider}' is unavailable for receiver type '${receiverType}'. Use canonical providers: ${CANONICAL_PROVIDER_HINT}.`,
         context: {
           preferredProvider,
           receiverType,
@@ -739,7 +743,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         component: ComponentIdentifier.RECEIVER,
         errorCode: BusinessErrorCode.DATA_NOT_FOUND,
         operation: 'validatePreferredProvider',
-        message: `Preferred provider '${preferredProvider}' does not support market '${market}'`,
+        message: `Preferred provider '${preferredProvider}' is unavailable for market '${market}'. Use canonical providers: ${CANONICAL_PROVIDER_HINT}.`,
         context: {
           preferredProvider,
           market,

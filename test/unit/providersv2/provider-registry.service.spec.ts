@@ -69,7 +69,7 @@ describe("ProviderRegistryService", () => {
     const service = new ProviderRegistryService(
       createModuleRefMock({
         [PROVIDER_IDS.LONGPORT]: providerA,
-        [PROVIDER_IDS.LONGPORT_SG]: providerB,
+        [PROVIDER_IDS.JVQUANT]: providerB,
       }),
     );
 
@@ -98,22 +98,22 @@ describe("ProviderRegistryService", () => {
     expect(service.getBestProvider("get-stock-quote", "US")).toBe("alpha");
   });
 
-  it("应支持 alias 解析到标准 provider 名称", async () => {
+  it("应支持 provider 名称标准化解析", async () => {
     const canonicalProvider = createProvider(
-      PROVIDER_IDS.LONGPORT_SG,
+      PROVIDER_IDS.LONGPORT,
       "stream-stock-quote",
       ["SG"],
     );
     const service = new ProviderRegistryService(
       createModuleRefMock({
-        [PROVIDER_IDS.LONGPORT_SG]: canonicalProvider,
+        [PROVIDER_IDS.LONGPORT]: canonicalProvider,
       }),
     );
 
     await service.onModuleInit();
 
-    expect(service.getProvider(" LONGPORTSG ")).toBe(canonicalProvider);
-    expect(service.getCapability("longportsg", "stream-stock-quote")).toBe(
+    expect(service.getProvider(" LONGPORT ")).toBe(canonicalProvider);
+    expect(service.getCapability(" LongPort ", "stream-stock-quote")).toBe(
       canonicalProvider.capabilities[0],
     );
   });
@@ -151,9 +151,9 @@ describe("ProviderRegistryService", () => {
     expect(warnSpy).toHaveBeenCalledWith(
       "Provider 未注册或找不到，跳过注册",
       expect.objectContaining({
-        id: PROVIDER_IDS.LONGPORT_SG,
-        key: "LONGPORT_SG",
-        providerToken: "LongportSgProvider",
+        id: PROVIDER_IDS.JVQUANT,
+        key: "JVQUANT",
+        providerToken: "JvQuantProvider",
         errorName: "UnknownElementException",
       }),
     );
@@ -211,9 +211,9 @@ describe("ProviderRegistryService", () => {
     expect(warnSpy).toHaveBeenCalledWith(
       "Provider 解析为空，跳过注册",
       expect.objectContaining({
-        id: PROVIDER_IDS.LONGPORT_SG,
-        key: "LONGPORT_SG",
-        providerToken: "LongportSgProvider",
+        id: PROVIDER_IDS.JVQUANT,
+        key: "JVQUANT",
+        providerToken: "JvQuantProvider",
       }),
     );
   });
@@ -239,7 +239,7 @@ describe("ProviderRegistryService", () => {
     const longportProvider = createProvider(
       PROVIDER_IDS.LONGPORT,
       "get-stock-quote",
-      ["HK"],
+      ["HK", "SG"],
     );
     const infowayProvider = createProvider(
       PROVIDER_IDS.INFOWAY,
@@ -261,6 +261,41 @@ describe("ProviderRegistryService", () => {
     expect(service.getBestProvider("get-stock-quote", "US")).toBe(
       PROVIDER_IDS.INFOWAY,
     );
+    expect(service.getBestProvider("get-stock-quote", "SG")).toBe(
+      PROVIDER_IDS.LONGPORT,
+    );
     expect(service.getBestProvider("get-stock-quote", "CN")).toBeNull();
+  });
+
+  it("SG 场景应支持 REST 与 STREAM capability 选源", async () => {
+    const restCapability = createCapability("get-stock-quote", ["SG"]);
+    const streamCapability = createCapability("stream-stock-quote", ["SG"]);
+    const longportProvider: IDataProvider = {
+      name: PROVIDER_IDS.LONGPORT,
+      description: "longport provider",
+      capabilities: [restCapability, streamCapability],
+      initialize: jest.fn().mockResolvedValue(undefined),
+      testConnection: jest.fn().mockResolvedValue(true),
+      getCapability: (targetName: string) =>
+        targetName === restCapability.name
+          ? restCapability
+          : targetName === streamCapability.name
+            ? streamCapability
+            : null,
+    };
+    const service = new ProviderRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: longportProvider,
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(service.getBestProvider("get-stock-quote", "SG")).toBe(
+      PROVIDER_IDS.LONGPORT,
+    );
+    expect(service.getBestProvider("stream-stock-quote", "SG")).toBe(
+      PROVIDER_IDS.LONGPORT,
+    );
   });
 });

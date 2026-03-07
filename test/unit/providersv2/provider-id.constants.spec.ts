@@ -5,12 +5,38 @@ import {
   PROVIDER_NAME_ALIASES,
   buildProviderNameAliases,
 } from "@providersv2/provider-id.constants";
+import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import type { ICapability } from "@providersv2/providers/interfaces/capability.interface";
+import type { IDataProvider } from "@providersv2/providers/interfaces/provider.interface";
+import type { ModuleRef } from "@nestjs/core";
+
+function createCapability(name: string, supportedMarkets: string[]): ICapability {
+  return {
+    name,
+    description: `${name} capability`,
+    supportedMarkets,
+    supportedSymbolFormats: ["symbol.market"],
+    execute: jest.fn().mockResolvedValue(null),
+  };
+}
+
+function createModuleRefMock(
+  providersById: Partial<Record<string, IDataProvider | null | undefined>>,
+): ModuleRef {
+  return {
+    get: jest.fn((token: unknown) => {
+      const entry = ACTIVE_PROVIDER_MANIFEST.find(
+        (manifest) => manifest.providerToken === token,
+      );
+      return entry ? providersById[entry.id] : undefined;
+    }),
+  } as unknown as ModuleRef;
+}
 
 describe("provider-id.constants", () => {
   it("PROVIDER_IDS 应从 REFERENCE_DATA.PROVIDER_IDS 派生", () => {
     expect(PROVIDER_IDS).toEqual({
       LONGPORT: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
-      LONGPORT_SG: REFERENCE_DATA.PROVIDER_IDS.LONGPORT_SG,
       JVQUANT: REFERENCE_DATA.PROVIDER_IDS.JVQUANT,
       INFOWAY: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
     });
@@ -33,16 +59,21 @@ describe("provider-id.constants", () => {
     }
   });
 
+  it("不应内置 legacy longport-sg/longportsg 别名", () => {
+    expect(PROVIDER_NAME_ALIASES["longport-sg"]).toBeUndefined();
+    expect(PROVIDER_NAME_ALIASES.longportsg).toBeUndefined();
+  });
+
   it("alias 构建应先 trim + lower 后写入", () => {
     const aliases = buildProviderNameAliases([
       {
-        id: PROVIDER_IDS.LONGPORT_SG,
-        aliases: [" LongPortSG "],
+        id: PROVIDER_IDS.JVQUANT,
+        aliases: [" JvQuant-Alias "],
       },
     ]);
 
     expect(aliases).toEqual({
-      longportsg: PROVIDER_IDS.LONGPORT_SG,
+      "jvquant-alias": PROVIDER_IDS.JVQUANT,
     });
   });
 
@@ -61,5 +92,42 @@ describe("provider-id.constants", () => {
     ).toThrow(
       "Provider alias 冲突: alias=duplicate, providers=[infoway, longport]",
     );
+  });
+
+  it("registry 在 SG 场景应可解析 canonical provider", async () => {
+    const restCapability = createCapability("get-stock-quote", ["SG"]);
+    const streamCapability = createCapability("stream-stock-quote", ["SG"]);
+    const longportProvider: IDataProvider = {
+      name: PROVIDER_IDS.LONGPORT,
+      description: "longport provider",
+      capabilities: [restCapability, streamCapability],
+      initialize: jest.fn().mockResolvedValue(undefined),
+      testConnection: jest.fn().mockResolvedValue(true),
+      getCapability: (targetName: string) => {
+        if (targetName === restCapability.name) return restCapability;
+        if (targetName === streamCapability.name) return streamCapability;
+        return null;
+      },
+    };
+    const service = new ProviderRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: longportProvider,
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(service.getBestProvider("get-stock-quote", "SG")).toBe(
+      PROVIDER_IDS.LONGPORT,
+    );
+    expect(service.getBestProvider("stream-stock-quote", "SG")).toBe(
+      PROVIDER_IDS.LONGPORT,
+    );
+    expect(service.getProvider(" LONGPORT ")).toBe(longportProvider);
+  });
+
+  it("registry moduleRef 缺失应 fail-fast", async () => {
+    const service = new ProviderRegistryService(undefined as unknown as ModuleRef);
+    await expect(service.onModuleInit()).rejects.toThrow("ModuleRef 未注入");
   });
 });
