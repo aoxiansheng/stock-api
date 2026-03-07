@@ -51,7 +51,7 @@
 - **authv2/**: 认证授权模块（JWT + API Key + 权限管理）
 - **common/**: 通用组件库（日志、异常、拦截器、验证器）
 - **database/**: 统一数据库模块
-- **providersv2/**: 数据源提供者（当前实现：LongPort、LongPort SG）
+- **providersv2/**: 数据源提供者（当前实现：LongPort、JvQuant、Infoway）
 
 
 ## 项目结构与模块组织
