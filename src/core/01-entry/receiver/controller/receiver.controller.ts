@@ -63,6 +63,12 @@ export class ReceiverController {
 - \`get-stock-quote\`: 实时行情 (价格、涨跌、成交量、买卖盘等)
 - \`get-stock-basic-info\`: 基本信息 (公司名称、行业、财务指标等)
 - \`get-index-quote\`: 指数行情 (主要指数实时数据)
+- \`get-stock-history\`: 分时历史 (1m K 线，支持 \`options.timestamp\` + \`options.klineNum\`)
+
+### 🕘 get-stock-history 参数约束
+- \`symbols\` 必须且只能包含 1 个标的（单标的限制）
+- \`options.timestamp\` 为回填截止时间戳（仅支持 10 位秒或 13 位毫秒）
+- \`options.klineNum\` 为回填根数（建议 1-500）
 
 ### 📝 示例请求
       \`\`\`json
@@ -72,6 +78,19 @@ export class ReceiverController {
         "options": {
           "realtime": true,
           "timeout": 3000
+        }
+      }
+      \`\`\`
+
+### 📝 get-stock-history 示例请求
+      \`\`\`json
+      {
+        "symbols": ["AAPL.US"],
+        "receiverType": "get-stock-history",
+        "options": {
+          "market": "US",
+          "timestamp": 1758553860,
+          "klineNum": 240
         }
       }
       \`\`\`

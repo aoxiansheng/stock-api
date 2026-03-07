@@ -9,7 +9,12 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 // 统一错误处理基础设施
-import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier,
+  BusinessException,
+} from "@common/core/exceptions";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { NUMERIC_CONSTANTS } from "@common/constants/core";
@@ -36,7 +41,10 @@ import { DataFetcherService } from "../../../03-fetching/data-fetcher/services/d
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StorageService } from "../../../04-storage/storage/services/storage.service";
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
-import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
+import {
+  CAPABILITY_NAMES,
+  GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR,
+} from "@providersv2/providers/constants/capability-names.constants";
 
 import {
   RECEIVER_ERROR_MESSAGES,
@@ -47,7 +55,11 @@ import {
   SUPPORTED_CAPABILITY_TYPES,
   assertReceiverCapabilityWhitelistSync,
 } from "../constants/operations.constants";
-import { DataRequestDto } from "../dto/data-request.dto";
+import {
+  DataRequestDto,
+  RECEIVER_ALLOWED_MARKETS,
+  normalizeReceiverMarketInput,
+} from "../dto/data-request.dto";
 import {
   DataResponseDto,
   ResponseMetadataDto,
@@ -69,9 +81,12 @@ import { validateYmdDateRange } from "@core/shared/utils/ymd-date.util";
 const TRADING_DAYS_MIN_YMD = "19000101";
 const TRADING_DAYS_MAX_YMD = "20991231";
 const TRADING_DAYS_MAX_SPAN_DAYS = 366;
+const HISTORY_TIMESTAMP_FORMAT_ERROR =
+  "timestamp 仅支持 10 位秒或 13 位毫秒时间戳";
 const CANONICAL_PROVIDER_HINT = [...Object.values(PROVIDER_IDS)]
   .sort((a, b) => a.localeCompare(b))
   .join(", ");
+const RECEIVER_ALLOWED_MARKET_SET = new Set<string>(RECEIVER_ALLOWED_MARKETS);
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的数据接收常量
 
@@ -211,8 +226,9 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
           queryId: requestId,
           marketStatus,
           strategy: CacheStrategy.STRONG_TIMELINESS, // Receiver 强时效策略
-           marketType: marketContext.marketType,
-           market: marketContext.primaryMarket,
+          marketType: marketContext.marketType,
+          market: marketContext.primaryMarket,
+          cacheKeyParams: this.buildReceiverCacheKeyParams(request),
           executeOriginalDataFlow: async () => {
             // 内联原始数据流逻辑，移除包装器方法
             const mappedSymbols = await this.symbolTransformerService.transformSymbolsForProvider(
@@ -261,12 +277,12 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         );
 
         const payload = result?.data as any;
-        const processedCount = Array.isArray(payload)
-          ? payload.length
-          : payload
-          ? 1
-          : 0;
         const totalRequested = request.symbols.length;
+        const processedCount = this.estimateProcessedSymbolCount(
+          payload,
+          request.receiverType,
+          totalRequested,
+        );
         const hasPartialFailures = processedCount < totalRequested;
 
         return new DataResponseDto(
@@ -453,6 +469,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     const validationResult = await this.performRequestValidation(request);
 
     if (!validationResult.isValid) {
+      const primaryError = validationResult.errors?.[0];
       this.logger.warn(
         `请求参数验证失败`,
         sanitizeLogData({
@@ -471,7 +488,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         component: ComponentIdentifier.RECEIVER,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: 'validateRequest',
-        message: 'Request validation failed',
+        message: primaryError || 'Request validation failed',
         context: {
           errors: validationResult.errors,
           warnings: validationResult.warnings,
@@ -525,10 +542,11 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     // 🎯 移除数据类型支持性验证
     // 已由 @IsIn 装饰器处理
 
-    // 🎯 移除选项参数验证
-    // RequestOptionsDto 中已包含验证装饰器
+    // 仅保留跨字段/跨能力的业务边界验证
     const beginDayRaw = request.options?.beginDay as unknown;
     const endDayRaw = request.options?.endDay as unknown;
+    const klineNumRaw = request.options?.klineNum as unknown;
+    const timestampRaw = request.options?.timestamp as unknown;
 
     if (
       beginDayRaw !== undefined &&
@@ -544,6 +562,20 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     ) {
       errors.push("endDay 必须是字符串");
     }
+    if (
+      klineNumRaw !== undefined &&
+      klineNumRaw !== null &&
+      typeof klineNumRaw !== "number"
+    ) {
+      errors.push("klineNum 必须是数字");
+    }
+    if (
+      timestampRaw !== undefined &&
+      timestampRaw !== null &&
+      typeof timestampRaw !== "number"
+    ) {
+      errors.push("timestamp 必须是数字");
+    }
 
     const beginDay = typeof beginDayRaw === "string" ? beginDayRaw : undefined;
     const endDay = typeof endDayRaw === "string" ? endDayRaw : undefined;
@@ -556,6 +588,16 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       errors.push("beginDay/endDay 仅允许在 get-trading-days 请求中使用");
     }
 
+    const hasHistoryOptions =
+      (klineNumRaw !== undefined && klineNumRaw !== null) ||
+      (timestampRaw !== undefined && timestampRaw !== null);
+    if (
+      hasHistoryOptions &&
+      request.receiverType !== CAPABILITY_NAMES.GET_STOCK_HISTORY
+    ) {
+      errors.push("klineNum/timestamp 仅允许在 get-stock-history 请求中使用");
+    }
+
     if (request.receiverType === CAPABILITY_NAMES.GET_TRADING_DAYS) {
       const dateRangeValidation = validateYmdDateRange(beginDay, endDay, {
         strict: true,
@@ -565,6 +607,31 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       });
       if (!dateRangeValidation.isValid && dateRangeValidation.message) {
         errors.push(dateRangeValidation.message);
+      }
+    }
+
+    if (
+      request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY &&
+      request.symbols.length !== 1
+    ) {
+      errors.push(GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR);
+    }
+
+    if (
+      request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY &&
+      timestampRaw !== undefined &&
+      timestampRaw !== null &&
+      typeof timestampRaw === "number"
+    ) {
+      const absTimestamp = Math.abs(timestampRaw);
+      const digitCount = Math.trunc(absTimestamp).toString().length;
+      const isSupportedDigitCount = digitCount === 10 || digitCount === 13;
+      if (
+        !Number.isSafeInteger(timestampRaw) ||
+        timestampRaw <= 0 ||
+        !isSupportedDigitCount
+      ) {
+        errors.push(HISTORY_TIMESTAMP_FORMAT_ERROR);
       }
     }
 
@@ -782,6 +849,10 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     const capabilityName = request.receiverType;
     const effectiveMarketContext =
       marketContext ?? this.getMarketContext(request.symbols);
+    const sanitizedOptions = this.sanitizeFetchOptions(
+      request.options,
+      capabilityName,
+    );
 
     try {
       // 🔥 关键重构：委托DataFetcher处理SDK调用
@@ -792,12 +863,13 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         contextService: await this.getProviderContextService(provider),
         requestId,
         apiType: "rest",
-        options: request.options,
+        options: sanitizedOptions,
       };
 
       const fetchResult =
         await this.dataFetcherService.fetchRawData(fetchParams);
       const rawData = fetchResult.data;
+      let processedData: any = rawData;
 
       // ✅ 数据标准化处理：使用 Transformer 进行数据格式转换
       this.logger.debug(`开始数据标准化处理`, {
@@ -809,7 +881,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       });
 
       const rawSample = Array.isArray(rawData) ? rawData[0] : rawData;
-      this.logger.debug(`Raw data for transformation`, {
+      this.logger.debug(`Raw data before transform decision`, {
         rawSize: rawData?.length ?? 0,
         rawSample,
       });
@@ -830,9 +902,10 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       const transformedResult =
         await this.dataTransformerService.transform(transformRequest);
 
-      const transformedSample = Array.isArray(transformedResult.transformedData)
-        ? transformedResult.transformedData[0]
-        : transformedResult.transformedData;
+      processedData = transformedResult.transformedData;
+      const transformedSample = Array.isArray(processedData)
+        ? processedData[0]
+        : processedData;
       this.logger.debug(`Transformed data sample`, {
         requestId,
         provider,
@@ -859,10 +932,10 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
           return item;
         };
 
-        if (Array.isArray(transformedResult.transformedData)) {
-          transformedResult.transformedData = transformedResult.transformedData.map(applyReverse);
+        if (Array.isArray(processedData)) {
+          processedData = processedData.map(applyReverse);
         } else {
-          transformedResult.transformedData = applyReverse(transformedResult.transformedData);
+          processedData = applyReverse(processedData);
         }
       } catch (e) {
         this.logger.warn('符号逆映射失败(已忽略)', { error: (e as any)?.message });
@@ -872,14 +945,14 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       this.logger.debug(`开始数据存储处理`, {
         requestId,
         provider,
-        transformedDataCount: Array.isArray(transformedResult.transformedData)
-          ? transformedResult.transformedData.length
+        transformedDataCount: Array.isArray(processedData)
+          ? processedData.length
           : 1,
       });
 
       const storageRequest: StoreDataDto = {
         key: `stock_data_${provider}_${request.receiverType}_${requestId}`,
-        data: transformedResult.transformedData,
+        data: processedData,
         storageType: StorageType.PERSISTENT, // 存储到数据库持久化
         storageClassification: this.mapReceiverTypeToStorageClassification(
           request.receiverType,
@@ -935,14 +1008,14 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         totalProcessingTime: Date.now() - startTime,
         fetchTime: fetchResult.metadata.processingTimeMs,
         rawDataCount: rawData.length,
-        transformedDataCount: Array.isArray(transformedResult.transformedData)
-          ? transformedResult.transformedData.length
+        transformedDataCount: Array.isArray(processedData)
+          ? processedData.length
           : 1,
       });
 
       // 构造响应对象，包含失败明细
       const response = new DataResponseDto(
-        transformedResult.transformedData,
+        processedData,
         metadata,
       );
       if (
@@ -972,6 +1045,14 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         }),
       );
 
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException ||
+        error instanceof BusinessException
+      ) {
+        throw error;
+      }
+
       throw UniversalExceptionFactory.createBusinessException({
         component: ComponentIdentifier.RECEIVER,
         errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
@@ -988,6 +1069,108 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         }
       });
     }
+  }
+
+  private sanitizeFetchOptions(
+    options: DataRequestDto["options"],
+    receiverType: string,
+  ): DataRequestDto["options"] {
+    if (!options) {
+      return options;
+    }
+
+    if (receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+      return options;
+    }
+
+    const sanitizedOptions = { ...options };
+    delete sanitizedOptions.klineNum;
+    delete sanitizedOptions.timestamp;
+    return sanitizedOptions;
+  }
+
+  private buildReceiverCacheKeyParams(
+    request: DataRequestDto,
+  ): Record<string, string | number | boolean> {
+    const options = request.options;
+    if (!options) {
+      return {};
+    }
+
+    const cacheKeyParams: Record<string, string | number | boolean> = {};
+    if (typeof options.market === "string") {
+      const normalizedMarket = this.normalizeReceiverMarketForCacheKey(
+        options.market,
+      );
+      if (normalizedMarket) {
+        cacheKeyParams.market = normalizedMarket;
+      }
+    }
+
+    if (request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+      if (typeof options.klineNum === "number") {
+        cacheKeyParams.klineNum = options.klineNum;
+      }
+      if (typeof options.timestamp === "number") {
+        cacheKeyParams.timestamp =
+          this.normalizeHistoryTimestampForCache(options.timestamp);
+      }
+    }
+
+    if (request.receiverType === CAPABILITY_NAMES.GET_TRADING_DAYS) {
+      if (typeof options.beginDay === "string" && options.beginDay.trim()) {
+        cacheKeyParams.beginDay = options.beginDay.trim();
+      }
+      if (typeof options.endDay === "string" && options.endDay.trim()) {
+        cacheKeyParams.endDay = options.endDay.trim();
+      }
+    }
+
+    return cacheKeyParams;
+  }
+
+  private normalizeReceiverMarketForCacheKey(market: string): string | undefined {
+    const normalizedMarket = normalizeReceiverMarketInput(market);
+    if (!RECEIVER_ALLOWED_MARKET_SET.has(normalizedMarket)) {
+      return undefined;
+    }
+
+    if (
+      normalizedMarket === "CN" ||
+      normalizedMarket === "SH" ||
+      normalizedMarket === "SZ"
+    ) {
+      return "CN";
+    }
+
+    return normalizedMarket;
+  }
+
+  private normalizeHistoryTimestampForCache(timestamp: number): number {
+    const digitCount = Math.trunc(Math.abs(timestamp)).toString().length;
+    if (digitCount === 13) {
+      return Math.trunc(timestamp / 1000);
+    }
+    return timestamp;
+  }
+
+  private estimateProcessedSymbolCount(
+    payload: unknown,
+    receiverType: string,
+    totalRequested: number,
+  ): number {
+    if (payload === null || payload === undefined) {
+      return 0;
+    }
+
+    if (Array.isArray(payload)) {
+      if (receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+        return payload.length > 0 ? 1 : 0;
+      }
+      return Math.min(payload.length, totalRequested);
+    }
+
+    return 1;
   }
 
   /**

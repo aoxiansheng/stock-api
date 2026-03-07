@@ -12,6 +12,7 @@ describe("rule-list-type util", () => {
 
   it("parseRuleListType 应返回规范化后的 RuleListType", () => {
     expect(parseRuleListType("  QUOTE_FIELDS  ")).toBe("quote_fields");
+    expect(parseRuleListType("CANDLE_FIELDS")).toBe("candle_fields");
     expect(parseRuleListType("basic_info_fields")).toBe("basic_info_fields");
   });
 
@@ -22,6 +23,7 @@ describe("rule-list-type util", () => {
 
   it("isRuleListType 仅接受已规范化的字面量", () => {
     expect(isRuleListType("quote_fields")).toBe(true);
+    expect(isRuleListType("candle_fields")).toBe(true);
     expect(isRuleListType(" QUOTE_FIELDS ")).toBe(false);
   });
 });

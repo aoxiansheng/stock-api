@@ -78,7 +78,17 @@ interface InfowayBasicInfoItem {
   board?: string;
 }
 
+interface InfowayHistoryParams {
+  symbols: string[];
+  market?: string;
+  klineNum?: number | string;
+  timestamp?: number;
+}
+
 const MAX_TRADING_DAYS_RANGE = 366;
+const MAX_INTRADAY_KLINE_NUM = 500;
+const INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE =
+  "Infoway 参数错误: timestamp 必须是 10/13 位正整数时间戳";
 
 @Injectable()
 export class InfowayContextService {
@@ -89,6 +99,9 @@ export class InfowayContextService {
   private readonly timeoutMs: number;
   private readonly klineType: number;
   private readonly klineNum: number;
+  private readonly intradayKlineType: number;
+  private readonly intradayKlineNum: number;
+  private readonly intradayLookbackDays: number;
 
   private readonly client: AxiosInstance;
 
@@ -113,6 +126,30 @@ export class InfowayContextService {
       min: 1,
       integer: true,
     });
+    this.intradayKlineType = this.readNumericConfig(
+      "INFOWAY_INTRADAY_KLINE_TYPE",
+      1,
+      {
+        min: 1,
+        integer: true,
+      },
+    );
+    this.intradayKlineNum = this.readNumericConfig(
+      "INFOWAY_INTRADAY_KLINE_NUM",
+      240,
+      {
+        min: 1,
+        integer: true,
+      },
+    );
+    this.intradayLookbackDays = this.readNumericConfig(
+      "INFOWAY_INTRADAY_LOOKBACK_DAYS",
+      1,
+      {
+        min: 1,
+        integer: true,
+      },
+    );
 
     this.client = axios.create({
       baseURL: this.baseUrl,
@@ -196,6 +233,87 @@ export class InfowayContextService {
     });
 
     return quoteData;
+  }
+
+  async getStockHistory(params: InfowayHistoryParams): Promise<any[]> {
+    await this.ensureConfigured();
+
+    const normalizedSymbols = normalizeAndValidateInfowaySymbols(
+      params.symbols || [],
+      {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.HISTORY_SINGLE, // MVP: 单标的优先，避免多标的根数受限
+      },
+    );
+    if (normalizedSymbols.length === 0) {
+      return [];
+    }
+
+    const normalizedMarketHint = this.normalizeStockInfoMarketHint(
+      params.market,
+      "getStockHistory",
+    );
+    const inferredMarket = inferSingleInfowayMarketFromSymbols(normalizedSymbols);
+    if (
+      normalizedMarketHint &&
+      inferredMarket &&
+      normalizedMarketHint !== inferredMarket
+    ) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: market 与 symbol 推断市场冲突，请显式修正参数",
+        {
+          market: normalizedMarketHint,
+          symbols: normalizedSymbols,
+          inferredMarket,
+        },
+        "getStockHistory",
+      );
+    }
+
+    const effectiveKlineNum = this.resolveHistoryKlineNum(params.klineNum);
+    const historyTimestamp = this.resolveHistoryTimestamp(params.timestamp);
+    const payload: Record<string, any> = {
+      klineType: this.intradayKlineType,
+      klineNum: effectiveKlineNum,
+      codes: normalizedSymbols.join(","),
+    };
+    if (historyTimestamp) {
+      payload.timestamp = historyTimestamp;
+    }
+
+    const response = await this.client.post("/stock/v2/batch_kline", payload, {
+      headers: { apiKey: this.apiKey },
+    });
+
+    const body = response.data || {};
+    this.assertInfowayResponse(
+      body,
+      "stock-history",
+      (data) => Array.isArray(data),
+    );
+
+    const historyData = (body.data as InfowayKlineRespEntry[])
+      .flatMap((entry) =>
+        this.mapKlineEntryToHistory(
+          entry,
+          normalizedMarketHint || inferredMarket || "",
+          historyTimestamp,
+        ),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+
+    this.logger.debug("Infoway 分时历史获取成功", {
+      requested: normalizedSymbols.length,
+      received: historyData.length,
+      klineType: this.intradayKlineType,
+      klineNum: effectiveKlineNum,
+      hasTimestamp: Boolean(historyTimestamp),
+    });
+
+    return historyData;
   }
 
   async getMarketStatus(markets?: string[]): Promise<any[]> {
@@ -313,7 +431,10 @@ export class InfowayContextService {
       allowEmpty: true,
       maxCount: INFOWAY_SYMBOL_LIMIT.REST,
     });
-    const normalizedMarketHint = this.normalizeStockInfoMarketHint(marketHint);
+    const normalizedMarketHint = this.normalizeStockInfoMarketHint(
+      marketHint,
+      "getStockBasicInfo",
+    );
 
     if (normalizedSymbols.length === 0) {
       return [];
@@ -404,6 +525,140 @@ export class InfowayContextService {
       sourceProvider: "infoway",
       sourceSymbol: symbol,
     };
+  }
+
+  private mapKlineEntryToHistory(
+    entry: InfowayKlineRespEntry,
+    market: string,
+    timestampUpperBoundSec?: number,
+  ): any[] {
+    const symbol = String(entry?.s || "").trim().toUpperCase();
+    const respList = Array.isArray(entry?.respList) ? entry.respList : [];
+    if (!symbol || respList.length === 0) {
+      return [];
+    }
+
+    const historyItems: any[] = [];
+    for (const item of respList) {
+      const lastPrice = this.toNumber(item?.c);
+      if (lastPrice == null) {
+        continue;
+      }
+
+      const timestamp = normalizeInfowayTimestampToIso(item?.t);
+      if (!timestamp) {
+        this.logger.warn("Infoway 分时历史时间戳解析失败，已丢弃脏数据", {
+          symbol,
+          rawTimestamp: item?.t,
+        });
+        continue;
+      }
+
+      if (timestampUpperBoundSec) {
+        const pointTimestampSec = Math.floor(new Date(timestamp).getTime() / 1000);
+        if (Number.isFinite(pointTimestampSec) && pointTimestampSec > timestampUpperBoundSec) {
+          continue;
+        }
+      }
+
+      const changeAmount = this.toNumber(item?.pca);
+      const previousClose =
+        changeAmount == null ? null : this.normalizeNumber(lastPrice - changeAmount);
+
+      historyItems.push({
+        symbol,
+        market,
+        lastPrice,
+        previousClose,
+        openPrice: this.toNumber(item?.o),
+        highPrice: this.toNumber(item?.h),
+        lowPrice: this.toNumber(item?.l),
+        volume: this.toNumber(item?.v),
+        turnover: this.toNumber(item?.vw ?? item?.vm),
+        change: changeAmount,
+        changePercent: this.toPercentNumber(item?.pc),
+        timestamp,
+        tradeStatus: "Normal",
+        sourceProvider: "infoway",
+        sourceSymbol: symbol,
+      });
+    }
+
+    return historyItems;
+  }
+
+  private resolveHistoryKlineNum(klineNumInput?: number | string): number {
+    const defaultKlineNum = Math.max(
+      1,
+      Math.min(
+        this.intradayKlineNum,
+        this.intradayLookbackDays * 24 * 60,
+        MAX_INTRADAY_KLINE_NUM,
+      ),
+    );
+    if (klineNumInput === undefined || klineNumInput === null || klineNumInput === "") {
+      return defaultKlineNum;
+    }
+
+    const parsed = Number(klineNumInput);
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: klineNum 必须是正整数",
+        {
+          klineNum: klineNumInput,
+        },
+        "getStockHistory",
+      );
+    }
+
+    if (parsed > MAX_INTRADAY_KLINE_NUM) {
+      throwInfowayDataValidationError(
+        `Infoway 参数错误: klineNum 不能超过 ${MAX_INTRADAY_KLINE_NUM}`,
+        {
+          klineNum: parsed,
+          maxKlineNum: MAX_INTRADAY_KLINE_NUM,
+        },
+        "getStockHistory",
+      );
+    }
+
+    return parsed;
+  }
+
+  private resolveHistoryTimestamp(timestampInput?: number): number | undefined {
+    if (timestampInput === undefined || timestampInput === null) {
+      return undefined;
+    }
+
+    if (
+      typeof timestampInput !== "number" ||
+      !Number.isSafeInteger(timestampInput) ||
+      timestampInput <= 0
+    ) {
+      throwInfowayDataValidationError(
+        INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE,
+        {
+          timestamp: timestampInput,
+        },
+        "getStockHistory",
+      );
+    }
+
+    const digitCount = Math.abs(timestampInput).toString().length;
+    if (digitCount === 10) {
+      return timestampInput;
+    }
+    if (digitCount === 13) {
+      return Math.trunc(timestampInput / 1000);
+    }
+
+    throwInfowayDataValidationError(
+      INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE,
+      {
+        timestamp: timestampInput,
+      },
+      "getStockHistory",
+    );
   }
 
   private async ensureConfigured(): Promise<void> {
@@ -526,7 +781,10 @@ export class InfowayContextService {
       .filter(Boolean);
   }
 
-  private normalizeStockInfoMarketHint(marketHint?: string): string {
+  private normalizeStockInfoMarketHint(
+    marketHint?: string,
+    operation = "getStockBasicInfo",
+  ): string {
     const hasMarketHint =
       marketHint !== undefined &&
       marketHint !== null &&
@@ -542,7 +800,7 @@ export class InfowayContextService {
         {
           market: marketHint,
         },
-        "getStockBasicInfo",
+        operation,
       );
     }
     return normalizedMarketHint;

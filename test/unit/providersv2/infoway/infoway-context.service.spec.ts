@@ -355,15 +355,224 @@ describe("InfowayContextService", () => {
     );
   });
 
+  it("getStockHistory: 支持扩展参数并按时间升序输出", async () => {
+    const service = createService();
+    (service as any).client.post.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [
+          {
+            s: "AAPL.US",
+            respList: [
+              {
+                c: "183.11",
+                pca: "1.11",
+                o: "181.00",
+                h: "184.50",
+                l: "180.20",
+                v: "100",
+                vw: "15000",
+                pc: "0.61",
+                t: "1709251260",
+              },
+              {
+                c: "182.31",
+                pca: "0.31",
+                o: "181.00",
+                h: "183.50",
+                l: "180.20",
+                v: "120",
+                vw: "22000",
+                pc: "0.17",
+                t: "1709251200",
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const result = await service.getStockHistory({
+      symbols: ["AAPL.US"],
+      klineNum: 2,
+      timestamp: 1709251260,
+    });
+
+    expect((service as any).client.post).toHaveBeenCalledWith(
+      "/stock/v2/batch_kline",
+      expect.objectContaining({
+        klineType: 1,
+        klineNum: 2,
+        codes: "AAPL.US",
+        timestamp: 1709251260,
+      }),
+      expect.objectContaining({
+        headers: {
+          apiKey: "test-api-key",
+        },
+      }),
+    );
+    expect(result).toHaveLength(2);
+    expect(
+      new Date(result[0].timestamp).getTime(),
+    ).toBeLessThanOrEqual(new Date(result[1].timestamp).getTime());
+  });
+
+  it.each([
+    {
+      title: "10位秒级时间戳",
+      input: 1709251260,
+      expected: 1709251260,
+    },
+    {
+      title: "13位毫秒时间戳",
+      input: 1758553860123,
+      expected: 1758553860,
+    },
+  ])("getStockHistory: $title 应按正确单位转换并透传", async ({ input, expected }) => {
+    const service = createService();
+    (service as any).client.post.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [],
+      },
+    });
+
+    await service.getStockHistory({
+      symbols: ["AAPL.US"],
+      timestamp: input,
+    });
+
+    expect((service as any).client.post).toHaveBeenCalledWith(
+      "/stock/v2/batch_kline",
+      expect.objectContaining({
+        timestamp: expected,
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it.each([17092512600, 946684800000])(
+    "getStockHistory: 11/12位数字 timestamp=%p 时抛参数错误并阻断上游请求",
+    async (timestamp) => {
+      const service = createService();
+
+      await expect(
+        service.getStockHistory({
+          symbols: ["AAPL.US"],
+          timestamp,
+        } as any),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      });
+
+      expect((service as any).client.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([1758553860.123])(
+    "getStockHistory: 非整数数字 timestamp=%p 时抛参数错误并阻断上游请求",
+    async (timestamp) => {
+      const service = createService();
+
+      await expect(
+        service.getStockHistory({
+          symbols: ["AAPL.US"],
+          timestamp,
+        } as any),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      });
+
+      expect((service as any).client.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it("getStockHistory: timestamp 非法时抛参数错误并阻断上游请求", async () => {
+    const service = createService();
+
+    await expect(
+      service.getStockHistory({
+        symbols: ["AAPL.US"],
+        timestamp: "bad-time",
+      } as any),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+
+    expect((service as any).client.post).not.toHaveBeenCalled();
+  });
+
+  it.each(["1758553860", "2024-03-01T09:30:00Z"])(
+    "getStockHistory: 字符串 timestamp=%p 时抛参数错误并阻断上游请求",
+    async (timestamp) => {
+      const service = createService();
+
+      await expect(
+        service.getStockHistory({
+          symbols: ["AAPL.US"],
+          timestamp,
+        } as any),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      });
+
+      expect((service as any).client.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it("getStockHistory: 非严格日期字符串 timestamp 时抛参数错误并阻断上游请求", async () => {
+    const service = createService();
+
+    await expect(
+      service.getStockHistory({
+        symbols: ["AAPL.US"],
+        timestamp: "2024/03/01 09:30:00",
+      } as any),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+
+    expect((service as any).client.post).not.toHaveBeenCalled();
+  });
+
+  it("getStockHistory: market 非法时应携带正确 operation", async () => {
+    const service = createService();
+
+    await expect(
+      service.getStockHistory({
+        symbols: ["AAPL.US"],
+        market: "INVALID",
+      }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("market 仅支持 HK/US/CN/SH/SZ"),
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: "getStockHistory",
+    });
+
+    expect((service as any).client.post).not.toHaveBeenCalled();
+  });
+
   it("关键数值配置非法时回退默认值", () => {
     const service = createService({
       INFOWAY_HTTP_TIMEOUT_MS: "bad-timeout",
       INFOWAY_QUOTE_KLINE_TYPE: 0,
       INFOWAY_QUOTE_KLINE_NUM: -2,
+      INFOWAY_INTRADAY_KLINE_TYPE: 0,
+      INFOWAY_INTRADAY_KLINE_NUM: -2,
+      INFOWAY_INTRADAY_LOOKBACK_DAYS: 0,
     });
 
     expect((service as any).timeoutMs).toBe(10000);
     expect((service as any).klineType).toBe(1);
     expect((service as any).klineNum).toBe(1);
+    expect((service as any).intradayKlineType).toBe(1);
+    expect((service as any).intradayKlineNum).toBe(240);
+    expect((service as any).intradayLookbackDays).toBe(1);
   });
 });

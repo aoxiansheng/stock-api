@@ -21,7 +21,7 @@ import {
   RULE_LIST_TYPE_VALUES,
   DATA_MAPPER_CONFIG,
 } from "../constants/data-mapper.constants";
-import type { ApiType } from "../constants/data-mapper.constants";
+import type { ApiType, RuleListType } from "../constants/data-mapper.constants";
 
 // 🆕 数据源分析请求DTO
 export class AnalyzeDataSourceDto {
@@ -79,7 +79,7 @@ export class AnalyzeDataSourceDto {
   })
   @IsEnum(RULE_LIST_TYPE_VALUES)
   @IsOptional()
-  dataType?: "quote_fields" | "basic_info_fields" | "index_fields" = "quote_fields";
+  dataType?: RuleListType = "quote_fields";
 
   @ApiProperty({
     description: "是否保存为模板",

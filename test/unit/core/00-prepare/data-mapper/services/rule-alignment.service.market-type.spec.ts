@@ -74,6 +74,20 @@ describe("MarketTypeResolverService market type resolve", () => {
     },
   );
 
+  it("candle_fields 与 quote_fields 一样按行情市场逻辑解析", () => {
+    const service = createService();
+    const template = {
+      name: "美股分时模板",
+      apiType: "rest",
+      provider: "custom-provider",
+      sampleData: { symbol: "AAPL.US" },
+    } as any;
+
+    const marketType = service.resolveMarketType(template, "candle_fields");
+
+    expect(marketType).toBe("US");
+  });
+
   it.each([
     ["market_status_fields", "美股市场状态模板", "US"],
     ["trading_days_fields", "港股交易日模板", "HK"],

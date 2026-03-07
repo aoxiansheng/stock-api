@@ -13,6 +13,7 @@ export function parseRuleListType(value: unknown): RuleListType | null {
 
   switch (normalizedValue) {
     case RULE_LIST_TYPES.QUOTE_FIELDS:
+    case RULE_LIST_TYPES.CANDLE_FIELDS:
     case RULE_LIST_TYPES.BASIC_INFO_FIELDS:
     case RULE_LIST_TYPES.MARKET_STATUS_FIELDS:
     case RULE_LIST_TYPES.TRADING_DAYS_FIELDS:

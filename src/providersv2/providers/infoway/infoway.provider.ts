@@ -7,6 +7,7 @@ import { ICapability } from "../interfaces/capability.interface";
 import { IDataProvider } from "../interfaces/provider.interface";
 
 import { getStockQuote } from "./capabilities/get-stock-quote";
+import { getStockHistory } from "./capabilities/get-stock-history";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getMarketStatus } from "./capabilities/get-market-status";
 import { getTradingDays } from "./capabilities/get-trading-days";
@@ -22,6 +23,7 @@ export class InfowayProvider implements IDataProvider {
   readonly description = "Infoway 行情提供商（REST + WebSocket）";
   readonly capabilities: ICapability[] = [
     getStockQuote,
+    getStockHistory,
     getStockBasicInfo,
     getMarketStatus,
     getTradingDays,

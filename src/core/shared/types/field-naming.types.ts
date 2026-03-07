@@ -10,6 +10,7 @@ import { StorageClassification } from "./storage-classification.enum";
 // Receiver 组件的能力类型
 export type ReceiverType =
   | "get-stock-quote" // API_OPERATIONS.STOCK_DATA.GET_QUOTE
+  | "get-stock-history"
   | "get-stock-basic-info"
   | "get-index-quote"
   | "get-market-status"
@@ -41,7 +42,7 @@ const TRANS_RULE_TYPE_BY_CAPABILITY = {
   [CAPABILITY_NAMES.GET_TRADING_DAYS]: "trading_days_fields",
   // 合理默认：无明确规则时使用报价字段
   [CAPABILITY_NAMES.GET_STOCK_REALTIME]: "quote_fields",
-  [CAPABILITY_NAMES.GET_STOCK_HISTORY]: "quote_fields",
+  [CAPABILITY_NAMES.GET_STOCK_HISTORY]: "candle_fields",
 } as const satisfies Record<string, RuleListType>;
 
 /**
@@ -51,6 +52,7 @@ export const FIELD_MAPPING_CONFIG = {
   // Receiver 能力类型到 Storage 数据分类的映射
   CAPABILITY_TO_CLASSIFICATION: {
     [CAPABILITY_NAMES.GET_STOCK_QUOTE]: StorageClassification.STOCK_QUOTE,
+    [CAPABILITY_NAMES.GET_STOCK_HISTORY]: StorageClassification.STOCK_CANDLE,
     [CAPABILITY_NAMES.GET_STOCK_BASIC_INFO]: StorageClassification.STOCK_BASIC_INFO,
     [CAPABILITY_NAMES.GET_INDEX_QUOTE]: StorageClassification.INDEX_QUOTE,
     [CAPABILITY_NAMES.GET_MARKET_STATUS]: StorageClassification.MARKET_STATUS,
@@ -79,7 +81,7 @@ export const FIELD_MAPPING_CONFIG = {
     [StorageClassification.STOCK_NEWS]: CAPABILITY_NAMES.GET_STOCK_NEWS,
     [StorageClassification.CRYPTO_NEWS]: CAPABILITY_NAMES.GET_CRYPTO_NEWS,
     // Add missing mappings
-    [StorageClassification.STOCK_CANDLE]: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
+    [StorageClassification.STOCK_CANDLE]: CAPABILITY_NAMES.GET_STOCK_HISTORY,
     [StorageClassification.STOCK_TICK]: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
     [StorageClassification.FINANCIAL_STATEMENT]: "get-stock-basic-info",
     [StorageClassification.MARKET_NEWS]: "get-stock-news",

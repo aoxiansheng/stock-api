@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { API_OPERATIONS } from "@common/constants/domain";
 import {
@@ -13,6 +13,9 @@ import {
   IsNotEmpty,
   MaxLength,
   IsIn,
+  IsInt,
+  Max,
+  Min,
   Matches,
   registerDecorator,
   ValidationArguments,
@@ -31,6 +34,18 @@ import {
   isValidYmdDate,
   validateYmdDateRange,
 } from "@core/shared/utils/ymd-date.util";
+
+export const RECEIVER_ALLOWED_MARKETS = Object.freeze([
+  "HK",
+  "US",
+  "CN",
+  "SH",
+  "SZ",
+] as const);
+
+export function normalizeReceiverMarketInput(market: string): string {
+  return market.trim().toUpperCase();
+}
 
 @ValidatorConstraint({ name: "isYmdDate", async: false })
 class IsYmdDateConstraint implements ValidatorConstraintInterface {
@@ -112,8 +127,36 @@ export class RequestOptionsDto extends BaseRequestOptionsDto {
 
   @ApiPropertyOptional({ description: "市场代码", example: "HK" })
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === "string" ? normalizeReceiverMarketInput(value) : value,
+  )
   @IsString()
+  @IsIn(RECEIVER_ALLOWED_MARKETS, {
+    message: `market 仅支持以下值: ${RECEIVER_ALLOWED_MARKETS.join(", ")}`,
+  })
   market?: string;
+
+  @ApiPropertyOptional({
+    description: "分时回填根数（仅 get-stock-history 使用）",
+    example: 240,
+    minimum: 1,
+    maximum: 500,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  klineNum?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "分时回填截止时间戳（仅 get-stock-history 使用，仅支持 10 位秒或 13 位毫秒）",
+    example: 1758553860,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  timestamp?: number;
 
   @ApiPropertyOptional({
     description: "交易日查询起始日（YYYYMMDD，仅 get-trading-days 使用）",

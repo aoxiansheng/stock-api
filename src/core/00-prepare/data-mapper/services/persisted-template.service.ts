@@ -101,6 +101,58 @@ export class PersistedTemplateService {
     };
   }
 
+  private createInfowayCandleSampleData() {
+    return {
+      symbol: "AAPL.US",
+      market: "US",
+      lastPrice: 228.33,
+      previousClose: 229.09,
+      openPrice: 227.84,
+      highPrice: 229.56,
+      lowPrice: 224.76,
+      volume: 34873322,
+      turnover: 7925585994.156,
+      change: -0.76,
+      changePercent: -0.33,
+      timestamp: "2025-11-11T09:30:00+08:00",
+      tradeStatus: "Normal",
+    };
+  }
+
+  private createInfowayCandleExtractedFields() {
+    return [
+      { fieldPath: "symbol", fieldName: "symbol", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "market", fieldName: "market", fieldType: "string", confidence: 0.9 },
+      { fieldPath: "lastPrice", fieldName: "lastPrice", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "previousClose", fieldName: "previousClose", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "openPrice", fieldName: "openPrice", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "highPrice", fieldName: "highPrice", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "lowPrice", fieldName: "lowPrice", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "volume", fieldName: "volume", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "turnover", fieldName: "turnover", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "change", fieldName: "change", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "changePercent", fieldName: "changePercent", fieldType: "number", confidence: 0.9 },
+      { fieldPath: "timestamp", fieldName: "timestamp", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "tradeStatus", fieldName: "tradeStatus", fieldType: "string", confidence: 0.9 },
+    ];
+  }
+
+  private createInfowayCandleTemplate() {
+    return {
+      name: "Infoway REST 分时K线模板(基于batch_kline统一字段)",
+      provider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+      apiType: "rest" as const,
+      isPreset: true,
+      isDefault: false,
+      description: "Infoway REST 分时K线模板（标准化 candle 字段）",
+      sampleData: this.createInfowayCandleSampleData(),
+      extractedFields: this.createInfowayCandleExtractedFields(),
+      totalFields: 13,
+      confidence: 0.95,
+      isActive: true,
+    };
+  }
+
 
   /**
    * 预设模板的硬编码原始配置
@@ -641,6 +693,7 @@ export class PersistedTemplateService {
       isActive: true,
     },
     this.createInfowayQuoteTemplate("rest"),
+    this.createInfowayCandleTemplate(),
     this.createInfowayQuoteTemplate("stream"),
     {
       name: "Infoway REST 股票基础信息模板",
@@ -1386,7 +1439,24 @@ export class PersistedTemplateService {
       return "trading_days_fields";
     }
 
-    if (templateName.includes("报价") || templateName.includes("quote")) {
+    const hasQuoteKeyword =
+      templateName.includes("报价") || templateName.includes("quote");
+    const hasCandleKeyword =
+      templateName.includes("分时") ||
+      templateName.includes("k线") ||
+      templateName.includes("kline") ||
+      templateName.includes("candle") ||
+      templateName.includes("history");
+
+    if (hasQuoteKeyword && hasCandleKeyword) {
+      return "quote_fields";
+    }
+
+    if (hasCandleKeyword) {
+      return "candle_fields";
+    }
+
+    if (hasQuoteKeyword) {
       return "quote_fields";
     }
 
@@ -1410,6 +1480,15 @@ export class PersistedTemplateService {
       "turnover",
       "timestamp",
     ];
+    const candleIndicators = [
+      "lastprice",
+      "previousclose",
+      "openprice",
+      "highprice",
+      "lowprice",
+      "changepercent",
+      "timestamp",
+    ];
     const marketStatusIndicators = [
       "tradeschedules",
       "market",
@@ -1429,6 +1508,9 @@ export class PersistedTemplateService {
     const quoteMatches = quoteIndicators.filter((indicator) =>
       extractedFieldNames.some((field) => field.includes(indicator)),
     ).length;
+    const candleMatches = candleIndicators.filter((indicator) =>
+      extractedFieldNames.some((field) => field.includes(indicator)),
+    ).length;
 
     const marketStatusMatches = marketStatusIndicators.filter((indicator) =>
       extractedFieldNames.some((field) => field.includes(indicator)),
@@ -1437,6 +1519,32 @@ export class PersistedTemplateService {
     const tradingDaysMatches = tradingDaysIndicators.filter((indicator) =>
       extractedFieldNames.some((field) => field.includes(indicator)),
     ).length;
+    const priceQuartetIndicators = [
+      "lastprice",
+      "openprice",
+      "highprice",
+      "lowprice",
+    ];
+    const hasPriceQuartet = priceQuartetIndicators.every((indicator) =>
+      extractedFieldNames.some((field) => field.includes(indicator)),
+    );
+    const hasOnlyPriceQuartetAndTimestamp =
+      hasPriceQuartet &&
+      extractedFieldNames.every(
+        (field) =>
+          priceQuartetIndicators.some((indicator) =>
+            field.includes(indicator),
+          ) || field.includes("timestamp"),
+      );
+    const hasCandleSpecificIndicators = extractedFieldNames.some(
+      (field) => field.includes("previousclose") || field.includes("changepercent"),
+    );
+
+    const isPriceQuartetOnly =
+      extractedFieldNames.length === priceQuartetIndicators.length &&
+      priceQuartetIndicators.every((indicator) =>
+        extractedFieldNames.some((field) => field.includes(indicator)),
+      );
 
     if (tradingDaysMatches >= 2) {
       return "trading_days_fields";
@@ -1444,6 +1552,21 @@ export class PersistedTemplateService {
 
     if (marketStatusMatches >= 2) {
       return "market_status_fields";
+    }
+
+    if (isPriceQuartetOnly) {
+      return "quote_fields";
+    }
+
+    if (hasOnlyPriceQuartetAndTimestamp) {
+      return "quote_fields";
+    }
+
+    if (
+      candleMatches >= 4 &&
+      hasCandleSpecificIndicators
+    ) {
+      return "candle_fields";
     }
 
     // 根据匹配数量判断类型
@@ -1467,6 +1590,7 @@ export class PersistedTemplateService {
     const apiType = template.apiType.toUpperCase();
     const transDataRuleListTypeLabelMap: Record<PresetRuleType, string> = {
       quote_fields: "报价数据",
+      candle_fields: "分时K线",
       basic_info_fields: "基础信息",
       market_status_fields: "市场状态",
       trading_days_fields: "交易日",

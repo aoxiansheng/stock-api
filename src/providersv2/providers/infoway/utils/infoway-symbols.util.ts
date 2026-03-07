@@ -9,6 +9,7 @@ const INFOWAY_MARKET_STABLE_ORDER: InfowayMarketCode[] = ["HK", "US", "CN"];
 export const INFOWAY_SYMBOL_LIMIT = {
   REST: 600,
   WS: 600,
+  HISTORY_SINGLE: 1,
 } as const;
 
 export interface NormalizeSymbolsOptions {

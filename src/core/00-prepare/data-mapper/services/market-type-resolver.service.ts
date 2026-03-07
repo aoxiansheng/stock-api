@@ -22,7 +22,11 @@ export class MarketTypeResolverService {
       return "*";
     }
 
-    if (ruleType === "quote_fields" || ruleType === "index_fields") {
+    if (
+      ruleType === "quote_fields" ||
+      ruleType === "candle_fields" ||
+      ruleType === "index_fields"
+    ) {
       return this.resolveQuoteLikeMarketType(template);
     }
 

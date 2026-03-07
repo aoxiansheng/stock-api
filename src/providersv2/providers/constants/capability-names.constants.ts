@@ -35,6 +35,9 @@ export const CAPABILITY_NAMES = {
   GET_STOCK_HISTORY: "get-stock-history",
 } as const;
 
+export const GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR =
+  "get-stock-history 仅支持单标的请求：symbols 必须且只能包含 1 个标的";
+
 // 能力名称类型
 export type CapabilityName =
   (typeof CAPABILITY_NAMES)[keyof typeof CAPABILITY_NAMES];

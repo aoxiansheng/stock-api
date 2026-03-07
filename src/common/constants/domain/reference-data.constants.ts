@@ -19,6 +19,7 @@
  */
 export const RULE_LIST_TYPES = Object.freeze({
   QUOTE_FIELDS: "quote_fields",
+  CANDLE_FIELDS: "candle_fields",
   BASIC_INFO_FIELDS: "basic_info_fields",
   MARKET_STATUS_FIELDS: "market_status_fields",
   TRADING_DAYS_FIELDS: "trading_days_fields",

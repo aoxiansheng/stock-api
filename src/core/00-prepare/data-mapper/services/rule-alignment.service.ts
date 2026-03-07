@@ -77,6 +77,23 @@ export class RuleAlignmentService {
       "overnightTimestamp",
     ],
 
+    // 分时/K线字段
+    candle_fields: [
+      "symbol",
+      "market",
+      "lastPrice",
+      "previousClose",
+      "openPrice",
+      "highPrice",
+      "lowPrice",
+      "volume",
+      "turnover",
+      "change",
+      "changePercent",
+      "timestamp",
+      "tradeStatus",
+    ],
+
     // 股票基本信息字段
     basic_info_fields: [
       "symbol", // 股票代码
