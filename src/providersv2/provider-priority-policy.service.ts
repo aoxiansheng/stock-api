@@ -1,0 +1,156 @@
+import { Injectable } from "@nestjs/common";
+import { createLogger } from "@common/logging/index";
+import { ACTIVE_PROVIDER_MANIFEST } from "./provider-id.constants";
+import { ProviderPriorityPolicyCache } from "./provider-priority-policy.cache";
+
+const DEFAULT_PRIORITY_ENV_KEY = "PROVIDER_PRIORITY_DEFAULT";
+const CAPABILITY_PRIORITY_ENV_KEY_PREFIX = "PROVIDER_PRIORITY_";
+
+@Injectable()
+export class ProviderPriorityPolicyService {
+  private readonly logger = createLogger("ProviderPriorityPolicyService");
+  private readonly registeredProviders: readonly string[] = ACTIVE_PROVIDER_MANIFEST.map(
+    (entry) => entry.id,
+  );
+  private readonly registeredProviderSet = new Set<string>(
+    this.registeredProviders,
+  );
+  private readonly orderCache = new ProviderPriorityPolicyCache();
+
+  getOrderForCapability(capabilityName: string): string[] {
+    const capabilityEnvKey = this.buildCapabilityPriorityEnvKey(capabilityName);
+    const cacheSignature = this.buildCacheSignature(capabilityEnvKey);
+    const cachedOrder = this.orderCache.get(capabilityEnvKey, cacheSignature);
+    if (cachedOrder) {
+      return cachedOrder;
+    }
+
+    const capabilityOrder = this.parseConfiguredOrder(capabilityEnvKey);
+    if (capabilityOrder.length > 0) {
+      const resolved = this.appendMissingRegisteredProviders(capabilityOrder);
+      this.orderCache.set(capabilityEnvKey, cacheSignature, resolved);
+      return [...resolved];
+    }
+
+    const defaultOrder = this.parseConfiguredOrder(DEFAULT_PRIORITY_ENV_KEY);
+    if (defaultOrder.length > 0) {
+      const resolved = this.appendMissingRegisteredProviders(defaultOrder);
+      this.orderCache.set(capabilityEnvKey, cacheSignature, resolved);
+      return [...resolved];
+    }
+
+    const fallbackOrder = [...this.registeredProviders];
+    this.orderCache.set(capabilityEnvKey, cacheSignature, fallbackOrder);
+    return fallbackOrder;
+  }
+
+  rankCandidates(capabilityName: string, candidates: string[]): string[] {
+    const normalizedCandidates = this.normalizeAndDedupe(candidates);
+    if (normalizedCandidates.length <= 1) {
+      return normalizedCandidates;
+    }
+
+    const configuredOrder = this.getOrderForCapability(capabilityName);
+    const orderIndex = new Map(
+      configuredOrder.map((provider, index) => [provider, index]),
+    );
+    const inputIndex = new Map(
+      normalizedCandidates.map((provider, index) => [provider, index]),
+    );
+
+    return [...normalizedCandidates].sort((a, b) => {
+      const aConfiguredIndex = orderIndex.get(a);
+      const bConfiguredIndex = orderIndex.get(b);
+
+      const aRank = aConfiguredIndex === undefined ? Number.MAX_SAFE_INTEGER : aConfiguredIndex;
+      const bRank = bConfiguredIndex === undefined ? Number.MAX_SAFE_INTEGER : bConfiguredIndex;
+      if (aRank !== bRank) {
+        return aRank - bRank;
+      }
+
+      return (inputIndex.get(a) ?? 0) - (inputIndex.get(b) ?? 0);
+    });
+  }
+
+  private appendMissingRegisteredProviders(baseOrder: string[]): string[] {
+    const order = [...baseOrder];
+    for (const provider of this.registeredProviders) {
+      if (!order.includes(provider)) {
+        order.push(provider);
+      }
+    }
+    return order;
+  }
+
+  private parseConfiguredOrder(envKey: string): string[] {
+    const rawValue = process.env[envKey];
+    if (rawValue == null) {
+      return [];
+    }
+
+    const configuredProviders = this.normalizeAndDedupe(rawValue.split(","));
+    const acceptedProviders: string[] = [];
+
+    for (const provider of configuredProviders) {
+      if (!this.registeredProviderSet.has(provider)) {
+        this.logger.warn("Provider 优先级配置包含未知 provider，已忽略", {
+          envKey,
+          provider,
+        });
+        continue;
+      }
+      acceptedProviders.push(provider);
+    }
+
+    if (rawValue.trim() && acceptedProviders.length === 0) {
+      this.logger.warn("Provider 优先级配置为空或全部无效，将回退", {
+        envKey,
+      });
+    }
+
+    return acceptedProviders;
+  }
+
+  private normalizeAndDedupe(values: string[]): string[] {
+    const result: string[] = [];
+    const seen = new Set<string>();
+
+    for (const value of values) {
+      const normalized = this.normalizeProviderName(value);
+      if (!normalized) {
+        continue;
+      }
+      if (seen.has(normalized)) {
+        continue;
+      }
+      seen.add(normalized);
+      result.push(normalized);
+    }
+
+    return result;
+  }
+
+  private normalizeProviderName(providerName: string): string {
+    return String(providerName || "").trim().toLowerCase();
+  }
+
+  private buildCacheSignature(capabilityEnvKey: string): string {
+    return [
+      process.env[DEFAULT_PRIORITY_ENV_KEY] || "",
+      process.env[capabilityEnvKey] || "",
+      this.registeredProviders.join(","),
+    ].join("|");
+  }
+
+  private buildCapabilityPriorityEnvKey(capabilityName: string): string {
+    const capabilityKey = String(capabilityName || "")
+      .trim()
+      .toUpperCase()
+      .replace(/-/g, "_")
+      .replace(/[^A-Z0-9_]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    return `${CAPABILITY_PRIORITY_ENV_KEY_PREFIX}${capabilityKey}`;
+  }
+}

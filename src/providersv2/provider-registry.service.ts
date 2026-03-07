@@ -2,21 +2,16 @@ import { Injectable, OnModuleInit } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
 import { createLogger } from "@common/logging/index";
 import {
-  PROVIDER_PRIORITIES,
-  DEFAULT_PROVIDER_PRIORITY,
-} from "./provider-priority.constants";
-import {
   ACTIVE_PROVIDER_MANIFEST,
   PROVIDER_NAME_ALIASES,
   type ProviderManifestEntry,
 } from "./provider-id.constants";
-import type { ProviderId } from "./provider-id.constants";
+import { ProviderPriorityPolicyService } from "./provider-priority-policy.service";
 import { ICapability } from "./providers/interfaces/capability.interface";
 import { IDataProvider } from "./providers/interfaces/provider.interface";
 
 export interface CapabilityMeta {
   capability: ICapability;
-  priority: number;
   isEnabled: boolean;
 }
 
@@ -37,7 +32,10 @@ export class ProviderRegistryService implements OnModuleInit {
   );
   private initialized = false;
 
-  constructor(private readonly moduleRef: ModuleRef) {}
+  constructor(
+    private readonly moduleRef: ModuleRef,
+    private readonly providerPriorityPolicyService: ProviderPriorityPolicyService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     if (this.initialized) return;
@@ -45,12 +43,8 @@ export class ProviderRegistryService implements OnModuleInit {
 
     const injectedProviders = this.resolveInjectedProvidersFromManifest();
 
-    this.assertAllProvidersHavePriority(injectedProviders);
-    this.assertNoPriorityConflicts(injectedProviders);
-
     for (const provider of injectedProviders) {
-      const priority = this.resolveProviderPriority(provider.name);
-      this.registerProvider(provider, priority);
+      this.registerProvider(provider);
     }
 
     this.initialized = true;
@@ -114,8 +108,9 @@ export class ProviderRegistryService implements OnModuleInit {
     };
   }
 
-  private resolveProviderTokenName(providerToken: ProviderManifestEntry["providerToken"]):
-    string {
+  private resolveProviderTokenName(
+    providerToken: ProviderManifestEntry["providerToken"],
+  ): string {
     if (typeof providerToken === "function" && providerToken.name) {
       return providerToken.name;
     }
@@ -162,10 +157,7 @@ export class ProviderRegistryService implements OnModuleInit {
     }
   }
 
-  private registerProvider(
-    provider: IDataProvider,
-    priority = DEFAULT_PROVIDER_PRIORITY,
-  ): void {
+  private registerProvider(provider: IDataProvider): void {
     if (!provider || !provider.name) return;
     const providerName = this.normalizeProviderName(provider.name);
 
@@ -175,7 +167,6 @@ export class ProviderRegistryService implements OnModuleInit {
     for (const cap of provider.capabilities || []) {
       this.capabilities.get(providerName)!.set(cap.name, {
         capability: cap,
-        priority,
         isEnabled: true,
       });
     }
@@ -183,16 +174,7 @@ export class ProviderRegistryService implements OnModuleInit {
     this.logger.debug("Provider 已注册", {
       provider: providerName,
       capabilities: provider.capabilities?.length || 0,
-      priority,
     });
-  }
-
-  private resolveProviderPriority(providerName: string): number {
-    const normalizedProviderName = this.normalizeProviderName(providerName);
-    if (!(normalizedProviderName in PROVIDER_PRIORITIES)) {
-      throw new Error(`Provider 优先级缺失: provider=${normalizedProviderName}`);
-    }
-    return PROVIDER_PRIORITIES[normalizedProviderName as ProviderId];
   }
 
   private normalizeProviderName(providerName: string): string {
@@ -200,69 +182,51 @@ export class ProviderRegistryService implements OnModuleInit {
     return this.providerAliases.get(normalizedName) || normalizedName;
   }
 
-  private assertNoPriorityConflicts(providers: IDataProvider[]): void {
-    const priorityOwner = new Map<number, string>();
-
-    for (const provider of providers) {
-      const providerName = this.normalizeProviderName(provider.name);
-      const priority = this.resolveProviderPriority(providerName);
-      const owner = priorityOwner.get(priority);
-      if (owner && owner !== providerName) {
-        const conflictProviders = [owner, providerName].sort((a, b) =>
-          a.localeCompare(b),
-        );
-        const message = `Provider 优先级冲突: priority=${priority}, providers=[${conflictProviders.join(", ")}]`;
-        this.logger.error("Provider 优先级冲突", {
-          priority,
-          providers: conflictProviders,
-        });
-        throw new Error(message);
-      }
-      priorityOwner.set(priority, providerName);
-    }
-  }
-
-  private assertAllProvidersHavePriority(providers: IDataProvider[]): void {
-    const missingProviders = providers
-      .map((provider) => this.normalizeProviderName(provider.name))
-      .filter((providerName) => !(providerName in PROVIDER_PRIORITIES));
-
-    if (missingProviders.length === 0) {
-      return;
+  private supportsMarket(capability: ICapability, market?: string): boolean {
+    if (!market) {
+      return true;
     }
 
-    const uniqueSortedProviders = Array.from(new Set(missingProviders)).sort((a, b) =>
-      a.localeCompare(b),
+    const targetMarket = String(market).trim().toUpperCase();
+    return (capability.supportedMarkets || []).some(
+      (supportedMarket) =>
+        String(supportedMarket || "").trim().toUpperCase() === targetMarket,
     );
-    const message = `Provider 优先级缺失: providers=[${uniqueSortedProviders.join(", ")}]`;
-    this.logger.error("Provider 优先级缺失", {
-      providers: uniqueSortedProviders,
-    });
-    throw new Error(message);
   }
 
   // ============= 对外 API（与现有调用最小集保持一致） =============
 
-  getBestProvider(capabilityName: string, market?: string): string | null {
-    const candidates: { provider: string; priority: number }[] = [];
+  getCandidateProviders(capabilityName: string, market?: string): string[] {
+    const candidates: string[] = [];
 
     for (const [providerName, caps] of this.capabilities) {
       const meta = caps.get(capabilityName);
       if (!meta || !meta.isEnabled) continue;
-      const cap = meta.capability;
-      if (!market || cap.supportedMarkets?.includes(market)) {
-        candidates.push({ provider: providerName, priority: meta.priority });
-      }
+      if (!this.supportsMarket(meta.capability, market)) continue;
+      candidates.push(providerName);
     }
 
-    if (candidates.length === 0) return null;
-    candidates.sort((a, b) => {
-      if (a.priority !== b.priority) {
-        return a.priority - b.priority;
-      }
-      return a.provider.localeCompare(b.provider);
-    });
-    return candidates[0].provider;
+    return candidates;
+  }
+
+  rankProvidersForCapability(
+    capabilityName: string,
+    candidates: string[],
+  ): string[] {
+    return this.providerPriorityPolicyService.rankCandidates(
+      capabilityName,
+      candidates.map((provider) => this.normalizeProviderName(provider)),
+    );
+  }
+
+  getBestProvider(capabilityName: string, market?: string): string | null {
+    const candidates = this.getCandidateProviders(capabilityName, market);
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const ranked = this.rankProvidersForCapability(capabilityName, candidates);
+    return ranked[0] ?? null;
   }
 
   getCapability(providerName: string, capabilityName: string): ICapability | null {

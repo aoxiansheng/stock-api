@@ -2,8 +2,8 @@ import {
   ACTIVE_PROVIDER_MANIFEST,
   PROVIDER_IDS,
 } from "@providersv2/provider-id.constants";
-import { PROVIDER_PRIORITIES } from "@providersv2/provider-priority.constants";
 import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import { ProviderPriorityPolicyService } from "@providersv2/provider-priority-policy.service";
 import {
   PROVIDER_ASSEMBLY_MODULE_IMPORTS,
   ProvidersV2Module,
@@ -72,20 +72,23 @@ function collectActiveCapabilityNames(service: ProviderRegistryService): string[
   return activeCapabilityNames;
 }
 
+function createRegistryService(moduleRef: ModuleRef): ProviderRegistryService {
+  return new ProviderRegistryService(
+    moduleRef,
+    new ProviderPriorityPolicyService(),
+  );
+}
+
 describe("provider assembly sync", () => {
-  it("active provider 集合在 manifest / PROVIDER_IDS / priorities 间保持一致", () => {
+  it("active provider 集合在 manifest / PROVIDER_IDS 间保持一致", () => {
     const manifestIds = ACTIVE_PROVIDER_MANIFEST.map((entry) => entry.id).sort(
       (a, b) => a.localeCompare(b),
     );
     const providerIds = Object.values(PROVIDER_IDS).sort((a, b) =>
       a.localeCompare(b),
     );
-    const priorityIds = Object.keys(PROVIDER_PRIORITIES).sort((a, b) =>
-      a.localeCompare(b),
-    );
 
     expect(manifestIds).toEqual(providerIds);
-    expect(priorityIds).toEqual(providerIds);
   });
 
   it("ProvidersV2Module imports 应与 manifest module 列表同步", () => {
@@ -114,7 +117,7 @@ describe("provider assembly sync", () => {
       }),
     } as unknown as ModuleRef;
 
-    const service = new ProviderRegistryService(moduleRefMock);
+    const service = createRegistryService(moduleRefMock);
     await service.onModuleInit();
 
     expect(service.getBestProvider("get-stock-quote", "US")).toBe(
@@ -166,7 +169,7 @@ describe("provider assembly sync", () => {
         return entry ? providerById[entry.id] : undefined;
       }),
     } as unknown as ModuleRef;
-    const service = new ProviderRegistryService(moduleRefMock);
+    const service = createRegistryService(moduleRefMock);
     await service.onModuleInit();
 
     expect(() =>

@@ -1775,42 +1775,47 @@ export class StreamReceiverService implements OnModuleDestroy {
     });
   }
 
-  // 当前版本采用 canonical 单候选策略：各市场统一由 longport 提供实时流。
-  // 保留策略函数仅用于未来扩展，不在本次绿地移除范围内引入回退兼容逻辑。
-  private static readonly STREAM_MARKET_PROVIDER_PRIORITIES: Readonly<
-    Record<string, readonly string[]>
-  > = {
-    HK: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-    US: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-    CN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-    SG: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-    JP: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-    UNKNOWN: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
-  };
+  private static readonly STREAM_PRIORITY_MARKETS = Object.freeze([
+    "HK",
+    "US",
+    "CN",
+    "SG",
+    "JP",
+    "UNKNOWN",
+  ]);
 
-  private getMarketPriorityProviders(market: string): string[] {
+  private getMarketPriorityProviders(
+    market: string,
+    capability = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+  ): string[] {
     const normalizedMarket = (market || "UNKNOWN").toUpperCase();
-    const priorities =
-      StreamReceiverService.STREAM_MARKET_PROVIDER_PRIORITIES[
-        normalizedMarket
-      ] ||
-      StreamReceiverService.STREAM_MARKET_PROVIDER_PRIORITIES.UNKNOWN;
-    return [...priorities];
+    const candidates = this.providerRegistryService.getCandidateProviders(
+      capability,
+      normalizedMarket,
+    );
+    const ranked = this.providerRegistryService.rankProvidersForCapability(
+      capability,
+      candidates,
+    );
+    return ranked.length > 0 ? ranked : [REFERENCE_DATA.PROVIDER_IDS.LONGPORT];
   }
 
-  private getPrimaryProviderByMarket(market: string): string {
+  private getPrimaryProviderByMarket(
+    market: string,
+    capability = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+  ): string {
     return (
-      this.getMarketPriorityProviders(market)[0] ||
+      this.getMarketPriorityProviders(market, capability)[0] ||
       REFERENCE_DATA.PROVIDER_IDS.LONGPORT
     );
   }
 
-  private buildMarketPrioritiesSnapshot(): Record<string, string[]> {
-    return Object.keys(
-      StreamReceiverService.STREAM_MARKET_PROVIDER_PRIORITIES,
-    ).reduce(
-      (acc, key) => {
-        acc[key] = this.getMarketPriorityProviders(key);
+  private buildMarketPrioritiesSnapshot(
+    capability = API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+  ): Record<string, string[]> {
+    return StreamReceiverService.STREAM_PRIORITY_MARKETS.reduce(
+      (acc, market) => {
+        acc[market] = this.getMarketPriorityProviders(market, capability);
         return acc;
       },
       {} as Record<string, string[]>,
@@ -1990,7 +1995,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     };
   } {
     // 🔧 从配置中获取策略，这里使用智能默认值。
-    // 注意：当前 marketPriorities 为单候选映射，策略分支主要承担统一接口职责。
+    // marketPriorities 由 capability 优先级策略动态生成，保持与 receiver 选源语义一致。
     return {
       strategy: 'balanced', // 可配置: performance/availability/cost/balanced
       marketPriorities: this.buildMarketPrioritiesSnapshot(),

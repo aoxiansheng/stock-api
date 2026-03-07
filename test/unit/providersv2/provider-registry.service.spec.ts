@@ -1,4 +1,5 @@
 import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import { ProviderPriorityPolicyService } from "@providersv2/provider-priority-policy.service";
 import {
   ACTIVE_PROVIDER_MANIFEST,
   PROVIDER_IDS,
@@ -7,6 +8,25 @@ import {
 import { ICapability } from "@providersv2/providers/interfaces/capability.interface";
 import { IDataProvider } from "@providersv2/providers/interfaces/provider.interface";
 import type { ModuleRef } from "@nestjs/core";
+
+const ENV_KEYS = [
+  "PROVIDER_PRIORITY_DEFAULT",
+  "PROVIDER_PRIORITY_GET_STOCK_QUOTE",
+  "PROVIDER_PRIORITY_STREAM_STOCK_QUOTE",
+];
+
+function clearPriorityEnv(): void {
+  for (const key of ENV_KEYS) {
+    delete process.env[key];
+  }
+}
+
+function createRegistryService(moduleRef: ModuleRef): ProviderRegistryService {
+  return new ProviderRegistryService(
+    moduleRef,
+    new ProviderPriorityPolicyService(),
+  );
+}
 
 function createCapability(name: string, supportedMarkets: string[]): ICapability {
   return {
@@ -55,47 +75,84 @@ function createUnknownElementError(token: unknown): Error {
 }
 
 describe("ProviderRegistryService", () => {
+  beforeEach(() => {
+    clearPriorityEnv();
+  });
+
+  afterAll(() => {
+    clearPriorityEnv();
+  });
+
   it("moduleRef 缺失时应在初始化阶段 fail-fast", async () => {
-    const service = new ProviderRegistryService(undefined as unknown as ModuleRef);
+    const service = createRegistryService(undefined as unknown as ModuleRef);
 
     await expect(service.onModuleInit()).rejects.toThrow(
       "ModuleRef 未注入",
     );
   });
 
-  it("优先级漏配时应 fail-fast 并列出缺失 provider", async () => {
-    const providerA = createProvider("unknown-a", "get-stock-quote", ["US"]);
-    const providerB = createProvider("unknown-b", "get-stock-quote", ["US"]);
-    const service = new ProviderRegistryService(
+  it("同一能力候选应按 capability 优先级环境变量排序", async () => {
+    process.env.PROVIDER_PRIORITY_GET_STOCK_QUOTE = "infoway,longport,jvquant";
+
+    const service = createRegistryService(
       createModuleRefMock({
-        [PROVIDER_IDS.LONGPORT]: providerA,
-        [PROVIDER_IDS.JVQUANT]: providerB,
+        [PROVIDER_IDS.LONGPORT]: createProvider(
+          PROVIDER_IDS.LONGPORT,
+          "get-stock-quote",
+          ["US"],
+        ),
+        [PROVIDER_IDS.JVQUANT]: createProvider(
+          PROVIDER_IDS.JVQUANT,
+          "get-stock-quote",
+          ["US"],
+        ),
+        [PROVIDER_IDS.INFOWAY]: createProvider(
+          PROVIDER_IDS.INFOWAY,
+          "get-stock-quote",
+          ["US"],
+        ),
       }),
     );
 
-    await expect(service.onModuleInit()).rejects.toThrow(
-      "Provider 优先级缺失",
+    await service.onModuleInit();
+
+    expect(service.getBestProvider("get-stock-quote", "US")).toBe(
+      PROVIDER_IDS.INFOWAY,
     );
-    await expect(service.onModuleInit()).rejects.toThrow(
-      "providers=[unknown-a, unknown-b]",
-    );
+    expect(service.rankProvidersForCapability("get-stock-quote", [
+      PROVIDER_IDS.JVQUANT,
+      PROVIDER_IDS.LONGPORT,
+      PROVIDER_IDS.INFOWAY,
+    ])).toEqual([
+      PROVIDER_IDS.INFOWAY,
+      PROVIDER_IDS.LONGPORT,
+      PROVIDER_IDS.JVQUANT,
+    ]);
   });
 
-  it("同优先级候选应按 provider 名称稳定排序", () => {
-    const service = new ProviderRegistryService(createModuleRefMock({}));
-    const internalService = service as any;
+  it("能力级配置缺失时应回退 default 排序", async () => {
+    process.env.PROVIDER_PRIORITY_DEFAULT = "jvquant,longport,infoway";
 
-    internalService.registerProvider(
-      createProvider("zeta", "get-stock-quote", ["US"]),
-      10,
-    );
-    internalService.registerProvider(
-      createProvider("alpha", "get-stock-quote", ["US"]),
-      10,
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: createProvider(
+          PROVIDER_IDS.LONGPORT,
+          "stream-stock-quote",
+          ["SG"],
+        ),
+        [PROVIDER_IDS.JVQUANT]: createProvider(
+          PROVIDER_IDS.JVQUANT,
+          "stream-stock-quote",
+          ["SG"],
+        ),
+      }),
     );
 
-    expect(service.getBestProvider("get-stock-quote", "US")).toBe("alpha");
-    expect(service.getBestProvider("get-stock-quote", "US")).toBe("alpha");
+    await service.onModuleInit();
+
+    expect(service.getBestProvider("stream-stock-quote", "SG")).toBe(
+      PROVIDER_IDS.JVQUANT,
+    );
   });
 
   it("应支持 provider 名称标准化解析", async () => {
@@ -104,7 +161,7 @@ describe("ProviderRegistryService", () => {
       "stream-stock-quote",
       ["SG"],
     );
-    const service = new ProviderRegistryService(
+    const service = createRegistryService(
       createModuleRefMock({
         [PROVIDER_IDS.LONGPORT]: canonicalProvider,
       }),
@@ -136,7 +193,7 @@ describe("ProviderRegistryService", () => {
         throw createUnknownElementError(entry.providerToken.name);
       }),
     } as unknown as ModuleRef;
-    const service = new ProviderRegistryService(moduleRefMock);
+    const service = createRegistryService(moduleRefMock);
     const warnSpy = jest
       .spyOn((service as any).logger, "warn")
       .mockImplementation(() => undefined);
@@ -173,7 +230,7 @@ describe("ProviderRegistryService", () => {
         return undefined;
       }),
     } as unknown as ModuleRef;
-    const service = new ProviderRegistryService(moduleRefMock);
+    const service = createRegistryService(moduleRefMock);
     const errorSpy = jest
       .spyOn((service as any).logger, "error")
       .mockImplementation(() => undefined);
@@ -197,7 +254,7 @@ describe("ProviderRegistryService", () => {
       "get-stock-quote",
       ["US"],
     );
-    const service = new ProviderRegistryService(
+    const service = createRegistryService(
       createModuleRefMock({
         [PROVIDER_IDS.LONGPORT]: longportProvider,
       }),
@@ -246,7 +303,7 @@ describe("ProviderRegistryService", () => {
       "get-stock-quote",
       ["US"],
     );
-    const service = new ProviderRegistryService(
+    const service = createRegistryService(
       createModuleRefMock({
         [PROVIDER_IDS.LONGPORT]: longportProvider,
         [PROVIDER_IDS.INFOWAY]: infowayProvider,
@@ -255,9 +312,9 @@ describe("ProviderRegistryService", () => {
 
     await service.onModuleInit();
 
-    expect(service.getBestProvider("get-stock-quote", "HK")).toBe(
+    expect(service.getCandidateProviders("get-stock-quote", "HK")).toEqual([
       PROVIDER_IDS.LONGPORT,
-    );
+    ]);
     expect(service.getBestProvider("get-stock-quote", "US")).toBe(
       PROVIDER_IDS.INFOWAY,
     );
@@ -283,7 +340,7 @@ describe("ProviderRegistryService", () => {
             ? streamCapability
             : null,
     };
-    const service = new ProviderRegistryService(
+    const service = createRegistryService(
       createModuleRefMock({
         [PROVIDER_IDS.LONGPORT]: longportProvider,
       }),

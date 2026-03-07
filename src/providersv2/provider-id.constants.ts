@@ -12,7 +12,6 @@ import type { IDataProvider } from "./providers/interfaces/provider.interface";
 
 interface ProviderManifestDefinition {
   readonly key: keyof typeof REFERENCE_DATA.PROVIDER_IDS;
-  readonly priority: number;
   readonly module: Type<unknown>;
   readonly providerToken: Type<IDataProvider>;
   readonly aliases: readonly string[];
@@ -21,21 +20,18 @@ interface ProviderManifestDefinition {
 const ACTIVE_PROVIDER_MANIFEST_DEFINITIONS = Object.freeze([
   {
     key: "LONGPORT",
-    priority: 1,
     module: LongportModule,
     providerToken: LongportProvider,
     aliases: [],
   },
   {
     key: "JVQUANT",
-    priority: 2,
     module: JvQuantModule,
     providerToken: JvQuantProvider,
     aliases: [],
   },
   {
     key: "INFOWAY",
-    priority: 3,
     module: InfowayModule,
     providerToken: InfowayProvider,
     aliases: [],
@@ -52,7 +48,6 @@ export type ProviderId = ActiveProviderIdMap[ActiveProviderKey];
 export interface ProviderManifestEntry {
   readonly key: ActiveProviderKey;
   readonly id: ProviderId;
-  readonly priority: number;
   readonly module: Type<unknown>;
   readonly providerToken: Type<IDataProvider>;
   readonly aliases: readonly string[];

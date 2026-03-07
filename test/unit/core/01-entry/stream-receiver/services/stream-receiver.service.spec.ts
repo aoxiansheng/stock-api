@@ -70,7 +70,13 @@ function createService(options?: {
       unsubscribeFromSymbols: jest.fn(),
       isConnectionActive: jest.fn(() => false),
     },
-    providerRegistryService: {},
+    providerRegistryService: {
+      getBestProvider: jest.fn(() => REFERENCE_DATA.PROVIDER_IDS.LONGPORT),
+      getCandidateProviders: jest.fn(() => [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]),
+      rankProvidersForCapability: jest.fn((_: string, providers: string[]) => [
+        ...providers,
+      ]),
+    },
     dataValidator: {
       validateSubscribeRequest: jest.fn(() => subscribeValidation),
       validateUnsubscribeRequest: jest.fn(() => unsubscribeValidation),

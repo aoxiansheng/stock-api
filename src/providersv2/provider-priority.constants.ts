@@ -3,15 +3,6 @@ import {
   type ProviderId,
 } from "./provider-id.constants";
 
-export const DEFAULT_PROVIDER_PRIORITY = 100;
-
-export const PROVIDER_PRIORITIES: Readonly<Record<ProviderId, number>> =
-  Object.freeze(
-    ACTIVE_PROVIDER_MANIFEST.reduce(
-      (acc, entry) => {
-        acc[entry.id] = entry.priority;
-        return acc;
-      },
-      {} as Record<ProviderId, number>,
-    ),
-  );
+export const PROVIDER_REGISTRATION_ORDER: readonly ProviderId[] = Object.freeze(
+  ACTIVE_PROVIDER_MANIFEST.map((entry) => entry.id),
+);

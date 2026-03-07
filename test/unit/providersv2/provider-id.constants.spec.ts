@@ -6,6 +6,7 @@ import {
   buildProviderNameAliases,
 } from "@providersv2/provider-id.constants";
 import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import { ProviderPriorityPolicyService } from "@providersv2/provider-priority-policy.service";
 import type { ICapability } from "@providersv2/providers/interfaces/capability.interface";
 import type { IDataProvider } from "@providersv2/providers/interfaces/provider.interface";
 import type { ModuleRef } from "@nestjs/core";
@@ -31,6 +32,13 @@ function createModuleRefMock(
       return entry ? providersById[entry.id] : undefined;
     }),
   } as unknown as ModuleRef;
+}
+
+function createRegistryService(moduleRef: ModuleRef): ProviderRegistryService {
+  return new ProviderRegistryService(
+    moduleRef,
+    new ProviderPriorityPolicyService(),
+  );
 }
 
 describe("provider-id.constants", () => {
@@ -109,7 +117,7 @@ describe("provider-id.constants", () => {
         return null;
       },
     };
-    const service = new ProviderRegistryService(
+    const service = createRegistryService(
       createModuleRefMock({
         [PROVIDER_IDS.LONGPORT]: longportProvider,
       }),
@@ -127,7 +135,7 @@ describe("provider-id.constants", () => {
   });
 
   it("registry moduleRef 缺失应 fail-fast", async () => {
-    const service = new ProviderRegistryService(undefined as unknown as ModuleRef);
+    const service = createRegistryService(undefined as unknown as ModuleRef);
     await expect(service.onModuleInit()).rejects.toThrow("ModuleRef 未注入");
   });
 });
