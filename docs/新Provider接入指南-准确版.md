@@ -58,7 +58,7 @@
 
 ```ts
 @Module({
-  imports: [LongportModule, LongportSgModule, YourProviderModule],
+  imports: [LongportModule, JvQuantModule, InfowayModule, YourProviderModule],
   providers: [ProviderRegistryService],
   exports: [ProviderRegistryService],
 })

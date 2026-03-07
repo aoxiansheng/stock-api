@@ -5,7 +5,7 @@
 将当前“写死的 provider 全局优先级”改造为“按能力（capability）可配置优先级”，并通过 Env 完成配置。
 
 关键要求：
-- 删除写死分级（`longport(1) -> longport-sg(2) -> jvquant(3) -> infoway(4)`）。
+- 删除写死分级（`longport(1) -> jvquant(2) -> infoway(3)`）。
 - 不同能力可独立排序。
 - 仍保留 `preferredProvider` 的最高优先级语义。
 
@@ -15,9 +15,8 @@
 
 当前 `ProviderRegistryService` 在 `onModuleInit` 时显式注册并传入硬编码优先级：
 - `longport=1`
-- `longport-sg=2`
-- `jvquant=3`
-- `infoway=4`
+- `jvquant=2`
+- `infoway=3`
 
 `getBestProvider(capability, market)` 直接按这个固定 priority 排序，导致：
 - 同一套排序被用于所有 capability。
@@ -34,7 +33,7 @@
 
 - `PROVIDER_PRIORITY_DEFAULT`
   - 逗号分隔，定义默认 provider 顺序。
-  - 示例：`longport,longport-sg,jvquant,infoway`
+  - 示例：`longport,jvquant,infoway`
 
 - `PROVIDER_PRIORITY_<CAPABILITY_KEY>`
   - 能力级覆盖顺序。
@@ -46,9 +45,9 @@
 ### 3.2 你给出的目标配置示例
 
 ```env
-PROVIDER_PRIORITY_DEFAULT=longport,longport-sg,jvquant,infoway
-PROVIDER_PRIORITY_GET_MARKET_STATUS=longport,longport-sg,jvquant,infoway
-PROVIDER_PRIORITY_GET_STOCK_QUOTE=infoway,longport-sg,jvquant,longport
+PROVIDER_PRIORITY_DEFAULT=longport,jvquant,infoway
+PROVIDER_PRIORITY_GET_MARKET_STATUS=longport,jvquant,infoway
+PROVIDER_PRIORITY_GET_STOCK_QUOTE=infoway,jvquant,longport
 ```
 
 ---
@@ -99,6 +98,31 @@ PROVIDER_PRIORITY_GET_STOCK_QUOTE=infoway,longport-sg,jvquant,longport
 
 - 保持 `preferredProvider` 优先逻辑不变。
 - 自动选择时继续调用 `getBestProvider`，但其行为将由能力级策略驱动。
+
+### 5.4 防漏改标注（市场优先级 -> 功能优先级）
+
+> ⚠️ 后续实施时必须处理，避免“只改 registry、漏改 stream 入口策略”。
+
+任务描述（本条为后续改造任务卡）：
+- 将流式入口中基于市场的 provider 选择逻辑，统一迁移为“基于 capability 的 provider 优先级”。
+- 废弃 `STREAM_MARKET_PROVIDER_PRIORITIES` 作为决策来源，改为复用能力级优先级策略（与 `ProviderRegistryService.getBestProvider(capability, market)` 保持一致语义）。
+- 禁止新增兼容回退分支；保持 `preferredProvider` 的最高优先级语义不变。
+
+本次标注涉及必查点（按函数）：
+- `src/core/01-entry/stream-receiver/services/stream-receiver.service.ts`
+  - `STREAM_MARKET_PROVIDER_PRIORITIES`
+  - `getMarketPriorityProviders`
+  - `getPrimaryProviderByMarket`
+  - `buildMarketPrioritiesSnapshot`
+  - `getProviderByMarketPriority`
+  - `selectProviderBasic`
+  - `getProviderByHeuristics`
+  - `getProviderSelectionStrategy`
+
+验收核对项：
+- 不再以“market -> provider”作为主决策依据，而是“capability -> provider 排序”。
+- stream 与 receiver 在同一 capability + market 输入下选择结果一致。
+- 现有单测补齐“能力优先级生效”断言，且保留 `preferredProvider` 路径测试。
 
 ---
 
@@ -168,4 +192,3 @@ PROVIDER_PRIORITY_GET_STOCK_QUOTE=infoway,longport-sg,jvquant,longport
 - 启动期校验 + 明确告警。
 - 未配置 provider 自动追加到末尾，避免功能中断。
 - 提供标准 `.env.example` 模板，减少人工错误。
-

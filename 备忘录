@@ -32,7 +32,7 @@
 
 
 
-infoway(1)-> longport-sg(2) -> jvquant(3) -> longport(4) 
+infoway(1) -> jvquant(2) -> longport(3)
 
  cd "/Users/honor/Documents/code/newstockapi/stock-api"
   BASE_URL="http://127.0.0.1:3001" \
