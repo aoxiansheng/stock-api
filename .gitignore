@@ -208,3 +208,4 @@ $RECYCLE.BIN/
 serena/
 .serena/
 \n# Serena AI cache\n.serena/cache/
+.serena/project.yml
