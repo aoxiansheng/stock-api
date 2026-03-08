@@ -332,6 +332,24 @@ describe("InfowayContextService", () => {
     expect((service as any).client.get).not.toHaveBeenCalled();
   });
 
+  it("getStockBasicInfo: mixed symbols 且 market=US 时命中市场冲突并返回 400 语义错误", async () => {
+    const service = createService();
+
+    await expect(
+      service.getStockBasicInfo(["00700.HK", "AAPL.US", "600519.SH"], "US"),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("market 与 symbol 推断市场冲突"),
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      context: expect.objectContaining({
+        market: "US",
+        symbol: "00700.HK",
+        inferredMarket: "HK",
+      }),
+    });
+
+    expect((service as any).client.get).not.toHaveBeenCalled();
+  });
+
   it("getStockBasicInfo: SH/SZ 在一致性校验后归并到 STOCK_CN 分组请求", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({

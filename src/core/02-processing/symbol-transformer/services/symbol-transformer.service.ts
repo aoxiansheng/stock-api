@@ -9,13 +9,12 @@ import {
   ISymbolTransformer,
 } from "../interfaces";
 import {
-  SYMBOL_PATTERNS,
   CONFIG,
-  MARKET_TYPES,
 } from "../constants/symbol-transformer-enhanced.constants";
 import { RequestIdUtils } from "../utils/request-id.utils";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode } from "@common/core/exceptions";
 import { SYMBOL_TRANSFORMER_ERROR_CODES } from "../constants/symbol-transformer-enhanced.constants";
+import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 
 /**
  * Symbol Transformer Service
@@ -352,12 +351,7 @@ export class SymbolTransformerService implements ISymbolTransformer {
       return false;
     }
 
-    // 使用预编译正则表达式，性能提升50%+
-    return (
-      SYMBOL_PATTERNS.CN.test(symbol) ||
-      SYMBOL_PATTERNS.US.test(symbol) ||
-      SYMBOL_PATTERNS.HK.test(symbol)
-    );
+    return SymbolValidationUtils.isValidMarketFormat(symbol.trim().toUpperCase());
   }
 
   // 市场推断方法已移除（不属于转换核心职责）
