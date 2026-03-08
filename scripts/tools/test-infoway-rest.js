@@ -83,8 +83,6 @@ const UPSTREAM_API_KEY =
   process.env.INFOWAY_API_KEY ||
   DOTENV.INFOWAY_API_KEY ||
   "";
-const UPSTREAM_KLINE_TYPE = Number(process.env.UPSTREAM_KLINE_TYPE || 1);
-const UPSTREAM_KLINE_NUM = Number(process.env.UPSTREAM_KLINE_NUM || 1);
 const UPSTREAM_RETRY_MAX_ATTEMPTS = Math.max(
   1,
   Number(process.env.UPSTREAM_RETRY_MAX_ATTEMPTS || 3),
@@ -130,18 +128,33 @@ function resolveDayRange() {
 function resolveStockType(symbol, marketHint) {
   const upperSymbol = String(symbol || "").trim().toUpperCase();
   const hint = String(marketHint || "").trim().toUpperCase();
-  if (hint === "US" || upperSymbol.endsWith(".US")) return "STOCK_US";
-  if (hint === "HK" || upperSymbol.endsWith(".HK")) return "STOCK_HK";
+  // 优先以 symbol 后缀推断，避免 marketHint 与 symbol 混用时冲突。
+  if (upperSymbol.endsWith(".US")) return "STOCK_US";
+  if (upperSymbol.endsWith(".HK")) return "STOCK_HK";
+  if (upperSymbol.endsWith(".SH") || upperSymbol.endsWith(".SZ")) {
+    return "STOCK_CN";
+  }
+  if (hint === "US") return "STOCK_US";
+  if (hint === "HK") return "STOCK_HK";
   if (
     hint === "CN" ||
     hint === "SH" ||
-    hint === "SZ" ||
-    upperSymbol.endsWith(".SH") ||
-    upperSymbol.endsWith(".SZ")
+    hint === "SZ"
   ) {
     return "STOCK_CN";
   }
   return "";
+}
+
+function detectSingleSymbolMarket(symbols) {
+  const markets = new Set();
+  for (const symbol of symbols) {
+    const upper = String(symbol || "").trim().toUpperCase();
+    if (upper.endsWith(".US")) markets.add("US");
+    else if (upper.endsWith(".HK")) markets.add("HK");
+    else if (upper.endsWith(".SH") || upper.endsWith(".SZ")) markets.add("CN");
+  }
+  return markets.size === 1 ? Array.from(markets)[0] : undefined;
 }
 
 async function requestJson(url, { method = "GET", body, headers = {} } = {}) {
@@ -266,20 +279,18 @@ async function requestUpstream(path, { method = "GET", body, params } = {}) {
 }
 
 async function fetchUpstreamQuote(symbols, preferredSymbol) {
-  const data = await requestUpstream("/stock/v2/batch_kline", {
-    method: "POST",
-    body: {
-      klineType: UPSTREAM_KLINE_TYPE,
-      klineNum: UPSTREAM_KLINE_NUM,
-      codes: symbols.join(","),
-    },
-  });
+  const data = await requestUpstream(`/stock/batch_trade/${symbols.join(",")}`);
 
   const rows = Array.isArray(data?.data) ? data.data : [];
   const normalized = rows.map((entry) => {
-    const symbol = String(entry?.s || "").trim().toUpperCase();
-    const first = Array.isArray(entry?.respList) ? entry.respList[0] || {} : {};
-    return { symbol, ...first };
+    return {
+      symbol: String(entry?.s || "").trim().toUpperCase(),
+      p: entry?.p,
+      v: entry?.v,
+      vw: entry?.vw,
+      t: entry?.t,
+      td: entry?.td,
+    };
   });
 
   const target = normalized.find((item) => item.symbol === preferredSymbol);
@@ -491,47 +502,43 @@ function nearlyEqual(left, right, tolerance = 1e-6) {
 function buildQuoteSemanticCheck(mappedRecord, upstreamRecord) {
   const checks = [];
 
-  const mappedChange = parseNumeric(mappedRecord?.change);
-  const upstreamChange = parseNumeric(upstreamRecord?.pca);
+  const mappedLastPrice = parseNumeric(mappedRecord?.lastPrice);
+  const upstreamLastPrice = parseNumeric(upstreamRecord?.p);
   checks.push({
-    field: "change",
-    mapped: mappedChange,
-    upstream: upstreamChange,
+    field: "lastPrice",
+    mapped: mappedLastPrice,
+    upstream: upstreamLastPrice,
     pass:
-      mappedChange === null || upstreamChange === null
+      mappedLastPrice === null || upstreamLastPrice === null
         ? null
-        : nearlyEqual(mappedChange, upstreamChange, 1e-6),
-    note: "mapped.change 应等于 upstream.pca",
+        : nearlyEqual(mappedLastPrice, upstreamLastPrice, 1e-6),
+    note: "mapped.lastPrice 应等于 upstream.p",
   });
 
-  const mappedChangePercent = parseNumeric(mappedRecord?.changePercent);
-  const upstreamChangePercent = parseNumeric(upstreamRecord?.pc);
+  const mappedVolume = parseNumeric(mappedRecord?.volume);
+  const upstreamVolume = parseNumeric(upstreamRecord?.v);
   checks.push({
-    field: "changePercent",
-    mapped: mappedChangePercent,
-    upstream: upstreamChangePercent,
+    field: "volume",
+    mapped: mappedVolume,
+    upstream: upstreamVolume,
     pass:
-      mappedChangePercent === null || upstreamChangePercent === null
+      mappedVolume === null || upstreamVolume === null
         ? null
-        : nearlyEqual(mappedChangePercent, upstreamChangePercent, 1e-6),
-    note: "mapped.changePercent 应等于 upstream.pc（去掉 % 后）",
+        : nearlyEqual(mappedVolume, upstreamVolume, 1e-6),
+    note: "mapped.volume 应等于 upstream.v",
   });
 
-  const mappedPreviousClose = parseNumeric(mappedRecord?.previousClose);
-  const upstreamLastPrice = parseNumeric(upstreamRecord?.c);
-  const expectedPreviousClose =
-    upstreamLastPrice === null || upstreamChange === null
-      ? null
-      : Number((upstreamLastPrice - upstreamChange).toFixed(6));
+  const mappedTurnover = parseNumeric(mappedRecord?.turnover);
+  const upstreamTurnover = parseNumeric(upstreamRecord?.vw);
   checks.push({
-    field: "previousClose",
-    mapped: mappedPreviousClose,
-    upstream: expectedPreviousClose,
+    field: "turnover",
+    mapped: mappedTurnover,
+    upstream: upstreamTurnover,
     pass:
-      mappedPreviousClose === null || expectedPreviousClose === null
+      mappedTurnover === null || upstreamTurnover === null
         ? null
-        : nearlyEqual(mappedPreviousClose, expectedPreviousClose, 1e-6),
-    note: "mapped.previousClose 应等于 upstream.c - upstream.pca",
+        : nearlyEqual(mappedTurnover, upstreamTurnover, 1e-6),
+    note: "mapped.turnover 应等于 upstream.vw",
   });
 
   const failed = checks.filter((item) => item.pass === false);
@@ -632,9 +639,10 @@ async function testQuote(auth) {
   const rows = toArrayRows(business, "quote.data");
   ensure(rows.length > 0, "quote.data 为空");
   const first = rows[0] || {};
+  const numericLastPrice = parseNumeric(first.lastPrice);
   ensure(typeof first.symbol === "string" && first.symbol, "quote.symbol 缺失");
   ensure(
-    typeof first.lastPrice === "number" && Number.isFinite(first.lastPrice),
+    numericLastPrice !== null,
     "quote.lastPrice 缺失或非数值",
   );
   const upstream = await safeUpstream(() =>
@@ -651,7 +659,7 @@ async function testQuote(auth) {
       first,
       {
         symbol: first.symbol,
-        lastPrice: first.lastPrice,
+        lastPrice: numericLastPrice,
         change: first.change,
         changePercent: first.changePercent,
         tradeStatus: first.tradeStatus,
@@ -663,11 +671,12 @@ async function testQuote(auth) {
 }
 
 async function testBasicInfo(auth) {
+  const basicInfoMarket = detectSingleSymbolMarket(SYMBOLS);
   const business = await callReceiver(
     auth,
     "get-stock-basic-info",
     SYMBOLS,
-    { market: TEST_MARKET },
+    basicInfoMarket ? { market: basicInfoMarket } : {},
   );
   const rows = toArrayRows(business, "basicInfo.data");
   ensure(rows.length > 0, "basicInfo.data 为空");
@@ -681,7 +690,7 @@ async function testBasicInfo(auth) {
     "basicInfo.exchange 缺失",
   );
   const upstream = await safeUpstream(() =>
-    fetchUpstreamBasicInfo(first.symbol, TEST_MARKET),
+    fetchUpstreamBasicInfo(first.symbol, basicInfoMarket),
   );
   console.log("[PASS] get-stock-basic-info", {
     count: rows.length,
@@ -788,8 +797,8 @@ async function main() {
 
   if (auth.source === "created") {
     console.log("[generated-api-key]", {
-      appKey: auth.appKey,
-      accessToken: auth.accessToken,
+      appKey: "<REDACTED>",
+      accessToken: "<REDACTED>",
     });
   }
 

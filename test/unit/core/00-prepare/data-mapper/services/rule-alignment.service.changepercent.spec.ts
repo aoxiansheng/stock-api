@@ -39,4 +39,58 @@ describe("RuleAlignmentService changepercent token match", () => {
 
     expect(confidence).toBeLessThan(0.8);
   });
+
+  it("source token 为 l 时，应命中 lowPrice 而不是 symbol 的模糊匹配", () => {
+    const service = createService();
+
+    const lowPriceConfidence = (service as any).calculateFieldMatchConfidence(
+      "lowPrice",
+      {
+        fieldName: "l",
+        fieldPath: "respList.l",
+        fieldType: "number",
+      },
+    );
+    const symbolConfidence = (service as any).calculateFieldMatchConfidence(
+      "symbol",
+      {
+        fieldName: "l",
+        fieldPath: "respList.l",
+        fieldType: "number",
+      },
+    );
+
+    expect(lowPriceConfidence).toBe(0.9);
+    expect(symbolConfidence).toBeLessThan(0.8);
+  });
+
+  it("source token 为 c 时，应命中 lastPrice", () => {
+    const service = createService();
+
+    const confidence = (service as any).calculateFieldMatchConfidence(
+      "lastPrice",
+      {
+        fieldName: "c",
+        fieldPath: "respList.c",
+        fieldType: "number",
+      },
+    );
+
+    expect(confidence).toBe(0.9);
+  });
+
+  it("source token 为 td 时，应命中 tradeDirection", () => {
+    const service = createService();
+
+    const confidence = (service as any).calculateFieldMatchConfidence(
+      "tradeDirection",
+      {
+        fieldName: "td",
+        fieldPath: "quote.td",
+        fieldType: "number",
+      },
+    );
+
+    expect(confidence).toBe(0.9);
+  });
 });

@@ -62,6 +62,12 @@ class FrameFallbackMockWebSocket extends HeaderCapableMockWebSocket {
   }
 }
 
+class HeaderIgnoredMockWebSocket extends HeaderCapableMockWebSocket {
+  constructor(url: string, _protocolsOrOptions?: any, _maybeOptions?: any) {
+    super(url);
+  }
+}
+
 function createConfigService(values: Record<string, any>): ConfigService {
   return {
     get: (key: string) => values[key],
@@ -102,7 +108,11 @@ describe("InfowayStreamContextService", () => {
     expect(instance.url).toContain("business=stock");
     expect(instance.url).not.toContain("apikey=");
     expect(instance.headers.apiKey).toBe("test-api-key");
-    expect(instance.sent).toHaveLength(0);
+    expect(instance.sent).toHaveLength(1);
+    const authPayload = JSON.parse(instance.sent[0]);
+    expect(authPayload.code).toBe(90001);
+    expect(authPayload.data.apiKey).toBe("test-api-key");
+    expect(authPayload.data.business).toBe("stock");
 
     await service.cleanup();
   });
@@ -133,6 +143,30 @@ describe("InfowayStreamContextService", () => {
     await service.cleanup();
   });
 
+  it("握手 header 被运行时忽略时仍发送 auth 帧", async () => {
+    (globalThis as any).WebSocket = HeaderIgnoredMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_BASE_URL: "wss://data.infoway.io/ws",
+        INFOWAY_WS_BUSINESS: "stock",
+        INFOWAY_WS_AUTH_FRAME_CODE: 90001,
+      }),
+    );
+
+    await service.initializeWebSocket();
+
+    const instance = HeaderCapableMockWebSocket.instances[0];
+    expect(instance.headers.apiKey).toBeUndefined();
+    expect(instance.sent).toHaveLength(1);
+    const authPayload = JSON.parse(instance.sent[0]);
+    expect(authPayload.code).toBe(90001);
+    expect(authPayload.data.apiKey).toBe("test-api-key");
+
+    await service.cleanup();
+  });
+
   it("离线 unsubscribe 也会先更新本地订阅集合", async () => {
     const service = new InfowayStreamContextService(
       createConfigService({
@@ -145,6 +179,28 @@ describe("InfowayStreamContextService", () => {
     await service.unsubscribe(["AAPL.US"]);
 
     expect((service as any).subscribedSymbols.has("AAPL.US")).toBe(false);
+  });
+
+  it("在线 unsubscribe 会发送实时成交取消订阅协议", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    await service.initializeWebSocket();
+    await service.subscribe(["AAPL.US"]);
+    await service.unsubscribe(["AAPL.US"]);
+
+    const instance = HeaderCapableMockWebSocket.instances[0];
+    expect(instance.sent).toHaveLength(3);
+    const unsubscribePayload = JSON.parse(instance.sent[2]);
+    expect(unsubscribePayload.code).toBe(11000);
+    expect(unsubscribePayload.data.codes).toBe("AAPL.US");
+
+    await service.cleanup();
   });
 
   it("subscribe 会先校验 symbols，再尝试初始化 WebSocket", async () => {
@@ -271,18 +327,18 @@ describe("InfowayStreamContextService", () => {
     await service.subscribe(["AAPL.US", "MSFT.US"]);
 
     const firstSocket = HeaderCapableMockWebSocket.instances[0];
-    expect(firstSocket.sent).toHaveLength(1);
+    expect(firstSocket.sent).toHaveLength(2);
 
     firstSocket.close();
     await flushTimers(1, 10);
 
     expect(HeaderCapableMockWebSocket.instances).toHaveLength(2);
     const reconnectedSocket = HeaderCapableMockWebSocket.instances[1];
-    expect(reconnectedSocket.sent).toHaveLength(1);
+    expect(reconnectedSocket.sent).toHaveLength(2);
 
-    const subscribePayload = JSON.parse(reconnectedSocket.sent[0]);
-    expect(subscribePayload.code).toBe(10006);
-    expect(subscribePayload.data.arr[0].codes).toBe("AAPL.US,MSFT.US");
+    const subscribePayload = JSON.parse(reconnectedSocket.sent[1]);
+    expect(subscribePayload.code).toBe(10000);
+    expect(subscribePayload.data.codes).toBe("AAPL.US,MSFT.US");
 
     await service.unsubscribe(["AAPL.US", "MSFT.US"]);
     await service.cleanup();
@@ -353,40 +409,89 @@ describe("InfowayStreamContextService", () => {
     expect((service as any).subscriptionsInvalidated).toBe(false);
   });
 
-  it("mapPushToQuote 遇到异常时间戳时返回 null", () => {
+  it("handleMessage: code=10002 且 data 非对象时忽略", () => {
     const service = new InfowayStreamContextService(
       createConfigService({
         INFOWAY_API_KEY: "test-api-key",
       }),
     );
+    const onQuote = jest.fn();
+    (service as any).messageCallbacks.add(onQuote);
 
-    const quote = (service as any).mapPushToQuote({
-      s: "AAPL.US",
-      c: "182.31",
-      t: "2024-03-01T09:30:00Z",
-    });
-
-    expect(quote).toBeNull();
+    (service as any).handleMessage(JSON.stringify({ code: 10002, data: "bad" }));
+    expect(onQuote).not.toHaveBeenCalled();
   });
 
-  it("mapPushToQuote 缺少关键字段时返回 null", () => {
+  it("handleMessage: code=10002 时应触发行情回调", () => {
     const service = new InfowayStreamContextService(
       createConfigService({
         INFOWAY_API_KEY: "test-api-key",
       }),
     );
+    const onQuote = jest.fn();
+    (service as any).messageCallbacks.add(onQuote);
 
-    const missingSymbol = (service as any).mapPushToQuote({
-      c: "182.31",
-      t: "1709251200",
-    });
-    const missingPrice = (service as any).mapPushToQuote({
+    (service as any).handleMessage(
+      JSON.stringify({
+        code: 10002,
+        data: {
+          s: "AAPL.US",
+          p: "182.31",
+          t: "1709251200999",
+          v: "123",
+          vw: "1000",
+        },
+      }),
+    );
+
+    expect(onQuote).toHaveBeenCalledTimes(1);
+    expect(onQuote.mock.calls[0][0]).toEqual({
       s: "AAPL.US",
-      t: "1709251200",
+      p: "182.31",
+      t: "1709251200999",
+      v: "123",
+      vw: "1000",
     });
+  });
 
-    expect(missingSymbol).toBeNull();
-    expect(missingPrice).toBeNull();
+  it("handleMessage: code=10001/11010 时应忽略控制帧", () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+    const onQuote = jest.fn();
+    const debugSpy = jest.spyOn((service as any).logger, "debug");
+    (service as any).messageCallbacks.add(onQuote);
+
+    (service as any).handleMessage(JSON.stringify({ code: 10001, msg: "sub ack" }));
+    (service as any).handleMessage(JSON.stringify({ code: 11010, msg: "pong" }));
+
+    expect(onQuote).not.toHaveBeenCalled();
+    expect(debugSpy).not.toHaveBeenCalledWith(
+      "Infoway WebSocket 收到控制消息",
+      expect.any(Object),
+    );
+  });
+
+  it("handleMessage: code=10002 时透传非完整 trade 字段", () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+    const onQuote = jest.fn();
+    (service as any).messageCallbacks.add(onQuote);
+
+    (service as any).handleMessage(
+      JSON.stringify({
+        code: 10002,
+        data: { p: "182.31" },
+      }),
+    );
+
+    expect(onQuote).toHaveBeenCalledTimes(1);
+    expect(onQuote).toHaveBeenCalledWith({ p: "182.31" });
   });
 
   it("关键数值配置非法时回退默认值", () => {
@@ -399,7 +504,6 @@ describe("InfowayStreamContextService", () => {
         INFOWAY_WS_RECONNECT_MAX_DELAY_MS: "NaN",
         INFOWAY_WS_RECONNECT_JITTER_MS: -10,
         INFOWAY_WS_MAX_RECONNECT_ATTEMPTS: -2,
-        INFOWAY_WS_KLINE_TYPE: 0,
         INFOWAY_WS_AUTH_FRAME_CODE: 0,
       }),
     );
@@ -410,7 +514,6 @@ describe("InfowayStreamContextService", () => {
     expect((service as any).reconnectMaxDelayMs).toBe(30000);
     expect((service as any).reconnectJitterMs).toBe(500);
     expect((service as any).maxReconnectAttempts).toBe(8);
-    expect((service as any).klineType).toBe(1);
     expect((service as any).wsAuthFrameCode).toBe(90001);
   });
 

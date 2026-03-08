@@ -39,7 +39,7 @@ describe("InfowayContextService", () => {
         message: "INFOWAY_API_KEY 未配置",
         errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
       });
-      expect((service as any).client.post).not.toHaveBeenCalled();
+      expect((service as any).client.get).not.toHaveBeenCalled();
     } finally {
       if (previousApiKey === undefined) {
         delete process.env.INFOWAY_API_KEY;
@@ -84,7 +84,7 @@ describe("InfowayContextService", () => {
 
   it("getStockQuote: 上游 ret 异常时抛结构化业务异常", async () => {
     const service = createService();
-    (service as any).client.post.mockResolvedValue({
+    (service as any).client.get.mockResolvedValue({
       data: {
         ret: 500,
         msg: "upstream failed",
@@ -107,36 +107,24 @@ describe("InfowayContextService", () => {
     });
   });
 
-  it("getStockQuote: 成功映射并过滤脏数据", async () => {
+  it("getStockQuote: 成功返回 batch_trade 原始字段", async () => {
     const service = createService();
-    (service as any).client.post.mockResolvedValue({
+    (service as any).client.get.mockResolvedValue({
       data: {
         ret: 200,
         data: [
           {
             s: "AAPL.US",
-            respList: [
-              {
-                c: "182.31",
-                pca: "1.31",
-                o: "181.00",
-                h: "183.50",
-                l: "180.20",
-                v: "123456",
-                vw: "22500000",
-                pc: "0.72",
-                t: "1709251200",
-              },
-            ],
+            t: "1709251200999",
+            p: "182.31",
+            v: "123456",
+            vw: "22500000",
+            td: 1,
           },
           {
             s: "TSLA.US",
-            respList: [
-              {
-                c: "200.11",
-                t: "2024-03-01T09:30:00Z",
-              },
-            ],
+            t: "2024-03-01T09:30:00Z",
+            p: "200.11",
           },
         ],
       },
@@ -144,14 +132,83 @@ describe("InfowayContextService", () => {
 
     const result = await service.getStockQuote(["AAPL.US", "TSLA.US"]);
 
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({
-      symbol: "AAPL.US",
-      lastPrice: 182.31,
-      previousClose: 181,
-      sourceProvider: "infoway",
-      sourceSymbol: "AAPL.US",
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/stock/batch_trade/AAPL.US,TSLA.US",
+      expect.objectContaining({
+        headers: {
+          apiKey: "test-api-key",
+        },
+      }),
+    );
+    expect(result).toEqual([
+      {
+        s: "AAPL.US",
+        t: "1709251200999",
+        p: "182.31",
+        v: "123456",
+        vw: "22500000",
+        td: 1,
+      },
+      {
+        s: "TSLA.US",
+        t: "2024-03-01T09:30:00Z",
+        p: "200.11",
+      },
+    ]);
+  });
+
+  it("getStockQuote: URL 过长时应自动分批请求并聚合结果", async () => {
+    const service = createService();
+    const symbols = Array.from({ length: 260 }, (_, index) => {
+      const suffix = String(index).padStart(3, "0");
+      return `LONGSYMBOL${suffix}ABCDEFGHIJKLMN.US`;
     });
+
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [],
+      },
+    });
+
+    const result = await service.getStockQuote(symbols);
+
+    expect(result).toEqual([]);
+    const calls = (service as any).client.get.mock.calls;
+    expect(calls.length).toBeGreaterThan(1);
+    for (const [path, config] of calls) {
+      expect(String(path).startsWith("/stock/batch_trade/")).toBe(true);
+      expect(String(path).length).toBeLessThanOrEqual(7000);
+      expect(config).toEqual(
+        expect.objectContaining({
+          headers: {
+            apiKey: "test-api-key",
+          },
+        }),
+      );
+    }
+  });
+
+  it("getStockQuote: 遇到 414 应降批重试而不是整批失败", async () => {
+    const service = createService();
+    const symbols = ["AAPL.US", "TSLA.US", "MSFT.US", "NVDA.US"];
+
+    (service as any).client.get.mockImplementation(async (path: string) => {
+      if (path.includes("AAPL.US,TSLA.US,MSFT.US,NVDA.US")) {
+        const error: any = new Error("URI Too Long");
+        error.response = { status: 414 };
+        throw error;
+      }
+      return {
+        data: {
+          ret: 200,
+          data: [],
+        },
+      };
+    });
+
+    await expect(service.getStockQuote(symbols)).resolves.toEqual([]);
+    expect((service as any).client.get.mock.calls.length).toBeGreaterThan(1);
   });
 
   it("getMarketStatus: data 结构异常时抛结构化业务异常", async () => {
@@ -180,7 +237,7 @@ describe("InfowayContextService", () => {
     });
   });
 
-  it("getMarketStatus: 正确映射并按传入市场过滤", async () => {
+  it("getMarketStatus: 返回原始字段并按传入市场过滤", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
       data: {
@@ -216,14 +273,18 @@ describe("InfowayContextService", () => {
       {
         market: "US",
         remark: "open",
-        tradeSchedules: [
+        trade_schedules: [
           {
-            beginTime: "09:30",
-            endTime: "16:00",
+            begin_time: "09:30",
+            end_time: "16:00",
             type: "Normal",
           },
+          {
+            begin_time: "",
+            end_time: "12:00",
+            type: "Half",
+          },
         ],
-        sourceProvider: "infoway",
       },
     ]);
   });
@@ -254,7 +315,7 @@ describe("InfowayContextService", () => {
     });
   });
 
-  it("getStockBasicInfo: 正确映射核心字段", async () => {
+  it("getStockBasicInfo: 返回原始字段", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
       data: {
@@ -289,20 +350,19 @@ describe("InfowayContextService", () => {
       }),
     );
     expect(result).toEqual([
-      expect.objectContaining({
+      {
         symbol: "AAPL.US",
         market: "US",
-        nameCn: "苹果",
-        nameEn: "Apple",
+        name_cn: "苹果",
+        name_en: "Apple",
         exchange: "NASDAQ",
         currency: "USD",
-        lotSize: 1,
-        totalShares: 1000,
-        circulatingShares: 900,
-        hkShares: 0,
-        stockDerivatives: ["WARRANT", "OPTION"],
-        sourceProvider: "infoway",
-      }),
+        lot_size: 1,
+        total_shares: 1000,
+        circulating_shares: 900,
+        hk_shares: 0,
+        stock_derivatives: "WARRANT,OPTION",
+      },
     ]);
   });
 
@@ -373,7 +433,7 @@ describe("InfowayContextService", () => {
     );
   });
 
-  it("getStockHistory: 支持扩展参数并按时间升序输出", async () => {
+  it("getStockHistory: 返回 batch_kline 原始字段", async () => {
     const service = createService();
     (service as any).client.post.mockResolvedValue({
       data: {
@@ -431,10 +491,35 @@ describe("InfowayContextService", () => {
         },
       }),
     );
-    expect(result).toHaveLength(2);
-    expect(
-      new Date(result[0].timestamp).getTime(),
-    ).toBeLessThanOrEqual(new Date(result[1].timestamp).getTime());
+    expect(result).toEqual([
+      {
+        s: "AAPL.US",
+        respList: [
+          {
+            c: "183.11",
+            pca: "1.11",
+            o: "181.00",
+            h: "184.50",
+            l: "180.20",
+            v: "100",
+            vw: "15000",
+            pc: "0.61",
+            t: "1709251260",
+          },
+          {
+            c: "182.31",
+            pca: "0.31",
+            o: "181.00",
+            h: "183.50",
+            l: "180.20",
+            v: "120",
+            vw: "22000",
+            pc: "0.17",
+            t: "1709251200",
+          },
+        ],
+      },
+    ]);
   });
 
   it.each([0, -1, 1.5, "bad-type", 3, 999])(
@@ -609,16 +694,12 @@ describe("InfowayContextService", () => {
   it("关键数值配置非法或不受支持时回退默认值", () => {
     const service = createService({
       INFOWAY_HTTP_TIMEOUT_MS: "bad-timeout",
-      INFOWAY_QUOTE_KLINE_TYPE: 0,
-      INFOWAY_QUOTE_KLINE_NUM: -2,
       INFOWAY_INTRADAY_KLINE_TYPE: 3,
       INFOWAY_INTRADAY_KLINE_NUM: -2,
       INFOWAY_INTRADAY_LOOKBACK_DAYS: 0,
     });
 
     expect((service as any).timeoutMs).toBe(10000);
-    expect((service as any).klineType).toBe(1);
-    expect((service as any).klineNum).toBe(1);
     expect((service as any).intradayKlineType).toBe(1);
     expect((service as any).intradayKlineNum).toBe(240);
     expect((service as any).intradayLookbackDays).toBe(1);

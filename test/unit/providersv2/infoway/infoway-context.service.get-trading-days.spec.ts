@@ -117,12 +117,8 @@ describe("InfowayContextService#getTradingDays", () => {
       }),
     ).resolves.toEqual([
       {
-        market: "US",
-        beginDay: "20240101",
-        endDay: "20241231",
-        tradeDays: [],
-        halfTradeDays: [],
-        sourceProvider: "infoway",
+        trade_days: [],
+        half_trade_days: [],
       },
     ]);
 
@@ -196,12 +192,8 @@ describe("InfowayContextService#getTradingDays", () => {
     );
     expect(result).toEqual([
       {
-        market: "US",
-        beginDay: "20240301",
-        endDay: "20240305",
-        tradeDays: ["20240301", "20240304"],
-        halfTradeDays: ["20240305"],
-        sourceProvider: "infoway",
+        trade_days: ["20240301", "20240304"],
+        half_trade_days: ["20240305"],
       },
     ]);
   });
