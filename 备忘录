@@ -87,7 +87,7 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 1. 子-agent-A：调用 clean-code-reviewer，对本次 git diff 及所有新建未跟踪文件执行 D3/R4/C1 ⇒ L4 级别的严格代码审查，重点扫描安全性漏洞、边界条件缺失、可维护性隐患、重复代码、组件耦合及复用率。 
 2. 子-agent-B：同步运行 code-reviewer，按作者既定工作流拆解审查步骤，生成预设步骤清单并实时同步进度。 
 3. 子-agent-C：汇总 A、B 输出，按“Critical / Important / Minor / Strengths / Verdict”五级分类整理，输出 markdown 表格与详细描述，写入 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，并返回文件哈希供后续校验。 
-约束：绿地项目，禁止兼容回退逻辑；坚持最小成本、第一原理实现；禁止过度工程化；不得新增文件。 
+约束：绿地项目，禁止兼容回退逻辑；坚持最小成本、第一原理实现；禁止过度工程化；允许合理新增文件。新增功能之前，确认项目没有类似，避免重复造轮子。 
 
 第二步：
 主 agent 再次并行启动多个 sub-agent： 
