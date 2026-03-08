@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { normalizeProviderName } from "@providersv2/provider-registry.service";
 
 /**
  * StreamRecovery 配置类 - Phase 3 Critical Fix
@@ -54,6 +55,16 @@ export interface StreamRecoveryConfig {
     maxRecoveryWindow: number; // 最大补发时间窗口(毫秒)
     batchSize: number; // 批量发送大小
     maxDataPoints: number; // 单次补发最大数据点
+    historyFallback?: {
+      enabled: boolean;
+      gapThresholdMs: number;
+      minCoverageRatio: number;
+      maxHistoryPoints: number;
+      preferredProvider: string;
+      klineType: number;
+      crossProviderFailoverEnabled: boolean;
+      crossProviderAllowlist: string[];
+    };
   };
 
   // 重连策略
@@ -103,6 +114,34 @@ export class StreamRecoveryConfigService {
     if (!value) return defaultValue;
     const parsed = parseFloat(value);
     return isNaN(parsed) ? defaultValue : parsed;
+  }
+
+  /**
+   * 安全解析布尔值（true/1/on/yes），无法解析时回退默认值
+   */
+  private parseBooleanWithDefault(
+    value: string | undefined,
+    defaultValue: boolean,
+  ): boolean {
+    if (!value) return defaultValue;
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "on", "yes"].includes(normalized)) return true;
+    if (["0", "false", "off", "no"].includes(normalized)) return false;
+    return defaultValue;
+  }
+
+  private parseProviderList(value: string | undefined): string[] {
+    if (!value) {
+      return [];
+    }
+    return Array.from(
+      new Set(
+        value
+          .split(",")
+          .map((item) => this.normalizeProviderKey(item))
+          .filter((item) => item.length > 0),
+      ),
+    );
   }
 
   private loadConfig(): StreamRecoveryConfig {
@@ -157,6 +196,37 @@ export class StreamRecoveryConfigService {
           process.env.RECOVERY_MAX_DATA_POINTS, 
           10000,
         ),
+        historyFallback: {
+          enabled: this.parseBooleanWithDefault(
+            process.env.RECOVERY_HISTORY_FALLBACK_ENABLED,
+            true,
+          ),
+          gapThresholdMs: this.parseIntWithDefault(
+            process.env.RECOVERY_GAP_THRESHOLD_MS,
+            90000,
+          ),
+          minCoverageRatio: this.parseFloatWithDefault(
+            process.env.RECOVERY_MIN_COVERAGE_RATIO,
+            0.6,
+          ),
+          maxHistoryPoints: this.parseIntWithDefault(
+            process.env.RECOVERY_MAX_HISTORY_POINTS,
+            240,
+          ),
+          preferredProvider:
+            process.env.RECOVERY_HISTORY_PROVIDER?.trim() || "",
+          klineType: this.parseIntWithDefault(
+            process.env.RECOVERY_HISTORY_KLINE_TYPE,
+            1,
+          ),
+          crossProviderFailoverEnabled: this.parseBooleanWithDefault(
+            process.env.RECOVERY_HISTORY_CROSS_PROVIDER_FAILOVER_ENABLED,
+            false,
+          ),
+          crossProviderAllowlist: this.parseProviderList(
+            process.env.RECOVERY_HISTORY_CROSS_PROVIDER_ALLOWLIST,
+          ),
+        },
       },
 
       reconnect: {
@@ -215,12 +285,21 @@ export class StreamRecoveryConfigService {
     return this.config;
   }
 
+  private normalizeProviderKey(provider: string): string {
+    return normalizeProviderName(provider);
+  }
+
   /**
    * 获取指定提供商的限流配置
    */
   getRateLimitConfig(provider: string): StreamRecoveryRateLimitConfig {
+    const normalizedProvider = this.normalizeProviderKey(provider);
+    if (!normalizedProvider) {
+      return this.config.rateLimit.default;
+    }
     return (
-      this.config.rateLimit.providers[provider] || this.config.rateLimit.default
+      this.config.rateLimit.providers[normalizedProvider] ||
+      this.config.rateLimit.default
     );
   }
 
@@ -271,7 +350,11 @@ export class StreamRecoveryConfigService {
     provider: string,
     config: StreamRecoveryRateLimitConfig,
   ): void {
-    this.config.rateLimit.providers[provider] = config;
+    const normalizedProvider = this.normalizeProviderKey(provider);
+    if (!normalizedProvider) {
+      return;
+    }
+    this.config.rateLimit.providers[normalizedProvider] = config;
   }
 
   /**

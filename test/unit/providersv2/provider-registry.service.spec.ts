@@ -1,4 +1,7 @@
-import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import {
+  normalizeProviderName,
+  ProviderRegistryService,
+} from "@providersv2/provider-registry.service";
 import { ProviderPriorityPolicyService } from "@providersv2/provider-priority-policy.service";
 import {
   ACTIVE_PROVIDER_MANIFEST,
@@ -52,6 +55,19 @@ function createProvider(
     testConnection: jest.fn().mockResolvedValue(true),
     getCapability: (targetName: string) =>
       targetName === capabilityName ? capability : null,
+  };
+}
+
+function createProviderWithContext(
+  name: string,
+  capabilityName: string,
+  supportedMarkets: string[],
+  contextService: unknown,
+): IDataProvider {
+  const provider = createProvider(name, capabilityName, supportedMarkets);
+  return {
+    ...provider,
+    getContextService: jest.fn(() => contextService),
   };
 }
 
@@ -173,6 +189,19 @@ describe("ProviderRegistryService", () => {
     expect(service.getCapability(" LongPort ", "stream-stock-quote")).toBe(
       canonicalProvider.capabilities[0],
     );
+  });
+
+  it("normalizeProviderName 应保持 trim/lowercase 语义", () => {
+    expect(normalizeProviderName(" LONGPORT ")).toBe(PROVIDER_IDS.LONGPORT);
+    expect(normalizeProviderName("  ")).toBe("");
+  });
+
+  it("normalizeProviderName 应支持 alias 映射", () => {
+    expect(
+      normalizeProviderName(" LP ", {
+        lp: PROVIDER_IDS.LONGPORT,
+      }),
+    ).toBe(PROVIDER_IDS.LONGPORT);
   });
 
   it("UnknownElementException 应 warn 并继续装配其余 provider", async () => {
@@ -353,6 +382,190 @@ describe("ProviderRegistryService", () => {
     );
     expect(service.getBestProvider("stream-stock-quote", "SG")).toBe(
       PROVIDER_IDS.LONGPORT,
+    );
+  });
+
+  it("resolveHistoryExecutionContext: provider 缺失时返回 missing_provider", async () => {
+    const service = createRegistryService(createModuleRefMock({}));
+
+    await service.onModuleInit();
+
+    expect(
+      service.resolveHistoryExecutionContext(
+        "unknown-provider",
+        "get-stock-history",
+      ),
+    ).toEqual({
+      capability: null,
+      contextService: null,
+      reasonCode: "missing_provider",
+    });
+  });
+
+  it("resolveHistoryExecutionContext: capability 缺失时返回 missing_capability", async () => {
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: createProvider(
+          PROVIDER_IDS.LONGPORT,
+          "get-stock-quote",
+          ["US"],
+        ),
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.LONGPORT,
+        "get-stock-history",
+      ),
+    ).toEqual({
+      capability: null,
+      contextService: null,
+      reasonCode: "missing_capability",
+    });
+  });
+
+  it("resolveHistoryExecutionContext: contextService 缺失时返回 missing_context_service", async () => {
+    const provider = createProvider(
+      PROVIDER_IDS.LONGPORT,
+      "get-stock-history",
+      ["US"],
+    );
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: provider,
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.LONGPORT,
+        "get-stock-history",
+      ),
+    ).toEqual({
+      capability: provider.capabilities[0],
+      contextService: null,
+      reasonCode: "missing_context_service",
+    });
+  });
+
+  it("resolveHistoryExecutionContext: history contextService 不满足契约时返回 invalid_context_service", async () => {
+    const provider = createProviderWithContext(
+      PROVIDER_IDS.LONGPORT,
+      "get-stock-history",
+      ["US"],
+      { source: "invalid-context" },
+    );
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: provider,
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.LONGPORT,
+        "get-stock-history",
+      ),
+    ).toEqual({
+      capability: provider.capabilities[0],
+      contextService: null,
+      reasonCode: "invalid_context_service",
+    });
+  });
+
+  it("resolveHistoryExecutionContext: 全量可用时返回 success", async () => {
+    const contextService = {
+      source: "longport-context",
+      getStockHistory: jest.fn(),
+    };
+    const provider = createProviderWithContext(
+      PROVIDER_IDS.LONGPORT,
+      "get-stock-history",
+      ["US"],
+      contextService,
+    );
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: provider,
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.LONGPORT,
+        "get-stock-history",
+      ),
+    ).toEqual({
+      capability: provider.capabilities[0],
+      contextService,
+      reasonCode: "success",
+    });
+  });
+
+  it("resolveHistoryExecutionContext: reasonCode 契约应保持闭包", async () => {
+    const providerWithContext = createProviderWithContext(
+      PROVIDER_IDS.LONGPORT,
+      "get-stock-history",
+      ["US"],
+      { source: "ctx", getStockHistory: jest.fn() },
+    );
+    const providerWithInvalidContext = createProviderWithContext(
+      PROVIDER_IDS.JVQUANT,
+      "get-stock-history",
+      ["US"],
+      { source: "invalid" },
+    );
+    const providerWithoutContext = createProvider(
+      PROVIDER_IDS.INFOWAY,
+      "get-stock-history",
+      ["US"],
+    );
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: providerWithContext,
+        [PROVIDER_IDS.JVQUANT]: providerWithInvalidContext,
+        [PROVIDER_IDS.INFOWAY]: providerWithoutContext,
+      }),
+    );
+
+    await service.onModuleInit();
+
+    const reasonCodes = [
+      service.resolveHistoryExecutionContext("unknown", "get-stock-history")
+        .reasonCode,
+      service.resolveHistoryExecutionContext(PROVIDER_IDS.LONGPORT, "unknown-cap")
+        .reasonCode,
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.INFOWAY,
+        "get-stock-history",
+      ).reasonCode,
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.JVQUANT,
+        "get-stock-history",
+      ).reasonCode,
+      service.resolveHistoryExecutionContext(
+        PROVIDER_IDS.LONGPORT,
+        "get-stock-history",
+      ).reasonCode,
+    ].sort();
+
+    expect(reasonCodes).toEqual(
+      [
+        "invalid_context_service",
+        "missing_capability",
+        "missing_context_service",
+        "missing_provider",
+        "success",
+      ].sort(),
     );
   });
 });

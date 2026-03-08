@@ -52,6 +52,7 @@ describe("get-stock-history capability", () => {
     const result = await getStockHistory.execute({
       symbols: ["600000.SH"],
       market: "SH",
+      klineType: 5,
       klineNum: 240,
       timestamp: 1758553860,
       contextService: contextService as any,
@@ -60,6 +61,7 @@ describe("get-stock-history capability", () => {
     expect(contextService.getStockHistory).toHaveBeenCalledWith({
       symbols: ["600000.SH"],
       market: "CN",
+      klineType: 5,
       klineNum: 240,
       timestamp: 1758553860,
     });

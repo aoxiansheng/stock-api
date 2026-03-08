@@ -18,6 +18,12 @@ import {
   StreamRecoveryConfigService,
   StreamRecoveryConfig,
 } from "../config/stream-recovery.config";
+import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
+import {
+  ProviderRegistryService,
+  normalizeProviderName,
+  type HistoryExecutionContextResolution,
+} from "@providersv2/provider-registry.service";
 import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
@@ -62,6 +68,9 @@ export interface RecoveryResult {
   };
   success: boolean;
   error?: string;
+  degraded?: boolean;
+  retryable?: boolean;
+  reasonCode?: string;
 }
 
 export interface RecoveryMetrics {
@@ -85,6 +94,74 @@ interface ClientRecoveryStatusInternal extends ClientRecoveryStatus {
   activeJobs: number;
   updatedAt: number;
 }
+
+type RecoveryDataSource = "cache" | "history" | "mixed";
+
+interface RecoveryDataMetadata {
+  source: RecoveryDataSource;
+  cachePoints: number;
+  historyPoints: number;
+}
+
+interface RecoveryHistoryFallbackConfig {
+  enabled: boolean;
+  gapThresholdMs: number;
+  minCoverageRatio: number;
+  maxHistoryPoints: number;
+  preferredProvider: string;
+  klineType: number;
+  crossProviderFailoverEnabled: boolean;
+  crossProviderAllowlist: string[];
+}
+
+interface HistoryFallbackAttemptResult {
+  points: StreamDataPoint[];
+  exhausted: boolean;
+  retryable: boolean;
+  reasonCode: string;
+}
+
+interface HistoryFallbackFailure {
+  symbol: string;
+  reasonCode: string;
+  retryable: boolean;
+}
+
+interface HistoryFallbackErrorClassification {
+  reasonCode: string;
+  retryable: boolean;
+}
+
+interface MergedRecoveryDataResult {
+  points: StreamDataPoint[];
+  cachePoints: number;
+  historyPoints: number;
+}
+
+interface SingleSymbolRecoveryResult {
+  mergedData: MergedRecoveryDataResult;
+  historyFallbackFailure: HistoryFallbackFailure | null;
+  degradedReasonCode: string | null;
+}
+
+const ONE_MINUTE_MS = 60 * 1000;
+const SUPPORTED_HISTORY_KLINE_TYPES = new Set([1, 5, 15, 30, 60]);
+const RETRYABLE_HISTORY_FALLBACK_REASONS = new Set([
+  "history_rate_limit_exceeded",
+  "history_query_timeout",
+  "history_query_unavailable",
+  "history_query_temporary_failure",
+]);
+const DEFAULT_RECOVERY_HISTORY_FALLBACK: RecoveryHistoryFallbackConfig = {
+  enabled: true,
+  gapThresholdMs: 90 * 1000,
+  minCoverageRatio: 0.6,
+  maxHistoryPoints: 240,
+  preferredProvider: "",
+  klineType: 1,
+  crossProviderFailoverEnabled: false,
+  crossProviderAllowlist: [],
+};
 
 @Injectable()
 export class StreamRecoveryWorkerService
@@ -183,6 +260,7 @@ export class StreamRecoveryWorkerService
     private readonly clientStateManager: StreamClientStateManager,
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly configService: StreamRecoveryConfigService,
+    private readonly providerRegistry: ProviderRegistryService,
     private readonly eventBus: EventEmitter2,
     @Inject(WEBSOCKET_SERVER_TOKEN)
     private readonly webSocketProvider: WebSocketServerProvider,
@@ -377,109 +455,309 @@ export class StreamRecoveryWorkerService
   ): Promise<RecoveryResult> {
     const startTime = Date.now();
     const { clientId, symbols, lastReceiveTimestamp, provider } = job.data;
+    const currentTime = Date.now();
+    const fallbackConfig = this.getHistoryFallbackConfig();
 
     this.markRecoveryStarted(clientId, job.id);
 
     try {
-      // 检查QPS限流
-      if (!this.checkRateLimit(provider)) {
+      const recoveredData: StreamDataPoint[] = [];
+      let cachePoints = 0;
+      let historyPoints = 0;
+      let historyFallbackFailure: HistoryFallbackFailure | null = null;
+      let degradedReasonCode: string | null = null;
+
+      for (const symbol of symbols) {
+        const symbolRecoveryResult = await this.processSingleSymbolRecovery({
+          jobId: job.id,
+          clientId,
+          provider,
+          symbol,
+          lastReceiveTimestamp,
+          currentTime,
+          fallbackConfig,
+        });
+
+        if (symbolRecoveryResult.historyFallbackFailure) {
+          historyFallbackFailure = symbolRecoveryResult.historyFallbackFailure;
+          break;
+        }
+        if (!degradedReasonCode && symbolRecoveryResult.degradedReasonCode) {
+          degradedReasonCode = symbolRecoveryResult.degradedReasonCode;
+        }
+
+        cachePoints += symbolRecoveryResult.mergedData.cachePoints;
+        historyPoints += symbolRecoveryResult.mergedData.historyPoints;
+        recoveredData.push(...symbolRecoveryResult.mergedData.points);
+      }
+
+      if (historyFallbackFailure) {
         throw UniversalExceptionFactory.createBusinessException({
           component: ComponentIdentifier.STREAM_DATA_FETCHER,
-          errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
-          operation: 'processRecoveryJob',
-          message: 'Rate limit exceeded for recovery operation',
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: "processRecoveryJob",
+          message: "历史兜底耗尽，补发任务进入可重试失败状态",
           context: {
-            provider,
             clientId,
-            symbols,
-            operation: 'recovery_job'
-          }
+            provider: this.normalizeProviderName(provider),
+            symbol: historyFallbackFailure.symbol,
+            reasonCode: historyFallbackFailure.reasonCode,
+            customErrorCode:
+              STREAM_DATA_FETCHER_ERROR_CODES.PROVIDER_CONNECTION_FAILED,
+          },
+          retryable: historyFallbackFailure.retryable,
         });
       }
 
-      // 获取缓存数据
-      const recoveredData: StreamDataPoint[] = [];
-      const currentTime = Date.now();
-
-      for (const symbol of symbols) {
-        const dataPoints = await this.streamCache.getDataSince(
-          symbol,
-          lastReceiveTimestamp,
-        );
-
-        if (dataPoints && dataPoints.length > 0) {
-          recoveredData.push(...dataPoints);
-        }
-      }
-
-      // 如果有补发数据，发送给客户端
-      if (recoveredData.length > 0) {
-        await this.sendRecoveryDataToClient(clientId, recoveredData);
-      }
-
-      const recoveryTime = Date.now() - startTime;
-      this.emitRecoveryEvent("job_completed", {
-        operation: "recovery_job",
-        duration: recoveryTime,
-        data_points: recoveredData.length,
-        status: "success",
-        client_id: clientId,
-      });
-
-      return {
+      const finalRecoveredData = this.sortRecoveryData(recoveredData);
+      return this.finalizeRecoveryJobSuccess({
+        startTime,
         clientId,
-        recoveredDataPoints: recoveredData.length,
         symbols,
-        timeRange: {
-          from: lastReceiveTimestamp,
-          to: currentTime,
-        },
-        success: true,
-      };
+        lastReceiveTimestamp,
+        currentTime,
+        finalRecoveredData,
+        cachePoints,
+        historyPoints,
+        degradedReasonCode,
+      });
     } catch (error) {
-      this.logger.error("补发任务处理失败", {
-        jobId: job.id,
+      return this.finalizeRecoveryJobFailure({
+        error,
+        job,
         clientId,
-        error: error.message,
-        retryCount: job.attemptsMade,
-      });
-
-      // 判断是否需要降级处理
-      if (job.attemptsMade >= this.config.worker.maxRetries) {
-        await this.handleRecoveryFailure(clientId, symbols);
-      }
-
-      return {
-        clientId,
-        recoveredDataPoints: 0,
         symbols,
-        timeRange: {
-          from: lastReceiveTimestamp,
-          to: Date.now(),
-        },
-        success: false,
-        error: error.message,
-      };
+        lastReceiveTimestamp,
+      });
     } finally {
       this.markRecoveryFinished(clientId, job.id);
     }
+  }
+
+  private async processSingleSymbolRecovery(params: {
+    jobId: string | number | undefined;
+    clientId: string;
+    provider: string;
+    symbol: string;
+    lastReceiveTimestamp: number;
+    currentTime: number;
+    fallbackConfig: RecoveryHistoryFallbackConfig;
+  }): Promise<SingleSymbolRecoveryResult> {
+    const {
+      jobId,
+      clientId,
+      provider,
+      symbol,
+      lastReceiveTimestamp,
+      currentTime,
+      fallbackConfig,
+    } = params;
+    const emptyMergedData: MergedRecoveryDataResult = {
+      points: [],
+      cachePoints: 0,
+      historyPoints: 0,
+    };
+    const cacheDataPoints = await this.streamCache.getDataSince(
+      symbol,
+      lastReceiveTimestamp,
+    );
+    const normalizedCacheData = this.normalizeStreamDataPoints(
+      cacheDataPoints || [],
+      symbol,
+      lastReceiveTimestamp,
+      currentTime,
+    );
+
+    let normalizedHistoryData: StreamDataPoint[] = [];
+    let degradedReasonCode: string | null = null;
+
+    if (
+      this.shouldTriggerHistoryFallback(
+        normalizedCacheData,
+        lastReceiveTimestamp,
+        currentTime,
+        fallbackConfig,
+      )
+    ) {
+      const historyFallbackResult = await this.fetchHistoryFallbackPoints({
+        provider,
+        symbol,
+        lastReceiveTimestamp,
+        currentTime,
+        fallbackConfig,
+      });
+      normalizedHistoryData = historyFallbackResult.points;
+
+      if (historyFallbackResult.exhausted) {
+        if (historyFallbackResult.retryable) {
+          return {
+            mergedData: emptyMergedData,
+            historyFallbackFailure: {
+              symbol,
+              reasonCode: historyFallbackResult.reasonCode,
+              retryable: historyFallbackResult.retryable,
+            },
+            degradedReasonCode: null,
+          };
+        }
+        degradedReasonCode = historyFallbackResult.reasonCode;
+        this.logger.warn("历史兜底耗尽，降级为仅发送可用缓存数据", {
+          jobId,
+          clientId,
+          symbol,
+          provider: this.normalizeProviderName(provider),
+          reasonCode: historyFallbackResult.reasonCode,
+        });
+      }
+    }
+
+    const mergedData = this.mergeRecoveryData(
+      normalizedCacheData,
+      normalizedHistoryData,
+    );
+    return {
+      mergedData,
+      historyFallbackFailure: null,
+      degradedReasonCode,
+    };
+  }
+
+  private async finalizeRecoveryJobSuccess(params: {
+    startTime: number;
+    clientId: string;
+    symbols: string[];
+    lastReceiveTimestamp: number;
+    currentTime: number;
+    finalRecoveredData: StreamDataPoint[];
+    cachePoints: number;
+    historyPoints: number;
+    degradedReasonCode: string | null;
+  }): Promise<RecoveryResult> {
+    const {
+      startTime,
+      clientId,
+      symbols,
+      lastReceiveTimestamp,
+      currentTime,
+      finalRecoveredData,
+      cachePoints,
+      historyPoints,
+      degradedReasonCode,
+    } = params;
+    const metadata = this.buildRecoveryDataMetadata(cachePoints, historyPoints);
+
+    if (finalRecoveredData.length > 0) {
+      await this.sendRecoveryDataToClient(clientId, finalRecoveredData, metadata);
+    }
+
+    const recoveryTime = Date.now() - startTime;
+    const degraded = degradedReasonCode !== null;
+    if (degraded) {
+      this.emitRecoveryEvent("job_degraded", {
+        operation: "recovery_job",
+        duration: recoveryTime,
+        data_points: finalRecoveredData.length,
+        status: "error",
+        error_type: degradedReasonCode || "recovery_degraded",
+        client_id: clientId,
+      });
+    } else {
+      this.emitRecoveryEvent("job_completed", {
+        operation: "recovery_job",
+        duration: recoveryTime,
+        data_points: finalRecoveredData.length,
+        status: "success",
+        client_id: clientId,
+      });
+    }
+
+    if (degraded && finalRecoveredData.length === 0) {
+      await this.handleRecoveryFailure(clientId, symbols);
+    }
+
+    return {
+      clientId,
+      recoveredDataPoints: finalRecoveredData.length,
+      symbols,
+      timeRange: {
+        from: lastReceiveTimestamp,
+        to: currentTime,
+      },
+      success: true,
+      degraded,
+      retryable: degradedReasonCode ? false : undefined,
+      reasonCode: degradedReasonCode || undefined,
+    };
+  }
+
+  private async finalizeRecoveryJobFailure(params: {
+    error: unknown;
+    job: Job<RecoveryJob>;
+    clientId: string;
+    symbols: string[];
+    lastReceiveTimestamp: number;
+  }): Promise<RecoveryResult> {
+    const { error, job, clientId, symbols, lastReceiveTimestamp } = params;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const reasonCode =
+      typeof (error as any)?.context?.reasonCode === "string" &&
+      (error as any).context.reasonCode.trim().length > 0
+        ? (error as any).context.reasonCode
+        : "recovery_job_failed";
+    const retryable = Boolean((error as any)?.retryable);
+    const isBullWorkerJob = typeof (job as any)?.moveToFailed === "function";
+    const isFinalAttempt =
+      Number.isFinite(job.attemptsMade) &&
+      job.attemptsMade + 1 >= this.config.worker.maxRetries;
+
+    this.logger.error("补发任务处理失败", {
+      jobId: job.id,
+      clientId,
+      error: errorMessage,
+      reasonCode,
+      retryable,
+      retryCount: job.attemptsMade,
+    });
+
+    if (retryable && isBullWorkerJob && !isFinalAttempt) {
+      throw error;
+    }
+
+    if (isFinalAttempt) {
+      await this.handleRecoveryFailure(clientId, symbols);
+    }
+
+    return {
+      clientId,
+      recoveredDataPoints: 0,
+      symbols,
+      timeRange: {
+        from: lastReceiveTimestamp,
+        to: Date.now(),
+      },
+      success: false,
+      error: errorMessage,
+      retryable,
+      reasonCode,
+    };
   }
 
   /**
    * QPS限流检查
    */
   private checkRateLimit(provider: string): boolean {
+    const normalizedProvider = this.normalizeProviderName(provider) || "default";
     const now = Date.now();
-    let limiter = this.rateLimiter.get(provider);
+    let limiter = this.rateLimiter.get(normalizedProvider);
 
-    const rateLimitConfig = this.configService.getRateLimitConfig(provider);
+    const rateLimitConfig = this.configService.getRateLimitConfig(normalizedProvider);
 
     if (!limiter) {
       limiter = {
         tokens: rateLimitConfig.burstSize,
         lastRefill: now,
       };
-      this.rateLimiter.set(provider, limiter);
+      this.rateLimiter.set(normalizedProvider, limiter);
     }
 
     // Token bucket算法
@@ -518,6 +796,7 @@ export class StreamRecoveryWorkerService
   private async sendRecoveryDataToClient(
     clientId: string,
     data: StreamDataPoint[],
+    metadata: RecoveryDataMetadata = this.buildRecoveryDataMetadata(data.length, 0),
   ): Promise<void> {
     try {
       await UniversalRetryHandler.networkRetry(
@@ -610,6 +889,9 @@ export class StreamRecoveryWorkerService
                 isLastBatch,
                 clientId, // 添加clientId便于客户端校验
                 dataPointsCount: batch.length,
+                source: metadata.source,
+                cachePoints: metadata.cachePoints,
+                historyPoints: metadata.historyPoints,
               },
             };
 
@@ -655,6 +937,739 @@ export class StreamRecoveryWorkerService
         client_id: clientId
       });
     }
+  }
+
+  private getHistoryFallbackConfig(): RecoveryHistoryFallbackConfig {
+    const fallbackConfig: Partial<RecoveryHistoryFallbackConfig> =
+      this.config?.recovery?.historyFallback || {};
+
+    return {
+      enabled:
+        typeof fallbackConfig.enabled === "boolean"
+          ? fallbackConfig.enabled
+          : DEFAULT_RECOVERY_HISTORY_FALLBACK.enabled,
+      gapThresholdMs:
+        typeof fallbackConfig.gapThresholdMs === "number" &&
+        Number.isFinite(fallbackConfig.gapThresholdMs) &&
+        fallbackConfig.gapThresholdMs > 0
+          ? fallbackConfig.gapThresholdMs
+          : DEFAULT_RECOVERY_HISTORY_FALLBACK.gapThresholdMs,
+      minCoverageRatio:
+        typeof fallbackConfig.minCoverageRatio === "number" &&
+        Number.isFinite(fallbackConfig.minCoverageRatio) &&
+        fallbackConfig.minCoverageRatio >= 0 &&
+        fallbackConfig.minCoverageRatio <= 1
+          ? fallbackConfig.minCoverageRatio
+          : DEFAULT_RECOVERY_HISTORY_FALLBACK.minCoverageRatio,
+      maxHistoryPoints:
+        typeof fallbackConfig.maxHistoryPoints === "number" &&
+        Number.isFinite(fallbackConfig.maxHistoryPoints) &&
+        fallbackConfig.maxHistoryPoints > 0
+          ? Math.floor(fallbackConfig.maxHistoryPoints)
+          : DEFAULT_RECOVERY_HISTORY_FALLBACK.maxHistoryPoints,
+      preferredProvider:
+        typeof fallbackConfig.preferredProvider === "string" &&
+        fallbackConfig.preferredProvider.trim().length > 0
+          ? fallbackConfig.preferredProvider.trim()
+          : DEFAULT_RECOVERY_HISTORY_FALLBACK.preferredProvider,
+      klineType: this.normalizeHistoryKlineType(fallbackConfig.klineType),
+      crossProviderFailoverEnabled:
+        typeof fallbackConfig.crossProviderFailoverEnabled === "boolean"
+          ? fallbackConfig.crossProviderFailoverEnabled
+          : DEFAULT_RECOVERY_HISTORY_FALLBACK.crossProviderFailoverEnabled,
+      crossProviderAllowlist: Array.isArray(fallbackConfig.crossProviderAllowlist)
+        ? Array.from(
+            new Set(
+              fallbackConfig.crossProviderAllowlist
+                .map((item) => this.normalizeProviderName(item))
+                .filter((item) => item.length > 0),
+            ),
+          )
+        : [...DEFAULT_RECOVERY_HISTORY_FALLBACK.crossProviderAllowlist],
+    };
+  }
+
+  private normalizeProviderName(provider: unknown): string {
+    return normalizeProviderName(String(provider || ""));
+  }
+
+  private normalizeRecoverySymbol(symbol: unknown): string {
+    return String(symbol || "")
+      .trim()
+      .toUpperCase();
+  }
+
+  private normalizeHistoryKlineType(klineType: unknown): number {
+    const normalizedKlineType = Math.trunc(Number(klineType));
+    if (SUPPORTED_HISTORY_KLINE_TYPES.has(normalizedKlineType)) {
+      return normalizedKlineType;
+    }
+    return DEFAULT_RECOVERY_HISTORY_FALLBACK.klineType;
+  }
+
+  private buildHistoryFallbackProviders(
+    primaryProvider: string,
+    fallbackConfig: RecoveryHistoryFallbackConfig,
+  ): string[] {
+    const normalizedPrimary = this.normalizeProviderName(primaryProvider);
+    const normalizedPreferred = this.normalizeProviderName(
+      fallbackConfig.preferredProvider,
+    );
+    const resolvedPrimary = normalizedPrimary || normalizedPreferred;
+
+    if (!resolvedPrimary) {
+      return [];
+    }
+
+    const candidates = [resolvedPrimary];
+    if (!fallbackConfig.crossProviderFailoverEnabled) {
+      return candidates;
+    }
+
+    const allowlistedProviders: string[] = [];
+    for (const allowlistedProvider of fallbackConfig.crossProviderAllowlist) {
+      const normalizedAllowlistedProvider = this.normalizeProviderName(
+        allowlistedProvider,
+      );
+      if (normalizedAllowlistedProvider) {
+        allowlistedProviders.push(normalizedAllowlistedProvider);
+      }
+    }
+
+    const dedupedAllowlistedProviders = Array.from(new Set(allowlistedProviders));
+    const preferredInAllowlist =
+      normalizedPreferred.length > 0 &&
+      dedupedAllowlistedProviders.includes(normalizedPreferred);
+    if (preferredInAllowlist && normalizedPreferred !== resolvedPrimary) {
+      candidates.unshift(normalizedPreferred);
+    }
+    for (const allowlistedProvider of dedupedAllowlistedProviders) {
+      if (allowlistedProvider !== resolvedPrimary) {
+        candidates.push(allowlistedProvider);
+      }
+    }
+
+    return Array.from(new Set(candidates));
+  }
+
+  private getCoverageBucketIntervalMs(klineType: number): number {
+    const normalizedKlineType = Math.trunc(Number(klineType));
+    if (!Number.isFinite(normalizedKlineType) || normalizedKlineType <= 0) {
+      return ONE_MINUTE_MS;
+    }
+
+    if (normalizedKlineType > 24 * 60) {
+      return ONE_MINUTE_MS;
+    }
+
+    return normalizedKlineType * ONE_MINUTE_MS;
+  }
+
+  private shouldTriggerHistoryFallback(
+    cacheData: StreamDataPoint[],
+    lastReceiveTimestamp: number,
+    currentTime: number,
+    fallbackConfig: RecoveryHistoryFallbackConfig,
+  ): boolean {
+    if (
+      !Number.isFinite(lastReceiveTimestamp) ||
+      !Number.isFinite(currentTime) ||
+      currentTime <= lastReceiveTimestamp
+    ) {
+      return false;
+    }
+
+    if (!fallbackConfig.enabled) {
+      return false;
+    }
+
+    if (!cacheData || cacheData.length === 0) {
+      return true;
+    }
+
+    const sorted = this.sortRecoveryData(cacheData);
+    const firstCacheTimestamp = sorted[0]?.t;
+    if (
+      Number.isFinite(firstCacheTimestamp) &&
+      firstCacheTimestamp - lastReceiveTimestamp > fallbackConfig.gapThresholdMs
+    ) {
+      return true;
+    }
+
+    const lastCacheTimestamp = sorted[sorted.length - 1]?.t;
+    if (
+      Number.isFinite(lastCacheTimestamp) &&
+      currentTime - lastCacheTimestamp > fallbackConfig.gapThresholdMs
+    ) {
+      return true;
+    }
+
+    const bucketIntervalMs = this.getCoverageBucketIntervalMs(
+      fallbackConfig.klineType,
+    );
+    const expectedPoints = this.calculateExpectedPoints(
+      lastReceiveTimestamp,
+      currentTime,
+      bucketIntervalMs,
+    );
+    const coveredBuckets = new Set(
+      sorted.map((point) => Math.floor(point.t / bucketIntervalMs)),
+    ).size;
+    const coverageRatio =
+      expectedPoints <= 0
+        ? 1
+        : Math.min(1, coveredBuckets / expectedPoints);
+
+    return coverageRatio < fallbackConfig.minCoverageRatio;
+  }
+
+  private calculateExpectedPoints(
+    windowStart: number,
+    windowEnd: number,
+    bucketIntervalMs = ONE_MINUTE_MS,
+  ): number {
+    if (
+      !Number.isFinite(windowStart) ||
+      !Number.isFinite(windowEnd) ||
+      windowEnd <= windowStart
+    ) {
+      return 1;
+    }
+
+    const duration = windowEnd - windowStart;
+    const safeBucketIntervalMs =
+      Number.isFinite(bucketIntervalMs) && bucketIntervalMs > 0
+        ? bucketIntervalMs
+        : ONE_MINUTE_MS;
+    return Math.max(1, Math.floor(duration / safeBucketIntervalMs) + 1);
+  }
+
+  private calculateHistoryPoints(
+    windowStart: number,
+    windowEnd: number,
+    klineType: number,
+    maxHistoryPoints: number,
+  ): number {
+    const expectedPoints = this.calculateExpectedPoints(
+      windowStart,
+      windowEnd,
+      this.getCoverageBucketIntervalMs(klineType),
+    );
+    return Math.max(1, Math.min(expectedPoints, maxHistoryPoints));
+  }
+
+  private async fetchHistoryFallbackPoints(params: {
+    provider: string;
+    symbol: string;
+    lastReceiveTimestamp: number;
+    currentTime: number;
+    fallbackConfig: RecoveryHistoryFallbackConfig;
+  }): Promise<HistoryFallbackAttemptResult> {
+    const {
+      provider,
+      symbol,
+      lastReceiveTimestamp,
+      currentTime,
+      fallbackConfig,
+    } = params;
+    const candidateProviders = this.buildHistoryFallbackProviders(
+      provider,
+      fallbackConfig,
+    );
+    let lastReasonCode = "history_fallback_exhausted";
+    let retryableReasonCode: string | null = null;
+
+    if (candidateProviders.length === 0) {
+      const reasonCode = "history_provider_missing";
+      return {
+        points: [],
+        exhausted: true,
+        retryable: this.isRetryableHistoryFallbackReason(reasonCode),
+        reasonCode,
+      };
+    }
+
+    for (const candidateProvider of candidateProviders) {
+      try {
+        const capabilityName = CAPABILITY_NAMES.GET_STOCK_HISTORY;
+        const executionContext = await this.resolveHistoryExecutionContext(
+          candidateProvider,
+          capabilityName,
+        );
+        if (
+          !executionContext.capability ||
+          !executionContext.contextService
+        ) {
+          lastReasonCode = executionContext.reasonCode;
+          this.logger.warn("历史兜底能力或上下文缺失，跳过 Provider", {
+            symbol,
+            provider: candidateProvider,
+            reasonCode: executionContext.reasonCode,
+            hasCapability: Boolean(executionContext.capability),
+            hasContextService: Boolean(executionContext.contextService),
+          });
+          continue;
+        }
+
+        if (!this.checkRateLimit(candidateProvider)) {
+          lastReasonCode = "history_rate_limit_exceeded";
+          retryableReasonCode = "history_rate_limit_exceeded";
+          this.logger.warn("历史兜底查询触发限流，跳过 Provider", {
+            symbol,
+            provider: candidateProvider,
+            reasonCode: "history_rate_limit_exceeded",
+          });
+          continue;
+        }
+
+        const historyResponse = await executionContext.capability.execute({
+          symbols: [symbol],
+          klineType: fallbackConfig.klineType,
+          klineNum: this.calculateHistoryPoints(
+            lastReceiveTimestamp,
+            currentTime,
+            fallbackConfig.klineType,
+            fallbackConfig.maxHistoryPoints,
+          ),
+          timestamp: currentTime,
+          preferredProvider: candidateProvider,
+          options: {
+            preferredProvider: candidateProvider,
+            klineType: fallbackConfig.klineType,
+          },
+          contextService: executionContext.contextService,
+        });
+
+        const historyPointsLimit = Math.max(1, fallbackConfig.maxHistoryPoints);
+        const historyRows = Array.isArray(historyResponse?.quote_data)
+          ? historyResponse.quote_data
+          : [];
+        const truncatedHistoryRows =
+          historyRows.length > historyPointsLimit
+            ? historyRows.slice(historyRows.length - historyPointsLimit)
+            : historyRows;
+        if (truncatedHistoryRows.length !== historyRows.length) {
+          this.logger.warn("历史兜底数据超出上限，已执行本地截断", {
+            symbol,
+            provider: candidateProvider,
+            configuredLimit: historyPointsLimit,
+            originalRows: historyRows.length,
+            truncatedRows: truncatedHistoryRows.length,
+          });
+        }
+        const mappedPoints = this.mapHistoryRowsToStreamDataPoints(
+          symbol,
+          truncatedHistoryRows,
+          lastReceiveTimestamp,
+          currentTime,
+        );
+        if (mappedPoints.length === 0) {
+          lastReasonCode = "history_mapping_empty";
+          this.logger.warn("历史兜底映射为空，尝试下一个 Provider", {
+            symbol,
+            provider: candidateProvider,
+            reasonCode: "history_mapping_empty",
+            rawRowsCount: truncatedHistoryRows.length,
+          });
+          continue;
+        }
+        return {
+          points: mappedPoints,
+          exhausted: false,
+          retryable: false,
+          reasonCode: "success",
+        };
+      } catch (error) {
+        const classifiedError = this.classifyHistoryFallbackError(error);
+        lastReasonCode = classifiedError.reasonCode;
+        if (classifiedError.retryable) {
+          retryableReasonCode = classifiedError.reasonCode;
+        }
+        this.logger.warn("历史兜底查询失败，尝试下一个 Provider", {
+          symbol,
+          provider: candidateProvider,
+          reasonCode: classifiedError.reasonCode,
+          retryable: classifiedError.retryable,
+          error: error?.message || String(error),
+        });
+      }
+    }
+
+    return {
+      points: [],
+      exhausted: true,
+      retryable:
+        retryableReasonCode !== null ||
+        this.isRetryableHistoryFallbackReason(lastReasonCode),
+      reasonCode: retryableReasonCode || lastReasonCode,
+    };
+  }
+
+  private isRetryableHistoryFallbackReason(reasonCode: string): boolean {
+    return RETRYABLE_HISTORY_FALLBACK_REASONS.has(reasonCode);
+  }
+
+  private classifyHistoryFallbackError(
+    error: unknown,
+  ): HistoryFallbackErrorClassification {
+    const contextReasonCode =
+      typeof (error as any)?.context?.reasonCode === "string" &&
+      (error as any).context.reasonCode.trim().length > 0
+        ? (error as any).context.reasonCode.trim()
+        : "";
+    const explicitRetryable =
+      typeof (error as any)?.retryable === "boolean"
+        ? Boolean((error as any).retryable)
+        : null;
+
+    if (contextReasonCode) {
+      if (explicitRetryable !== null) {
+        return {
+          reasonCode: contextReasonCode,
+          retryable: explicitRetryable,
+        };
+      }
+      return {
+        reasonCode: contextReasonCode,
+        retryable: this.isRetryableHistoryFallbackReason(contextReasonCode),
+      };
+    }
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message.toLowerCase()
+        : String(error || "").toLowerCase();
+    const errorCode = String((error as any)?.code || "")
+      .trim()
+      .toLowerCase();
+    const errorName = String((error as any)?.name || "")
+      .trim()
+      .toLowerCase();
+    const statusCode = this.resolveErrorStatusCode(error);
+
+    const isRateLimited =
+      statusCode === 429 ||
+      errorCode === "429" ||
+      errorCode.includes("ratelimit") ||
+      errorCode.includes("throttle") ||
+      errorMessage.includes("429") ||
+      errorMessage.includes("rate limit") ||
+      errorMessage.includes("too many requests") ||
+      errorMessage.includes("throttle");
+    if (isRateLimited) {
+      return {
+        reasonCode: "history_rate_limit_exceeded",
+        retryable: true,
+      };
+    }
+
+    const isTimeout =
+      statusCode === 408 ||
+      errorCode.includes("timeout") ||
+      errorCode.includes("timedout") ||
+      errorName.includes("timeout") ||
+      errorMessage.includes("timeout") ||
+      errorMessage.includes("timed out");
+    if (isTimeout) {
+      return {
+        reasonCode: "history_query_timeout",
+        retryable: true,
+      };
+    }
+
+    const isTemporaryUnavailable =
+      statusCode === 502 ||
+      statusCode === 503 ||
+      statusCode === 504 ||
+      errorCode === "econnrefused" ||
+      errorCode === "econnreset" ||
+      errorCode === "enotfound" ||
+      errorCode === "enetunreach" ||
+      errorCode === "eai_again" ||
+      errorMessage.includes("service unavailable") ||
+      errorMessage.includes("temporarily unavailable") ||
+      errorMessage.includes("connection reset");
+    if (isTemporaryUnavailable) {
+      return {
+        reasonCode: "history_query_unavailable",
+        retryable: true,
+      };
+    }
+
+    const isRetryableConflict = statusCode === 409 || statusCode === 425;
+    if (isRetryableConflict) {
+      return {
+        reasonCode: "history_query_temporary_failure",
+        retryable: true,
+      };
+    }
+
+    const isContractError =
+      (Number.isFinite(statusCode) && statusCode! >= 400 && statusCode! < 500) ||
+      errorName.includes("validation") ||
+      errorName.includes("typeerror") ||
+      errorName.includes("syntaxerror") ||
+      errorMessage.includes("invalid") ||
+      errorMessage.includes("validation") ||
+      errorMessage.includes("schema") ||
+      errorMessage.includes("contract") ||
+      errorMessage.includes("malformed") ||
+      errorMessage.includes("required");
+    if (isContractError) {
+      return {
+        reasonCode: "history_query_contract_invalid",
+        retryable: false,
+      };
+    }
+
+    if (explicitRetryable !== null) {
+      return {
+        reasonCode: explicitRetryable
+          ? "history_query_temporary_failure"
+          : "history_query_failed",
+        retryable: explicitRetryable,
+      };
+    }
+
+    return {
+      reasonCode: "history_query_failed",
+      retryable: false,
+    };
+  }
+
+  private resolveErrorStatusCode(error: unknown): number | null {
+    const directStatusCode = Number(
+      (error as any)?.statusCode ?? (error as any)?.status,
+    );
+    if (Number.isFinite(directStatusCode)) {
+      return directStatusCode;
+    }
+
+    if (typeof (error as any)?.getStatus === "function") {
+      const statusCode = Number((error as any).getStatus());
+      if (Number.isFinite(statusCode)) {
+        return statusCode;
+      }
+    }
+
+    return null;
+  }
+
+  private async resolveHistoryExecutionContext(
+    providerName: string,
+    capabilityName: string,
+  ): Promise<HistoryExecutionContextResolution> {
+    return Promise.resolve(
+      this.providerRegistry.resolveHistoryExecutionContext(
+        providerName,
+        capabilityName,
+      ),
+    );
+  }
+
+  private mapHistoryRowsToStreamDataPoints(
+    fallbackSymbol: string,
+    rows: any[],
+    windowStart: number,
+    windowEnd: number,
+  ): StreamDataPoint[] {
+    const points: StreamDataPoint[] = [];
+    const requestedSymbol = this.normalizeRecoverySymbol(fallbackSymbol);
+
+    for (const row of rows || []) {
+      const timestamp = this.normalizeTimestampMs(row?.timestamp);
+      if (!Number.isFinite(timestamp)) {
+        continue;
+      }
+      if (timestamp < windowStart || timestamp > windowEnd) {
+        continue;
+      }
+
+      const price = this.toFiniteNumber(row?.lastPrice ?? row?.price ?? row?.p);
+      if (!Number.isFinite(price)) {
+        continue;
+      }
+
+      const rowSymbol = this.normalizeRecoverySymbol(row?.symbol);
+      if (rowSymbol && requestedSymbol && rowSymbol !== requestedSymbol) {
+        this.logger.warn("历史兜底数据 symbol 不一致，已丢弃", {
+          requestedSymbol,
+          rowSymbol,
+          timestamp,
+        });
+        continue;
+      }
+      const symbol = rowSymbol || requestedSymbol;
+      if (!symbol) {
+        continue;
+      }
+
+      const volume = this.toFiniteNumber(row?.volume ?? row?.v) ?? 0;
+      const change = this.toFiniteNumber(row?.change ?? row?.c);
+      const changePercent = this.toFiniteNumber(row?.changePercent ?? row?.cp);
+
+      const point: StreamDataPoint = {
+        s: symbol,
+        p: price,
+        v: volume,
+        t: timestamp,
+      };
+      if (change !== null) {
+        point.c = change;
+      }
+      if (changePercent !== null) {
+        point.cp = changePercent;
+      }
+      points.push(point);
+    }
+
+    return this.sortRecoveryData(points);
+  }
+
+  private normalizeStreamDataPoints(
+    data: StreamDataPoint[],
+    fallbackSymbol: string,
+    windowStart: number,
+    windowEnd: number,
+  ): StreamDataPoint[] {
+    const points: StreamDataPoint[] = [];
+
+    for (const item of data || []) {
+      const timestamp = this.normalizeTimestampMs((item as any)?.t);
+      const price = this.toFiniteNumber((item as any)?.p);
+      if (!Number.isFinite(timestamp) || !Number.isFinite(price)) {
+        continue;
+      }
+      if (timestamp < windowStart || timestamp > windowEnd) {
+        continue;
+      }
+
+      const symbol = this.normalizeRecoverySymbol(
+        (item as any)?.s || fallbackSymbol,
+      );
+      if (!symbol) {
+        continue;
+      }
+
+      const point: StreamDataPoint = {
+        s: symbol,
+        p: price,
+        v: this.toFiniteNumber((item as any)?.v) ?? 0,
+        t: timestamp,
+      };
+      const change = this.toFiniteNumber((item as any)?.c);
+      const changePercent = this.toFiniteNumber((item as any)?.cp);
+      if (change !== null) {
+        point.c = change;
+      }
+      if (changePercent !== null) {
+        point.cp = changePercent;
+      }
+      points.push(point);
+    }
+
+    return this.sortRecoveryData(points);
+  }
+
+  private mergeRecoveryData(
+    cachePoints: StreamDataPoint[],
+    historyPoints: StreamDataPoint[],
+  ): MergedRecoveryDataResult {
+    const mergedByTimestamp = new Map<
+      string,
+      { point: StreamDataPoint; source: "cache" | "history" }
+    >();
+
+    for (const point of historyPoints) {
+      mergedByTimestamp.set(this.buildRecoveryBucketKey(point), {
+        point,
+        source: "history",
+      });
+    }
+    // 缓存数据优先，覆盖同毫秒历史点，保留同分钟内不同时间点
+    for (const point of cachePoints) {
+      mergedByTimestamp.set(this.buildRecoveryBucketKey(point), {
+        point,
+        source: "cache",
+      });
+    }
+
+    const mergedValues = Array.from(mergedByTimestamp.values());
+    let mergedCachePoints = 0;
+    let mergedHistoryPoints = 0;
+
+    for (const entry of mergedValues) {
+      if (entry.source === "cache") {
+        mergedCachePoints += 1;
+        continue;
+      }
+      mergedHistoryPoints += 1;
+    }
+
+    return {
+      points: this.sortRecoveryData(mergedValues.map((entry) => entry.point)),
+      cachePoints: mergedCachePoints,
+      historyPoints: mergedHistoryPoints,
+    };
+  }
+
+  private buildRecoveryBucketKey(point: StreamDataPoint): string {
+    return `${point.s}|${Math.trunc(point.t)}`;
+  }
+
+  private sortRecoveryData(points: StreamDataPoint[]): StreamDataPoint[] {
+    return [...(points || [])].sort((a, b) => a.t - b.t);
+  }
+
+  private buildRecoveryDataMetadata(
+    cachePoints: number,
+    historyPoints: number,
+  ): RecoveryDataMetadata {
+    if (cachePoints > 0 && historyPoints > 0) {
+      return { source: "mixed", cachePoints, historyPoints };
+    }
+    if (historyPoints > 0) {
+      return { source: "history", cachePoints, historyPoints };
+    }
+    return { source: "cache", cachePoints, historyPoints };
+  }
+
+  private normalizeTimestampMs(rawTimestamp: unknown): number | null {
+    if (typeof rawTimestamp === "number" && Number.isFinite(rawTimestamp)) {
+      const rounded = Math.trunc(rawTimestamp);
+      const digitCount = Math.abs(rounded).toString().length;
+      if (digitCount === 10) {
+        return rounded * 1000;
+      }
+      if (digitCount === 13) {
+        return rounded;
+      }
+      return null;
+    }
+
+    if (typeof rawTimestamp === "string") {
+      const value = rawTimestamp.trim();
+      if (!value) {
+        return null;
+      }
+
+      if (/^\d+$/.test(value)) {
+        return this.normalizeTimestampMs(Number(value));
+      }
+
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private toFiniteNumber(rawValue: unknown): number | null {
+    if (rawValue === undefined || rawValue === null || rawValue === "") {
+      return null;
+    }
+    const value = Number(rawValue);
+    return Number.isFinite(value) ? value : null;
   }
 
   /**

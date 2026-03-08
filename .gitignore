@@ -209,3 +209,6 @@ serena/
 .serena/
 \n# Serena AI cache\n.serena/cache/
 .serena/project.yml
+.zcf
+.DS_Store
+.env

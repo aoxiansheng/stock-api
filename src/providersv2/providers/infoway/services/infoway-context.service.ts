@@ -81,12 +81,14 @@ interface InfowayBasicInfoItem {
 interface InfowayHistoryParams {
   symbols: string[];
   market?: string;
+  klineType?: number | string;
   klineNum?: number | string;
   timestamp?: number;
 }
 
 const MAX_TRADING_DAYS_RANGE = 366;
 const MAX_INTRADAY_KLINE_NUM = 500;
+const ALLOWED_HISTORY_KLINE_TYPES = new Set([1, 5, 15, 30, 60]);
 const INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE =
   "Infoway 参数错误: timestamp 必须是 10/13 位正整数时间戳";
 
@@ -126,13 +128,16 @@ export class InfowayContextService {
       min: 1,
       integer: true,
     });
-    this.intradayKlineType = this.readNumericConfig(
+    const configuredIntradayKlineType = this.readNumericConfig(
       "INFOWAY_INTRADAY_KLINE_TYPE",
       1,
       {
         min: 1,
         integer: true,
       },
+    );
+    this.intradayKlineType = this.normalizeConfiguredHistoryKlineType(
+      configuredIntradayKlineType,
     );
     this.intradayKlineNum = this.readNumericConfig(
       "INFOWAY_INTRADAY_KLINE_NUM",
@@ -271,9 +276,10 @@ export class InfowayContextService {
     }
 
     const effectiveKlineNum = this.resolveHistoryKlineNum(params.klineNum);
+    const effectiveKlineType = this.resolveHistoryKlineType(params.klineType);
     const historyTimestamp = this.resolveHistoryTimestamp(params.timestamp);
     const payload: Record<string, any> = {
-      klineType: this.intradayKlineType,
+      klineType: effectiveKlineType,
       klineNum: effectiveKlineNum,
       codes: normalizedSymbols.join(","),
     };
@@ -308,7 +314,7 @@ export class InfowayContextService {
     this.logger.debug("Infoway 分时历史获取成功", {
       requested: normalizedSymbols.length,
       received: historyData.length,
-      klineType: this.intradayKlineType,
+      klineType: effectiveKlineType,
       klineNum: effectiveKlineNum,
       hasTimestamp: Boolean(historyTimestamp),
     });
@@ -623,6 +629,45 @@ export class InfowayContextService {
     }
 
     return parsed;
+  }
+
+  private resolveHistoryKlineType(klineTypeInput?: number | string): number {
+    if (klineTypeInput === undefined || klineTypeInput === null) {
+      return this.intradayKlineType;
+    }
+    if (
+      typeof klineTypeInput === "string" &&
+      klineTypeInput.trim() === ""
+    ) {
+      return this.intradayKlineType;
+    }
+
+    const parsed = Number(klineTypeInput);
+    const isValid =
+      Number.isFinite(parsed) &&
+      Number.isInteger(parsed) &&
+      ALLOWED_HISTORY_KLINE_TYPES.has(parsed);
+    if (isValid) {
+      return parsed;
+    }
+
+    this.logger.warn("Infoway 历史请求 klineType 非法，已回退默认值", {
+      klineType: String(klineTypeInput),
+      defaultKlineType: this.intradayKlineType,
+    });
+    return this.intradayKlineType;
+  }
+
+  private normalizeConfiguredHistoryKlineType(klineType: number): number {
+    if (ALLOWED_HISTORY_KLINE_TYPES.has(klineType)) {
+      return klineType;
+    }
+
+    this.logger.warn("Infoway 默认历史 klineType 不受支持，已回退到 1 分钟", {
+      klineType,
+      fallbackKlineType: 1,
+    });
+    return 1;
   }
 
   private resolveHistoryTimestamp(timestampInput?: number): number | undefined {

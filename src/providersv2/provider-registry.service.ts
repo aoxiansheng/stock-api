@@ -15,6 +15,27 @@ export interface CapabilityMeta {
   isEnabled: boolean;
 }
 
+export type HistoryExecutionContextReasonCode =
+  | "missing_provider"
+  | "missing_capability"
+  | "missing_context_service"
+  | "invalid_context_service"
+  | "success";
+
+export interface HistoryExecutionContextResolution {
+  capability: ICapability | null;
+  contextService: unknown | null;
+  reasonCode: HistoryExecutionContextReasonCode;
+}
+
+export function normalizeProviderName(
+  providerName: string,
+  providerAliases: Readonly<Record<string, string>> = PROVIDER_NAME_ALIASES,
+): string {
+  const normalizedName = String(providerName || "").trim().toLowerCase();
+  return providerAliases[normalizedName] || normalizedName;
+}
+
 /**
  * ProviderRegistryService（极简版）
  * - 单一职责：显式注册已注入的 Provider，并提供查询/选择能力
@@ -26,10 +47,6 @@ export class ProviderRegistryService implements OnModuleInit {
 
   private readonly providers = new Map<string, IDataProvider>();
   private readonly capabilities = new Map<string, Map<string, CapabilityMeta>>();
-  // 仅解析 manifest 中显式声明的 alias 到标准 provider 名称
-  private readonly providerAliases = new Map<string, string>(
-    Object.entries(PROVIDER_NAME_ALIASES),
-  );
   private initialized = false;
 
   constructor(
@@ -159,7 +176,7 @@ export class ProviderRegistryService implements OnModuleInit {
 
   private registerProvider(provider: IDataProvider): void {
     if (!provider || !provider.name) return;
-    const providerName = this.normalizeProviderName(provider.name);
+    const providerName = normalizeProviderName(provider.name);
 
     this.providers.set(providerName, provider);
     this.ensureProviderMaps(providerName);
@@ -177,11 +194,6 @@ export class ProviderRegistryService implements OnModuleInit {
     });
   }
 
-  private normalizeProviderName(providerName: string): string {
-    const normalizedName = String(providerName || "").trim().toLowerCase();
-    return this.providerAliases.get(normalizedName) || normalizedName;
-  }
-
   private supportsMarket(capability: ICapability, market?: string): boolean {
     if (!market) {
       return true;
@@ -192,6 +204,10 @@ export class ProviderRegistryService implements OnModuleInit {
       (supportedMarket) =>
         String(supportedMarket || "").trim().toUpperCase() === targetMarket,
     );
+  }
+
+  private isGetStockHistoryCapability(capabilityName: string): boolean {
+    return String(capabilityName || "").trim().toLowerCase() === "get-stock-history";
   }
 
   // ============= 对外 API（与现有调用最小集保持一致） =============
@@ -215,7 +231,7 @@ export class ProviderRegistryService implements OnModuleInit {
   ): string[] {
     return this.providerPriorityPolicyService.rankCandidates(
       capabilityName,
-      candidates.map((provider) => this.normalizeProviderName(provider)),
+      candidates.map((provider) => normalizeProviderName(provider)),
     );
   }
 
@@ -230,14 +246,67 @@ export class ProviderRegistryService implements OnModuleInit {
   }
 
   getCapability(providerName: string, capabilityName: string): ICapability | null {
-    const resolvedName = this.normalizeProviderName(providerName);
+    const resolvedName = normalizeProviderName(providerName);
     const meta = this.capabilities.get(resolvedName)?.get(capabilityName);
     return meta?.isEnabled ? meta.capability : null;
   }
 
   getProvider(providerName: string): IDataProvider | undefined {
-    const resolvedName = this.normalizeProviderName(providerName);
+    const resolvedName = normalizeProviderName(providerName);
     return this.providers.get(resolvedName);
+  }
+
+  resolveHistoryExecutionContext(
+    providerName: string,
+    capabilityName: string,
+  ): HistoryExecutionContextResolution {
+    const provider = this.getProvider(providerName);
+    if (!provider) {
+      return {
+        capability: null,
+        contextService: null,
+        reasonCode: "missing_provider",
+      };
+    }
+
+    const capability = this.getCapability(providerName, capabilityName);
+    if (!capability) {
+      return {
+        capability: null,
+        contextService: null,
+        reasonCode: "missing_capability",
+      };
+    }
+
+    const contextService =
+      typeof provider.getContextService === "function"
+        ? provider.getContextService()
+        : null;
+    if (!contextService) {
+      return {
+        capability,
+        contextService: null,
+        reasonCode: "missing_context_service",
+      };
+    }
+
+    if (
+      this.isGetStockHistoryCapability(capabilityName) &&
+      typeof (contextService as { getStockHistory?: unknown }).getStockHistory !==
+        "function"
+    ) {
+      return {
+        capability,
+        contextService: null,
+        reasonCode: "invalid_context_service",
+      };
+    }
+
+    return {
+      capability,
+      contextService,
+      reasonCode: "success",
+    };
   }
 
   getAllCapabilities(): Map<string, Map<string, CapabilityMeta>> {

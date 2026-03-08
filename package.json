@@ -36,6 +36,8 @@
     "test:e2e:coverage": "jest --config test/jest.e2e.config.js --coverage --rootDir .",
     "// ========== 其他工具 ==========": "",
     "cli": "bun src/providers/cli/index.ts",
+    "tool:clean-worktree": "bash -lc 'check_path=\"${CLEAN_WORKTREE_PATH:-.}\"; targets=\"${CLEAN_WORKTREE_TARGETS:-.DS_Store .vscode/settings.json}\"; out=$(git -C \"$check_path\" status --short --ignored -- $targets) || exit $?; if [ -n \"$out\" ]; then echo \"[clean-worktree] Artifacts detected in $check_path:\"; echo \"$out\"; exit 1; fi'",
+    "tool:clean-worktree:ci": "bash -lc 'default_targets=\".DS_Store .vscode/settings.json .vscode/extensions.json .vscode/launch.json .vscode/tasks.json .idea/workspace.xml jest_html_reporters.html jest-html-reporters-attach coverage .nyc_output\"; CLEAN_WORKTREE_TARGETS=\"${CLEAN_WORKTREE_TARGETS:-$default_targets}\" npm run -s tool:clean-worktree'",
     "tool:bootstrap-apikey": "node scripts/tools/bootstrap-apikey.js",
     "tool:test-jvquant-ws": "node scripts/tools/test-jvquant-ws.js",
     "tool:test-infoway-rest": "node scripts/tools/test-infoway-rest.js",

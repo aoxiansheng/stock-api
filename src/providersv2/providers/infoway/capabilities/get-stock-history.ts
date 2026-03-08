@@ -70,6 +70,7 @@ export const getStockHistory: ICapability = {
   async execute(params: {
     symbols: string[];
     market?: string;
+    klineType?: number | string;
     klineNum?: number;
     timestamp?: number;
     contextService?: InfowayContextService;
@@ -121,6 +122,7 @@ export const getStockHistory: ICapability = {
     const historyData = await contextService.getStockHistory({
       symbols,
       market: normalizedMarket || undefined,
+      klineType: params.klineType,
       klineNum: params.klineNum,
       timestamp,
     });

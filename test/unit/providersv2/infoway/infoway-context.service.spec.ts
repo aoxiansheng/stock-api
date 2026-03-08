@@ -394,6 +394,7 @@ describe("InfowayContextService", () => {
 
     const result = await service.getStockHistory({
       symbols: ["AAPL.US"],
+      klineType: 5,
       klineNum: 2,
       timestamp: 1709251260,
     });
@@ -401,7 +402,7 @@ describe("InfowayContextService", () => {
     expect((service as any).client.post).toHaveBeenCalledWith(
       "/stock/v2/batch_kline",
       expect.objectContaining({
-        klineType: 1,
+        klineType: 5,
         klineNum: 2,
         codes: "AAPL.US",
         timestamp: 1709251260,
@@ -417,6 +418,35 @@ describe("InfowayContextService", () => {
       new Date(result[0].timestamp).getTime(),
     ).toBeLessThanOrEqual(new Date(result[1].timestamp).getTime());
   });
+
+  it.each([0, -1, 1.5, "bad-type", 3, 999])(
+    "getStockHistory: klineType=%p 非法时回退默认配置值",
+    async (klineType) => {
+      const service = createService({
+        INFOWAY_INTRADAY_KLINE_TYPE: 5,
+      });
+      (service as any).client.post.mockResolvedValue({
+        data: {
+          ret: 200,
+          data: [],
+        },
+      });
+
+      await service.getStockHistory({
+        symbols: ["AAPL.US"],
+        klineType: klineType as any,
+      });
+
+      expect((service as any).client.post).toHaveBeenCalledWith(
+        "/stock/v2/batch_kline",
+        expect.objectContaining({
+          klineType: 5,
+          codes: "AAPL.US",
+        }),
+        expect.any(Object),
+      );
+    },
+  );
 
   it.each([
     {
@@ -558,12 +588,12 @@ describe("InfowayContextService", () => {
     expect((service as any).client.post).not.toHaveBeenCalled();
   });
 
-  it("关键数值配置非法时回退默认值", () => {
+  it("关键数值配置非法或不受支持时回退默认值", () => {
     const service = createService({
       INFOWAY_HTTP_TIMEOUT_MS: "bad-timeout",
       INFOWAY_QUOTE_KLINE_TYPE: 0,
       INFOWAY_QUOTE_KLINE_NUM: -2,
-      INFOWAY_INTRADAY_KLINE_TYPE: 0,
+      INFOWAY_INTRADAY_KLINE_TYPE: 3,
       INFOWAY_INTRADAY_KLINE_NUM: -2,
       INFOWAY_INTRADAY_LOOKBACK_DAYS: 0,
     });
