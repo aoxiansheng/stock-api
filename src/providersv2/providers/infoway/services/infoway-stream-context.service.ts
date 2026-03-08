@@ -7,7 +7,6 @@ import {
   throwInfowayConfigurationError,
   throwInfowayDataValidationError,
 } from "../helpers/capability-context.helper";
-import { normalizeInfowayTimestampToIso } from "../utils/infoway-datetime.util";
 import { sanitizeInfowayUpstreamMessage } from "../utils/infoway-error.util";
 import {
   INFOWAY_SYMBOL_LIMIT,
@@ -27,7 +26,6 @@ export class InfowayStreamContextService implements OnModuleDestroy {
   private readonly reconnectMaxDelayMs: number;
   private readonly reconnectJitterMs: number;
   private readonly maxReconnectAttempts: number;
-  private readonly klineType: number;
   private readonly wsAuthFrameCode: number;
 
   private socket: any | null = null;
@@ -99,10 +97,6 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         integer: true,
       },
     );
-    this.klineType = this.readNumericConfig("INFOWAY_WS_KLINE_TYPE", 1, {
-      min: 1,
-      integer: true,
-    });
     this.wsAuthFrameCode = this.readNumericConfig("INFOWAY_WS_AUTH_FRAME_CODE", 90001, {
       min: 1,
       integer: true,
@@ -184,15 +178,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     await this.initializeWebSocket();
 
     this.sendJson({
-      code: 10006,
+      code: 10000,
       trace: randomUUID().replace(/-/g, ""),
       data: {
-        arr: [
-          {
-            type: this.klineType,
-            codes: newSymbols.join(","),
-          },
-        ],
+        codes: newSymbols.join(","),
       },
     });
 
@@ -202,7 +191,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     this.logger.debug("Infoway WebSocket 订阅发送成功", {
       symbolsCount: newSymbols.length,
       preview: newSymbols.slice(0, 10),
-      klineType: this.klineType,
+      protocolCode: 10000,
     });
   }
 
@@ -224,11 +213,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
 
     this.sendJson({
-      code: 11002,
+      code: 11000,
       trace: randomUUID().replace(/-/g, ""),
       data: {
         codes: normalized.join(","),
-        klineTypes: String(this.klineType),
       },
     });
   }
@@ -352,9 +340,8 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         this.startHeartbeat();
 
         try {
-          if (authMode === "frame") {
-            this.sendAuthFrame();
-          }
+          // 始终发送认证帧，避免握手 header 在部分运行时被静默忽略时发生鉴权漂移。
+          this.sendAuthFrame();
         } catch {
           settled = true;
           this.socket = null;
@@ -453,15 +440,13 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       return;
     }
 
-    if (payload.code === 10008 && payload.data) {
-      const quote = this.mapPushToQuote(payload.data);
-      if (!quote) {
+    if (payload.code === 10002) {
+      if (!payload.data || typeof payload.data !== "object") {
         return;
       }
-
       for (const callback of this.messageCallbacks) {
         try {
-          callback(quote);
+          callback(payload.data);
         } catch {
           // ignore callback failure
         }
@@ -469,7 +454,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       return;
     }
 
-    if (payload.code === 10007 || payload.code === 11010) {
+    if (payload.code === 10001 || payload.code === 11010) {
       return;
     }
 
@@ -479,44 +464,6 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         msg: sanitizeInfowayUpstreamMessage(payload.msg),
       });
     }
-  }
-
-  private mapPushToQuote(data: any): any | null {
-    const symbol = String(data?.s || "").trim().toUpperCase();
-    const lastPrice = this.toNumber(data?.c);
-
-    if (!symbol || lastPrice == null) {
-      return null;
-    }
-
-    const change = this.toNumber(data?.pca);
-    const previousClose =
-      change == null ? null : this.normalizeNumber(lastPrice - change);
-    const timestamp = normalizeInfowayTimestampToIso(data?.t);
-    if (!timestamp) {
-      this.logger.warn("Infoway 推送时间戳解析失败，已丢弃脏数据", {
-        symbol,
-        rawTimestamp: data?.t,
-      });
-      return null;
-    }
-
-    return {
-      symbol,
-      lastPrice,
-      previousClose,
-      openPrice: this.toNumber(data?.o),
-      highPrice: this.toNumber(data?.h),
-      lowPrice: this.toNumber(data?.l),
-      volume: this.toNumber(data?.v),
-      turnover: this.toNumber(data?.vw),
-      change,
-      changePercent: this.toPercentNumber(data?.pfr),
-      timestamp,
-      tradeStatus: "Normal",
-      sourceProvider: "infoway",
-      sourceSymbol: symbol,
-    };
   }
 
   private buildWsUrl(): string {
@@ -664,15 +611,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         const symbols = Array.from(this.subscribedSymbols);
         if (symbols.length > 0) {
           this.sendJson({
-            code: 10006,
+            code: 10000,
             trace: randomUUID().replace(/-/g, ""),
             data: {
-              arr: [
-                {
-                  type: this.klineType,
-                  codes: symbols.join(","),
-                },
-              ],
+              codes: symbols.join(","),
             },
           });
         }
@@ -745,31 +687,4 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     return defaultValue;
   }
 
-  private toNumber(value: unknown): number | null {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    const text = String(value).trim().replace(/,/g, "");
-    if (!text) {
-      return null;
-    }
-    const parsed = Number(text);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  private toPercentNumber(value: unknown): number | null {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    const text = String(value).trim().replace(/%/g, "");
-    if (!text) {
-      return null;
-    }
-    const parsed = Number(text);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  private normalizeNumber(value: number): number {
-    return Number(value.toFixed(6));
-  }
 }

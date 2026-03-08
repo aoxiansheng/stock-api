@@ -47,6 +47,7 @@ export class RuleAlignmentService {
       "change", // 涨跌额
       "changePercent", // 涨跌幅
       "timestamp", // 时间戳
+      "tradeDirection", // 成交方向
       "tradeStatus", // 交易状态
       // 盘前字段
       "preMarketPrice",
@@ -394,6 +395,19 @@ export class RuleAlignmentService {
         },
         { new: true },
       );
+      if (!updatedRule) {
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.DATA_MAPPER,
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: "realignExistingRule",
+          message: `Rule not found after update: ${dataMapperRuleId}`,
+          context: {
+            ruleId: dataMapperRuleId,
+            errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND,
+          },
+          retryable: false,
+        });
+      }
 
       this.logger.log(`规则重新对齐完成`, {
         dataMapperRuleId,
@@ -508,6 +522,19 @@ export class RuleAlignmentService {
       },
       { new: true },
     );
+    if (!updatedRule) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.DATA_MAPPER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: "manualAdjustFieldMapping",
+        message: `Rule not found after update: ${dataMapperRuleId}`,
+        context: {
+          ruleId: dataMapperRuleId,
+          errorType: DATA_MAPPER_ERROR_CODES.MAPPING_RULE_NOT_FOUND,
+        },
+        retryable: false,
+      });
+    }
 
     this.logger.log(`字段映射手动调整完成`, {
       dataMapperRuleId,
@@ -701,9 +728,12 @@ export class RuleAlignmentService {
     targetField: string,
     sourceField: any,
   ): number {
-    const sourceName = sourceField.fieldName.toLowerCase();
-    const sourcePath = sourceField.fieldPath.toLowerCase();
+    const sourceName = String(sourceField?.fieldName || "").toLowerCase();
+    const sourcePath = String(sourceField?.fieldPath || "").toLowerCase();
     const target = targetField.toLowerCase();
+    if (!sourceName || !sourcePath) {
+      return 0;
+    }
     const sourceLastSegment = sourcePath.split(".").pop();
     const sourceFieldType =
       typeof sourceField.fieldType === "string"
@@ -739,15 +769,33 @@ export class RuleAlignmentService {
     // 末段完全匹配（适用于嵌套字段，如 quote.price.current vs currentPrice）
     if (sourceLastSegment === target) return 0.95;
     if (
-      target.includes(sourceLastSegment) ||
-      sourceLastSegment.includes(target)
-    )
+      sourceLastSegment &&
+      sourceLastSegment.length > 1 &&
+      (target.includes(sourceLastSegment) ||
+        sourceLastSegment.includes(target))
+    ) {
       return 0.9;
+    }
 
+    const shortTokenRules: Record<string, string[]> = {
+      symbol: ["s"],
+      lastprice: ["p", "c"],
+      openprice: ["o"],
+      highprice: ["h"],
+      lowprice: ["l"],
+      volume: ["v"],
+      turnover: ["vw", "vm"],
+      timestamp: ["t"],
+      changepercent: ["pc", "pfr"],
+      tradedirection: ["td"],
+    };
+    const targetShortTokens = shortTokenRules[target] || [];
     if (
-      target === "changepercent" &&
-      (this.hasExactToken(sourceField.fieldName, "pc") ||
-        this.hasExactToken(sourceField.fieldPath, "pc"))
+      targetShortTokens.some(
+        (token) =>
+          this.hasExactToken(sourceField.fieldName, token) ||
+          this.hasExactToken(sourceField.fieldPath, token),
+      )
     ) {
       return 0.9;
     }
@@ -790,8 +838,16 @@ export class RuleAlignmentService {
         "change_percent",
         "pct_change",
         "percent_change",
+        "pfr",
       ],
       timestamp: ["timestamp", "time", "datetime", "update_time", "trade_time"],
+      tradedirection: [
+        "tradedirection",
+        "trade_direction",
+        "direction",
+        "side",
+        "td",
+      ],
       tradestatus: ["tradestatus", "trade_status", "status", "market_status"],
       premarketprice: ["premarketquote.lastdone", "premarketprice"],
       premarkethigh: ["premarketquote.high"],
@@ -819,9 +875,32 @@ export class RuleAlignmentService {
       overnighttimestamp: ["overnightquote.timestamp"],
       namecn: ["name_cn", "namecn", "chinese_name", "cn_name"],
       nameen: ["name_en", "nameen", "english_name", "en_name"],
+      namehk: ["name_hk", "namehk", "hongkong_name", "hk_name"],
       exchange: ["exchange", "market", "trading_market"],
       currency: ["currency", "ccy", "curr"],
       lotsize: ["lotsize", "lot_size", "board_lot", "min_unit"],
+      totalshares: ["total_shares", "totalshares", "shares_total"],
+      circulatingshares: [
+        "circulating_shares",
+        "circulatingshares",
+        "float_shares",
+      ],
+      hkshares: ["hk_shares", "hkshares"],
+      eps: ["eps"],
+      epsttm: ["eps_ttm", "epsttm"],
+      bps: ["bps"],
+      dividendyield: ["dividend_yield", "dividendyield"],
+      stockderivatives: [
+        "stock_derivatives",
+        "stockderivatives",
+        "derivatives",
+      ],
+      board: ["board"],
+      tradeschedules: ["trade_schedules", "tradeschedules"],
+      tradedays: ["trade_days", "tradedays"],
+      halftradedays: ["half_trade_days", "halftradedays"],
+      beginday: ["begin_day", "beginday"],
+      endday: ["end_day", "endday"],
     };
 
     const targetRules = mappingRules[target] || [];
@@ -853,15 +932,21 @@ export class RuleAlignmentService {
       }
 
       // 检查最后一个路径部分是否与目标字段匹配
-      for (const rule of targetRules) {
-        if (lastPart.includes(rule) || rule.includes(lastPart)) {
-          return 0.8;
+      if (lastPart.length > 1) {
+        for (const rule of targetRules) {
+          if (lastPart.includes(rule) || rule.includes(lastPart)) {
+            return 0.8;
+          }
         }
       }
     }
 
     // 部分匹配
-    if (sourceName.includes(target) || target.includes(sourceName)) {
+    if (
+      sourceName.length > 1 &&
+      target.length > 1 &&
+      (sourceName.includes(target) || target.includes(sourceName))
+    ) {
       return 0.7;
     }
 

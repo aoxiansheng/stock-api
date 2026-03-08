@@ -10,11 +10,11 @@ import {
 
 /**
  * Infoway REST 股票报价能力
- * 说明：MVP 通过 batch_kline 最近一根K线映射为统一报价字段。
+ * 说明：provider 返回 batch_trade 原始成交字段，统一字段转换由 mapping 层处理。
  */
 export const getStockQuote: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_QUOTE,
-  description: "Infoway REST 获取股票报价（基于实时K线）",
+  description: "Infoway REST 获取股票报价（返回实时成交原始字段）",
   transport: "rest",
   apiType: "rest",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],

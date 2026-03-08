@@ -53,11 +53,11 @@ function validateInfowayHistoryTimestamp(timestamp?: number): number | undefined
 
 /**
  * Infoway REST 分时历史能力
- * 说明：基于 batch_kline 提供 1m 历史分时序列（MVP 单标的）。
+ * 说明：provider 返回 batch_kline 原始字段，统一字段转换由 mapping 层处理。
  */
 export const getStockHistory: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_HISTORY,
-  description: "Infoway REST 获取股票分时历史（1m）",
+  description: "Infoway REST 获取股票分时历史（返回 batch_kline 原始字段）",
   transport: "rest",
   apiType: "rest",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],

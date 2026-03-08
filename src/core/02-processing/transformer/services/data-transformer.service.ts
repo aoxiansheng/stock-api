@@ -91,12 +91,12 @@ export class DataTransformerService {
     );
 
     try {
-      const dataToProcess = Array.isArray(request.rawData)
+      const baseDataToProcess = Array.isArray(request.rawData)
         ? request.rawData
         : [request.rawData].filter(Boolean);
 
       if (
-        dataToProcess.length === 0 &&
+        baseDataToProcess.length === 0 &&
         (request.rawData === null || request.rawData === undefined)
       ) {
         const metadata = new DataTransformationMetadataDto(
@@ -111,7 +111,7 @@ export class DataTransformerService {
         return new DataTransformResponseDto([], metadata);
       }
 
-      const sample = dataToProcess.length > 0 ? dataToProcess[0] : {};
+      const sample = baseDataToProcess.length > 0 ? baseDataToProcess[0] : {};
 
       const transformMappingRule = await this.findMappingRule(
         request.provider,
@@ -137,6 +137,15 @@ export class DataTransformerService {
           retryable: false
         });
       }
+
+      const {
+        records: dataToProcess,
+        forceArrayResult,
+      } = this.normalizeSourceRecordsForMapping(
+        request,
+        baseDataToProcess,
+        transformMappingRule,
+      );
 
       const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(
         transformMappingRule.id,
@@ -176,7 +185,7 @@ export class DataTransformerService {
         });
       }
 
-      const finalData = Array.isArray(request.rawData)
+      const finalData = forceArrayResult || Array.isArray(request.rawData)
         ? transformedResults
         : transformedResults[0];
       const restoredFinalData = await this.restoreStandardSymbols(
@@ -462,34 +471,52 @@ export class DataTransformerService {
       const ruleDoc = await this.flexibleMappingRuleService.getRuleDocumentById(
         transformMappingRule.id,
       );
+      const baseDataToProcess = Array.isArray(request.rawData)
+        ? request.rawData
+        : [request.rawData].filter(Boolean);
+      const {
+        records: dataToProcess,
+        forceArrayResult,
+      } = this.normalizeSourceRecordsForMapping(
+        request,
+        baseDataToProcess,
+        transformMappingRule,
+      );
 
-      const result =
-        await this.flexibleMappingRuleService.applyFlexibleMappingRule(
-          ruleDoc,
-          request.rawData,
-          request.options?.includeDebugInfo || false,
-        );
+      const transformedResults: any[] = [];
+      for (const item of dataToProcess) {
+        const result =
+          await this.flexibleMappingRuleService.applyFlexibleMappingRule(
+            ruleDoc,
+            item,
+            request.options?.includeDebugInfo || false,
+          );
 
-      if (!result.success) {
-        throw UniversalExceptionFactory.createBusinessException({
-          component: ComponentIdentifier.TRANSFORMER,
-          errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
-          operation: '_executeSingleTransform',
-          message: result.errorMessage || 'Single transformation failed',
-          context: {
-            ruleId: transformMappingRule.id,
-            ruleName: transformMappingRule.name,
-            provider: request.provider,
-            transDataRuleListType: request.transDataRuleListType,
-            errorType: TRANSFORMER_ERROR_CODES.RULE_APPLICATION_FAILED
-          },
-          retryable: true
-        });
+        if (!result.success) {
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.TRANSFORMER,
+            errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
+            operation: "_executeSingleTransform",
+            message: result.errorMessage || "Single transformation failed",
+            context: {
+              ruleId: transformMappingRule.id,
+              ruleName: transformMappingRule.name,
+              provider: request.provider,
+              transDataRuleListType: request.transDataRuleListType,
+              errorType: TRANSFORMER_ERROR_CODES.RULE_APPLICATION_FAILED,
+            },
+            retryable: true,
+          });
+        }
+        transformedResults.push(result.transformedData);
       }
 
+      const finalData = forceArrayResult || Array.isArray(request.rawData)
+        ? transformedResults
+        : transformedResults[0];
       const transformedData = await this.restoreStandardSymbols(
         request.provider,
-        result.transformedData,
+        finalData,
         request.options,
       );
 
@@ -560,6 +587,146 @@ export class DataTransformerService {
       // 修复：确保所有其他类型的异常也被抛出，而不是静默处理
       throw error;
     }
+  }
+
+  private normalizeSourceRecordsForMapping(
+    request: DataTransformRequestDto,
+    records: unknown[],
+    transformMappingRule: FlexibleMappingRuleResponseDto,
+  ): {
+    records: unknown[];
+    forceArrayResult: boolean;
+  } {
+    const expansionPaths = this.collectArrayExpansionPaths(transformMappingRule);
+    if (expansionPaths.length === 0) {
+      return {
+        records,
+        forceArrayResult: false,
+      };
+    }
+
+    let normalizedRecords = records;
+    let forceArrayResult = false;
+
+    for (const arrayPath of expansionPaths) {
+      const { records: expandedRecords, applied } = this.expandRecordsByArrayPath(
+        normalizedRecords,
+        arrayPath,
+      );
+      if (!applied) {
+        continue;
+      }
+      normalizedRecords = expandedRecords;
+      forceArrayResult = true;
+      this.logger.debug("Applied rule-driven array expansion before mapping", {
+        provider: request.provider,
+        transDataRuleListType: request.transDataRuleListType,
+        arrayPath,
+        expandedSize: expandedRecords.length,
+      });
+    }
+
+    return {
+      records: normalizedRecords,
+      forceArrayResult,
+    };
+  }
+
+  private collectArrayExpansionPaths(
+    transformMappingRule: FlexibleMappingRuleResponseDto,
+  ): string[] {
+    const candidatePaths = new Set<string>();
+    const mappings = transformMappingRule.fieldMappings || [];
+    for (const mapping of mappings) {
+      const sourceFieldPath = String(mapping?.sourceFieldPath || "").trim();
+      if (!sourceFieldPath || !sourceFieldPath.includes(".")) {
+        continue;
+      }
+      const segments = sourceFieldPath.split(".").filter(Boolean);
+      for (let index = 1; index < segments.length; index += 1) {
+        candidatePaths.add(segments.slice(0, index).join("."));
+      }
+    }
+
+    return Array.from(candidatePaths).sort(
+      (left, right) => left.split(".").length - right.split(".").length,
+    );
+  }
+
+  private expandRecordsByArrayPath(
+    records: unknown[],
+    arrayPath: string,
+  ): { records: unknown[]; applied: boolean } {
+    let applied = false;
+    const expandedRecords: unknown[] = [];
+
+    for (const record of records) {
+      if (!this.isPlainObjectRecord(record)) {
+        expandedRecords.push(record);
+        continue;
+      }
+
+      const arrayValue = ObjectUtils.getValueFromPath(record, arrayPath);
+      if (!Array.isArray(arrayValue)) {
+        expandedRecords.push(record);
+        continue;
+      }
+
+      applied = true;
+      for (const point of arrayValue) {
+        if (!this.isPlainObjectRecord(point)) {
+          continue;
+        }
+        expandedRecords.push(this.mergeRecordWithArrayPoint(record, arrayPath, point));
+      }
+    }
+
+    return {
+      records: applied ? expandedRecords : records,
+      applied,
+    };
+  }
+
+  private mergeRecordWithArrayPoint(
+    record: Record<string, unknown>,
+    arrayPath: string,
+    point: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const merged = {
+      ...record,
+      ...point,
+    };
+    return this.assignPathValue(merged, arrayPath, point);
+  }
+
+  private assignPathValue(
+    target: Record<string, unknown>,
+    path: string,
+    value: unknown,
+  ): Record<string, unknown> {
+    const segments = path.split(".").filter(Boolean);
+    if (segments.length === 0) {
+      return target;
+    }
+
+    let cursor: Record<string, unknown> = target;
+    for (let index = 0; index < segments.length - 1; index += 1) {
+      const key = segments[index];
+      const nextValue = cursor[key];
+      if (!this.isPlainObjectRecord(nextValue)) {
+        cursor[key] = {};
+      } else {
+        cursor[key] = { ...nextValue };
+      }
+      cursor = cursor[key] as Record<string, unknown>;
+    }
+
+    cursor[segments[segments.length - 1]] = value;
+    return target;
+  }
+
+  private isPlainObjectRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
   // createErrorResponse method removed - errors are now handled via exceptions

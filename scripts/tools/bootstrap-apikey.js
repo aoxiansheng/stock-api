@@ -34,6 +34,23 @@ const permissions = (process.env.API_KEY_PERMISSIONS || defaultPermissions.join(
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+const rawOutput = process.argv.includes("--raw");
+
+function maskSecret(secret) {
+  const value = String(secret ?? "");
+  if (!value) return "";
+  if (value.length <= 2) {
+    return "*".repeat(value.length);
+  }
+  if (value.length <= 4) {
+    return `${value[0]}${"*".repeat(value.length - 2)}${value[value.length - 1]}`;
+  }
+  return `${value.slice(0, 2)}${"*".repeat(value.length - 4)}${value.slice(-2)}`;
+}
+
+function displaySecret(secret, raw = false) {
+  return raw ? secret : maskSecret(secret);
+}
 
 function buildUrl(path) {
   return `${BASE_URL}${API_PREFIX}${path}`;
@@ -138,7 +155,8 @@ async function createApiKey(jwt) {
   return resp.payload;
 }
 
-async function main() {
+async function main(options = {}) {
+  const raw = options.raw ?? rawOutput;
   console.log("[config]", {
     baseUrl: BASE_URL,
     apiPrefix: API_PREFIX,
@@ -155,11 +173,11 @@ async function main() {
 
   console.log("\n=== 凭证输出（请妥善保管） ===");
   console.log(`USERNAME=${username}`);
-  console.log(`PASSWORD=${password}`);
+  console.log(`PASSWORD=${displaySecret(password, raw)}`);
   console.log(`EMAIL=${email}`);
-  console.log(`APP_KEY=${apiKey.appKey}`);
-  console.log(`ACCESS_TOKEN=${apiKey.accessToken}`);
-  console.log(`JWT_ACCESS_TOKEN=${login.jwt}`);
+  console.log(`APP_KEY=${displaySecret(apiKey.appKey, raw)}`);
+  console.log(`ACCESS_TOKEN=${displaySecret(apiKey.accessToken, raw)}`);
+  console.log(`JWT_ACCESS_TOKEN=${displaySecret(login.jwt, raw)}`);
   console.log("=== END ===\n");
 
   console.log("[json]");
@@ -167,13 +185,13 @@ async function main() {
     JSON.stringify(
       {
         username,
-        password,
+        password: displaySecret(password, raw),
         email,
-        appKey: apiKey.appKey,
-        accessToken: apiKey.accessToken,
+        appKey: displaySecret(apiKey.appKey, raw),
+        accessToken: displaySecret(apiKey.accessToken, raw),
         permissions,
-        jwtAccessToken: login.jwt,
-        refreshToken: login.refreshToken,
+        jwtAccessToken: displaySecret(login.jwt, raw),
+        refreshToken: displaySecret(login.refreshToken, raw),
         apiKeyMeta: {
           name: apiKeyName,
           profile: apiKey.profile,
@@ -187,7 +205,14 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error("[FAIL]", err?.message || err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("[FAIL]", err?.message || err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  maskSecret,
+  main,
+};

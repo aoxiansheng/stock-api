@@ -962,3 +962,114 @@ describe("StreamReceiverService symbol room key consistency", () => {
     );
   });
 });
+
+describe("StreamReceiverService private branch coverage", () => {
+  it("readBooleanConfig: 应处理 boolean 与 number 输入", () => {
+    const { service, mocks } = createService();
+
+    mocks.configService.get.mockReturnValueOnce(true);
+    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(true);
+
+    mocks.configService.get.mockReturnValueOnce(false);
+    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(false);
+
+    mocks.configService.get.mockReturnValueOnce(1);
+    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(true);
+
+    mocks.configService.get.mockReturnValueOnce(0);
+    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(false);
+  });
+
+  it.each(["true", " TRUE ", "1", "yes", "on"])(
+    "readBooleanConfig: 字符串真值 %p 应返回 true",
+    (rawValue) => {
+      const { service, mocks } = createService();
+      mocks.configService.get.mockReturnValueOnce(rawValue);
+
+      expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each(["false", " FALSE ", "0", "no", "off"])(
+    "readBooleanConfig: 字符串假值 %p 应返回 false",
+    (rawValue) => {
+      const { service, mocks } = createService();
+      mocks.configService.get.mockReturnValueOnce(rawValue);
+
+      expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
+        false,
+      );
+    },
+  );
+
+  it.each([
+    { rawValue: "maybe", defaultValue: true, expected: true },
+    { rawValue: "maybe", defaultValue: false, expected: false },
+    { rawValue: "", defaultValue: true, expected: true },
+    { rawValue: "   ", defaultValue: false, expected: false },
+    { rawValue: null, defaultValue: true, expected: true },
+    { rawValue: undefined, defaultValue: false, expected: false },
+    { rawValue: { enabled: true }, defaultValue: true, expected: true },
+  ])(
+    "readBooleanConfig: 未知/空值输入 $rawValue 应回退 default=$defaultValue",
+    ({ rawValue, defaultValue, expected }) => {
+      const { service, mocks } = createService();
+      mocks.configService.get.mockReturnValueOnce(rawValue);
+
+      expect(
+        (service as any).readBooleanConfig("STREAM_CACHE_ENABLED", defaultValue),
+      ).toBe(expected);
+    },
+  );
+
+  it("extractSymbolsFromData: 应覆盖 symbol/s/symbols[]/quote.symbol/quote.s 分支", () => {
+    const { service } = createService();
+
+    expect((service as any).extractSymbolsFromData({ symbol: "AAPL.US" })).toEqual([
+      "AAPL.US",
+    ]);
+    expect((service as any).extractSymbolsFromData({ s: "00700.HK" })).toEqual([
+      "00700.HK",
+    ]);
+    expect(
+      (service as any).extractSymbolsFromData({
+        symbols: ["AAPL.US", "TSLA.US"],
+      }),
+    ).toEqual(["AAPL.US", "TSLA.US"]);
+    expect(
+      (service as any).extractSymbolsFromData({
+        quote: { symbol: "MSFT.US" },
+      }),
+    ).toEqual(["MSFT.US"]);
+    expect(
+      (service as any).extractSymbolsFromData({
+        quote: { s: "NVDA.US" },
+      }),
+    ).toEqual(["NVDA.US"]);
+  });
+
+  it("extractSymbolsFromData: 数组混合输入应仅提取 symbol/s", () => {
+    const { service } = createService();
+
+    expect(
+      (service as any).extractSymbolsFromData([
+        { symbol: "AAPL.US" },
+        { s: "00700.HK" },
+        { symbol: "" },
+        { s: null },
+        { quote: { symbol: "MSFT.US" } },
+        {},
+      ]),
+    ).toEqual(["AAPL.US", "00700.HK"]);
+  });
+
+  it.each([null, undefined, 0, "", "AAPL.US", { symbols: "AAPL.US" }, {}])(
+    "extractSymbolsFromData: 非法输入 %p 应返回空数组",
+    (invalidInput) => {
+      const { service } = createService();
+      expect((service as any).extractSymbolsFromData(invalidInput)).toEqual([]);
+    },
+  );
+});

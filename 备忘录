@@ -108,4 +108,24 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 
 
   curl -sS "https://data.infoway.io/crypto/batch_trade/BTCUSDT" \
-    -H "apiKey: 7ffce79114f840b6a749fb59344159d2-infoway"
+    -H "apiKey: <REDACTED_API_KEY>"
+
+    curl -sS "https://data.infoway.io/stock/batch_trade/002594.SZ" \
+    -H "apiKey: <REDACTED_API_KEY>"
+
+
+
+
+
+USERNAME=<REDACTED_USERNAME>
+PASSWORD=<REDACTED_PASSWORD>
+EMAIL=<REDACTED_EMAIL>
+APP_KEY=<REDACTED_APP_KEY>
+ACCESS_TOKEN=<REDACTED_ACCESS_TOKEN>
+JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
+
+
+BASE_URL="http://127.0.0.1:3001" \
+  APP_KEY="<REDACTED_APP_KEY>" \
+  ACCESS_TOKEN="<REDACTED_ACCESS_TOKEN>" \
+  npm run tool:test-infoway-rest

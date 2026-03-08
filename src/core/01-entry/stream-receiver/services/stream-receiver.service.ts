@@ -309,8 +309,7 @@ export class StreamReceiverService implements OnModuleDestroy {
   private async pipelineCacheData(transformedData: any[], symbols: string[]): Promise<void> {
     try {
       // 使用显式默认值，避免 ConfigService 第二参数误用导致返回 undefined
-      const cacheEnabled =
-        this.configService.get<boolean>('STREAM_CACHE_ENABLED') ?? true;
+      const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
       if (!cacheEnabled) {
         this.logger.debug("流缓存已禁用，跳过缓存写入", { symbolsCount: symbols.length });
         return;
@@ -370,8 +369,10 @@ export class StreamReceiverService implements OnModuleDestroy {
   private async pipelineBroadcastData(transformedData: any[], symbols: string[]): Promise<void> {
     try {
       // 使用显式默认值，避免 ConfigService 第二参数误用导致返回 undefined
-      const broadcastEnabled =
-        this.configService.get<boolean>('STREAM_BROADCAST_ENABLED') ?? true;
+      const broadcastEnabled = this.readBooleanConfig(
+        "STREAM_BROADCAST_ENABLED",
+        true,
+      );
       if (!broadcastEnabled) {
         this.logger.debug("流广播已禁用，跳过广播", { symbolsCount: symbols.length });
         return;
@@ -1595,6 +1596,26 @@ export class StreamReceiverService implements OnModuleDestroy {
 
   // === 私有方法 ===
 
+  private readBooleanConfig(key: string, defaultValue: boolean): boolean {
+    const rawValue = this.configService.get<boolean | string | number>(key);
+    if (typeof rawValue === "boolean") {
+      return rawValue;
+    }
+    if (typeof rawValue === "number") {
+      return rawValue !== 0;
+    }
+    if (typeof rawValue === "string") {
+      const normalized = rawValue.trim().toLowerCase();
+      if (["true", "1", "yes", "on"].includes(normalized)) {
+        return true;
+      }
+      if (["false", "0", "no", "off"].includes(normalized)) {
+        return false;
+      }
+    }
+    return defaultValue;
+  }
+
   private toCanonicalSymbol(symbol: string): string {
     if (typeof symbol !== "string") {
       return "";
@@ -2007,8 +2028,10 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     // 处理不同的数据格式
     if (data.symbol) return [data.symbol];
+    if (data.s) return [data.s];
     if (data.symbols && Array.isArray(data.symbols)) return data.symbols;
     if (data.quote && data.quote.symbol) return [data.quote.symbol];
+    if (data.quote && data.quote.s) return [data.quote.s];
     if (Array.isArray(data)) {
       return data.map((item) => item.symbol || item.s).filter(Boolean);
     }

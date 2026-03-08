@@ -9,11 +9,11 @@ import {
 
 /**
  * Infoway 流式股票报价能力
- * 说明：当前通过 WebSocket 实时K线推送映射报价字段。
+ * 说明：provider 透传 Trade 实时成交推送原始字段，统一字段转换由 mapping 层处理。
  */
 export const streamStockQuote: ICapability = {
   name: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
-  description: "Infoway WebSocket 实时股票报价（K线推送映射）",
+  description: "Infoway WebSocket 实时股票报价（成交明细原始推送）",
   transport: "websocket",
   apiType: "stream",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],

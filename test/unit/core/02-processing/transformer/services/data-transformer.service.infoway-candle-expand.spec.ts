@@ -12,7 +12,7 @@ import { DataTransformerService } from "@core/02-processing/transformer/services
 
 describe("DataTransformerService infoway candle expansion", () => {
   const createService = () => {
-    const mappingRuleMeta = {
+    const candleMappingRuleMeta = {
       id: "rule-infoway-candle",
       name: "Infoway Candle Rule",
       fieldMappings: [
@@ -22,10 +22,22 @@ describe("DataTransformerService infoway candle expansion", () => {
         },
       ],
     };
+    const quoteMappingRuleMeta = {
+      id: "rule-infoway-quote",
+      name: "Infoway Quote Rule",
+      fieldMappings: [
+        {
+          sourceFieldPath: "p",
+          targetField: "lastPrice",
+        },
+      ],
+    };
 
     const flexibleMappingRuleService = {
       findRuleById: jest.fn(),
-      findBestMatchingRule: jest.fn(async () => mappingRuleMeta),
+      findBestMatchingRule: jest.fn(async (_provider: string, _apiType: string, ruleType: string) =>
+        ruleType === "candle_fields" ? candleMappingRuleMeta : quoteMappingRuleMeta,
+      ),
       findBestWildcardMarketRule: jest.fn(async () => null),
       getRuleDocumentById: jest.fn(async () => ({
         _id: "rule-infoway-candle",
@@ -60,12 +72,13 @@ describe("DataTransformerService infoway candle expansion", () => {
 
     return {
       service,
+      candleMappingRuleMeta,
       flexibleMappingRuleService,
     };
   };
 
   it("normalizeSourceRecordsForMapping: infoway candle_fields 展开 respList 点位", () => {
-    const { service } = createService();
+    const { service, candleMappingRuleMeta } = createService();
     const result = (service as any).normalizeSourceRecordsForMapping(
       {
         provider: "infoway",
@@ -84,6 +97,7 @@ describe("DataTransformerService infoway candle expansion", () => {
           s: "MSFT.US",
         },
       ],
+      candleMappingRuleMeta,
     );
 
     expect(result.forceArrayResult).toBe(true);
@@ -102,6 +116,64 @@ describe("DataTransformerService infoway candle expansion", () => {
       },
       {
         s: "MSFT.US",
+      },
+    ]);
+  });
+
+  it("normalizeSourceRecordsForMapping: 混合输入保持既有展开行为", () => {
+    const { service, candleMappingRuleMeta } = createService();
+    const result = (service as any).normalizeSourceRecordsForMapping(
+      {
+        provider: "infoway",
+        transDataRuleListType: "candle_fields",
+      },
+      [
+        null,
+        "raw",
+        123,
+        {
+          s: "AAPL.US",
+          respList: [
+            { c: "183.11", t: 1709251260 },
+            null,
+            "bad-point",
+            { c: "182.31", t: 1709251200 },
+          ],
+        },
+        {
+          s: "EMPTY.US",
+          respList: [],
+        },
+        {
+          s: "MSFT.US",
+          respList: [1, "x"],
+        },
+        {
+          s: "NOARRAY.US",
+        },
+      ],
+      candleMappingRuleMeta,
+    );
+
+    expect(result.forceArrayResult).toBe(true);
+    expect(result.records).toEqual([
+      null,
+      "raw",
+      123,
+      {
+        s: "AAPL.US",
+        c: "183.11",
+        t: 1709251260,
+        respList: { c: "183.11", t: 1709251260 },
+      },
+      {
+        s: "AAPL.US",
+        c: "182.31",
+        t: 1709251200,
+        respList: { c: "182.31", t: 1709251200 },
+      },
+      {
+        s: "NOARRAY.US",
       },
     ]);
   });
@@ -151,4 +223,3 @@ describe("DataTransformerService infoway candle expansion", () => {
     expect(Array.isArray(firstCallSource.respList)).toBe(true);
   });
 });
-

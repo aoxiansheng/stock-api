@@ -14,10 +14,11 @@ import {
 
 /**
  * Infoway REST 股票基础信息能力
+ * 说明：provider 返回上游原始字段，统一字段转换由 mapping 层处理。
  */
 export const getStockBasicInfo: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
-  description: "Infoway REST 获取股票基础信息",
+  description: "Infoway REST 获取股票基础信息（返回原始字段）",
   transport: "rest",
   apiType: "rest",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],

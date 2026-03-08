@@ -6,11 +6,11 @@ import type { InfowayContextService } from "../services/infoway-context.service"
 
 /**
  * Infoway REST 交易日能力
- * 说明：基于 /common/basic/markets/trading_days 返回交易日与半日市数据。
+ * 说明：provider 返回 /common/basic/markets/trading_days 原始字段，统一字段转换由 mapping 层处理。
  */
 export const getTradingDays: ICapability = {
   name: CAPABILITY_NAMES.GET_TRADING_DAYS,
-  description: "Infoway REST 获取交易日信息",
+  description: "Infoway REST 获取交易日信息（返回原始字段）",
   transport: "rest",
   apiType: "rest",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],

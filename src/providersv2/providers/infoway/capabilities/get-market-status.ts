@@ -15,11 +15,11 @@ import {
 
 /**
  * Infoway REST 市场状态能力
- * 说明：基于 /common/basic/markets 返回各市场交易时段信息。
+ * 说明：provider 返回 /common/basic/markets 原始字段，统一字段转换由 mapping 层处理。
  */
 export const getMarketStatus: ICapability = {
   name: CAPABILITY_NAMES.GET_MARKET_STATUS,
-  description: "Infoway REST 获取市场交易时间",
+  description: "Infoway REST 获取市场交易时间（返回原始字段）",
   transport: "rest",
   apiType: "rest",
   supportedMarkets: [Market.HK, Market.US, Market.SH, Market.SZ, Market.CN],
