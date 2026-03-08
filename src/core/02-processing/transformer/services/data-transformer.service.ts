@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { UniversalExceptionFactory, ComponentIdentifier, BusinessErrorCode, BusinessException } from '@common/core/exceptions';
@@ -18,6 +19,11 @@ import { ObjectUtils } from "../../../shared/utils/object.util";
 import { MappingDirection } from "@core/shared/constants";
 import { SymbolTransformerService } from "@core/02-processing/symbol-transformer/services/symbol-transformer.service";
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
+import {
+  isStandardSymbolIdentityProvider,
+  isStandardIdentitySymbol,
+  STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+} from "@core/shared/utils/provider-symbol-identity.util";
 
 
 import {
@@ -61,6 +67,7 @@ export class DataTransformerService {
     @Optional()
     @Inject(DATA_TRANSFORMER_RUNTIME_CONFIG)
     private readonly runtimeConfig: DataTransformerRuntimeConfig = DEFAULT_DATA_TRANSFORMER_RUNTIME_CONFIG,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -666,13 +673,59 @@ export class DataTransformerService {
     transformedData: any,
     options?: DataTransformRequestDto["options"],
   ): Promise<any> {
+    const isIdentityProvider = this.isIdentityProviderEnabled(provider);
+
     const mapSymbol = async (item: any): Promise<any> => {
       if (!item || typeof item !== "object") {
         return item;
       }
 
       const symbol = item.symbol;
+
+      if (isIdentityProvider) {
+        if (typeof symbol !== "string" || !symbol.trim()) {
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.TRANSFORMER,
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: "restoreStandardSymbols",
+            message: `Identity provider '${provider}' requires symbol to be a non-empty string`,
+            context: {
+              provider,
+              symbol,
+              errorType: TRANSFORMER_ERROR_CODES.INVALID_REQUEST_DATA,
+            },
+            retryable: false,
+          });
+        }
+
+        if (!isStandardIdentitySymbol(symbol)) {
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.TRANSFORMER,
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: "restoreStandardSymbols",
+            message: `Identity provider '${provider}' produced non-standard symbol '${symbol}'`,
+            context: {
+              provider,
+              symbol,
+              restoredSymbol: symbol,
+              errorType: TRANSFORMER_ERROR_CODES.INVALID_REQUEST_DATA,
+            },
+            retryable: false,
+          });
+        }
+
+        const canonicalSymbol = SymbolValidationUtils.normalizeSymbol(symbol);
+        return canonicalSymbol === symbol
+          ? item
+          : { ...item, symbol: canonicalSymbol };
+      }
+
       if (typeof symbol !== "string" || !symbol.trim()) {
+        return item;
+      }
+
+      const canonicalSymbol = SymbolValidationUtils.normalizeSymbol(symbol);
+      if (!canonicalSymbol) {
         return item;
       }
 
@@ -704,7 +757,12 @@ export class DataTransformerService {
         });
       }
 
-      if (typeof restored !== "string" || !restored.trim()) {
+      const canonicalRestoredSymbol =
+        typeof restored === "string"
+          ? SymbolValidationUtils.normalizeSymbol(restored)
+          : "";
+
+      if (!canonicalRestoredSymbol) {
         throw UniversalExceptionFactory.createBusinessException({
           component: ComponentIdentifier.TRANSFORMER,
           errorCode: BusinessErrorCode.DATA_PROCESSING_FAILED,
@@ -721,8 +779,8 @@ export class DataTransformerService {
       }
 
       if (
-        restored === symbol &&
-        !SymbolValidationUtils.isValidMarketFormat(restored)
+        canonicalRestoredSymbol === canonicalSymbol &&
+        !SymbolValidationUtils.isValidMarketFormat(canonicalRestoredSymbol)
       ) {
         throw UniversalExceptionFactory.createBusinessException({
           component: ComponentIdentifier.TRANSFORMER,
@@ -732,14 +790,20 @@ export class DataTransformerService {
           context: {
             provider,
             symbol,
-            restoredSymbol: restored,
+            restoredSymbol: canonicalRestoredSymbol,
             errorType: TRANSFORMER_ERROR_CODES.NO_MAPPING_RULE_FOUND,
           },
           retryable: false,
         });
       }
 
-      return restored === symbol ? item : { ...item, symbol: restored };
+      if (canonicalRestoredSymbol === canonicalSymbol) {
+        return canonicalSymbol === symbol
+          ? item
+          : { ...item, symbol: canonicalSymbol };
+      }
+
+      return { ...item, symbol: canonicalRestoredSymbol };
     };
 
     if (Array.isArray(transformedData)) {
@@ -786,6 +850,13 @@ export class DataTransformerService {
     }
 
     return mapSymbol(transformedData);
+  }
+
+  private isIdentityProviderEnabled(provider: string): boolean {
+    const identityProviderRaw = this.configService.get<string>(
+      STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+    );
+    return isStandardSymbolIdentityProvider(provider, identityProviderRaw);
   }
 
   private resolveRestoreLimits(options?: DataTransformRequestDto["options"]): {

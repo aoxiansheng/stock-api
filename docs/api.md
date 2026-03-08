@@ -41,11 +41,18 @@ HTTP 请求头（API Key）：
 错误（全局异常过滤统一翻译）：
 ```
 {
+  "success": false,
   "statusCode": 401,
   "message": "未授权访问",
-  "error": "Unauthorized",
+  "data": null,
   "timestamp": "2025-01-01T00:00:00.000Z",
-  "path": "/api/v1/query/execute"
+  "error": {
+    "code": "UNAUTHORIZED",
+    "details": {
+      "type": "AuthenticationError",
+      "path": "/api/v1/query/execute"
+    }
+  }
 }
 ```
 
@@ -98,12 +105,69 @@ HTTP 请求头（API Key）：
   "timestamp": "2025-01-01T12:00:01.789Z"
 }
 ```
-- 缓存策略（市场感知，默认启用）：交易 1s、盘前盘后 5s、休市 60s。
+- 缓存策略（当前实现）：`STRONG_TIMELINESS` 使用统一强时效 TTL（`realTimeTtlSeconds`，默认 5s，可通过环境变量调整）。
+- `receiverType` 当前支持能力：
+  - `get-stock-quote`
+  - `get-stock-basic-info`
+  - `get-stock-history`
+  - `get-index-quote`
+  - `get-market-status`
+  - `get-trading-days`
+
+### 新增能力说明（Infoway）
+
+`get-market-status`
+- 用途：查询市场交易时段与状态信息
+- 常用参数：`symbols[]`、`options.market`
+
+`get-trading-days`
+- 用途：查询交易日/半日市信息
+- 常用参数：`symbols[]`、`options.market`、`options.beginDay`、`options.endDay`
+- 约束：
+  - `beginDay/endDay` 仅允许用于 `get-trading-days`
+  - 日期格式为 `YYYYMMDD`
+  - 区间需满足 `beginDay <= endDay`（服务端范围约束：`19000101` 到 `20991231`，最大 366 天）
+
+`get-stock-history`（补充约束）
+- `symbols` 必须且只能包含 1 个标的
+- `options.timestamp` 仅支持 10/13 位正整数时间戳
+- `options.klineNum` 最大 500
+
+示例：`get-trading-days`
+```json
+{
+  "symbols": ["AAPL.US"],
+  "receiverType": "get-trading-days",
+  "options": {
+    "market": "US",
+    "beginDay": "20260101",
+    "endDay": "20260131"
+  }
+}
+```
+
+示例：`get-market-status`
+```json
+{
+  "symbols": ["00700.HK"],
+  "receiverType": "get-market-status",
+  "options": {
+    "market": "HK"
+  }
+}
+```
 
 ## 弱时效接口（Query）
 
 ### `POST /api/v1/query/execute`
 - 已实现的查询类型：`by_symbols`
+- `queryTypeFilter` 当前支持能力：
+  - `get-stock-quote`
+  - `get-stock-basic-info`
+  - `get-stock-history`
+  - `get-index-quote`
+  - `get-market-status`
+  - `get-trading-days`
 - Request
 ```
 {
@@ -113,6 +177,20 @@ HTTP 请求头（API Key）：
   "queryTypeFilter": "get-stock-quote",
   "limit": 50,
   "options": { "useCache": true, "includeMetadata": true }
+}
+```
+
+- 示例：`get-trading-days`（`startTime/endTime` 会映射为 `beginDay/endDay`）
+```
+{
+  "queryType": "by_symbols",
+  "symbols": ["AAPL.US"],
+  "provider": "infoway",
+  "queryTypeFilter": "get-trading-days",
+  "market": "US",
+  "startTime": "20260101",
+  "endTime": "20260131",
+  "options": { "useCache": true }
 }
 ```
 - Response（关键路径）
@@ -129,7 +207,10 @@ HTTP 请求头（API Key）：
       "returnedResults": 1,
       "executionTime": 89,
       "cacheUsed": true,
-      "dataSources": { "cache": 1, "realtime": 0, "persistent": 0 },
+      "dataSources": {
+        "cache": { "hits": 1, "misses": 0 },
+        "realtime": { "hits": 0, "misses": 0 }
+      },
       "timestamp": "2025-01-01T12:00:01.789Z"
     }
   }
@@ -148,18 +229,18 @@ HTTP 请求头（API Key）：
 ## WebSocket 实时流（Socket.IO）
 
 - 连接：`GET /api/v1/stream-receiver/connect`（仅 `websocket`）
-- 认证（其一）：
+- 连接认证（API Key）：
   - `handshake.auth`: `{ appKey, accessToken }`
-  - 或 `?appKey=...&accessToken=...`
   - 或 头：`X-App-Key`, `X-Access-Token`
 - 事件：
+  - 已落地流能力：`stream-stock-quote`（可在 `subscribe` 中通过 `wsCapabilityType` 指定）
   - `subscribe` → 订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote", preferredProvider?: string }`
     - 成功：`subscribe-ack`；失败：`subscribe-error`
   - `unsubscribe` → 取消订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote" }`
     - 成功：`unsubscribe-ack`；失败：`unsubscribe-error`
   - `data` → 服务器按 `symbol:<SYMBOL>` 房间广播推送数据
   - `ping`/`pong`，`request-recovery` 补发流，`get-info` 连接信息
-- 权限：`stream:read`, `stream:subscribe`
+- 权限检查：需具备流权限画像（实现为 `stream:read` 或 `stream:subscribe` 命中其一即可通过）。
 
 ### 客户端示例（Node）
 ```
@@ -188,4 +269,3 @@ socket.on('data', (payload) => { /* handle */ })
 ---
 
 建议：结合 Swagger 文档（`/api-docs`），并以本文为基线校对字段与路径，确保与实际响应完全一致。
-

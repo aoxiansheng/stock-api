@@ -123,4 +123,29 @@ describe("StreamDataValidator provider matrix", () => {
       expect(validator.isValidSymbolFormat("HSIA.HK")).toBe(false);
     });
   });
+
+  describe("symbol format 统一严格标准（必须市场后缀）", () => {
+    it("接受 US/CN/SG 标准后缀格式", () => {
+      expect(validator.isValidSymbolFormat("AAPL.US")).toBe(true);
+      expect(validator.isValidSymbolFormat("600519.SH")).toBe(true);
+      expect(validator.isValidSymbolFormat("000001.SZ")).toBe(true);
+      expect(validator.isValidSymbolFormat("DBS.SG")).toBe(true);
+    });
+
+    it("拒绝缺失后缀或非标准后缀格式", () => {
+      expect(validator.isValidSymbolFormat("AAPL")).toBe(false);
+      expect(validator.isValidSymbolFormat("600519")).toBe(false);
+      expect(validator.isValidSymbolFormat("DBS")).toBe(false);
+      expect(validator.isValidSymbolFormat("AAPL.NASDAQ")).toBe(false);
+    });
+
+    it("extractMarket 将 SH/SZ 归一到 CN", () => {
+      expect(validator.extractMarket("AAPL.US")).toBe("US");
+      expect(validator.extractMarket("700.HK")).toBe("HK");
+      expect(validator.extractMarket("600519.SH")).toBe("CN");
+      expect(validator.extractMarket("000001.SZ")).toBe("CN");
+      expect(validator.extractMarket("DBS.SG")).toBe("SG");
+      expect(validator.extractMarket("AAPL")).toBeNull();
+    });
+  });
 });

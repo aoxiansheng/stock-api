@@ -82,9 +82,11 @@ describe("provider-symbol-identity.util", () => {
     expect(isStandardIdentitySymbol("HSI.HK")).toBe(true);
     expect(isStandardIdentitySymbol("600519.SH")).toBe(true);
     expect(isStandardIdentitySymbol("000001.SZ")).toBe(true);
+    expect(isStandardIdentitySymbol("dbs.sg")).toBe(true);
 
     expect(isStandardIdentitySymbol("AAPL")).toBe(false);
     expect(isStandardIdentitySymbol("00700")).toBe(false);
+    expect(isStandardIdentitySymbol("AAPL.NASDAQ")).toBe(false);
     expect(isStandardIdentitySymbol("HSIA.HK")).toBe(false);
     expect(isStandardIdentitySymbol("123456.HK")).toBe(false);
     expect(isStandardIdentitySymbol(" AAPL.US ")).toBe(false);

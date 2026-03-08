@@ -83,23 +83,29 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 
 
 第一步：  
-以主 agent 身份立即启动 Multi-agents 体系，并行调度以下子任务： 
-1. 子-agent-A：调用 clean-code-reviewer，对本次 git diff 及所有新建未跟踪文件执行 D3/R4/C1 ⇒ L4 级别的严格代码审查，重点扫描安全性漏洞、边界条件缺失、可维护性隐患、重复代码、组件耦合及复用率。 
-2. 子-agent-B：同步运行 code-reviewer，按作者既定工作流拆解审查步骤，生成预设步骤清单并实时同步进度。 
-3. 子-agent-C：汇总 A、B 输出，按“Critical / Important / Minor / Strengths / Verdict”五级分类整理，输出 markdown 表格与详细描述，写入 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，原始文档为如果存在内容直接覆盖，并返回文件哈希供后续校验。 
+你是主 agent ，调用子 anget-A 完成下面的任务。
+1. 调用 clean-code-reviewer，对本次 git diff 及所有新建未跟踪文件执行 D3/R4/C1 ⇒ L4 级别的严格代码审查，重点扫描安全性漏洞、边界条件缺失、可维护性隐患、重复代码、组件耦合及复用率。 
+2. 调用 code-reviewer，按作者既定工作流拆解审查步骤，生成预设步骤清单并实时同步进度。 
+3. 汇总 A、B 输出，按“Critical / Important / Minor / Strengths / Verdict”五级分类整理，输出 markdown 表格与详细描述，写入 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，原始文档为如果存在内容直接覆盖，并返回文件哈希供后续校验。 
 约束：绿地项目，禁止兼容回退逻辑；坚持最小成本、第一原理实现；禁止过度工程化；允许合理新增文件。新增功能之前，确认项目没有类似，避免重复造轮子。 
 
 第二步：
-主 agent 再次并行启动多个 sub-agent： 
-1. 子-agent-D：读取 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，逐项验证问题真实性，去伪存真。 
-2. 子-agent-E：对确认存在的问题进行影响面分析，列出涉及代码文件、依赖链路、潜在风险。 
-3. 子-agent-F：为每个问题生成原子级修复计划，包含：背景、修复目标、涉及文件、影响面、原子开发步骤（粒度到函数级别）、每一步验收条件（含单元测试、回归测试用例）、测试补齐策略。 
+你是主 agent ， 在上述任务完成后，调用子 anget-B 完成下面的任务。
+1. 读取 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，逐项验证问题真实性，去伪存真。 
+2. 对确认存在的问题进行影响面分析，列出涉及代码文件、依赖链路、潜在风险。 
+3. 为每个问题生成原子级修复计划，包含：背景、修复目标、涉及文件、影响面、原子开发步骤（粒度到函数级别）、每一步验收条件（含单元测试、回归测试用例）、测试补齐策略。 
 主 agent 收集全部子计划，合并去重，按优先级排序，写入 '/Users/honor/Documents/code/newstockapi/stock-api/开发修复文档.md'，如果原文档有内容，直接使用新内容进行覆盖，并附加版本号与时间戳，关闭所有子 agent。 
 
 第三步：
-主 agent 先解析 '/Users/honor/Documents/code/newstockapi/stock-api/开发修复文档.md'，按文件维度与冲突域进行任务拆分，再并行启动若干 sub-agent： 
-1. 每个 sub-agent 领取独立原子任务，严格在原文件内完成修改，禁止新增文件。 
+你是主 agent 先解析 '/Users/honor/Documents/code/newstockapi/stock-api/开发修复文档.md'，按文件维度与冲突域进行任务拆分，再并行启动若干 sub-agent： 
+1. 每个 agent 领取独立原子任务，严格在原文件内完成修改，禁止新增文件。 
 2. 修改后立即执行对应单元测试与回归测试，输出测试结果与覆盖率报告。 
 3. 主 agent 实时聚合测试结果，若全部通过则标记该轮验收完成；否则记录残余缺陷，关闭所有子 agent后，然后回到第一步继续循环。 
 
 循环终止条件：连续两轮扫描无 Critical 与 Important 级别问题，且所有验收测试通过。
+
+
+
+
+  curl -sS "https://data.infoway.io/crypto/batch_trade/BTCUSDT" \
+    -H "apiKey: 7ffce79114f840b6a749fb59344159d2-infoway"

@@ -47,6 +47,12 @@ import {
   resolveMarketTypeFromSymbols,
   MarketTypeContext,
 } from "@core/shared/utils/market-type.util";
+import {
+  buildIdentitySymbolMappingPair,
+  findNonStandardSymbolsForIdentityProvider,
+  isStandardSymbolIdentityProvider,
+  STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+} from "@core/shared/utils/provider-symbol-identity.util";
 
 
 
@@ -88,6 +94,15 @@ import { ProviderRegistryService } from "@providersv2/provider-registry.service"
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
   private readonly logger = createLogger("StreamReceiver");
+  private readonly pipelineCanonicalizationCache = new WeakMap<
+    object,
+    {
+      validItems: any[];
+      droppedReasons: Record<string, number>;
+      droppedTotal: number;
+      inputCount: number;
+    }
+  >();
 
   // 注意：连接管理已迁移到 StreamConnectionManagerService，但保留核心属性供当前实现使用
   private readonly activeConnections = new Map<string, StreamConnection>();
@@ -135,6 +150,161 @@ export class StreamReceiverService implements OnModuleDestroy {
     nextAttemptTime: 0
   };
 
+  private canonicalizePipelinePayload(
+    rawItem: any,
+  ): { item?: any; reason?: string } {
+    const canonicalSymbol = this.buildSymbolBroadcastKey(rawItem?.symbol);
+    if (!canonicalSymbol) {
+      return { reason: "invalid_symbol" };
+    }
+
+    const rawPrice = rawItem?.lastPrice ?? rawItem?.price;
+    const normalizedPrice =
+      typeof rawPrice === "string" ? rawPrice.trim() : rawPrice;
+    if (typeof normalizedPrice === "string" && normalizedPrice.length === 0) {
+      return { reason: "invalid_price" };
+    }
+    const price =
+      typeof normalizedPrice === "number"
+        ? normalizedPrice
+        : Number(normalizedPrice);
+    if (!Number.isFinite(price) || price < 0) {
+      return { reason: "invalid_price" };
+    }
+
+    const timestamp = this.normalizeTimestampMs(rawItem?.timestamp);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) {
+      return { reason: "invalid_timestamp" };
+    }
+
+    const rawVolume = rawItem?.volume ?? 0;
+    const volume = typeof rawVolume === "number" ? rawVolume : Number(rawVolume);
+    if (!Number.isFinite(volume) || volume < 0) {
+      return { reason: "invalid_volume" };
+    }
+
+    return {
+      item: {
+        ...rawItem,
+        symbol: canonicalSymbol,
+        price,
+        lastPrice: price,
+        timestamp,
+        volume,
+      },
+    };
+  }
+
+  private normalizeTimestampMs(rawTimestamp: unknown): number {
+    const normalizedTimestamp =
+      typeof rawTimestamp === "string" ? rawTimestamp.trim() : rawTimestamp;
+
+    if (typeof normalizedTimestamp === "number") {
+      if (!Number.isFinite(normalizedTimestamp) || normalizedTimestamp <= 0) {
+        return Number.NaN;
+      }
+      if (!Number.isInteger(normalizedTimestamp)) {
+        return Number.NaN;
+      }
+      const digitLength = String(Math.trunc(normalizedTimestamp)).length;
+      if (digitLength === 10) {
+        return normalizedTimestamp * 1000;
+      }
+      if (digitLength === 13) {
+        return normalizedTimestamp;
+      }
+      return Number.NaN;
+    }
+
+    if (
+      typeof normalizedTimestamp === "string" &&
+      normalizedTimestamp.length > 0
+    ) {
+      if (/^[0-9]+$/.test(normalizedTimestamp)) {
+        if (normalizedTimestamp.length === 10) {
+          return Number(normalizedTimestamp) * 1000;
+        }
+        if (normalizedTimestamp.length === 13) {
+          return Number(normalizedTimestamp);
+        }
+        return Number.NaN;
+      }
+      return Date.parse(normalizedTimestamp);
+    }
+
+    return Number.NaN;
+  }
+
+  private canonicalizePipelinePayloads(
+    transformedData: any[],
+    stage: "cache" | "broadcast",
+  ): any[] {
+    const canonicalizationResult =
+      this.getPipelineCanonicalizationResult(transformedData);
+
+    if (canonicalizationResult.droppedTotal > 0) {
+      this.logger.warn("流数据因无效payload被丢弃", {
+        stage,
+        inputCount: canonicalizationResult.inputCount,
+        droppedTotal: canonicalizationResult.droppedTotal,
+        reasons: canonicalizationResult.droppedReasons,
+      });
+    }
+
+    return canonicalizationResult.validItems;
+  }
+
+  private getPipelineCanonicalizationResult(transformedData: any[]): {
+    validItems: any[];
+    droppedReasons: Record<string, number>;
+    droppedTotal: number;
+    inputCount: number;
+  } {
+    if (!Array.isArray(transformedData)) {
+      return {
+        validItems: [],
+        droppedReasons: {},
+        droppedTotal: 0,
+        inputCount: 0,
+      };
+    }
+
+    const cacheKey = transformedData as unknown as object;
+    const cachedResult = this.pipelineCanonicalizationCache.get(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const validItems: any[] = [];
+    const droppedReasons: Record<string, number> = {};
+
+    for (const rawItem of transformedData) {
+      const { item, reason } = this.canonicalizePipelinePayload(rawItem);
+      if (item) {
+        validItems.push(item);
+        continue;
+      }
+
+      const dropReason = reason || "unknown_payload";
+      droppedReasons[dropReason] = (droppedReasons[dropReason] || 0) + 1;
+    }
+
+    const droppedTotal = Object.values(droppedReasons).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+
+    const result = {
+      validItems,
+      droppedReasons,
+      droppedTotal,
+      inputCount: transformedData.length,
+    };
+    this.pipelineCanonicalizationCache.set(cacheKey, result);
+
+    return result;
+  }
+
   // 🔄 Stub methods for backward compatibility - delegate to dedicated services
   private async pipelineCacheData(transformedData: any[], symbols: string[]): Promise<void> {
     try {
@@ -153,34 +323,41 @@ export class StreamReceiverService implements OnModuleDestroy {
         return;
       }
 
-      // 将转换后的数据映射为 StreamDataPoint，并按符号分组
+      const canonicalizedData = this.canonicalizePipelinePayloads(
+        transformedData,
+        "cache",
+      );
+      if (canonicalizedData.length === 0) {
+        return;
+      }
+
+      // 将转换后的数据映射为 StreamDataPoint，并按 canonical 符号分组
       const bySymbol = new Map<string, any[]>();
-      for (const item of transformedData || []) {
-        const sym = item?.symbol;
-        if (!sym) continue;
-        const ts = typeof item?.timestamp === 'number' ? item.timestamp : (item?.timestamp ? Date.parse(item.timestamp) : Date.now());
+      for (const item of canonicalizedData) {
+        const canonicalSymbol = item.symbol;
         const point = {
-          s: sym,
-          p: item?.lastPrice ?? item?.price ?? 0,
-          v: item?.volume ?? 0,
-          t: Number.isFinite(ts) ? ts : Date.now(),
+          s: canonicalSymbol,
+          p: item.lastPrice,
+          v: item.volume,
+          t: item.timestamp,
           c: item?.change,
           cp: item?.changePercent,
         };
-        if (!bySymbol.has(sym)) bySymbol.set(sym, []);
-        bySymbol.get(sym)!.push(point);
+        if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
+        bySymbol.get(canonicalSymbol)!.push(point);
       }
 
       // 写入缓存（Hot + Warm）；
       // 实际Warm层Redis键格式为：stream:stream_cache_warm:quote:<symbol>
       // 说明：底层使用专用Redis客户端(keyPrefix='stream:')与Warm前缀('stream_cache_warm:')，
       // 因此此处传入的业务键为 'quote:<symbol>' 即可。
-      for (const [sym, points] of bySymbol.entries()) {
-        const key = `quote:${sym}`; // 实际Redis键: stream:stream_cache_warm:quote:<symbol>
+      for (const [canonicalSymbol, points] of bySymbol.entries()) {
+        const key = this.buildSymbolCacheKey(canonicalSymbol); // 实际Redis键: stream:stream_cache_warm:quote:<symbol>
+        if (!key) continue;
         try {
           await streamCache.setData(key, points, 'hot');
         } catch (err) {
-          this.logger.warn("写入StreamCache失败(忽略)", { symbol: sym, error: (err as any)?.message });
+          this.logger.warn("写入StreamCache失败(忽略)", { symbol: canonicalSymbol, error: (err as any)?.message });
         }
       }
 
@@ -211,20 +388,27 @@ export class StreamReceiverService implements OnModuleDestroy {
         return;
       }
 
-      // 按符号聚合数据后分别广播
-      const bySymbol = new Map<string, any[]>();
-      for (const item of transformedData || []) {
-        const sym = item?.symbol;
-        if (!sym) continue;
-        if (!bySymbol.has(sym)) bySymbol.set(sym, []);
-        bySymbol.get(sym)!.push(item);
+      const canonicalizedData = this.canonicalizePipelinePayloads(
+        transformedData,
+        "broadcast",
+      );
+      if (canonicalizedData.length === 0) {
+        return;
       }
 
-      for (const [sym, items] of bySymbol.entries()) {
+      // 按符号聚合数据后分别广播
+      const bySymbol = new Map<string, any[]>();
+      for (const item of canonicalizedData) {
+        const canonicalSymbol = item.symbol;
+        if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
+        bySymbol.get(canonicalSymbol)!.push(item);
+      }
+
+      for (const [canonicalSymbol, items] of bySymbol.entries()) {
         try {
-          await clientStateManager.broadcastToSymbolViaGateway(sym, items, this.webSocketProvider);
+          await clientStateManager.broadcastToSymbolViaGateway(canonicalSymbol, items, this.webSocketProvider);
         } catch (err) {
-          this.logger.warn("广播到房间失败(忽略)", { symbol: sym, error: (err as any)?.message });
+          this.logger.warn("广播到房间失败(忽略)", { symbol: canonicalSymbol, error: (err as any)?.message });
         }
       }
 
@@ -632,6 +816,36 @@ export class StreamReceiverService implements OnModuleDestroy {
     clientIp?: string, // P0修复: 新增客户端IP参数用于频率限制
     options?: { connectionAuthenticated?: boolean },
   ): Promise<void> {
+    const resolvedClientId =
+      clientId ||
+      `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const requestId = `request_${Date.now()}`;
+
+    // I-3: 轻量连接门禁先于请求深度参数校验，避免无效请求绕过连接限速
+    if (clientIp) {
+      const rateLimitPassed = await this.checkConnectionRateLimit(clientIp);
+      if (!rateLimitPassed) {
+        const error = UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_RECEIVER,
+          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+          operation: "subscribeStream",
+          message: "Connection rate limit exceeded, please try again later",
+          context: {
+            clientId: resolvedClientId,
+            clientIp,
+            requestId,
+            errorType: STREAM_RECEIVER_ERROR_CODES.CONNECTION_RATE_EXCEEDED
+          }
+        });
+        this.logger.warn("连接被频率限制拒绝", {
+          clientId: resolvedClientId,
+          clientIp,
+          requestId,
+        });
+        throw error;
+      }
+    }
+
     const validationResult =
       options?.connectionAuthenticated === true
         ? this.dataValidator.validateSubscribeRequest(subscribeDto, {
@@ -674,39 +888,15 @@ export class StreamReceiverService implements OnModuleDestroy {
       this.marketInferenceService,
       symbols,
     );
-    // ✅ Phase 3 - P2: 使用传入的clientId或生成唯一ID作为回退
-    const resolvedClientId =
-      clientId ||
-      `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const providerName =
       preferredProvider ||
       this.getDefaultProvider(symbols, wsCapabilityType, marketContext);
-    const requestId = `request_${Date.now()}`;
-
-    // P0修复: 连接频率限制检查
-    if (clientIp) {
-      const rateLimitPassed = await this.checkConnectionRateLimit(clientIp);
-      if (!rateLimitPassed) {
-        const error = UniversalExceptionFactory.createBusinessException({
-          component: ComponentIdentifier.STREAM_RECEIVER,
-          errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
-          operation: 'subscribeStream',
-          message: 'Connection rate limit exceeded, please try again later',
-          context: {
-            clientId: resolvedClientId,
-            clientIp,
-            requestId,
-            errorType: STREAM_RECEIVER_ERROR_CODES.CONNECTION_RATE_EXCEEDED
-          }
-        });
-        this.logger.warn("连接被频率限制拒绝", {
-          clientId: resolvedClientId,
-          clientIp,
-          requestId,
-        });
-        throw error;
-      }
-    }
+    this.validateIdentityProviderRawSymbolsNoBoundaryWhitespace(
+      subscribeDto?.symbols,
+      providerName,
+      requestId,
+      "subscribeStream",
+    );
 
     // P0修复: 连接数量上限检查
     if (this.connectionManager.getActiveConnectionsCount() >= this.config.maxConnections) {
@@ -777,7 +967,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 6. 将客户端加入标准化符号房间，便于按symbol广播
       try {
         if (this.webSocketProvider && standardSymbols?.length) {
-          const rooms = standardSymbols.map((s) => `symbol:${s}`);
+          const rooms = this.buildSymbolRooms(standardSymbols);
           await this.webSocketProvider.joinClientToRooms(resolvedClientId, rooms);
         }
       } catch (err) {
@@ -879,6 +1069,12 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       // 映射符号（标准化 + Provider格式）
       const requestId = `unsubscribe_${Date.now()}`;
+      this.validateIdentityProviderRawSymbolsNoBoundaryWhitespace(
+        unsubscribeDto?.symbols,
+        clientSub.providerName,
+        requestId,
+        "unsubscribeStream",
+      );
       const { standardSymbols, providerSymbols } =
         await this.resolveSymbolMappings(
           symbolsToUnsubscribe,
@@ -919,7 +1115,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 将客户端从房间移除
       try {
         if (this.webSocketProvider && standardSymbols?.length) {
-          const rooms = standardSymbols.map((s) => `symbol:${s}`);
+          const rooms = this.buildSymbolRooms(standardSymbols);
           await this.webSocketProvider.leaveClientFromRooms(clientId, rooms);
         }
       } catch (err) {
@@ -1399,6 +1595,140 @@ export class StreamReceiverService implements OnModuleDestroy {
 
   // === 私有方法 ===
 
+  private toCanonicalSymbol(symbol: string): string {
+    if (typeof symbol !== "string") {
+      return "";
+    }
+    const canonicalSymbol = symbol.trim().toUpperCase();
+    if (canonicalSymbol.length === 0) {
+      return "";
+    }
+    return canonicalSymbol;
+  }
+
+  private buildCanonicalSymbolKey(symbol: string, prefix = ""): string {
+    const canonicalSymbol = this.toCanonicalSymbol(symbol);
+    if (!canonicalSymbol) {
+      return "";
+    }
+    return `${prefix}${canonicalSymbol}`;
+  }
+
+  private buildSymbolBroadcastKey(symbol: string): string {
+    const canonicalSymbol = this.toCanonicalSymbol(symbol);
+    if (!canonicalSymbol) {
+      return "";
+    }
+
+    if (!this.dataValidator.isValidSymbolFormat(canonicalSymbol)) {
+      return "";
+    }
+
+    return canonicalSymbol;
+  }
+
+  private buildSymbolCacheKey(symbol: string): string {
+    return this.buildCanonicalSymbolKey(symbol, "quote:");
+  }
+
+  private buildSymbolRoomKey(symbol: string): string {
+    return this.buildCanonicalSymbolKey(symbol, "symbol:");
+  }
+
+  private buildSymbolRooms(symbols: string[]): string[] {
+    const rooms = new Set<string>();
+    for (const symbol of symbols || []) {
+      const room = this.buildSymbolRoomKey(symbol);
+      if (room) {
+        rooms.add(room);
+      }
+    }
+    return Array.from(rooms);
+  }
+
+  private getStandardSymbolIdentityProvidersConfig(): string {
+    return this.configService.get<string>(
+      STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+      "",
+    );
+  }
+
+  private isProviderUsingStandardSymbolIdentity(providerName: string): boolean {
+    return isStandardSymbolIdentityProvider(
+      providerName,
+      this.getStandardSymbolIdentityProvidersConfig(),
+    );
+  }
+
+  private throwIdentityProviderSymbolValidationError(
+    providerName: string,
+    requestId: string,
+    invalidSymbols: string[],
+    operation = "resolveSymbolMappings",
+  ): never {
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.STREAM_RECEIVER,
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation,
+      message: `Identity provider '${providerName}' requires standard symbol format`,
+      context: {
+        provider: providerName,
+        symbol: invalidSymbols[0],
+        invalidSymbols: invalidSymbols.slice(0, 5),
+        expectedFormat: "*.HK/*.US/*.SH/*.SZ/*.SG",
+        reason: "non_standard_symbol_in_identity_provider",
+        requestId,
+      },
+    });
+  }
+
+  private findSymbolsWithBoundaryWhitespace(rawSymbols: unknown): string[] {
+    if (!Array.isArray(rawSymbols)) {
+      return [];
+    }
+
+    return rawSymbols.filter(
+      (symbol): symbol is string =>
+        typeof symbol === "string" && symbol !== symbol.trim(),
+    );
+  }
+
+  private validateIdentityProviderRawSymbolsNoBoundaryWhitespace(
+    rawSymbols: unknown,
+    providerName: string,
+    requestId: string,
+    operation: "subscribeStream" | "unsubscribeStream",
+  ): void {
+    if (!this.isProviderUsingStandardSymbolIdentity(providerName)) {
+      return;
+    }
+
+    const invalidSymbols = this.findSymbolsWithBoundaryWhitespace(rawSymbols);
+    if (invalidSymbols.length > 0) {
+      this.throwIdentityProviderSymbolValidationError(
+        providerName,
+        requestId,
+        invalidSymbols,
+        operation,
+      );
+    }
+  }
+
+  private validateIdentityProviderStandardSymbols(
+    symbols: string[],
+    providerName: string,
+    requestId: string,
+  ): void {
+    const invalidSymbols = findNonStandardSymbolsForIdentityProvider(symbols);
+    if (invalidSymbols.length > 0) {
+      this.throwIdentityProviderSymbolValidationError(
+        providerName,
+        requestId,
+        invalidSymbols,
+      );
+    }
+  }
+
   /**
    * 符号映射
    */
@@ -1437,6 +1767,23 @@ export class StreamReceiverService implements OnModuleDestroy {
     providerName: string,
     requestId: string,
   ): Promise<{ standardSymbols: string[]; providerSymbols: string[] }> {
+    if (this.isProviderUsingStandardSymbolIdentity(providerName)) {
+      this.validateIdentityProviderStandardSymbols(
+        symbols,
+        providerName,
+        requestId,
+      );
+      const canonicalSymbols = symbols.map((symbol) =>
+        this.toCanonicalSymbol(symbol),
+      );
+      this.logger.debug("命中 provider 级标准符号直通，跳过 Provider 符号转换", {
+        provider: providerName,
+        requestId,
+        symbolsCount: canonicalSymbols.length,
+      });
+      return buildIdentitySymbolMappingPair(canonicalSymbols);
+    }
+
     const standardSymbols = await this.mapSymbols(symbols, providerName);
     const providerSymbols = await this.mapSymbolsForProvider(
       providerName,
@@ -1498,6 +1845,10 @@ export class StreamReceiverService implements OnModuleDestroy {
     symbols: string[],
     provider: string,
   ): Promise<string[]> {
+    if (this.isProviderUsingStandardSymbolIdentity(provider)) {
+      return symbols.map((symbol) => this.buildSymbolBroadcastKey(symbol) || symbol);
+    }
+
     try {
       const result = await this.symbolTransformerService.transformSymbols(
         provider,

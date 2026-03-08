@@ -36,7 +36,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
     }
   });
 
-  it("provider 命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 时执行 canonicalization 并跳过符号还原", async () => {
+  it("provider 命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 时合法小写 symbol 会 canonicalize 且跳过符号还原", async () => {
     const symbolTransformerService = {
       transformSingleSymbol: jest.fn(async () => "AAPL"),
     };
@@ -59,7 +59,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
     );
 
     const input = [
-      { symbol: " aapl.us ", price: 1 },
+      { symbol: "aapl.us", price: 1 },
       { symbol: "00700.hk", price: 2 },
     ];
 
@@ -78,8 +78,8 @@ describe("DataTransformerService restoreStandardSymbols", () => {
     );
   });
 
-  it.each([" AAPL ", "00700"])(
-    "identity provider 的 symbol %s 后置校验失败时抛异常",
+  it.each([" aapl.us ", "aapl.us ", "00700"])(
+    "identity provider 的原始 symbol %s 校验失败时抛异常",
     async (invalidSymbol) => {
       const symbolTransformerService = {
         transformSingleSymbol: jest.fn(async () => "AAPL"),

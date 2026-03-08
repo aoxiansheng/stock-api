@@ -6,6 +6,7 @@ import {
   OnModuleInit,
   OnModuleDestroy,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { v4 as uuidv4 } from "uuid";
 
 // 统一错误处理基础设施
@@ -76,6 +77,12 @@ import {
   resolveMarketTypeFromSymbols,
   MarketTypeContext,
 } from "@core/shared/utils/market-type.util";
+import {
+  buildIdentitySymbolTransformResult,
+  findNonStandardSymbolsForIdentityProvider,
+  isStandardSymbolIdentityProvider,
+  STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+} from "@core/shared/utils/provider-symbol-identity.util";
 import { validateYmdDateRange } from "@core/shared/utils/ymd-date.util";
 
 const TRADING_DAYS_MIN_YMD = "19000101";
@@ -122,6 +129,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     private readonly marketStatusService: MarketStatusService,
     private readonly marketInferenceService: MarketInferenceService,
     private readonly smartCacheOrchestrator: SmartCacheStandardizedService, // 🔑 关键: 注入智能缓存编排器
+    private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -231,7 +239,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
           cacheKeyParams: this.buildReceiverCacheKeyParams(request),
           executeOriginalDataFlow: async () => {
             // 内联原始数据流逻辑，移除包装器方法
-            const mappedSymbols = await this.symbolTransformerService.transformSymbolsForProvider(
+            const mappedSymbols = await this.resolveSymbolsForProvider(
               provider,
               request.symbols,
               requestId,
@@ -300,12 +308,11 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       }
 
       // 4. 传统数据流 - 转换股票代码
-      const mappedSymbols =
-        await this.symbolTransformerService.transformSymbolsForProvider(
-          provider,
-          request.symbols,
-          requestId,
-        );
+      const mappedSymbols = await this.resolveSymbolsForProvider(
+        provider,
+        request.symbols,
+        requestId,
+      );
 
       // 5. 执行数据获取（移除缓存逻辑，统一到Storage组件处理）
       const responseData = await this.executeDataFetching(
@@ -391,6 +398,64 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       // 🔧 确保资源清理，无论成功还是失败
       this.updateActiveConnections(-1);
     }
+  }
+
+  private async resolveSymbolsForProvider(
+    provider: string,
+    symbols: string[],
+    requestId: string,
+  ): Promise<SymbolTransformForProviderResult> {
+    if (!this.isIdentityProviderEnabled(provider)) {
+      return this.symbolTransformerService.transformSymbolsForProvider(
+        provider,
+        symbols,
+        requestId,
+      );
+    }
+
+    const invalidSymbols =
+      findNonStandardSymbolsForIdentityProvider(symbols);
+    if (invalidSymbols.length > 0) {
+      this.logger.warn(
+        "标准符号直通 provider 收到非标准 symbols",
+        sanitizeLogData({
+          requestId,
+          provider,
+          reason: "non_standard_symbol_in_identity_provider",
+          invalidSymbols: invalidSymbols.slice(0, NUMERIC_CONSTANTS.N_5),
+          invalidCount: invalidSymbols.length,
+          operation: "resolveSymbolsForProvider",
+        }),
+      );
+
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.RECEIVER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "resolveSymbolsForProvider",
+        message: "标准符号直通 provider 仅支持标准格式 symbols",
+        context: {
+          provider,
+          reason: "non_standard_symbol_in_identity_provider",
+          invalidSymbols: invalidSymbols.slice(0, NUMERIC_CONSTANTS.N_5),
+          symbols: symbols.slice(0, NUMERIC_CONSTANTS.N_5),
+        },
+      });
+    }
+
+    return buildIdentitySymbolTransformResult(provider, symbols);
+  }
+
+  private getIdentityProviderRawConfig(): string | undefined {
+    return this.configService.get<string>(
+      STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+    );
+  }
+
+  private isIdentityProviderEnabled(provider: string): boolean {
+    return isStandardSymbolIdentityProvider(
+      provider,
+      this.getIdentityProviderRawConfig(),
+    );
   }
 
   /**
@@ -913,32 +978,36 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         rawSample,
       });
 
-      // 符号逆映射：将 Provider 符号还原为系统默认标准格式
-      try {
-        const fwd = mappedSymbols.mappingResults?.transformedSymbols || {};
-        const reverse: Record<string, string> = {};
-        for (const std of Object.keys(fwd)) {
-          const sdk = fwd[std];
-          if (sdk) reverse[sdk] = std;
-        }
-
-        const applyReverse = (item: any) => {
-          if (item && typeof item === 'object' && 'symbol' in item) {
-            const sv = (item as any).symbol;
-            if (typeof sv === 'string' && reverse[sv]) {
-              (item as any).symbol = reverse[sv];
-            }
+      // 符号逆映射：仅在非 identity provider 场景恢复原始请求形态
+      if (!this.isIdentityProviderEnabled(provider)) {
+        try {
+          const fwd = mappedSymbols.mappingResults?.transformedSymbols || {};
+          const reverse: Record<string, string> = {};
+          for (const std of Object.keys(fwd)) {
+            const sdk = fwd[std];
+            if (sdk) reverse[sdk] = std;
           }
-          return item;
-        };
 
-        if (Array.isArray(processedData)) {
-          processedData = processedData.map(applyReverse);
-        } else {
-          processedData = applyReverse(processedData);
+          const applyReverse = (item: any) => {
+            if (item && typeof item === "object" && "symbol" in item) {
+              const sv = (item as any).symbol;
+              if (typeof sv === "string" && reverse[sv]) {
+                (item as any).symbol = reverse[sv];
+              }
+            }
+            return item;
+          };
+
+          if (Array.isArray(processedData)) {
+            processedData = processedData.map(applyReverse);
+          } else {
+            processedData = applyReverse(processedData);
+          }
+        } catch (e) {
+          this.logger.warn("符号逆映射失败(已忽略)", {
+            error: (e as any)?.message,
+          });
         }
-      } catch (e) {
-        this.logger.warn('符号逆映射失败(已忽略)', { error: (e as any)?.message });
       }
 
       // ✅ 新增步骤2：使用 Storage 进行统一存储

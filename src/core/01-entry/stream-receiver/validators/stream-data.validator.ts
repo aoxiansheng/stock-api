@@ -6,6 +6,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLogger } from '@common/logging/index';
 import { API_OPERATIONS } from '@common/constants/domain';
+import { SymbolValidationUtils } from '@common/utils/symbol-validation.util';
 import { StreamSubscribeDto, StreamUnsubscribeDto } from '../dto';
 import { ProviderRegistryService } from '@providersv2/provider-registry.service';
 
@@ -64,14 +65,6 @@ export class StreamDataValidator {
   private readonly DYNAMIC_WS_CAPABILITY_CACHE_TTL_MS = 30 * 1000;
   private dynamicWSCapabilityCache: Set<string> | null = null;
   private dynamicWSCapabilityCacheExpiresAt = 0;
-
-  // 符号格式正则表达式
-  private readonly SYMBOL_PATTERNS = {
-    HK: /^[0-9]{4,5}\.HK$/i,           // 港股: 0700.HK, 00700.HK
-    US: /^[A-Z0-9]+(?:[.\-][A-Z0-9]+){0,2}\.US$/i, // 美股: AAPL.US, BRK.B.US, BRK-B.US
-    CN: /^[0-9]{6}\.(SH|SZ)$/i,       // A股: 000001.SZ, 600036.SH
-    SG: /^[A-Z0-9]{3,5}\.SG$/i        // 新加坡: DBS.SG
-  };
 
   /**
    * 验证订阅请求
@@ -207,15 +200,7 @@ export class StreamDataValidator {
    */
   isValidSymbolFormat(symbol: string): boolean {
     const sanitized = this.sanitizeSymbol(symbol);
-
-    // 检查是否匹配任何支持的市场格式
-    for (const [market, pattern] of Object.entries(this.SYMBOL_PATTERNS)) {
-      if (pattern.test(sanitized)) {
-        return true;
-      }
-    }
-
-    return false;
+    return SymbolValidationUtils.isStrictStandardSymbol(sanitized);
   }
 
   /**
@@ -230,11 +215,21 @@ export class StreamDataValidator {
    */
   extractMarket(symbol: string): string | null {
     const sanitized = this.sanitizeSymbol(symbol);
+    if (!SymbolValidationUtils.isStrictStandardSymbol(sanitized)) {
+      return null;
+    }
 
-    for (const [market, pattern] of Object.entries(this.SYMBOL_PATTERNS)) {
-      if (pattern.test(sanitized)) {
-        return market;
-      }
+    if (sanitized.endsWith('.HK')) {
+      return 'HK';
+    }
+    if (sanitized.endsWith('.US')) {
+      return 'US';
+    }
+    if (sanitized.endsWith('.SG')) {
+      return 'SG';
+    }
+    if (sanitized.endsWith('.SH') || sanitized.endsWith('.SZ')) {
+      return 'CN';
     }
 
     return null;

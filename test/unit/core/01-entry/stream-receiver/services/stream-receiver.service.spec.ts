@@ -717,4 +717,248 @@ describe("StreamReceiverService symbol room key consistency", () => {
       }),
     );
   });
+
+  it("pipelineCacheData: I-01/I-02 边界输入应仅缓存合法点并记录 droppedReasons", async () => {
+    const { service, mocks } = createService();
+
+    await (service as any).pipelineCacheData(
+      [
+        { symbol: "aapl.us", price: "", timestamp: 1700000000000, volume: 1 },
+        { symbol: "AAPL.US", price: "   ", timestamp: 1700000000001, volume: 1 },
+        { symbol: "AAPL.US", price: 0, timestamp: 1700000000002, volume: 1 },
+        { symbol: "AAPL.US", price: "0", timestamp: 1700000000003, volume: 1 },
+        { symbol: "AAPL.US", price: 2, timestamp: "1700000000000", volume: 1 },
+        {
+          symbol: "AAPL.US",
+          price: 3,
+          timestamp: "2024-01-01T00:00:00.000Z",
+          volume: 1,
+        },
+        { symbol: "AAPL.US", price: 4, timestamp: "   ", volume: 1 },
+        { symbol: "AAPL.US", price: 5, timestamp: "not-a-time", volume: 1 },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(mocks.streamCache.setData).toHaveBeenCalledTimes(1);
+    expect(mocks.streamCache.setData).toHaveBeenCalledWith(
+      "quote:AAPL.US",
+      expect.any(Array),
+      "hot",
+    );
+    const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
+    expect(cachedPoints).toHaveLength(4);
+    expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(true);
+    expect(cachedPoints.filter((point: any) => point.p === 0)).toHaveLength(2);
+    expect(cachedPoints.some((point: any) => point.t === 1700000000000)).toBe(true);
+    expect(
+      cachedPoints.some(
+        (point: any) => point.t === Date.parse("2024-01-01T00:00:00.000Z"),
+      ),
+    ).toBe(true);
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "cache",
+        droppedTotal: 4,
+        reasons: expect.objectContaining({
+          invalid_price: 2,
+          invalid_timestamp: 2,
+        }),
+      }),
+    );
+  });
+
+  it("pipelineBroadcastData: I-01/I-02 边界输入应仅广播合法点并记录 droppedReasons", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+
+    await (service as any).pipelineBroadcastData(
+      [
+        { symbol: "aapl.us", price: "", timestamp: 1700000000000, volume: 1 },
+        { symbol: "AAPL.US", price: "   ", timestamp: 1700000000001, volume: 1 },
+        { symbol: "AAPL.US", price: 0, timestamp: 1700000000002, volume: 1 },
+        { symbol: "AAPL.US", price: "0", timestamp: 1700000000003, volume: 1 },
+        { symbol: "AAPL.US", price: 2, timestamp: "1700000000000", volume: 1 },
+        {
+          symbol: "AAPL.US",
+          price: 3,
+          timestamp: "2024-01-01T00:00:00.000Z",
+          volume: 1,
+        },
+        { symbol: "AAPL.US", price: 4, timestamp: "   ", volume: 1 },
+        { symbol: "AAPL.US", price: 5, timestamp: "not-a-time", volume: 1 },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(1);
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledWith(
+      "AAPL.US",
+      expect.any(Array),
+      mocks.webSocketProvider,
+    );
+    const broadcastPayload =
+      mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[0][1];
+    expect(broadcastPayload).toHaveLength(4);
+    expect(
+      broadcastPayload.every((item: any) => item.symbol === "AAPL.US"),
+    ).toBe(true);
+    expect(broadcastPayload.filter((item: any) => item.price === 0)).toHaveLength(2);
+    expect(
+      broadcastPayload.some((item: any) => item.timestamp === 1700000000000),
+    ).toBe(true);
+    expect(
+      broadcastPayload.some(
+        (item: any) => item.timestamp === Date.parse("2024-01-01T00:00:00.000Z"),
+      ),
+    ).toBe(true);
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "broadcast",
+        droppedTotal: 4,
+        reasons: expect.objectContaining({
+          invalid_price: 2,
+          invalid_timestamp: 2,
+        }),
+      }),
+    );
+  });
+
+  it("pipelineCacheData: I-03 timestamp 秒级字符串/数字应转毫秒，11位输入应按 invalid_timestamp 丢弃", async () => {
+    const { service, mocks } = createService();
+
+    await (service as any).pipelineCacheData(
+      [
+        { symbol: "AAPL.US", price: 1, timestamp: "1700000000", volume: 1 },
+        { symbol: "AAPL.US", price: 1.5, timestamp: 1700000000, volume: 1 },
+        { symbol: "AAPL.US", price: 2, timestamp: "17000000000", volume: 1 },
+        { symbol: "AAPL.US", price: 2.5, timestamp: 17000000000, volume: 1 },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(mocks.streamCache.setData).toHaveBeenCalledTimes(1);
+    expect(mocks.streamCache.setData).toHaveBeenCalledWith(
+      "quote:AAPL.US",
+      expect.any(Array),
+      "hot",
+    );
+    const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
+    expect(cachedPoints).toHaveLength(2);
+    expect(
+      cachedPoints.every(
+        (point: any) =>
+          point.s === "AAPL.US" && point.t === 1700000000000,
+      ),
+    ).toBe(true);
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "cache",
+        droppedTotal: 2,
+        reasons: expect.objectContaining({
+          invalid_timestamp: 2,
+        }),
+      }),
+    );
+  });
+
+  it("pipelineBroadcastData: I-03 timestamp 秒级字符串/数字应转毫秒，11位输入应按 invalid_timestamp 丢弃", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+
+    await (service as any).pipelineBroadcastData(
+      [
+        { symbol: "AAPL.US", price: 1, timestamp: "1700000000", volume: 1 },
+        { symbol: "AAPL.US", price: 1.5, timestamp: 1700000000, volume: 1 },
+        { symbol: "AAPL.US", price: 2, timestamp: "17000000000", volume: 1 },
+        { symbol: "AAPL.US", price: 2.5, timestamp: 17000000000, volume: 1 },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(1);
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledWith(
+      "AAPL.US",
+      expect.any(Array),
+      mocks.webSocketProvider,
+    );
+    const broadcastPayload =
+      mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[0][1];
+    expect(broadcastPayload).toHaveLength(2);
+    expect(
+      broadcastPayload.every(
+        (item: any) =>
+          item.symbol === "AAPL.US" && item.timestamp === 1700000000000,
+      ),
+    ).toBe(true);
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "broadcast",
+        droppedTotal: 2,
+        reasons: expect.objectContaining({
+          invalid_timestamp: 2,
+        }),
+      }),
+    );
+  });
+
+  it("pipeline cache/broadcast: 应复用同一symbol校验结果并丢弃非空非法symbol", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+
+    const transformedData = [
+      { symbol: "AAPL.US", price: 190.12, timestamp: 1700000000000, volume: 100 },
+      { symbol: "AAPL", price: 190.12, timestamp: 1700000000001, volume: 100 },
+      { symbol: "AAPL US", price: 190.12, timestamp: 1700000000002, volume: 100 },
+      { symbol: "00700.HK", price: 300.45, timestamp: 1700000001000, volume: 300 },
+    ];
+
+    await (service as any).pipelineCacheData(transformedData, ["AAPL.US", "00700.HK"]);
+    await (service as any).pipelineBroadcastData(transformedData, ["AAPL.US", "00700.HK"]);
+
+    expect(mocks.dataValidator.isValidSymbolFormat).toHaveBeenCalledTimes(4);
+
+    const cacheKeys = mocks.streamCache.setData.mock.calls
+      .map((call: any[]) => call[0])
+      .sort();
+    expect(cacheKeys).toEqual(["quote:00700.HK", "quote:AAPL.US"]);
+
+    const broadcastSymbols = mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls
+      .map((call: any[]) => call[0])
+      .sort();
+    expect(broadcastSymbols).toEqual(["00700.HK", "AAPL.US"]);
+
+    const droppedWarnCalls = ((service as any).logger.warn as jest.Mock).mock.calls.filter(
+      ([message]: [string]) => message === "流数据因无效payload被丢弃",
+    );
+    expect(droppedWarnCalls).toHaveLength(2);
+    expect(droppedWarnCalls).toEqual(
+      expect.arrayContaining([
+        [
+          "流数据因无效payload被丢弃",
+          expect.objectContaining({
+            stage: "cache",
+            droppedTotal: 2,
+            reasons: expect.objectContaining({
+              invalid_symbol: 2,
+            }),
+          }),
+        ],
+        [
+          "流数据因无效payload被丢弃",
+          expect.objectContaining({
+            stage: "broadcast",
+            droppedTotal: 2,
+            reasons: expect.objectContaining({
+              invalid_symbol: 2,
+            }),
+          }),
+        ],
+      ]),
+    );
+  });
 });

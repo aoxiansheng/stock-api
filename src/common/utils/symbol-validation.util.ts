@@ -47,6 +47,20 @@ export class SymbolValidationUtils {
     "SOL",
   ] as const;
 
+  /**
+   * 严格标准 symbol：必须包含市场后缀（统一真相源）
+   * - HK: 1-5位数字或HSI + .HK
+   * - US: 支持字母数字与中间 . / - 分隔，末尾必须 .US
+   * - CN: 6位数字 + .SH/.SZ
+   * - SG: 3-5位字母数字 + .SG
+   */
+  private static readonly STRICT_STANDARD_SYMBOL_PATTERNS: readonly RegExp[] = [
+    /^(?:[0-9]{1,5}|HSI)\.HK$/i,
+    /^[A-Z0-9]+(?:[.\-][A-Z0-9]+){0,2}\.US$/i,
+    /^[0-9]{6}\.(?:SH|SZ)$/i,
+    /^[A-Z0-9]{3,5}\.SG$/i,
+  ];
+
   private static endsWithAny(symbol: string, suffixes: readonly string[]): boolean {
     return suffixes.some((suffix) => symbol.endsWith(suffix));
   }
@@ -68,6 +82,23 @@ export class SymbolValidationUtils {
 
   private static isCryptoSymbol(symbol: string): boolean {
     return this.CRYPTO_KEYWORDS.some((keyword) => symbol.includes(keyword));
+  }
+
+  /**
+   * 验证严格标准 symbol（必须带市场后缀）
+   */
+  public static isStrictStandardSymbol(symbol: string): boolean {
+    if (typeof symbol !== "string" || symbol.length === 0) {
+      return false;
+    }
+
+    if (symbol !== symbol.trim()) {
+      return false;
+    }
+
+    return this.STRICT_STANDARD_SYMBOL_PATTERNS.some((pattern) =>
+      pattern.test(symbol),
+    );
   }
 
   public static isValidSymbol(symbol: string): boolean {
