@@ -9,14 +9,240 @@ jest.mock("@common/logging/index", () => ({
 }));
 
 import { DataTransformerService } from "@core/02-processing/transformer/services/data-transformer.service";
+import { BusinessErrorCode } from "@common/core/exceptions";
 
 describe("DataTransformerService restoreStandardSymbols", () => {
   const flexibleMappingRuleService = {} as any;
+  const standardSymbolIdentityProvidersEnvKey = "STANDARD_SYMBOL_IDENTITY_PROVIDERS";
+  const createConfigService = (identityProviders?: string) => ({
+    get: jest.fn((key: string) =>
+      key === standardSymbolIdentityProvidersEnvKey ? identityProviders : undefined,
+    ),
+  });
+  let previousStandardSymbolIdentityProviders: string | undefined;
+
+  beforeEach(() => {
+    previousStandardSymbolIdentityProviders =
+      process.env[standardSymbolIdentityProvidersEnvKey];
+    delete process.env[standardSymbolIdentityProvidersEnvKey];
+  });
+
+  afterEach(() => {
+    if (previousStandardSymbolIdentityProviders === undefined) {
+      delete process.env[standardSymbolIdentityProvidersEnvKey];
+    } else {
+      process.env[standardSymbolIdentityProvidersEnvKey] =
+        previousStandardSymbolIdentityProviders;
+    }
+  });
+
+  it("provider 命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 时执行 canonicalization 并跳过符号还原", async () => {
+    const symbolTransformerService = {
+      transformSingleSymbol: jest.fn(async () => "AAPL"),
+    };
+    const configService = {
+      get: jest.fn((key: string) =>
+        key === standardSymbolIdentityProvidersEnvKey
+          ? " infoway, LONGPORT "
+          : undefined,
+      ),
+    };
+
+    const service = new DataTransformerService(
+      flexibleMappingRuleService,
+      symbolTransformerService as any,
+      {
+        maxArraySize: 10,
+        maxRestoreConcurrency: 2,
+      },
+      configService as any,
+    );
+
+    const input = [
+      { symbol: " aapl.us ", price: 1 },
+      { symbol: "00700.hk", price: 2 },
+    ];
+
+    const output = await (service as any).restoreStandardSymbols(
+      "longport",
+      input,
+    );
+
+    expect(output).toEqual([
+      { symbol: "AAPL.US", price: 1 },
+      { symbol: "00700.HK", price: 2 },
+    ]);
+    expect(symbolTransformerService.transformSingleSymbol).not.toHaveBeenCalled();
+    expect(configService.get).toHaveBeenCalledWith(
+      standardSymbolIdentityProvidersEnvKey,
+    );
+  });
+
+  it.each([" AAPL ", "00700"])(
+    "identity provider 的 symbol %s 后置校验失败时抛异常",
+    async (invalidSymbol) => {
+      const symbolTransformerService = {
+        transformSingleSymbol: jest.fn(async () => "AAPL"),
+      };
+      const configService = {
+        get: jest.fn((key: string) =>
+          key === standardSymbolIdentityProvidersEnvKey ? "longport" : undefined,
+        ),
+      };
+
+      const service = new DataTransformerService(
+        flexibleMappingRuleService,
+        symbolTransformerService as any,
+        {
+          maxArraySize: 10,
+          maxRestoreConcurrency: 2,
+        },
+        configService as any,
+      );
+
+      await expect(
+        (service as any).restoreStandardSymbols("longport", {
+          symbol: invalidSymbol,
+          price: 123,
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining("produced non-standard symbol"),
+        context: expect.objectContaining({
+          provider: "longport",
+          symbol: invalidSymbol,
+        }),
+      });
+      expect(symbolTransformerService.transformSingleSymbol).not.toHaveBeenCalled();
+      expect(configService.get).toHaveBeenCalledWith(
+        standardSymbolIdentityProvidersEnvKey,
+      );
+    },
+  );
+
+  it.each([" ", "   ", "\t"])(
+    "identity provider 的空白 symbol %p 抛 DATA_VALIDATION_FAILED",
+    async (invalidSymbol) => {
+      const symbolTransformerService = {
+        transformSingleSymbol: jest.fn(async () => "AAPL"),
+      };
+      const configService = {
+        get: jest.fn((key: string) =>
+          key === standardSymbolIdentityProvidersEnvKey ? "longport" : undefined,
+        ),
+      };
+
+      const service = new DataTransformerService(
+        flexibleMappingRuleService,
+        symbolTransformerService as any,
+        {
+          maxArraySize: 10,
+          maxRestoreConcurrency: 2,
+        },
+        configService as any,
+      );
+
+      await expect(
+        (service as any).restoreStandardSymbols("longport", {
+          symbol: invalidSymbol,
+          price: 123,
+        }),
+      ).rejects.toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        message: expect.stringContaining("non-empty string"),
+        context: expect.objectContaining({
+          provider: "longport",
+          symbol: invalidSymbol,
+        }),
+      });
+      expect(symbolTransformerService.transformSingleSymbol).not.toHaveBeenCalled();
+      expect(configService.get).toHaveBeenCalledWith(
+        standardSymbolIdentityProvidersEnvKey,
+      );
+    },
+  );
+
+  it.each([123, null, {}, []])(
+    "identity provider 的非字符串 symbol %p 抛 DATA_VALIDATION_FAILED",
+    async (invalidSymbol) => {
+      const symbolTransformerService = {
+        transformSingleSymbol: jest.fn(async () => "AAPL"),
+      };
+      const configService = {
+        get: jest.fn((key: string) =>
+          key === standardSymbolIdentityProvidersEnvKey ? "longport" : undefined,
+        ),
+      };
+
+      const service = new DataTransformerService(
+        flexibleMappingRuleService,
+        symbolTransformerService as any,
+        {
+          maxArraySize: 10,
+          maxRestoreConcurrency: 2,
+        },
+        configService as any,
+      );
+
+      await expect(
+        (service as any).restoreStandardSymbols("longport", {
+          symbol: invalidSymbol,
+          price: 123,
+        }),
+      ).rejects.toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        message: expect.stringContaining("non-empty string"),
+        context: expect.objectContaining({
+          provider: "longport",
+          symbol: invalidSymbol,
+        }),
+      });
+      expect(symbolTransformerService.transformSingleSymbol).not.toHaveBeenCalled();
+      expect(configService.get).toHaveBeenCalledWith(
+        standardSymbolIdentityProvidersEnvKey,
+      );
+    },
+  );
+
+  it("provider 未命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 时保持原行为", async () => {
+    const symbolTransformerService = {
+      transformSingleSymbol: jest.fn(async () => "AAPL"),
+    };
+    const configService = {
+      get: jest.fn((key: string) =>
+        key === standardSymbolIdentityProvidersEnvKey ? "infoway" : undefined,
+      ),
+    };
+
+    const service = new DataTransformerService(
+      flexibleMappingRuleService,
+      symbolTransformerService as any,
+      {
+        maxArraySize: 10,
+        maxRestoreConcurrency: 2,
+      },
+      configService as any,
+    );
+
+    const output = await (service as any).restoreStandardSymbols("longport", {
+      symbol: "LP_AAPL",
+      price: 123,
+    });
+
+    expect(output).toEqual({
+      symbol: "AAPL",
+      price: 123,
+    });
+    expect(symbolTransformerService.transformSingleSymbol).toHaveBeenCalledTimes(1);
+    expect(configService.get).toHaveBeenCalledWith(
+      standardSymbolIdentityProvidersEnvKey,
+    );
+  });
 
   it("数组超过 effective maxArraySize（min(request,runtime)）时抛出含上下文异常", async () => {
     const symbolTransformerService = {
       transformSingleSymbol: jest.fn(),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -25,6 +251,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 2,
         maxRestoreConcurrency: 2,
       },
+      configService as any,
     );
 
     try {
@@ -65,6 +292,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         return "AAPL";
       }),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -73,6 +301,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 10,
         maxRestoreConcurrency: 1,
       },
+      configService as any,
     );
 
     await expect(
@@ -97,6 +326,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
     const symbolTransformerService = {
       transformSingleSymbol: jest.fn(async () => "LP_AAPL"),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -105,6 +335,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 10,
         maxRestoreConcurrency: 2,
       },
+      configService as any,
     );
 
     await expect(
@@ -131,6 +362,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
     const symbolTransformerService = {
       transformSingleSymbol: jest.fn(async () => standardSymbol),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -139,6 +371,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 10,
         maxRestoreConcurrency: 2,
       },
+      configService as any,
     );
 
     const output = await (service as any).restoreStandardSymbols("longport", {
@@ -156,6 +389,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
     const symbolTransformerService = {
       transformSingleSymbol: jest.fn(async () => "AAPL"),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -164,6 +398,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 10,
         maxRestoreConcurrency: 2,
       },
+      configService as any,
     );
 
     const output = await (service as any).restoreStandardSymbols("longport", {
@@ -202,6 +437,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         return `${symbol}.STD`;
       }),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -210,6 +446,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 10,
         maxRestoreConcurrency: 2,
       },
+      configService as any,
     );
 
     const output = await (service as any).restoreStandardSymbols("longport", [
@@ -242,6 +479,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         return `${symbol}.STD`;
       }),
     };
+    const configService = createConfigService();
 
     const service = new DataTransformerService(
       flexibleMappingRuleService,
@@ -250,6 +488,7 @@ describe("DataTransformerService restoreStandardSymbols", () => {
         maxArraySize: 10,
         maxRestoreConcurrency: 0,
       },
+      configService as any,
     );
 
     const output = await (service as any).restoreStandardSymbols("longport", [

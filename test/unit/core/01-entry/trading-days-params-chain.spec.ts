@@ -45,6 +45,10 @@ function createQueryExecutionEngine(): QueryExecutionEngine {
 }
 
 function createReceiverService(): ReceiverService {
+  const configService = {
+    get: jest.fn(),
+  };
+
   return new ReceiverService(
     {} as any,
     {} as any,
@@ -54,6 +58,7 @@ function createReceiverService(): ReceiverService {
     {} as any,
     {} as any,
     {} as any,
+    configService as any,
   );
 }
 

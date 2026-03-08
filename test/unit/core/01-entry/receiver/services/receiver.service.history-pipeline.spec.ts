@@ -19,12 +19,19 @@ import {
 } from "@common/core/exceptions";
 import { ReceiverService } from "@core/01-entry/receiver/services/receiver.service";
 import { StorageClassification } from "@core/shared/types/storage-classification.enum";
+import * as providerSymbolIdentityUtil from "@core/shared/utils/provider-symbol-identity.util";
 
 const HISTORY_TIMESTAMP_FORMAT_ERROR =
   "timestamp 仅支持 10 位秒或 13 位毫秒时间戳";
+const STANDARD_SYMBOL_IDENTITY_PROVIDERS_KEY =
+  providerSymbolIdentityUtil.STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY;
 
 describe("ReceiverService get-stock-history pipeline", () => {
-  function createReceiverService() {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function createReceiverService(identityProvidersRaw?: string) {
     const symbolTransformerService = {
       transformSymbolsForProvider: jest.fn(),
     };
@@ -62,6 +69,14 @@ describe("ReceiverService get-stock-history pipeline", () => {
     const smartCacheOrchestrator = {
       getDataWithSmartCache: jest.fn(),
     };
+    const configService = {
+      get: jest.fn((key: string) => {
+        if (key === STANDARD_SYMBOL_IDENTITY_PROVIDERS_KEY) {
+          return identityProvidersRaw;
+        }
+        return undefined;
+      }),
+    };
 
     const service = new ReceiverService(
       symbolTransformerService as any,
@@ -72,6 +87,7 @@ describe("ReceiverService get-stock-history pipeline", () => {
       marketStatusService as any,
       marketInferenceService as any,
       smartCacheOrchestrator as any,
+      configService as any,
     );
 
     return {
@@ -85,6 +101,7 @@ describe("ReceiverService get-stock-history pipeline", () => {
       marketStatusService,
       marketInferenceService,
       smartCacheOrchestrator,
+      configService,
     };
   }
 
@@ -512,5 +529,136 @@ describe("ReceiverService get-stock-history pipeline", () => {
     expect(response.metadata.totalRequested).toBe(1);
     expect(response.metadata.successfullyProcessed).toBe(0);
     expect(response.metadata.hasPartialFailures).toBe(true);
+  });
+
+  it("命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 时跳过 SymbolTransformer 并直通 symbols", async () => {
+    const identityProvidersRaw = "infoway,longport";
+    const isStandardProviderSpy = jest.spyOn(
+      providerSymbolIdentityUtil,
+      "isStandardSymbolIdentityProvider",
+    );
+
+    const {
+      service,
+      symbolTransformerService,
+      dataFetcherService,
+      dataTransformerService,
+    } = createReceiverService(identityProvidersRaw);
+
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [{ symbol: "AAPL.US", price: 100 }],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        processingTimeMs: 3,
+        symbolsProcessed: 1,
+      },
+    });
+    dataTransformerService.transform.mockResolvedValue({
+      transformedData: [{ symbol: "AAPL.US", price: 100 }],
+      metadata: {},
+    });
+
+    const response = await service.handleRequest({
+      symbols: ["aapl.us"],
+      receiverType: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+      options: {
+        useSmartCache: false,
+        market: "US",
+      },
+    } as any);
+
+    expect(symbolTransformerService.transformSymbolsForProvider).not.toHaveBeenCalled();
+    expect(isStandardProviderSpy).toHaveBeenCalledWith(
+      "infoway",
+      identityProvidersRaw,
+    );
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "infoway",
+        symbols: ["AAPL.US"],
+      }),
+    );
+    expect(response.data[0].symbol).toBe("AAPL.US");
+  });
+
+  it("命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 且存在非标准 symbol 时抛 DATA_VALIDATION_FAILED", async () => {
+    const { service, symbolTransformerService, dataFetcherService } =
+      createReceiverService("infoway");
+
+    await expect(
+      service.handleRequest({
+        symbols: ["AAPL US"],
+        receiverType: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        options: {
+          useSmartCache: false,
+          market: "US",
+        },
+      } as any),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      context: {
+        reason: "non_standard_symbol_in_identity_provider",
+      },
+    });
+
+    expect(symbolTransformerService.transformSymbolsForProvider).not.toHaveBeenCalled();
+    expect(dataFetcherService.fetchRawData).not.toHaveBeenCalled();
+  });
+
+  it("provider 未命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 时保持 SymbolTransformer 流程", async () => {
+    const {
+      service,
+      symbolTransformerService,
+      dataFetcherService,
+      dataTransformerService,
+    } = createReceiverService("longport,jvquant");
+
+    symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
+      transformedSymbols: ["AAPL.US"],
+      mappingResults: {
+        transformedSymbols: {
+          "aapl.us": "AAPL.US",
+        },
+        failedSymbols: [],
+        metadata: {
+          provider: "infoway",
+          totalSymbols: 1,
+          successfulTransformations: 1,
+          failedTransformations: 0,
+          processingTimeMs: 1,
+        },
+      },
+    });
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [{ symbol: "AAPL.US", price: 100 }],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        processingTimeMs: 3,
+        symbolsProcessed: 1,
+      },
+    });
+    dataTransformerService.transform.mockResolvedValue({
+      transformedData: [{ symbol: "AAPL.US", price: 100 }],
+      metadata: {},
+    });
+
+    const response = await service.handleRequest({
+      symbols: ["aapl.us"],
+      receiverType: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+      options: {
+        useSmartCache: false,
+        market: "US",
+      },
+    } as any);
+
+    expect(symbolTransformerService.transformSymbolsForProvider).toHaveBeenCalledTimes(1);
+    expect(symbolTransformerService.transformSymbolsForProvider).toHaveBeenCalledWith(
+      "infoway",
+      ["aapl.us"],
+      expect.any(String),
+    );
+    expect(response.data[0].symbol).toBe("aapl.us");
   });
 });

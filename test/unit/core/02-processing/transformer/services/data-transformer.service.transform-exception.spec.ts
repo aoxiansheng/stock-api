@@ -22,6 +22,9 @@ describe("DataTransformerService transform catch", () => {
   const symbolTransformerService = {
     transformSingleSymbol: jest.fn(),
   };
+  const configService = {
+    get: jest.fn(() => undefined),
+  };
 
   const createRequest = () => ({
     provider: "longport",
@@ -46,6 +49,8 @@ describe("DataTransformerService transform catch", () => {
     const service = new DataTransformerService(
       flexibleMappingRuleService as any,
       symbolTransformerService as any,
+      undefined,
+      configService as any,
     );
 
     await expect(service.transform(createRequest() as any)).rejects.toBe(
@@ -62,6 +67,8 @@ describe("DataTransformerService transform catch", () => {
     const service = new DataTransformerService(
       flexibleMappingRuleService as any,
       symbolTransformerService as any,
+      undefined,
+      configService as any,
     );
 
     await expect(service.transform(createRequest() as any)).rejects.toBe(notFound);
@@ -76,6 +83,8 @@ describe("DataTransformerService transform catch", () => {
     const service = new DataTransformerService(
       flexibleMappingRuleService as any,
       symbolTransformerService as any,
+      undefined,
+      configService as any,
     );
 
     try {

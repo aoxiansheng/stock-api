@@ -10,6 +10,7 @@ jest.mock("@common/logging/index", () => ({
 import { BusinessErrorCode } from "@common/core/exceptions";
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
+import { STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY } from "@core/shared/utils/provider-symbol-identity.util";
 
 type ValidationResult = {
   isValid: boolean;
@@ -21,6 +22,8 @@ type ValidationResult = {
 function createService(options?: {
   subscribeValidation?: ValidationResult;
   unsubscribeValidation?: ValidationResult;
+  standardSymbolIdentityProviders?: string;
+  webSocketAvailable?: boolean;
 }) {
   const subscribeValidation =
     options?.subscribeValidation ||
@@ -51,14 +54,26 @@ function createService(options?: {
     getClientSubscription: jest.fn(),
     getClientSymbols: jest.fn(() => []),
     removeClientSubscription: jest.fn(),
+    broadcastToSymbolViaGateway: jest.fn(),
+  };
+  const streamCache = {
+    setData: jest.fn(),
   };
 
   const mocks = {
     eventBus: { emit: jest.fn() },
     configService: {
-      get: jest.fn((_: string, defaultValue: any) => defaultValue),
+      get: jest.fn((key: string, defaultValue?: any) => {
+        if (key === STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY) {
+          return options?.standardSymbolIdentityProviders ?? "";
+        }
+        return defaultValue;
+      }),
     },
-    symbolTransformerService: {},
+    symbolTransformerService: {
+      transformSymbols: jest.fn(),
+      transformSymbolsForProvider: jest.fn(),
+    },
     marketInferenceService: {
       inferMarkets: jest.fn(() => ["US"]),
       inferDominantMarket: jest.fn(() => "US"),
@@ -66,6 +81,7 @@ function createService(options?: {
     dataTransformerService: {},
     streamDataFetcher: {
       getClientStateManager: jest.fn(() => clientStateManager),
+      getStreamDataCache: jest.fn(() => streamCache),
       subscribeToSymbols: jest.fn(),
       unsubscribeFromSymbols: jest.fn(),
       isConnectionActive: jest.fn(() => false),
@@ -80,6 +96,14 @@ function createService(options?: {
     dataValidator: {
       validateSubscribeRequest: jest.fn(() => subscribeValidation),
       validateUnsubscribeRequest: jest.fn(() => unsubscribeValidation),
+      isValidSymbolFormat: jest.fn((symbol: string) => {
+        return (
+          /^[0-9]{4,5}\.HK$/i.test(symbol) ||
+          /^[A-Z0-9]+(?:[.\-][A-Z0-9]+){0,2}\.US$/i.test(symbol) ||
+          /^[0-9]{6}\.(SH|SZ)$/i.test(symbol) ||
+          /^[A-Z0-9]{3,5}\.SG$/i.test(symbol)
+        );
+      }),
     },
     batchProcessor: { setCallbacks: jest.fn() },
     connectionManager: {
@@ -99,7 +123,13 @@ function createService(options?: {
     rateLimitService: {
       checkRateLimit: jest.fn(),
     },
+    webSocketProvider: {
+      isServerAvailable: jest.fn(() => options?.webSocketAvailable ?? true),
+      joinClientToRooms: jest.fn(),
+      leaveClientFromRooms: jest.fn(),
+    },
     clientStateManager,
+    streamCache,
   };
 
   const service = new StreamReceiverService(
@@ -116,14 +146,14 @@ function createService(options?: {
     mocks.dataProcessor as any,
     undefined,
     mocks.rateLimitService as any,
-    undefined,
+    mocks.webSocketProvider as any,
   );
 
   return { service, mocks };
 }
 
 describe("StreamReceiverService request validation fail-fast", () => {
-  it("subscribeStream: 非法请求应 fail-fast 且不触发下游流程", async () => {
+  it("subscribeStream: 非法请求也应先经过连接限速门禁，再进行请求校验", async () => {
     const dto = {
       symbols: ["INVALID_SYMBOL"],
       wsCapabilityType: "quote",
@@ -137,6 +167,11 @@ describe("StreamReceiverService request validation fail-fast", () => {
         sanitizedData: dto,
       },
     });
+    mocks.rateLimitService.checkRateLimit.mockResolvedValue({
+      allowed: true,
+      remaining: 9,
+      resetTime: Date.now() + 1000,
+    });
 
     await expect(
       service.subscribeStream(dto as any, "client-1", "127.0.0.1"),
@@ -146,7 +181,40 @@ describe("StreamReceiverService request validation fail-fast", () => {
     });
 
     expect(mocks.dataValidator.validateSubscribeRequest).toHaveBeenCalledWith(dto);
-    expect(mocks.rateLimitService.checkRateLimit).not.toHaveBeenCalled();
+    expect(mocks.rateLimitService.checkRateLimit).toHaveBeenCalledTimes(1);
+    const rateLimitOrder =
+      mocks.rateLimitService.checkRateLimit.mock.invocationCallOrder[0];
+    const validateOrder =
+      mocks.dataValidator.validateSubscribeRequest.mock.invocationCallOrder[0];
+    expect(rateLimitOrder).toBeLessThan(validateOrder);
+    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+    expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
+    expect(mocks.clientStateManager.addClientSubscription).not.toHaveBeenCalled();
+  });
+
+  it("subscribeStream: 限速超限时应短路且不触发 validateSubscribeRequest", async () => {
+    const dto = {
+      symbols: ["INVALID_SYMBOL"],
+      wsCapabilityType: "quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService();
+    mocks.rateLimitService.checkRateLimit.mockResolvedValue({
+      allowed: false,
+      limit: 1,
+      current: 2,
+      retryAfter: 60,
+    });
+
+    await expect(
+      service.subscribeStream(dto as any, "client-1", "127.0.0.1"),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+      operation: "subscribeStream",
+    });
+
+    expect(mocks.rateLimitService.checkRateLimit).toHaveBeenCalledTimes(1);
+    expect(mocks.dataValidator.validateSubscribeRequest).not.toHaveBeenCalled();
     expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
     expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
     expect(mocks.clientStateManager.addClientSubscription).not.toHaveBeenCalled();
@@ -180,6 +248,38 @@ describe("StreamReceiverService request validation fail-fast", () => {
       dto,
       { skipAuthValidation: true },
     );
+  });
+
+  it("subscribeStream: identity provider 下原始 symbols 含首尾空白应被拒绝", async () => {
+    const dto = {
+      symbols: ["  aapl.us  "],
+      wsCapabilityType: "quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService({
+      standardSymbolIdentityProviders: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: {
+          symbols: ["AAPL.US"],
+          wsCapabilityType: "quote",
+          preferredProvider: "longport",
+        },
+      },
+    });
+
+    await expect(service.subscribeStream(dto as any, "client-1")).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: "subscribeStream",
+      context: expect.objectContaining({
+        reason: "non_standard_symbol_in_identity_provider",
+      }),
+    });
+
+    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+    expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
   });
 
   it("unsubscribeStream: 非法请求应 fail-fast 且不触发下游流程", async () => {
@@ -327,5 +427,294 @@ describe("StreamReceiverService provider mapping consistency", () => {
       );
       expect(strategy.marketPriorities[market]).toEqual([expectedProvider]);
     }
+  });
+});
+
+describe("StreamReceiverService provider级标准符号直通", () => {
+  it("provider 命中时应返回 canonical symbols 并跳过 transformSymbolsForProvider", async () => {
+    const { service, mocks } = createService({
+      standardSymbolIdentityProviders: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    });
+
+    const result = await (service as any).resolveSymbolMappings(
+      ["aapl.us", "00700.hk"],
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      "request-identity-hit",
+    );
+
+    expect(result).toEqual({
+      standardSymbols: ["AAPL.US", "00700.HK"],
+      providerSymbols: ["AAPL.US", "00700.HK"],
+    });
+    expect(
+      mocks.symbolTransformerService.transformSymbolsForProvider,
+    ).not.toHaveBeenCalled();
+    expect(mocks.symbolTransformerService.transformSymbols).not.toHaveBeenCalled();
+  });
+
+  it("ensureSymbolConsistency: provider 命中 identity 时仅 canonical 且不触发 transformSymbols", async () => {
+    const { service, mocks } = createService({
+      standardSymbolIdentityProviders: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    });
+
+    const result = await (service as any).ensureSymbolConsistency(
+      ["aapl.us", "00700.hk"],
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    );
+
+    expect(result).toEqual(["AAPL.US", "00700.HK"]);
+    expect(mocks.symbolTransformerService.transformSymbols).not.toHaveBeenCalled();
+  });
+
+  it("provider 命中时遇到非标准符号应抛 DATA_VALIDATION_FAILED", async () => {
+    const { service, mocks } = createService({
+      standardSymbolIdentityProviders: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+    });
+
+    await expect(
+      (service as any).resolveSymbolMappings(
+        ["AAPL"],
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+        "request-identity-invalid",
+      ),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: "resolveSymbolMappings",
+    });
+    expect(
+      mocks.symbolTransformerService.transformSymbolsForProvider,
+    ).not.toHaveBeenCalled();
+    expect(mocks.symbolTransformerService.transformSymbols).not.toHaveBeenCalled();
+  });
+
+  it("provider 未命中时应保持原有符号映射行为", async () => {
+    const { service, mocks } = createService({
+      standardSymbolIdentityProviders: "infoway",
+    });
+
+    mocks.symbolTransformerService.transformSymbols.mockResolvedValue({
+      mappingDetails: {
+        AAPL: "AAPL.US",
+        "00700": "00700.HK",
+      },
+    });
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
+      transformedSymbols: ["AAPL", "700"],
+      mappingResults: {
+        transformedSymbols: {
+          "AAPL.US": "AAPL",
+          "00700.HK": "700",
+        },
+      },
+    });
+
+    const result = await (service as any).resolveSymbolMappings(
+      ["AAPL", "00700"],
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      "request-non-identity",
+    );
+
+    expect(result).toEqual({
+      standardSymbols: ["AAPL.US", "00700.HK"],
+      providerSymbols: ["AAPL", "700"],
+    });
+    expect(mocks.symbolTransformerService.transformSymbols).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.symbolTransformerService.transformSymbolsForProvider,
+    ).toHaveBeenCalledWith(
+      REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      ["AAPL.US", "00700.HK"],
+      "request-non-identity",
+    );
+  });
+});
+
+describe("StreamReceiverService symbol room key consistency", () => {
+  it("subscribeStream: 加入房间应统一使用 canonical symbol key", async () => {
+    const subscribeDto = {
+      symbols: ["aapl.us"],
+      wsCapabilityType: "quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: subscribeDto,
+      },
+    });
+
+    jest.spyOn(service as any, "resolveSymbolMappings").mockResolvedValue({
+      standardSymbols: ["aapl.us", "AAPL.US"],
+      providerSymbols: ["aapl.us"],
+    });
+    jest.spyOn(service as any, "setupDataReceiving").mockImplementation(jest.fn());
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({ id: "conn-1" });
+    mocks.streamDataFetcher.subscribeToSymbols.mockResolvedValue(undefined);
+
+    await service.subscribeStream(subscribeDto as any, "client-1");
+
+    expect(mocks.webSocketProvider.joinClientToRooms).toHaveBeenCalledWith(
+      "client-1",
+      ["symbol:AAPL.US"],
+    );
+  });
+
+  it("unsubscribeStream: 退出房间应与订阅路径使用同一 canonical key 规则", async () => {
+    const unsubscribeDto = {
+      symbols: ["aapl.us"],
+    };
+    const { service, mocks } = createService({
+      unsubscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: unsubscribeDto,
+      },
+    });
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "quote",
+    });
+    jest.spyOn(service as any, "resolveSymbolMappings").mockResolvedValue({
+      standardSymbols: ["aapl.us", "AAPL.US"],
+      providerSymbols: ["aapl.us"],
+    });
+
+    await service.unsubscribeStream(unsubscribeDto as any, "client-1");
+
+    expect(mocks.webSocketProvider.leaveClientFromRooms).toHaveBeenCalledWith(
+      "client-1",
+      ["symbol:AAPL.US"],
+    );
+  });
+
+  it("pipelineBroadcastData: 广播路径应按 canonical symbol 聚合并分发", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+
+    await (service as any).pipelineBroadcastData(
+      [
+        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100, payload: 1 },
+        { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200", payload: 2 },
+        { symbol: "00700.hk", price: 300.45, timestamp: 1700000001000, volume: 300, payload: 3 },
+      ],
+      ["aapl.us", "00700.hk"],
+    );
+
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(2);
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenNthCalledWith(
+      1,
+      "AAPL.US",
+      expect.any(Array),
+      mocks.webSocketProvider,
+    );
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenNthCalledWith(
+      2,
+      "00700.HK",
+      expect.any(Array),
+      mocks.webSocketProvider,
+    );
+
+    const firstPayload = mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[0][1];
+    const secondPayload = mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[1][1];
+    expect(firstPayload).toHaveLength(2);
+    expect(secondPayload).toHaveLength(1);
+    expect(firstPayload.every((item: any) => item.symbol === "AAPL.US")).toBe(true);
+    expect(firstPayload.every((item: any) => typeof item.timestamp === "number")).toBe(true);
+  });
+
+  it("pipelineCacheData: 缓存键应与 room/broadcast 使用同一 canonical 规则", async () => {
+    const { service, mocks } = createService();
+    const canonicalSymbol = "AAPL.US";
+
+    expect((service as any).buildSymbolRoomKey("  aapl.us  ")).toBe(
+      `symbol:${canonicalSymbol}`,
+    );
+    expect((service as any).buildSymbolBroadcastKey("  aapl.us  ")).toBe(
+      canonicalSymbol,
+    );
+
+    await (service as any).pipelineCacheData(
+      [
+        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100, payload: 1 },
+        { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200", payload: 2 },
+      ],
+      ["aapl.us"],
+    );
+
+    expect(mocks.streamCache.setData).toHaveBeenCalledTimes(1);
+    expect(mocks.streamCache.setData).toHaveBeenCalledWith(
+      `quote:${canonicalSymbol}`,
+      expect.any(Array),
+      "hot",
+    );
+    const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
+    expect(cachedPoints).toHaveLength(2);
+    expect(cachedPoints.every((point: any) => point.s === canonicalSymbol)).toBe(true);
+  });
+
+  it("pipelineBroadcastData: 非法 payload 应统一丢弃并记录原因", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+
+    await (service as any).pipelineBroadcastData(
+      [
+        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100 },
+        { symbol: "  ", price: 1, timestamp: 1700000000000, volume: 1 },
+        { symbol: "TSLA.US", price: "NaN", timestamp: 1700000000000, volume: 1 },
+        { symbol: "NVDA.US", price: 1, timestamp: "not-a-time", volume: 1 },
+        { symbol: "MSFT.US", price: 1, timestamp: 1700000000000, volume: -1 },
+      ],
+      ["aapl.us", "TSLA.US"],
+    );
+
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(1);
+    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledWith(
+      "AAPL.US",
+      expect.any(Array),
+      mocks.webSocketProvider,
+    );
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "broadcast",
+        droppedTotal: 4,
+        reasons: expect.objectContaining({
+          invalid_symbol: 1,
+          invalid_price: 1,
+          invalid_timestamp: 1,
+          invalid_volume: 1,
+        }),
+      }),
+    );
+  });
+
+  it("pipelineCacheData: 非法 payload 应被过滤，仅合法数据进入缓存", async () => {
+    const { service, mocks } = createService();
+
+    await (service as any).pipelineCacheData(
+      [
+        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100 },
+        { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200" },
+        { symbol: "", price: 1, timestamp: 1700000000000, volume: 1 },
+        { symbol: "TSLA.US", price: "NaN", timestamp: 1700000000000, volume: 1 },
+      ],
+      ["aapl.us"],
+    );
+
+    expect(mocks.streamCache.setData).toHaveBeenCalledTimes(1);
+    const cacheKey = mocks.streamCache.setData.mock.calls[0][0];
+    const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
+    expect(cacheKey).toBe("quote:AAPL.US");
+    expect(cachedPoints).toHaveLength(2);
+    expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(true);
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "cache",
+      }),
+    );
   });
 });

@@ -109,4 +109,18 @@ describe("StreamDataValidator provider matrix", () => {
       );
     });
   });
+
+  describe("symbol format HK 对齐 identity 规则", () => {
+    it("允许 HSI.HK 与 1-5 位数字港股代码", () => {
+      expect(validator.isValidSymbolFormat("HSI.HK")).toBe(true);
+      expect(validator.isValidSymbolFormat("700.HK")).toBe(true);
+      expect(validator.isValidSymbolFormat("00700.HK")).toBe(true);
+      expect(validator.isValidSymbolFormat("00001.HK")).toBe(true);
+    });
+
+    it("拒绝超范围港股代码", () => {
+      expect(validator.isValidSymbolFormat("123456.HK")).toBe(false);
+      expect(validator.isValidSymbolFormat("HSIA.HK")).toBe(false);
+    });
+  });
 });

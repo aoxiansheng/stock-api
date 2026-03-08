@@ -13,6 +13,10 @@ import { sanitizeInfowayUpstreamMessage } from "@providersv2/providers/infoway/u
 
 // 该文件用于验证现状行为契约，避免关键行为回归。
 describe("Critical group verification", () => {
+  const configService = {
+    get: jest.fn(() => undefined),
+  };
+
   it.each(["AAPL.US", "600000.SH", "000001.SZ"])(
     "restoreStandardSymbols 对已标准符号 %s 保持不变",
     async (standardSymbol) => {
@@ -27,6 +31,7 @@ describe("Critical group verification", () => {
           maxArraySize: 10,
           maxRestoreConcurrency: 2,
         },
+        configService as any,
       );
 
       await expect(
