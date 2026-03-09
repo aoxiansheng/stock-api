@@ -96,13 +96,15 @@
 | `INFOWAY_INTRADAY_KLINE_TYPE` | `1` | 历史分时默认 K 线类型 |
 | `INFOWAY_INTRADAY_KLINE_NUM` | `240` | 历史分时默认点位 |
 | `INFOWAY_INTRADAY_LOOKBACK_DAYS` | `1` | 历史回看天数上限 |
-| `INFOWAY_WS_CONNECT_TIMEOUT_MS` | `10000` | WS 连接超时 |
+| `INFOWAY_WS_CONNECT_TIMEOUT_MS` | `30000` | WS 连接超时 |
 | `INFOWAY_WS_HEARTBEAT_MS` | `30000` | WS 心跳间隔 |
 | `INFOWAY_WS_RECONNECT_DELAY_MS` | `3000` | WS 初始重连延迟 |
 | `INFOWAY_WS_RECONNECT_MAX_DELAY_MS` | `30000` | WS 最大重连延迟 |
 | `INFOWAY_WS_RECONNECT_JITTER_MS` | `500` | WS 重连抖动 |
 | `INFOWAY_WS_MAX_RECONNECT_ATTEMPTS` | `8` | WS 最大重连次数 |
 | `INFOWAY_WS_KLINE_TYPE` | `1` | WS 订阅参数（历史命名兼容，当前用于实时流订阅） |
+| `INFOWAY_WS_USE_QUERY_APIKEY` | `true` | 是否在 WS URL query 携带 `apikey`（auto 模式下默认启用） |
+| `INFOWAY_WS_AUTH_MODE` | `auto` | WS 鉴权模式：`auto/query/header/frame` |
 | `INFOWAY_WS_AUTH_FRAME_CODE` | `90001` | WS 认证帧 code |
 
 ### 4.3 `.env` 注释示例（补齐变量）
@@ -130,7 +132,7 @@ INFOWAY_INTRADAY_KLINE_NUM=240
 # get-stock-history 默认回看天数
 INFOWAY_INTRADAY_LOOKBACK_DAYS=1
 # Infoway WS 连接超时（毫秒）
-INFOWAY_WS_CONNECT_TIMEOUT_MS=10000
+INFOWAY_WS_CONNECT_TIMEOUT_MS=30000
 # Infoway WS 心跳间隔（毫秒）
 INFOWAY_WS_HEARTBEAT_MS=30000
 # Infoway WS 初始重连延迟（毫秒）
@@ -143,6 +145,10 @@ INFOWAY_WS_RECONNECT_JITTER_MS=500
 INFOWAY_WS_MAX_RECONNECT_ATTEMPTS=8
 # Infoway WS 订阅参数（历史命名兼容）
 INFOWAY_WS_KLINE_TYPE=1
+# 是否在 WS URL query 中透传 apikey（默认 true）
+INFOWAY_WS_USE_QUERY_APIKEY=true
+# WS 鉴权模式：auto/query/header/frame（默认 auto）
+INFOWAY_WS_AUTH_MODE=auto
 # Infoway WS 认证帧 code
 INFOWAY_WS_AUTH_FRAME_CODE=90001
 

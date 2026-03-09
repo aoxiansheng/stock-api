@@ -13,6 +13,9 @@ import {
   normalizeAndValidateInfowaySymbols,
 } from "../utils/infoway-symbols.util";
 
+type InfowayWsAuthMode = "auto" | "query" | "header" | "frame";
+type InfowayResolvedWsAuthMode = Exclude<InfowayWsAuthMode, "auto">;
+
 @Injectable()
 export class InfowayStreamContextService implements OnModuleDestroy {
   private readonly logger = createLogger(InfowayStreamContextService.name);
@@ -21,6 +24,8 @@ export class InfowayStreamContextService implements OnModuleDestroy {
   private readonly apiKey: string;
   private readonly business: string;
   private readonly connectTimeoutMs: number;
+  private readonly wsAuthMode: InfowayWsAuthMode;
+  private readonly wsUseQueryApiKey: boolean;
   private readonly heartbeatIntervalMs: number;
   private readonly reconnectDelayMs: number;
   private readonly reconnectMaxDelayMs: number;
@@ -34,6 +39,11 @@ export class InfowayStreamContextService implements OnModuleDestroy {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
   private isShuttingDown = false;
+  private readonly wsConnectMetrics = {
+    ws_connect_attempt_total: 0,
+    ws_connect_success_total: 0,
+    ws_connect_timeout_total: 0,
+  };
 
   private readonly subscribedSymbols = new Set<string>();
   private subscriptionsInvalidated = false;
@@ -51,11 +61,16 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       this.configService.get<string>("INFOWAY_WS_BUSINESS") || "stock";
     this.connectTimeoutMs = this.readNumericConfig(
       "INFOWAY_WS_CONNECT_TIMEOUT_MS",
-      10000,
+      30000,
       {
         min: 1,
         integer: true,
       },
+    );
+    this.wsAuthMode = this.readAuthModeConfig("INFOWAY_WS_AUTH_MODE", "auto");
+    this.wsUseQueryApiKey = this.readBooleanConfig(
+      "INFOWAY_WS_USE_QUERY_APIKEY",
+      true,
     );
     this.heartbeatIntervalMs = this.readNumericConfig(
       "INFOWAY_WS_HEARTBEAT_MS",
@@ -299,12 +314,111 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       );
     }
 
-    const url = this.buildWsUrl();
+    const authModeCandidates = this.resolveAuthModeCandidates();
+    let lastError: Error | null = null;
 
-    await new Promise<void>((resolve, reject) => {
-      const { socket, authMode } = this.createSocketWithAuth(WebSocketCtor, url);
+    for (let index = 0; index < authModeCandidates.length; index += 1) {
+      const candidate = authModeCandidates[index];
+      const connectStartedAt = Date.now();
+      this.wsConnectMetrics.ws_connect_attempt_total += 1;
+
+      let socketBundle:
+        | {
+            socket: any;
+            authMode: InfowayResolvedWsAuthMode;
+            wsUrlMasked: string;
+          }
+        | undefined;
+      try {
+        socketBundle = this.createSocketWithAuth(WebSocketCtor, candidate);
+      } catch (error: any) {
+        const reason = sanitizeInfowayUpstreamMessage(error?.message);
+        this.logger.warn("Infoway WebSocket 鉴权模式建连初始化失败，尝试下一模式", {
+          authModeConfigured: this.wsAuthMode,
+          authModeResolved: candidate,
+          errorMessage: reason || "unknown",
+          candidateIndex: index + 1,
+          candidateTotal: authModeCandidates.length,
+        });
+        lastError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
+
+      const { socket, authMode, wsUrlMasked } = socketBundle;
+      this.logger.log("Infoway WebSocket 开始建连", {
+        provider: "infoway",
+        capability: "stream-stock-quote",
+        business: this.business,
+        authModeConfigured: this.wsAuthMode,
+        authModeResolved: authMode,
+        connectTimeoutMs: this.connectTimeoutMs,
+        wsUrlMasked,
+        candidateIndex: index + 1,
+        candidateTotal: authModeCandidates.length,
+        metrics: { ...this.wsConnectMetrics },
+      });
+
+      try {
+        await this.waitSocketOpen({
+          socket,
+          authMode,
+          connectStartedAt,
+        });
+        this.wsConnectMetrics.ws_connect_success_total += 1;
+        this.logger.log("Infoway WebSocket 连接成功", {
+          business: this.business,
+          authModeConfigured: this.wsAuthMode,
+          authModeResolved: authMode,
+          wsUrlMasked,
+          durationMs: Date.now() - connectStartedAt,
+          candidateIndex: index + 1,
+          candidateTotal: authModeCandidates.length,
+          metrics: { ...this.wsConnectMetrics },
+        });
+        return;
+      } catch (error: any) {
+        const reason = sanitizeInfowayUpstreamMessage(error?.message);
+        const isTimeout =
+          error?.code === "INFOWAY_WS_CONNECT_TIMEOUT" ||
+          reason.includes("连接超时");
+        if (isTimeout) {
+          this.wsConnectMetrics.ws_connect_timeout_total += 1;
+        }
+        this.logger.error("Infoway WebSocket 建连失败", {
+          provider: "infoway",
+          capability: "stream-stock-quote",
+          business: this.business,
+          authModeConfigured: this.wsAuthMode,
+          authModeResolved: authMode,
+          wsUrlMasked,
+          errorType: isTimeout ? "timeout" : "connect_error",
+          errorMessage: reason || "unknown",
+          durationMs: Date.now() - connectStartedAt,
+          retryAttempt: this.reconnectAttempts,
+          candidateIndex: index + 1,
+          candidateTotal: authModeCandidates.length,
+          metrics: { ...this.wsConnectMetrics },
+        });
+        lastError = error instanceof Error ? error : new Error(String(error));
+        try {
+          socket.close?.();
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    throw lastError || new Error("Infoway WebSocket 连接失败");
+  }
+
+  private waitSocketOpen(params: {
+    socket: any;
+    authMode: InfowayResolvedWsAuthMode;
+    connectStartedAt: number;
+  }): Promise<void> {
+    const { socket, authMode, connectStartedAt } = params;
+    return new Promise<void>((resolve, reject) => {
       let settled = false;
-
       const timeout = setTimeout(() => {
         if (settled) return;
         if (this.isShuttingDown) {
@@ -318,7 +432,11 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         } catch {
           // ignore
         }
-        reject(new Error("Infoway WebSocket 连接超时"));
+        const timeoutError = new Error("Infoway WebSocket 连接超时") as Error & {
+          code?: string;
+        };
+        timeoutError.code = "INFOWAY_WS_CONNECT_TIMEOUT";
+        reject(timeoutError);
       }, this.connectTimeoutMs);
       timeout.unref?.();
 
@@ -339,9 +457,18 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         this.attachSocketEvents(socket);
         this.startHeartbeat();
 
+        this.logger.debug("Infoway WebSocket 已打开", {
+          authModeResolved: authMode,
+          handshakeDurationMs: Date.now() - connectStartedAt,
+        });
+
         try {
-          // 始终发送认证帧，避免握手 header 在部分运行时被静默忽略时发生鉴权漂移。
+          // 始终发送认证帧，避免握手 header/query 在部分运行时被静默忽略时发生鉴权漂移。
           this.sendAuthFrame();
+          this.logger.debug("Infoway WebSocket 认证帧发送成功", {
+            authFrameCode: this.wsAuthFrameCode,
+            authModeResolved: authMode,
+          });
         } catch {
           settled = true;
           this.socket = null;
@@ -355,10 +482,6 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         }
 
         settled = true;
-        this.logger.log("Infoway WebSocket 连接成功", {
-          business: this.business,
-          authMode,
-        });
         resolve();
       };
 
@@ -371,9 +494,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
           return;
         }
         reject(
-          new Error(
-            `Infoway WebSocket 连接失败: ${event?.message || "unknown"}`,
-          ),
+          new Error(`Infoway WebSocket 连接失败: ${event?.message || "unknown"}`),
         );
       };
 
@@ -466,28 +587,45 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
   }
 
-  private buildWsUrl(): string {
+  private buildWsUrl(authMode: InfowayResolvedWsAuthMode): string {
     const url = new URL(this.wsBaseUrl);
     url.searchParams.set("business", this.business);
+    if (authMode === "query") {
+      url.searchParams.set("apikey", this.apiKey);
+    }
     return url.toString();
   }
 
   private createSocketWithAuth(
     WebSocketCtor: any,
-    url: string,
-  ): { socket: any; authMode: "header" | "frame" } {
-    try {
-      const socket = this.createSocketWithHeaders(WebSocketCtor, url, {
-        apiKey: this.apiKey,
-      });
-      return { socket, authMode: "header" };
-    } catch (error: any) {
-      this.logger.debug("Infoway WebSocket 当前环境不支持握手 header 鉴权，回退认证帧", {
-        reason: sanitizeInfowayUpstreamMessage(error?.message),
-      });
-      const socket = new WebSocketCtor(url);
-      return { socket, authMode: "frame" };
+    authMode: InfowayResolvedWsAuthMode,
+  ): {
+    socket: any;
+    authMode: InfowayResolvedWsAuthMode;
+    wsUrlMasked: string;
+  } {
+    const url = this.buildWsUrl(authMode);
+    const wsUrlMasked = this.maskWsUrl(url);
+
+    if (authMode === "query") {
+      return {
+        socket: new WebSocketCtor(url),
+        authMode: "query",
+        wsUrlMasked,
+      };
     }
+
+    if (authMode === "frame") {
+      return {
+        socket: new WebSocketCtor(url),
+        authMode: "frame",
+        wsUrlMasked,
+      };
+    }
+    const socket = this.createSocketWithHeaders(WebSocketCtor, url, {
+      apiKey: this.apiKey,
+    });
+    return { socket, authMode: "header", wsUrlMasked };
   }
 
   private createSocketWithHeaders(
@@ -685,6 +823,87 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       requireInteger,
     });
     return defaultValue;
+  }
+
+  private readBooleanConfig(key: string, defaultValue: boolean): boolean {
+    const rawValue = this.configService.get<unknown>(key);
+    if (rawValue === undefined || rawValue === null) {
+      return defaultValue;
+    }
+    if (typeof rawValue === "boolean") {
+      return rawValue;
+    }
+    if (typeof rawValue === "number") {
+      return rawValue !== 0;
+    }
+    const normalized = String(rawValue).trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalized)) {
+      return true;
+    }
+    if (["false", "0", "no", "off"].includes(normalized)) {
+      return false;
+    }
+    this.logger.warn("Infoway WebSocket 布尔配置值非法，已回退默认值", {
+      key,
+      value: String(rawValue),
+      defaultValue,
+    });
+    return defaultValue;
+  }
+
+  private readAuthModeConfig(
+    key: string,
+    defaultValue: InfowayWsAuthMode,
+  ): InfowayWsAuthMode {
+    const rawValue = this.configService.get<unknown>(key);
+    if (rawValue === undefined || rawValue === null) {
+      return defaultValue;
+    }
+    const normalized = String(rawValue).trim().toLowerCase();
+    if (
+      normalized === "auto" ||
+      normalized === "query" ||
+      normalized === "header" ||
+      normalized === "frame"
+    ) {
+      return normalized;
+    }
+    this.logger.warn("Infoway WebSocket 鉴权模式配置非法，已回退默认值", {
+      key,
+      value: String(rawValue),
+      defaultValue,
+    });
+    return defaultValue;
+  }
+
+  private resolveAuthModeCandidates(): InfowayResolvedWsAuthMode[] {
+    if (this.wsAuthMode === "query") {
+      return ["query"];
+    }
+    if (this.wsAuthMode === "header") {
+      return ["header"];
+    }
+    if (this.wsAuthMode === "frame") {
+      return ["frame"];
+    }
+    if (this.wsUseQueryApiKey) {
+      return ["query", "header", "frame"];
+    }
+    return ["header", "frame"];
+  }
+
+  private maskWsUrl(url: string): string {
+    try {
+      const parsed = new URL(url);
+      if (parsed.searchParams.has("apikey")) {
+        const key = parsed.searchParams.get("apikey") || "";
+        const masked = key.length > 6 ? `${key.slice(0, 3)}***${key.slice(-3)}` : "***";
+        parsed.searchParams.set("apikey", masked);
+      }
+      return parsed.toString();
+    } catch {
+      return sanitizeInfowayUpstreamMessage(url);
+    }
   }
 
 }

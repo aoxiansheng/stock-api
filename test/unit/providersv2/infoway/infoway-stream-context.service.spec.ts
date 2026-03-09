@@ -91,7 +91,7 @@ describe("InfowayStreamContextService", () => {
     jest.restoreAllMocks();
   });
 
-  it("握手 URL 不带 apikey，且优先使用 header 鉴权", async () => {
+  it("默认 auto 模式会优先使用 query apikey", async () => {
     (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
 
     const service = new InfowayStreamContextService(
@@ -106,8 +106,8 @@ describe("InfowayStreamContextService", () => {
 
     const instance = HeaderCapableMockWebSocket.instances[0];
     expect(instance.url).toContain("business=stock");
-    expect(instance.url).not.toContain("apikey=");
-    expect(instance.headers.apiKey).toBe("test-api-key");
+    expect(instance.url).toContain("apikey=test-api-key");
+    expect(instance.headers.apiKey).toBeUndefined();
     expect(instance.sent).toHaveLength(1);
     const authPayload = JSON.parse(instance.sent[0]);
     expect(authPayload.code).toBe(90001);
@@ -117,7 +117,31 @@ describe("InfowayStreamContextService", () => {
     await service.cleanup();
   });
 
-  it("不支持 header 时连接后发送 auth 帧", async () => {
+  it("显式 query 模式会在 URL 中携带 apikey", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_BASE_URL: "wss://data.infoway.io/ws",
+        INFOWAY_WS_BUSINESS: "stock",
+        INFOWAY_WS_AUTH_MODE: "query",
+        INFOWAY_WS_USE_QUERY_APIKEY: false,
+      }),
+    );
+
+    await service.initializeWebSocket();
+
+    const instance = HeaderCapableMockWebSocket.instances[0];
+    expect(instance.url).toContain("business=stock");
+    expect(instance.url).toContain("apikey=test-api-key");
+    expect(instance.headers.apiKey).toBeUndefined();
+    expect(instance.sent).toHaveLength(1);
+
+    await service.cleanup();
+  });
+
+  it("auto 模式禁用 query 时，header 不支持会回退到 frame", async () => {
     (globalThis as any).WebSocket = FrameFallbackMockWebSocket as any;
 
     const service = new InfowayStreamContextService(
@@ -125,6 +149,7 @@ describe("InfowayStreamContextService", () => {
         INFOWAY_API_KEY: "test-api-key",
         INFOWAY_WS_BASE_URL: "wss://data.infoway.io/ws",
         INFOWAY_WS_BUSINESS: "stock",
+        INFOWAY_WS_USE_QUERY_APIKEY: false,
         INFOWAY_WS_AUTH_FRAME_CODE: 90001,
       }),
     );
@@ -143,7 +168,30 @@ describe("InfowayStreamContextService", () => {
     await service.cleanup();
   });
 
-  it("握手 header 被运行时忽略时仍发送 auth 帧", async () => {
+  it("auto 模式禁用 query 时，优先使用 header 鉴权", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_BASE_URL: "wss://data.infoway.io/ws",
+        INFOWAY_WS_BUSINESS: "stock",
+        INFOWAY_WS_USE_QUERY_APIKEY: false,
+      }),
+    );
+
+    await service.initializeWebSocket();
+
+    const instance = HeaderCapableMockWebSocket.instances[0];
+    expect(instance.url).toContain("business=stock");
+    expect(instance.url).not.toContain("apikey=");
+    expect(instance.headers.apiKey).toBe("test-api-key");
+    expect(instance.sent).toHaveLength(1);
+
+    await service.cleanup();
+  });
+
+  it("显式 header 模式下，握手 header 被运行时忽略时仍发送 auth 帧", async () => {
     (globalThis as any).WebSocket = HeaderIgnoredMockWebSocket as any;
 
     const service = new InfowayStreamContextService(
@@ -151,6 +199,7 @@ describe("InfowayStreamContextService", () => {
         INFOWAY_API_KEY: "test-api-key",
         INFOWAY_WS_BASE_URL: "wss://data.infoway.io/ws",
         INFOWAY_WS_BUSINESS: "stock",
+        INFOWAY_WS_AUTH_MODE: "header",
         INFOWAY_WS_AUTH_FRAME_CODE: 90001,
       }),
     );
@@ -163,6 +212,29 @@ describe("InfowayStreamContextService", () => {
     const authPayload = JSON.parse(instance.sent[0]);
     expect(authPayload.code).toBe(90001);
     expect(authPayload.data.apiKey).toBe("test-api-key");
+
+    await service.cleanup();
+  });
+
+  it("显式 frame 模式不会使用 query 与 header", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_BASE_URL: "wss://data.infoway.io/ws",
+        INFOWAY_WS_BUSINESS: "stock",
+        INFOWAY_WS_AUTH_MODE: "frame",
+      }),
+    );
+
+    await service.initializeWebSocket();
+
+    const instance = HeaderCapableMockWebSocket.instances[0];
+    expect(instance.url).toContain("business=stock");
+    expect(instance.url).not.toContain("apikey=");
+    expect(instance.headers.apiKey).toBeUndefined();
+    expect(instance.sent).toHaveLength(1);
 
     await service.cleanup();
   });
@@ -499,6 +571,8 @@ describe("InfowayStreamContextService", () => {
       createConfigService({
         INFOWAY_API_KEY: "test-api-key",
         INFOWAY_WS_CONNECT_TIMEOUT_MS: "bad",
+        INFOWAY_WS_AUTH_MODE: "invalid-mode",
+        INFOWAY_WS_USE_QUERY_APIKEY: "not-a-bool",
         INFOWAY_WS_HEARTBEAT_MS: 0,
         INFOWAY_WS_RECONNECT_DELAY_MS: -1,
         INFOWAY_WS_RECONNECT_MAX_DELAY_MS: "NaN",
@@ -508,7 +582,9 @@ describe("InfowayStreamContextService", () => {
       }),
     );
 
-    expect((service as any).connectTimeoutMs).toBe(10000);
+    expect((service as any).connectTimeoutMs).toBe(30000);
+    expect((service as any).wsAuthMode).toBe("auto");
+    expect((service as any).wsUseQueryApiKey).toBe(true);
     expect((service as any).heartbeatIntervalMs).toBe(30000);
     expect((service as any).reconnectDelayMs).toBe(3000);
     expect((service as any).reconnectMaxDelayMs).toBe(30000);
