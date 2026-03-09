@@ -304,32 +304,6 @@ export class MappingRuleCrudModule {
           createdAt: -1,
         });
 
-      // 冷路径防御：兼容历史脏数据（大小写/前后空格）避免 miss
-      if (rules.length === 0) {
-        const legacyFilter = this.buildLegacyLookupFilter(
-          normalizedProvider,
-          normalizedApiType,
-          transDataRuleListType,
-        );
-        rules = await this.ruleModel
-          .find(legacyFilter)
-          .sort({
-            overallConfidence: -1,
-            successRate: -1,
-            usageCount: -1,
-            createdAt: -1,
-          });
-
-        if (rules.length > 0) {
-          this.logger.warn("查找最匹配映射规则命中 legacy provider/apiType 脏数据兼容路径", {
-            provider: normalizedProvider,
-            apiType: normalizedApiType,
-            transDataRuleListType,
-            matchedRules: rules.length,
-          });
-        }
-      }
-
       if (rules.length === 0) {
         return null;
       }
@@ -454,29 +428,6 @@ export class MappingRuleCrudModule {
       return "";
     }
     return value.trim().toLowerCase();
-  }
-
-  private buildLegacyLookupFilter(
-    provider: string,
-    apiType: "rest" | "stream",
-    transDataRuleListType: RuleListType,
-  ): {
-    provider: RegExp;
-    apiType: RegExp;
-    transDataRuleListType: RuleListType;
-    isActive: true;
-  } {
-    return {
-      provider: this.buildLegacyExactMatchRegex(provider),
-      apiType: this.buildLegacyExactMatchRegex(apiType),
-      transDataRuleListType,
-      isActive: true,
-    };
-  }
-
-  private buildLegacyExactMatchRegex(value: string): RegExp {
-    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`^\\s*${escaped}\\s*$`, "i");
   }
 
   /**
