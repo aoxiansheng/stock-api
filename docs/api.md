@@ -162,6 +162,12 @@ HTTP 请求头（API Key）：
 ### `POST /api/v1/chart/intraday-line/snapshot`
 - 认证：API Key 或 JWT（只读权限）
 - 语义：首屏全量快照（当前实现为 `1m` 历史基线 + 实时 `1s` 增量窗口）
+- 参数约束：
+  - `symbol` 必填（单标的）
+  - `market` 可选；缺省时由 `symbol` 推断
+  - `tradingDay` 可选；缺省时按市场时区推断当日
+  - `provider` 可选；缺省为 `infoway`
+  - 若显式传入 `market` 且与 `symbol` 推断市场冲突，返回 `400 INVALID_ARGUMENT`
 - Request
 ```json
 {
@@ -212,6 +218,10 @@ HTTP 请求头（API Key）：
 ### `POST /api/v1/chart/intraday-line/delta`
 - 认证：API Key 或 JWT（只读权限）
 - 语义：仅返回增量，不回放全量历史
+- 参数约束：
+  - `cursor` 必传
+  - `market`/`tradingDay`/`provider` 可选；缺省时优先使用 `cursor` 上下文
+  - 若显式传入 `market` 且与 `symbol` 推断市场冲突，返回 `400 INVALID_ARGUMENT`
 - Request
 ```json
 {
@@ -268,6 +278,7 @@ HTTP 请求头（API Key）：
 ```
 - `sig` 为签名字段；服务端会校验 payload 完整性，篡改后会被拒绝。
 - `provider` 可选；当 `strictProviderConsistency=true` 时会参与一致性校验。
+- 调试提示：验证“签名篡改”时，应先 base64 解码 cursor、修改字段、保留原 `sig` 后再 base64 编码；不要仅做字符串拼接（例如 `cursor + "tampered"`），否则可能被解码端忽略尾部噪声导致误判。
 
 ## 弱时效接口（Query）
 

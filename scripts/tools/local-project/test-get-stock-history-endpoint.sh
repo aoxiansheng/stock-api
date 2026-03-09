@@ -3,17 +3,16 @@ set -euo pipefail
 
 # 用法示例：
 # APP_KEY=xxx ACCESS_TOKEN=yyy \
-# BASE_URL="http://127.0.0.1:3001" SYMBOL="AAPL.US" MARKET="US" \
+# BASE_URL="http://127.0.0.1:3001" SYMBOL="AAPL.US" \
 # KLINE_NUM=5 TIMESTAMP=1758553860 \
-# bash scripts/tools/test-get-stock-history-endpoint.sh
+# bash scripts/tools/local-project/test-get-stock-history-endpoint.sh
 #
 # 或使用 JWT：
-# AUTH_BEARER="eyJ..." bash scripts/tools/test-get-stock-history-endpoint.sh
+# AUTH_BEARER="eyJ..." bash scripts/tools/local-project/test-get-stock-history-endpoint.sh
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:3001}"
 ENDPOINT="${ENDPOINT:-/api/v1/receiver/data}"
 SYMBOL="${SYMBOL:-AAPL.US}"
-MARKET="${MARKET:-US}"
 PROVIDER="${PROVIDER:-infoway}"
 KLINE_NUM="${KLINE_NUM:-}"
 TIMESTAMP="${TIMESTAMP:-}"
@@ -35,7 +34,6 @@ if command -v jq >/dev/null 2>&1; then
   if [[ -n "${TIMESTAMP}" && -n "${KLINE_NUM}" ]]; then
     PAYLOAD="$(jq -nc \
       --arg symbol "${SYMBOL}" \
-      --arg market "${MARKET}" \
       --arg provider "${PROVIDER}" \
       --argjson klineNum "${KLINE_NUM}" \
       --argjson timestamp "${TIMESTAMP}" \
@@ -44,7 +42,6 @@ if command -v jq >/dev/null 2>&1; then
         receiverType: "get-stock-history",
         options: {
           preferredProvider: $provider,
-          market: $market,
           klineNum: $klineNum,
           timestamp: $timestamp
         }
@@ -52,7 +49,6 @@ if command -v jq >/dev/null 2>&1; then
   elif [[ -n "${TIMESTAMP}" ]]; then
     PAYLOAD="$(jq -nc \
       --arg symbol "${SYMBOL}" \
-      --arg market "${MARKET}" \
       --arg provider "${PROVIDER}" \
       --argjson timestamp "${TIMESTAMP}" \
       '{
@@ -60,14 +56,12 @@ if command -v jq >/dev/null 2>&1; then
         receiverType: "get-stock-history",
         options: {
           preferredProvider: $provider,
-          market: $market,
           timestamp: $timestamp
         }
       }')"
   elif [[ -n "${KLINE_NUM}" ]]; then
     PAYLOAD="$(jq -nc \
       --arg symbol "${SYMBOL}" \
-      --arg market "${MARKET}" \
       --arg provider "${PROVIDER}" \
       --argjson klineNum "${KLINE_NUM}" \
       '{
@@ -75,33 +69,30 @@ if command -v jq >/dev/null 2>&1; then
         receiverType: "get-stock-history",
         options: {
           preferredProvider: $provider,
-          market: $market,
           klineNum: $klineNum
         }
       }')"
   else
     PAYLOAD="$(jq -nc \
       --arg symbol "${SYMBOL}" \
-      --arg market "${MARKET}" \
       --arg provider "${PROVIDER}" \
       '{
         symbols: [$symbol],
         receiverType: "get-stock-history",
         options: {
-          preferredProvider: $provider,
-          market: $market
+          preferredProvider: $provider
         }
       }')"
   fi
 else
   if [[ -n "${TIMESTAMP}" && -n "${KLINE_NUM}" ]]; then
-    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"market\":\"${MARKET}\",\"klineNum\":${KLINE_NUM},\"timestamp\":${TIMESTAMP}}}"
+    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"klineNum\":${KLINE_NUM},\"timestamp\":${TIMESTAMP}}}"
   elif [[ -n "${TIMESTAMP}" ]]; then
-    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"market\":\"${MARKET}\",\"timestamp\":${TIMESTAMP}}}"
+    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"timestamp\":${TIMESTAMP}}}"
   elif [[ -n "${KLINE_NUM}" ]]; then
-    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"market\":\"${MARKET}\",\"klineNum\":${KLINE_NUM}}}"
+    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"klineNum\":${KLINE_NUM}}}"
   else
-    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\",\"market\":\"${MARKET}\"}}"
+    PAYLOAD="{\"symbols\":[\"${SYMBOL}\"],\"receiverType\":\"get-stock-history\",\"options\":{\"preferredProvider\":\"${PROVIDER}\"}}"
   fi
 fi
 

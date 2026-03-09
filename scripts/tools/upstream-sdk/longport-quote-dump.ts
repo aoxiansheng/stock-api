@@ -4,7 +4,7 @@
  * 以便在本地快速抓取原始行情响应，核对字段与数据结构。
  *
  * 运行方式（确保 LONGPORT_* 环境变量已配置，可通过 .env* 或 shell 导出）：
- *    bun scripts/tools/longport-quote-dump.ts AMD.US 700.HK
+ *    bun scripts/tools/upstream-sdk/longport-quote-dump.ts AMD.US 700.HK
  *
  * 支持的环境变量：
  *    LONGPORT_APP_KEY
