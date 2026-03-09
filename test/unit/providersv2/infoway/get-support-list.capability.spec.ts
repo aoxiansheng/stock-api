@@ -1,8 +1,5 @@
 import { BusinessErrorCode } from "@common/core/exceptions";
 import { getSupportList } from "@providersv2/providers/infoway/capabilities/get-support-list";
-import { plainToInstance } from "class-transformer";
-import { validate } from "class-validator";
-import { SupportListRequestDto } from "@core/01-entry/receiver/dto/support-list-request.dto";
 import { INFOWAY_SUPPORT_SYMBOL_MAX_LENGTH } from "@providersv2/providers/infoway/utils/infoway-support-list.util";
 
 describe("get-support-list capability", () => {
@@ -42,16 +39,23 @@ describe("get-support-list capability", () => {
     expect(result).toEqual([{ symbol: ".DJI.US" }]);
   });
 
-  it("SupportListRequestDto: 单个 symbol 超长时应拒绝", async () => {
+  it("symbols 单项超长时能力层应拒绝", async () => {
     const oversizedSymbol = "A".repeat(INFOWAY_SUPPORT_SYMBOL_MAX_LENGTH + 1);
-    const instance = plainToInstance(SupportListRequestDto, {
-      type: "STOCK_US",
-      symbols: [oversizedSymbol],
+    const contextService = {
+      getSupportList: jest.fn(),
+    };
+
+    await expect(
+      getSupportList.execute({
+        type: "STOCK_US",
+        symbols: [oversizedSymbol],
+        contextService: contextService as any,
+      }),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      message: expect.stringContaining("symbols"),
     });
 
-    const errors = await validate(instance);
-    const symbolErrors = errors.find((error) => error.property === "symbols");
-
-    expect(symbolErrors).toBeDefined();
+    expect(contextService.getSupportList).not.toHaveBeenCalled();
   });
 });
