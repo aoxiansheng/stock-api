@@ -5,12 +5,12 @@ import type { Model } from "mongoose";
 import type { ApiKeyDocument } from "@authv2/schema";
 import { Socket } from "socket.io";
 import { Permission } from "@authv2/enums";
+import * as bcrypt from "bcrypt";
 import {
   STREAM_PERMISSIONS,
   hasStreamPermissions,
 } from "../constants/stream-permissions.constants";
 import { CONSTANTS } from "@common/constants";
-import { ADMIN_PROFILE, READ_PROFILE } from "@authv2/constants";
 
 // Extract rate limit strategy for backward compatibility
 // const { RateLimitStrategy } = CONSTANTS.DOMAIN.RATE_LIMIT.ENUMS;
@@ -90,7 +90,7 @@ export class WsAuthGuard implements CanActivate {
     try {
       // v2 极简验证：直接查询 ApiKey 并校验状态/过期
       const apiKeyDoc = await this.apiKeyModel
-        .findOne({ appKey: apiKey, accessToken, deletedAt: { $exists: false } })
+        .findOne({ appKey: apiKey, deletedAt: { $exists: false } })
         .exec();
 
       if (!apiKeyDoc) {
@@ -106,22 +106,48 @@ export class WsAuthGuard implements CanActivate {
         return false;
       }
 
+      const accessTokenMatches = await bcrypt.compare(
+        accessToken,
+        apiKeyDoc.accessToken,
+      );
+      if (!accessTokenMatches) {
+        this.logger.warn({
+          message: "API Key 验证失败",
+          apiKey:
+            apiKey.substring(
+              0,
+              CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
+            ) + "***",
+          clientId: client.id,
+        });
+        return false;
+      }
+
       // 过期校验
       if (apiKeyDoc.expiresAt && apiKeyDoc.expiresAt.getTime() < Date.now()) {
         this.logger.warn({ message: "API Key 已过期", clientId: client.id });
         return false;
       }
 
-      // 由 profile 推导权限画像：当 permissions 为空数组时执行回退
-      const explicitPermissions = Array.isArray((apiKeyDoc as any).permissions)
+      const permissions = Array.isArray((apiKeyDoc as any).permissions)
         ? (apiKeyDoc as any).permissions
         : [];
-      const permissions =
-        explicitPermissions.length > 0
-          ? explicitPermissions
-          : apiKeyDoc.profile === "ADMIN"
-            ? ADMIN_PROFILE
-            : READ_PROFILE;
+      if (permissions.length === 0) {
+        this.logger.warn({
+          message: "API Key 缺少 WebSocket 流权限",
+          apiKey:
+            apiKey.substring(
+              0,
+              CONSTANTS.FOUNDATION.VALUES.QUANTITIES.TEN - 2,
+            ) + "***",
+          requiredPermissions: [
+            ...STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS,
+            Permission.STREAM_WRITE,
+          ],
+          clientId: client.id,
+        });
+        return false;
+      }
 
       // 检查WebSocket流权限（使用新的Permission枚举）
       const hasStreamPermission = this.checkStreamPermissions(

@@ -10,6 +10,7 @@ jest.mock("@common/logging/index", () => ({
 import { BusinessErrorCode } from "@common/core/exceptions";
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
+import { StreamBatchProcessorService } from "@core/01-entry/stream-receiver/services/stream-batch-processor.service";
 import { STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY } from "@core/shared/utils/provider-symbol-identity.util";
 
 type ValidationResult = {
@@ -105,9 +106,8 @@ function createService(options?: {
         );
       }),
     },
-    batchProcessor: { setCallbacks: jest.fn() },
+    batchProcessor: { addQuoteData: jest.fn() },
     connectionManager: {
-      setCallbacks: jest.fn(),
       getActiveConnectionsCount: jest.fn(() => 0),
       getOrCreateConnection: jest.fn(),
       isConnectionActive: jest.fn(() => false),
@@ -119,7 +119,6 @@ function createService(options?: {
         cleanupType: "manual",
       })),
     },
-    dataProcessor: { setCallbacks: jest.fn() },
     rateLimitService: {
       checkRateLimit: jest.fn(),
     },
@@ -143,13 +142,79 @@ function createService(options?: {
     mocks.dataValidator as any,
     mocks.batchProcessor as any,
     mocks.connectionManager as any,
-    mocks.dataProcessor as any,
     undefined,
     mocks.rateLimitService as any,
     mocks.webSocketProvider as any,
   );
 
   return { service, mocks };
+}
+
+function createBatchProcessor(options?: {
+  standardSymbolIdentityProviders?: string;
+  webSocketAvailable?: boolean;
+  configOverrides?: Record<string, any>;
+}) {
+  const clientStateManager = {
+    addSubscriptionChangeListener: jest.fn(),
+    addClientSubscription: jest.fn(),
+    getClientSubscription: jest.fn(),
+    getClientSymbols: jest.fn(() => []),
+    removeClientSubscription: jest.fn(),
+    broadcastToSymbolViaGateway: jest.fn(),
+  };
+  const streamCache = {
+    setData: jest.fn(),
+  };
+  const configOverrides = options?.configOverrides ?? {};
+
+  const mocks = {
+    eventBus: { emit: jest.fn() },
+    configService: {
+      get: jest.fn((key: string, defaultValue?: any) => {
+        if (key === STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY) {
+          return options?.standardSymbolIdentityProviders ?? "";
+        }
+        if (Object.prototype.hasOwnProperty.call(configOverrides, key)) {
+          return configOverrides[key];
+        }
+        return defaultValue;
+      }),
+    },
+    dataTransformerService: { transform: jest.fn() },
+    symbolTransformerService: { transformSymbols: jest.fn() },
+    streamDataFetcher: {
+      getClientStateManager: jest.fn(() => clientStateManager),
+      getStreamDataCache: jest.fn(() => streamCache),
+    },
+    dataValidator: {
+      isValidSymbolFormat: jest.fn((symbol: string) => {
+        return (
+          /^[0-9]{4,5}\.HK$/i.test(symbol) ||
+          /^[A-Z0-9]+(?:[.\-][A-Z0-9]+){0,2}\.US$/i.test(symbol) ||
+          /^[0-9]{6}\.(SH|SZ)$/i.test(symbol) ||
+          /^[A-Z0-9]{3,5}\.SG$/i.test(symbol)
+        );
+      }),
+    },
+    webSocketProvider: {
+      isServerAvailable: jest.fn(() => options?.webSocketAvailable ?? true),
+    },
+    clientStateManager,
+    streamCache,
+  };
+
+  const batchProcessor = new StreamBatchProcessorService(
+    mocks.configService as any,
+    mocks.eventBus as any,
+    mocks.dataTransformerService as any,
+    mocks.symbolTransformerService as any,
+    mocks.streamDataFetcher as any,
+    mocks.dataValidator as any,
+    mocks.webSocketProvider as any,
+  );
+
+  return { batchProcessor, mocks };
 }
 
 describe("StreamReceiverService request validation fail-fast", () => {
@@ -591,10 +656,10 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineBroadcastData: 广播路径应按 canonical symbol 聚合并分发", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
     mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
 
-    await (service as any).pipelineBroadcastData(
+    await (batchProcessor as any).pipelineBroadcastData(
       [
         { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100, payload: 1 },
         { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200", payload: 2 },
@@ -626,7 +691,8 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineCacheData: 缓存键应与 room/broadcast 使用同一 canonical 规则", async () => {
-    const { service, mocks } = createService();
+    const { service } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
     const canonicalSymbol = "AAPL.US";
 
     expect((service as any).buildSymbolRoomKey("  aapl.us  ")).toBe(
@@ -636,7 +702,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
       canonicalSymbol,
     );
 
-    await (service as any).pipelineCacheData(
+    await (batchProcessor as any).pipelineCacheData(
       [
         { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100, payload: 1 },
         { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200", payload: 2 },
@@ -656,10 +722,10 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineBroadcastData: 非法 payload 应统一丢弃并记录原因", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
     mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
 
-    await (service as any).pipelineBroadcastData(
+    await (batchProcessor as any).pipelineBroadcastData(
       [
         { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100 },
         { symbol: "  ", price: 1, timestamp: 1700000000000, volume: 1 },
@@ -676,7 +742,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
       expect.any(Array),
       mocks.webSocketProvider,
     );
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "broadcast",
@@ -692,9 +758,9 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineCacheData: 非法 payload 应被过滤，仅合法数据进入缓存", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
 
-    await (service as any).pipelineCacheData(
+    await (batchProcessor as any).pipelineCacheData(
       [
         { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100 },
         { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200" },
@@ -710,7 +776,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
     expect(cacheKey).toBe("quote:AAPL.US");
     expect(cachedPoints).toHaveLength(2);
     expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(true);
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "cache",
@@ -719,9 +785,9 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineCacheData: I-01/I-02 边界输入应仅缓存合法点并记录 droppedReasons", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
 
-    await (service as any).pipelineCacheData(
+    await (batchProcessor as any).pipelineCacheData(
       [
         { symbol: "aapl.us", price: "", timestamp: 1700000000000, volume: 1 },
         { symbol: "AAPL.US", price: "   ", timestamp: 1700000000001, volume: 1 },
@@ -756,7 +822,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
         (point: any) => point.t === Date.parse("2024-01-01T00:00:00.000Z"),
       ),
     ).toBe(true);
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "cache",
@@ -770,10 +836,10 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineBroadcastData: I-01/I-02 边界输入应仅广播合法点并记录 droppedReasons", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
     mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
 
-    await (service as any).pipelineBroadcastData(
+    await (batchProcessor as any).pipelineBroadcastData(
       [
         { symbol: "aapl.us", price: "", timestamp: 1700000000000, volume: 1 },
         { symbol: "AAPL.US", price: "   ", timestamp: 1700000000001, volume: 1 },
@@ -813,7 +879,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
         (item: any) => item.timestamp === Date.parse("2024-01-01T00:00:00.000Z"),
       ),
     ).toBe(true);
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "broadcast",
@@ -827,9 +893,9 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineCacheData: I-03 timestamp 秒级字符串/数字应转毫秒，11位与小数输入应按 invalid_timestamp 丢弃", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
 
-    await (service as any).pipelineCacheData(
+    await (batchProcessor as any).pipelineCacheData(
       [
         { symbol: "AAPL.US", price: 1, timestamp: "1700000000", volume: 1 },
         { symbol: "AAPL.US", price: 1.5, timestamp: 1700000000, volume: 1 },
@@ -854,7 +920,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
           point.s === "AAPL.US" && point.t === 1700000000000,
       ),
     ).toBe(true);
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "cache",
@@ -867,9 +933,9 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineCacheData: I-01 前导零 11 位时间戳字符串应按 invalid_timestamp 丢弃", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
 
-    await (service as any).pipelineCacheData(
+    await (batchProcessor as any).pipelineCacheData(
       [
         { symbol: "AAPL.US", price: 1, timestamp: "1700000000000", volume: 1 },
         { symbol: "AAPL.US", price: 2, timestamp: "01700000000", volume: 1 },
@@ -886,7 +952,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
     const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
     expect(cachedPoints).toHaveLength(1);
     expect(cachedPoints[0].t).toBe(1700000000000);
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "cache",
@@ -899,10 +965,10 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipelineBroadcastData: I-03 timestamp 秒级字符串/数字应转毫秒，11位与小数输入应按 invalid_timestamp 丢弃", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
     mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
 
-    await (service as any).pipelineBroadcastData(
+    await (batchProcessor as any).pipelineBroadcastData(
       [
         { symbol: "AAPL.US", price: 1, timestamp: "1700000000", volume: 1 },
         { symbol: "AAPL.US", price: 1.5, timestamp: 1700000000, volume: 1 },
@@ -928,7 +994,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
           item.symbol === "AAPL.US" && item.timestamp === 1700000000000,
       ),
     ).toBe(true);
-    expect((service as any).logger.warn).toHaveBeenCalledWith(
+    expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "broadcast",
@@ -941,7 +1007,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 
   it("pipeline cache/broadcast: 应复用同一symbol校验结果并丢弃非空非法symbol", async () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
     mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
 
     const transformedData = [
@@ -951,10 +1017,10 @@ describe("StreamReceiverService symbol room key consistency", () => {
       { symbol: "00700.HK", price: 300.45, timestamp: 1700000001000, volume: 300 },
     ];
 
-    await (service as any).pipelineCacheData(transformedData, ["AAPL.US", "00700.HK"]);
-    await (service as any).pipelineBroadcastData(transformedData, ["AAPL.US", "00700.HK"]);
+    await (batchProcessor as any).pipelineCacheData(transformedData, ["AAPL.US", "00700.HK"]);
+    await (batchProcessor as any).pipelineBroadcastData(transformedData, ["AAPL.US", "00700.HK"]);
 
-    expect(mocks.dataValidator.isValidSymbolFormat).toHaveBeenCalledTimes(4);
+    expect(mocks.dataValidator.isValidSymbolFormat).toHaveBeenCalledTimes(8);
 
     const cacheKeys = mocks.streamCache.setData.mock.calls
       .map((call: any[]) => call[0])
@@ -966,7 +1032,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
       .sort();
     expect(broadcastSymbols).toEqual(["00700.HK", "AAPL.US"]);
 
-    const droppedWarnCalls = ((service as any).logger.warn as jest.Mock).mock.calls.filter(
+    const droppedWarnCalls = ((batchProcessor as any).logger.warn as jest.Mock).mock.calls.filter(
       ([message]: [string]) => message === "流数据因无效payload被丢弃",
     );
     expect(droppedWarnCalls).toHaveLength(2);
@@ -997,30 +1063,38 @@ describe("StreamReceiverService symbol room key consistency", () => {
   });
 });
 
-describe("StreamReceiverService private branch coverage", () => {
+describe("StreamBatchProcessorService config parsing", () => {
   it("readBooleanConfig: 应处理 boolean 与 number 输入", () => {
-    const { service, mocks } = createService();
+    const { batchProcessor, mocks } = createBatchProcessor();
 
     mocks.configService.get.mockReturnValueOnce(true);
-    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(true);
+    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
+      true,
+    );
 
     mocks.configService.get.mockReturnValueOnce(false);
-    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(false);
+    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
+      false,
+    );
 
     mocks.configService.get.mockReturnValueOnce(1);
-    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(true);
+    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
+      true,
+    );
 
     mocks.configService.get.mockReturnValueOnce(0);
-    expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(false);
+    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
+      false,
+    );
   });
 
   it.each(["true", " TRUE ", "1", "yes", "on"])(
     "readBooleanConfig: 字符串真值 %p 应返回 true",
     (rawValue) => {
-      const { service, mocks } = createService();
+      const { batchProcessor, mocks } = createBatchProcessor();
       mocks.configService.get.mockReturnValueOnce(rawValue);
 
-      expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
+      expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
         true,
       );
     },
@@ -1029,35 +1103,46 @@ describe("StreamReceiverService private branch coverage", () => {
   it.each(["false", " FALSE ", "0", "no", "off"])(
     "readBooleanConfig: 字符串假值 %p 应返回 false",
     (rawValue) => {
-      const { service, mocks } = createService();
+      const { batchProcessor, mocks } = createBatchProcessor();
       mocks.configService.get.mockReturnValueOnce(rawValue);
 
-      expect((service as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
+      expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
         false,
       );
     },
   );
 
-  it.each([
-    { rawValue: "maybe", defaultValue: true, expected: true },
-    { rawValue: "maybe", defaultValue: false, expected: false },
-    { rawValue: "", defaultValue: true, expected: true },
-    { rawValue: "   ", defaultValue: false, expected: false },
-    { rawValue: null, defaultValue: true, expected: true },
-    { rawValue: undefined, defaultValue: false, expected: false },
-    { rawValue: { enabled: true }, defaultValue: true, expected: true },
-  ])(
-    "readBooleanConfig: 未知/空值输入 $rawValue 应回退 default=$defaultValue",
-    ({ rawValue, defaultValue, expected }) => {
-      const { service, mocks } = createService();
+  it.each([null, undefined])(
+    "readBooleanConfig: 空值 %p 应回退 default",
+    (rawValue) => {
+      const { batchProcessor, mocks } = createBatchProcessor();
       mocks.configService.get.mockReturnValueOnce(rawValue);
 
-      expect(
-        (service as any).readBooleanConfig("STREAM_CACHE_ENABLED", defaultValue),
-      ).toBe(expected);
+      expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
+        true,
+      );
     },
   );
 
+  it.each(["maybe", "", "   ", { enabled: true }])(
+    "readBooleanConfig: 非法值 %p 应抛出配置错误",
+    (rawValue) => {
+      const { batchProcessor, mocks } = createBatchProcessor();
+      mocks.configService.get.mockReturnValueOnce(rawValue);
+
+      try {
+        (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true);
+        throw new Error("should_throw");
+      } catch (error: any) {
+        expect(error).toMatchObject({
+          errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+        });
+      }
+    },
+  );
+});
+
+describe("StreamReceiverService private branch coverage", () => {
   it("extractSymbolsFromData: 应覆盖 symbol/s/symbols[]/quote.symbol/quote.s 分支", () => {
     const { service } = createService();
 

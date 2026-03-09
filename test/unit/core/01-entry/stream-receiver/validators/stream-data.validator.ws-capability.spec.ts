@@ -91,7 +91,7 @@ describe("StreamDataValidator ws capability validation", () => {
     expect(validator.isValidWSCapability("custom-stream-quote")).toBe(true);
   });
 
-  it("静态回退：动态未命中时 quote 别名仍有效", () => {
+  it("动态未命中时返回 false", () => {
     providerRegistryService.getAllCapabilities.mockReturnValue(
       new Map([
         [
@@ -110,15 +110,15 @@ describe("StreamDataValidator ws capability validation", () => {
       ]),
     );
 
-    expect(validator.isValidWSCapability("quote")).toBe(true);
+    expect(validator.isValidWSCapability("quote")).toBe(false);
   });
 
-  it("降级场景：无 getAllCapabilities 接口时回退静态能力", () => {
+  it("降级场景：无 getAllCapabilities 接口时返回 false", () => {
     const fallbackValidator = new StreamDataValidator({
       getProvider: jest.fn(),
     } as any);
 
-    expect(fallbackValidator.isValidWSCapability("quote")).toBe(true);
+    expect(fallbackValidator.isValidWSCapability("quote")).toBe(false);
     expect(fallbackValidator.isValidWSCapability("unknown-capability")).toBe(
       false,
     );
@@ -151,7 +151,7 @@ describe("StreamDataValidator ws capability validation", () => {
 
     expect(validator.isValidWSCapability("custom-stream-quote")).toBe(true);
     expect(validator.isValidWSCapability("unknown-capability")).toBe(false);
-    expect(validator.isValidWSCapability("quote")).toBe(true);
+    expect(validator.isValidWSCapability("quote")).toBe(false);
     expect(providerRegistryService.getAllCapabilities).toHaveBeenCalledTimes(1);
   });
 

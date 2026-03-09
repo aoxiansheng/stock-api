@@ -6,8 +6,12 @@ jest.mock("@common/logging/index", () => ({
     error: jest.fn(),
   }),
 }));
+jest.mock("bcrypt", () => ({
+  compare: jest.fn(),
+}));
 
 import { WsAuthGuard } from "@core/01-entry/stream-receiver/guards/ws-auth.guard";
+import * as bcrypt from "bcrypt";
 
 describe("WsAuthGuard auth source hardening", () => {
   const createGuard = () => {
@@ -71,5 +75,36 @@ describe("WsAuthGuard auth source hardening", () => {
       apiKey: "header-key",
       accessToken: "header-token",
     });
+  });
+
+  it("permissions 为空时拒绝认证", async () => {
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    const apiKeyModel = {
+      findOne: jest.fn(() => ({
+        exec: jest.fn().mockResolvedValue({
+          _id: "id",
+          appKey: "header-key",
+          accessToken: "hashed-token",
+          permissions: [],
+        }),
+      })),
+    };
+    const guard = new WsAuthGuard(apiKeyModel as any);
+    const client = {
+      id: "client-2",
+      handshake: {
+        headers: {
+          "x-app-key": "header-key",
+          "x-access-token": "header-token",
+        },
+        query: {},
+      },
+      data: {},
+    };
+    const context = createContext(client);
+
+    const result = await guard.canActivate(context);
+
+    expect(result).toBe(false);
   });
 });

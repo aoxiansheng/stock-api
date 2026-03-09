@@ -16,7 +16,7 @@ describe("StreamDataValidator provider matrix", () => {
     token: "jwt-token",
   };
 
-  let providerRegistryService: { getProvider: jest.Mock };
+  let providerRegistryService: { getProvider: jest.Mock; getAllCapabilities: jest.Mock };
   let validator: StreamDataValidator;
 
   beforeEach(() => {
@@ -27,6 +27,27 @@ describe("StreamDataValidator provider matrix", () => {
         }
         return undefined;
       }),
+      getAllCapabilities: jest.fn(
+        () =>
+          new Map([
+            [
+              "mock",
+              new Map([
+                [
+                  "quote",
+                  {
+                    capability: {
+                      name: "quote",
+                      transport: "stream",
+                    },
+                    priority: 1,
+                    isEnabled: true,
+                  },
+                ],
+              ]),
+            ],
+          ]),
+      ),
     };
     validator = new StreamDataValidator(providerRegistryService as any);
   });

@@ -63,23 +63,6 @@ export interface SymbolConsistencyResult {
 }
 
 /**
- * 数据处理回调接口
- */
-export interface DataProcessingCallbacks {
-  /** 标准化符号回调 */
-  ensureSymbolConsistency: (symbols: string[], provider: string) => Promise<string[]>;
-  /** 缓存数据回调 */
-  pipelineCacheData: (dataArray: any[], symbols: string[]) => Promise<void>;
-  /** 广播数据回调 */
-  pipelineBroadcastData: (dataArray: any[], symbols: string[]) => Promise<void>;
-  /** 记录管道指标回调 */
-  recordStreamPipelineMetrics: (metrics: DataPipelineMetrics) => void;
-  /** 记录管道错误回调 */
-  recordPipelineError: (provider: string, capability: string, error: string, duration: number) => void;
-
-}
-
-/**
  * 数据处理配置
  */
 export interface DataProcessingConfig {
@@ -103,9 +86,6 @@ export interface DataProcessingConfig {
  * 数据处理器接口
  */
 export interface IDataProcessor {
-  /** 设置回调函数 */
-  setCallbacks(callbacks: DataProcessingCallbacks): void;
-
   /** 处理批量数据通过管道 */
   processDataThroughPipeline(
     quotes: QuoteData[],

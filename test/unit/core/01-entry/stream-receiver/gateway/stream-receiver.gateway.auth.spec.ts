@@ -6,10 +6,14 @@ jest.mock("@common/logging/index", () => ({
     error: jest.fn(),
   }),
 }));
+jest.mock("bcrypt", () => ({
+  compare: jest.fn(),
+}));
 
 import { ValidationPipe } from "@nestjs/common";
 import { PIPES_METADATA } from "@nestjs/common/constants";
 import { WsException } from "@nestjs/websockets";
+import * as bcrypt from "bcrypt";
 import { StreamUnsubscribeDto } from "@core/01-entry/stream-receiver/dto";
 import { StreamReceiverGateway } from "@core/01-entry/stream-receiver/gateway/stream-receiver.gateway";
 
@@ -129,6 +133,27 @@ describe("StreamReceiverGateway auth + unsubscribe validation", () => {
       reason: "Missing API Key or Access Token",
     });
     expect(apiKeyModel.findOne).not.toHaveBeenCalled();
+  });
+
+  it("authenticateConnection: permissions 为空时拒绝认证", async () => {
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    const { gateway } = createGateway({
+      findOneExecResult: {
+        _id: "id",
+        appKey: "app-key",
+        accessToken: "hashed-access-token",
+        permissions: [],
+      },
+    });
+    const client = createClient(true);
+
+    const result = await (gateway as any).authenticateConnection(client);
+
+    expect(result).toEqual({
+      success: false,
+      reason: "Insufficient stream permissions",
+    });
+    expect(client.data.authenticated).toBe(false);
   });
 
   it("unsubscribe 入口存在 ValidationPipe，并拦截非法 symbols", async () => {

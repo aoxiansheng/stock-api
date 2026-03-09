@@ -32,7 +32,6 @@ import {
 import {
   StreamConnectionContext,
   ConnectionCleanupResult,
-  ConnectionManagementCallbacks,
   IConnectionManager,
   ConnectionLimitCheckResult,
   MarketDistributionAnalysis,
@@ -59,9 +58,6 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
   // 定时器管理
   private cleanupTimer?: NodeJS.Timeout;
   private memoryCheckTimer?: NodeJS.Timeout;
-
-  // 回调函数存储
-  private callbacks?: ConnectionManagementCallbacks;
 
   constructor(
     private readonly configService: ConfigService,
@@ -112,14 +108,6 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
       maxConnections,
       connectionStaleTimeout,
     };
-  }
-
-  /**
-   * 设置回调函数
-   */
-  setCallbacks(callbacks: ConnectionManagementCallbacks): void {
-    this.callbacks = callbacks;
-    this.logger.debug("连接管理回调函数已设置");
   }
 
   /**
@@ -216,7 +204,7 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
     this.initializeConnectionHealth(connection);
 
     // 记录连接创建监控
-    this.callbacks?.recordConnectionMetrics(connection.id, provider, capability, true);
+    this.recordConnectionMetrics(connection.id, provider, capability, true);
 
     this.logger.log("新流连接已创建", {
       connectionId: connection.id,
@@ -385,12 +373,8 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
       });
 
       // 记录连接断开监控
-      this.callbacks?.recordConnectionMetrics(
-        connection.id,
-        connectionKey.split(':')[0],
-        connectionKey.split(':')[1],
-        false
-      );
+      const [provider, capability] = connectionKey.split(":");
+      this.recordConnectionMetrics(connection.id, provider, capability, false);
     }
   }
 
@@ -412,6 +396,36 @@ export class StreamConnectionManagerService implements OnModuleDestroy, IConnect
    */
   getConnectionHealthStats(): ConnectionHealthStats {
     return ConnectionStatsUtils.calculateHealthStats(this.connectionHealth);
+  }
+
+  /**
+   * ✅ 事件化监控 - 记录流连接状态变化
+   */
+  private recordConnectionMetrics(
+    connectionId: string,
+    provider: string,
+    capability: string,
+    isConnected: boolean,
+  ): void {
+    try {
+      setImmediate(() => {
+        // 监控事件已移除（监控模块已删除）
+        // 如需监控，请使用外部工具（如 Prometheus）
+      });
+
+      this.logger.debug("流连接状态变化已记录", {
+        connectionId,
+        provider,
+        capability,
+        status: isConnected ? "connected" : "disconnected",
+        activeConnections: this.activeConnections.size,
+      });
+    } catch (error) {
+      this.logger.warn(`流连接监控事件发送失败: ${error.message}`, {
+        connectionId,
+        provider,
+      });
+    }
   }
 
   /**

@@ -48,20 +48,6 @@ export class StreamDataValidator {
   // 支持的市场前缀
   private readonly SUPPORTED_MARKETS = ['HK', 'US', 'CN', 'SG'];
 
-  // 支持的WebSocket能力类型
-  private readonly SUPPORTED_WS_CAPABILITIES = [
-    API_OPERATIONS.DATA_TYPES.QUOTE,
-    'depth',
-    'trade',
-    'broker',
-    'kline',
-    API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
-  ];
-  private readonly STATIC_WS_CAPABILITY_SET = new Set(
-    this.SUPPORTED_WS_CAPABILITIES.map((capability) =>
-      capability.toLowerCase(),
-    ),
-  );
   private readonly DYNAMIC_WS_CAPABILITY_CACHE_TTL_MS = 30 * 1000;
   private dynamicWSCapabilityCache: Set<string> | null = null;
   private dynamicWSCapabilityCacheExpiresAt = 0;
@@ -244,14 +230,9 @@ export class StreamDataValidator {
       return false;
     }
 
-    // 动态能力优先：优先使用注册表中的能力元数据判定。
+    // 仅使用动态能力：以注册表中的能力元数据为准。
     const dynamicCapabilities = this.getDynamicWSCapabilities();
-    if (dynamicCapabilities.has(normalizedCapability)) {
-      return true;
-    }
-
-    // 静态回退：保证旧客户端能力别名持续可用。
-    return this.STATIC_WS_CAPABILITY_SET.has(normalizedCapability);
+    return dynamicCapabilities.has(normalizedCapability);
   }
 
   refreshWSCapabilityCache(): void {
@@ -369,7 +350,7 @@ export class StreamDataValidator {
 
       return result;
     } catch (error) {
-      this.logger.debug("动态能力解析失败，回退静态能力集合", {
+      this.logger.debug("动态能力解析失败，返回空能力集合", {
         reason: (error as Error).message,
       });
       return new Set<string>();
@@ -535,7 +516,7 @@ export class StreamDataValidator {
    * 获取支持的WebSocket能力类型
    */
   getSupportedWSCapabilities(): string[] {
-    return [...this.SUPPORTED_WS_CAPABILITIES];
+    return Array.from(this.getDynamicWSCapabilities());
   }
 
   /**

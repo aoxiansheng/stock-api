@@ -24,7 +24,6 @@ import {
 } from "../../../03-fetching/stream-data-fetcher/interfaces";
 import { StreamSubscribeDto } from "../dto/stream-subscribe.dto";
 import { StreamUnsubscribeDto } from "../dto/stream-unsubscribe.dto";
-import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
 import {
   StreamConnection,
   StreamConnectionParams,
@@ -33,7 +32,6 @@ import { Subject } from "rxjs";
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
 import { MappingDirection } from "@core/shared/constants";
 
-import { bufferTime, filter, mergeMap } from "rxjs/operators";
 import {
   StreamReceiverConfig,
   defaultStreamReceiverConfig,
@@ -53,7 +51,6 @@ import {
   isStandardSymbolIdentityProvider,
   STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
 } from "@core/shared/utils/provider-symbol-identity.util";
-import { parseFlexibleTimestampToMs } from "@core/shared/utils/market-time.util";
 
 
 
@@ -85,7 +82,6 @@ import {
 import { StreamDataValidator } from '../validators/stream-data.validator';
 import { StreamBatchProcessorService } from './stream-batch-processor.service';
 import { StreamConnectionManagerService } from './stream-connection-manager.service';
-import { StreamDataProcessorService } from './stream-data-processor.service';
 import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
@@ -95,15 +91,6 @@ import { ProviderRegistryService } from "@providersv2/provider-registry.service"
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
   private readonly logger = createLogger("StreamReceiver");
-  private readonly pipelineCanonicalizationCache = new WeakMap<
-    object,
-    {
-      validItems: any[];
-      droppedReasons: Record<string, number>;
-      droppedTotal: number;
-      inputCount: number;
-    }
-  >();
 
   // 注意：连接管理已迁移到 StreamConnectionManagerService，但保留核心属性供当前实现使用
   private readonly activeConnections = new Map<string, StreamConnection>();
@@ -151,242 +138,6 @@ export class StreamReceiverService implements OnModuleDestroy {
     nextAttemptTime: 0
   };
 
-  private canonicalizePipelinePayload(
-    rawItem: any,
-  ): { item?: any; reason?: string } {
-    const canonicalSymbol = this.buildSymbolBroadcastKey(rawItem?.symbol);
-    if (!canonicalSymbol) {
-      return { reason: "invalid_symbol" };
-    }
-
-    const rawPrice = rawItem?.lastPrice ?? rawItem?.price;
-    const normalizedPrice =
-      typeof rawPrice === "string" ? rawPrice.trim() : rawPrice;
-    if (typeof normalizedPrice === "string" && normalizedPrice.length === 0) {
-      return { reason: "invalid_price" };
-    }
-    const price =
-      typeof normalizedPrice === "number"
-        ? normalizedPrice
-        : Number(normalizedPrice);
-    if (!Number.isFinite(price) || price < 0) {
-      return { reason: "invalid_price" };
-    }
-
-    if (
-      typeof rawItem?.timestamp === "number" &&
-      !Number.isInteger(rawItem.timestamp)
-    ) {
-      return { reason: "invalid_timestamp" };
-    }
-
-    const timestamp = parseFlexibleTimestampToMs(rawItem?.timestamp);
-    if (!Number.isInteger(timestamp) || timestamp <= 0) {
-      return { reason: "invalid_timestamp" };
-    }
-
-    const rawVolume = rawItem?.volume ?? 0;
-    const volume = typeof rawVolume === "number" ? rawVolume : Number(rawVolume);
-    if (!Number.isFinite(volume) || volume < 0) {
-      return { reason: "invalid_volume" };
-    }
-
-    return {
-      item: {
-        ...rawItem,
-        symbol: canonicalSymbol,
-        price,
-        lastPrice: price,
-        timestamp,
-        volume,
-      },
-    };
-  }
-
-  private canonicalizePipelinePayloads(
-    transformedData: any[],
-    stage: "cache" | "broadcast",
-  ): any[] {
-    const canonicalizationResult =
-      this.getPipelineCanonicalizationResult(transformedData);
-
-    if (canonicalizationResult.droppedTotal > 0) {
-      this.logger.warn("流数据因无效payload被丢弃", {
-        stage,
-        inputCount: canonicalizationResult.inputCount,
-        droppedTotal: canonicalizationResult.droppedTotal,
-        reasons: canonicalizationResult.droppedReasons,
-      });
-    }
-
-    return canonicalizationResult.validItems;
-  }
-
-  private getPipelineCanonicalizationResult(transformedData: any[]): {
-    validItems: any[];
-    droppedReasons: Record<string, number>;
-    droppedTotal: number;
-    inputCount: number;
-  } {
-    if (!Array.isArray(transformedData)) {
-      return {
-        validItems: [],
-        droppedReasons: {},
-        droppedTotal: 0,
-        inputCount: 0,
-      };
-    }
-
-    const cacheKey = transformedData as unknown as object;
-    const cachedResult = this.pipelineCanonicalizationCache.get(cacheKey);
-    if (cachedResult) {
-      return cachedResult;
-    }
-
-    const validItems: any[] = [];
-    const droppedReasons: Record<string, number> = {};
-
-    for (const rawItem of transformedData) {
-      const { item, reason } = this.canonicalizePipelinePayload(rawItem);
-      if (item) {
-        validItems.push(item);
-        continue;
-      }
-
-      const dropReason = reason || "unknown_payload";
-      droppedReasons[dropReason] = (droppedReasons[dropReason] || 0) + 1;
-    }
-
-    const droppedTotal = Object.values(droppedReasons).reduce(
-      (sum, count) => sum + count,
-      0,
-    );
-
-    const result = {
-      validItems,
-      droppedReasons,
-      droppedTotal,
-      inputCount: transformedData.length,
-    };
-    this.pipelineCanonicalizationCache.set(cacheKey, result);
-
-    return result;
-  }
-
-  // 🔄 Stub methods for backward compatibility - delegate to dedicated services
-  private async pipelineCacheData(transformedData: any[], symbols: string[]): Promise<void> {
-    try {
-      // 使用显式默认值，避免 ConfigService 第二参数误用导致返回 undefined
-      const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
-      if (!cacheEnabled) {
-        this.logger.debug("流缓存已禁用，跳过缓存写入", { symbolsCount: symbols.length });
-        return;
-      }
-
-      // 通过 DataFetcher 暴露的标准化流缓存服务，避免重复注入
-      const streamCache: any = this.streamDataFetcher.getStreamDataCache?.();
-      if (!streamCache) {
-        this.logger.warn("StreamCache 服务不可用，跳过缓存写入");
-        return;
-      }
-
-      const canonicalizedData = this.canonicalizePipelinePayloads(
-        transformedData,
-        "cache",
-      );
-      if (canonicalizedData.length === 0) {
-        return;
-      }
-
-      // 将转换后的数据映射为 StreamDataPoint，并按 canonical 符号分组
-      const bySymbol = new Map<string, any[]>();
-      for (const item of canonicalizedData) {
-        const canonicalSymbol = item.symbol;
-        const point = {
-          s: canonicalSymbol,
-          p: item.lastPrice,
-          v: item.volume,
-          t: item.timestamp,
-          c: item?.change,
-          cp: item?.changePercent,
-        };
-        if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
-        bySymbol.get(canonicalSymbol)!.push(point);
-      }
-
-      // 写入缓存（Hot + Warm）；
-      // 实际Warm层Redis键格式为：stream:stream_cache_warm:quote:<symbol>
-      // 说明：底层使用专用Redis客户端(keyPrefix='stream:')与Warm前缀('stream_cache_warm:')，
-      // 因此此处传入的业务键为 'quote:<symbol>' 即可。
-      for (const [canonicalSymbol, points] of bySymbol.entries()) {
-        const key = this.buildSymbolCacheKey(canonicalSymbol); // 实际Redis键: stream:stream_cache_warm:quote:<symbol>
-        if (!key) continue;
-        try {
-          await streamCache.setData(key, points, 'hot');
-        } catch (err) {
-          this.logger.warn("写入StreamCache失败(忽略)", { symbol: canonicalSymbol, error: (err as any)?.message });
-        }
-      }
-
-      this.logger.debug("流缓存写入完成", { symbols: Array.from(bySymbol.keys()).slice(0, 5), total: bySymbol.size });
-    } catch (error) {
-      this.logger.warn("流缓存处理异常(忽略)", { error: (error as any)?.message });
-    }
-  }
-
-  private async pipelineBroadcastData(transformedData: any[], symbols: string[]): Promise<void> {
-    try {
-      // 使用显式默认值，避免 ConfigService 第二参数误用导致返回 undefined
-      const broadcastEnabled = this.readBooleanConfig(
-        "STREAM_BROADCAST_ENABLED",
-        true,
-      );
-      if (!broadcastEnabled) {
-        this.logger.debug("流广播已禁用，跳过广播", { symbolsCount: symbols.length });
-        return;
-      }
-
-      if (!this.webSocketProvider || !this.webSocketProvider.isServerAvailable()) {
-        this.logger.warn("WebSocketProvider不可用，跳过广播");
-        return;
-      }
-
-      const clientStateManager = this.streamDataFetcher.getClientStateManager?.();
-      if (!clientStateManager) {
-        this.logger.warn("ClientStateManager不可用，跳过广播");
-        return;
-      }
-
-      const canonicalizedData = this.canonicalizePipelinePayloads(
-        transformedData,
-        "broadcast",
-      );
-      if (canonicalizedData.length === 0) {
-        return;
-      }
-
-      // 按符号聚合数据后分别广播
-      const bySymbol = new Map<string, any[]>();
-      for (const item of canonicalizedData) {
-        const canonicalSymbol = item.symbol;
-        if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
-        bySymbol.get(canonicalSymbol)!.push(item);
-      }
-
-      for (const [canonicalSymbol, items] of bySymbol.entries()) {
-        try {
-          await clientStateManager.broadcastToSymbolViaGateway(canonicalSymbol, items, this.webSocketProvider);
-        } catch (err) {
-          this.logger.warn("广播到房间失败(忽略)", { symbol: canonicalSymbol, error: (err as any)?.message });
-        }
-      }
-
-      this.logger.debug("流广播完成", { symbols: Array.from(bySymbol.keys()).slice(0, 5), total: bySymbol.size });
-    } catch (error) {
-      this.logger.warn("流广播处理异常(忽略)", { error: (error as any)?.message });
-    }
-  }
-
 
   constructor(
     // 🎯 事件化监控核心依赖 - 符合监控规范
@@ -401,10 +152,9 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly providerRegistryService: ProviderRegistryService,
     // 🆕 P2重构: 数据验证模块
     private readonly dataValidator: StreamDataValidator,
-    // 🆕 重构: 三个专职服务
+    // 🆕 重构: 两个专职服务
     private readonly batchProcessor: StreamBatchProcessorService,
     private readonly connectionManager: StreamConnectionManagerService,
-    private readonly dataProcessor: StreamDataProcessorService,
     // ✅ 移除违规的直接 CollectorService 依赖，改用事件化监控
     private readonly recoveryWorker?: StreamRecoveryWorkerService, // Phase 3 可选依赖
     @Optional() private readonly rateLimitService?: any, // 极简：不依赖旧限速服务
@@ -418,51 +168,11 @@ export class StreamReceiverService implements OnModuleDestroy {
       "StreamReceiver 重构完成 - 事件化监控 + 配置管理 + 精简依赖架构 + 连接清理 + 频率限制 + 内存防护 + 动态批处理",
     );
 
-    // 🆕 重构: 初始化专职服务的回调函数
-    this.initializeSpecializedServices();
-
     // 注意：批量处理、连接清理、内存监控、动态批处理已迁移到专职服务
     this.setupSubscriptionChangeListener();
   }
 
-  // =============== 专职服务初始化方法 ===============
-
-  /**
-   * 🆕 初始化专职服务的回调函数
-   */
-  private initializeSpecializedServices(): void {
-    // 设置批处理服务的回调函数
-    this.batchProcessor.setCallbacks({
-      ensureSymbolConsistency: this.ensureSymbolConsistency.bind(this),
-      pipelineCacheData: this.pipelineCacheData.bind(this),
-      pipelineBroadcastData: this.pipelineBroadcastData.bind(this),
-      recordStreamPipelineMetrics: this.recordStreamPipelineMetrics.bind(this),
-      recordPipelineError: this.recordPipelineError.bind(this),
-
-    });
-
-    // 设置连接管理服务的回调函数
-    this.connectionManager.setCallbacks({
-      recordConnectionMetrics: this.recordConnectionMetrics.bind(this),
-  
-      emitBusinessEvent: this.emitBusinessEvent.bind(this),
-    });
-
-    // 设置数据处理服务的回调函数
-    this.dataProcessor.setCallbacks({
-      ensureSymbolConsistency: this.ensureSymbolConsistency.bind(this),
-      pipelineCacheData: this.pipelineCacheData.bind(this),
-      pipelineBroadcastData: this.pipelineBroadcastData.bind(this),
-      recordStreamPipelineMetrics: this.recordStreamPipelineMetrics.bind(this),
-      recordPipelineError: this.recordPipelineError.bind(this),
-
-    });
-
-    this.logger.log("专职服务回调函数初始化完成");
-  }
-
   // =============== 事件化监控辅助方法 ===============
-
 
 
   /**
@@ -1564,26 +1274,6 @@ export class StreamReceiverService implements OnModuleDestroy {
 
   // === 私有方法 ===
 
-  private readBooleanConfig(key: string, defaultValue: boolean): boolean {
-    const rawValue = this.configService.get<boolean | string | number>(key);
-    if (typeof rawValue === "boolean") {
-      return rawValue;
-    }
-    if (typeof rawValue === "number") {
-      return rawValue !== 0;
-    }
-    if (typeof rawValue === "string") {
-      const normalized = rawValue.trim().toLowerCase();
-      if (["true", "1", "yes", "on"].includes(normalized)) {
-        return true;
-      }
-      if (["false", "0", "no", "off"].includes(normalized)) {
-        return false;
-      }
-    }
-    return defaultValue;
-  }
-
   private toCanonicalSymbol(symbol: string): string {
     if (typeof symbol !== "string") {
       return "";
@@ -1614,10 +1304,6 @@ export class StreamReceiverService implements OnModuleDestroy {
     }
 
     return canonicalSymbol;
-  }
-
-  private buildSymbolCacheKey(symbol: string): string {
-    return this.buildCanonicalSymbolKey(symbol, "quote:");
   }
 
   private buildSymbolRoomKey(symbol: string): string {
@@ -2006,45 +1692,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     return [];
   }
-
-
-
-
-
   // 注意：processDataThroughPipeline 已迁移到 StreamDataProcessorService
-
-
-
-
-
-
-  /**
-   * ✅ 事件化监控 - 简化的流管道性能指标发送
-   */
-  private recordStreamPipelineMetrics(metrics: {
-    provider: string;
-    capability: string;
-    quotesCount: number;
-    symbolsCount: number;
-    durations: {
-      total: number;
-      transform: number;
-      cache: number;
-      broadcast: number;
-    };
-  }): void {
-    // ✅ 事件化监控 - 发送管道性能事件
-    // 监控事件已移除（监控模块已删除）
-      // 如需监控，请使用外部工具（如 Prometheus）
-
-    // 保留必要的调试日志
-    this.logger.debug("流管道性能事件已发送", {
-      provider: metrics.provider,
-      capability: metrics.capability,
-      quotesCount: metrics.quotesCount,
-      totalDuration: metrics.durations.total,
-    });
-  }
 
   /**
    * 记录流数据推送延迟 - Phase 4 延迟监控埋点
@@ -2496,36 +2144,6 @@ export class StreamReceiverService implements OnModuleDestroy {
     // 2. 基于市场选择最佳提供商
     const priorityList = this.getMarketPriorityProviders(market);
     return priorityList[0];
-  }
-
-  /**
-   * 记录管道错误指标
-   */
-  private recordPipelineError(
-    provider: string,
-    capability: string,
-    errorMessage: string,
-    duration: number,
-  ): void {
-    this.logger.error("管道处理错误指标", {
-      provider,
-      capability,
-      errorType: this.classifyPipelineError(errorMessage),
-      duration,
-      error: errorMessage,
-    });
-  }
-
-  /**
-   * 分类管道错误类型
-   */
-  private classifyPipelineError(errorMessage: string): string {
-    if (errorMessage.includes("transform")) return "transform_error";
-    if (errorMessage.includes("cache")) return "cache_error";
-    if (errorMessage.includes("broadcast")) return "broadcast_error";
-    if (errorMessage.includes("timeout")) return "timeout_error";
-    if (errorMessage.includes("network")) return "network_error";
-    return "unknown_error";
   }
 
   // 已删除重复的recordConnectionMetrics方法，保留第3541行的版本

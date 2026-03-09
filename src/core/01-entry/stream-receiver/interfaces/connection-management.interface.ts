@@ -74,23 +74,9 @@ export interface ConnectionCleanupResult {
 }
 
 /**
- * 连接管理回调接口
- */
-export interface ConnectionManagementCallbacks {
-
-  /** 发送业务事件回调 */
-  emitBusinessEvent: (event: string, value: any, metadata?: any) => void;
-  /** 记录连接指标回调 */
-  recordConnectionMetrics: (connectionId: string, provider: string, capability: string, isConnected: boolean) => void;
-}
-
-/**
  * 连接管理器接口
  */
 export interface IConnectionManager {
-  /** 设置回调函数 */
-  setCallbacks(callbacks: ConnectionManagementCallbacks): void;
-
   /** 获取或创建连接 */
   getOrCreateConnection(
     provider: string,
@@ -142,4 +128,3 @@ export interface MarketDistributionAnalysis {
   totalSymbols: number;
   marketCoverage: string[];
 }
-

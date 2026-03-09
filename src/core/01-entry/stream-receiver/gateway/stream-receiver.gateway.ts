@@ -18,19 +18,16 @@ import { Permission } from "@authv2/enums";
 import { InjectModel } from "@nestjs/mongoose";
 import type { Model } from "mongoose";
 import type { ApiKeyDocument } from "@authv2/schema";
-import { ADMIN_PROFILE, READ_PROFILE } from "@authv2/constants";
 import { StreamRecoveryWorkerService } from "../../../03-fetching/stream-data-fetcher/services/stream-recovery-worker.service";
 import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
 } from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
 import { Inject } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
 import { STREAM_RECEIVER_TIMEOUTS } from "../constants/stream-receiver-timeouts.constants";
 import { API_OPERATIONS } from "@common/constants/domain";
-import {
-  STREAM_PERMISSIONS,
-  hasStreamPermissions,
-} from "../constants/stream-permissions.constants";
+import { hasStreamPermissions } from "../constants/stream-permissions.constants";
 import {
   UniversalExceptionFactory,
   BusinessErrorCode,
@@ -581,7 +578,7 @@ export class StreamReceiverGateway
 
       // 验证API Key
       const apiKeyDoc = await this.apiKeyModel
-        .findOne({ appKey: authData.apiKey, accessToken: authData.accessToken, deletedAt: { $exists: false } })
+        .findOne({ appKey: authData.apiKey, deletedAt: { $exists: false } })
         .exec();
 
       if (!apiKeyDoc) {
@@ -591,16 +588,27 @@ export class StreamReceiverGateway
         };
       }
 
-      // 检查流权限：当 permissions 为空数组时，回退到 profile 权限画像
-      const explicitPermissions = Array.isArray((apiKeyDoc as any).permissions)
+      const accessTokenMatches = await bcrypt.compare(
+        authData.accessToken,
+        apiKeyDoc.accessToken,
+      );
+      if (!accessTokenMatches) {
+        return {
+          success: false,
+          reason: "Invalid API Key or Access Token",
+        };
+      }
+
+      // 检查流权限：permissions 为空时直接拒绝
+      const permissions = Array.isArray((apiKeyDoc as any).permissions)
         ? (apiKeyDoc as any).permissions
         : [];
-      const permissions =
-        explicitPermissions.length > 0
-          ? explicitPermissions
-          : apiKeyDoc.profile === "ADMIN"
-            ? ADMIN_PROFILE
-            : READ_PROFILE;
+      if (permissions.length === 0) {
+        return {
+          success: false,
+          reason: "Insufficient stream permissions",
+        };
+      }
       const hasStreamPermission = hasStreamPermissions(
         permissions as Permission[],
       );
@@ -654,13 +662,4 @@ export class StreamReceiverGateway
     };
   }
 
-  /**
-   * 检查流权限
-   */
-  private checkStreamPermissions(permissions: string[]): boolean {
-    return hasStreamPermissions(
-      permissions as Permission[],
-      STREAM_PERMISSIONS.REQUIRED_STREAM_PERMISSIONS,
-    );
-  }
 }

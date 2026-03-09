@@ -9,7 +9,7 @@
  * 5. 断路器模式实现
  */
 
-import { Injectable, OnModuleDestroy, Inject } from "@nestjs/common";
+import { Injectable, OnModuleDestroy, Inject, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { createLogger } from "@common/logging/index";
@@ -18,23 +18,25 @@ import { bufferTime, filter, mergeMap } from "rxjs/operators";
 import {
   UniversalExceptionFactory,
   BusinessErrorCode,
-  ComponentIdentifier
+  ComponentIdentifier,
+  BusinessException
 } from '@common/core/exceptions';
 
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
+import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { API_OPERATIONS } from "@common/constants/domain";
 import {
   StreamReceiverConfig,
   defaultStreamReceiverConfig,
 } from "../config/stream-receiver.config";
+import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 
 import { QuoteData, DataPipelineMetrics } from '../interfaces/data-processing.interface';
 import {
   BatchProcessingStats,
   DynamicBatchingState,
   DynamicBatchingMetrics,
-  BatchProcessingCallbacks,
   IBatchProcessor,
   FallbackAnalysisResult,
   PartialRecoveryResult,
@@ -43,6 +45,17 @@ import {
   applyStandardSymbolsToDataArray,
   buildProviderToStandardMap,
 } from "../utils/symbol-normalization.util";
+import { StreamDataValidator } from "../validators/stream-data.validator";
+import {
+  STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+  isStandardSymbolIdentityProvider,
+} from "@core/shared/utils/provider-symbol-identity.util";
+import { MappingDirection } from "@core/shared/constants";
+import {
+  WebSocketServerProvider,
+  WEBSOCKET_SERVER_TOKEN,
+} from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
+import { parseFlexibleTimestampToMs } from "@core/shared/utils/market-time.util";
 
 @Injectable()
 export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProcessor {
@@ -87,13 +100,15 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     successCount: 0,
   };
 
-  // 回调函数存储
-  private callbacks?: BatchProcessingCallbacks;
-
   constructor(
     private readonly configService: ConfigService,
     private readonly eventBus: EventEmitter2,
     private readonly dataTransformerService: DataTransformerService,
+    private readonly symbolTransformerService: SymbolTransformerService,
+    private readonly streamDataFetcher: StreamDataFetcherService,
+    private readonly dataValidator: StreamDataValidator,
+    @Optional() @Inject(WEBSOCKET_SERVER_TOKEN)
+    private readonly webSocketProvider?: WebSocketServerProvider,
   ) {
     // 初始化配置
     this.config = this.initializeConfig();
@@ -131,14 +146,6 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
         enabled: false,
       },
     };
-  }
-
-  /**
-   * 设置回调函数
-   */
-  setCallbacks(callbacks: BatchProcessingCallbacks): void {
-    this.callbacks = callbacks;
-    this.logger.debug("批处理回调函数已设置");
   }
 
   /**
@@ -511,10 +518,6 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     provider: string,
     capability: string,
   ): Promise<void> {
-    if (!this.callbacks) {
-      throw new Error("BatchProcessingCallbacks 未设置");
-    }
-
     const pipelineStartTime = Date.now();
 
     try {
@@ -565,10 +568,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       const rawSymbols = Array.from(symbolsSet);
 
       // Step 4: 符号标准化
-      const standardizedSymbols = await this.callbacks.ensureSymbolConsistency(
-        rawSymbols,
-        provider,
-      );
+      const standardizedSymbols = await this.ensureSymbolConsistency(rawSymbols, provider);
       const providerToStandardMap = buildProviderToStandardMap(
         rawSymbols,
         standardizedSymbols,
@@ -580,23 +580,17 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
       // Step 5: 缓存数据
       const cacheStartTime = Date.now();
-      await this.callbacks.pipelineCacheData(
-        normalizedDataArray,
-        standardizedSymbols,
-      );
+      await this.pipelineCacheData(normalizedDataArray, standardizedSymbols);
       const cacheDuration = Date.now() - cacheStartTime;
 
       // Step 6: 广播数据
       const broadcastStartTime = Date.now();
-      await this.callbacks.pipelineBroadcastData(
-        normalizedDataArray,
-        standardizedSymbols,
-      );
+      await this.pipelineBroadcastData(normalizedDataArray, standardizedSymbols);
       const broadcastDuration = Date.now() - broadcastStartTime;
 
       // Step 7: 性能监控埋点
       const totalDuration = Date.now() - pipelineStartTime;
-      this.callbacks.recordStreamPipelineMetrics({
+      this.recordStreamPipelineMetrics({
         provider,
         capability,
         quotesCount: quotes.length,
@@ -633,15 +627,439 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       });
 
       // 记录错误指标
-      this.callbacks.recordPipelineError(
-        provider,
-        capability,
-        error.message,
-        errorDuration,
-      );
+      this.recordPipelineError(provider, capability, error.message, errorDuration);
 
       throw error;
     }
+  }
+
+  private readBooleanConfig(key: string, defaultValue: boolean): boolean {
+    const rawValue = this.configService.get<boolean | string | number>(key);
+    if (rawValue === undefined || rawValue === null) {
+      return defaultValue;
+    }
+    if (typeof rawValue === "boolean") {
+      return rawValue;
+    }
+    if (typeof rawValue === "number") {
+      return rawValue !== 0;
+    }
+    if (typeof rawValue === "string") {
+      const normalized = rawValue.trim().toLowerCase();
+      if (["true", "1", "yes", "on"].includes(normalized)) {
+        return true;
+      }
+      if (["false", "0", "no", "off"].includes(normalized)) {
+        return false;
+      }
+    }
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.STREAM_RECEIVER,
+      errorCode: BusinessErrorCode.CONFIGURATION_ERROR,
+      operation: "readBooleanConfig",
+      message: `配置项 ${key} 值非法，仅支持 true/false/1/0/yes/no/on/off`,
+      context: {
+        key,
+        rawValue,
+      },
+    });
+  }
+
+  private toCanonicalSymbol(symbol: string): string {
+    if (typeof symbol !== "string") {
+      return "";
+    }
+    const canonicalSymbol = symbol.trim().toUpperCase();
+    if (canonicalSymbol.length === 0) {
+      return "";
+    }
+    return canonicalSymbol;
+  }
+
+  private buildCanonicalSymbolKey(symbol: string, prefix = ""): string {
+    const canonicalSymbol = this.toCanonicalSymbol(symbol);
+    if (!canonicalSymbol) {
+      return "";
+    }
+    return `${prefix}${canonicalSymbol}`;
+  }
+
+  private buildSymbolBroadcastKey(symbol: string): string {
+    const canonicalSymbol = this.toCanonicalSymbol(symbol);
+    if (!canonicalSymbol) {
+      return "";
+    }
+
+    if (!this.dataValidator.isValidSymbolFormat(canonicalSymbol)) {
+      return "";
+    }
+
+    return canonicalSymbol;
+  }
+
+  private buildSymbolCacheKey(symbol: string): string {
+    return this.buildCanonicalSymbolKey(symbol, "quote:");
+  }
+
+  private getStandardSymbolIdentityProvidersConfig(): string {
+    return this.configService.get<string>(
+      STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+      "",
+    );
+  }
+
+  private isProviderUsingStandardSymbolIdentity(providerName: string): boolean {
+    return isStandardSymbolIdentityProvider(
+      providerName,
+      this.getStandardSymbolIdentityProvidersConfig(),
+    );
+  }
+
+  /**
+   * 确保符号一致性：用于管道处理时的端到端标准化
+   */
+  private async ensureSymbolConsistency(
+    symbols: string[],
+    provider: string,
+  ): Promise<string[]> {
+    if (this.isProviderUsingStandardSymbolIdentity(provider)) {
+      const standardizedSymbols = symbols.map((symbol) =>
+        this.buildSymbolBroadcastKey(symbol),
+      );
+      const invalidSymbols = symbols.filter(
+        (symbol, index) => !standardizedSymbols[index],
+      );
+      if (invalidSymbols.length > 0) {
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.STREAM_RECEIVER,
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: "ensureSymbolConsistency",
+          message: "标准符号直通 provider 收到非法 symbols",
+          context: {
+            provider,
+            invalidSymbols: invalidSymbols.slice(0, 10),
+            invalidCount: invalidSymbols.length,
+          },
+        });
+      }
+      return standardizedSymbols as string[];
+    }
+
+    const result = await this.symbolTransformerService.transformSymbols(
+      provider,
+      symbols,
+      MappingDirection.TO_STANDARD,
+    );
+    if (Array.isArray(result.failedSymbols) && result.failedSymbols.length > 0) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "ensureSymbolConsistency",
+        message: "符号标准化失败",
+        context: {
+          provider,
+          failedSymbols: result.failedSymbols.slice(0, 10),
+          failedCount: result.failedSymbols.length,
+        },
+      });
+    }
+
+    const mappedSymbols = symbols.map((symbol) => result.mappingDetails[symbol]);
+    const missingSymbols = symbols.filter(
+      (symbol, index) => !mappedSymbols[index],
+    );
+    if (missingSymbols.length > 0) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "ensureSymbolConsistency",
+        message: "符号标准化结果缺失",
+        context: {
+          provider,
+          missingSymbols: missingSymbols.slice(0, 10),
+          missingCount: missingSymbols.length,
+        },
+      });
+    }
+
+    return mappedSymbols as string[];
+  }
+
+  private canonicalizePipelinePayload(
+    rawItem: any,
+  ): { item?: any; reason?: string } {
+    const canonicalSymbol = this.buildSymbolBroadcastKey(rawItem?.symbol);
+    if (!canonicalSymbol) {
+      return { reason: "invalid_symbol" };
+    }
+
+    const rawPrice = rawItem?.lastPrice ?? rawItem?.price;
+    const normalizedPrice =
+      typeof rawPrice === "string" ? rawPrice.trim() : rawPrice;
+    if (typeof normalizedPrice === "string" && normalizedPrice.length === 0) {
+      return { reason: "invalid_price" };
+    }
+    const price =
+      typeof normalizedPrice === "number"
+        ? normalizedPrice
+        : Number(normalizedPrice);
+    if (!Number.isFinite(price) || price < 0) {
+      return { reason: "invalid_price" };
+    }
+
+    if (
+      typeof rawItem?.timestamp === "number" &&
+      !Number.isInteger(rawItem.timestamp)
+    ) {
+      return { reason: "invalid_timestamp" };
+    }
+
+    const timestamp = parseFlexibleTimestampToMs(rawItem?.timestamp);
+    if (!Number.isInteger(timestamp) || timestamp <= 0) {
+      return { reason: "invalid_timestamp" };
+    }
+
+    const rawVolume = rawItem?.volume ?? 0;
+    const volume = typeof rawVolume === "number" ? rawVolume : Number(rawVolume);
+    if (!Number.isFinite(volume) || volume < 0) {
+      return { reason: "invalid_volume" };
+    }
+
+    return {
+      item: {
+        ...rawItem,
+        symbol: canonicalSymbol,
+        price,
+        lastPrice: price,
+        timestamp,
+        volume,
+      },
+    };
+  }
+
+  private canonicalizePipelinePayloads(
+    transformedData: any[],
+    stage: "cache" | "broadcast",
+  ): any[] {
+    if (!Array.isArray(transformedData)) {
+      return [];
+    }
+
+    const validItems: any[] = [];
+    const droppedReasons: Record<string, number> = {};
+
+    for (const rawItem of transformedData) {
+      const { item, reason } = this.canonicalizePipelinePayload(rawItem);
+      if (item) {
+        validItems.push(item);
+        continue;
+      }
+
+      const dropReason = reason || "unknown_payload";
+      droppedReasons[dropReason] = (droppedReasons[dropReason] || 0) + 1;
+    }
+
+    const droppedTotal = Object.values(droppedReasons).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+
+    if (droppedTotal > 0) {
+      this.logger.warn("流数据因无效payload被丢弃", {
+        stage,
+        inputCount: transformedData.length,
+        droppedTotal,
+        reasons: droppedReasons,
+      });
+    }
+
+    return validItems;
+  }
+
+  private async pipelineCacheData(
+    transformedData: any[],
+    symbols: string[],
+  ): Promise<void> {
+    try {
+      const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
+      if (!cacheEnabled) {
+        this.logger.debug("流缓存已禁用，跳过缓存写入", { symbolsCount: symbols.length });
+        return;
+      }
+
+      const streamCache: any = this.streamDataFetcher.getStreamDataCache?.();
+      if (!streamCache) {
+        this.logger.warn("StreamCache 服务不可用，跳过缓存写入");
+        return;
+      }
+
+      const canonicalizedData = this.canonicalizePipelinePayloads(
+        transformedData,
+        "cache",
+      );
+      if (canonicalizedData.length === 0) {
+        return;
+      }
+
+      const bySymbol = new Map<string, any[]>();
+      for (const item of canonicalizedData) {
+        const canonicalSymbol = item.symbol;
+        const point = {
+          s: canonicalSymbol,
+          p: item.lastPrice,
+          v: item.volume,
+          t: item.timestamp,
+          c: item?.change,
+          cp: item?.changePercent,
+        };
+        if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
+        bySymbol.get(canonicalSymbol)!.push(point);
+      }
+
+      for (const [canonicalSymbol, points] of bySymbol.entries()) {
+        const key = this.buildSymbolCacheKey(canonicalSymbol);
+        if (!key) continue;
+        try {
+          await streamCache.setData(key, points, "hot");
+        } catch (err) {
+          this.logger.warn("写入StreamCache失败(忽略)", {
+            symbol: canonicalSymbol,
+            error: (err as any)?.message,
+          });
+        }
+      }
+
+      this.logger.debug("流缓存写入完成", {
+        symbols: Array.from(bySymbol.keys()).slice(0, 5),
+        total: bySymbol.size,
+      });
+    } catch (error) {
+      if (
+        BusinessException.isBusinessException(error) &&
+        error.errorCode === BusinessErrorCode.CONFIGURATION_ERROR
+      ) {
+        throw error;
+      }
+      this.logger.warn("流缓存处理异常(忽略)", { error: (error as any)?.message });
+    }
+  }
+
+  private async pipelineBroadcastData(
+    transformedData: any[],
+    symbols: string[],
+  ): Promise<void> {
+    try {
+      const broadcastEnabled = this.readBooleanConfig(
+        "STREAM_BROADCAST_ENABLED",
+        true,
+      );
+      if (!broadcastEnabled) {
+        this.logger.debug("流广播已禁用，跳过广播", { symbolsCount: symbols.length });
+        return;
+      }
+
+      if (!this.webSocketProvider || !this.webSocketProvider.isServerAvailable()) {
+        this.logger.warn("WebSocketProvider不可用，跳过广播");
+        return;
+      }
+
+      const clientStateManager = this.streamDataFetcher.getClientStateManager?.();
+      if (!clientStateManager) {
+        this.logger.warn("ClientStateManager不可用，跳过广播");
+        return;
+      }
+
+      const canonicalizedData = this.canonicalizePipelinePayloads(
+        transformedData,
+        "broadcast",
+      );
+      if (canonicalizedData.length === 0) {
+        return;
+      }
+
+      const bySymbol = new Map<string, any[]>();
+      for (const item of canonicalizedData) {
+        const canonicalSymbol = item.symbol;
+        if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
+        bySymbol.get(canonicalSymbol)!.push(item);
+      }
+
+      for (const [canonicalSymbol, items] of bySymbol.entries()) {
+        try {
+          await clientStateManager.broadcastToSymbolViaGateway(
+            canonicalSymbol,
+            items,
+            this.webSocketProvider,
+          );
+        } catch (err) {
+          this.logger.warn("广播到房间失败(忽略)", {
+            symbol: canonicalSymbol,
+            error: (err as any)?.message,
+          });
+        }
+      }
+
+      this.logger.debug("流广播完成", {
+        symbols: Array.from(bySymbol.keys()).slice(0, 5),
+        total: bySymbol.size,
+      });
+    } catch (error) {
+      if (
+        BusinessException.isBusinessException(error) &&
+        error.errorCode === BusinessErrorCode.CONFIGURATION_ERROR
+      ) {
+        throw error;
+      }
+      this.logger.warn("流广播处理异常(忽略)", { error: (error as any)?.message });
+    }
+  }
+
+  /**
+   * 记录流管道指标
+   */
+  private recordStreamPipelineMetrics(metrics: DataPipelineMetrics): void {
+    try {
+      // 监控事件已移除（监控模块已删除）
+      // 如需监控，请使用外部工具（如 Prometheus）
+      this.logger.debug("流管道性能事件已记录", {
+        provider: metrics.provider,
+        capability: metrics.capability,
+        quotesCount: metrics.quotesCount,
+        totalDuration: metrics.durations.total,
+      });
+    } catch (error) {
+      this.logger.warn("记录管道指标失败", { error: error.message });
+    }
+  }
+
+  /**
+   * 记录管道错误指标
+   */
+  private recordPipelineError(
+    provider: string,
+    capability: string,
+    errorMessage: string,
+    duration: number,
+  ): void {
+    this.logger.error("管道处理错误指标", {
+      provider,
+      capability,
+      errorType: this.classifyPipelineError(errorMessage),
+      duration,
+      error: errorMessage,
+    });
+  }
+
+  /**
+   * 分类管道错误类型
+   */
+  private classifyPipelineError(errorMessage: string): string {
+    if (errorMessage.includes("transform")) return "transform_error";
+    if (errorMessage.includes("cache")) return "cache_error";
+    if (errorMessage.includes("broadcast")) return "broadcast_error";
+    if (errorMessage.includes("timeout")) return "timeout_error";
+    if (errorMessage.includes("network")) return "network_error";
+    return "unknown_error";
   }
 
   /**
