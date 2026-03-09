@@ -33,16 +33,9 @@ import { DATA_FETCHER_ERROR_CODES } from "../constants/data-fetcher-error-codes.
 /**
  * 原始数据类型定义
  *
- * �� 用户体验价值：支持多Provider格式的数据源
- * - 允许用户使用统一的字段名（如"symbol"）而不必了解每个Provider的特定格式
- * - 自动处理复杂的嵌套数据结构，用户无需关心数据来源的技术细节
- * - 简化配置：用户只需要关心业务字段，无需学习Provider特定的API结构
- *
- * 支持的数据格式示例：
- * - LongPort: { secu_quote: [...] }
- * - 通用格式: { quote_data: [...] }
- * - 扁平数组: [...]
- * - 单个对象: { symbol: "AAPL", price: 150 }
+ * 标准格式仅接受：
+ * - 数组: [...]
+ * - 对象: { data: [...] }
  */
 interface RawData {
   [key: string]: any;
@@ -53,8 +46,8 @@ const STREAM_CAPABILITY_NAMES = new Set<string>([
 ]);
 
 /**
- * processRawData方法的输入类型联合
- * 支持通用对象格式，通过智能字段检测实现格式自适应
+ * processRawData 方法的输入类型联合
+ * 标准格式：数组或 { data: [] }
  */
 type ProcessRawDataInput = RawData | any[];
 
@@ -456,130 +449,41 @@ export class DataFetcherService implements IDataFetcher {
   }
 
   /**
-   * 处理原始数据格式 - 用户配置简化的核心组件
+   * 处理原始数据格式 - 仅接受标准格式
    *
-   * 🎯 用户体验价值：
-   * ✅ 配置简化：用户只需配置简单的字段名，无需了解Provider的复杂API结构
-   *    - 用户配置：symbol, price, volume
-   *    - 而非：secu_quote[0].symbol, secu_quote[0].last_done, secu_quote[0].volume
-   * ✅ 多Provider支持：自动适配不同Provider的数据格式，用户无需关心技术差异
-   * ✅ 配置保护：保护用户现有配置投资，无需修改已有的字段映射规则
-   * ✅ 错误容忍：智能处理异常数据格式，降低系统集成复杂度
-   *
-   * 支持的数据格式转换：
-   * 1. 标准格式：{data: [...]} → 智能检测data字段并提取数组
-   * 2. 数组格式：[{symbol: "AAPL"}...] → 保持不变
-   * 3. 嵌套格式：{quote_data: [...]} → 基于优先级提取第一个数组字段
-   * 4. 对象格式：{symbol: "AAPL", price: 150} → 包装为数组
-   * 5. 多层嵌套：{response: {data: [...]}} → 递归解析
-   * 6. 空值处理：null/undefined → 返回空数组
-   *
-   * Phase 2改进：
-   * - 移除了特定接口依赖，改为通用的智能字段检测
-   * - 支持优先级字段匹配，提升处理效率
-   * - 添加多层嵌套数据结构支持
-   * - 这使得新Provider接入更简单，用户配置体验更一致
+   * 标准格式：
+   * 1. 数组：[{...}]
+   * 2. 对象：{ data: [...] }
    *
    * @param rawData SDK返回的任意格式原始数据
    * @returns 标准化的数据数组，供后续组件统一处理
    */
   private processRawData(rawData: ProcessRawDataInput): any[] {
-    // 确保返回数组格式 - 优先检查数组类型
     if (Array.isArray(rawData)) {
       return rawData.map((item) => this.normalizeRecord(item));
     }
 
-    // 向后兼容：处理旧格式数据
-    // 注意：LongPort的secu_quote特定逻辑已移除，改为通用处理
-
-    // 处理legacy格式: 检查是否有嵌套数据结构
     if (rawData && typeof rawData === "object") {
-      // Phase 2 增强：支持更多Provider数据格式的智能识别
-      const keys = Object.keys(rawData);
-
-      // 优先级排序：常见的数据字段名优先处理，提升性能
-      const priorityKeys = [
-        'data',           // 通用数据字段
-        'quote_data',     // 报价数据字段
-        'secu_quote',     // LongPort特定字段
-        'results',        // 结果集字段
-        'items',          // 项目列表字段
-        'records',        // 记录字段
-        'list',           // 列表字段
-        'quotes',         // 报价列表字段
-        'stocks',         // 股票列表字段
-      ];
-
-      // 首先检查优先级字段
-      for (const priorityKey of priorityKeys) {
-        if (keys.includes(priorityKey)) {
-          const value = rawData[priorityKey];
-          if (Array.isArray(value)) {
-            this.logger.debug(`检测到优先级数据格式，使用字段: ${priorityKey}`, {
-              operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-              sourceFormat: priorityKey,
-              dataSize: value.length,
-            });
-            return value.map((item) => this.normalizeRecord(item));
-          }
-          if (value && typeof value === "object") {
-            this.logger.debug(`检测到优先级对象格式，数组化处理: ${priorityKey}`, {
-              operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-              sourceFormat: priorityKey,
-            });
-            return [this.normalizeRecord(value)];
-          }
-        }
-      }
-
-      // 其次处理其他字段（保持向后兼容）
-      const remainingKeys = keys.filter(key => !priorityKeys.includes(key));
-
-      // 首先处理数组字段
-      for (const key of remainingKeys) {
-        const value = rawData[key];
-        if (Array.isArray(value)) {
-          this.logger.debug(`检测到嵌套数据结构，使用字段: ${key}`, {
-            operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-            sourceFormat: key,
-            dataSize: value.length,
-          });
-          return value.map((item) => this.normalizeRecord(item));
-        }
-      }
-
-      // Phase 2 增强：支持多层嵌套数据结构（在对象包装之前）
-      // 例如: { response: { data: { quotes: [...] } } }
-      for (const key of remainingKeys) {
-        const value = rawData[key];
-        if (value && typeof value === "object" && !Array.isArray(value)) {
-          const nestedResult = this.processRawData(value);
-          if (nestedResult.length > 0) {
-            this.logger.debug(`检测到多层嵌套结构，通过字段解析: ${key}`, {
-              operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-              sourceFormat: `nested_${key}`,
-              dataSize: nestedResult.length,
-            });
-            return nestedResult;
-          }
-        }
-      }
-
-      // 最后处理单个对象包装（兜底逻辑）
-      for (const key of remainingKeys) {
-        const value = rawData[key];
-        if (value && typeof value === "object") {
-          // 对于单个嵌套对象，也数组化（仅在多层解析失败时执行）
-          this.logger.debug(`检测到嵌套对象，数组化处理: ${key}`, {
-            operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
-            sourceFormat: key,
-          });
-          return [this.normalizeRecord(value)];
-        }
+      const data = (rawData as RawData).data;
+      if (Array.isArray(data)) {
+        return data.map((item) => this.normalizeRecord(item));
       }
     }
 
-    return rawData ? [this.normalizeRecord(rawData)] : [];
+    const receivedType = rawData === null ? "null" : typeof rawData;
+    const receivedKeys =
+      rawData && typeof rawData === "object" ? Object.keys(rawData) : [];
+
+    throw UniversalExceptionFactory.createBusinessException({
+      message: "原始数据格式非法，仅接受数组或 { data: [] } 标准格式。",
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+      component: ComponentIdentifier.DATA_FETCHER,
+      context: {
+        receivedType,
+        receivedKeys,
+      },
+    });
   }
 
 

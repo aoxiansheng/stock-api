@@ -227,3 +227,30 @@ describe("DataFetcherService stream/rest capability guard", () => {
     expect(missingMetadataWarnCalls).toHaveLength(1);
   });
 });
+
+describe("DataFetcherService processRawData standard format", () => {
+  const registry = {
+    getCapability: jest.fn(),
+    getProvider: jest.fn(),
+  };
+  const service = new DataFetcherService(registry as any);
+
+  it("标准数组格式直接返回", () => {
+    const rawData = [{ symbol: "AAPL.US" }];
+    const result = (service as any).processRawData(rawData);
+    expect(result).toEqual(rawData);
+  });
+
+  it("标准对象格式 { data: [] } 返回 data", () => {
+    const rawData = { data: [{ symbol: "AAPL.US" }] };
+    const result = (service as any).processRawData(rawData);
+    expect(result).toEqual(rawData.data);
+  });
+
+  it("非标准格式会抛出明确错误", () => {
+    const rawData = { quote_data: [{ symbol: "AAPL.US" }] };
+    expect(() => (service as any).processRawData(rawData)).toThrow(
+      "原始数据格式非法，仅接受数组或 { data: [] } 标准格式。",
+    );
+  });
+});
