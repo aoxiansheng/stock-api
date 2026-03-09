@@ -826,7 +826,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
     );
   });
 
-  it("pipelineCacheData: I-03 timestamp 秒级字符串/数字应转毫秒，11位输入应按 invalid_timestamp 丢弃", async () => {
+  it("pipelineCacheData: I-03 timestamp 秒级字符串/数字应转毫秒，11位与小数输入应按 invalid_timestamp 丢弃", async () => {
     const { service, mocks } = createService();
 
     await (service as any).pipelineCacheData(
@@ -835,6 +835,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
         { symbol: "AAPL.US", price: 1.5, timestamp: 1700000000, volume: 1 },
         { symbol: "AAPL.US", price: 2, timestamp: "17000000000", volume: 1 },
         { symbol: "AAPL.US", price: 2.5, timestamp: 17000000000, volume: 1 },
+        { symbol: "AAPL.US", price: 3, timestamp: 1700000000.5, volume: 1 },
       ],
       ["AAPL.US"],
     );
@@ -857,15 +858,47 @@ describe("StreamReceiverService symbol room key consistency", () => {
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "cache",
-        droppedTotal: 2,
+        droppedTotal: 3,
         reasons: expect.objectContaining({
-          invalid_timestamp: 2,
+          invalid_timestamp: 3,
         }),
       }),
     );
   });
 
-  it("pipelineBroadcastData: I-03 timestamp 秒级字符串/数字应转毫秒，11位输入应按 invalid_timestamp 丢弃", async () => {
+  it("pipelineCacheData: I-01 前导零 11 位时间戳字符串应按 invalid_timestamp 丢弃", async () => {
+    const { service, mocks } = createService();
+
+    await (service as any).pipelineCacheData(
+      [
+        { symbol: "AAPL.US", price: 1, timestamp: "1700000000000", volume: 1 },
+        { symbol: "AAPL.US", price: 2, timestamp: "01700000000", volume: 1 },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(mocks.streamCache.setData).toHaveBeenCalledTimes(1);
+    expect(mocks.streamCache.setData).toHaveBeenCalledWith(
+      "quote:AAPL.US",
+      expect.any(Array),
+      "hot",
+    );
+    const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
+    expect(cachedPoints).toHaveLength(1);
+    expect(cachedPoints[0].t).toBe(1700000000000);
+    expect((service as any).logger.warn).toHaveBeenCalledWith(
+      "流数据因无效payload被丢弃",
+      expect.objectContaining({
+        stage: "cache",
+        droppedTotal: 1,
+        reasons: expect.objectContaining({
+          invalid_timestamp: 1,
+        }),
+      }),
+    );
+  });
+
+  it("pipelineBroadcastData: I-03 timestamp 秒级字符串/数字应转毫秒，11位与小数输入应按 invalid_timestamp 丢弃", async () => {
     const { service, mocks } = createService();
     mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
 
@@ -875,6 +908,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
         { symbol: "AAPL.US", price: 1.5, timestamp: 1700000000, volume: 1 },
         { symbol: "AAPL.US", price: 2, timestamp: "17000000000", volume: 1 },
         { symbol: "AAPL.US", price: 2.5, timestamp: 17000000000, volume: 1 },
+        { symbol: "AAPL.US", price: 3, timestamp: 1700000000.5, volume: 1 },
       ],
       ["AAPL.US"],
     );
@@ -898,9 +932,9 @@ describe("StreamReceiverService symbol room key consistency", () => {
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "broadcast",
-        droppedTotal: 2,
+        droppedTotal: 3,
         reasons: expect.objectContaining({
-          invalid_timestamp: 2,
+          invalid_timestamp: 3,
         }),
       }),
     );

@@ -56,6 +56,15 @@ import commonConstantsConfig from "../../common/config/common-constants.config";
         JWT_EXPIRES_IN: Joi.string()
           .pattern(/^(\d+[smhd]|\d+)$/)
           .optional(),
+        CHART_INTRADAY_CURSOR_SECRET: Joi.string()
+          .trim()
+          .min(1)
+          .required()
+          .messages({
+            "any.required": "CHART_INTRADAY_CURSOR_SECRET 为必填配置",
+            "string.empty": "CHART_INTRADAY_CURSOR_SECRET 不能为空",
+            "string.min": "CHART_INTRADAY_CURSOR_SECRET 不能为空",
+          }),
 
         // LongPort（可选）
         LONGPORT_APP_KEY: Joi.string().optional(),

@@ -157,6 +157,118 @@ HTTP 请求头（API Key）：
 }
 ```
 
+## 分时折线接口（Chart Intraday）
+
+### `POST /api/v1/chart/intraday-line/snapshot`
+- 认证：API Key 或 JWT（只读权限）
+- 语义：首屏全量快照（当前实现为 `1m` 历史基线 + 实时 `1s` 增量窗口）
+- Request
+```json
+{
+  "symbol": "AAPL.US",
+  "market": "US",
+  "tradingDay": "20260308",
+  "provider": "infoway",
+  "pointLimit": 30000
+}
+```
+- Response（业务数据层）
+```json
+{
+  "line": {
+    "symbol": "AAPL.US",
+    "market": "US",
+    "tradingDay": "20260308",
+    "granularity": "1s",
+    "points": [
+      {
+        "timestamp": "2026-03-08T15:42:00.000Z",
+        "price": 195.92,
+        "volume": 540
+      }
+    ]
+  },
+  "capability": {
+    "snapshotBaseGranularity": "1m",
+    "supportsFullDay1sHistory": false
+  },
+  "sync": {
+    "cursor": "base64-signed-cursor",
+    "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
+    "serverTime": "2026-03-08T15:42:01.120Z"
+  },
+  "metadata": {
+    "provider": "infoway",
+    "historyPoints": 240,
+    "realtimeMergedPoints": 12,
+    "deduplicatedPoints": 8
+  }
+}
+```
+- 说明：
+  - `supportsFullDay1sHistory=false` 表示当前并非完整全日秒级历史回放。
+  - 顶层仍由统一响应包装器包裹（`success/statusCode/message/data/timestamp`）。
+
+### `POST /api/v1/chart/intraday-line/delta`
+- 认证：API Key 或 JWT（只读权限）
+- 语义：仅返回增量，不回放全量历史
+- Request
+```json
+{
+  "symbol": "AAPL.US",
+  "market": "US",
+  "tradingDay": "20260308",
+  "provider": "infoway",
+  "cursor": "base64-signed-cursor",
+  "limit": 2000,
+  "strictProviderConsistency": false
+}
+```
+- Response（业务数据层）
+```json
+{
+  "delta": {
+    "points": [
+      {
+        "timestamp": "2026-03-08T15:42:01.000Z",
+        "price": 195.95,
+        "volume": 320
+      }
+    ],
+    "hasMore": false,
+    "nextCursor": "base64-next-cursor",
+    "lastPointTimestamp": "2026-03-08T15:42:01.000Z",
+    "serverTime": "2026-03-08T15:42:01.220Z"
+  }
+}
+```
+- 规则：
+  - `cursor` 为必传参数。
+  - `strictProviderConsistency=true` 时，要求 `cursor.provider` 与请求 `provider` 一致（不一致返回 `409 CURSOR_EXPIRED`）。
+  - `cursor` 跨上下文、过期、签发时间异常时返回 `409 CURSOR_EXPIRED`。
+  - `cursor` 缺字段、格式非法或签名不匹配时返回 `400 INVALID_ARGUMENT`。
+  - 未提供 `cursor` 或传入已废弃的 `since` 参数时返回 `400 INVALID_ARGUMENT`。
+  - 无新增点位时返回 `200` 且 `delta.points=[]`、`delta.hasMore=false`，并返回新的 `nextCursor`（`lastPointTimestamp` 回退为 `cursor.lastPointTimestamp`）。
+  - 典型错误：`400 INVALID_ARGUMENT`、`503 PROVIDER_UNAVAILABLE`。
+
+#### Cursor 协议（snapshot / delta / WS 统一）
+
+`cursor` 为 base64 编码的 JSON，明文字段如下：
+```json
+{
+  "v": 1,
+  "symbol": "AAPL.US",
+  "market": "US",
+  "tradingDay": "20260308",
+  "provider": "infoway",
+  "lastPointTimestamp": "2026-03-08T15:42:01.000Z",
+  "issuedAt": "2026-03-08T15:42:01.220Z",
+  "sig": "hmac_sha256_hex"
+}
+```
+- `sig` 为签名字段；服务端会校验 payload 完整性，篡改后会被拒绝。
+- `provider` 可选；当 `strictProviderConsistency=true` 时会参与一致性校验。
+
 ## 弱时效接口（Query）
 
 ### `POST /api/v1/query/execute`
@@ -238,7 +350,22 @@ HTTP 请求头（API Key）：
     - 成功：`subscribe-ack`；失败：`subscribe-error`
   - `unsubscribe` → 取消订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote" }`
     - 成功：`unsubscribe-ack`；失败：`unsubscribe-error`
-  - `data` → 服务器按 `symbol:<SYMBOL>` 房间广播推送数据
+  - `data` → 服务器按 `symbol:<SYMBOL>` 房间广播推送数据（兼容事件）
+  - `chart.intraday.point` → 分时领域事件（新增），载荷示例：
+```json
+{
+  "symbol": "AAPL.US",
+  "market": "US",
+  "tradingDay": "20260308",
+  "granularity": "1s",
+  "point": {
+    "timestamp": "2026-03-08T15:42:02.000Z",
+    "price": 195.95,
+    "volume": 320
+  },
+  "cursor": "base64-signed-cursor"
+}
+```
   - `ping`/`pong`，`request-recovery` 补发流，`get-info` 连接信息
 - 权限检查：需具备流权限画像（实现为 `stream:read` 或 `stream:subscribe` 命中其一即可通过）。
 

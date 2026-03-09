@@ -6,9 +6,9 @@ import {
 } from "../services/smart-cache-standardized.service";
 import {
   MarketDetectOptions,
-  SymbolValidationUtils,
 } from "@common/utils/symbol-validation.util";
 import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
+import { inferMarketFromSymbol as inferMarketFromSymbolShared } from "@core/shared/utils/market-time.util";
 import {
   UniversalExceptionFactory,
   BusinessErrorCode,
@@ -209,26 +209,7 @@ export function extractMarketFromSymbols(symbols: string[]): string {
     return "UNKNOWN";
   }
 
-  // 取第一个符号的市场后缀作为主要市场
-  const firstSymbol = symbols[0];
-  if (firstSymbol.includes(".HK")) return "HK";
-  if (firstSymbol.includes(".US")) return "US";
-  if (firstSymbol.includes(".SZ")) return "SZ";
-  if (firstSymbol.includes(".SH")) return "SH";
-
-  // 如果没有后缀，尝试根据格式推断
-  if (/^\d{5,6}$/.test(firstSymbol)) {
-    return firstSymbol.startsWith("00") || firstSymbol.startsWith("30")
-      ? "SZ"
-      : "SH";
-  }
-
-  // 纯字母判断为美股
-  if (/^[A-Z]+$/.test(firstSymbol.toUpperCase())) {
-    return "US";
-  }
-
-  return "UNKNOWN";
+  return inferMarketFromSymbolShared(symbols[0], "UNKNOWN");
 }
 
 /**
@@ -246,9 +227,12 @@ export function inferMarketFromSymbol(
       return defaultMarketInferenceService.inferMarket(symbol, options);
     }
 
-    return (
-      SymbolValidationUtils.getMarketFromSymbol(symbol, options) ?? Market.US
-    );
+    const inferredMarket = inferMarketFromSymbolShared(symbol, "UNKNOWN");
+    if (inferredMarket !== "UNKNOWN") {
+      return inferredMarket as (typeof Market)[keyof typeof Market];
+    }
+
+    return options?.fallback ?? Market.US;
 }
 
 /**

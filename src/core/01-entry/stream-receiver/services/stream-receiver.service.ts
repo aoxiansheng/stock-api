@@ -53,6 +53,7 @@ import {
   isStandardSymbolIdentityProvider,
   STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
 } from "@core/shared/utils/provider-symbol-identity.util";
+import { parseFlexibleTimestampToMs } from "@core/shared/utils/market-time.util";
 
 
 
@@ -172,8 +173,15 @@ export class StreamReceiverService implements OnModuleDestroy {
       return { reason: "invalid_price" };
     }
 
-    const timestamp = this.normalizeTimestampMs(rawItem?.timestamp);
-    if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    if (
+      typeof rawItem?.timestamp === "number" &&
+      !Number.isInteger(rawItem.timestamp)
+    ) {
+      return { reason: "invalid_timestamp" };
+    }
+
+    const timestamp = parseFlexibleTimestampToMs(rawItem?.timestamp);
+    if (!Number.isInteger(timestamp) || timestamp <= 0) {
       return { reason: "invalid_timestamp" };
     }
 
@@ -193,46 +201,6 @@ export class StreamReceiverService implements OnModuleDestroy {
         volume,
       },
     };
-  }
-
-  private normalizeTimestampMs(rawTimestamp: unknown): number {
-    const normalizedTimestamp =
-      typeof rawTimestamp === "string" ? rawTimestamp.trim() : rawTimestamp;
-
-    if (typeof normalizedTimestamp === "number") {
-      if (!Number.isFinite(normalizedTimestamp) || normalizedTimestamp <= 0) {
-        return Number.NaN;
-      }
-      if (!Number.isInteger(normalizedTimestamp)) {
-        return Number.NaN;
-      }
-      const digitLength = String(Math.trunc(normalizedTimestamp)).length;
-      if (digitLength === 10) {
-        return normalizedTimestamp * 1000;
-      }
-      if (digitLength === 13) {
-        return normalizedTimestamp;
-      }
-      return Number.NaN;
-    }
-
-    if (
-      typeof normalizedTimestamp === "string" &&
-      normalizedTimestamp.length > 0
-    ) {
-      if (/^[0-9]+$/.test(normalizedTimestamp)) {
-        if (normalizedTimestamp.length === 10) {
-          return Number(normalizedTimestamp) * 1000;
-        }
-        if (normalizedTimestamp.length === 13) {
-          return Number(normalizedTimestamp);
-        }
-        return Number.NaN;
-      }
-      return Date.parse(normalizedTimestamp);
-    }
-
-    return Number.NaN;
   }
 
   private canonicalizePipelinePayloads(

@@ -1,6 +1,12 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { createHmac } from "crypto";
 import { createLogger } from "@common/logging/index";
 import { GatewayBroadcastError } from "../exceptions/gateway-broadcast.exception";
+import {
+  formatTradingDayFromTimestamp,
+  inferMarketFromSymbol,
+  parseFlexibleTimestampToMs,
+} from "@core/shared/utils/market-time.util";
 
 /**
  * 客户端订阅信息
@@ -37,6 +43,16 @@ export interface SubscriptionChangeEvent {
   timestamp: number;
 }
 
+interface IntradayCursorPayload {
+  v: number;
+  symbol: string;
+  market: string;
+  tradingDay: string;
+  provider?: string;
+  lastPointTimestamp: string;
+  issuedAt: string;
+}
+
 /**
  * StreamClientStateManager - 客户端状态管理器
  *
@@ -56,6 +72,8 @@ export interface SubscriptionChangeEvent {
 @Injectable()
 export class StreamClientStateManager implements OnModuleDestroy {
   private readonly logger = createLogger("StreamClientStateManager");
+  private readonly intradayEmitBatchSize = 8;
+  private readonly cursorSigningSecret = this.resolveCursorSigningSecret();
 
   // 客户端订阅信息
   private readonly clientSubscriptions = new Map<
@@ -470,6 +488,8 @@ export class StreamClientStateManager implements OnModuleDestroy {
       );
 
       if (success) {
+        this.scheduleIntradayDomainEvents(symbol, data, webSocketProvider);
+
         // 更新成功统计
         this.broadcastStats.gateway.success++;
         this.broadcastStats.gateway.lastSuccess = attemptTime;
@@ -483,6 +503,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
           clientCount: clientIds.length,
           dataSize: JSON.stringify(data).length,
           method: "gateway",
+          intradayEventScheduled: true,
           broadcastStats: this.getBroadcastStats(),
         });
       } else {
@@ -539,6 +560,130 @@ export class StreamClientStateManager implements OnModuleDestroy {
         `Gateway广播异常: ${error.message}`,
       );
     }
+  }
+
+  private scheduleIntradayDomainEvents(
+    symbol: string,
+    data: any,
+    webSocketProvider: any,
+  ): void {
+    void Promise.resolve()
+      .then(() => this.emitIntradayDomainEvents(symbol, data, webSocketProvider))
+      .catch((error) => {
+        this.logger.warn("分时领域事件异步广播异常（已忽略）", {
+          symbol,
+          error: error?.message || String(error || ""),
+        });
+      });
+  }
+
+  private async emitIntradayDomainEvents(
+    symbol: string,
+    data: any,
+    webSocketProvider: any,
+  ): Promise<number> {
+    const events = this.buildIntradayDomainEvents(symbol, data);
+    if (events.length === 0) {
+      return 0;
+    }
+
+    let emittedCount = 0;
+    for (let index = 0; index < events.length; index += this.intradayEmitBatchSize) {
+      const batch = events.slice(index, index + this.intradayEmitBatchSize);
+      const results = await Promise.allSettled(
+        batch.map((payload) =>
+          webSocketProvider.broadcastToRoom(
+            `symbol:${symbol}`,
+            "chart.intraday.point",
+            payload,
+          ),
+        ),
+      );
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          if (result.value) {
+            emittedCount += 1;
+          }
+          return;
+        }
+
+        this.logger.warn("分时领域事件广播失败（已忽略）", {
+          symbol,
+          error: result.reason?.message || String(result.reason || ""),
+        });
+      });
+    }
+
+    return emittedCount;
+  }
+
+  private buildIntradayDomainEvents(symbol: string, data: any): any[] {
+    const items = Array.isArray(data) ? data : [data];
+    const events: any[] = [];
+    const normalizedSymbol = String(symbol || "").trim().toUpperCase();
+    const market = inferMarketFromSymbol(normalizedSymbol);
+
+    for (const item of items) {
+      const price = Number(item?.lastPrice ?? item?.price);
+      const timestampMs = parseFlexibleTimestampToMs(item?.timestamp);
+      const volume = Number(item?.volume ?? 0);
+      if (!Number.isFinite(price) || !timestampMs) {
+        continue;
+      }
+
+      const tradingDay = formatTradingDayFromTimestamp(timestampMs, market);
+      const timestampIso = new Date(timestampMs).toISOString();
+      const cursorPayload: IntradayCursorPayload = {
+        v: 1,
+        symbol: normalizedSymbol,
+        market,
+        tradingDay,
+        lastPointTimestamp: timestampIso,
+        issuedAt: new Date().toISOString(),
+      };
+      const signedCursorPayload = {
+        ...cursorPayload,
+        sig: this.signCursorPayload(cursorPayload),
+      };
+      const cursor = Buffer.from(
+        JSON.stringify(signedCursorPayload),
+        "utf-8",
+      ).toString("base64");
+
+      events.push({
+        symbol: normalizedSymbol,
+        market,
+        tradingDay,
+        granularity: "1s",
+        point: {
+          timestamp: timestampIso,
+          price,
+          volume: Number.isFinite(volume) ? volume : 0,
+        },
+        cursor,
+      });
+    }
+
+    return events;
+  }
+
+  private resolveCursorSigningSecret(): string {
+    return String(process.env.CHART_INTRADAY_CURSOR_SECRET || "").trim();
+  }
+
+  private signCursorPayload(payload: IntradayCursorPayload): string {
+    const signingRaw = [
+      payload.v,
+      payload.symbol,
+      payload.market,
+      payload.tradingDay,
+      payload.provider || "",
+      payload.lastPointTimestamp,
+      payload.issuedAt,
+    ].join("|");
+    return createHmac("sha256", this.cursorSigningSecret)
+      .update(signingRaw, "utf-8")
+      .digest("hex");
   }
 
   /**

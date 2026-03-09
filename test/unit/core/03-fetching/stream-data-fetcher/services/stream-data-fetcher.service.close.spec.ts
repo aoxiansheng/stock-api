@@ -12,10 +12,12 @@ jest.mock("uuid", () => ({
   v4: jest.fn(),
 }));
 
+import { createHmac } from "crypto";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { v4 as uuidv4 } from "uuid";
 
 import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { StreamClientStateManager } from "@core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 
 type CtxServiceMock = {
   initializeWebSocket: jest.Mock<Promise<void>, []>;
@@ -495,5 +497,194 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
 
     expect(result).toEqual({ status: "cleaned" });
     expect(ctxService.cleanup).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("StreamClientStateManager intraday domain events", () => {
+  let manager: StreamClientStateManager;
+  let webSocketProvider: {
+    isServerAvailable: jest.Mock<boolean, []>;
+    healthCheck: jest.Mock<Record<string, unknown>, []>;
+    broadcastToRoom: jest.Mock<Promise<boolean>, [string, string, any]>;
+  };
+  let originalChartSecret: string | undefined;
+  let originalCursorSigningSecret: string | undefined;
+  let originalJwtSecret: string | undefined;
+  let originalAppSecret: string | undefined;
+
+  beforeEach(() => {
+    originalChartSecret = process.env.CHART_INTRADAY_CURSOR_SECRET;
+    originalCursorSigningSecret = process.env.CURSOR_SIGNING_SECRET;
+    originalJwtSecret = process.env.JWT_SECRET;
+    originalAppSecret = process.env.APP_SECRET;
+    process.env.CHART_INTRADAY_CURSOR_SECRET = "chart-only-secret";
+    process.env.CURSOR_SIGNING_SECRET = "legacy-cursor-secret";
+    process.env.JWT_SECRET = "legacy-jwt-secret";
+    process.env.APP_SECRET = "legacy-app-secret";
+
+    manager = new StreamClientStateManager();
+    webSocketProvider = {
+      isServerAvailable: jest.fn().mockReturnValue(true),
+      healthCheck: jest
+        .fn()
+        .mockReturnValue({ status: "healthy", details: { reason: "ok" } }),
+      broadcastToRoom: jest.fn().mockResolvedValue(true),
+    };
+  });
+
+  afterEach(async () => {
+    await manager.onModuleDestroy();
+    process.env.CHART_INTRADAY_CURSOR_SECRET = originalChartSecret;
+    process.env.CURSOR_SIGNING_SECRET = originalCursorSigningSecret;
+    process.env.JWT_SECRET = originalJwtSecret;
+    process.env.APP_SECRET = originalAppSecret;
+  });
+
+  it("合法 item 广播包含 delta 语义一致的 signed cursor（含 sig/tradingDay）", async () => {
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "AAPL",
+        {
+          lastPrice: "123.45",
+          timestamp: "2026-01-02T14:30:01.000Z",
+          volume: "1000",
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+    const intradayCall = webSocketProvider.broadcastToRoom.mock.calls[1];
+    expect(intradayCall[0]).toBe("symbol:AAPL");
+    expect(intradayCall[1]).toBe("chart.intraday.point");
+
+    const payload = intradayCall[2];
+    expect(payload).toEqual(
+      expect.objectContaining({
+        symbol: "AAPL",
+        market: expect.any(String),
+        tradingDay: expect.any(String),
+        granularity: "1s",
+        cursor: expect.any(String),
+      }),
+    );
+
+    const decodedCursor = JSON.parse(
+      Buffer.from(payload.cursor, "base64").toString("utf-8"),
+    );
+    expect(decodedCursor).toEqual(
+      expect.objectContaining({
+        v: 1,
+        symbol: "AAPL",
+        market: payload.market,
+        tradingDay: payload.tradingDay,
+        lastPointTimestamp: payload.point.timestamp,
+        issuedAt: expect.any(String),
+        sig: expect.any(String),
+      }),
+    );
+
+    const signingSecret = String(
+      process.env.CHART_INTRADAY_CURSOR_SECRET || "",
+    ).trim();
+    const signingRaw = [
+      decodedCursor.v,
+      decodedCursor.symbol,
+      decodedCursor.market,
+      decodedCursor.tradingDay,
+      decodedCursor.provider || "",
+      decodedCursor.lastPointTimestamp,
+      decodedCursor.issuedAt,
+    ].join("|");
+    const expectedSig = createHmac("sha256", signingSecret)
+      .update(signingRaw, "utf-8")
+      .digest("hex");
+
+    expect(decodedCursor.sig).toBe(expectedSig);
+  });
+
+  it("无效 item 被跳过", async () => {
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "AAPL",
+        {
+          lastPrice: "not-a-number",
+          timestamp: "invalid",
+          volume: 100,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:AAPL",
+      "data",
+      expect.any(Object),
+    );
+  });
+
+  it("intraday 广播异常不影响主流程", async () => {
+    webSocketProvider.broadcastToRoom
+      .mockResolvedValueOnce(true)
+      .mockRejectedValueOnce(new Error("intraday-broadcast-failed"));
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "AAPL",
+        {
+          lastPrice: 123.45,
+          timestamp: "2026-01-02T14:30:02.000Z",
+          volume: 1000,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      2,
+      "symbol:AAPL",
+      "chart.intraday.point",
+      expect.any(Object),
+    );
+  });
+
+  it("主 data 广播成功后不等待 intraday 广播完成", async () => {
+    let resolveIntradayBroadcast: ((value: boolean) => void) | null = null;
+    const pendingIntradayBroadcast = new Promise<boolean>((resolve) => {
+      resolveIntradayBroadcast = resolve;
+    });
+
+    webSocketProvider.broadcastToRoom
+      .mockResolvedValueOnce(true)
+      .mockImplementationOnce(() => pendingIntradayBroadcast);
+
+    const promise = manager.broadcastToSymbolViaGateway(
+      "AAPL",
+      {
+        lastPrice: 123.45,
+        timestamp: "2026-01-02T14:30:03.000Z",
+        volume: 1000,
+      },
+      webSocketProvider,
+    );
+
+    await expect(promise).resolves.toBeUndefined();
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      2,
+      "symbol:AAPL",
+      "chart.intraday.point",
+      expect.any(Object),
+    );
+
+    resolveIntradayBroadcast?.(true);
+    await Promise.resolve();
   });
 });
