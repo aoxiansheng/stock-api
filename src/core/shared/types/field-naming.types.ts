@@ -15,6 +15,7 @@ export type ReceiverType =
   | "get-index-quote"
   | "get-market-status"
   | "get-trading-days"
+  | "get-support-list"
   | "get-global-state"
   | "get-crypto-quote"
   | "get-crypto-basic-info"
@@ -40,6 +41,7 @@ const TRANS_RULE_TYPE_BY_CAPABILITY = {
   [CAPABILITY_NAMES.GET_INDEX_QUOTE]: "index_fields",
   [CAPABILITY_NAMES.GET_MARKET_STATUS]: "market_status_fields",
   [CAPABILITY_NAMES.GET_TRADING_DAYS]: "trading_days_fields",
+  [CAPABILITY_NAMES.GET_SUPPORT_LIST]: "basic_info_fields",
   // 合理默认：无明确规则时使用报价字段
   [CAPABILITY_NAMES.GET_STOCK_REALTIME]: "quote_fields",
   [CAPABILITY_NAMES.GET_STOCK_HISTORY]: "candle_fields",
@@ -57,6 +59,7 @@ export const FIELD_MAPPING_CONFIG = {
     [CAPABILITY_NAMES.GET_INDEX_QUOTE]: StorageClassification.INDEX_QUOTE,
     [CAPABILITY_NAMES.GET_MARKET_STATUS]: StorageClassification.MARKET_STATUS,
     [CAPABILITY_NAMES.GET_TRADING_DAYS]: StorageClassification.TRADING_DAYS,
+    [CAPABILITY_NAMES.GET_SUPPORT_LIST]: StorageClassification.STOCK_BASIC_INFO,
     [CAPABILITY_NAMES.GET_GLOBAL_STATE]: StorageClassification.GLOBAL_STATE,
     [CAPABILITY_NAMES.GET_CRYPTO_QUOTE]: StorageClassification.CRYPTO_QUOTE,
     [CAPABILITY_NAMES.GET_CRYPTO_BASIC_INFO]: StorageClassification.CRYPTO_BASIC_INFO,

@@ -1134,6 +1134,9 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
     symbol: string,
   ): Promise<Record<Market, MarketStatusResult>> {
     const market = this.marketInferenceService.inferMarket(symbol);
+    if (!market) {
+      throw new BadRequestException(`无法推断市场: ${symbol}`);
+    }
     return await this.marketStatusService.getBatchMarketStatus([
       market as Market,
     ]);
@@ -1159,6 +1162,9 @@ export class QueryExecutionEngine implements OnModuleInit, OnModuleDestroy {
 
       // Query自行计算TTL
       const market = request.market || this.marketInferenceService.inferMarket(symbol);
+      if (!market) {
+        throw new BadRequestException(`无法推断市场: ${symbol}`);
+      }
       const cacheTTL = await this.calculateCacheTTLByMarket(market, [symbol]);
 
       await this.storageService.storeData({

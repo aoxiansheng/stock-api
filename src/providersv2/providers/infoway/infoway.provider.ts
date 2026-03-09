@@ -11,6 +11,7 @@ import { getStockHistory } from "./capabilities/get-stock-history";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getMarketStatus } from "./capabilities/get-market-status";
 import { getTradingDays } from "./capabilities/get-trading-days";
+import { getSupportList } from "./capabilities/get-support-list";
 import { streamStockQuote } from "./capabilities/stream-stock-quote";
 import { InfowayContextService } from "./services/infoway-context.service";
 import { InfowayStreamContextService } from "./services/infoway-stream-context.service";
@@ -27,6 +28,7 @@ export class InfowayProvider implements IDataProvider {
     getStockBasicInfo,
     getMarketStatus,
     getTradingDays,
+    getSupportList,
     streamStockQuote,
   ];
 

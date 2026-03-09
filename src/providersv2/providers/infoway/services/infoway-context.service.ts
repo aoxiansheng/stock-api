@@ -23,6 +23,10 @@ import {
   normalizeAndValidateInfowaySymbols,
   normalizeInfowayMarketCode,
 } from "../utils/infoway-symbols.util";
+import {
+  normalizeInfowaySupportListSymbols,
+  normalizeInfowaySupportListType,
+} from "../utils/infoway-support-list.util";
 
 interface InfowayKlineItem {
   t?: string | number;
@@ -447,6 +451,38 @@ export class InfowayContextService {
     );
 
     return [body.data];
+  }
+
+  async getSupportList(params: {
+    type: string;
+    symbols?: unknown;
+  }): Promise<any[]> {
+    await this.ensureConfigured();
+
+    const type = normalizeInfowaySupportListType(params.type, {
+      operation: "getSupportList",
+    });
+    const symbols = normalizeInfowaySupportListSymbols(params.symbols, {
+      allowEmpty: true,
+      operation: "getSupportList",
+    });
+
+    const response = await this.client.get("/common/basic/symbols", {
+      headers: { apiKey: this.apiKey },
+      params: {
+        type,
+        ...(symbols.length > 0 ? { symbols: symbols.join(",") } : {}),
+      },
+    });
+
+    const body = response.data || {};
+    this.assertInfowayResponse(
+      body,
+      "support-list",
+      (data) => Array.isArray(data),
+    );
+
+    return body.data as Array<Record<string, any>>;
   }
 
   async getStockBasicInfo(symbols: string[], marketHint?: string): Promise<any[]> {

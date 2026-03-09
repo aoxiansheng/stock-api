@@ -284,7 +284,11 @@ export class SymbolValidationUtils {
     const normalized = this.normalizeSymbol(symbol);
 
     if (!normalized) {
-      return options.fallback;
+      return undefined;
+    }
+
+    if (!this.isValidSymbol(normalized)) {
+      return undefined;
     }
 
     if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.HK)) {

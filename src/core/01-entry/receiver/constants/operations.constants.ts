@@ -17,6 +17,7 @@ export const SUPPORTED_CAPABILITY_TYPES = Object.freeze([
   CAPABILITY_NAMES.GET_INDEX_QUOTE,
   CAPABILITY_NAMES.GET_MARKET_STATUS,
   CAPABILITY_NAMES.GET_TRADING_DAYS,
+  CAPABILITY_NAMES.GET_SUPPORT_LIST,
 ] as const);
 
 function normalizeCapabilityName(capabilityName: string): string {

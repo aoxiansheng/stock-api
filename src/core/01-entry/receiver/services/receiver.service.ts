@@ -61,6 +61,7 @@ import {
   RECEIVER_ALLOWED_MARKETS,
   normalizeReceiverMarketInput,
 } from "../dto/data-request.dto";
+import { SupportListRequestDto } from "../dto/support-list-request.dto";
 import {
   DataResponseDto,
   ResponseMetadataDto,
@@ -213,16 +214,27 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       const useSmartCache = request.options?.useSmartCache !== false; // 默认启用
       if (useSmartCache) {
         // 获取市场状态用于缓存策略决策
+        const isMarket = (value: string | undefined): value is Market =>
+          Object.values(Market).includes(value as Market);
+        const marketsFromContext = marketContext.markets.filter(isMarket);
+        const inferredMarkets = request.symbols
+          .map((symbol) => this.marketInferenceService.inferMarket(symbol))
+          .filter(isMarket);
         const markets =
-          marketContext.markets.length > 0
-            ? marketContext.markets.map((market) => market as Market)
-            : [
-                ...new Set(
-                  request.symbols.map((symbol) =>
-                    this.marketInferenceService.inferMarket(symbol),
-                  ),
-                ),
-              ];
+          marketsFromContext.length > 0 ? marketsFromContext : inferredMarkets;
+        if (markets.length === 0) {
+          throw UniversalExceptionFactory.createBusinessException({
+            component: ComponentIdentifier.RECEIVER,
+            errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+            operation: RECEIVER_OPERATIONS.HANDLE_REQUEST,
+            message: "无法推断 symbols 对应的市场",
+            context: {
+              requestId,
+              symbols: request.symbols?.slice(0, NUMERIC_CONSTANTS.N_5),
+              symbolsCount: request.symbols?.length || 0,
+            },
+          });
+        }
         const marketStatus =
           await this.marketStatusService.getBatchMarketStatus(markets);
 
@@ -397,6 +409,99 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     } finally {
       // 🔧 确保资源清理，无论成功还是失败
       this.updateActiveConnections(-1);
+    }
+  }
+
+  /**
+   * 获取上游支持产品清单（前端直连 API）
+   */
+  async getSupportList(
+    request: SupportListRequestDto,
+  ): Promise<DataResponseDto<any[]>> {
+    const startTime = Date.now();
+    const requestId = uuidv4();
+    const capabilityName = CAPABILITY_NAMES.GET_SUPPORT_LIST;
+    const symbols = request.symbols || [];
+
+    this.logger.log(`开始处理支持产品清单请求`, {
+      requestId,
+      type: request.type,
+      symbolsCount: symbols.length,
+      preferredProvider: request.preferredProvider || null,
+      capability: capabilityName,
+    });
+
+    try {
+      let provider = "";
+      if (request.preferredProvider) {
+        provider = await this.validatePreferredProvider(
+          request.preferredProvider,
+          capabilityName,
+          undefined,
+          requestId,
+        );
+      } else {
+        provider =
+          this.capabilityRegistryService.getBestProvider(capabilityName) || "";
+      }
+
+      if (!provider) {
+        throw UniversalExceptionFactory.createBusinessException({
+          component: ComponentIdentifier.RECEIVER,
+          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+          operation: "getSupportList",
+          message: `No provider found for receiver type '${capabilityName}'`,
+          context: {
+            requestId,
+            capability: capabilityName,
+          },
+        });
+      }
+
+      const fetchResult = await this.dataFetcherService.fetchRawData({
+        provider,
+        capability: capabilityName,
+        symbols,
+        contextService: await this.getProviderContextService(provider),
+        requestId,
+        apiType: "rest",
+        options: {
+          type: request.type,
+        },
+      });
+
+      const processingTimeMs = Date.now() - startTime;
+      const rows = Array.isArray(fetchResult.data) ? fetchResult.data : [];
+
+      this.logger.log(`支持产品清单请求处理完成`, {
+        requestId,
+        provider,
+        type: request.type,
+        resultCount: rows.length,
+        processingTimeMs,
+      });
+
+      return new DataResponseDto(
+        rows,
+        new ResponseMetadataDto(
+          provider,
+          capabilityName,
+          requestId,
+          processingTimeMs,
+          false,
+          symbols.length,
+          rows.length,
+        ),
+      );
+    } catch (error: any) {
+      this.logger.error(`支持产品清单请求处理失败`, {
+        requestId,
+        type: request.type,
+        symbolsCount: symbols.length,
+        preferredProvider: request.preferredProvider || null,
+        error: error?.message || String(error),
+      });
+      throw error;
     }
   }
 

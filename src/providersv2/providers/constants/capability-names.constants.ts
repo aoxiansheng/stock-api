@@ -16,6 +16,7 @@ export const CAPABILITY_NAMES = {
   // 市场/交易日/全局
   GET_MARKET_STATUS: "get-market-status",
   GET_TRADING_DAYS: "get-trading-days",
+  GET_SUPPORT_LIST: "get-support-list",
   GET_GLOBAL_STATE: "get-global-state",
 
   // 加密资产

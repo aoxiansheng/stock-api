@@ -6,6 +6,9 @@ import {
   isStandardSymbolIdentityProvider,
   parseStandardSymbolIdentityProviders,
 } from "@core/shared/utils/provider-symbol-identity.util";
+import { Market } from "@core/shared/constants/market.constants";
+import { MarketInferenceService } from "@common/modules/market-inference/services/market-inference.service";
+import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 
 describe("provider-symbol-identity.util", () => {
   let originalStandardSymbolIdentityProviders: string | undefined;
@@ -132,5 +135,35 @@ describe("provider-symbol-identity.util", () => {
       standardSymbols: ["AAPL.US", "00700.HK"],
       providerSymbols: ["AAPL.US", "00700.HK"],
     });
+  });
+});
+
+describe("SymbolValidationUtils.getMarketFromSymbol", () => {
+  it("非法输入不回退并返回 undefined", () => {
+    expect(SymbolValidationUtils.getMarketFromSymbol("")).toBeUndefined();
+    expect(
+      SymbolValidationUtils.getMarketFromSymbol("BAD$SYMBOL"),
+    ).toBeUndefined();
+    expect(
+      SymbolValidationUtils.getMarketFromSymbol("AAPL US", {
+        fallback: Market.US,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("合法输入按规则推断市场", () => {
+    expect(SymbolValidationUtils.getMarketFromSymbol("AAPL.US")).toBe(Market.US);
+    expect(SymbolValidationUtils.getMarketFromSymbol("00700.HK")).toBe(Market.HK);
+    expect(SymbolValidationUtils.getMarketFromSymbol("600000.SH")).toBe(Market.SH);
+    expect(SymbolValidationUtils.getMarketFromSymbol("000001.SZ")).toBe(Market.SZ);
+  });
+});
+
+describe("MarketInferenceService.inferMarket", () => {
+  it("非法输入不回退默认市场", () => {
+    const service = new MarketInferenceService();
+
+    expect(service.inferMarket("")).toBeUndefined();
+    expect(service.inferMarket("INVALID$")).toBeUndefined();
   });
 });

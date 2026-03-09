@@ -433,6 +433,74 @@ describe("InfowayContextService", () => {
     );
   });
 
+  it("getSupportList: data 结构异常时抛结构化业务异常", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: {
+          symbol: ".DJI.US",
+        },
+      },
+    });
+
+    await expect(
+      service.getSupportList({
+        type: "STOCK_US",
+      }),
+    ).rejects.toMatchObject({
+      message: "Infoway support-list 响应异常",
+      errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+      operation: "support-list",
+      context: {
+        provider: "infoway",
+        operation: "support-list",
+        upstream: {
+          ret: 200,
+          msg: "",
+        },
+      },
+    });
+  });
+
+  it("getSupportList: 返回原始字段并透传 type/symbols", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [
+          {
+            symbol: ".DJI.US",
+            name_cn: "道琼斯指数",
+            name_en: "Dow Jones Industrial Average",
+          },
+        ],
+      },
+    });
+
+    const result = await service.getSupportList({
+      type: "stock_us",
+      symbols: [".dji.us", ".IXIC.US", " .dji.us "],
+    });
+
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/common/basic/symbols",
+      expect.objectContaining({
+        params: {
+          type: "STOCK_US",
+          symbols: ".DJI.US,.IXIC.US",
+        },
+      }),
+    );
+    expect(result).toEqual([
+      {
+        symbol: ".DJI.US",
+        name_cn: "道琼斯指数",
+        name_en: "Dow Jones Industrial Average",
+      },
+    ]);
+  });
+
   it("getStockHistory: 返回 batch_kline 原始字段", async () => {
     const service = createService();
     (service as any).client.post.mockResolvedValue({

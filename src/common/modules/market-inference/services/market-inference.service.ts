@@ -51,13 +51,15 @@ export class MarketInferenceService {
     });
   }
 
-  inferMarket(symbol: string, options?: MarketDetectOptions): Market {
-    const key = this.buildCacheKey(symbol, options);
-    const fallback = options?.fallback ?? Market.US;
-
+  inferMarket(
+    symbol: string,
+    options?: MarketDetectOptions,
+  ): Market | undefined {
     if (!symbol) {
-      return fallback;
+      return undefined;
     }
+
+    const key = this.buildCacheKey(symbol, options);
 
     const cached = this.cache?.get(key);
     if (cached) {
@@ -65,8 +67,11 @@ export class MarketInferenceService {
       return cached;
     }
 
-    const inferred =
-      SymbolValidationUtils.getMarketFromSymbol(symbol, options) ?? fallback;
+    const inferred = SymbolValidationUtils.getMarketFromSymbol(symbol, options);
+
+    if (!inferred) {
+      return undefined;
+    }
 
     if (this.cache) {
       this.cache.set(key, inferred);
@@ -76,7 +81,10 @@ export class MarketInferenceService {
     return inferred;
   }
 
-  inferMarkets(symbols: string[], options?: MarketDetectOptions): Market[] {
+  inferMarkets(
+    symbols: string[],
+    options?: MarketDetectOptions,
+  ): Array<Market | undefined> {
     if (!Array.isArray(symbols) || symbols.length === 0) {
       return [];
     }
@@ -101,8 +109,8 @@ export class MarketInferenceService {
   inferDominantMarket(
     symbols: string[],
     options?: MarketDetectOptions,
-  ): Market {
-    const fallback = options?.fallback ?? Market.US;
+  ): Market | undefined {
+    const fallback = options?.fallback;
     if (!Array.isArray(symbols) || symbols.length === 0) {
       return fallback;
     }
@@ -111,8 +119,15 @@ export class MarketInferenceService {
 
     symbols.forEach((symbol) => {
       const market = this.inferMarket(symbol, options);
+      if (!market) {
+        return;
+      }
       counts.set(market, (counts.get(market) || 0) + 1);
     });
+
+    if (counts.size === 0) {
+      return fallback;
+    }
 
     let dominant = fallback;
     let maxCount = 0;
