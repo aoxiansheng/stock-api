@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength, IsOptional, IsEnum, IsArray, IsNumber, Min } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsOptional, IsEnum, IsArray, ArrayNotEmpty, IsNumber, Min, Matches } from 'class-validator';
 import { UserRole, Permission } from './enums';
 
 /**
@@ -15,10 +15,6 @@ export class RegisterDto {
 
   @IsEmail()
   email: string;
-
-  @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
 }
 
 /**
@@ -50,11 +46,13 @@ export class CreateApiKeyDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayNotEmpty()
   @IsEnum(Permission, { each: true })
   permissions?: Permission[];
 
   @IsOptional()
   @IsString()
+  @Matches(/^\d+[smhdy]$/, { message: 'expiresIn 格式必须为数字加单位（s/m/h/d/y）' })
   expiresIn?: string; // 如 "30d", "1y"
 
   @IsOptional()

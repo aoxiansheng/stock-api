@@ -13,6 +13,7 @@ import {
 import { AuthService } from './service';
 import { JwtAuthGuard } from './guards';
 import { Public } from './decorators';
+import { UserRole } from './enums';
 import {
   RegisterDto,
   LoginDto,
@@ -70,7 +71,8 @@ export class AuthController {
     @Body() createApiKeyDto: CreateApiKeyDto,
   ) {
     const userId = req.user.id;
-    return this.authService.createApiKey(userId, createApiKeyDto);
+    const userRole = req.user.role as UserRole;
+    return this.authService.createApiKey(userId, userRole, createApiKeyDto);
   }
 
   /**

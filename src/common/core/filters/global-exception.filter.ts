@@ -317,16 +317,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           ...(request?.url && { path: this.sanitizePath(request.url) }),
           ...(correlationId && { correlationId }),
           ...(requestId && { requestId }),
-          // 为API Key错误添加额外信息
-          ...(status === 401 &&
-            request?.headers?.["x-app-key"] && {
-              providedKey: request.headers["x-app-key"],
-            }),
         },
       },
     };
-
-
 
     try {
       response.status(status).json(errorResponse);

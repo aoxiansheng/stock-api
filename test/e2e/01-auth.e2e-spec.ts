@@ -48,7 +48,6 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
             username,
             password: 'Test@123456',
             email: `${username}@test.com`,
-            role: 'DEVELOPER',
           })
           .expect(201);
 
@@ -63,7 +62,6 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
           username,
           password: 'Test@123456',
           email: `${username}@test.com`,
-          role: 'DEVELOPER',
         };
 
         // 第一次注册成功
@@ -88,7 +86,6 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
             username: `test_${randomString()}`,
             password: '123', // 太短
             email: 'test@test.com',
-            role: 'DEVELOPER',
           })
           .expect(400);
 
@@ -102,7 +99,6 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
             username: `test_${randomString()}`,
             password: 'Test@123456',
             email: 'invalid-email', // 无效邮箱
-            role: 'DEVELOPER',
           })
           .expect(400);
 
@@ -314,6 +310,20 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
 
         assertErrorResponse(response);
       });
+
+      it('应该拒绝无效的expiresIn格式', async () => {
+        const response = await request(httpServer)
+          .post('/api/v1/auth/api-keys')
+          .set('Authorization', `Bearer ${userToken}`)
+          .send({
+            name: 'Test API Key',
+            permissions: ['data:read'],
+            expiresIn: '30days',
+          })
+          .expect(400);
+
+        assertErrorResponse(response);
+      });
     });
 
     describe('2.2 使用API Key访问数据接口', () => {
@@ -363,6 +373,35 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
           .post('/api/v1/receiver/data')
           .set('X-App-Key', 'invalid_app_key')
           .set('X-Access-Token', 'invalid_access_token')
+          .send({
+            symbols: ['AAPL.US'],
+            receiverType: 'get-stock-quote',
+            options: {
+              market: 'US',
+              preferredProvider: 'longport',
+            },
+          })
+          .expect(401);
+
+        assertErrorResponse(response);
+      });
+
+      it('应该拒绝已停用的API Key', async () => {
+        const apiKey = await createApiKey(httpServer, userToken, 'Disabled API Key');
+        const { Connection } = await import('mongoose');
+        const connection = context.moduleRef.get(Connection);
+        if (!connection) {
+          throw new Error('mongoose connection unavailable');
+        }
+        await connection.collection('api_keys').updateOne(
+          { appKey: apiKey.appKey },
+          { $set: { status: 'disabled' } },
+        );
+
+        const response = await request(httpServer)
+          .post('/api/v1/receiver/data')
+          .set('X-App-Key', apiKey.appKey)
+          .set('X-Access-Token', apiKey.accessToken)
           .send({
             symbols: ['AAPL.US'],
             receiverType: 'get-stock-quote',
@@ -561,7 +600,6 @@ describe('E2E: Authentication & Authorization (认证授权)', () => {
                 username: `${baseUsername}_${i}`,
                 password: 'Test@123456',
                 email: `${baseUsername}_${i}@test.com`,
-                role: 'DEVELOPER',
               })
           );
         }

@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException } from "@nestjs/common";
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -6,7 +6,8 @@ import * as bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import type { ApiKeyDocument } from "./schema";
 import type { UserDocument } from "./user.schema";
-import { UserRole } from "./enums";
+import { UserRole, Permission } from "./enums";
+import { ADMIN_PROFILE, READ_PROFILE } from "./constants";
 import type { RegisterDto, LoginDto, CreateApiKeyDto } from "./dto";
 
 @Injectable()
@@ -21,7 +22,7 @@ export class AuthService {
    * 用户注册
    */
   async register(registerDto: RegisterDto) {
-    const { username, password, email, role } = registerDto;
+    const { username, password, email } = registerDto;
 
     // 检查用户名或邮箱是否已存在
     const existingUser = await this.userModel.findOne({
@@ -40,7 +41,7 @@ export class AuthService {
       username,
       password: hashedPassword,
       email,
-      role: role || UserRole.DEVELOPER,
+      role: UserRole.DEVELOPER,
     });
 
     return {
@@ -76,11 +77,12 @@ export class AuthService {
     // 生成 tokens
     const accessToken = this.signJwt({ sub: user._id, role: user.role }, '1h');
     const refreshToken = this.signJwt({ sub: user._id }, '7d');
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
 
     // 存储 refresh token
     await this.userModel.updateOne(
       { _id: user._id },
-      { refreshToken }
+      { refreshToken: refreshTokenHash }
     ).exec();
 
     return {
@@ -106,22 +108,33 @@ export class AuthService {
       // 查找用户并验证 refresh token
       const user = await this.userModel.findOne({
         _id: payload.sub,
-        refreshToken,
         deletedAt: { $exists: false }
       }).exec();
 
-      if (!user) {
+      if (!user || !user.refreshToken) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      let refreshTokenMatches = false;
+      try {
+        refreshTokenMatches = await bcrypt.compare(refreshToken, user.refreshToken);
+      } catch {
+        refreshTokenMatches = false;
+      }
+
+      if (!refreshTokenMatches) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
       // 生成新的 access token
       const newAccessToken = this.signJwt({ sub: user._id, role: user.role }, '1h');
       const newRefreshToken = this.signJwt({ sub: user._id }, '7d');
+      const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
 
       // 更新存储的 refresh token
       await this.userModel.updateOne(
         { _id: user._id },
-        { refreshToken: newRefreshToken }
+        { refreshToken: newRefreshTokenHash }
       ).exec();
 
       return {
@@ -136,12 +149,17 @@ export class AuthService {
   /**
    * 创建 API Key
    */
-  async createApiKey(userId: string, createApiKeyDto: CreateApiKeyDto) {
+  async createApiKey(userId: string, userRole: UserRole, createApiKeyDto: CreateApiKeyDto) {
     const { name, permissions, expiresIn, profile } = createApiKeyDto;
+
+    if (Array.isArray(permissions) && permissions.length === 0) {
+      throw new BadRequestException("permissions 不能为空");
+    }
 
     // 生成唯一的 appKey 和 accessToken
     const appKey = uuidv4().replace(/-/g, '');
     const accessToken = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
+    const hashedAccessToken = await bcrypt.hash(accessToken, 10);
 
     // 计算过期时间
     let expiresAt: Date | undefined;
@@ -150,20 +168,38 @@ export class AuthService {
       expiresAt = new Date(Date.now() + ms);
     }
 
+    const isAdmin = userRole === UserRole.ADMIN;
+    let resolvedProfile: 'READ' | 'ADMIN' = 'READ';
+    let resolvedPermissions: Permission[] = READ_PROFILE.slice();
+
+    if (isAdmin) {
+      resolvedProfile = profile ?? 'READ';
+      const requestedPermissions = permissions ?? (
+        resolvedProfile === 'ADMIN' ? ADMIN_PROFILE.slice() : READ_PROFILE.slice()
+      );
+      if (!this.isPermissionsSubset(requestedPermissions, ADMIN_PROFILE)) {
+        throw new BadRequestException('权限配置超出允许范围');
+      }
+      if (resolvedProfile === 'READ' && !this.isPermissionsSubset(requestedPermissions, READ_PROFILE)) {
+        throw new BadRequestException('READ档位仅允许只读权限');
+      }
+      resolvedPermissions = requestedPermissions;
+    }
+
     // 创建 API Key
     const apiKey = await this.apiKeyModel.create({
       userId,
       appKey,
-      accessToken,
+      accessToken: hashedAccessToken,
       name: name || `API Key ${new Date().toISOString()}`,
-      permissions: permissions || [],
-      profile: profile || 'READ',
+      permissions: resolvedPermissions,
+      profile: resolvedProfile,
       expiresAt,
     });
 
     return {
       appKey: apiKey.appKey,
-      accessToken: apiKey.accessToken,
+      accessToken,
       profile: apiKey.profile,
       expiresAt: apiKey.expiresAt,
       createdAt: apiKey.createdAt,
@@ -215,11 +251,36 @@ export class AuthService {
    * 验证 API Key
    */
   async validateApiKey(appKey: string, accessToken: string) {
-    return this.apiKeyModel.findOne({
+    const apiKey = await this.apiKeyModel.findOne({
       appKey,
-      accessToken,
       deletedAt: { $exists: false }
     }).exec();
+
+    if (!apiKey) {
+      return null;
+    }
+
+    if (apiKey.status !== "active") {
+      return null;
+    }
+
+    const accessTokenMatches = await bcrypt.compare(accessToken, apiKey.accessToken);
+    if (!accessTokenMatches) {
+      return null;
+    }
+
+    if (apiKey.expiresAt && apiKey.expiresAt.getTime() < Date.now()) {
+      return null;
+    }
+
+    return apiKey;
+  }
+
+  private isPermissionsSubset(
+    requested: Permission[],
+    allowed: readonly Permission[],
+  ): boolean {
+    return requested.every(permission => allowed.includes(permission));
   }
 
   /**
@@ -228,7 +289,7 @@ export class AuthService {
   private parseTimeString(timeStr: string): number {
     const match = timeStr.match(/^(\d+)([smhdy])$/);
     if (!match) {
-      throw new Error('Invalid time format');
+      throw new BadRequestException('expiresIn 格式必须为数字加单位（s/m/h/d/y）');
     }
 
     const value = parseInt(match[1], 10);
@@ -242,6 +303,11 @@ export class AuthService {
       y: 365 * 24 * 60 * 60 * 1000,
     };
 
-    return value * multipliers[unit];
+    const multiplier = multipliers[unit];
+    if (!multiplier) {
+      throw new BadRequestException('expiresIn 格式必须为数字加单位（s/m/h/d/y）');
+    }
+
+    return value * multiplier;
   }
 }

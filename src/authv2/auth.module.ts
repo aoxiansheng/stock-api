@@ -12,7 +12,7 @@ import { AuthController } from "./auth.controller";
   imports: [
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || "changeme",
+      secret: process.env.JWT_SECRET as string,
       // 类型兼容处理：expiresIn 接受 ms.StringValue 或 number
       signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN as any) || "24h" },
     }),

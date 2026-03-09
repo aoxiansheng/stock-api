@@ -3,8 +3,9 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy as JwtStrategyBase } from "passport-jwt";
 import { Strategy as CustomStrategy } from "passport-custom";
 import type { Request } from "express";
+import * as bcrypt from "bcrypt";
 import { HEADER_APP_KEY, HEADER_ACCESS_TOKEN, ADMIN_PROFILE, READ_PROFILE } from "./constants";
-import { UserRole } from "./enums";
+import { UserRole, Permission } from "./enums";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import type { ApiKeyDocument } from "./schema";
@@ -18,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(JwtStrategyBase, "jwt") {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || "changeme", // 必须与 AuthModule 中的默认值保持一致
+      secretOrKey: process.env.JWT_SECRET as string,
     });
   }
 
@@ -57,18 +58,30 @@ export class ApiKeyStrategy extends PassportStrategy(CustomStrategy, "apikey") {
     const accessToken = (req.header(HEADER_ACCESS_TOKEN) || req.header("X-Access-Token") || "").toString();
     if (!appKey || !accessToken) return false;
 
-    const apiKey = await this.apiKeyModel.findOne({ appKey, accessToken, deletedAt: { $exists: false } }).exec();
+    const apiKey = await this.apiKeyModel.findOne({ appKey, deletedAt: { $exists: false } }).exec();
     if (!apiKey) return false;
+    if (apiKey.status !== "active") return false;
     if (apiKey.expiresAt && apiKey.expiresAt.getTime() < Date.now()) return false;
+    const accessTokenMatches = await bcrypt.compare(accessToken, apiKey.accessToken);
+    if (!accessTokenMatches) return false;
+
+    const explicitPermissions = Array.isArray((apiKey as any).permissions)
+      ? (apiKey as any).permissions
+      : [];
+    if (explicitPermissions.length === 0) return false;
 
     // API Key 根据 profile 设置虚拟角色和权限
     const isAdmin = apiKey.profile === "ADMIN";
     const role = isAdmin ? UserRole.ADMIN : UserRole.DEVELOPER;
-    const permissions = (isAdmin ? ADMIN_PROFILE : READ_PROFILE).slice();
+    const permissions = explicitPermissions.slice() as Permission[];
 
-    return Object.assign(apiKey.toObject ? apiKey.toObject() : apiKey, {
+    return {
+      appKey: apiKey.appKey,
+      userId: apiKey.userId,
+      profile: apiKey.profile,
+      expiresAt: apiKey.expiresAt,
       role,
-      permissions
-    });
+      permissions,
+    };
   }
 }

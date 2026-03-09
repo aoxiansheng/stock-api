@@ -19,7 +19,7 @@ export class User {
   role: UserRole;
 
   @Prop({ type: String })
-  refreshToken?: string; // 存储刷新Token
+  refreshToken?: string; // 存储刷新Token哈希
 
   @Prop({ type: Date })
   deletedAt?: Date;

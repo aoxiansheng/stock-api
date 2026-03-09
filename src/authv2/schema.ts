@@ -13,6 +13,7 @@ export class ApiKey {
   @Prop({ required: true, unique: true })
   appKey: string;
 
+  // bcrypt hash（仅保存哈希）
   @Prop({ required: true, unique: true })
   accessToken: string;
 
@@ -45,4 +46,3 @@ export class ApiKey {
 }
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);
-

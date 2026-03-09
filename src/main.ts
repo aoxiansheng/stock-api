@@ -33,6 +33,10 @@ async function bootstrap() {
       logger: getLogLevels(),
     });
 
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET 环境变量未配置");
+    }
+
     // 使用自定义日志器
     app.useLogger(createLogger("NestApplication"));
 
@@ -80,8 +84,23 @@ async function bootstrap() {
     // 不再需要全局变量暴露
 
     // CORS 配置
+    const corsOrigin = process.env.CORS_ORIGIN;
+    const resolvedCorsOrigins = (() => {
+      if (corsOrigin) {
+        return corsOrigin.split(",");
+      }
+      // 生产环境强制要求配置，开发环境使用严格白名单
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("生产环境必须配置CORS_ORIGIN环境变量");
+      }
+      return [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+      ];
+    })();
     app.enableCors({
-      origin: process.env.CORS_ORIGIN?.split(",") || true,
+      origin: resolvedCorsOrigins,
       methods: HTTP_METHOD_ARRAYS.CORS_COMMON,
       allowedHeaders: [
         "Content-Type",

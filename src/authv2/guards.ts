@@ -86,28 +86,12 @@ export class PermissionsGuard implements CanActivate {
     const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [context.getHandler(), context.getClass()]) || [];
     const requiredPerms = this.reflector.getAllAndOverride<Permission[]>(PERMISSIONS_KEY, [context.getHandler(), context.getClass()]) || [];
 
-    // 🔍 DEBUG: 添加详细日志
-    const endpoint = `${req.method} ${req.url}`;
-    console.log('🔍 PermissionsGuard DEBUG:', {
-      endpoint,
-      userRole: subject.role,
-      userPermissions: subject.permissions,
-      requiredRoles,
-      requiredPermsCount: requiredPerms.length,
-      requiredPerms: requiredPerms.slice(0, 3), // 只显示前3个权限
-    });
-
     // 如果没有指定角色和权限要求，但有认证信息，则允许访问
     if (!requiredRoles.length && !requiredPerms.length) return true;
 
     // 角色检查（JWT）
     if (requiredRoles.length) {
       if (!subject.role || !requiredRoles.includes(subject.role)) {
-        console.log('❌ 角色检查失败:', {
-          userRole: subject.role,
-          requiredRoles,
-          endpoint
-        });
         throw new ForbiddenException('访问被拒绝');
       }
     }
@@ -117,12 +101,6 @@ export class PermissionsGuard implements CanActivate {
       const granted = new Set(subject.permissions || []);
       for (const p of requiredPerms) {
         if (!granted.has(p)) {
-          console.log('❌ 权限检查失败:', {
-            missingPermission: p,
-            userPermissions: subject.permissions,
-            requiredPerms,
-            endpoint
-          });
           throw new ForbiddenException('访问被拒绝');
         }
       }
@@ -130,4 +108,3 @@ export class PermissionsGuard implements CanActivate {
     return true;
   }
 }
-

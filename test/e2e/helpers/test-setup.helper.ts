@@ -234,7 +234,6 @@ export async function registerUser(
       username: user.username,
       password: user.password,
       email: user.email,
-      role: user.role,
     })
     .expect((res) => {
       // 如果用户已存在，不报错
@@ -242,6 +241,29 @@ export async function registerUser(
         throw new Error(`Registration failed: ${res.body.message}`);
       }
     });
+
+  if (user.role === 'ADMIN') {
+    await promoteUserRole(user.username, user.role);
+  }
+}
+
+async function promoteUserRole(username: string, role: string): Promise<void> {
+  try {
+    const mongoose = await import('mongoose');
+    const activeConnection =
+      mongoose.connection?.readyState === 1
+        ? mongoose.connection
+        : mongoose.connections.find(conn => conn.readyState === 1);
+    if (!activeConnection) {
+      return;
+    }
+    await activeConnection.collection('users').updateOne(
+      { username },
+      { $set: { role } },
+    );
+  } catch (error) {
+    console.warn('⚠️  Test user role promotion failed:', error.message);
+  }
 }
 
 /**
