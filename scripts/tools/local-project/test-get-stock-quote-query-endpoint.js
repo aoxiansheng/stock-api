@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
-// 弱时效端点
 const {
   createEndpointClient,
   parseBoolean,
@@ -17,12 +16,7 @@ function assert(condition, message, extra) {
   throw new Error(message);
 }
 
-function readField(row, field) {
-  return row?.[field];
-}
-
 function validateRows(rows) {
-  const requiredFields = ["symbol", "market", "exchange", "currency", "board"];
   const issues = [];
 
   rows.forEach((row, index) => {
@@ -31,12 +25,39 @@ function validateRows(rows) {
       return;
     }
 
-    requiredFields.forEach((field) => {
-      const value = readField(row, field);
-      if (typeof value !== "string" || !value.trim()) {
-        issues.push(`items[${index}].${field} 缺失`);
+    if (typeof row.symbol !== "string" || !row.symbol.trim()) {
+      issues.push(`items[${index}].symbol 缺失`);
+    }
+
+    if (typeof row.market !== "string" || !row.market.trim()) {
+      issues.push(`items[${index}].market 缺失`);
+    }
+
+    const lastPrice = Number(row.lastPrice);
+    if (!Number.isFinite(lastPrice)) {
+      issues.push(`items[${index}].lastPrice 不是数字`);
+    }
+
+    if (row.volume !== undefined) {
+      const volume = Number(row.volume);
+      if (!Number.isFinite(volume)) {
+        issues.push(`items[${index}].volume 不是数字`);
       }
-    });
+    }
+
+    if (row.change !== undefined) {
+      const change = Number(row.change);
+      if (!Number.isFinite(change)) {
+        issues.push(`items[${index}].change 不是数字`);
+      }
+    }
+
+    if (row.changePercent !== undefined) {
+      const changePercent = Number(row.changePercent);
+      if (!Number.isFinite(changePercent)) {
+        issues.push(`items[${index}].changePercent 不是数字`);
+      }
+    }
   });
 
   return issues;
@@ -45,7 +66,7 @@ function validateRows(rows) {
 async function main() {
   const client = createEndpointClient();
   const { args } = client;
-  const symbols = parseSymbols(args.symbols, "AAPL.US,00700.HK");
+  const symbols = parseSymbols(args.symbols, "00700.HK");
   const provider = String(args.provider || "infoway").trim().toLowerCase();
   const market = String(args.market || "").trim().toUpperCase();
   const strictSymbolMatch = parseBoolean(args["strict-symbol-match"], true);
@@ -58,13 +79,14 @@ async function main() {
     queryType: "by_symbols",
     symbols,
     provider,
-    queryTypeFilter: "get-stock-basic-info",
+    queryTypeFilter: "get-stock-quote",
     limit,
     options: {
       useCache: true,
       includeMetadata: true,
     },
   };
+
   if (market) {
     requestBody.market = market;
   }
@@ -99,20 +121,20 @@ async function main() {
   assert(issues.length === 0, "业务字段校验失败", issues);
 
   const returnedSymbols = new Set(
-    rows.map((row) => String(readField(row, "symbol") || "").trim().toUpperCase()).filter(Boolean),
+    rows.map((row) => String(row.symbol || "").trim().toUpperCase()).filter(Boolean),
   );
   const missingSymbols = symbols.filter((symbol) => !returnedSymbols.has(symbol));
   if (strictSymbolMatch) {
     assert(missingSymbols.length === 0, "返回缺少请求标的", missingSymbols);
   }
 
-  console.log("[PASS] POST /api/v1/query/execute get-stock-basic-info");
+  console.log("[PASS] POST /api/v1/query/execute get-stock-quote");
   console.log(
     JSON.stringify(
       {
         endpoint: "POST /api/v1/query/execute",
         queryType: "by_symbols",
-        queryTypeFilter: "get-stock-basic-info",
+        queryTypeFilter: "get-stock-quote",
         requestedSymbols: symbols,
         returnedCount: rows.length,
         provider,

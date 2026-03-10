@@ -2,7 +2,6 @@
 /* eslint-disable no-console */
 const {
   createEndpointClient,
-  parseBoolean,
   parseSymbols,
 } = require("./project-api-client");
 
@@ -16,12 +15,7 @@ function assert(condition, message, extra) {
   throw new Error(message);
 }
 
-function readField(row, field) {
-  return row?.[field];
-}
-
 function validateRows(rows) {
-  const requiredFields = ["symbol", "market", "exchange", "currency", "board"];
   const issues = [];
 
   rows.forEach((row, index) => {
@@ -30,8 +24,19 @@ function validateRows(rows) {
       return;
     }
 
-    requiredFields.forEach((field) => {
-      const value = readField(row, field);
+    const requiredStringFields = [
+      "symbol",
+      "lastPrice",
+      "openPrice",
+      "highPrice",
+      "lowPrice",
+      "volume",
+      "turnover",
+      "timestamp",
+    ];
+
+    requiredStringFields.forEach((field) => {
+      const value = row[field];
       if (typeof value !== "string" || !value.trim()) {
         issues.push(`data[${index}].${field} 缺失`);
       }
@@ -44,24 +49,34 @@ function validateRows(rows) {
 async function main() {
   const client = createEndpointClient();
   const { args } = client;
-  const symbols = parseSymbols(args.symbols, "AAPL.US,00700.HK");
+  const symbols = parseSymbols(args.symbols, "00700.HK");
   const provider = String(args.provider || "infoway").trim().toLowerCase();
-  const market = String(args.market || "").trim().toUpperCase();
-  const requireProviderMatch = parseBoolean(args["require-provider-match"], true);
-  const strictSymbolMatch = parseBoolean(args["strict-symbol-match"], true);
+  const market = String(args.market || "HK").trim().toUpperCase();
+  const klineNum = Math.max(1, Number(args["kline-num"] || args.klineNum || 5));
   const sampleLimit = Math.max(1, Number(args["sample-limit"] || 5));
+  const timestampArg = String(args.timestamp || "").trim();
 
-  assert(symbols.length > 0, "symbols 不能为空");
+  assert(symbols.length === 1, "get-stock-history 仅支持单标的", { symbols });
+  assert(Number.isFinite(klineNum) && klineNum > 0, "klineNum 必须是正数", {
+    klineNum,
+  });
 
   const requestBody = {
     symbols,
-    receiverType: "get-stock-basic-info",
+    receiverType: "get-stock-history",
     options: {
       preferredProvider: provider,
+      market,
+      klineNum,
     },
   };
-  if (market) {
-    requestBody.options.market = market;
+
+  if (timestampArg) {
+    const timestamp = Number(timestampArg);
+    assert(Number.isSafeInteger(timestamp) && timestamp > 0, "timestamp 必须是正整数", {
+      timestamp: timestampArg,
+    });
+    requestBody.options.timestamp = timestamp;
   }
 
   const response = await client.post("/receiver/data", requestBody);
@@ -84,27 +99,17 @@ async function main() {
   assert(issues.length === 0, "业务字段校验失败", issues);
 
   const returnedSymbols = new Set(
-    rows.map((row) => String(readField(row, "symbol") || "").trim().toUpperCase()).filter(Boolean),
+    rows.map((row) => String(row.symbol || "").trim().toUpperCase()).filter(Boolean),
   );
   const missingSymbols = symbols.filter((symbol) => !returnedSymbols.has(symbol));
-  if (strictSymbolMatch) {
-    assert(missingSymbols.length === 0, "返回缺少请求标的", missingSymbols);
-  }
+  assert(missingSymbols.length === 0, "返回缺少请求标的", missingSymbols);
 
-  if (requireProviderMatch) {
-    const actualProvider = String(metadata.provider || "").trim().toLowerCase();
-    assert(actualProvider === provider, "metadata.provider 与请求不一致", {
-      expected: provider,
-      actual: actualProvider || null,
-    });
-  }
-
-  console.log("[PASS] POST /api/v1/receiver/data get-stock-basic-info");
+  console.log("[PASS] POST /api/v1/receiver/data get-stock-history");
   console.log(
     JSON.stringify(
       {
         endpoint: "POST /api/v1/receiver/data",
-        receiverType: "get-stock-basic-info",
+        receiverType: "get-stock-history",
         requestedSymbols: symbols,
         returnedCount: rows.length,
         provider: metadata.provider || null,
