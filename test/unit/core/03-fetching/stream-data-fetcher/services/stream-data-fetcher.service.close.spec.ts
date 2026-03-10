@@ -627,6 +627,80 @@ describe("StreamClientStateManager intraday domain events", () => {
     );
   });
 
+  it("market UNKNOWN 时跳过 intraday 事件", async () => {
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "ABC.SG",
+        {
+          lastPrice: "123.45",
+          timestamp: "2026-01-02T14:30:04.000Z",
+          volume: "1000",
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:ABC.SG",
+      "data",
+      expect.any(Object),
+    );
+  });
+
+  it("market UNKNOWN 但 payload 提供 market 时仍广播 intraday", async () => {
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "INVALID@@",
+        {
+          lastPrice: 123.45,
+          timestamp: "2026-01-02T14:30:05.000Z",
+          volume: 1000,
+          market: "US",
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+    const intradayCall = webSocketProvider.broadcastToRoom.mock.calls[1];
+    expect(intradayCall[1]).toBe("chart.intraday.point");
+    expect(intradayCall[2]).toEqual(
+      expect.objectContaining({
+        market: "US",
+        cursor: expect.any(String),
+      }),
+    );
+  });
+
+  it("缺少分时游标密钥时跳过 intraday 事件且不阻塞主广播", async () => {
+    process.env.CHART_INTRADAY_CURSOR_SECRET = "";
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "AAPL",
+        {
+          lastPrice: 123.45,
+          timestamp: "2026-01-02T14:30:06.000Z",
+          volume: 1000,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:AAPL",
+      "data",
+      expect.any(Object),
+    );
+  });
+
   it("intraday 广播异常不影响主流程", async () => {
     webSocketProvider.broadcastToRoom
       .mockResolvedValueOnce(true)

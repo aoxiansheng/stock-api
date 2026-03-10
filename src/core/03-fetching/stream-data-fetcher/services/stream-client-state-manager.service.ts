@@ -1,10 +1,14 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import { createHmac } from "crypto";
+import {
+  ChartIntradayCursorService,
+  type IntradayCursorPayload,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
 import { createLogger } from "@common/logging/index";
 import { GatewayBroadcastError } from "../exceptions/gateway-broadcast.exception";
 import {
   formatTradingDayFromTimestamp,
   inferMarketFromSymbol,
+  isSupportedMarket,
   parseFlexibleTimestampToMs,
 } from "@core/shared/utils/market-time.util";
 
@@ -43,16 +47,6 @@ export interface SubscriptionChangeEvent {
   timestamp: number;
 }
 
-interface IntradayCursorPayload {
-  v: number;
-  symbol: string;
-  market: string;
-  tradingDay: string;
-  provider?: string;
-  lastPointTimestamp: string;
-  issuedAt: string;
-}
-
 /**
  * StreamClientStateManager - 客户端状态管理器
  *
@@ -73,7 +67,9 @@ interface IntradayCursorPayload {
 export class StreamClientStateManager implements OnModuleDestroy {
   private readonly logger = createLogger("StreamClientStateManager");
   private readonly intradayEmitBatchSize = 8;
-  private readonly cursorSigningSecret = this.resolveCursorSigningSecret();
+
+  private intradayCursorService: ChartIntradayCursorService | null = null;
+  private intradayCursorServiceUnavailable = false;
 
   // 客户端订阅信息
   private readonly clientSubscriptions = new Map<
@@ -621,13 +617,21 @@ export class StreamClientStateManager implements OnModuleDestroy {
     const items = Array.isArray(data) ? data : [data];
     const events: any[] = [];
     const normalizedSymbol = String(symbol || "").trim().toUpperCase();
-    const market = inferMarketFromSymbol(normalizedSymbol);
+    const cursorService = this.getIntradayCursorService();
+    if (!cursorService) {
+      return events;
+    }
 
     for (const item of items) {
       const price = Number(item?.lastPrice ?? item?.price);
       const timestampMs = parseFlexibleTimestampToMs(item?.timestamp);
       const volume = Number(item?.volume ?? 0);
       if (!Number.isFinite(price) || !timestampMs) {
+        continue;
+      }
+
+      const market = this.resolveIntradayMarket(normalizedSymbol, item);
+      if (!market) {
         continue;
       }
 
@@ -641,14 +645,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
         lastPointTimestamp: timestampIso,
         issuedAt: new Date().toISOString(),
       };
-      const signedCursorPayload = {
-        ...cursorPayload,
-        sig: this.signCursorPayload(cursorPayload),
-      };
-      const cursor = Buffer.from(
-        JSON.stringify(signedCursorPayload),
-        "utf-8",
-      ).toString("base64");
+      const cursor = cursorService.encodeCursor(cursorPayload);
 
       events.push({
         symbol: normalizedSymbol,
@@ -667,23 +664,67 @@ export class StreamClientStateManager implements OnModuleDestroy {
     return events;
   }
 
-  private resolveCursorSigningSecret(): string {
-    return String(process.env.CHART_INTRADAY_CURSOR_SECRET || "").trim();
+  private resolveIntradayMarket(normalizedSymbol: string, item: any): string | null {
+    const inferredMarket = inferMarketFromSymbol(normalizedSymbol);
+    if (inferredMarket !== "UNKNOWN") {
+      return inferredMarket;
+    }
+
+    const itemSymbol = typeof item?.symbol === "string" ? item.symbol : null;
+    if (itemSymbol) {
+      const inferredFromItem = inferMarketFromSymbol(itemSymbol);
+      if (inferredFromItem !== "UNKNOWN") {
+        return inferredFromItem;
+      }
+    }
+
+    const marketValue = this.normalizeMarketValue(
+      item?.market ??
+        item?.marketType ??
+        item?.marketCode ??
+        item?.mkt ??
+        item?.exchange,
+    );
+    if (marketValue && isSupportedMarket(marketValue)) {
+      return marketValue;
+    }
+
+    return null;
   }
 
-  private signCursorPayload(payload: IntradayCursorPayload): string {
-    const signingRaw = [
-      payload.v,
-      payload.symbol,
-      payload.market,
-      payload.tradingDay,
-      payload.provider || "",
-      payload.lastPointTimestamp,
-      payload.issuedAt,
-    ].join("|");
-    return createHmac("sha256", this.cursorSigningSecret)
-      .update(signingRaw, "utf-8")
-      .digest("hex");
+  private normalizeMarketValue(value: unknown): string | null {
+    if (typeof value !== "string") {
+      return null;
+    }
+    const normalized = value.trim().toUpperCase();
+    return normalized ? normalized : null;
+  }
+
+  private getIntradayCursorService(): ChartIntradayCursorService | null {
+    if (this.intradayCursorService) {
+      return this.intradayCursorService;
+    }
+    if (this.intradayCursorServiceUnavailable) {
+      return null;
+    }
+
+    const secret = String(process.env.CHART_INTRADAY_CURSOR_SECRET || "").trim();
+    if (!secret) {
+      this.intradayCursorServiceUnavailable = true;
+      this.logger.warn("分时游标密钥未配置，已跳过分时领域事件广播");
+      return null;
+    }
+
+    try {
+      this.intradayCursorService = new ChartIntradayCursorService();
+      return this.intradayCursorService;
+    } catch (error) {
+      this.intradayCursorServiceUnavailable = true;
+      this.logger.warn("分时游标服务初始化失败，已跳过分时领域事件广播", {
+        error: error?.message || String(error || ""),
+      });
+      return null;
+    }
   }
 
   /**

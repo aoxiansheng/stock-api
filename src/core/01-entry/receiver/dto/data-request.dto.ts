@@ -34,14 +34,9 @@ import {
   isValidYmdDate,
   validateYmdDateRange,
 } from "@core/shared/utils/ymd-date.util";
+import { SUPPORTED_MARKETS } from "@core/shared/utils/market-time.util";
 
-export const RECEIVER_ALLOWED_MARKETS = Object.freeze([
-  "HK",
-  "US",
-  "CN",
-  "SH",
-  "SZ",
-] as const);
+export const RECEIVER_ALLOWED_MARKETS = SUPPORTED_MARKETS;
 
 export function normalizeReceiverMarketInput(market: string): string {
   return market.trim().toUpperCase();

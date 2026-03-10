@@ -23,7 +23,7 @@ import { DataMapperModule } from "./core/00-prepare/data-mapper/module/data-mapp
 import { ReceiverModule } from "./core/01-entry/receiver/module/receiver.module";
 import { StreamReceiverModule } from "./core/01-entry/stream-receiver/module/stream-receiver.module";
 import { QueryModule } from "./core/01-entry/query/module/query.module";
-import { ChartIntradayModule } from "./core/01-entry/chart-intraday/module/chart-intraday.module";
+import { ReceiverChartIntradayModule } from "./core/01-entry/receiver/module/receiver-chart-intraday.module";
 
 // 核心业务层模块 - 处理阶段
 import { TransformerModule } from "./core/02-processing/transformer/module/data-transformer.module";
@@ -110,7 +110,7 @@ import { JwtAuthGuard, ApiKeyAuthGuard, PermissionsGuard } from "@authv2/guards"
     ReceiverModule,
     StreamReceiverModule, // WebSocket 流接收器
     QueryModule,
-    ChartIntradayModule,
+    ReceiverChartIntradayModule,
 
     // 处理阶段模块
     TransformerModule,

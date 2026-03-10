@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
-import { createHmac, timingSafeEqual } from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 import { createLogger } from "@common/logging/index";
 import {
@@ -9,42 +9,93 @@ import {
   UniversalExceptionFactory,
 } from "@common/core/exceptions";
 import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
+import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import { SymbolTransformerService } from "@core/02-processing/symbol-transformer/services/symbol-transformer.service";
+import {
+  ChartIntradayCursorService,
+  type IntradayCursorPayload,
+  type ResolvedIntradayCursorContext,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
+import { DataFetcherService } from "@core/03-fetching/data-fetcher/services/data-fetcher.service";
 import { isValidYmdDate } from "@core/shared/utils/ymd-date.util";
 import {
+  isSupportedMarket,
   isTimestampInTradingDay,
   parseFlexibleTimestampToMs,
   resolveMarketTimezone,
+  SUPPORTED_MARKETS,
 } from "@core/shared/utils/market-time.util";
-import { ReceiverService } from "../../receiver/services/receiver.service";
-import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 
-import { IntradaySnapshotRequestDto } from "../dto/intraday-snapshot-request.dto";
-import { IntradayDeltaRequestDto } from "../dto/intraday-delta-request.dto";
-import {
-  IntradayDeltaResponseDto,
-  IntradayPointDto,
-  IntradaySnapshotResponseDto,
-} from "../dto/intraday-line-response.dto";
+type ResolvedIntradayContext = ResolvedIntradayCursorContext;
 
-interface IntradayCursorPayload {
-  v: number;
+export interface IntradaySnapshotRequestDto {
   symbol: string;
-  market: string;
-  tradingDay: string;
+  market?: string;
+  tradingDay?: string;
   provider?: string;
-  lastPointTimestamp: string;
-  issuedAt: string;
+  pointLimit?: number;
 }
 
-interface SignedIntradayCursorPayload extends IntradayCursorPayload {
-  sig: string;
+export interface IntradayDeltaRequestDto {
+  symbol: string;
+  market?: string;
+  tradingDay?: string;
+  provider?: string;
+  cursor: string;
+  limit?: number;
+  strictProviderConsistency?: boolean;
 }
 
-interface ResolvedIntradayContext {
+export interface IntradayPointDto {
+  timestamp: string;
+  price: number;
+  volume: number;
+}
+
+export interface IntradayLineDto {
   symbol: string;
   market: string;
   tradingDay: string;
+  granularity: "1s";
+  points: IntradayPointDto[];
+}
+
+export interface IntradaySnapshotCapabilityDto {
+  snapshotBaseGranularity: "1m";
+  supportsFullDay1sHistory: boolean;
+}
+
+export interface IntradaySyncDto {
+  cursor: string;
+  lastPointTimestamp: string;
+  serverTime: string;
+}
+
+export interface IntradaySnapshotMetadataDto {
   provider: string;
+  historyPoints: number;
+  realtimeMergedPoints: number;
+  deduplicatedPoints: number;
+}
+
+export interface IntradaySnapshotResponseDto {
+  line: IntradayLineDto;
+  capability: IntradaySnapshotCapabilityDto;
+  sync: IntradaySyncDto;
+  metadata: IntradaySnapshotMetadataDto;
+}
+
+export interface IntradayDeltaPayloadDto {
+  points: IntradayPointDto[];
+  hasMore: boolean;
+  nextCursor: string;
+  lastPointTimestamp: string;
+  serverTime: string;
+}
+
+export interface IntradayDeltaResponseDto {
+  delta: IntradayDeltaPayloadDto;
 }
 
 interface MergeResult {
@@ -53,28 +104,21 @@ interface MergeResult {
 }
 
 @Injectable()
-export class ChartIntradayService {
-  private readonly logger = createLogger(ChartIntradayService.name);
-
-  private readonly cursorSigningSecret = this.resolveCursorSigningSecret();
+export class ChartIntradayReadService {
+  private readonly logger = createLogger(ChartIntradayReadService.name);
 
   private static readonly DEFAULT_PROVIDER = "infoway";
   private static readonly DEFAULT_POINT_LIMIT = 30000;
   private static readonly DEFAULT_DELTA_LIMIT = 2000;
   private static readonly MAX_HISTORY_KLINE_NUM = 500;
-  private static readonly MAX_CURSOR_AGE_MS = 2 * 60 * 60 * 1000;
-  private static readonly MAX_CURSOR_FUTURE_SKEW_MS = 5 * 60 * 1000;
-  private static readonly SUPPORTED_MARKETS = new Set([
-    "US",
-    "HK",
-    "CN",
-    "SH",
-    "SZ",
-  ]);
+  private static readonly SUPPORTED_MARKET_SET = new Set(SUPPORTED_MARKETS);
 
   constructor(
-    private readonly receiverService: ReceiverService,
+    private readonly dataFetcherService: DataFetcherService,
+    private readonly symbolTransformerService: SymbolTransformerService,
+    private readonly providerRegistryService: ProviderRegistryService,
     private readonly streamDataFetcherService: StreamDataFetcherService,
+    private readonly chartIntradayCursorService: ChartIntradayCursorService,
   ) {}
 
   async getSnapshot(
@@ -82,7 +126,7 @@ export class ChartIntradayService {
   ): Promise<IntradaySnapshotResponseDto> {
     const resolved = this.resolveContext(request);
     const pointLimit =
-      request.pointLimit ?? ChartIntradayService.DEFAULT_POINT_LIMIT;
+      request.pointLimit ?? ChartIntradayReadService.DEFAULT_POINT_LIMIT;
     const now = new Date();
 
     this.logger.log("开始生成分时快照", {
@@ -161,25 +205,6 @@ export class ChartIntradayService {
   }
 
   async getDelta(request: IntradayDeltaRequestDto): Promise<IntradayDeltaResponseDto> {
-    if (
-      Object.prototype.hasOwnProperty.call(
-        request as object,
-        "since",
-      )
-    ) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: "delta",
-        message: "INVALID_ARGUMENT: since 参数已废弃，请使用 cursor",
-        statusCode: HttpStatus.BAD_REQUEST,
-        context: {
-          symbol: request.symbol,
-          market: request.market,
-          tradingDay: request.tradingDay,
-        },
-      });
-    }
-
     if (!request.cursor?.trim()) {
       throw this.createBusinessException({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
@@ -201,7 +226,7 @@ export class ChartIntradayService {
       tradingDay: request.tradingDay ?? cursorPayload.tradingDay,
       provider: request.provider ?? cursorPayload.provider,
     });
-    const limit = request.limit ?? ChartIntradayService.DEFAULT_DELTA_LIMIT;
+    const limit = request.limit ?? ChartIntradayReadService.DEFAULT_DELTA_LIMIT;
     const now = new Date();
     this.assertCursorValid(
       cursorPayload,
@@ -273,7 +298,7 @@ export class ChartIntradayService {
     const historyKlineNum = Math.max(
       1,
       Math.min(
-        ChartIntradayService.MAX_HISTORY_KLINE_NUM,
+        ChartIntradayReadService.MAX_HISTORY_KLINE_NUM,
         Math.ceil(pointLimit / 60),
       ),
     );
@@ -284,18 +309,46 @@ export class ChartIntradayService {
     );
 
     try {
-      const receiverResponse = await this.receiverService.handleRequest({
-        symbols: [resolved.symbol],
-        receiverType: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+      const requestId = uuidv4();
+      const symbolMapping =
+        await this.symbolTransformerService.transformSymbolsForProvider(
+          resolved.provider,
+          [resolved.symbol],
+          requestId,
+        );
+      const transformedSymbol = String(
+        symbolMapping.transformedSymbols?.[0] || "",
+      )
+        .trim();
+      if (!transformedSymbol) {
+        throw this.createBusinessException({
+          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+          operation: "snapshot_history_fetch",
+          message: "SYMBOL_TRANSFORM_FAILED: 无法转换标的",
+          statusCode: HttpStatus.NOT_FOUND,
+          context: {
+            symbol: resolved.symbol,
+            market: resolved.market,
+            provider: resolved.provider,
+          },
+        });
+      }
+
+      const fetchResult = await this.dataFetcherService.fetchRawData({
+        provider: resolved.provider,
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        symbols: [transformedSymbol],
+        requestId,
+        apiType: "rest",
         options: {
           preferredProvider: resolved.provider,
           market: resolved.market,
           klineNum: historyKlineNum,
           timestamp: historyEndTimestamp,
         },
-      } as any);
+      });
 
-      const rows = this.extractRows(receiverResponse?.data);
+      const rows = this.flattenHistoryRows(this.extractRows(fetchResult?.data));
       const normalized = rows
         .map((row) => {
           const timestampMs = this.parseTimestampToMs(row?.timestamp ?? row?.t);
@@ -451,6 +504,29 @@ export class ChartIntradayService {
     return [];
   }
 
+  private flattenHistoryRows(
+    rows: Record<string, unknown>[],
+  ): Record<string, unknown>[] {
+    const flattened: Record<string, unknown>[] = [];
+    let hasNested = false;
+
+    for (const row of rows) {
+      const respList = (row as { respList?: unknown })?.respList;
+      if (Array.isArray(respList)) {
+        hasNested = true;
+        for (const item of respList) {
+          if (item && typeof item === "object") {
+            flattened.push(item as Record<string, unknown>);
+          }
+        }
+      } else {
+        flattened.push(row);
+      }
+    }
+
+    return hasNested ? flattened : rows;
+  }
+
   private resolveContext(
     request: {
       symbol: string;
@@ -475,9 +551,7 @@ export class ChartIntradayService {
     const symbolSuffix = String(symbol.split(".").pop() || "")
       .trim()
       .toUpperCase();
-    const inferredMarket = ChartIntradayService.SUPPORTED_MARKETS.has(symbolSuffix)
-      ? symbolSuffix
-      : "";
+    const inferredMarket = isSupportedMarket(symbolSuffix) ? symbolSuffix : "";
     let market = explicitMarket;
     if (!market) {
       if (inferredMarket) {
@@ -508,7 +582,7 @@ export class ChartIntradayService {
       });
     }
 
-    if (!ChartIntradayService.SUPPORTED_MARKETS.has(market)) {
+    if (!isSupportedMarket(market)) {
       throw this.createBusinessException({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: "resolve_context",
@@ -534,10 +608,33 @@ export class ChartIntradayService {
       symbol,
       market,
       tradingDay,
-      provider: String(request.provider || ChartIntradayService.DEFAULT_PROVIDER)
-        .trim()
-        .toLowerCase(),
+      provider: this.resolveProvider(request.provider, market),
     };
+  }
+
+  private resolveProvider(provider: string | undefined, market: string): string {
+    const normalized = String(provider || "").trim().toLowerCase();
+    if (normalized) {
+      return normalized;
+    }
+
+    try {
+      const preferred =
+        this.providerRegistryService.getBestProvider(
+          CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          market,
+        ) ||
+        this.providerRegistryService.getBestProvider(
+          CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        );
+      if (preferred) {
+        return String(preferred).trim().toLowerCase();
+      }
+    } catch {
+      return ChartIntradayReadService.DEFAULT_PROVIDER;
+    }
+
+    return ChartIntradayReadService.DEFAULT_PROVIDER;
   }
 
   private resolveCurrentTradingDay(market: string): string {
@@ -645,72 +742,11 @@ export class ChartIntradayService {
   }
 
   private encodeCursor(payload: IntradayCursorPayload): string {
-    const signedPayload: SignedIntradayCursorPayload = {
-      ...payload,
-      sig: this.signCursorPayload(payload),
-    };
-    return Buffer.from(JSON.stringify(signedPayload), "utf-8").toString(
-      "base64",
-    );
+    return this.chartIntradayCursorService.encodeCursor(payload);
   }
 
   private decodeCursor(cursor: string): IntradayCursorPayload {
-    try {
-      const raw = Buffer.from(cursor, "base64").toString("utf-8");
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      if (!parsed || typeof parsed !== "object") {
-        throw new Error("invalid cursor payload");
-      }
-
-      if (
-        typeof parsed.v !== "number" ||
-        typeof parsed.symbol !== "string" ||
-        typeof parsed.market !== "string" ||
-        typeof parsed.tradingDay !== "string" ||
-        typeof parsed.lastPointTimestamp !== "string" ||
-        typeof parsed.issuedAt !== "string" ||
-        typeof parsed.sig !== "string"
-      ) {
-        throw new Error("invalid cursor payload");
-      }
-
-      const providerValue = parsed.provider;
-      if (providerValue !== undefined && typeof providerValue !== "string") {
-        throw new Error("invalid cursor payload");
-      }
-      const normalizedProvider =
-        typeof providerValue === "string"
-          ? providerValue.trim().toLowerCase()
-          : undefined;
-      const payload: IntradayCursorPayload = {
-        v: parsed.v,
-        symbol: parsed.symbol.trim().toUpperCase(),
-        market: parsed.market.trim().toUpperCase(),
-        tradingDay: parsed.tradingDay.trim(),
-        provider: normalizedProvider || undefined,
-        lastPointTimestamp: parsed.lastPointTimestamp.trim(),
-        issuedAt: parsed.issuedAt.trim(),
-      };
-      const signature = parsed.sig.trim();
-
-      if (!this.isValidCursorPayload(payload) || !signature) {
-        throw new Error("invalid cursor payload");
-      }
-
-      const expectedSignature = this.signCursorPayload(payload);
-      if (!this.isSignatureMatch(signature, expectedSignature)) {
-        throw new Error("cursor tampered");
-      }
-
-      return payload;
-    } catch {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: "decode_cursor",
-        message: "INVALID_ARGUMENT: cursor 格式无效",
-        statusCode: HttpStatus.BAD_REQUEST,
-      });
-    }
+    return this.chartIntradayCursorService.decodeCursor(cursor);
   }
 
   private assertCursorValid(
@@ -719,135 +755,12 @@ export class ChartIntradayService {
     now: Date,
     strictProviderConsistency: boolean,
   ): void {
-    if (
-      payload.symbol !== resolved.symbol ||
-      payload.market !== resolved.market ||
-      payload.tradingDay !== resolved.tradingDay
-    ) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.INVALID_OPERATION,
-        operation: "validate_cursor",
-        message: "CURSOR_EXPIRED: 游标与当前请求上下文不匹配",
-        statusCode: HttpStatus.CONFLICT,
-        context: {
-          cursorSymbol: payload.symbol,
-          cursorMarket: payload.market,
-          cursorTradingDay: payload.tradingDay,
-          requestSymbol: resolved.symbol,
-          requestMarket: resolved.market,
-          requestTradingDay: resolved.tradingDay,
-        },
-      });
-    }
-
-    const issuedAtMs = this.parseTimestampToMs(payload.issuedAt);
-    const nowMs = now.getTime();
-    if (!issuedAtMs) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.INVALID_OPERATION,
-        operation: "validate_cursor",
-        message: "CURSOR_EXPIRED: 游标时间戳非法，请重新拉取 snapshot",
-        statusCode: HttpStatus.CONFLICT,
-      });
-    }
-    if (issuedAtMs - nowMs > ChartIntradayService.MAX_CURSOR_FUTURE_SKEW_MS) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.INVALID_OPERATION,
-        operation: "validate_cursor",
-        message: "CURSOR_EXPIRED: 游标签发时间异常，请重新拉取 snapshot",
-        statusCode: HttpStatus.CONFLICT,
-      });
-    }
-    if (nowMs - issuedAtMs > ChartIntradayService.MAX_CURSOR_AGE_MS) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.INVALID_OPERATION,
-        operation: "validate_cursor",
-        message: "CURSOR_EXPIRED: 游标已过期，请重新拉取 snapshot",
-        statusCode: HttpStatus.CONFLICT,
-      });
-    }
-
-    if (
-      strictProviderConsistency &&
-      String(payload.provider || "").trim().toLowerCase() !== resolved.provider
-    ) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.INVALID_OPERATION,
-        operation: "validate_cursor",
-        message:
-          "CURSOR_EXPIRED: provider 不一致，请重新拉取 snapshot 或关闭 strictProviderConsistency",
-        statusCode: HttpStatus.CONFLICT,
-        context: {
-          cursorProvider: payload.provider || null,
-          requestProvider: resolved.provider,
-        },
-      });
-    }
-  }
-
-  private isValidCursorPayload(payload: IntradayCursorPayload): boolean {
-    if (
-      payload.v !== 1 ||
-      !payload.symbol ||
-      !payload.market ||
-      !payload.tradingDay ||
-      !payload.lastPointTimestamp ||
-      !payload.issuedAt
-    ) {
-      return false;
-    }
-
-    if (!ChartIntradayService.SUPPORTED_MARKETS.has(payload.market)) {
-      return false;
-    }
-    if (!isValidYmdDate(payload.tradingDay)) {
-      return false;
-    }
-    if (
-      !this.parseTimestampToMs(payload.lastPointTimestamp) ||
-      !this.parseTimestampToMs(payload.issuedAt)
-    ) {
-      return false;
-    }
-    if (payload.provider !== undefined && !payload.provider.trim()) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private resolveCursorSigningSecret(): string {
-    const secret = String(process.env.CHART_INTRADAY_CURSOR_SECRET || "").trim();
-    if (secret) {
-      return secret;
-    }
-    throw new Error(
-      "CHART_INTRADAY_CURSOR_SECRET 未配置，服务启动失败",
+    this.chartIntradayCursorService.assertCursorValid(
+      payload,
+      resolved,
+      now,
+      strictProviderConsistency,
     );
-  }
-
-  private signCursorPayload(payload: IntradayCursorPayload): string {
-    const signingRaw = [
-      payload.v,
-      payload.symbol,
-      payload.market,
-      payload.tradingDay,
-      payload.provider || "",
-      payload.lastPointTimestamp,
-      payload.issuedAt,
-    ].join("|");
-    return createHmac("sha256", this.cursorSigningSecret)
-      .update(signingRaw, "utf-8")
-      .digest("hex");
-  }
-
-  private isSignatureMatch(signature: string, expected: string): boolean {
-    const actualBuffer = Buffer.from(signature, "utf-8");
-    const expectedBuffer = Buffer.from(expected, "utf-8");
-    if (actualBuffer.length !== expectedBuffer.length) {
-      return false;
-    }
-    return timingSafeEqual(actualBuffer, expectedBuffer);
   }
 
   private createBusinessException(options: {
@@ -858,7 +771,7 @@ export class ChartIntradayService {
     context?: Record<string, unknown>;
   }): BusinessException {
     return UniversalExceptionFactory.createBusinessException({
-      component: ComponentIdentifier.RECEIVER,
+      component: ComponentIdentifier.DATA_FETCHER,
       errorCode: options.errorCode,
       operation: options.operation,
       message: options.message,

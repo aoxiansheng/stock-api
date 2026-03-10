@@ -1,6 +1,16 @@
 import { ApiProperty } from "@nestjs/swagger";
+import type {
+  IntradayDeltaPayloadDto as IntradayDeltaPayloadDtoContract,
+  IntradayDeltaResponseDto as IntradayDeltaResponseDtoContract,
+  IntradayLineDto as IntradayLineDtoContract,
+  IntradayPointDto as IntradayPointDtoContract,
+  IntradaySnapshotCapabilityDto as IntradaySnapshotCapabilityDtoContract,
+  IntradaySnapshotMetadataDto as IntradaySnapshotMetadataDtoContract,
+  IntradaySnapshotResponseDto as IntradaySnapshotResponseDtoContract,
+  IntradaySyncDto as IntradaySyncDtoContract,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 
-export class IntradayPointDto {
+export class IntradayPointDto implements IntradayPointDtoContract {
   @ApiProperty({
     description: "点位时间（UTC ISO）",
     example: "2026-03-08T15:42:01.000Z",
@@ -20,7 +30,7 @@ export class IntradayPointDto {
   volume: number;
 }
 
-export class IntradayLineDto {
+export class IntradayLineDto implements IntradayLineDtoContract {
   @ApiProperty({ example: "AAPL.US" })
   symbol: string;
 
@@ -37,7 +47,9 @@ export class IntradayLineDto {
   points: IntradayPointDto[];
 }
 
-export class IntradaySnapshotCapabilityDto {
+export class IntradaySnapshotCapabilityDto
+  implements IntradaySnapshotCapabilityDtoContract
+{
   @ApiProperty({ example: "1m" })
   snapshotBaseGranularity: "1m";
 
@@ -45,7 +57,7 @@ export class IntradaySnapshotCapabilityDto {
   supportsFullDay1sHistory: boolean;
 }
 
-export class IntradaySyncDto {
+export class IntradaySyncDto implements IntradaySyncDtoContract {
   @ApiProperty({
     example:
       "eyJ2IjoxLCJzeW1ib2wiOiJBQVBMLlVTIiwibWFya2V0IjoiVVMiLCJ0cmFkaW5nRGF5IjoiMjAyNjAzMDgiLCJsYXN0UG9pbnRUaW1lc3RhbXAiOiIyMDI2LTAzLTA4VDE1OjQyOjAwLjAwMFoiLCJpc3N1ZWRBdCI6IjIwMjYtMDMtMDhUMTU6NDI6MDEuMTIwWiJ9",
@@ -59,7 +71,9 @@ export class IntradaySyncDto {
   serverTime: string;
 }
 
-export class IntradaySnapshotMetadataDto {
+export class IntradaySnapshotMetadataDto
+  implements IntradaySnapshotMetadataDtoContract
+{
   @ApiProperty({ example: "infoway" })
   provider: string;
 
@@ -73,7 +87,9 @@ export class IntradaySnapshotMetadataDto {
   deduplicatedPoints: number;
 }
 
-export class IntradaySnapshotResponseDto {
+export class IntradaySnapshotResponseDto
+  implements IntradaySnapshotResponseDtoContract
+{
   @ApiProperty({ type: IntradayLineDto })
   line: IntradayLineDto;
 
@@ -87,7 +103,9 @@ export class IntradaySnapshotResponseDto {
   metadata: IntradaySnapshotMetadataDto;
 }
 
-export class IntradayDeltaPayloadDto {
+export class IntradayDeltaPayloadDto
+  implements IntradayDeltaPayloadDtoContract
+{
   @ApiProperty({ type: [IntradayPointDto] })
   points: IntradayPointDto[];
 
@@ -107,7 +125,9 @@ export class IntradayDeltaPayloadDto {
   serverTime: string;
 }
 
-export class IntradayDeltaResponseDto {
+export class IntradayDeltaResponseDto
+  implements IntradayDeltaResponseDtoContract
+{
   @ApiProperty({ type: IntradayDeltaPayloadDto })
   delta: IntradayDeltaPayloadDto;
 }

@@ -23,8 +23,10 @@
 
 2. **01-entry (入口阶段)**
    - `receiver/`: 强时效接口（交易时段 1 秒缓存，非交易时段可延长）
+   - `receiver/receiver-chart-intraday.*`: 分时折线 HTTP 入口，负责 DTO、Swagger、鉴权与薄编排
    - `stream-receiver/`: WebSocket实时流数据接收（支持流缓存，按配置开关）
    - `query/`: 弱时效接口（智能检测，分析决策）
+   - `query/support-list.*`: support-list 弱时效 HTTP 入口，负责协议暴露与薄编排
 
 3. **02-processing (处理阶段)**
    - `symbol-transformer/`: 股票代码实时转换服务
@@ -33,6 +35,8 @@
 4. **03-fetching (获取阶段)**
    - `data-fetcher/`: HTTP数据拉取服务
    - `stream-data-fetcher/`: WebSocket流数据推送服务
+   - `chart-intraday/`: 分时折线读取能力实现，包含 `ChartIntradayReadService` 与 cursor 共享模块
+   - `support-list/`: support-list 读取与同步实现，包含 `SupportListReadService`、同步调度、差异计算与存储协作
 
 5. **04-storage (存储阶段)**
    - `storage/`: MongoDB 持久化存储（缓存能力由 05-caching 层承担）
@@ -58,6 +62,18 @@
 - 源码：`src/`（核心：`appcore/` 配置与启动、`core/` 领域模块、`providersv2/` 外部数据源、`cachev2/` 缓存、`authv2/` 鉴权、`common/` 公共模块、`database/` 数据库整合）。入口：`src/main.ts`。
 - 文档与脚本：`docs/`、`scripts/`；构建产物：`dist/`；测试：`test/`（`test/unit` 与 `test/e2e` 并行维护）。
 - TS 路径别名（见 `tsconfig.json`）：如 `@core/*`、`@providersv2/*`、`@cachev2/*` 等，优先使用别名而非相对路径。
+
+### chart-intraday 最新落位
+- 对外入口位于 `src/core/01-entry/receiver/`，当前由 `receiver-chart-intraday.controller.ts` 与 `receiver-chart-intraday.service.ts` 承担。
+- 核心读取实现位于 `src/core/03-fetching/chart-intraday/`，由 `ChartIntradayReadService` 负责 snapshot/delta 编排。
+- cursor 协议已统一为共享模块：`src/core/03-fetching/chart-intraday/module/chart-intraday-cursor.module.ts` + `services/chart-intraday-cursor.service.ts`，供 HTTP 与 WS 复用。
+- 旧的 `src/core/01-entry/chart-intraday/` 已移除，不应恢复为独立入口模块。
+
+### support-list 最新落位
+- 对外入口位于 `src/core/01-entry/query/`，当前由 `support-list-query.controller.ts` 与 `support-list-query.service.ts` 承担。
+- 核心读取实现位于 `src/core/03-fetching/support-list/`，由 `SupportListReadService` 对外提供 meta / full / delta 读取能力。
+- 同步与存储职责保留在 fetching 层，由 `SupportListSyncService`、`SupportListFetchGatewayService`、`SupportListStoreService` 与 `SupportListSyncScheduler` 协同完成。
+- 当前模式应保持为“query 入口消费 + fetching 能力实现”，不应把 support-list 核心逻辑回迁到 `01-entry/query/`。
 
 ## 构建、测试与本地开发
 - 开发：`bun run dev`（热重载）/ 调试：`bun run start:debug`。

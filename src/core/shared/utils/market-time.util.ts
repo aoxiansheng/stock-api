@@ -5,6 +5,10 @@ export const SUPPORTED_MARKETS = ["US", "HK", "CN", "SH", "SZ"] as const;
 export type SupportedMarket = (typeof SUPPORTED_MARKETS)[number];
 export type SupportedMarketOrUnknown = SupportedMarket | "UNKNOWN";
 
+export function isSupportedMarket(market: string): market is SupportedMarket {
+  return SUPPORTED_MARKETS.includes(market as SupportedMarket);
+}
+
 const tradingDayFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getTradingDayFormatter(timeZone: string): Intl.DateTimeFormat {
@@ -37,11 +41,8 @@ export function inferMarketFromSymbol(
   const inferredMarket = SymbolValidationUtils.getMarketFromSymbol(normalized, {
     fallback: undefined,
   });
-  if (
-    inferredMarket &&
-    SUPPORTED_MARKETS.includes(inferredMarket as SupportedMarket)
-  ) {
-    return inferredMarket as SupportedMarket;
+  if (inferredMarket && isSupportedMarket(inferredMarket)) {
+    return inferredMarket;
   }
 
   return fallback;

@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  Post,
-  ValidationPipe,
-} from "@nestjs/common";
+import { Body, Controller, HttpCode, Post, ValidationPipe } from "@nestjs/common";
 import { ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { ReadAccess } from "@authv2/decorators";
@@ -13,18 +7,20 @@ import {
   ApiSuccessResponse,
 } from "@common/core/decorators/swagger-responses.decorator";
 
-import { IntradaySnapshotRequestDto } from "../dto/intraday-snapshot-request.dto";
 import { IntradayDeltaRequestDto } from "../dto/intraday-delta-request.dto";
 import {
   IntradayDeltaResponseDto,
   IntradaySnapshotResponseDto,
 } from "../dto/intraday-line-response.dto";
-import { ChartIntradayService } from "../services/chart-intraday.service";
+import { IntradaySnapshotRequestDto } from "../dto/intraday-snapshot-request.dto";
+import { ReceiverChartIntradayService } from "../services/receiver-chart-intraday.service";
 
 @ApiTags("📈 分时折线接口")
 @Controller("chart/intraday-line")
-export class ChartIntradayController {
-  constructor(private readonly chartIntradayService: ChartIntradayService) {}
+export class ReceiverChartIntradayController {
+  constructor(
+    private readonly receiverChartIntradayService: ReceiverChartIntradayService,
+  ) {}
 
   @ReadAccess()
   @Post("snapshot")
@@ -32,13 +28,12 @@ export class ChartIntradayController {
   @ApiConsumes("application/json")
   @ApiOperation({
     summary: "分时折线快照（首屏全量）",
-    description:
-      "返回当前可得分时快照。当前实现为 1m 历史基线 + 实时 1s 增量窗口。",
+    description: "返回当前可得分时快照。当前实现为 1m 历史基线 + 实时 1s 增量窗口。",
   })
   @ApiSuccessResponse({ type: IntradaySnapshotResponseDto })
   @ApiKeyAuthResponses()
-  async getSnapshot(@Body(ValidationPipe) body: IntradaySnapshotRequestDto) {
-    return this.chartIntradayService.getSnapshot(body);
+  getSnapshot(@Body(ValidationPipe) body: IntradaySnapshotRequestDto) {
+    return this.receiverChartIntradayService.getSnapshot(body);
   }
 
   @ReadAccess()
@@ -51,7 +46,7 @@ export class ChartIntradayController {
   })
   @ApiSuccessResponse({ type: IntradayDeltaResponseDto })
   @ApiKeyAuthResponses()
-  async getDelta(@Body(ValidationPipe) body: IntradayDeltaRequestDto) {
-    return this.chartIntradayService.getDelta(body);
+  getDelta(@Body(ValidationPipe) body: IntradayDeltaRequestDto) {
+    return this.receiverChartIntradayService.getDelta(body);
   }
 }

@@ -1,6 +1,7 @@
 import { ChartIntradayCursorService } from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
 import { ChartIntradayReadService } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 import { BusinessException } from "@common/core/exceptions";
+import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 import { createHmac } from "crypto";
 
 type CursorPayload = {
@@ -91,8 +92,27 @@ describe("ChartIntradayReadService", () => {
       options?.secret === undefined ? DEFAULT_CURSOR_SECRET : options.secret,
     );
 
-    const receiverService = {
-      handleRequest: jest.fn(),
+    const dataFetcherService = {
+      fetchRawData: jest.fn(),
+      supportsCapability: jest.fn().mockResolvedValue(true),
+      getProviderContext: jest.fn().mockResolvedValue(null),
+    };
+    const symbolTransformerService = {
+      transformSymbolsForProvider: jest.fn(),
+      transformSingleSymbol: jest.fn(),
+    };
+    const providerRegistryService = {
+      getCandidateProviders: jest.fn().mockReturnValue(["infoway"]),
+      rankProvidersForCapability: jest.fn().mockReturnValue(["infoway"]),
+      getBestProvider: jest.fn().mockReturnValue("infoway"),
+      resolveHistoryExecutionContext: jest.fn().mockReturnValue({
+        reasonCode: "success",
+        contextService: null,
+        capability: { name: CAPABILITY_NAMES.GET_STOCK_HISTORY },
+      }),
+      getCapability: jest.fn().mockReturnValue({
+        name: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+      }),
     };
     const streamCache = {
       getData: jest.fn(),
@@ -102,15 +122,40 @@ describe("ChartIntradayReadService", () => {
     };
 
     const chartIntradayCursorService = new ChartIntradayCursorService();
+    symbolTransformerService.transformSymbolsForProvider.mockImplementation(
+      async (provider: string, symbols: string[]) => ({
+        transformedSymbols: symbols,
+        mappingResults: {
+          transformedSymbols: Object.fromEntries(
+            symbols.map((symbol) => [symbol, symbol]),
+          ),
+          failedSymbols: [],
+          metadata: {
+            provider,
+            totalSymbols: symbols.length,
+            successfulTransformations: symbols.length,
+            failedTransformations: 0,
+            processingTimeMs: 0,
+          },
+        },
+      }),
+    );
+    symbolTransformerService.transformSingleSymbol.mockImplementation(
+      async (_provider: string, symbol: string) => symbol,
+    );
     const service = new ChartIntradayReadService(
-      receiverService as any,
+      dataFetcherService as any,
+      symbolTransformerService as any,
+      providerRegistryService as any,
       streamDataFetcherService as any,
       chartIntradayCursorService,
     );
 
     return {
       service,
-      receiverService,
+      dataFetcherService,
+      symbolTransformerService,
+      providerRegistryService,
       streamDataFetcherService,
       streamCache,
     };
@@ -131,13 +176,18 @@ describe("ChartIntradayReadService", () => {
   });
 
   it("snapshot: 合并分钟基线与实时点，实时点可覆盖同秒历史点", async () => {
-    const { service, receiverService, streamCache } = createService();
+    const {
+      service,
+      dataFetcherService,
+      symbolTransformerService,
+      streamCache,
+    } = createService();
     const nowMs = Date.now();
     const t1 = Math.floor((nowMs - 120_000) / 1000);
     const t2 = Math.floor((nowMs - 60_000) / 1000);
     const t3 = Math.floor(nowMs / 1000);
 
-    receiverService.handleRequest.mockResolvedValue({
+    dataFetcherService.fetchRawData.mockResolvedValue({
       data: [
         {
           symbol: "AAPL.US",
@@ -152,6 +202,12 @@ describe("ChartIntradayReadService", () => {
           volume: "2000",
         },
       ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
     });
 
     streamCache.getData.mockResolvedValue([
@@ -176,13 +232,17 @@ describe("ChartIntradayReadService", () => {
       pointLimit: 300,
     });
 
-    expect(receiverService.handleRequest).toHaveBeenCalledTimes(1);
-    expect(receiverService.handleRequest).toHaveBeenCalledWith(
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
       expect.objectContaining({
-        receiverType: "get-stock-history",
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
         symbols: ["AAPL.US"],
       }),
     );
+    const transformCalls =
+      symbolTransformerService.transformSymbolsForProvider.mock.calls.length +
+      symbolTransformerService.transformSingleSymbol.mock.calls.length;
+    expect(transformCalls).toBeGreaterThan(0);
 
     expect(result.line.symbol).toBe("AAPL.US");
     expect(result.line.granularity).toBe("1s");
@@ -196,9 +256,9 @@ describe("ChartIntradayReadService", () => {
   });
 
   it("snapshot: 历史基线按 tradingDay 过滤，避免跨日污染", async () => {
-    const { service, receiverService, streamCache } = createService();
+    const { service, dataFetcherService, streamCache } = createService();
     streamCache.getData.mockResolvedValue([]);
-    receiverService.handleRequest.mockResolvedValue({
+    dataFetcherService.fetchRawData.mockResolvedValue({
       data: [
         {
           symbol: "AAPL.US",
@@ -213,6 +273,12 @@ describe("ChartIntradayReadService", () => {
           volume: "200",
         },
       ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
     });
 
     const result = await service.getSnapshot({
@@ -225,6 +291,82 @@ describe("ChartIntradayReadService", () => {
     expect(result.line.points).toHaveLength(1);
     expect(result.line.points[0].timestamp).toBe("2026-01-15T05:00:00.000Z");
     expect(result.metadata.historyPoints).toBe(1);
+  });
+
+  it("snapshot: 保持 symbol mapper 输出大小写，不做二次大写改写", async () => {
+    const { service, dataFetcherService, symbolTransformerService, streamCache } =
+      createService();
+    const providerSymbol = "aapl.us";
+    const t1 = "2026-01-15T15:00:00.000Z";
+    streamCache.getData.mockResolvedValue([]);
+    symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
+      transformedSymbols: [providerSymbol],
+      mappingResults: {
+        transformedSymbols: { "AAPL.US": providerSymbol },
+        failedSymbols: [],
+        metadata: {
+          provider: "infoway",
+          totalSymbols: 1,
+          successfulTransformations: 1,
+          failedTransformations: 0,
+          processingTimeMs: 0,
+        },
+      },
+    });
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        {
+          symbol: providerSymbol,
+          timestamp: t1,
+          lastPrice: "100.20",
+          volume: "200",
+        },
+      ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
+    });
+
+    await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      tradingDay: "20260115",
+      pointLimit: 300,
+    });
+
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        symbols: [providerSymbol],
+      }),
+    );
+  });
+
+  it("snapshot: provider 拉取失败时返回 503", async () => {
+    const { service, dataFetcherService } = createService();
+    dataFetcherService.fetchRawData.mockRejectedValue(
+      new Error("provider unavailable"),
+    );
+
+    expect.assertions(1);
+    try {
+      await service.getSnapshot({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        pointLimit: 300,
+      });
+    } catch (error) {
+      const status =
+        typeof (error as { getStatus?: () => number }).getStatus === "function"
+          ? (error as { getStatus: () => number }).getStatus()
+          : (error as { statusCode?: number; status?: number }).statusCode ??
+            (error as { status?: number }).status;
+      expect(status).toBe(503);
+    }
   });
 
   it("snapshot: 显式 market 与 symbol 可推断市场不一致时返回 400", async () => {
@@ -425,7 +567,22 @@ describe("ChartIntradayReadService", () => {
     }
   });
 
-  it("delta: 仅 since 时返回 400", async () => {
+  it("delta: 超长 cursor 时返回 400", async () => {
+    const { service } = createService();
+
+    expect.assertions(2);
+    try {
+      await service.getDelta({
+        symbol: "AAPL.US",
+        cursor: "a".repeat(4097),
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(BusinessException);
+      expect((error as BusinessException).getStatus()).toBe(400);
+    }
+  });
+
+  it("delta: 仅 since 时按缺少 cursor 处理", async () => {
     const { service } = createService();
 
     expect.assertions(3);
@@ -437,7 +594,7 @@ describe("ChartIntradayReadService", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessException);
       expect((error as BusinessException).getStatus()).toBe(400);
-      expect((error as Error).message).toContain("since 参数已废弃");
+      expect((error as Error).message).toContain("delta 请求必须提供带 sig 的 cursor");
     }
   });
 
