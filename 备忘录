@@ -115,3 +115,53 @@ BASE_URL="http://127.0.0.1:3001" \
   APP_KEY="<REDACTED_APP_KEY>" \
   ACCESS_TOKEN="<REDACTED_ACCESS_TOKEN>" \
   npm run tool:test-infoway-rest
+
+
+
+  
+  "appKey": "7f007ab34a8f42adbd6ff82dc040f486",
+  "accessToken": "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a",
+
+  
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
+  ACCESS_TOKEN="efc9093eb9604db3ac480d32f54b3f56d149e25a59d84ea6a6654d6008e65185" \
+  BASE_URL="http://127.0.0.1:3001" \
+  SYMBOL="AAPL.US" \
+  bash "scripts/tools/test-get-stock-history-endpoint.sh"
+
+
+
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
+  ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  BASE_URL="http://127.0.0.1:3001" \
+  SYMBOL="00700.HK" \
+  bash "scripts/tools/test-chart-intraday-line-endpoint.sh"
+
+
+  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" \
+  CODES="AAPL.US" \
+  node "scripts/tools/test-infoway-trade-ws.js"
+
+
+
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
+  ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  BASE_URL="http://127.0.0.1:3001" \
+  SYMBOL="AAPL.US" \
+  bash "scripts/tools/local-project/test-rest-latest-price.sh"
+
+
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
+  ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  BASE_URL="http://127.0.0.1:3001" \
+  SYMBOL="00700.HK" \
+  node "scripts/tools/local-project/test-ws-latest-price.js"
+
+
+
+  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" TYPE="STOCK_US" \
+  node "scripts/tools/upstream-sdk/test-infoway-symbols-list.js"
+
+  原来 GET /receiver/support-list`
+  现在 GET /query/support-list/
+
