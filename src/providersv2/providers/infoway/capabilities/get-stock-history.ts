@@ -53,7 +53,7 @@ function validateInfowayHistoryTimestamp(timestamp?: number): number | undefined
 
 /**
  * Infoway REST 分时历史能力
- * 说明：provider 返回 batch_kline 原始字段，统一字段转换由 mapping 层处理。
+ * 说明：provider 返回标准格式 { data: [...] }，供 fetching 层统一处理。
  */
 export const getStockHistory: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_HISTORY,
@@ -114,7 +114,7 @@ export const getStockHistory: ICapability = {
     }
 
     if (symbols.length === 0) {
-      return { quote_data: [] };
+      return { data: [] };
     }
 
     const timestamp = validateInfowayHistoryTimestamp(params.timestamp);
@@ -127,7 +127,7 @@ export const getStockHistory: ICapability = {
       timestamp,
     });
 
-    return { quote_data: historyData };
+    return { data: historyData };
   },
 };
 

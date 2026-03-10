@@ -10,7 +10,7 @@ import {
 
 /**
  * Infoway REST 股票报价能力
- * 说明：provider 返回 batch_trade 原始成交字段，统一字段转换由 mapping 层处理。
+ * 说明：provider 返回标准格式 { data: [...] }，供 fetching 层统一处理。
  */
 export const getStockQuote: ICapability = {
   name: CAPABILITY_NAMES.GET_STOCK_QUOTE,
@@ -38,11 +38,11 @@ export const getStockQuote: ICapability = {
     });
 
     if (symbols.length === 0) {
-      return { quote_data: [] };
+      return { data: [] };
     }
 
     const quoteData = await contextService.getStockQuote(symbols);
-    return { quote_data: quoteData };
+    return { data: quoteData };
   },
 };
 

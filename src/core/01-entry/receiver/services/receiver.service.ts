@@ -1022,6 +1022,12 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         await this.dataTransformerService.transform(transformRequest);
 
       processedData = transformedResult.transformedData;
+      if (request.receiverType === CAPABILITY_NAMES.GET_STOCK_QUOTE) {
+        processedData = this.normalizeStockQuoteResponse(processedData);
+      }
+      if (request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+        processedData = this.normalizeStockHistoryResponse(processedData);
+      }
       const transformedSample = Array.isArray(processedData)
         ? processedData[0]
         : processedData;
@@ -1317,6 +1323,94 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { payload, isValid: true };
+  }
+
+  private normalizeStockQuoteResponse(payload: unknown): unknown {
+    if (Array.isArray(payload)) {
+      return payload.map((item) => this.normalizeStockQuoteRow(item));
+    }
+
+    if (payload && typeof payload === "object") {
+      return this.normalizeStockQuoteRow(payload as Record<string, unknown>);
+    }
+
+    return payload;
+  }
+
+  private normalizeStockHistoryResponse(payload: unknown): unknown {
+    if (Array.isArray(payload)) {
+      return payload.map((item) => this.normalizeStockHistoryRow(item));
+    }
+
+    if (payload && typeof payload === "object") {
+      return this.normalizeStockHistoryRow(payload as Record<string, unknown>);
+    }
+
+    return payload;
+  }
+
+  private normalizeStockQuoteRow(
+    row: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const normalizedRow = { ...row };
+
+    if (
+      (normalizedRow.market === undefined || normalizedRow.market === null || normalizedRow.market === "") &&
+      typeof normalizedRow.symbol === "string" &&
+      normalizedRow.symbol.trim()
+    ) {
+      const inferredMarket = this.marketInferenceService.inferMarket(normalizedRow.symbol);
+      if (inferredMarket) {
+        normalizedRow.market = inferredMarket;
+      }
+    }
+
+    const normalizedTimestamp = this.normalizeQuoteTimestamp(normalizedRow.timestamp);
+    if (normalizedTimestamp) {
+      normalizedRow.timestamp = normalizedTimestamp;
+    }
+
+    return normalizedRow;
+  }
+
+  private normalizeStockHistoryRow(
+    row: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const normalizedRow = { ...row };
+    const normalizedTimestamp = this.normalizeQuoteTimestamp(normalizedRow.timestamp);
+    if (normalizedTimestamp) {
+      normalizedRow.timestamp = normalizedTimestamp;
+    }
+    return normalizedRow;
+  }
+
+  private normalizeQuoteTimestamp(timestamp: unknown): string | undefined {
+    if (typeof timestamp === "string" && timestamp.trim()) {
+      const numericTimestamp = Number(timestamp);
+      if (!Number.isFinite(numericTimestamp)) {
+        return timestamp;
+      }
+      return this.toIsoTimestamp(numericTimestamp);
+    }
+
+    if (typeof timestamp === "number" && Number.isFinite(timestamp)) {
+      return this.toIsoTimestamp(timestamp);
+    }
+
+    return undefined;
+  }
+
+  private toIsoTimestamp(timestamp: number): string | undefined {
+    const absTimestamp = Math.trunc(Math.abs(timestamp));
+    const digitCount = absTimestamp.toString().length;
+    const timestampMs = digitCount === 10 ? timestamp * 1000 : timestamp;
+    const date = new Date(timestampMs);
+
+    if (Number.isNaN(date.getTime())) {
+      return undefined;
+    }
+
+    return date.toISOString();
   }
 
   /**
