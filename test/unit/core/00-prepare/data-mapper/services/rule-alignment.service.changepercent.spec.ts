@@ -93,4 +93,35 @@ describe("RuleAlignmentService changepercent token match", () => {
 
     expect(confidence).toBe(0.9);
   });
+
+  it("basic_info_fields 预设字段应包含 market", () => {
+    const service = createService();
+    const targetFields = (service as any).PRESET_TARGET_FIELDS.basic_info_fields;
+
+    expect(targetFields).toContain("market");
+  });
+
+  it("epsTtm 对 eps_ttm 的匹配置信度应高于 eps", () => {
+    const service = createService();
+
+    const epsTtmConfidence = (service as any).calculateFieldMatchConfidence(
+      "epsTtm",
+      {
+        fieldName: "eps_ttm",
+        fieldPath: "eps_ttm",
+        fieldType: "string",
+      },
+    );
+    const epsConfidence = (service as any).calculateFieldMatchConfidence(
+      "epsTtm",
+      {
+        fieldName: "eps",
+        fieldPath: "eps",
+        fieldType: "string",
+      },
+    );
+
+    expect(epsTtmConfidence).toBeGreaterThan(epsConfidence);
+    expect(epsTtmConfidence).toBeGreaterThan(0.9);
+  });
 });

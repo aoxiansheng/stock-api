@@ -98,6 +98,7 @@ export class RuleAlignmentService {
     // 股票基本信息字段
     basic_info_fields: [
       "symbol", // 股票代码
+      "market", // 市场
       "nameCn", // 中文名称
       "nameEn", // 英文名称
       "nameHk", // 繁体名称
@@ -735,6 +736,12 @@ export class RuleAlignmentService {
       return 0;
     }
     const sourceLastSegment = sourcePath.split(".").pop();
+    const normalizedTarget = this.normalizeFieldToken(target);
+    const normalizedSourceName = this.normalizeFieldToken(sourceName);
+    const normalizedSourcePath = this.normalizeFieldToken(sourcePath);
+    const normalizedSourceLastSegment = sourceLastSegment
+      ? this.normalizeFieldToken(sourceLastSegment)
+      : "";
     const sourceFieldType =
       typeof sourceField.fieldType === "string"
         ? sourceField.fieldType.toLowerCase()
@@ -768,6 +775,19 @@ export class RuleAlignmentService {
     if (sourceName === target || sourcePath === target) return 1.0;
     // 末段完全匹配（适用于嵌套字段，如 quote.price.current vs currentPrice）
     if (sourceLastSegment === target) return 0.95;
+    // 去分隔符后精确匹配（snake_case/camelCase 归一化）
+    if (
+      normalizedSourceName === normalizedTarget ||
+      normalizedSourcePath === normalizedTarget
+    ) {
+      return 0.93;
+    }
+    if (
+      normalizedSourceLastSegment &&
+      normalizedSourceLastSegment === normalizedTarget
+    ) {
+      return 0.91;
+    }
     if (
       sourceLastSegment &&
       sourceLastSegment.length > 1 &&
@@ -876,6 +896,7 @@ export class RuleAlignmentService {
       namecn: ["name_cn", "namecn", "chinese_name", "cn_name"],
       nameen: ["name_en", "nameen", "english_name", "en_name"],
       namehk: ["name_hk", "namehk", "hongkong_name", "hk_name"],
+      market: ["market", "market_code", "market_type"],
       exchange: ["exchange", "market", "trading_market"],
       currency: ["currency", "ccy", "curr"],
       lotsize: ["lotsize", "lot_size", "board_lot", "min_unit"],
@@ -982,6 +1003,10 @@ export class RuleAlignmentService {
       .toLowerCase();
     const tokens = normalized.split(/[^a-z0-9]+/).filter(Boolean);
     return tokens.includes(token.toLowerCase());
+  }
+
+  private normalizeFieldToken(value: string): string {
+    return value.replace(/[^a-z0-9]/g, "");
   }
 
   private getSessionContext(targetField: string):
