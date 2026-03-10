@@ -4,11 +4,11 @@ import {
   Post,
   Get,
   Body,
-  Query as QueryParam,
+  GoneException,
   ValidationPipe,
   HttpCode,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiConsumes, ApiQuery } from "@nestjs/swagger";
+import { ApiTags, ApiOperation, ApiConsumes } from "@nestjs/swagger";
 
 import { createLogger } from "@common/logging/index";
 import {
@@ -20,7 +20,6 @@ import { ReadAccess } from "@authv2/decorators";
 
 import { DataRequestDto } from "../dto/data-request.dto";
 import { DataResponseDto } from "../dto/data-response.dto";
-import { SupportListRequestDto } from "../dto/support-list-request.dto";
 import { ReceiverService } from "../services/receiver.service";
 
 @ApiTags("🚀 强时效接口 - 实时数据接收")
@@ -29,6 +28,22 @@ export class ReceiverController {
   private readonly logger = createLogger(ReceiverController.name);
 
   constructor(private readonly receiverService: ReceiverService) {}
+
+  @ReadAccess()
+  @Get("support-list")
+  @HttpCode(410)
+  @ApiOperation({
+    summary: "⚠️ support-list 接口迁移提示",
+    description:
+      "该入口已迁移至 `/query/support-list` 与 `/query/support-list/meta`，此路由仅用于显式迁移提示。",
+    deprecated: true,
+  })
+  @ApiKeyAuthResponses()
+  async handleSupportListMigration() {
+    throw new GoneException(
+      "receiver/support-list 已迁移，请使用 GET /query/support-list 或 GET /query/support-list/meta",
+    );
+  }
 
   @ReadAccess()
   @Post("data")
@@ -195,79 +210,4 @@ export class ReceiverController {
     }
   }
 
-  @ReadAccess()
-  @Get("support-list")
-  @ApiOperation({
-    summary: "获取上游支持产品清单",
-    description:
-      "调用 provider 能力 get-support-list，透传上游 /common/basic/symbols，供前端按类型拉取产品列表。",
-  })
-  @ApiQuery({
-    name: "type",
-    required: true,
-    enum: [
-      "STOCK_US",
-      "STOCK_CN",
-      "STOCK_HK",
-      "FUTURES",
-      "FOREX",
-      "ENERGY",
-      "METAL",
-      "CRYPTO",
-    ],
-    example: "STOCK_US",
-    description: "产品类型",
-  })
-  @ApiQuery({
-    name: "symbols",
-    required: false,
-    example: ".DJI.US,.IXIC.US",
-    description: "可选产品代码列表，多个使用逗号分隔",
-  })
-  @ApiQuery({
-    name: "preferredProvider",
-    required: false,
-    example: "infoway",
-    description: "可选首选提供商",
-  })
-  @ApiSuccessResponse({
-    type: DataResponseDto,
-    schema: {
-      example: {
-        statusCode: 200,
-        message: "请求成功",
-        data: {
-          data: [
-            {
-              symbol: ".DJI.US",
-              name_cn: "道琼斯指数",
-              name_hk: "道瓊斯指數",
-              name_en: "Dow Jones Industrial Average",
-            },
-            {
-              symbol: ".IXIC.US",
-              name_cn: "纳斯达克综合指数",
-              name_hk: "納斯達克綜合指數",
-              name_en: "NASDAQ Composite Index",
-            },
-          ],
-          metadata: {
-            provider: "infoway",
-            capability: "get-support-list",
-            requestId: "req_xxx",
-            processingTimeMs: 42,
-            timestamp: "2026-03-09T10:00:00.000Z",
-          },
-        },
-        timestamp: "2026-03-09T10:00:00.000Z",
-      },
-    },
-  })
-  @ApiKeyAuthResponses()
-  async getSupportList(
-    @QueryParam(new ValidationPipe({ transform: true, whitelist: true }))
-    query: SupportListRequestDto,
-  ) {
-    return await this.receiverService.getSupportList(query);
-  }
 }

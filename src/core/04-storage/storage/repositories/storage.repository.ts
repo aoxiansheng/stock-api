@@ -6,6 +6,10 @@ import { createLogger } from "@common/logging/index";
 import { StorageQueryDto } from "../dto/storage-query.dto";
 import { StoredData, StoredDataDocument } from "../schemas/storage.schema";
 
+const LEASE_TAG_FIELD = "tags.__lease";
+const LEASE_TAG_NORMALIZED_VALUE = "1";
+const LEASE_TAG_COMPATIBLE_VALUES = [1, LEASE_TAG_NORMALIZED_VALUE] as const;
+
 @Injectable()
 export class StorageRepository {
   private readonly logger = createLogger(StorageRepository.name);
@@ -130,7 +134,10 @@ export class StorageRepository {
     });
 
     const result = await this.storedDataModel.findOneAndUpdate(
-      { key: document.key },
+      {
+        key: document.key,
+        [LEASE_TAG_FIELD]: { $nin: LEASE_TAG_COMPATIBLE_VALUES },
+      },
       document,
       { upsert: true, new: true },
     );
@@ -148,6 +155,81 @@ export class StorageRepository {
   async deleteByKey(key: string): Promise<{ deletedCount: number }> {
     const result = await this.storedDataModel.deleteOne({ key });
     return { deletedCount: result.deletedCount };
+  }
+
+  async tryAcquireLease(
+    key: string,
+    owner: string,
+    expiresAt: Date,
+    metadata: {
+      storageClassification: string;
+      provider: string;
+      market: string;
+      tags?: Record<string, string>;
+    },
+  ): Promise<boolean> {
+    const now = new Date();
+    const leaseTags = {
+      ...(metadata.tags ?? {}),
+      __lease: LEASE_TAG_NORMALIZED_VALUE,
+    };
+
+    try {
+      const document = await this.storedDataModel.findOneAndUpdate(
+        {
+          key,
+          [LEASE_TAG_FIELD]: { $in: LEASE_TAG_COMPATIBLE_VALUES },
+          $or: [
+            { "data.owner": owner },
+            { expiresAt: { $lte: now } },
+          ],
+        },
+        {
+          key,
+          data: { owner },
+          storageClassification: metadata.storageClassification,
+          provider: metadata.provider,
+          market: metadata.market,
+          dataSize: 0,
+          compressed: false,
+          tags: leaseTags,
+          expiresAt,
+          storedAt: now,
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+      return !!document && document.data?.owner === owner;
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async releaseLease(key: string, owner: string): Promise<void> {
+    await this.storedDataModel.deleteOne({
+      key,
+      [LEASE_TAG_FIELD]: { $in: LEASE_TAG_COMPATIBLE_VALUES },
+      "data.owner": owner,
+    });
+  }
+
+  async renewLease(key: string, owner: string, expiresAt: Date): Promise<boolean> {
+    const now = new Date();
+    const document = await this.storedDataModel.findOneAndUpdate(
+      {
+        key,
+        [LEASE_TAG_FIELD]: { $in: LEASE_TAG_COMPATIBLE_VALUES },
+        "data.owner": owner,
+      },
+      {
+        expiresAt,
+        storedAt: now,
+      },
+      { new: true, upsert: false },
+    );
+    return !!document && document.data?.owner === owner;
   }
 
   async countAll(): Promise<number> {

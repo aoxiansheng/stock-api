@@ -4,6 +4,7 @@ import { Global, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { EventEmitterModule } from "@nestjs/event-emitter";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 // 基础设施层模块
@@ -87,6 +88,9 @@ import { JwtAuthGuard, ApiKeyAuthGuard, PermissionsGuard } from "@authv2/guards"
 
     // 事件发射器
     EventEmitterModule.forRoot(),
+
+    // 定时任务
+    ScheduleModule.forRoot(),
 
     // ========================================
     // 应用服务层 (Application Services Layer)

@@ -8,7 +8,12 @@ import {
 } from "@nestjs/common";
 
 // 统一错误处理基础设施
-import { UniversalExceptionFactory, BusinessErrorCode, ComponentIdentifier } from "@common/core/exceptions";
+import {
+  UniversalExceptionFactory,
+  BusinessErrorCode,
+  ComponentIdentifier,
+  BusinessException,
+} from "@common/core/exceptions";
 
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { PaginatedDataDto } from "@common/modules/pagination/dto/paginated-data";
@@ -65,6 +70,8 @@ export class StorageService {
         }
       });
     }
+
+    this.validateReservedTags(request.options?.tags, 'storeData');
 
     this.logger.log(
       `存储数据到数据库，键: ${request.key}`,
@@ -171,7 +178,6 @@ export class StorageService {
    * @param request 检索请求（仅支持PERSISTENT类型）
    * @returns 检索响应
    */
-  @StandardRetry('retrieveData')
   async retrieveData(request: RetrieveDataDto): Promise<StorageResponseDto> {
     const startTime = Date.now();
 
@@ -208,7 +214,7 @@ export class StorageService {
         return response;
       }
 
-      this.logger.warn(
+      this.logger.debug(
         `Data not found: ${request.key}`,
       );
       throw UniversalExceptionFactory.createBusinessException({
@@ -224,6 +230,14 @@ export class StorageService {
       });
     } catch (error: any) {
       const processingTimeMs = Date.now() - startTime;
+
+      if (
+        BusinessException.isBusinessException(error) &&
+        error.errorCode === BusinessErrorCode.DATA_NOT_FOUND
+      ) {
+        this.logger.debug(`Data not found during retrieval: ${request.key}`);
+        throw error;
+      }
 
       // 监控已移除，仅保留错误日志
 
@@ -254,6 +268,48 @@ export class StorageService {
         }
       });
     }
+  }
+
+  async tryAcquirePersistentLease(
+    key: string,
+    owner: string,
+    ttlSeconds: number,
+    metadata: {
+      storageClassification: string;
+      provider: string;
+      market: string;
+      tags?: Record<string, string>;
+    },
+  ): Promise<boolean> {
+    this.validatePersistentLeaseTtl(
+      ttlSeconds,
+      'tryAcquirePersistentLease',
+    );
+    this.validateReservedTags(metadata.tags, 'tryAcquirePersistentLease');
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+    return this.storageRepository.tryAcquireLease(
+      key,
+      owner,
+      expiresAt,
+      metadata,
+    );
+  }
+
+  async releasePersistentLease(key: string, owner: string): Promise<void> {
+    await this.storageRepository.releaseLease(key, owner);
+  }
+
+  async renewPersistentLease(
+    key: string,
+    owner: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    this.validatePersistentLeaseTtl(
+      ttlSeconds,
+      'renewPersistentLease',
+    );
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+    return this.storageRepository.renewLease(key, owner, expiresAt);
   }
 
   /**
@@ -477,7 +533,7 @@ export class StorageService {
     });
 
     if (!document) {
-      this.logger.warn(`数据库中未找到数据`, { key: request.key });
+      this.logger.debug(`数据库中未找到数据`, { key: request.key });
       return null;
     }
 
@@ -535,6 +591,52 @@ export class StorageService {
         {},
       ),
     };
+  }
+
+  private validatePersistentLeaseTtl(
+    ttlSeconds: number,
+    operation: 'tryAcquirePersistentLease' | 'renewPersistentLease',
+  ): void {
+    if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation,
+        message: 'ttlSeconds must be a positive integer',
+        context: {
+          ttlSeconds,
+          validationRule: 'positive_integer',
+        }
+      });
+    }
+  }
+
+  private validateReservedTags(
+    tags: Record<string, string> | undefined,
+    operation: 'storeData' | 'tryAcquirePersistentLease',
+  ): void {
+    if (!tags) {
+      return;
+    }
+
+    const invalidTagKey = Object.keys(tags).find(
+      (tagKey) => tagKey === '__lease' || tagKey.startsWith('__'),
+    );
+
+    if (invalidTagKey) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STORAGE,
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation,
+        message: `tags contains reserved key: ${invalidTagKey}`,
+        context: {
+          invalidTagKey,
+          validationRule: 'reserved_tag_key',
+          reservedPrefixes: ['__'],
+          reservedKeys: ['__lease'],
+        }
+      });
+    }
   }
 
   // 监控相关方法已移除

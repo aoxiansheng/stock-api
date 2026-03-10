@@ -61,7 +61,6 @@ import {
   RECEIVER_ALLOWED_MARKETS,
   normalizeReceiverMarketInput,
 } from "../dto/data-request.dto";
-import { SupportListRequestDto } from "../dto/support-list-request.dto";
 import {
   DataResponseDto,
   ResponseMetadataDto,
@@ -409,99 +408,6 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     } finally {
       // 🔧 确保资源清理，无论成功还是失败
       this.updateActiveConnections(-1);
-    }
-  }
-
-  /**
-   * 获取上游支持产品清单（前端直连 API）
-   */
-  async getSupportList(
-    request: SupportListRequestDto,
-  ): Promise<DataResponseDto<any[]>> {
-    const startTime = Date.now();
-    const requestId = uuidv4();
-    const capabilityName = CAPABILITY_NAMES.GET_SUPPORT_LIST;
-    const symbols = request.symbols || [];
-
-    this.logger.log(`开始处理支持产品清单请求`, {
-      requestId,
-      type: request.type,
-      symbolsCount: symbols.length,
-      preferredProvider: request.preferredProvider || null,
-      capability: capabilityName,
-    });
-
-    try {
-      let provider = "";
-      if (request.preferredProvider) {
-        provider = await this.validatePreferredProvider(
-          request.preferredProvider,
-          capabilityName,
-          undefined,
-          requestId,
-        );
-      } else {
-        provider =
-          this.capabilityRegistryService.getBestProvider(capabilityName) || "";
-      }
-
-      if (!provider) {
-        throw UniversalExceptionFactory.createBusinessException({
-          component: ComponentIdentifier.RECEIVER,
-          errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
-          operation: "getSupportList",
-          message: `No provider found for receiver type '${capabilityName}'`,
-          context: {
-            requestId,
-            capability: capabilityName,
-          },
-        });
-      }
-
-      const fetchResult = await this.dataFetcherService.fetchRawData({
-        provider,
-        capability: capabilityName,
-        symbols,
-        contextService: await this.getProviderContextService(provider),
-        requestId,
-        apiType: "rest",
-        options: {
-          type: request.type,
-        },
-      });
-
-      const processingTimeMs = Date.now() - startTime;
-      const rows = Array.isArray(fetchResult.data) ? fetchResult.data : [];
-
-      this.logger.log(`支持产品清单请求处理完成`, {
-        requestId,
-        provider,
-        type: request.type,
-        resultCount: rows.length,
-        processingTimeMs,
-      });
-
-      return new DataResponseDto(
-        rows,
-        new ResponseMetadataDto(
-          provider,
-          capabilityName,
-          requestId,
-          processingTimeMs,
-          false,
-          symbols.length,
-          rows.length,
-        ),
-      );
-    } catch (error: any) {
-      this.logger.error(`支持产品清单请求处理失败`, {
-        requestId,
-        type: request.type,
-        symbolsCount: symbols.length,
-        preferredProvider: request.preferredProvider || null,
-        error: error?.message || String(error),
-      });
-      throw error;
     }
   }
 
