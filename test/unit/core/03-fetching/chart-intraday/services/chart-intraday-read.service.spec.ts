@@ -1,4 +1,5 @@
-import { ChartIntradayService } from "@core/01-entry/chart-intraday/services/chart-intraday.service";
+import { ChartIntradayCursorService } from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
+import { ChartIntradayReadService } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 import { BusinessException } from "@common/core/exceptions";
 import { createHmac } from "crypto";
 
@@ -12,7 +13,7 @@ type CursorPayload = {
   issuedAt: string;
 };
 
-describe("ChartIntradayService", () => {
+describe("ChartIntradayReadService", () => {
   const DEFAULT_CURSOR_SECRET = "chart-intraday-test-secret";
   const CURSOR_SECRET_ENV_KEYS = [
     "CHART_INTRADAY_CURSOR_SECRET",
@@ -100,9 +101,11 @@ describe("ChartIntradayService", () => {
       getStreamDataCache: jest.fn().mockReturnValue(streamCache),
     };
 
-    const service = new ChartIntradayService(
+    const chartIntradayCursorService = new ChartIntradayCursorService();
+    const service = new ChartIntradayReadService(
       receiverService as any,
       streamDataFetcherService as any,
+      chartIntradayCursorService,
     );
 
     return {
