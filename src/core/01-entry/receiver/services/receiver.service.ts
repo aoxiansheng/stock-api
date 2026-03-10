@@ -272,7 +272,59 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
             orchestratorRequest,
           );
 
+        let payload = result?.data as any;
+        const normalizedPayload = this.normalizeCachedPayloadForReceiverType(
+          payload,
+          request.receiverType,
+        );
+        payload = normalizedPayload.payload;
+
+        const shouldFallbackToDirectFlow =
+          Boolean(result?.error) || !normalizedPayload.isValid;
+        if (shouldFallbackToDirectFlow) {
+          this.logger.warn("Smart cache payload invalid, fallback to direct flow", {
+            requestId,
+            receiverType: request.receiverType,
+            provider,
+            cacheKey: result?.storageKey,
+            cacheError: result?.error || null,
+            payloadType: payload === null ? "null" : typeof payload,
+            fallbackReason: normalizedPayload.reason || "cache_error_or_invalid_payload",
+          });
+
+          if (result?.storageKey) {
+            await this.smartCacheOrchestrator.delete(result.storageKey).catch((error) => {
+              this.logger.warn("Failed to evict invalid smart cache entry", {
+                requestId,
+                cacheKey: result.storageKey,
+                error: (error as Error).message,
+              });
+            });
+          }
+
+          const mappedSymbols = await this.resolveSymbolsForProvider(
+            provider,
+            request.symbols,
+            requestId,
+          );
+          const freshResponse = await this.executeDataFetching(
+            request,
+            provider,
+            mappedSymbols,
+            requestId,
+            marketContext,
+          );
+          payload = freshResponse.data;
+        }
+
         const processingTimeMs = Date.now() - startTime;
+        const totalRequested = request.symbols.length;
+        const processedCount = this.estimateProcessedSymbolCount(
+          payload,
+          request.receiverType,
+          totalRequested,
+        );
+        const hasPartialFailures = processedCount < totalRequested;
 
         // ✅ 事件化监控 - 记录成功请求
         this.emitRequestMetrics(
@@ -294,15 +346,6 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
             market: marketContext.marketType,
           },
         );
-
-        const payload = result?.data as any;
-        const totalRequested = request.symbols.length;
-        const processedCount = this.estimateProcessedSymbolCount(
-          payload,
-          request.receiverType,
-          totalRequested,
-        );
-        const hasPartialFailures = processedCount < totalRequested;
 
         return new DataResponseDto(
           payload,
@@ -1251,6 +1294,29 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     }
 
     return 1;
+  }
+
+  private normalizeCachedPayloadForReceiverType(
+    payload: unknown,
+    receiverType: string,
+  ): { payload: unknown; isValid: boolean; reason?: string } {
+    if (receiverType === CAPABILITY_NAMES.GET_STOCK_BASIC_INFO) {
+      if (Array.isArray(payload)) {
+        return { payload, isValid: true };
+      }
+
+      if (payload && typeof payload === "object") {
+        return { payload: [payload], isValid: true, reason: "legacy_object_to_array" };
+      }
+
+      return { payload, isValid: false, reason: "basic_info_requires_array_payload" };
+    }
+
+    if (payload === null || payload === undefined) {
+      return { payload, isValid: false, reason: "empty_payload" };
+    }
+
+    return { payload, isValid: true };
   }
 
   /**

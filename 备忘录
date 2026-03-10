@@ -142,6 +142,8 @@ BASE_URL="http://127.0.0.1:3001" \
   CODES="AAPL.US" \
   node "scripts/tools/test-infoway-trade-ws.js"
 
+  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" TYPE="STOCK_CN" SYMBOLS="000001.SZ,000002.SZ" \
+  node "scripts/tools/upstream-sdk/test-infoway-symbols-info.js"
 
 
   APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
@@ -159,9 +161,44 @@ BASE_URL="http://127.0.0.1:3001" \
 
 
 
-  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" TYPE="STOCK_US" \
+  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" 
+  TYPE="STOCK_US" \
   node "scripts/tools/upstream-sdk/test-infoway-symbols-list.js"
+
+
+
+  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" 
+  SYMBOLS="AMD.US" \
+  node "scripts/tools/upstream-sdk/test-infoway-symbols-info.js"
+
+  # 弱时效
+  BASE_URL="http://127.0.0.1:3001" \
+  SYMBOLS="AMD.US" \
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  node "scripts/tools/local-project/test-get-stock-basic-info-query-endpoint.js"
+
+  BASE_URL="http://127.0.0.1:3001" \
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  SYMBOLS="AMD.US" \
+  node "scripts/tools/local-project/test-get-stock-basic-info-endpoint.js"
+
 
   原来 GET /receiver/support-list`
   现在 GET /query/support-list/
+
+
+  # 弱时效（query）
+  export BASE_URL="http://127.0.0.1:3001"
+  export SYMBOLS="AMD.US"
+  export APP_KEY="7f007ab34a8f42adbd6ff82dc040f486"
+  export ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a"
+  node "scripts/tools/local-project/test-get-stock-basic-info-query-endpoint.js"
+
+  # 强时效（receiver，默认 useSmartCache=true）
+
+  export BASE_URL="http://127.0.0.1:3001"
+  export SYMBOLS="AMD.US"
+  export APP_KEY="7f007ab34a8f42adbd6ff82dc040f486"
+  export ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a"
+  node "scripts/tools/local-project/test-get-stock-basic-info-endpoint.js"
 
