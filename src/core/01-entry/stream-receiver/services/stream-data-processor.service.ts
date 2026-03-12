@@ -855,12 +855,22 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
     timeoutMs: number,
     operationName: string,
   ): Promise<T> {
-    return Promise.race([
-      operation(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`${operationName}超时 (${timeoutMs}ms)`)), timeoutMs)
-      ),
-    ]);
+    let timeoutHandle: NodeJS.Timeout | null = null;
+
+    try {
+      return await Promise.race([
+        operation(),
+        new Promise<never>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reject(new Error(`${operationName}超时 (${timeoutMs}ms)`));
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+    }
   }
 
   /**

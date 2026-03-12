@@ -57,9 +57,12 @@
     
     "// ========== 流数据处理组件 ==========": "",
     "StreamDataFetcherService": "info",
+    "StreamDataProcessor": "info",
     "StreamContextService": "info",
     "StreamRecoveryWorkerService": "warn",
     "StreamClientStateManager": "info",
+    "ChartIntradayReadService": "info",
+    "StreamCacheStandardizedService": "info",
     
     "// ========== 脚本和初始化组件 ==========": "",
     "AutoInitService": "info",
