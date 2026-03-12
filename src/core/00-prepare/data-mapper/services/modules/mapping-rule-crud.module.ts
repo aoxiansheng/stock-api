@@ -7,8 +7,9 @@
  * Phase 2 模块化重构：解决 FlexibleMappingRuleService 职责过重问题
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
+import { createLogger } from '@common/logging/index';
 import {
   FlexibleMappingRuleDocument,
   FlexibleMappingRule
@@ -44,7 +45,7 @@ import { DataSourceTemplateService } from '@core/00-prepare/data-mapper/services
  */
 @Injectable()
 export class MappingRuleCrudModule {
-  private readonly logger = new Logger(MappingRuleCrudModule.name);
+  private readonly logger = createLogger(MappingRuleCrudModule.name);
 
   constructor(
     private readonly ruleModel: Model<FlexibleMappingRuleDocument>,

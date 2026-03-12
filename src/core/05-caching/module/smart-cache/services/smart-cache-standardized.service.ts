@@ -11,7 +11,8 @@
  * 注意: 这是简化版实现，主要用于类型兼容性和基础功能演示
  */
 
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { createLogger } from '@common/logging/index';
 import { BasicCacheService } from '../../basic-cache/services/basic-cache.service';
 import { MarketStatusService, type MarketStatusResult } from '../../../../shared/services/market-status.service';
 import { Market, MarketStatus } from '../../../../shared/constants/market.constants';
@@ -126,7 +127,7 @@ export interface CacheOrchestratorResult<T> {
  */
 @Injectable()
 export class SmartCacheStandardizedService implements StandardCacheModuleInterface, OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(SmartCacheStandardizedService.name);
+  private readonly logger = createLogger(SmartCacheStandardizedService.name);
 
   // Module metadata (required by StandardCacheModuleInterface)
   readonly moduleType = 'smart-cache';

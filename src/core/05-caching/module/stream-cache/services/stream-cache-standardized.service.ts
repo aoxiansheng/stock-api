@@ -21,7 +21,6 @@ import {
   Inject,
   Optional,
   ServiceUnavailableException,
-  Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from "@nestjs/common";
@@ -86,7 +85,7 @@ import { STREAM_CACHE_ERROR_CODES } from "../constants/stream-cache-error-codes.
 import { STREAM_CACHE_REDIS_CLIENT_TOKEN, STREAM_CACHE_CONFIG_TOKEN } from "../constants/stream-cache.constants";
 
 // Common imports
-import { createLogger } from "@common/logging/index";
+import { createLogger, shouldLog } from "@common/logging/index";
 import {
   UniversalExceptionFactory,
   BusinessErrorCode,
@@ -223,7 +222,7 @@ export class StreamCacheStandardizedService
   }> = [];
 
   // Logger实例
-  private readonly logger = new Logger(StreamCacheStandardizedService.name);
+  private readonly logger = createLogger(StreamCacheStandardizedService.name);
 
   // ========================================
   // 构造函数
@@ -514,6 +513,14 @@ export class StreamCacheStandardizedService
         this.operationStats.hotCacheHits++;
         this.operationStats.totalDuration += duration;
 
+        if (this.shouldLogIntradayDiagnosticForKey(key)) {
+          this.logger.debug("分时诊断: StreamCache 读取命中 hot-cache", {
+            key,
+            pointsCount: hotCacheData.length,
+            durationMs: duration,
+          });
+        }
+
         // 监控上报已移除
 
         return {
@@ -540,6 +547,14 @@ export class StreamCacheStandardizedService
 
         // 提升到 Hot Cache
         this.setToHotCache(key, warmCacheData);
+
+        if (this.shouldLogIntradayDiagnosticForKey(key)) {
+          this.logger.debug("分时诊断: StreamCache 读取命中 warm-cache", {
+            key,
+            pointsCount: warmCacheData.length,
+            durationMs: duration,
+          });
+        }
         // 监控上报已移除
 
         return {
@@ -560,6 +575,13 @@ export class StreamCacheStandardizedService
       const duration = Date.now() - startTime;
       this.operationStats.totalMisses++;
       this.operationStats.totalDuration += duration;
+
+      if (this.shouldLogIntradayDiagnosticForKey(key)) {
+        this.logger.debug("分时诊断: StreamCache 读取未命中", {
+          key,
+          durationMs: duration,
+        });
+      }
 
       // 监控上报已移除
 
@@ -646,6 +668,15 @@ export class StreamCacheStandardizedService
 
       // 总是同时存储到 Warm Cache 作为备份
       await this.setToWarmCache(key, compressedData);
+
+      if (this.shouldLogIntradayDiagnosticForKey(key)) {
+        this.logger.debug("分时诊断: StreamCache 写入完成", {
+          key,
+          pointsCount: compressedData.length,
+          shouldUseHotCache,
+          ttl,
+        });
+      }
 
       const duration = Date.now() - startTime;
       this.operationStats.totalOperations++;
@@ -2490,6 +2521,10 @@ export class StreamCacheStandardizedService
    */
   private buildWarmCacheKey(key: string): string {
     return `${STREAM_CACHE_CONFIG.KEYS.WARM_CACHE_PREFIX}:${key}`;
+  }
+
+  private shouldLogIntradayDiagnosticForKey(key: string): boolean {
+    return key.startsWith("quote:") && shouldLog(StreamCacheStandardizedService.name, "debug");
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { createLogger } from '@common/logging/index';
 import {
   BusinessException,
   BusinessErrorCode,
@@ -52,8 +52,6 @@ export interface RetryResult<T> {
  * - 详细的重试统计
  */
 export class UniversalRetryHandler {
-  private readonly logger = new Logger(UniversalRetryHandler.name);
-
   /**
    * 默认重试配置
    */
@@ -76,7 +74,7 @@ export class UniversalRetryHandler {
     config: Partial<RetryConfig> = {}
   ): Promise<RetryResult<T>> {
     const finalConfig: RetryConfig = { ...this.DEFAULT_CONFIG, ...config };
-    const logger = new Logger(`${UniversalRetryHandler.name}:${component}`);
+    const logger = createLogger(`${UniversalRetryHandler.name}:${component}`);
 
     const startTime = Date.now();
     const attemptDurations: number[] = [];

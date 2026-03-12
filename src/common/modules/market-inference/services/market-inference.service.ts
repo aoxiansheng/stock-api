@@ -1,5 +1,6 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { LRUCache } from 'lru-cache';
+import { createLogger } from '@common/logging/index';
 
 import { Market } from '@core/shared/constants/market.constants';
 import {
@@ -18,7 +19,7 @@ import type {
 
 @Injectable()
 export class MarketInferenceService {
-  private readonly logger = new Logger(MarketInferenceService.name);
+  private readonly logger = createLogger(MarketInferenceService.name);
   private cache?: LRUCache<string, Market>;
   private cacheOptions?: Required<MarketInferenceCacheOptions>;
 

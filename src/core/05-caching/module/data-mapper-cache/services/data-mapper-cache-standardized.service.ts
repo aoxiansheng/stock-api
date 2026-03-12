@@ -6,7 +6,7 @@
  * - 数据映射领域缓存（最佳匹配/按ID/按提供商）
  */
 
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { createLogger } from '@common/logging/index';
 import {
@@ -51,8 +51,6 @@ import {
 @Injectable()
 export class DataMapperCacheStandardizedService
   implements IDataMapperCache, OnModuleInit, OnModuleDestroy {
-
-  private readonly logger = new Logger(DataMapperCacheStandardizedService.name);
   private readonly businessLogger = createLogger('DataMapperCacheStandardized');
 
   // Module state management

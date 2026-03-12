@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
-import { createLogger } from "@common/logging/index";
+import { createLogger, shouldLog } from "@common/logging/index";
 import {
   BusinessException,
   BusinessErrorCode,
@@ -153,6 +153,22 @@ export class ChartIntradayReadService {
       pointLimit,
     );
 
+    if (this.shouldTraceDebug()) {
+      this.logger.debug("分时诊断: snapshot 点位合并结果", {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        historyPointsCount: historyPoints.length,
+        realtimePointsCount: realtimePoints.length,
+        mergedPointsCount: merged.points.length,
+        historyLastTimestamp:
+          historyPoints[historyPoints.length - 1]?.timestamp || null,
+        realtimeLastTimestamp:
+          realtimePoints[realtimePoints.length - 1]?.timestamp || null,
+        mergedLastTimestamp: merged.points[merged.points.length - 1]?.timestamp || null,
+      });
+    }
+
     if (merged.points.length === 0) {
       throw this.createBusinessException({
         errorCode: BusinessErrorCode.DATA_NOT_FOUND,
@@ -255,6 +271,19 @@ export class ChartIntradayReadService {
       resolved.tradingDay,
     );
 
+    if (this.shouldTraceDebug()) {
+      this.logger.debug("分时诊断: delta 游标与实时点边界", {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        cursorLastPointTimestamp: cursorPayload.lastPointTimestamp,
+        sinceMs,
+        realtimeFirstTimestamp: realtimePoints[0]?.timestamp || null,
+        realtimeLastTimestamp:
+          realtimePoints[realtimePoints.length - 1]?.timestamp || null,
+      });
+    }
+
     const incrementalPoints = realtimePoints
       .filter((point) => this.parseTimestampToMs(point.timestamp)! > sinceMs)
       .sort(
@@ -262,6 +291,20 @@ export class ChartIntradayReadService {
           this.parseTimestampToMs(a.timestamp)! -
           this.parseTimestampToMs(b.timestamp)!,
       );
+
+    if (this.shouldTraceDebug()) {
+      this.logger.debug("分时诊断: delta 增量过滤结果", {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        sinceMs,
+        realtimePointsCount: realtimePoints.length,
+        incrementalPointsCount: incrementalPoints.length,
+        incrementalFirstTimestamp: incrementalPoints[0]?.timestamp || null,
+        incrementalLastTimestamp:
+          incrementalPoints[incrementalPoints.length - 1]?.timestamp || null,
+      });
+    }
 
     const hasMore = incrementalPoints.length > limit;
     const points = hasMore ? incrementalPoints.slice(0, limit) : incrementalPoints;
@@ -413,7 +456,24 @@ export class ChartIntradayReadService {
     }
 
     const key = `quote:${symbol}`;
+    if (this.shouldTraceDebug()) {
+      this.logger.debug("分时诊断: 尝试读取流缓存", {
+        key,
+        symbol,
+        market,
+        tradingDay,
+      });
+    }
+
     const rawPoints = await streamCache.getData(key);
+    if (this.shouldTraceDebug()) {
+      this.logger.debug("分时诊断: 流缓存读取结果", {
+        key,
+        symbol,
+        rawPointsCount: Array.isArray(rawPoints) ? rawPoints.length : 0,
+        hasRawPoints: Array.isArray(rawPoints) && rawPoints.length > 0,
+      });
+    }
     if (!Array.isArray(rawPoints) || rawPoints.length === 0) {
       return [];
     }
@@ -441,6 +501,18 @@ export class ChartIntradayReadService {
           this.parseTimestampToMs(a.timestamp)! -
           this.parseTimestampToMs(b.timestamp)!,
       );
+
+    if (this.shouldTraceDebug()) {
+      this.logger.debug("分时诊断: 流缓存过滤后点位", {
+        key,
+        symbol,
+        market,
+        tradingDay,
+        filteredPointsCount: points.length,
+        firstTimestamp: points[0]?.timestamp || null,
+        lastTimestamp: points[points.length - 1]?.timestamp || null,
+      });
+    }
 
     return points;
   }
@@ -739,6 +811,10 @@ export class ChartIntradayReadService {
 
   private parseTimestampToMs(value: unknown): number | null {
     return parseFlexibleTimestampToMs(value);
+  }
+
+  private shouldTraceDebug(): boolean {
+    return shouldLog(ChartIntradayReadService.name, "debug");
   }
 
   private encodeCursor(payload: IntradayCursorPayload): string {

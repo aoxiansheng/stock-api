@@ -11,7 +11,8 @@
  * - 不再依赖外部配置/ENV，使用最小常量集合
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { createLogger } from '@common/logging/index';
 
 // Types and interfaces
 import { BatchMappingResult, SymbolMapperCacheStatsDto } from '../interfaces/cache-stats.interface';
@@ -22,7 +23,7 @@ import { SymbolMappingResponseDto } from '@core/00-prepare/symbol-mapper/dto/sym
 
 @Injectable()
 export class SymbolMapperCacheStandardizedService {
-  private readonly logger = new Logger(SymbolMapperCacheStandardizedService.name);
+  private readonly logger = createLogger(SymbolMapperCacheStandardizedService.name);
 
   // 三层LRU缓存系统 (使用Map简化实现)
   private readonly l1ProviderRulesCache = new Map<string, any>();

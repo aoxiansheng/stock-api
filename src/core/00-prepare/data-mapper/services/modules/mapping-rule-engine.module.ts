@@ -7,7 +7,8 @@
  * Phase 2 模块化重构：解决 FlexibleMappingRuleService 职责过重问题
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { createLogger } from '@common/logging/index';
 import { ObjectUtils } from '@core/shared/utils/object.util';
 import { TRANSFORMATION_TYPES } from '@core/00-prepare/data-mapper/constants/data-mapper.constants';
 import { FlexibleMappingRuleDocument } from '@core/00-prepare/data-mapper/schemas/flexible-mapping-rule.schema';
@@ -24,7 +25,7 @@ import { FlexibleMappingRuleDocument } from '@core/00-prepare/data-mapper/schema
  */
 @Injectable()
 export class MappingRuleEngineModule {
-  private readonly logger = new Logger(MappingRuleEngineModule.name);
+  private readonly logger = createLogger(MappingRuleEngineModule.name);
 
   /**
    * 🎯 应用灵活映射规则的核心逻辑

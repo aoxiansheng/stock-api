@@ -12,7 +12,7 @@
 import { Injectable, OnModuleDestroy, Inject, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { createLogger } from "@common/logging/index";
+import { createLogger, shouldLog } from "@common/logging/index";
 import {
   UniversalExceptionFactory,
   BusinessErrorCode,
@@ -188,8 +188,19 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
     capability: string,
   ): Promise<void> {
     const pipelineStartTime = Date.now();
+    const shouldTraceIntraday = this.shouldTraceIntradayCapability(capability);
 
     try {
+      if (shouldTraceIntraday) {
+        this.logger.debug("分时诊断: 流处理入口", {
+          provider,
+          capability,
+          quotesCount: quotes.length,
+          firstQuoteSymbols: quotes[0]?.symbols?.slice(0, 5) || [],
+          hasRawData: Boolean(quotes[0]?.rawData),
+        });
+      }
+
       this.logger.debug("开始管道化数据处理", {
         provider,
         capability,
@@ -246,6 +257,16 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
         this.processingConfig.transformTimeoutMs,
         "符号标准化",
       );
+      if (shouldTraceIntraday) {
+        this.logger.debug("分时诊断: 符号标准化结果", {
+          provider,
+          capability,
+          rawSymbolsCount: rawSymbols.length,
+          standardizedSymbolsCount: standardizedSymbols.length,
+          rawSymbols: rawSymbols.slice(0, 10),
+          standardizedSymbols: standardizedSymbols.slice(0, 10),
+        });
+      }
       const symbolDuration = Date.now() - symbolStartTime;
       const providerToStandardMap = buildProviderToStandardMap(
         rawSymbols,
@@ -259,7 +280,12 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
       // Step 5: 使用标准化符号进行缓存
       const cacheStartTime = Date.now();
       await this.executeWithTimeout(
-        () => this.pipelineCacheData(normalizedDataArray, standardizedSymbols),
+        () =>
+          this.pipelineCacheData(
+            normalizedDataArray,
+            standardizedSymbols,
+            shouldTraceIntraday,
+          ),
         this.processingConfig.cacheTimeoutMs,
         "数据缓存",
       );
@@ -520,16 +546,27 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
   private async pipelineCacheData(
     transformedData: any[],
     symbols: string[],
+    shouldTraceIntraday: boolean,
   ): Promise<void> {
     try {
       const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
       if (!cacheEnabled) {
+        if (shouldTraceIntraday) {
+          this.logger.debug("分时诊断: 流缓存已关闭，跳过写入", {
+            symbolsCount: symbols.length,
+          });
+        }
         this.logger.debug("流缓存已禁用，跳过缓存写入", { symbolsCount: symbols.length });
         return;
       }
 
       const streamCache: any = this.streamDataFetcher.getStreamDataCache?.();
       if (!streamCache) {
+        if (shouldTraceIntraday) {
+          this.logger.debug("分时诊断: StreamCache 服务不可用", {
+            symbolsCount: symbols.length,
+          });
+        }
         this.logger.warn("StreamCache 服务不可用，跳过缓存写入");
         return;
       }
@@ -539,6 +576,13 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
         "cache",
       );
       if (canonicalizedData.length === 0) {
+        if (shouldTraceIntraday) {
+          this.logger.debug("分时诊断: 流数据规范化后为空，未写入缓存", {
+            inputCount: Array.isArray(transformedData) ? transformedData.length : 0,
+            symbolsCount: symbols.length,
+            symbols: symbols.slice(0, 10),
+          });
+        }
         return;
       }
 
@@ -562,12 +606,28 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
         if (!key) continue;
         try {
           await streamCache.setData(key, points, "hot");
+          if (shouldTraceIntraday) {
+            this.logger.debug("分时诊断: 写入流缓存", {
+              symbol: canonicalSymbol,
+              key,
+              pointsCount: points.length,
+              firstTimestamp: points[0]?.t ?? null,
+              lastTimestamp: points[points.length - 1]?.t ?? null,
+            });
+          }
         } catch (err) {
           this.logger.warn("写入StreamCache失败(忽略)", {
             symbol: canonicalSymbol,
             error: (err as any)?.message,
           });
         }
+      }
+
+      if (shouldTraceIntraday) {
+        this.logger.debug("分时诊断: 本次缓存写入摘要", {
+          symbolsCount: bySymbol.size,
+          symbols: Array.from(bySymbol.keys()).slice(0, 10),
+        });
       }
 
       this.logger.debug("流缓存写入完成", {
@@ -641,6 +701,10 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
     } catch (error) {
       this.logger.warn("流广播处理异常(忽略)", { error: (error as any)?.message });
     }
+  }
+
+  private shouldTraceIntradayCapability(capability: string): boolean {
+    return capability === "stream-stock-quote" && shouldLog("StreamDataProcessor", "debug");
   }
 
   /**
