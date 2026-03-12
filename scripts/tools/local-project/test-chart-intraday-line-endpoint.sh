@@ -12,6 +12,8 @@ set -euo pipefail
 # 可选参数：
 # MARKET=US TRADING_DAY=20260308 POINT_LIMIT=30000 DELTA_LIMIT=2000 NEGATIVE_TESTS=1
 # MIN_DELTA_UPDATES=10 MAX_DELTA_ATTEMPTS=30 DELTA_POLL_INTERVAL_SECONDS=1
+# SNAPSHOT_PREWARM_ATTEMPTS=8 SNAPSHOT_PREWARM_INTERVAL_SECONDS=1
+# AUTO_START_WS_FEED=1 REQUIRE_REALTIME_PREWARM=1
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:3001}"
 SNAPSHOT_ENDPOINT="${SNAPSHOT_ENDPOINT:-/api/v1/chart/intraday-line/snapshot}"
@@ -28,6 +30,14 @@ STRICT_MISMATCH_PROVIDER="${STRICT_MISMATCH_PROVIDER:-longport}"
 MIN_DELTA_UPDATES="${MIN_DELTA_UPDATES:-10}"
 MAX_DELTA_ATTEMPTS="${MAX_DELTA_ATTEMPTS:-30}"
 DELTA_POLL_INTERVAL_SECONDS="${DELTA_POLL_INTERVAL_SECONDS:-1}"
+SNAPSHOT_PREWARM_ATTEMPTS="${SNAPSHOT_PREWARM_ATTEMPTS:-8}"
+SNAPSHOT_PREWARM_INTERVAL_SECONDS="${SNAPSHOT_PREWARM_INTERVAL_SECONDS:-1}"
+REQUIRE_REALTIME_PREWARM="${REQUIRE_REALTIME_PREWARM:-1}"
+AUTO_START_WS_FEED="${AUTO_START_WS_FEED:-1}"
+WS_FEED_SCRIPT="${WS_FEED_SCRIPT:-scripts/tools/local-project/test-ws-latest-price.js}"
+WS_FEED_MIN_TICK_COUNT="${WS_FEED_MIN_TICK_COUNT:-100000}"
+WS_FEED_TIMEOUT_MS="${WS_FEED_TIMEOUT_MS:-180000}"
+WS_FEED_BOOT_WAIT_SECONDS="${WS_FEED_BOOT_WAIT_SECONDS:-2}"
 
 OUTPUT_DIR="${OUTPUT_DIR:-/tmp/chart-intraday-line-test}"
 SNAPSHOT_FILE="${OUTPUT_DIR}/snapshot.json"
@@ -38,6 +48,7 @@ NEG_TAMPERED_CURSOR_FILE="${OUTPUT_DIR}/delta-tampered-cursor.json"
 NEG_PROVIDER_MISMATCH_FILE="${OUTPUT_DIR}/delta-provider-mismatch.json"
 NEG_SINCE_FILE="${OUTPUT_DIR}/delta-with-since.json"
 NEG_INCLUDE_PREPOST_FILE="${OUTPUT_DIR}/snapshot-with-includePrePost.json"
+WS_FEED_LOG_FILE="${OUTPUT_DIR}/ws-feed.log"
 
 mkdir -p "${OUTPUT_DIR}"
 
@@ -45,6 +56,16 @@ fail() {
   echo "[FAIL] $1"
   exit 1
 }
+
+WS_FEED_PID=""
+cleanup() {
+  if [[ -n "${WS_FEED_PID}" ]]; then
+    kill "${WS_FEED_PID}" >/dev/null 2>&1 || true
+    wait "${WS_FEED_PID}" >/dev/null 2>&1 || true
+    WS_FEED_PID=""
+  fi
+}
+trap cleanup EXIT
 
 section() {
   echo
@@ -102,6 +123,51 @@ post_json() {
     -d "${payload}"
 }
 
+start_ws_feed_if_needed() {
+  if [[ "${MIN_DELTA_UPDATES}" -le 0 ]]; then
+    return
+  fi
+
+  if [[ "${AUTO_START_WS_FEED}" != "1" ]]; then
+    return
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    fail "AUTO_START_WS_FEED=1 但缺少 node"
+  fi
+
+  if [[ ! -f "${WS_FEED_SCRIPT}" ]]; then
+    fail "AUTO_START_WS_FEED=1 但脚本不存在: ${WS_FEED_SCRIPT}"
+  fi
+
+  if [[ -z "${APP_KEY:-}" || -z "${ACCESS_TOKEN:-}" ]]; then
+    if [[ -z "${USERNAME:-}" || -z "${PASSWORD:-}" ]]; then
+      fail "AUTO_START_WS_FEED=1 需要 APP_KEY+ACCESS_TOKEN 或 USERNAME+PASSWORD"
+    fi
+  fi
+
+  section "启动 WS 喂数后台进程"
+  : > "${WS_FEED_LOG_FILE}"
+  HOLD_CONNECTION_AFTER_TARGET=1 \
+  BASE_URL="${BASE_URL}" \
+  WS_PATH="${WS_PATH:-/api/v1/stream-receiver/connect}" \
+  SYMBOL="${SYMBOL}" \
+  PROVIDER="${PROVIDER}" \
+  MIN_TICK_COUNT="${WS_FEED_MIN_TICK_COUNT}" \
+  TIMEOUT_MS="${WS_FEED_TIMEOUT_MS}" \
+  APP_KEY="${APP_KEY:-}" \
+  ACCESS_TOKEN="${ACCESS_TOKEN:-}" \
+  USERNAME="${USERNAME:-}" \
+  PASSWORD="${PASSWORD:-}" \
+  node "${WS_FEED_SCRIPT}" > "${WS_FEED_LOG_FILE}" 2>&1 &
+  WS_FEED_PID=$!
+  echo "[INFO] ws_feed_pid=${WS_FEED_PID}"
+  echo "[INFO] ws_feed_log=${WS_FEED_LOG_FILE}"
+  sleep "${WS_FEED_BOOT_WAIT_SECONDS}"
+}
+
+start_ws_feed_if_needed
+
 section "请求 snapshot"
 SNAPSHOT_PAYLOAD="$(
   jq -nc \
@@ -122,34 +188,70 @@ SNAPSHOT_PAYLOAD="$(
 )"
 echo "${SNAPSHOT_PAYLOAD}"
 
-SNAPSHOT_HTTP_CODE="$(post_json "${SNAPSHOT_ENDPOINT}" "${SNAPSHOT_PAYLOAD}" "${SNAPSHOT_FILE}")"
-echo "snapshot_http_code=${SNAPSHOT_HTTP_CODE}"
-echo "snapshot_response_file=${SNAPSHOT_FILE}"
+SNAPSHOT_ATTEMPT=1
+SNAPSHOT_REALTIME_MERGED_POINTS="0"
+while true; do
+  SNAPSHOT_HTTP_CODE="$(post_json "${SNAPSHOT_ENDPOINT}" "${SNAPSHOT_PAYLOAD}" "${SNAPSHOT_FILE}")"
+  echo "snapshot_http_code=${SNAPSHOT_HTTP_CODE}"
+  echo "snapshot_response_file=${SNAPSHOT_FILE}"
 
-if [[ "${SNAPSHOT_HTTP_CODE}" != "200" ]]; then
-  jq '.' "${SNAPSHOT_FILE}" || cat "${SNAPSHOT_FILE}" || true
-  fail "snapshot 请求失败，期望 200，实际 ${SNAPSHOT_HTTP_CODE}"
-fi
+  if [[ "${SNAPSHOT_HTTP_CODE}" != "200" ]]; then
+    jq '.' "${SNAPSHOT_FILE}" || cat "${SNAPSHOT_FILE}" || true
+    fail "snapshot 请求失败，期望 200，实际 ${SNAPSHOT_HTTP_CODE}"
+  fi
 
-SNAPSHOT_SCHEMA_OK="$(
-  jq -r '
-    (.success == true)
-    and (.statusCode == 200)
-    and (.data.line | type == "object")
-    and (.data.line.symbol | type == "string")
-    and (.data.line.market | type == "string")
-    and (.data.line.tradingDay | type == "string")
-    and (.data.line.granularity == "1s")
-    and (.data.line.points | type == "array")
-    and (.data.capability.snapshotBaseGranularity == "1m")
-    and ((.data.sync.cursor // "") | length > 0)
-    and ((.data.sync.lastPointTimestamp // "") | length > 0)
-  ' "${SNAPSHOT_FILE}" 2>/dev/null || echo "false"
-)"
-if [[ "${SNAPSHOT_SCHEMA_OK}" != "true" ]]; then
-  jq '.' "${SNAPSHOT_FILE}" || cat "${SNAPSHOT_FILE}" || true
-  fail "snapshot 响应结构不符合预期"
-fi
+  SNAPSHOT_SCHEMA_OK="$(
+    jq -r '
+      (.success == true)
+      and (.statusCode == 200)
+      and (.data.line | type == "object")
+      and (.data.line.symbol | type == "string")
+      and (.data.line.market | type == "string")
+      and (.data.line.tradingDay | type == "string")
+      and (.data.line.granularity == "1s")
+      and (.data.line.points | type == "array")
+      and (.data.capability.snapshotBaseGranularity == "1m")
+      and ((.data.sync.cursor // "") | length > 0)
+      and ((.data.sync.lastPointTimestamp // "") | length > 0)
+    ' "${SNAPSHOT_FILE}" 2>/dev/null || echo "false"
+  )"
+  if [[ "${SNAPSHOT_SCHEMA_OK}" != "true" ]]; then
+    jq '.' "${SNAPSHOT_FILE}" || cat "${SNAPSHOT_FILE}" || true
+    fail "snapshot 响应结构不符合预期"
+  fi
+
+  SNAPSHOT_REALTIME_MERGED_POINTS="$(
+    jq -r '.data.metadata.realtimeMergedPoints // 0' "${SNAPSHOT_FILE}" 2>/dev/null || echo "0"
+  )"
+
+  if [[ "${MIN_DELTA_UPDATES}" -le 0 ]]; then
+    break
+  fi
+
+  if [[ "${SNAPSHOT_PREWARM_ATTEMPTS}" -le 1 ]]; then
+    break
+  fi
+
+  if [[ "${SNAPSHOT_REALTIME_MERGED_POINTS}" -gt 0 ]]; then
+    break
+  fi
+
+  if [[ "${SNAPSHOT_ATTEMPT}" -ge "${SNAPSHOT_PREWARM_ATTEMPTS}" ]]; then
+    if [[ "${REQUIRE_REALTIME_PREWARM}" == "1" ]]; then
+      if [[ -n "${WS_FEED_PID}" ]]; then
+        echo "[INFO] ws_feed_log_tail:"
+        tail -n 20 "${WS_FEED_LOG_FILE}" || true
+      fi
+      fail "snapshot 预热失败：在 ${SNAPSHOT_PREWARM_ATTEMPTS} 次内未观测到 realtimeMergedPoints>0"
+    fi
+    echo "[WARN] snapshot 预热结束：仍未观测到 realtimeMergedPoints>0，后续 delta 可能为 0"
+    break
+  fi
+
+  echo "[INFO] snapshot 预热中：attempt=${SNAPSHOT_ATTEMPT}/${SNAPSHOT_PREWARM_ATTEMPTS} realtimeMergedPoints=${SNAPSHOT_REALTIME_MERGED_POINTS}，${SNAPSHOT_PREWARM_INTERVAL_SECONDS}s 后重试"
+  sleep "${SNAPSHOT_PREWARM_INTERVAL_SECONDS}"
+  SNAPSHOT_ATTEMPT=$((SNAPSHOT_ATTEMPT + 1))
+done
 
 CURSOR="$(jq -r '.data.sync.cursor // empty' "${SNAPSHOT_FILE}")"
 SNAPSHOT_MARKET="$(jq -r '.data.line.market // empty' "${SNAPSHOT_FILE}")"
@@ -170,7 +272,9 @@ jq '{
   tradingDay: .data.line.tradingDay,
   granularity: .data.line.granularity,
   pointsCount: ((.data.line.points // []) | length),
+  realtimeMergedPoints: (.data.metadata.realtimeMergedPoints // 0),
   snapshotBaseGranularity: .data.capability.snapshotBaseGranularity,
+  lastPointTimestamp: .data.sync.lastPointTimestamp,
   hasCursor: ((.data.sync.cursor // "") | length > 0)
 }' "${SNAPSHOT_FILE}" || true
 
@@ -450,10 +554,16 @@ section "测试完成"
 echo "symbol=${SYMBOL}"
 echo "provider=${PROVIDER}"
 echo "snapshot_points=${SNAPSHOT_POINTS_COUNT}"
+echo "snapshot_realtime_merged_points=${SNAPSHOT_REALTIME_MERGED_POINTS}"
 echo "delta_points=${DELTA_POINTS_COUNT}"
 echo "min_delta_updates=${MIN_DELTA_UPDATES}"
 echo "max_delta_attempts=${MAX_DELTA_ATTEMPTS}"
 echo "delta_poll_interval_seconds=${DELTA_POLL_INTERVAL_SECONDS}"
+echo "snapshot_prewarm_attempts=${SNAPSHOT_PREWARM_ATTEMPTS}"
+echo "snapshot_prewarm_interval_seconds=${SNAPSHOT_PREWARM_INTERVAL_SECONDS}"
+echo "require_realtime_prewarm=${REQUIRE_REALTIME_PREWARM}"
+echo "auto_start_ws_feed=${AUTO_START_WS_FEED}"
+echo "ws_feed_log=${WS_FEED_LOG_FILE}"
 echo "negative_tests=${NEGATIVE_TESTS}"
 echo "output_dir=${OUTPUT_DIR}"
 echo "[PASS] 分时折线 API 开发成果验证通过"

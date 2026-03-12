@@ -15,9 +15,10 @@
  * - USERNAME / PASSWORD: 未传 API Key 时自动登录并创建临时 API Key
  * - SYMBOL: 订阅标的（默认 AAPL.US）
  * - PROVIDER: 数据源（默认 infoway）
- * - MIN_TICK_COUNT: 最少 tick 条数（默认 1）
+ * - MIN_TICK_COUNT: 最少 tick 条数（默认 10）
  * - TIMEOUT_MS: 超时毫秒（默认 45000）
  * - VERBOSE_PACKET: 1/true 时打印完整 packet
+ * - HOLD_CONNECTION_AFTER_TARGET: 达到最少 tick 后保持连接到超时（默认 false）
  */
 
 const { io } = require("socket.io-client");
@@ -26,10 +27,13 @@ const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3001";
 const WS_PATH = process.env.WS_PATH || "/api/v1/stream-receiver/connect";
 const SYMBOL = process.env.SYMBOL || "AAPL.US";
 const PROVIDER = process.env.PROVIDER || "infoway";
-const MIN_TICK_COUNT = Number(process.env.MIN_TICK_COUNT || 1);
+const MIN_TICK_COUNT = Number(process.env.MIN_TICK_COUNT || 10);
 const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 45000);
 const VERBOSE_PACKET = ["1", "true", "yes", "on"].includes(
   String(process.env.VERBOSE_PACKET || "").toLowerCase(),
+);
+const HOLD_CONNECTION_AFTER_TARGET = ["1", "true", "yes", "on"].includes(
+  String(process.env.HOLD_CONNECTION_AFTER_TARGET || "").toLowerCase(),
 );
 
 function fail(message, extra) {
@@ -131,6 +135,7 @@ async function main() {
   const auth = await resolveApiKeyPair();
   let tickCount = 0;
   let settled = false;
+  let reachedTarget = false;
 
   console.log("[config]", {
     baseUrl: BASE_URL,
@@ -140,6 +145,7 @@ async function main() {
     minTickCount: MIN_TICK_COUNT,
     timeoutMs: TIMEOUT_MS,
     authSource: auth.source,
+    holdConnectionAfterTarget: HOLD_CONNECTION_AFTER_TARGET,
   });
 
   if (auth.source === "created") {
@@ -182,6 +188,15 @@ async function main() {
   }
 
   const timeout = setTimeout(() => {
+    if (reachedTarget) {
+      finish(0, "[PASS] 已达到最少 tick，并保持连接到超时窗口结束", {
+        tickCount,
+        required: MIN_TICK_COUNT,
+        symbol: SYMBOL,
+        provider: PROVIDER,
+      });
+      return;
+    }
     finish(2, "[FAIL] 超时未收到足够的最新价推送", {
       tickCount,
       required: MIN_TICK_COUNT,
@@ -245,12 +260,16 @@ async function main() {
     }
 
     if (tickCount >= MIN_TICK_COUNT) {
-      clearTimeout(timeout);
-      finish(0, "[PASS] WebSocket 最新价获取成功", {
-        symbol,
-        provider: PROVIDER,
-        tickCount,
-      });
+      reachedTarget = true;
+      if (!HOLD_CONNECTION_AFTER_TARGET) {
+        clearTimeout(timeout);
+        finish(0, "[PASS] WebSocket 最新价获取成功", {
+          symbol,
+          provider: PROVIDER,
+          tickCount,
+        });
+        return;
+      }
     }
   });
 }
