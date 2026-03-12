@@ -28,6 +28,7 @@ import {
   defaultStreamReceiverConfig,
 } from "../config/stream-receiver.config";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { StreamClientStateManager } from "../../../03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 
 import {
   QuoteData,
@@ -89,6 +90,7 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
     private readonly dataTransformerService: DataTransformerService,
     private readonly symbolTransformerService: SymbolTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
+    private readonly clientStateManager: StreamClientStateManager,
     private readonly dataValidator: StreamDataValidator,
     @Optional() @Inject(WEBSOCKET_SERVER_TOKEN)
     private readonly webSocketProvider?: WebSocketServerProvider,
@@ -658,12 +660,6 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
         return;
       }
 
-      const clientStateManager = this.streamDataFetcher.getClientStateManager?.();
-      if (!clientStateManager) {
-        this.logger.warn("ClientStateManager不可用，跳过广播");
-        return;
-      }
-
       const canonicalizedData = this.canonicalizePipelinePayloads(
         transformedData,
         "broadcast",
@@ -681,7 +677,7 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
 
       for (const [canonicalSymbol, items] of bySymbol.entries()) {
         try {
-          await clientStateManager.broadcastToSymbolViaGateway(
+          await this.clientStateManager.broadcastToSymbolViaGateway(
             canonicalSymbol,
             items,
             this.webSocketProvider,

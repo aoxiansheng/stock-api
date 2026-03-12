@@ -63,6 +63,9 @@ describe("StreamDataProcessorService logging", () => {
         dataTransformerService as any,
         symbolTransformerService as any,
         streamDataFetcher as any,
+        {
+          broadcastToSymbolViaGateway: jest.fn(),
+        } as any,
         dataValidator,
       ),
       streamCache: streamDataFetcher.getStreamDataCache(),

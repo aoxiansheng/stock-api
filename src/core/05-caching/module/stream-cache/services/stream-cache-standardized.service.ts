@@ -518,6 +518,10 @@ export class StreamCacheStandardizedService
             key,
             pointsCount: hotCacheData.length,
             durationMs: duration,
+            firstPoint: this.buildIntradayDiagnosticPointPreview(hotCacheData[0]),
+            lastPoint: this.buildIntradayDiagnosticPointPreview(
+              hotCacheData[hotCacheData.length - 1],
+            ),
           });
         }
 
@@ -553,6 +557,12 @@ export class StreamCacheStandardizedService
             key,
             pointsCount: warmCacheData.length,
             durationMs: duration,
+            firstPoint: this.buildIntradayDiagnosticPointPreview(
+              warmCacheData[0],
+            ),
+            lastPoint: this.buildIntradayDiagnosticPointPreview(
+              warmCacheData[warmCacheData.length - 1],
+            ),
           });
         }
         // 监控上报已移除
@@ -2525,6 +2535,29 @@ export class StreamCacheStandardizedService
 
   private shouldLogIntradayDiagnosticForKey(key: string): boolean {
     return key.startsWith("quote:") && shouldLog(StreamCacheStandardizedService.name, "debug");
+  }
+
+  private buildIntradayDiagnosticPointPreview(
+    point?: StreamDataPoint | null,
+  ): {
+    symbol: string | null;
+    timestamp: string | null;
+    price: number | null;
+    volume: number | null;
+  } | null {
+    if (!point) {
+      return null;
+    }
+
+    return {
+      symbol: point.s || null,
+      timestamp:
+        Number.isFinite(point.t) && point.t > 0
+          ? new Date(point.t).toISOString()
+          : null,
+      price: Number.isFinite(point.p) ? point.p : null,
+      volume: Number.isFinite(point.v) ? point.v : null,
+    };
   }
 
   /**

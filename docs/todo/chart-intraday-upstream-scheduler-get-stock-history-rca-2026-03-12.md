@@ -19,12 +19,12 @@
 1. `get-stock-history` 请求进入上游调度器；
 2. 调度器会把相同 `mergeKey` 的任务合并；
 3. 对 `get-stock-history`，合并后实际发车时 `symbols` 可能变为 `2+`；
-4. 但 Infoway 历史能力明确要求单标的，最终抛出 `400`：
+4. 但当前项目把 `get-stock-history` 能力封装为“单标策略”（MVP 取舍，非上游协议硬性限制），最终触发本地校验抛出 `400`：
    - `get-stock-history 仅支持单标的请求：symbols 必须且只能包含 1 个标的`
 
 因此：
 - 加白名单前：主要是 `500`（上游429被包装）+ 部分 `429`（本地限流）；
-- 加白名单后：`500` 大幅消失，但转换为大量 `400`（单标契约被破坏）+ `429`（高压时本地限流）。
+- 加白名单后：`500` 大幅消失，但转换为大量 `400`（项目内单标封装契约被破坏）+ `429`（高压时本地限流）。
 
 ---
 
@@ -36,7 +36,7 @@
 文件：`src/core/03-fetching/chart-intraday/services/chart-intraday-read.service.ts`
 - `fetchHistoryBaseline` 调用 `dataFetcherService.fetchRawData`（`capability: CAPABILITY_NAMES.GET_STOCK_HISTORY`）
 
-2. Infoway 历史能力明确单标约束  
+2. 当前项目 `get-stock-history` 能力实现包含单标约束（MVP 取舍）  
 文件：`src/providersv2/providers/infoway/capabilities/get-stock-history.ts`
 - 当 `symbols.length > 1` 时抛错 `GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR`
 
@@ -61,7 +61,7 @@
   - `get-stock-history 仅支持单标的请求：symbols 必须且只能包含 1 个标的`
   - `POST /api/v1/chart/intraday-line/snapshot - 400`
 
-这条链路直接证明：**调度合并导致 history 单标契约被破坏**。
+这条链路直接证明：**调度合并导致当前项目 history 单标封装契约被破坏**。
 
 ---
 
@@ -77,7 +77,7 @@
 ## 4.2 加白名单后（history 进调度器）
 
 - `500` 基本消失；
-- 出现大量 `400`（单标约束错误）；
+- 出现大量 `400`（触发项目内单标校验）；
 - 高压下仍会有本地 `429`（`ThrottlerGuard`）。
 
 ---
@@ -86,9 +86,9 @@
 
 ## 5.1 主根因
 
-`get-stock-history` 能力是“单标能力”，但当前调度器在该能力上的行为是“可合并多标发车”。
+当前项目 `get-stock-history` 能力实现为“单标策略”，但当前调度器在该能力上的行为是“可合并多标发车”。
 
-该不一致触发了能力输入契约违规。
+该不一致触发了项目内能力输入契约违规。
 
 ## 5.2 触发条件
 
@@ -102,15 +102,16 @@
 ## 5.3 放大因素
 
 1. 并发请求高；
-2. `mergeKey` 对 history 路径未包含 symbol 维度（默认分支仅用 options 签名）；
-3. 调度器对 history 不做按 symbol 拆分回填。
+2. 当前实现存在 `HISTORY_SINGLE = 1`（MVP 策略，优先单标）；
+3. `mergeKey` 对 history 路径未包含 symbol 维度（默认分支仅用 options 签名）；
+4. 调度器对 history 不做按 symbol 拆分回填。
 
 ---
 
 ## 6. 立即可执行的“无代码”缓解措施
 
-1. 从运行环境移除 `infoway:get-stock-history` 白名单项  
-仅保留默认白名单能力，避免触发该副作用。
+1. 保持 `UPSTREAM_SCHEDULER_ALLOWLIST` 包含 `infoway:get-stock-history`  （当前已经这样做了，只有这样才触发了本文档所见的问题，代码修复后，这是稳态策略）
+确保分时 snapshot 首次历史基线请求进入调度器削峰，避免并发直冲上游导致 `429` 放大。
 
 2. 分时图并发压测时降低本地触发节奏  
 使用 `global-interval-ms` 控制发包节奏，减少 `429` 噪声。
@@ -143,7 +144,7 @@
 
 修复后应满足：
 
-1. 开启 `infoway:get-stock-history` 调度时，不再出现 “single symbol” 400；
+1. 开启 `infoway:get-stock-history` 调度时，不再出现由项目内单标校验触发的 400；
 2. `snapshot` 功能正确率在目标并发下满足基线；
 3. 高压下若被限流，返回码以 429 为主，不再出现误导性 500；
 4. 调度器日志中 history 发车的 `symbols` 恒为 1。
@@ -154,8 +155,8 @@
 
 若后续代码修复上线后出现异常，第一回滚开关为：
 
-1. `UPSTREAM_SCHEDULER_ALLOWLIST` 去除 `infoway:get-stock-history`；
-2. 必要时 `UPSTREAM_SCHEDULER_ENABLED=false` 回退到原始直连策略。
+1. `UPSTREAM_SCHEDULER_ENABLED=false` 回退到原始直连策略；
+2. 回退到上一稳定版本镜像/发布包，并保留压测与线上日志用于二次定位。
 
 ---
 
@@ -164,3 +165,18 @@
 1. `/tmp/chart-intraday-multi-user-after-allowlist-history.json`
 2. `/tmp/chart-intraday-multi-user-after-allowlist-history-slow.json`
 
+---
+
+## 11. 当前落地状态（代码已实现）
+
+已落地实现：
+
+1. 调度请求契约新增 `mergeMode`，并支持 `single_symbol_only`。
+2. `DataFetcherService` 在 `infoway:get-stock-history` 调度链路注入 `mergeMode: single_symbol_only`。
+3. 调度器对 `single_symbol_only` 增加保护：
+   - 入参阶段要求 `symbols` 必须且只能 1 个；
+   - `mergeKey` 显式包含 symbol 维度；
+   - 发车阶段增加单标保护断言，避免多标误发车。
+4. 已补齐并通过定向单测：
+   - `test/unit/core/03-fetching/data-fetcher/services/upstream-request-scheduler.service.spec.ts`
+   - `test/unit/core/03-fetching/data-fetcher/services/data-fetcher.service.spec.ts`

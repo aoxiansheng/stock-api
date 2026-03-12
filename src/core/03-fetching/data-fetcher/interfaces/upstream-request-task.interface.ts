@@ -1,9 +1,13 @@
 export type UpstreamSymbolExtractor = (row: unknown) => string;
+export type UpstreamMergeMode =
+  | "merge_by_request_signature"
+  | "single_symbol_only";
 
 export interface UpstreamScheduleRequest {
   provider: string;
   capability: string;
   symbols: string[];
+  mergeMode?: UpstreamMergeMode;
   requestId?: string;
   options?: Record<string, unknown>;
   execute: (symbolsOverride: string[]) => Promise<unknown>;
@@ -17,6 +21,7 @@ export interface UpstreamScheduledTask {
   queueKey: string;
   mergeKey: string;
   symbols: string[];
+  mergeMode: UpstreamMergeMode;
   requestId?: string;
   options?: Record<string, unknown>;
   execute: (symbolsOverride: string[]) => Promise<unknown>;
@@ -31,6 +36,7 @@ export interface UpstreamDispatchEntry {
   mergeKey: string;
   capability: string;
   provider: string;
+  mergeMode: UpstreamMergeMode;
   tasks: UpstreamScheduledTask[];
   symbols: string[];
   symbolExtractor?: UpstreamSymbolExtractor;
@@ -41,6 +47,7 @@ export interface UpstreamMergeBucket {
   queueKey: string;
   provider: string;
   capability: string;
+  mergeMode: UpstreamMergeMode;
   symbols: Set<string>;
   tasks: UpstreamScheduledTask[];
   timer: NodeJS.Timeout | null;

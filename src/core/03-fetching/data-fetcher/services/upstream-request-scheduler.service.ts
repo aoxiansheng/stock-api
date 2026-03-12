@@ -7,6 +7,7 @@ import {
 } from "../constants/upstream-scheduler.constants";
 import type {
   UpstreamDispatchEntry,
+  UpstreamMergeMode,
   UpstreamMergeBucket,
   UpstreamQueueState,
   UpstreamScheduleRequest,
@@ -21,6 +22,10 @@ import {
 
 @Injectable()
 export class UpstreamRequestSchedulerService {
+  private static readonly DEFAULT_MERGE_MODE: UpstreamMergeMode =
+    "merge_by_request_signature";
+  private static readonly SINGLE_SYMBOL_ONLY_MERGE_MODE: UpstreamMergeMode =
+    "single_symbol_only";
   private readonly logger = createLogger(UpstreamRequestSchedulerService.name);
   private readonly queues = new Map<string, UpstreamQueueState>();
   private readonly mergeBuckets = new Map<string, UpstreamMergeBucket>();
@@ -79,8 +84,21 @@ export class UpstreamRequestSchedulerService {
     const provider = String(request.provider || "").trim().toLowerCase();
     const capability = String(request.capability || "").trim().toLowerCase();
     const queueKey = buildUpstreamQueueKey(provider, capability);
+    const mergeMode = this.resolveMergeMode(request.mergeMode);
     const normalizedSymbols = this.normalizeSymbols(request.symbols);
-    const mergeKey = this.buildMergeKey(provider, capability, request.options || {}, normalizedSymbols);
+    this.validateSingleSymbolModeInput({
+      provider,
+      capability,
+      mergeMode,
+      symbols: normalizedSymbols,
+    });
+    const mergeKey = this.buildMergeKey(
+      provider,
+      capability,
+      request.options || {},
+      normalizedSymbols,
+      mergeMode,
+    );
     const taskId = `${queueKey}:${++this.taskSequence.current}`;
 
     return await new Promise<unknown>((resolve, reject) => {
@@ -91,6 +109,7 @@ export class UpstreamRequestSchedulerService {
         queueKey,
         mergeKey,
         symbols: normalizedSymbols,
+        mergeMode,
         requestId: request.requestId,
         options: request.options,
         execute: request.execute,
@@ -127,6 +146,7 @@ export class UpstreamRequestSchedulerService {
       queueKey: task.queueKey,
       provider: task.provider,
       capability: task.capability,
+      mergeMode: task.mergeMode,
       symbols: new Set(task.symbols),
       tasks: [task],
       timer: null,
@@ -160,7 +180,11 @@ export class UpstreamRequestSchedulerService {
 
     for (let index = queue.pending.length - 1; index >= 0; index -= 1) {
       const entry = queue.pending[index];
-      if (!entry || entry.mergeKey !== task.mergeKey) {
+      if (
+        !entry ||
+        entry.mergeKey !== task.mergeKey ||
+        entry.mergeMode !== task.mergeMode
+      ) {
         continue;
       }
 
@@ -177,7 +201,7 @@ export class UpstreamRequestSchedulerService {
 
   private tryJoinActiveEntry(task: UpstreamScheduledTask): boolean {
     const entry = this.activeEntries.get(task.mergeKey);
-    if (!entry) {
+    if (!entry || entry.mergeMode !== task.mergeMode) {
       return false;
     }
 
@@ -218,6 +242,7 @@ export class UpstreamRequestSchedulerService {
       mergeKey: bucket.mergeKey,
       capability: bucket.capability,
       provider: bucket.provider,
+      mergeMode: bucket.mergeMode,
       tasks: bucket.tasks,
       symbols: Array.from(bucket.symbols),
       symbolExtractor: bucket.symbolExtractor,
@@ -283,7 +308,9 @@ export class UpstreamRequestSchedulerService {
         mergeKey: entry.mergeKey,
         tasks: entry.tasks.length,
         symbols: entry.symbols.length,
+        mergeMode: entry.mergeMode,
       });
+      this.assertDispatchEntry(entry);
       const rawResult = await leader.execute(entry.symbols);
       this.stats.dispatchedTasks += 1;
       if (
@@ -430,7 +457,18 @@ export class UpstreamRequestSchedulerService {
     capability: string,
     options: Record<string, unknown>,
     symbols: string[],
+    mergeMode: UpstreamMergeMode,
   ): string {
+    if (this.isSingleSymbolOnlyMode(mergeMode)) {
+      return buildUpstreamMergeKey(provider, capability, {
+        mode: mergeMode,
+        signature: stableStringify({
+          symbol: symbols[0] || "",
+          options,
+        }),
+      });
+    }
+
     const market = String(options.market || "").trim().toUpperCase();
 
     if (capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_QUOTE) {
@@ -461,6 +499,61 @@ export class UpstreamRequestSchedulerService {
     }
 
     return buildUpstreamMergeKey(provider, capability, options);
+  }
+
+  private resolveMergeMode(mergeMode?: UpstreamMergeMode): UpstreamMergeMode {
+    if (mergeMode === UpstreamRequestSchedulerService.SINGLE_SYMBOL_ONLY_MERGE_MODE) {
+      return mergeMode;
+    }
+    return UpstreamRequestSchedulerService.DEFAULT_MERGE_MODE;
+  }
+
+  private isSingleSymbolOnlyMode(mergeMode: UpstreamMergeMode): boolean {
+    return mergeMode === UpstreamRequestSchedulerService.SINGLE_SYMBOL_ONLY_MERGE_MODE;
+  }
+
+  private validateSingleSymbolModeInput(params: {
+    provider: string;
+    capability: string;
+    mergeMode: UpstreamMergeMode;
+    symbols: string[];
+  }): void {
+    if (!this.isSingleSymbolOnlyMode(params.mergeMode)) {
+      return;
+    }
+
+    if (params.symbols.length === 1) {
+      return;
+    }
+
+    const error = new Error(
+      `Upstream scheduler single_symbol_only expects exactly one symbol, received ${params.symbols.length}`,
+    );
+    this.logger.warn("上游调度单标模式入参非法", {
+      provider: params.provider,
+      capability: params.capability,
+      symbolsCount: params.symbols.length,
+      mergeMode: params.mergeMode,
+    });
+    throw error;
+  }
+
+  private assertDispatchEntry(entry: UpstreamDispatchEntry): void {
+    if (!this.isSingleSymbolOnlyMode(entry.mergeMode) || entry.symbols.length === 1) {
+      return;
+    }
+
+    const error = new Error(
+      `Upstream scheduler single_symbol_only dispatch expects exactly one symbol, received ${entry.symbols.length}`,
+    );
+    this.logger.error("上游调度单标模式发车保护触发", {
+      queueKey: entry.queueKey,
+      mergeKey: entry.mergeKey,
+      symbolsCount: entry.symbols.length,
+      mergeMode: entry.mergeMode,
+      tasks: entry.tasks.length,
+    });
+    throw error;
   }
 
   private buildAllowlistKey(provider: string, capability: string): string {

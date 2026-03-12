@@ -226,6 +226,7 @@ function createBatchProcessor(options?: {
     mocks.dataTransformerService as any,
     mocks.symbolTransformerService as any,
     mocks.streamDataFetcher as any,
+    mocks.clientStateManager as any,
     mocks.dataValidator as any,
     mocks.webSocketProvider as any,
   );

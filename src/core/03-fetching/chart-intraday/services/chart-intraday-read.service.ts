@@ -166,6 +166,15 @@ export class ChartIntradayReadService {
         realtimeLastTimestamp:
           realtimePoints[realtimePoints.length - 1]?.timestamp || null,
         mergedLastTimestamp: merged.points[merged.points.length - 1]?.timestamp || null,
+        historyLastPoint: this.buildPointPreview(
+          historyPoints[historyPoints.length - 1],
+        ),
+        realtimeLastPoint: this.buildPointPreview(
+          realtimePoints[realtimePoints.length - 1],
+        ),
+        mergedLastPoint: this.buildPointPreview(
+          merged.points[merged.points.length - 1],
+        ),
       });
     }
 
@@ -281,6 +290,10 @@ export class ChartIntradayReadService {
         realtimeFirstTimestamp: realtimePoints[0]?.timestamp || null,
         realtimeLastTimestamp:
           realtimePoints[realtimePoints.length - 1]?.timestamp || null,
+        realtimeFirstPoint: this.buildPointPreview(realtimePoints[0]),
+        realtimeLastPoint: this.buildPointPreview(
+          realtimePoints[realtimePoints.length - 1],
+        ),
       });
     }
 
@@ -303,6 +316,10 @@ export class ChartIntradayReadService {
         incrementalFirstTimestamp: incrementalPoints[0]?.timestamp || null,
         incrementalLastTimestamp:
           incrementalPoints[incrementalPoints.length - 1]?.timestamp || null,
+        incrementalFirstPoint: this.buildPointPreview(incrementalPoints[0]),
+        incrementalLastPoint: this.buildPointPreview(
+          incrementalPoints[incrementalPoints.length - 1],
+        ),
       });
     }
 
@@ -472,6 +489,12 @@ export class ChartIntradayReadService {
         symbol,
         rawPointsCount: Array.isArray(rawPoints) ? rawPoints.length : 0,
         hasRawPoints: Array.isArray(rawPoints) && rawPoints.length > 0,
+        rawFirstPoint: Array.isArray(rawPoints)
+          ? this.buildRawPointPreview(rawPoints[0])
+          : null,
+        rawLastPoint: Array.isArray(rawPoints)
+          ? this.buildRawPointPreview(rawPoints[rawPoints.length - 1])
+          : null,
       });
     }
     if (!Array.isArray(rawPoints) || rawPoints.length === 0) {
@@ -511,6 +534,8 @@ export class ChartIntradayReadService {
         filteredPointsCount: points.length,
         firstTimestamp: points[0]?.timestamp || null,
         lastTimestamp: points[points.length - 1]?.timestamp || null,
+        firstPoint: this.buildPointPreview(points[0]),
+        lastPoint: this.buildPointPreview(points[points.length - 1]),
       });
     }
 
@@ -811,6 +836,39 @@ export class ChartIntradayReadService {
 
   private parseTimestampToMs(value: unknown): number | null {
     return parseFlexibleTimestampToMs(value);
+  }
+
+  private buildPointPreview(
+    point?: IntradayPointDto | null,
+  ): { timestamp: string | null; price: number | null; volume: number | null } | null {
+    if (!point) {
+      return null;
+    }
+
+    return {
+      timestamp: point.timestamp || null,
+      price: Number.isFinite(point.price) ? point.price : null,
+      volume: Number.isFinite(point.volume) ? point.volume : null,
+    };
+  }
+
+  private buildRawPointPreview(
+    point: unknown,
+  ): { timestamp: string | null; price: number | null; volume: number | null } | null {
+    if (!point || typeof point !== "object") {
+      return null;
+    }
+
+    const rawPoint = point as Record<string, unknown>;
+    const timestampMs = this.parseTimestampToMs(rawPoint.t);
+    const price = this.parseNumber(rawPoint.p);
+    const volume = this.parseNumber(rawPoint.v ?? 0);
+
+    return {
+      timestamp: timestampMs ? new Date(timestampMs).toISOString() : null,
+      price: Number.isFinite(price) ? price : null,
+      volume: Number.isFinite(volume) ? volume : null,
+    };
   }
 
   private shouldTraceDebug(): boolean {

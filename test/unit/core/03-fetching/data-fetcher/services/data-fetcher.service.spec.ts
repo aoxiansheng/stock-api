@@ -9,6 +9,10 @@ jest.mock("@common/logging/index", () => ({
 }));
 
 import { DataFetcherService } from "@core/03-fetching/data-fetcher/services/data-fetcher.service";
+import {
+  BusinessErrorCode,
+  BusinessException,
+} from "@common/core/exceptions";
 import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 
 function createCapability(
@@ -290,6 +294,43 @@ describe("DataFetcherService upstream scheduler integration", () => {
     expect(result.data).toEqual([{ symbol: "00700.HK" }]);
   });
 
+  it("infoway:get-stock-history 命中 scheduler 时注入 single_symbol_only mergeMode", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK" }] });
+    const registry = {
+      getCapability: jest.fn(() =>
+        createCapability(CAPABILITY_NAMES.GET_STOCK_HISTORY, executeMock),
+      ),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn(async (request: any) => {
+        expect(request.mergeMode).toBe("single_symbol_only");
+        return { data: [{ symbol: "00700.HK" }] };
+      }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+      symbols,
+      apiType: "rest",
+      options: { market: "HK", klineType: 1, klineNum: 5 },
+    } as any);
+
+    expect(scheduler.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider,
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        symbols,
+        mergeMode: "single_symbol_only",
+      }),
+    );
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(result.data).toEqual([{ symbol: "00700.HK" }]);
+  });
+
   it("infoway:get-stock-quote 命中 scheduler 时注入 s 字段 symbolExtractor", async () => {
     const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK" }] });
     const registry = {
@@ -511,5 +552,43 @@ describe("DataFetcherService trading-days phase 3 integration", () => {
     expect(basicCache.get).toHaveBeenCalledTimes(1);
     expect(fallbackResult.data).toEqual([{ market: "US", tradeDays: ["20250310"], halfTradeDays: [] }]);
     expect(fallbackResult.metadata.errors).toEqual(["STALE_FALLBACK_HIT"]);
+  });
+});
+
+describe("DataFetcherService upstream 429 passthrough", () => {
+  it("get-stock-history 上游 429 时应透传为 BusinessException 429", async () => {
+    const upstreamError = Object.assign(
+      new Error("Request failed with status code 429"),
+      {
+        response: {
+          status: 429,
+        },
+      },
+    );
+    const executeMock = jest.fn().mockRejectedValue(upstreamError);
+    const registry = {
+      getCapability: jest.fn(() =>
+        createCapability(CAPABILITY_NAMES.GET_STOCK_HISTORY, executeMock),
+      ),
+      getProvider: jest.fn(),
+    };
+    const service = new DataFetcherService(registry as any);
+
+    try {
+      await service.fetchRawData({
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        symbols: ["00700.HK"],
+        apiType: "rest",
+        options: { market: "HK", klineType: 1, klineNum: 5 },
+      } as any);
+      throw new Error("Expected fetchRawData to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(BusinessException);
+      expect((error as BusinessException).getStatus()).toBe(429);
+      expect((error as BusinessException).errorCode).toBe(
+        BusinessErrorCode.RESOURCE_EXHAUSTED,
+      );
+    }
   });
 });

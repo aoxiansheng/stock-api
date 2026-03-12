@@ -30,7 +30,10 @@ import {
 } from "../constants/data-fetcher.constants";
 import { DATA_FETCHER_ERROR_CODES } from "../constants/data-fetcher-error-codes.constants";
 import { UpstreamRequestSchedulerService } from "./upstream-request-scheduler.service";
-import type { UpstreamSymbolExtractor } from "../interfaces/upstream-request-task.interface";
+import type {
+  UpstreamMergeMode,
+  UpstreamSymbolExtractor,
+} from "../interfaces/upstream-request-task.interface";
 import { BasicCacheService } from "@core/05-caching/module/basic-cache";
 import { stableStringify } from "../utils/upstream-request-key.util";
 
@@ -280,6 +283,27 @@ export class DataFetcherService implements IDataFetcher {
         throw error;
       }
 
+      const upstreamRateLimitStatus = this.resolveUpstreamRateLimitStatus(error);
+      if (upstreamRateLimitStatus === HttpStatus.TOO_MANY_REQUESTS) {
+        throw UniversalExceptionFactory.createBusinessException({
+          message: DATA_FETCHER_ERROR_MESSAGES.DATA_FETCH_FAILED.replace(
+            "{error}",
+            (error as Error)?.message || "Upstream returned 429",
+          ),
+          errorCode: BusinessErrorCode.RESOURCE_EXHAUSTED,
+          operation: DATA_FETCHER_OPERATIONS.FETCH_RAW_DATA,
+          component: ComponentIdentifier.DATA_FETCHER,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          context: {
+            provider,
+            capability,
+            requestId,
+            symbolsCount: symbols.length,
+            upstreamStatus: upstreamRateLimitStatus,
+          },
+        });
+      }
+
       throw UniversalExceptionFactory.createBusinessException({
         message: DATA_FETCHER_ERROR_MESSAGES.DATA_FETCH_FAILED.replace(
           "{error}",
@@ -503,6 +527,7 @@ export class DataFetcherService implements IDataFetcher {
         symbols: symbolsOverride,
       });
     const symbolExtractor = this.resolveSchedulerSymbolExtractor(provider, capability);
+    const mergeMode = this.resolveSchedulerMergeMode(provider, capability);
 
     if (
       !this.upstreamRequestScheduler ||
@@ -522,6 +547,7 @@ export class DataFetcherService implements IDataFetcher {
       requestId,
       options,
       execute,
+      mergeMode,
       symbolExtractor,
     });
   }
@@ -540,6 +566,21 @@ export class DataFetcherService implements IDataFetcher {
       return this.infowayQuoteSymbolExtractor;
     }
     return this.defaultSchedulerSymbolExtractor;
+  }
+
+  private resolveSchedulerMergeMode(
+    provider: string,
+    capability: string,
+  ): UpstreamMergeMode {
+    const providerKey = String(provider || "").trim().toLowerCase();
+    const capabilityKey = String(capability || "").trim().toLowerCase();
+    if (
+      providerKey === "infoway" &&
+      capabilityKey === CAPABILITY_NAMES.GET_STOCK_HISTORY.toLowerCase()
+    ) {
+      return "single_symbol_only";
+    }
+    return "merge_by_request_signature";
   }
 
   /**
@@ -750,6 +791,36 @@ export class DataFetcherService implements IDataFetcher {
       return fallback;
     }
     return Math.floor(parsed);
+  }
+
+  private resolveUpstreamRateLimitStatus(error: unknown): number | null {
+    const anyError = error as {
+      status?: number;
+      statusCode?: number;
+      response?: { status?: number };
+      getStatus?: () => number;
+      message?: string;
+    };
+
+    const statusCandidates = [
+      anyError?.status,
+      anyError?.statusCode,
+      anyError?.response?.status,
+      typeof anyError?.getStatus === "function" ? anyError.getStatus() : undefined,
+    ];
+    const resolvedStatus = statusCandidates.find((status) =>
+      Number.isFinite(status),
+    );
+    if (resolvedStatus === HttpStatus.TOO_MANY_REQUESTS) {
+      return HttpStatus.TOO_MANY_REQUESTS;
+    }
+
+    const message = String(anyError?.message || "").toLowerCase();
+    if (message.includes("429") || message.includes("too many requests")) {
+      return HttpStatus.TOO_MANY_REQUESTS;
+    }
+
+    return null;
   }
 
   /**

@@ -248,6 +248,79 @@ describe("UpstreamRequestSchedulerService", () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
+  it("single_symbol_only 模式下不同 symbol 的 history 请求不会合并发车", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const execute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol })),
+    }));
+
+    const resultPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-history",
+      symbols: ["00700.HK"],
+      mergeMode: "single_symbol_only",
+      options: { market: "HK", klineType: 1, klineNum: 5 },
+      execute,
+    });
+    const resultPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-history",
+      symbols: ["AAPL.US"],
+      mergeMode: "single_symbol_only",
+      options: { market: "US", klineType: 1, klineNum: 5 },
+      execute,
+    });
+
+    await jest.advanceTimersByTimeAsync(20);
+
+    await expect(resultPromiseA).resolves.toEqual({
+      data: [{ symbol: "00700.HK" }],
+    });
+    await expect(resultPromiseB).resolves.toEqual({
+      data: [{ symbol: "AAPL.US" }],
+    });
+
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(execute).toHaveBeenNthCalledWith(1, ["00700.HK"]);
+    expect(execute).toHaveBeenNthCalledWith(2, ["AAPL.US"]);
+  });
+
+  it("single_symbol_only 模式下同 symbol 的 history 请求会 single-flight 复用", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const execute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol, points: 5 })),
+    }));
+
+    const resultPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-history",
+      symbols: ["00700.HK"],
+      mergeMode: "single_symbol_only",
+      options: { market: "HK", klineType: 1, klineNum: 5 },
+      execute,
+    });
+    const resultPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-history",
+      symbols: ["00700.HK"],
+      mergeMode: "single_symbol_only",
+      options: { market: "HK", klineType: 1, klineNum: 5 },
+      execute,
+    });
+
+    await jest.advanceTimersByTimeAsync(20);
+
+    await expect(resultPromiseA).resolves.toEqual({
+      data: [{ symbol: "00700.HK", points: 5 }],
+    });
+    await expect(resultPromiseB).resolves.toEqual({
+      data: [{ symbol: "00700.HK", points: 5 }],
+    });
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(["00700.HK"]);
+  });
+
 
   it("会在短窗口内合并 get-stock-basic-info 并按 symbol 拆分结果", async () => {
     const scheduler = new UpstreamRequestSchedulerService();

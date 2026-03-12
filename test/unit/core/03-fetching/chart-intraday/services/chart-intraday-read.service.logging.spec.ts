@@ -60,11 +60,11 @@ describe("ChartIntradayReadService logging", () => {
     (shouldLog as jest.Mock).mockReturnValue(true);
     const service = createService({
       getData: jest.fn().mockResolvedValue([
-        { s: "AAPL.US", t: Date.parse("2026-03-12T14:30:00.000Z"), p: 101.2, v: 100 },
+        { s: "AAPL.US", t: Date.parse("2026-03-12T17:06:25.952Z"), p: 101.2, v: 100 },
       ]),
     });
 
-    await (service as any).fetchRealtimePoints("AAPL.US", "US", "2026-03-12");
+    await (service as any).fetchRealtimePoints("AAPL.US", "US", "20260312");
 
     expect(mockLogger.debug).toHaveBeenCalledWith(
       "分时诊断: 尝试读取流缓存",
@@ -72,7 +72,32 @@ describe("ChartIntradayReadService logging", () => {
     );
     expect(mockLogger.debug).toHaveBeenCalledWith(
       "分时诊断: 流缓存读取结果",
-      expect.objectContaining({ key: "quote:AAPL.US", rawPointsCount: 1 }),
+      expect.objectContaining({
+        key: "quote:AAPL.US",
+        rawPointsCount: 1,
+        rawFirstPoint: expect.objectContaining({
+          price: 101.2,
+          volume: 100,
+          timestamp: "2026-03-12T17:06:25.952Z",
+        }),
+      }),
+    );
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      "分时诊断: 流缓存过滤后点位",
+      expect.objectContaining({
+        key: "quote:AAPL.US",
+        filteredPointsCount: 1,
+        firstPoint: expect.objectContaining({
+          price: 101.2,
+          volume: 100,
+          timestamp: "2026-03-12T17:06:25.952Z",
+        }),
+        lastPoint: expect.objectContaining({
+          price: 101.2,
+          volume: 100,
+          timestamp: "2026-03-12T17:06:25.952Z",
+        }),
+      }),
     );
   });
 
@@ -80,11 +105,11 @@ describe("ChartIntradayReadService logging", () => {
     (shouldLog as jest.Mock).mockReturnValue(false);
     const service = createService({
       getData: jest.fn().mockResolvedValue([
-        { s: "AAPL.US", t: Date.parse("2026-03-12T14:30:00.000Z"), p: 101.2, v: 100 },
+        { s: "AAPL.US", t: Date.parse("2026-03-12T17:06:25.952Z"), p: 101.2, v: 100 },
       ]),
     });
 
-    await (service as any).fetchRealtimePoints("AAPL.US", "US", "2026-03-12");
+    await (service as any).fetchRealtimePoints("AAPL.US", "US", "20260312");
 
     expect(mockLogger.debug).not.toHaveBeenCalledWith(
       "分时诊断: 尝试读取流缓存",
