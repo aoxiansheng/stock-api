@@ -29,7 +29,6 @@ import {
   UnsubscriptionResult,
 } from "../interfaces";
 import { StreamCacheStandardizedService } from "../../../05-caching/module/stream-cache/services/stream-cache-standardized.service";
-import { StreamClientStateManager } from "./stream-client-state-manager.service";
 import { ConnectionPoolManager } from "./connection-pool-manager.service";
 
 type ProviderCleanupStatus =
@@ -114,7 +113,7 @@ export class StreamDataFetcherService
     totalRequests: 0,
     successfulRequests: 0,
     failedRequests: 0,
-    successRate: 100,
+    successRate: 1,
 
     // 并发控制历史
     concurrencyHistory: [] as Array<{
@@ -173,7 +172,6 @@ export class StreamDataFetcherService
   constructor(
     private readonly capabilityRegistry: ProviderRegistryService,
     private readonly streamCache: StreamCacheStandardizedService,
-    private readonly clientStateManager: StreamClientStateManager,
     private readonly connectionPoolManager: ConnectionPoolManager,
     // ✅ 事件化驱动监控 - 仅注入事件总线
     protected readonly eventBus: EventEmitter2,
@@ -354,6 +352,10 @@ export class StreamDataFetcherService
 
     const metrics = this.performanceMetrics;
     const control = this.concurrencyControl;
+
+    if (metrics.totalRequests === 0) {
+      return;
+    }
 
     // 决策逻辑：基于响应时间和成功率
     let adjustment = 0;
@@ -955,21 +957,6 @@ export class StreamDataFetcherService
         subscriptionResult,
       );
 
-      // Phase 2.4: 更新客户端状态（仅在 connection.id 可映射为 clientId 时执行）
-      if (this.clientStateManager.getClientSubscription(connection.id)) {
-        this.clientStateManager.updateSubscriptionState(
-          connection.id,
-          symbols,
-          "subscribed",
-        );
-      } else {
-        this.logger.debug("跳过连接级客户端状态更新（订阅）", {
-          connectionId: connection.id.substring(0, 8),
-          reason: "connection_id_is_not_client_id",
-          symbolsCount: symbols.length,
-        });
-      }
-
       // 更新指标
       this.recordSubscriptionMetrics(
         "created",
@@ -1068,21 +1055,6 @@ export class StreamDataFetcherService
 
       // Phase 3.2: 更新缓存
       await this.removeSubscriptionFromCache(connection.id, symbols);
-
-      // Phase 3.3: 更新客户端状态（仅在 connection.id 可映射为 clientId 时执行）
-      if (this.clientStateManager.getClientSubscription(connection.id)) {
-        this.clientStateManager.updateSubscriptionState(
-          connection.id,
-          symbols,
-          "unsubscribed",
-        );
-      } else {
-        this.logger.debug("跳过连接级客户端状态更新（取消订阅）", {
-          connectionId: connection.id.substring(0, 8),
-          reason: "connection_id_is_not_client_id",
-          symbolsCount: symbols.length,
-        });
-      }
 
       // 更新指标
       this.recordSubscriptionMetrics(
@@ -1307,11 +1279,6 @@ export class StreamDataFetcherService
 
       // Phase 4.5: 清理缓存
       await this.clearConnectionCache(connection.id);
-
-      // Phase 4.6: 更新客户端状态（仅在 connection.id 可映射为 clientId 时执行）
-      if (this.clientStateManager.getClientSubscription(connection.id)) {
-        this.clientStateManager.removeConnection(connection.id);
-      }
 
       // 更新指标
       this.recordConnectionMetrics("disconnected", connection.provider);
@@ -2151,13 +2118,6 @@ export class StreamDataFetcherService
    */
   getStreamDataCache(): StreamCacheStandardizedService {
     return this.streamCache;
-  }
-
-  /**
-   * Phase 4: 获取客户端状态管理器 - 供 StreamReceiver 使用
-   */
-  getClientStateManager(): StreamClientStateManager {
-    return this.clientStateManager;
   }
 
   /**

@@ -94,6 +94,12 @@ const CANONICAL_PROVIDER_HINT = [...Object.values(PROVIDER_IDS)]
   .sort((a, b) => a.localeCompare(b))
   .join(", ");
 const RECEIVER_ALLOWED_MARKET_SET = new Set<string>(RECEIVER_ALLOWED_MARKETS);
+
+interface TransformMarketResolution {
+  inputMarket?: string;
+  resolvedMarketType: string;
+  marketResolutionStrategy: string;
+}
 // 🎯 复用 common 模块的日志配置
 // 🎯 复用 common 模块的数据接收常量
 
@@ -968,6 +974,10 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     const capabilityName = request.receiverType;
     const effectiveMarketContext =
       marketContext ?? this.getMarketContext(request.symbols);
+    const transformMarketResolution = this.resolveTransformMarketResolution(
+      request,
+      effectiveMarketContext,
+    );
     const sanitizedOptions = this.sanitizeFetchOptions(
       request.options,
       capabilityName,
@@ -1004,6 +1014,20 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         rawSize: rawData?.length ?? 0,
         rawSample,
       });
+      this.logger.debug(
+        `Receiver transform market resolution`,
+        sanitizeLogData({
+          requestId,
+          provider,
+          receiverType: request.receiverType,
+          inputMarket: transformMarketResolution.inputMarket,
+          inferredMarketType: effectiveMarketContext.marketType,
+          resolvedMarketType: transformMarketResolution.resolvedMarketType,
+          marketResolutionStrategy:
+            transformMarketResolution.marketResolutionStrategy,
+          symbolMarkets: effectiveMarketContext.markets,
+        }),
+      );
       const transformRequest: DataTransformRequestDto = {
         provider,
         apiType: "rest",
@@ -1011,7 +1035,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
           request.receiverType,
         ),
         rawData,
-        marketType: effectiveMarketContext.marketType,
+        marketType: transformMarketResolution.resolvedMarketType,
         options: {
           includeMetadata: true,
           includeDebugInfo: false,
@@ -1546,6 +1570,35 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     // 这里可以根据symbols判断市场，然后设置不同的TTL
     // 实际实现可以调用 marketStatusService 获取市场状态
     return defaultTTL;
+  }
+
+  private resolveTransformMarketResolution(
+    request: DataRequestDto,
+    marketContext: MarketTypeContext,
+  ): TransformMarketResolution {
+    const inputMarket =
+      typeof request.options?.market === "string"
+        ? this.normalizeReceiverMarketForCacheKey(request.options.market)
+        : undefined;
+    const hasMixedMarkets = marketContext.markets.length > 1;
+    const isWeakHintCapability =
+      request.receiverType === CAPABILITY_NAMES.GET_STOCK_QUOTE ||
+      request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY;
+
+    if (isWeakHintCapability && inputMarket && hasMixedMarkets) {
+      return {
+        inputMarket,
+        resolvedMarketType: "*",
+        marketResolutionStrategy:
+          "explicit_market_with_mixed_symbols_uses_wildcard",
+      };
+    }
+
+    return {
+      inputMarket,
+      resolvedMarketType: marketContext.marketType,
+      marketResolutionStrategy: "symbol_inferred_market_type",
+    };
   }
 
   /**

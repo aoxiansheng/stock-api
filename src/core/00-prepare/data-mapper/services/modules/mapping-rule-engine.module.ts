@@ -50,7 +50,7 @@ export class MappingRuleEngineModule {
     const startTime = Date.now();
 
     // 🐞 调试：应用映射前输出规则概览
-    this.logger.debug("applyFlexibleMappingRule: begin", {
+    this.logger.verbose("applyFlexibleMappingRule: begin", {
       ruleId: rule._id?.toString(),
       mappingCount: rule.fieldMappings?.length,
       samplePaths: rule.fieldMappings
@@ -214,7 +214,7 @@ export class MappingRuleEngineModule {
       debugInfo: includeDebugInfo ? debugInfo : undefined,
     };
 
-    this.logger.debug("applyFlexibleMappingRule: completed", {
+    this.logger.verbose("applyFlexibleMappingRule: completed", {
       ruleId: rule._id?.toString(),
       duration: Date.now() - startTime,
       totalMappings,

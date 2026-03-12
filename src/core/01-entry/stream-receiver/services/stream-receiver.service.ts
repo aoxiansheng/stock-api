@@ -14,6 +14,7 @@ import { STREAM_RECEIVER_ERROR_CODES } from '../constants/stream-receiver-error-
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { StreamClientStateManager } from "../../../03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 import { UpstreamSymbolSubscriptionCoordinatorService } from "../../../03-fetching/stream-data-fetcher/services/upstream-symbol-subscription-coordinator.service";
 import {
   StreamRecoveryWorkerService,
@@ -150,6 +151,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly marketInferenceService: MarketInferenceService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
+    private readonly clientStateManager: StreamClientStateManager,
     private readonly upstreamSymbolSubscriptionCoordinator: UpstreamSymbolSubscriptionCoordinatorService,
     private readonly providerRegistryService: ProviderRegistryService,
     // 🆕 P2重构: 数据验证模块
@@ -646,9 +648,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       }
 
       // 4. 订阅成功后更新客户端状态，避免失败场景产生脏状态
-      this.streamDataFetcher
-        .getClientStateManager()
-        .addClientSubscription(
+      this.clientStateManager.addClientSubscription(
           resolvedClientId,
           standardSymbols,
           wsCapabilityType,
@@ -740,9 +740,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
     try {
       // 获取客户端当前订阅信息
-      const clientSub = this.streamDataFetcher
-        .getClientStateManager()
-        .getClientSubscription(clientId);
+      const clientSub = this.clientStateManager.getClientSubscription(clientId);
       if (!clientSub) {
         this.logger.warn("客户端订阅不存在", { clientId });
         return;
@@ -752,9 +750,7 @@ export class StreamReceiverService implements OnModuleDestroy {
       const symbolsToUnsubscribe =
         symbols && symbols.length > 0
           ? symbols
-          : this.streamDataFetcher
-              .getClientStateManager()
-              .getClientSymbols(clientId);
+          : this.clientStateManager.getClientSymbols(clientId);
 
       if (symbolsToUnsubscribe.length === 0) {
         this.logger.warn("没有需要取消订阅的符号", { clientId });
@@ -777,9 +773,7 @@ export class StreamReceiverService implements OnModuleDestroy {
         );
 
       // 更新客户端状态
-      this.streamDataFetcher
-        .getClientStateManager()
-        .removeClientSubscription(clientId, standardSymbols);
+      this.clientStateManager.removeClientSubscription(clientId, standardSymbols);
 
       // 获取连接（通过连接管理器；仅在现有连接活跃时执行退订，避免误建新连接）
       const connectionKey = `${clientSub.providerName}:${clientSub.wsCapabilityType}`;
@@ -944,9 +938,7 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       // 5. 订阅成功后恢复客户端订阅状态
       if (confirmedStandardSymbols.length > 0) {
-        this.streamDataFetcher
-          .getClientStateManager()
-          .addClientSubscription(
+        this.clientStateManager.addClientSubscription(
             clientId,
             confirmedStandardSymbols,
             wsCapabilityType,
@@ -1061,9 +1053,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   detectReconnection(): void {
     // 获取所有活跃客户端
-    const allClients = this.streamDataFetcher
-      .getClientStateManager()
-      .getClientStateStats();
+    const allClients = this.clientStateManager.getClientStateStats();
     const now = Date.now();
     const heartbeatTimeout = STREAM_RECEIVER_TIMEOUTS.HEARTBEAT_TIMEOUT_MS;
 
@@ -1144,9 +1134,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     this.logger.log("手动触发重连检查", { clientId, reason });
 
     try {
-      const clientInfo = this.streamDataFetcher
-        .getClientStateManager()
-        .getClientSubscription(clientId);
+      const clientInfo = this.clientStateManager.getClientSubscription(clientId);
 
       if (!clientInfo) {
         this.logger.warn("客户端不存在，跳过重连检查", { clientId });
@@ -1235,9 +1223,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     clientId: string,
     errorMessage: string,
   ): Promise<void> {
-    const clientInfo = this.streamDataFetcher
-      .getClientStateManager()
-      .getClientSubscription(clientId);
+    const clientInfo = this.clientStateManager.getClientSubscription(clientId);
 
     if (clientInfo) {
       try {
@@ -1266,9 +1252,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    * Note: Cache stats are now provided through event-driven monitoring
    */
   getClientStats() {
-    const clientStats = this.streamDataFetcher
-      .getClientStateManager()
-      .getClientStateStats();
+    const clientStats = this.clientStateManager.getClientStateStats();
     
     // ✅ Cache stats are now provided through MonitoringService via event-driven monitoring
  
@@ -2447,9 +2431,7 @@ export class StreamReceiverService implements OnModuleDestroy {
    * 设置订阅变更监听器
    */
   private setupSubscriptionChangeListener(): void {
-    this.streamDataFetcher
-      .getClientStateManager()
-      .addSubscriptionChangeListener((event) => {
+    this.clientStateManager.addSubscriptionChangeListener((event) => {
         this.logger.debug("订阅变更事件", {
           clientId: event.clientId,
           action: event.action,
