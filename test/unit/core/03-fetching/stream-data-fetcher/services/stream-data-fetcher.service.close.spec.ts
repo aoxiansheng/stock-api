@@ -115,7 +115,6 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     service = new StreamDataFetcherService(
       capabilityRegistry as any,
       streamCache as any,
-      clientStateManager as any,
       connectionPoolManager as any,
       new EventEmitter2(),
       configService as any,
@@ -236,73 +235,33 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     );
   });
 
-  it("subscribeToSymbols 未命中客户端状态时不更新订阅状态", async () => {
-    const conn = await createConnection("req-subscribe-miss");
+  it("subscribeToSymbols 不再触碰客户端状态管理器", async () => {
+    const conn = await createConnection("req-subscribe-no-client-state");
     const symbols = ["AAPL", "TSLA"];
-    clientStateManager.getClientSubscription.mockReturnValueOnce(undefined);
 
     await expect(
       service.subscribeToSymbols(conn, symbols),
     ).resolves.toBeUndefined();
 
-    expect(clientStateManager.getClientSubscription).toHaveBeenCalledWith(
-      conn.id,
-    );
+    expect(clientStateManager.getClientSubscription).not.toHaveBeenCalled();
     expect(clientStateManager.updateSubscriptionState).not.toHaveBeenCalled();
+    expect(clientStateManager.removeConnection).not.toHaveBeenCalled();
   });
 
-  it("subscribeToSymbols 命中客户端状态时更新为 subscribed", async () => {
-    const conn = await createConnection("req-subscribe-hit");
+
+  it("unsubscribeFromSymbols 不再触碰客户端状态管理器", async () => {
+    const conn = await createConnection("req-unsubscribe-no-client-state");
     const symbols = ["AAPL", "TSLA"];
-    clientStateManager.getClientSubscription.mockReturnValueOnce({
-      clientId: "client-1",
-    });
-
-    await expect(
-      service.subscribeToSymbols(conn, symbols),
-    ).resolves.toBeUndefined();
-
-    expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledTimes(1);
-    expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledWith(
-      conn.id,
-      symbols,
-      "subscribed",
-    );
-  });
-
-  it("unsubscribeFromSymbols 未命中客户端状态时不更新订阅状态", async () => {
-    const conn = await createConnection("req-unsubscribe-miss");
-    const symbols = ["AAPL", "TSLA"];
-    clientStateManager.getClientSubscription.mockReturnValueOnce(undefined);
 
     await expect(
       service.unsubscribeFromSymbols(conn, symbols),
     ).resolves.toBeUndefined();
 
-    expect(clientStateManager.getClientSubscription).toHaveBeenCalledWith(
-      conn.id,
-    );
+    expect(clientStateManager.getClientSubscription).not.toHaveBeenCalled();
     expect(clientStateManager.updateSubscriptionState).not.toHaveBeenCalled();
+    expect(clientStateManager.removeConnection).not.toHaveBeenCalled();
   });
 
-  it("unsubscribeFromSymbols 命中客户端状态时更新为 unsubscribed", async () => {
-    const conn = await createConnection("req-unsubscribe-hit");
-    const symbols = ["AAPL", "TSLA"];
-    clientStateManager.getClientSubscription.mockReturnValueOnce({
-      clientId: "client-1",
-    });
-
-    await expect(
-      service.unsubscribeFromSymbols(conn, symbols),
-    ).resolves.toBeUndefined();
-
-    expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledTimes(1);
-    expect(clientStateManager.updateSubscriptionState).toHaveBeenCalledWith(
-      conn.id,
-      symbols,
-      "unsubscribed",
-    );
-  });
 
   it("conn.close() 统一走 closeConnection 语义，并保持幂等", async () => {
     const conn = await createConnection("req-1");
@@ -373,32 +332,16 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     expect(ctxService.unsubscribe).not.toHaveBeenCalled();
   });
 
-  it("closeConnection 未命中客户端状态时不调用 removeConnection", async () => {
-    const conn = await createConnection("req-close-miss");
-    clientStateManager.getClientSubscription.mockReturnValueOnce(undefined);
+  it("closeConnection 不再触碰客户端状态管理器", async () => {
+    const conn = await createConnection("req-close-no-client-state");
 
     await expect(service.closeConnection(conn)).resolves.toBeUndefined();
 
-    expect(clientStateManager.getClientSubscription).toHaveBeenCalledWith(
-      conn.id,
-    );
+    expect(clientStateManager.getClientSubscription).not.toHaveBeenCalled();
+    expect(clientStateManager.updateSubscriptionState).not.toHaveBeenCalled();
     expect(clientStateManager.removeConnection).not.toHaveBeenCalled();
   });
 
-  it("closeConnection 命中客户端状态时调用 removeConnection", async () => {
-    const conn = await createConnection("req-close-hit");
-    clientStateManager.getClientSubscription.mockReturnValueOnce({
-      clientId: "client-1",
-    });
-
-    await expect(service.closeConnection(conn)).resolves.toBeUndefined();
-
-    expect(clientStateManager.getClientSubscription).toHaveBeenCalledWith(
-      conn.id,
-    );
-    expect(clientStateManager.removeConnection).toHaveBeenCalledTimes(1);
-    expect(clientStateManager.removeConnection).toHaveBeenCalledWith(conn.id);
-  });
 
   it("重复 closeConnection 不会重复执行退订", async () => {
     const conn = await createConnection("req-1");

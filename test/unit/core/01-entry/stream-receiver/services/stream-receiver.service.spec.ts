@@ -151,6 +151,7 @@ function createService(options?: {
     mocks.marketInferenceService as any,
     mocks.dataTransformerService as any,
     mocks.streamDataFetcher as any,
+    mocks.clientStateManager as any,
     mocks.upstreamSymbolSubscriptionCoordinator as any,
     mocks.providerRegistryService as any,
     mocks.dataValidator as any,

@@ -661,4 +661,144 @@ describe("ReceiverService get-stock-history pipeline", () => {
     );
     expect(response.data[0].symbol).toBe("aapl.us");
   });
+
+  it("executeDataFetching 在 mixed symbols + 显式 market 的 quote 请求下向 Transformer 传递 wildcard marketType", async () => {
+    const {
+      service,
+      dataFetcherService,
+      dataTransformerService,
+    } = createReceiverService();
+
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        { symbol: "00700.HK", price: 100 },
+        { symbol: "AAPL.US", price: 200 },
+      ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+        processingTimeMs: 3,
+        symbolsProcessed: 2,
+      },
+    });
+
+    dataTransformerService.transform.mockResolvedValue({
+      transformedData: [
+        { symbol: "00700.HK", price: 100 },
+        { symbol: "AAPL.US", price: 200 },
+      ],
+      metadata: {},
+    });
+
+    await (service as any).executeDataFetching(
+      {
+        symbols: ["00700.HK", "AAPL.US"],
+        receiverType: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+        options: {
+          market: "US",
+        },
+      } as any,
+      "infoway",
+      {
+        transformedSymbols: ["00700.HK", "AAPL.US"],
+        mappingResults: {
+          transformedSymbols: {
+            "00700.HK": "00700.HK",
+            "AAPL.US": "AAPL.US",
+          },
+          failedSymbols: [],
+          metadata: {
+            provider: "infoway",
+            totalSymbols: 2,
+            successfulTransformations: 2,
+            failedTransformations: 0,
+            processingTimeMs: 1,
+          },
+        },
+      } as any,
+      "request-quote-mixed-market",
+      {
+        primaryMarket: "HK",
+        marketType: "HK",
+        markets: ["HK", "US"],
+        candidates: ["HK", "HK/US", "*"],
+      },
+    );
+
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ market: "US" }),
+      }),
+    );
+    expect(dataTransformerService.transform).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marketType: "*",
+      }),
+    );
+  });
+
+  it("executeDataFetching 对 get-stock-basic-info 保持符号推断 marketType，不降级为 wildcard", async () => {
+    const {
+      service,
+      dataFetcherService,
+      dataTransformerService,
+    } = createReceiverService();
+
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [{ symbol: "00700.HK", name: "Tencent" }],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+        processingTimeMs: 3,
+        symbolsProcessed: 1,
+      },
+    });
+
+    dataTransformerService.transform.mockResolvedValue({
+      transformedData: [{ symbol: "00700.HK", name: "Tencent" }],
+      metadata: {},
+    });
+
+    await (service as any).executeDataFetching(
+      {
+        symbols: ["00700.HK", "AAPL.US"],
+        receiverType: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+        options: {
+          market: "US",
+        },
+      } as any,
+      "infoway",
+      {
+        transformedSymbols: ["00700.HK", "AAPL.US"],
+        mappingResults: {
+          transformedSymbols: {
+            "00700.HK": "00700.HK",
+            "AAPL.US": "AAPL.US",
+          },
+          failedSymbols: [],
+          metadata: {
+            provider: "infoway",
+            totalSymbols: 2,
+            successfulTransformations: 2,
+            failedTransformations: 0,
+            processingTimeMs: 1,
+          },
+        },
+      } as any,
+      "request-basic-info-mixed-market",
+      {
+        primaryMarket: "HK",
+        marketType: "HK",
+        markets: ["HK", "US"],
+        candidates: ["HK", "HK/US", "*"],
+      },
+    );
+
+    expect(dataTransformerService.transform).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marketType: "HK",
+      }),
+    );
+  });
+
 });
