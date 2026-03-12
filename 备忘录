@@ -83,14 +83,14 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 
 
 第一步：  
-你是主 agent ，调用子 anget-A 完成下面的任务。
+
 1. 调用 clean-code-reviewer，对本次 git diff 及所有新建未跟踪文件执行 D3/R4/C1 ⇒ L4 级别的严格代码审查，重点扫描安全性漏洞、边界条件缺失、可维护性隐患、重复代码、组件耦合及复用率。 
 2. 调用 code-reviewer，按作者既定工作流拆解审查步骤，生成预设步骤清单并实时同步进度。 
 3. 汇总 A、B 输出，按“Critical / Important / Minor / Strengths / Verdict”五级分类整理，并且标记写入时间，输出 markdown 表格与详细描述，写入 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，原始文档为如果存在内容直接覆盖，并返回文件哈希供后续校验。 
 约束：绿地项目，禁止兼容回退逻辑；坚持最小成本、第一原理实现；禁止过度工程化；允许合理新增文件。新增功能之前，确认项目没有类似，避免重复造轮子。 
 
 第二步：
-你是主 agent ， 在上述任务完成后， 完成下面的任务。
+ 在上述任务完成后， 完成下面的任务。
 1. 读取 '/Users/honor/Documents/code/newstockapi/stock-api/问题清单.md'，逐项验证问题真实性，去伪存真。 
 2. 对确认存在的问题进行影响面分析，列出涉及代码文件、依赖链路、潜在风险。 
 3. 为每个问题生成原子级修复计划，包含：背景、修复目标、涉及文件、影响面、原子开发步骤（粒度到函数级别）、每一步验收条件（含单元测试、回归测试用例）、测试补齐策略。 
