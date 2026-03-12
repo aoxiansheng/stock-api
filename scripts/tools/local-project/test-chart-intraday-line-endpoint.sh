@@ -11,6 +11,7 @@ set -euo pipefail
 #
 # 可选参数：
 # MARKET=US TRADING_DAY=20260308 POINT_LIMIT=30000 DELTA_LIMIT=2000 NEGATIVE_TESTS=1
+# MIN_DELTA_UPDATES=10 MAX_DELTA_ATTEMPTS=30 DELTA_POLL_INTERVAL_SECONDS=1
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:3001}"
 SNAPSHOT_ENDPOINT="${SNAPSHOT_ENDPOINT:-/api/v1/chart/intraday-line/snapshot}"
@@ -24,13 +25,19 @@ POINT_LIMIT="${POINT_LIMIT:-30000}"
 DELTA_LIMIT="${DELTA_LIMIT:-2000}"
 NEGATIVE_TESTS="${NEGATIVE_TESTS:-1}"
 STRICT_MISMATCH_PROVIDER="${STRICT_MISMATCH_PROVIDER:-longport}"
+MIN_DELTA_UPDATES="${MIN_DELTA_UPDATES:-10}"
+MAX_DELTA_ATTEMPTS="${MAX_DELTA_ATTEMPTS:-30}"
+DELTA_POLL_INTERVAL_SECONDS="${DELTA_POLL_INTERVAL_SECONDS:-1}"
 
 OUTPUT_DIR="${OUTPUT_DIR:-/tmp/chart-intraday-line-test}"
 SNAPSHOT_FILE="${OUTPUT_DIR}/snapshot.json"
 DELTA_FILE="${OUTPUT_DIR}/delta.json"
+DELTA_LOOP_FILE="${OUTPUT_DIR}/delta-loop.json"
 NEG_NO_CURSOR_FILE="${OUTPUT_DIR}/delta-no-cursor.json"
 NEG_TAMPERED_CURSOR_FILE="${OUTPUT_DIR}/delta-tampered-cursor.json"
 NEG_PROVIDER_MISMATCH_FILE="${OUTPUT_DIR}/delta-provider-mismatch.json"
+NEG_SINCE_FILE="${OUTPUT_DIR}/delta-with-since.json"
+NEG_INCLUDE_PREPOST_FILE="${OUTPUT_DIR}/snapshot-with-includePrePost.json"
 
 mkdir -p "${OUTPUT_DIR}"
 
@@ -63,6 +70,22 @@ if [[ -n "${APP_KEY:-}" && -n "${ACCESS_TOKEN:-}" ]]; then
   AUTH_HEADERS+=(-H "X-App-Key: ${APP_KEY}" -H "X-Access-Token: ${ACCESS_TOKEN}")
 else
   AUTH_HEADERS+=(-H "Authorization: Bearer ${AUTH_BEARER}")
+fi
+
+normalize_lower() {
+  echo "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+# strictProviderConsistency 负例必须确保 provider 与 cursor 内 provider 不一致
+if [[ "$(normalize_lower "${STRICT_MISMATCH_PROVIDER}")" == "$(normalize_lower "${PROVIDER}")" ]]; then
+  if [[ "$(normalize_lower "${PROVIDER}")" != "longport" ]]; then
+    STRICT_MISMATCH_PROVIDER="longport"
+  elif [[ "$(normalize_lower "${PROVIDER}")" != "infoway" ]]; then
+    STRICT_MISMATCH_PROVIDER="infoway"
+  else
+    STRICT_MISMATCH_PROVIDER="jvquant"
+  fi
+  echo "[INFO] STRICT_MISMATCH_PROVIDER 与 PROVIDER 相同，已自动调整为 ${STRICT_MISMATCH_PROVIDER}"
 fi
 
 post_json() {
@@ -201,6 +224,8 @@ fi
 
 NEXT_CURSOR="$(jq -r '.data.delta.nextCursor // empty' "${DELTA_FILE}")"
 DELTA_POINTS_COUNT="$(jq -r '(.data.delta.points // []) | length' "${DELTA_FILE}")"
+TOTAL_DELTA_POINTS="${DELTA_POINTS_COUNT}"
+CURRENT_CURSOR="${NEXT_CURSOR:-$CURSOR}"
 
 section "delta 摘要"
 jq '{
@@ -212,6 +237,73 @@ jq '{
   hasNextCursor: ((.data.delta.nextCursor // "") | length > 0),
   lastPointTimestamp: .data.delta.lastPointTimestamp
 }' "${DELTA_FILE}" || true
+
+if [[ "${MIN_DELTA_UPDATES}" -gt 0 ]]; then
+  section "delta 连续拉取（至少 ${MIN_DELTA_UPDATES} 条更新）"
+  DELTA_ATTEMPT=1
+  while [[ "${TOTAL_DELTA_POINTS}" -lt "${MIN_DELTA_UPDATES}" && "${DELTA_ATTEMPT}" -lt "${MAX_DELTA_ATTEMPTS}" ]]; do
+    sleep "${DELTA_POLL_INTERVAL_SECONDS}"
+
+    LOOP_DELTA_PAYLOAD="$(
+      jq -nc \
+        --arg symbol "${SYMBOL}" \
+        --arg provider "${PROVIDER}" \
+        --arg cursor "${CURRENT_CURSOR}" \
+        --arg market "${SNAPSHOT_MARKET}" \
+        --arg tradingDay "${SNAPSHOT_TRADING_DAY}" \
+        --argjson limit "${DELTA_LIMIT}" \
+        '
+        {
+          symbol: $symbol,
+          provider: $provider,
+          cursor: $cursor,
+          limit: $limit
+        }
+        | if ($market | length) > 0 then . + { market: $market } else . end
+        | if ($tradingDay | length) > 0 then . + { tradingDay: $tradingDay } else . end
+        '
+    )"
+
+    LOOP_DELTA_HTTP_CODE="$(post_json "${DELTA_ENDPOINT}" "${LOOP_DELTA_PAYLOAD}" "${DELTA_LOOP_FILE}")"
+    if [[ "${LOOP_DELTA_HTTP_CODE}" != "200" ]]; then
+      jq '.' "${DELTA_LOOP_FILE}" || cat "${DELTA_LOOP_FILE}" || true
+      fail "delta 轮询失败，期望 200，实际 ${LOOP_DELTA_HTTP_CODE}"
+    fi
+
+    LOOP_DELTA_SCHEMA_OK="$(
+      jq -r '
+        (.success == true)
+        and (.statusCode == 200)
+        and (.data.delta | type == "object")
+        and (.data.delta.points | type == "array")
+        and ((.data.delta.nextCursor // "") | length > 0)
+      ' "${DELTA_LOOP_FILE}" 2>/dev/null || echo "false"
+    )"
+    if [[ "${LOOP_DELTA_SCHEMA_OK}" != "true" ]]; then
+      jq '.' "${DELTA_LOOP_FILE}" || cat "${DELTA_LOOP_FILE}" || true
+      fail "delta 轮询响应结构不符合预期"
+    fi
+
+    LOOP_POINTS_COUNT="$(jq -r '(.data.delta.points // []) | length' "${DELTA_LOOP_FILE}" 2>/dev/null || echo "0")"
+    LOOP_NEXT_CURSOR="$(jq -r '.data.delta.nextCursor // empty' "${DELTA_LOOP_FILE}")"
+    if [[ -n "${LOOP_NEXT_CURSOR}" ]]; then
+      CURRENT_CURSOR="${LOOP_NEXT_CURSOR}"
+      NEXT_CURSOR="${LOOP_NEXT_CURSOR}"
+    fi
+
+    TOTAL_DELTA_POINTS=$((TOTAL_DELTA_POINTS + LOOP_POINTS_COUNT))
+    echo "delta_attempt=${DELTA_ATTEMPT} new_points=${LOOP_POINTS_COUNT} total_points=${TOTAL_DELTA_POINTS}"
+
+    DELTA_ATTEMPT=$((DELTA_ATTEMPT + 1))
+  done
+
+  if [[ "${TOTAL_DELTA_POINTS}" -lt "${MIN_DELTA_UPDATES}" ]]; then
+    jq '.' "${DELTA_LOOP_FILE}" || cat "${DELTA_LOOP_FILE}" || true
+    fail "delta 更新数量不足，要求至少 ${MIN_DELTA_UPDATES} 条，实际 ${TOTAL_DELTA_POINTS} 条（最大轮询 ${MAX_DELTA_ATTEMPTS} 次）"
+  fi
+fi
+
+DELTA_POINTS_COUNT="${TOTAL_DELTA_POINTS}"
 
 if [[ "${NEGATIVE_TESTS}" == "1" ]]; then
   section "delta 负例：缺失 cursor（期望 400）"
@@ -299,6 +391,59 @@ if [[ "${NEGATIVE_TESTS}" == "1" ]]; then
     jq '.' "${NEG_PROVIDER_MISMATCH_FILE}" || cat "${NEG_PROVIDER_MISMATCH_FILE}" || true
     fail "strictProviderConsistency 冲突断言失败，期望 409，实际 ${NEG_PROVIDER_MISMATCH_HTTP_CODE}"
   fi
+
+  section "delta 负例：携带 since 字段（期望 400）"
+  NEG_SINCE_PAYLOAD="$(
+    jq -nc \
+      --arg symbol "${SYMBOL}" \
+      --arg provider "${PROVIDER}" \
+      --arg cursor "${NEXT_CURSOR:-$CURSOR}" \
+      --arg market "${SNAPSHOT_MARKET}" \
+      --arg tradingDay "${SNAPSHOT_TRADING_DAY}" \
+      --arg since "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+      '
+      {
+        symbol: $symbol,
+        provider: $provider,
+        cursor: $cursor,
+        since: $since
+      }
+      | if ($market | length) > 0 then . + { market: $market } else . end
+      | if ($tradingDay | length) > 0 then . + { tradingDay: $tradingDay } else . end
+      '
+  )"
+  NEG_SINCE_HTTP_CODE="$(post_json "${DELTA_ENDPOINT}" "${NEG_SINCE_PAYLOAD}" "${NEG_SINCE_FILE}")"
+  echo "delta_with_since_http_code=${NEG_SINCE_HTTP_CODE}"
+  if [[ "${NEG_SINCE_HTTP_CODE}" != "400" ]]; then
+    jq '.' "${NEG_SINCE_FILE}" || cat "${NEG_SINCE_FILE}" || true
+    fail "携带 since 字段断言失败，期望 400，实际 ${NEG_SINCE_HTTP_CODE}"
+  fi
+
+  section "snapshot 负例：携带 includePrePost 字段（期望 400）"
+  NEG_INCLUDE_PREPOST_PAYLOAD="$(
+    jq -nc \
+      --arg symbol "${SYMBOL}" \
+      --arg provider "${PROVIDER}" \
+      --arg market "${MARKET}" \
+      --arg tradingDay "${TRADING_DAY}" \
+      --argjson pointLimit "${POINT_LIMIT}" \
+      '
+      {
+        symbol: $symbol,
+        provider: $provider,
+        pointLimit: $pointLimit,
+        includePrePost: false
+      }
+      | if ($market | length) > 0 then . + { market: $market } else . end
+      | if ($tradingDay | length) > 0 then . + { tradingDay: $tradingDay } else . end
+      '
+  )"
+  NEG_INCLUDE_PREPOST_HTTP_CODE="$(post_json "${SNAPSHOT_ENDPOINT}" "${NEG_INCLUDE_PREPOST_PAYLOAD}" "${NEG_INCLUDE_PREPOST_FILE}")"
+  echo "snapshot_with_includePrePost_http_code=${NEG_INCLUDE_PREPOST_HTTP_CODE}"
+  if [[ "${NEG_INCLUDE_PREPOST_HTTP_CODE}" != "400" ]]; then
+    jq '.' "${NEG_INCLUDE_PREPOST_FILE}" || cat "${NEG_INCLUDE_PREPOST_FILE}" || true
+    fail "携带 includePrePost 字段断言失败，期望 400，实际 ${NEG_INCLUDE_PREPOST_HTTP_CODE}"
+  fi
 fi
 
 section "测试完成"
@@ -306,6 +451,9 @@ echo "symbol=${SYMBOL}"
 echo "provider=${PROVIDER}"
 echo "snapshot_points=${SNAPSHOT_POINTS_COUNT}"
 echo "delta_points=${DELTA_POINTS_COUNT}"
+echo "min_delta_updates=${MIN_DELTA_UPDATES}"
+echo "max_delta_attempts=${MAX_DELTA_ATTEMPTS}"
+echo "delta_poll_interval_seconds=${DELTA_POLL_INTERVAL_SECONDS}"
 echo "negative_tests=${NEGATIVE_TESTS}"
 echo "output_dir=${OUTPUT_DIR}"
 echo "[PASS] 分时折线 API 开发成果验证通过"

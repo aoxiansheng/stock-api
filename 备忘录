@@ -108,26 +108,11 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 
 
 
-
-
-
-BASE_URL="http://127.0.0.1:3001" \
-  APP_KEY="<REDACTED_APP_KEY>" \
-  ACCESS_TOKEN="<REDACTED_ACCESS_TOKEN>" \
-  npm run tool:test-infoway-rest
-
-
-
   
   "appKey": "7f007ab34a8f42adbd6ff82dc040f486",
   "accessToken": "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a",
 
-  
-  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
-  ACCESS_TOKEN="efc9093eb9604db3ac480d32f54b3f56d149e25a59d84ea6a6654d6008e65185" \
-  BASE_URL="http://127.0.0.1:3001" \
-  SYMBOL="AAPL.US" \
-  bash "scripts/tools/test-get-stock-history-endpoint.sh"
+
 
 
 
@@ -135,7 +120,7 @@ BASE_URL="http://127.0.0.1:3001" \
   ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
   BASE_URL="http://127.0.0.1:3001" \
   SYMBOL="00700.HK" \
-  bash "scripts/tools/test-chart-intraday-line-endpoint.sh"
+  bash "scripts/tools/local-project/test-chart-intraday-line-endpoint.sh"
 
 
   API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" \
@@ -171,34 +156,39 @@ BASE_URL="http://127.0.0.1:3001" \
   SYMBOLS="AMD.US" \
   node "scripts/tools/upstream-sdk/test-infoway-symbols-info.js"
 
-  # 弱时效
-  BASE_URL="http://127.0.0.1:3001" \
-  SYMBOLS="AMD.US" \
-  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
-  node "scripts/tools/local-project/test-get-stock-basic-info-query-endpoint.js"
-
-  BASE_URL="http://127.0.0.1:3001" \
-  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
-  SYMBOLS="AMD.US" \
-  node "scripts/tools/local-project/test-get-stock-basic-info-endpoint.js"
 
 
-  原来 GET /receiver/support-list`
-  现在 GET /query/support-list/
 
 
-  # 弱时效（query）
-  export BASE_URL="http://127.0.0.1:3001"
-  export SYMBOLS="AMD.US"
-  export APP_KEY="7f007ab34a8f42adbd6ff82dc040f486"
-  export ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a"
-  node "scripts/tools/local-project/test-get-stock-basic-info-query-endpoint.js"
+  - 强时效端点
+    node "scripts/tools/local-project/test-get-stock-basic-info-endpoint.js" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+    --symbols "00700.HK" 
+  
+  - 弱时效端点
+  node "scripts/tools/local-project/test-get-stock-basic-info-query-endpoint.js" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+    --symbols "00700.HK" 
+ 
 
-  # 强时效（receiver，默认 useSmartCache=true）
+   - 强时效端点 
+    node "scripts/tools/local-project/test-get-stock-quote-endpoint.js" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+    --symbols "00700.HK" 
+  
+  - 弱时效端点
+  node "scripts/tools/local-project/test-get-stock-quote-query-endpoint.js" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+    --symbols "00700.HK" 
 
-  export BASE_URL="http://127.0.0.1:3001"
-  export SYMBOLS="AMD.US"
-  export APP_KEY="7f007ab34a8f42adbd6ff82dc040f486"
-  export ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a"
-  node "scripts/tools/local-project/test-get-stock-basic-info-endpoint.js"
 
+
+  
+  node "scripts/tools/local-project/test-get-stock-history-endpoint.js" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+    --symbols "00700.HK" 

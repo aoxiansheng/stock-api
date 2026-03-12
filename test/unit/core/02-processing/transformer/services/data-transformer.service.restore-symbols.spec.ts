@@ -504,4 +504,37 @@ describe("DataTransformerService restoreStandardSymbols", () => {
       { symbol: "TSLA.STD", price: 2 },
     ]);
   });
+
+  it("identity provider 遇到不含 symbol 字段的数据时保持原样返回", async () => {
+    const symbolTransformerService = {
+      transformSingleSymbol: jest.fn(async () => "AAPL"),
+    };
+    const configService = {
+      get: jest.fn((key: string) =>
+        key === standardSymbolIdentityProvidersEnvKey ? "infoway" : undefined,
+      ),
+    };
+
+    const service = new DataTransformerService(
+      flexibleMappingRuleService,
+      symbolTransformerService as any,
+      {
+        maxArraySize: 10,
+        maxRestoreConcurrency: 2,
+      },
+      configService as any,
+    );
+
+    const output = await (service as any).restoreStandardSymbols("infoway", {
+      market: "HK",
+      tradeStatus: "OPEN",
+    });
+
+    expect(output).toEqual({
+      market: "HK",
+      tradeStatus: "OPEN",
+    });
+    expect(symbolTransformerService.transformSingleSymbol).not.toHaveBeenCalled();
+  });
+
 });

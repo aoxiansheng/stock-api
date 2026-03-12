@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from "@nestjs/common";
+import { Injectable, HttpStatus, Optional } from "@nestjs/common";
 import { createLogger, sanitizeLogData } from "@common/logging/index";
 import { ProviderRegistryService } from "@providersv2/provider-registry.service";
 import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
@@ -29,6 +29,10 @@ import {
   DATA_FETCHER_DEFAULT_CONFIG,
 } from "../constants/data-fetcher.constants";
 import { DATA_FETCHER_ERROR_CODES } from "../constants/data-fetcher-error-codes.constants";
+import { UpstreamRequestSchedulerService } from "./upstream-request-scheduler.service";
+import type { UpstreamSymbolExtractor } from "../interfaces/upstream-request-task.interface";
+import { BasicCacheService } from "@core/05-caching/module/basic-cache";
+import { stableStringify } from "../utils/upstream-request-key.util";
 
 /**
  * 原始数据类型定义
@@ -43,6 +47,11 @@ interface RawData {
 
 const STREAM_CAPABILITY_NAMES = new Set<string>([
   CAPABILITY_NAMES.STREAM_STOCK_QUOTE.toLowerCase(),
+]);
+
+const STALE_FALLBACK_CAPABILITIES = new Set<string>([
+  CAPABILITY_NAMES.GET_STOCK_BASIC_INFO.toLowerCase(),
+  CAPABILITY_NAMES.GET_TRADING_DAYS.toLowerCase(),
 ]);
 
 /**
@@ -69,8 +78,38 @@ export class DataFetcherService implements IDataFetcher {
     process.env.DATA_FETCHER_BATCH_CONCURRENCY || "10",
   );
 
+  private readonly basicInfoStaleTtlSeconds = this.parsePositiveInteger(
+    process.env.UPSTREAM_BASIC_INFO_STALE_TTL_SECONDS,
+    3600,
+  );
+  private readonly tradingDaysStaleTtlSeconds = this.parsePositiveInteger(
+    process.env.UPSTREAM_TRADING_DAYS_STALE_TTL_SECONDS,
+    86400,
+  );
+  private readonly defaultSchedulerSymbolExtractor: UpstreamSymbolExtractor = (
+    row: unknown,
+  ): string => {
+    if (!row || typeof row !== "object") {
+      return "";
+    }
+    const symbol = (row as Record<string, unknown>).symbol;
+    return String(symbol || "").trim().toUpperCase();
+  };
+  private readonly infowayQuoteSymbolExtractor: UpstreamSymbolExtractor = (
+    row: unknown,
+  ): string => {
+    if (!row || typeof row !== "object") {
+      return "";
+    }
+    const payload = row as Record<string, unknown>;
+    const symbol = payload.s ?? payload.symbol;
+    return String(symbol || "").trim().toUpperCase();
+  };
+
   constructor(
     private readonly capabilityRegistryService: ProviderRegistryService,
+    @Optional() private readonly upstreamRequestScheduler?: UpstreamRequestSchedulerService,
+    @Optional() private readonly basicCacheService?: BasicCacheService,
   ) {}
 
   private normalizeRecord(record: any): any {
@@ -157,7 +196,15 @@ export class DataFetcherService implements IDataFetcher {
 
       // 3. 执行SDK调用 - 标准化监控：记录外部API调用
       const apiStartTime = Date.now();
-      const rawData = await this.executeCapability(provider, capability, executionParams);
+      const rawData = await this.executeWithOptionalScheduling({
+        provider,
+        capability,
+        symbols,
+        requestId,
+        normalizedApiType,
+        options,
+        executionParams,
+      });
       const apiDuration = Date.now() - apiStartTime;
 
       // 4. 处理原始数据 - 标准化：统一处理不同格式的返回结果
@@ -179,6 +226,15 @@ export class DataFetcherService implements IDataFetcher {
         );
       }
 
+      await this.cacheStaleResultIfNeeded({
+        provider,
+        capability,
+        apiType: normalizedApiType,
+        symbols,
+        options,
+        data: processedData,
+      });
+
       // 6. 返回标准化结果
       return {
         data: processedData,
@@ -190,6 +246,19 @@ export class DataFetcherService implements IDataFetcher {
         },
       };
     } catch (error) {
+      const staleFallback = await this.tryResolveStaleFallback({
+        provider,
+        capability,
+        apiType: this.normalizeApiType(apiType),
+        symbols,
+        options,
+        requestId,
+        error,
+      });
+      if (staleFallback) {
+        return staleFallback;
+      }
+
       // 错误日志 - 标准化：统一错误日志格式
       this.logger.error(
         `Data fetch failed for ${provider}.${capability}`,
@@ -409,6 +478,70 @@ export class DataFetcherService implements IDataFetcher {
     }
   }
 
+  private async executeWithOptionalScheduling(params: {
+    provider: string;
+    capability: string;
+    symbols: string[];
+    requestId?: string;
+    normalizedApiType: "rest" | "stream";
+    options: Record<string, any>;
+    executionParams: Record<string, any>;
+  }): Promise<any> {
+    const {
+      provider,
+      capability,
+      symbols,
+      requestId,
+      normalizedApiType,
+      options,
+      executionParams,
+    } = params;
+
+    const execute = async (symbolsOverride: string[]): Promise<any> =>
+      await this.executeCapability(provider, capability, {
+        ...executionParams,
+        symbols: symbolsOverride,
+      });
+    const symbolExtractor = this.resolveSchedulerSymbolExtractor(provider, capability);
+
+    if (
+      !this.upstreamRequestScheduler ||
+      !this.upstreamRequestScheduler.shouldSchedule(
+        provider,
+        capability,
+        normalizedApiType,
+      )
+    ) {
+      return await execute(symbols);
+    }
+
+    return await this.upstreamRequestScheduler.schedule({
+      provider,
+      capability,
+      symbols,
+      requestId,
+      options,
+      execute,
+      symbolExtractor,
+    });
+  }
+
+  private resolveSchedulerSymbolExtractor(
+    provider: string,
+    capability: string,
+  ): UpstreamSymbolExtractor {
+    const providerKey = String(provider || "").trim().toLowerCase();
+    const capabilityKey = String(capability || "").trim().toLowerCase();
+
+    if (
+      providerKey === "infoway" &&
+      capabilityKey === CAPABILITY_NAMES.GET_STOCK_QUOTE.toLowerCase()
+    ) {
+      return this.infowayQuoteSymbolExtractor;
+    }
+    return this.defaultSchedulerSymbolExtractor;
+  }
+
   /**
    * 获取能力实例
    *
@@ -486,6 +619,138 @@ export class DataFetcherService implements IDataFetcher {
     });
   }
 
+
+  private async cacheStaleResultIfNeeded(params: {
+    provider: string;
+    capability: string;
+    apiType: "rest" | "stream";
+    symbols: string[];
+    options: Record<string, any>;
+    data: any[];
+  }): Promise<void> {
+    if (!this.shouldUseStaleFallback(params.provider, params.capability, params.apiType)) {
+      return;
+    }
+
+    if (!this.basicCacheService || !Array.isArray(params.data) || params.data.length === 0) {
+      return;
+    }
+
+    const cacheKey = this.buildStaleCacheKey(
+      params.provider,
+      params.capability,
+      params.symbols,
+      params.options,
+    );
+
+    await this.basicCacheService.set(
+      cacheKey,
+      {
+        data: params.data,
+        updatedAt: new Date().toISOString(),
+      },
+      { ttlSeconds: this.resolveStaleTtlSeconds(params.capability) },
+    );
+  }
+
+  private async tryResolveStaleFallback(params: {
+    provider: string;
+    capability: string;
+    apiType: "rest" | "stream";
+    symbols: string[];
+    options: Record<string, any>;
+    requestId?: string;
+    error: unknown;
+  }): Promise<RawDataResult | null> {
+    if (!this.shouldUseStaleFallback(params.provider, params.capability, params.apiType)) {
+      return null;
+    }
+
+    if (!this.basicCacheService) {
+      return null;
+    }
+
+    const cacheKey = this.buildStaleCacheKey(
+      params.provider,
+      params.capability,
+      params.symbols,
+      params.options,
+    );
+
+    const cached = await this.basicCacheService.get<{
+      data?: any[];
+      updatedAt?: string;
+    }>(cacheKey);
+
+    if (!cached?.data || !Array.isArray(cached.data) || cached.data.length === 0) {
+      return null;
+    }
+
+    this.logger.warn("Data fetch stale fallback hit", {
+      provider: params.provider,
+      capability: params.capability,
+      requestId: params.requestId,
+      symbolsCount: params.symbols.length,
+      staleUpdatedAt: cached.updatedAt,
+      reason: (params.error as Error)?.message || String(params.error),
+    });
+
+    return {
+      data: cached.data,
+      metadata: {
+        provider: params.provider,
+        capability: params.capability,
+        processingTimeMs: 0,
+        symbolsProcessed: params.symbols.length,
+        errors: ["STALE_FALLBACK_HIT"],
+      },
+    };
+  }
+
+  private shouldUseStaleFallback(
+    provider: string,
+    capability: string,
+    apiType: "rest" | "stream",
+  ): boolean {
+    return (
+      apiType === "rest" &&
+      String(provider || "").trim().toLowerCase() === "infoway" &&
+      STALE_FALLBACK_CAPABILITIES.has(String(capability || "").trim().toLowerCase())
+    );
+  }
+
+  private buildStaleCacheKey(
+    provider: string,
+    capability: string,
+    symbols: string[],
+    options: Record<string, any>,
+  ): string {
+    return `upstream-stale:${String(provider || "").trim().toLowerCase()}:${String(capability || "").trim().toLowerCase()}:${stableStringify({
+      market: String(options?.market || "").trim().toUpperCase(),
+      beginDay: String(options?.beginDay || "").trim(),
+      endDay: String(options?.endDay || "").trim(),
+      symbols: (symbols || [])
+        .map((symbol) => String(symbol || "").trim().toUpperCase())
+        .filter(Boolean)
+        .sort(),
+    })}`;
+  }
+
+  private resolveStaleTtlSeconds(capability: string): number {
+    const normalizedCapability = String(capability || "").trim().toLowerCase();
+    if (normalizedCapability === CAPABILITY_NAMES.GET_TRADING_DAYS.toLowerCase()) {
+      return this.tradingDaysStaleTtlSeconds;
+    }
+    return this.basicInfoStaleTtlSeconds;
+  }
+
+  private parsePositiveInteger(rawValue: string | undefined, fallback: number): number {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return fallback;
+    }
+    return Math.floor(parsed);
+  }
 
   /**
    * 创建错误响应

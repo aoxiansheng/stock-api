@@ -14,6 +14,7 @@ import { STREAM_RECEIVER_ERROR_CODES } from '../constants/stream-receiver-error-
 import { SymbolTransformerService } from "../../../02-processing/symbol-transformer/services/symbol-transformer.service";
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { UpstreamSymbolSubscriptionCoordinatorService } from "../../../03-fetching/stream-data-fetcher/services/upstream-symbol-subscription-coordinator.service";
 import {
   StreamRecoveryWorkerService,
   RecoveryJob,
@@ -149,6 +150,7 @@ export class StreamReceiverService implements OnModuleDestroy {
     private readonly marketInferenceService: MarketInferenceService,
     private readonly dataTransformerService: DataTransformerService,
     private readonly streamDataFetcher: StreamDataFetcherService,
+    private readonly upstreamSymbolSubscriptionCoordinator: UpstreamSymbolSubscriptionCoordinatorService,
     private readonly providerRegistryService: ProviderRegistryService,
     // 🆕 P2重构: 数据验证模块
     private readonly dataValidator: StreamDataValidator,
@@ -624,11 +626,24 @@ export class StreamReceiverService implements OnModuleDestroy {
         resolvedClientId,
       );
 
-      // 3. 订阅符号到流连接（使用Provider要求的格式）
-      await this.streamDataFetcher.subscribeToSymbols(
-        connection,
-        providerSymbols,
-      );
+      const upstreamSymbolsToSubscribe =
+        this.upstreamSymbolSubscriptionCoordinator.acquire({
+          clientId: resolvedClientId,
+          provider: providerName,
+          capability: wsCapabilityType,
+          symbols: standardSymbols,
+        });
+
+      // 3. 仅在 0 -> 1 时订阅符号到流连接（使用Provider要求的格式）
+      if (upstreamSymbolsToSubscribe.length > 0) {
+        const upstreamProviderSymbols = providerSymbols.filter((providerSymbol, index) =>
+          upstreamSymbolsToSubscribe.includes(standardSymbols[index]),
+        );
+        await this.streamDataFetcher.subscribeToSymbols(
+          connection,
+          upstreamProviderSymbols,
+        );
+      }
 
       // 4. 订阅成功后更新客户端状态，避免失败场景产生脏状态
       this.streamDataFetcher
@@ -761,6 +776,11 @@ export class StreamReceiverService implements OnModuleDestroy {
           requestId,
         );
 
+      // 更新客户端状态
+      this.streamDataFetcher
+        .getClientStateManager()
+        .removeClientSubscription(clientId, standardSymbols);
+
       // 获取连接（通过连接管理器；仅在现有连接活跃时执行退订，避免误建新连接）
       const connectionKey = `${clientSub.providerName}:${clientSub.wsCapabilityType}`;
       let connection: StreamConnection | undefined;
@@ -772,11 +792,40 @@ export class StreamReceiverService implements OnModuleDestroy {
           symbolsToUnsubscribe,
           clientId,
         );
-        // 从流连接取消订阅（Provider格式）
-        await this.streamDataFetcher.unsubscribeFromSymbols(
-          connection,
-          providerSymbols,
+        const immediateUnsubscribeSymbols =
+          this.upstreamSymbolSubscriptionCoordinator.scheduleRelease(
+            {
+              clientId,
+              provider: clientSub.providerName,
+              capability: clientSub.wsCapabilityType,
+              symbols: standardSymbols,
+            },
+            async (readySymbols) => {
+              if (!connection) {
+                return;
+              }
+              const readyProviderSymbols = providerSymbols.filter((providerSymbol, index) =>
+                readySymbols.includes(standardSymbols[index]),
+              );
+              if (readyProviderSymbols.length === 0) {
+                return;
+              }
+              await this.streamDataFetcher.unsubscribeFromSymbols(
+                connection,
+                readyProviderSymbols,
+              );
+            },
+          );
+
+        const immediateProviderSymbols = providerSymbols.filter((providerSymbol, index) =>
+          immediateUnsubscribeSymbols.includes(standardSymbols[index]),
         );
+        if (immediateProviderSymbols.length > 0) {
+          await this.streamDataFetcher.unsubscribeFromSymbols(
+            connection,
+            immediateProviderSymbols,
+          );
+        }
       } else {
         this.logger.warn("未找到活跃连接，跳过上游退订", {
           clientId,
@@ -785,11 +834,6 @@ export class StreamReceiverService implements OnModuleDestroy {
           connectionKey,
         });
       }
-
-      // 更新客户端状态
-      this.streamDataFetcher
-        .getClientStateManager()
-        .removeClientSubscription(clientId, standardSymbols);
 
       // 将客户端从房间移除
       try {

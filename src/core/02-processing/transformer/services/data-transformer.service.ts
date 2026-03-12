@@ -850,6 +850,10 @@ export class DataTransformerService {
       const symbol = item.symbol;
 
       if (isIdentityProvider) {
+        if (!("symbol" in item) || symbol === undefined) {
+          return item;
+        }
+
         if (typeof symbol !== "string" || !symbol.trim()) {
           throw UniversalExceptionFactory.createBusinessException({
             component: ComponentIdentifier.TRANSFORMER,

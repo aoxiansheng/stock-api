@@ -57,7 +57,11 @@
     "knip:cleanup": "node scripts/cleanup/cleanup-unused-files.js",
     "knip:cleanup:auto": "node scripts/cleanup/cleanup-unused-files.js --auto-delete",
     "knip:cleanup:dry": "node scripts/cleanup/cleanup-unused-files.js --dry-run",
-    "knip:cleanup:limit": "node scripts/cleanup/cleanup-unused-files.js --limit 5"
+    "knip:cleanup:limit": "node scripts/cleanup/cleanup-unused-files.js --limit 5",
+    "tool:stress-get-stock-quote-endpoint": "node scripts/tools/local-project/stress-get-stock-quote-endpoint.js",
+    "tool:stress-get-stock-basic-info-endpoint": "node scripts/tools/local-project/stress-get-stock-basic-info-endpoint.js",
+    "tool:stress-ws-subscription-clients": "node scripts/tools/local-project/stress-ws-subscription-clients.js",
+    "tool:stress-get-stock-quote-multi-user-endpoint": "node scripts/tools/local-project/stress-get-stock-quote-multi-user-endpoint.js"
   },
   "overrides": {
     "form-data": "^4.0.0"

@@ -133,6 +133,48 @@ HTTP 请求头（API Key）：
 - `options.timestamp` 仅支持 10/13 位正整数时间戳
 - `options.klineNum` 最大 500
 
+`get-stock-basic-info`（字段契约）
+- 上游（Infoway）原始字段为 `snake_case`（如 `name_cn`、`eps_ttm`、`stock_derivatives`）。
+- 本地接口业务层统一输出 `camelCase`（由 data-mapper 规则转换），例如：
+  - `name_cn -> nameCn`
+  - `name_en -> nameEn`
+  - `name_hk -> nameHk`
+  - `lot_size -> lotSize`
+  - `total_shares -> totalShares`
+  - `circulating_shares -> circulatingShares`
+  - `hk_shares -> hkShares`
+  - `eps_ttm -> epsTtm`
+  - `dividend_yield -> dividendYield`
+  - `stock_derivatives -> stockDerivatives`
+- 推荐最小校验字段：`symbol`、`market`、`exchange`、`currency`、`board`。
+
+示例：`get-stock-basic-info` 业务数据层（已过映射）
+```json
+{
+  "data": [
+    {
+      "symbol": "AMD.US",
+      "market": "US",
+      "nameCn": "AMD",
+      "nameEn": "Advanced Micro Devices, Inc.",
+      "nameHk": "AMD",
+      "exchange": "NASD",
+      "currency": "USD",
+      "lotSize": 1,
+      "totalShares": 1630410843,
+      "circulatingShares": 1621366616,
+      "hkShares": 0,
+      "eps": "2.6588390396272653",
+      "epsTtm": "2.6588390396272653",
+      "bps": "38.6399540155658791",
+      "dividendYield": "0",
+      "stockDerivatives": "1",
+      "board": "Unknown"
+    }
+  ]
+}
+```
+
 示例：`get-trading-days`
 ```json
 {

@@ -279,6 +279,15 @@ export class StreamClientStateManager implements OnModuleDestroy {
     return clients ? Array.from(clients) : [];
   }
 
+  getClientCountForSymbol(symbol: string): number {
+    const clients = this.symbolToClients.get(symbol);
+    return clients ? clients.size : 0;
+  }
+
+  hasSubscribersForSymbol(symbol: string): boolean {
+    return this.getClientCountForSymbol(symbol) > 0;
+  }
+
   /**
    * 获取客户端订阅的所有符号
    * @param clientId 客户端ID

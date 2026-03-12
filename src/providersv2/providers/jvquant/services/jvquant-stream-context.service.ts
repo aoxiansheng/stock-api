@@ -70,7 +70,8 @@ export class JvQuantStreamContextService implements OnModuleDestroy {
     }
 
     for (const [market, codes] of codesByMarket.entries()) {
-      const codeList = Array.from(codes);
+      const subscribed = this.subscribedCodesByMarket.get(market) || new Set<string>();
+      const codeList = Array.from(codes).filter((code) => !subscribed.has(code));
       if (codeList.length === 0) {
         continue;
       }

@@ -52,6 +52,7 @@ function createService(options?: {
   const clientStateManager = {
     addSubscriptionChangeListener: jest.fn(),
     addClientSubscription: jest.fn(),
+    getClientCountForSymbol: jest.fn(() => 0),
     getClientSubscription: jest.fn(),
     getClientSymbols: jest.fn(() => []),
     removeClientSubscription: jest.fn(),
@@ -59,6 +60,12 @@ function createService(options?: {
   };
   const streamCache = {
     setData: jest.fn(),
+  };
+  const connectionMock = {
+    id: "conn-1",
+    onData: jest.fn(),
+    onError: jest.fn(),
+    onStatusChange: jest.fn(),
   };
 
   const mocks = {
@@ -109,7 +116,7 @@ function createService(options?: {
     batchProcessor: { addQuoteData: jest.fn() },
     connectionManager: {
       getActiveConnectionsCount: jest.fn(() => 0),
-      getOrCreateConnection: jest.fn(),
+      getOrCreateConnection: jest.fn().mockResolvedValue(connectionMock),
       isConnectionActive: jest.fn(() => false),
       forceConnectionCleanup: jest.fn(async () => ({
         totalCleaned: 0,
@@ -122,6 +129,11 @@ function createService(options?: {
     rateLimitService: {
       checkRateLimit: jest.fn(),
     },
+    upstreamSymbolSubscriptionCoordinator: {
+      acquire: jest.fn((params: any) => params.symbols),
+      scheduleRelease: jest.fn((params: any, _callback: any) => params.symbols),
+      cancelPendingUnsubscribe: jest.fn(),
+    },
     webSocketProvider: {
       isServerAvailable: jest.fn(() => options?.webSocketAvailable ?? true),
       joinClientToRooms: jest.fn(),
@@ -129,6 +141,7 @@ function createService(options?: {
     },
     clientStateManager,
     streamCache,
+    connectionMock,
   };
 
   const service = new StreamReceiverService(
@@ -138,6 +151,7 @@ function createService(options?: {
     mocks.marketInferenceService as any,
     mocks.dataTransformerService as any,
     mocks.streamDataFetcher as any,
+    mocks.upstreamSymbolSubscriptionCoordinator as any,
     mocks.providerRegistryService as any,
     mocks.dataValidator as any,
     mocks.batchProcessor as any,
@@ -158,6 +172,7 @@ function createBatchProcessor(options?: {
   const clientStateManager = {
     addSubscriptionChangeListener: jest.fn(),
     addClientSubscription: jest.fn(),
+    getClientCountForSymbol: jest.fn(() => 0),
     getClientSubscription: jest.fn(),
     getClientSymbols: jest.fn(() => []),
     removeClientSubscription: jest.fn(),
@@ -1191,4 +1206,55 @@ describe("StreamReceiverService private branch coverage", () => {
       expect((service as any).extractSymbolsFromData(invalidInput)).toEqual([]);
     },
   );
+});
+
+
+describe("StreamReceiverService upstream subscription coordinator integration", () => {
+  it("subscribeStream 仅对协调器返回的 symbol 发起上游订阅", async () => {
+    const { service, mocks } = createService();
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
+      transformedSymbols: ["AAPL.US"],
+      originalSymbols: ["AAPL.US"],
+      success: true,
+      mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
+    });
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      ...mocks.connectionMock,
+    });
+    mocks.upstreamSymbolSubscriptionCoordinator.acquire.mockReturnValue([]);
+
+    await service.subscribeStream({
+      symbols: ["AAPL.US"],
+      wsCapabilityType: "stream-stock-quote",
+      preferredProvider: "longport",
+    } as any, "client-1");
+
+    expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
+    expect(mocks.clientStateManager.addClientSubscription).toHaveBeenCalled();
+  });
+
+  it("unsubscribeStream 非最后订阅者时不触发上游退订", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "stream-stock-quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
+      transformedSymbols: ["AAPL.US"],
+      originalSymbols: ["AAPL.US"],
+      success: true,
+      mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
+    });
+    mocks.connectionManager.isConnectionActive.mockReturnValue(true);
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      ...mocks.connectionMock,
+    });
+    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue([]);
+
+    await service.unsubscribeStream({ symbols: ["AAPL.US"] } as any, "client-1");
+
+    expect(mocks.streamDataFetcher.unsubscribeFromSymbols).not.toHaveBeenCalled();
+    expect(mocks.clientStateManager.removeClientSubscription).toHaveBeenCalledWith("client-1", ["AAPL.US"]);
+  });
 });

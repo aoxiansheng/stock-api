@@ -254,3 +254,262 @@ describe("DataFetcherService processRawData standard format", () => {
     );
   });
 });
+
+
+describe("DataFetcherService upstream scheduler integration", () => {
+  const provider = "infoway";
+  const symbols = ["00700.HK"];
+
+  it("allowlist 命中时通过 scheduler 执行 REST 能力", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK" }] });
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_STOCK_QUOTE, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK" }] }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+      symbols,
+      apiType: "rest",
+      options: { realtime: true },
+    } as any);
+
+    expect(scheduler.shouldSchedule).toHaveBeenCalledWith(
+      provider,
+      CAPABILITY_NAMES.GET_STOCK_QUOTE,
+      "rest",
+    );
+    expect(scheduler.schedule).toHaveBeenCalledTimes(1);
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(result.data).toEqual([{ symbol: "00700.HK" }]);
+  });
+
+  it("infoway:get-stock-quote 命中 scheduler 时注入 s 字段 symbolExtractor", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK" }] });
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_STOCK_QUOTE, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn(async (request: any) => {
+        expect(typeof request.symbolExtractor).toBe("function");
+        expect(request.symbolExtractor({ s: "00700.HK" })).toBe("00700.HK");
+        return { data: [{ s: "00700.HK" }] };
+      }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+      symbols,
+      apiType: "rest",
+      options: { realtime: true },
+    } as any);
+
+    expect(scheduler.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider,
+        capability: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+        symbols,
+        symbolExtractor: expect.any(Function),
+      }),
+    );
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(result.data).toEqual([{ s: "00700.HK" }]);
+  });
+
+  it("allowlist 未命中时保持原 executeCapability 路径", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK" }] });
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_STOCK_QUOTE, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(false),
+      schedule: jest.fn(),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+      symbols,
+      apiType: "rest",
+    } as any);
+
+    expect(scheduler.shouldSchedule).toHaveBeenCalledWith(
+      provider,
+      CAPABILITY_NAMES.GET_STOCK_QUOTE,
+      "rest",
+    );
+    expect(scheduler.schedule).not.toHaveBeenCalled();
+    expect(executeMock).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual([{ symbol: "00700.HK" }]);
+  });
+});
+
+
+describe("DataFetcherService basic-info phase 3 integration", () => {
+  const provider = "infoway";
+  const symbols = ["00700.HK"];
+
+  it("get-stock-basic-info 命中 allowlist 时通过 scheduler 执行", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK", exchange: "HKEX" }] });
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_STOCK_BASIC_INFO, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK", exchange: "HKEX" }] }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+      symbols,
+      apiType: "rest",
+      options: { market: "HK" },
+    } as any);
+
+    expect(scheduler.shouldSchedule).toHaveBeenCalledWith(
+      provider,
+      CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+      "rest",
+    );
+    expect(scheduler.schedule).toHaveBeenCalledTimes(1);
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(result.data).toEqual([{ symbol: "00700.HK", exchange: "HKEX" }]);
+  });
+
+  it("非 infoway quote 的调度路径使用默认 symbol 提取策略", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "00700.HK", exchange: "HKEX" }] });
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_STOCK_BASIC_INFO, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn(async (request: any) => {
+        expect(typeof request.symbolExtractor).toBe("function");
+        expect(request.symbolExtractor({ symbol: "00700.HK" })).toBe("00700.HK");
+        return { data: [{ symbol: "00700.HK", exchange: "HKEX" }] };
+      }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+      symbols,
+      apiType: "rest",
+      options: { market: "HK" },
+    } as any);
+
+    expect(scheduler.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider,
+        capability: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+        symbolExtractor: expect.any(Function),
+      }),
+    );
+    expect(executeMock).not.toHaveBeenCalled();
+  });
+
+  it("get-stock-basic-info 上游失败时命中 stale fallback", async () => {
+    const executeMock = jest
+      .fn()
+      .mockResolvedValueOnce({ data: [{ symbol: "00700.HK", exchange: "HKEX" }] })
+      .mockRejectedValueOnce(new Error("upstream exploded"));
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_STOCK_BASIC_INFO, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const basicCache = {
+      set: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockResolvedValue({
+        data: [{ symbol: "00700.HK", exchange: "HKEX" }],
+        updatedAt: "2026-03-11T01:00:00.000Z",
+      }),
+    };
+    const service = new DataFetcherService(registry as any, undefined, basicCache as any);
+
+    const successResult = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+      symbols,
+      apiType: "rest",
+      options: { market: "HK" },
+    } as any);
+    expect(successResult.data).toEqual([{ symbol: "00700.HK", exchange: "HKEX" }]);
+    expect(basicCache.set).toHaveBeenCalledTimes(1);
+
+    const fallbackResult = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_STOCK_BASIC_INFO,
+      symbols,
+      apiType: "rest",
+      options: { market: "HK" },
+    } as any);
+
+    expect(basicCache.get).toHaveBeenCalledTimes(1);
+    expect(fallbackResult.data).toEqual([{ symbol: "00700.HK", exchange: "HKEX" }]);
+    expect(fallbackResult.metadata.errors).toEqual(["STALE_FALLBACK_HIT"]);
+  });
+});
+
+
+describe("DataFetcherService trading-days phase 3 integration", () => {
+  const provider = "infoway";
+
+  it("get-trading-days 上游失败时命中 stale fallback", async () => {
+    const executeMock = jest
+      .fn()
+      .mockResolvedValueOnce({ data: [{ market: "US", tradeDays: ["20250310"], halfTradeDays: [] }] })
+      .mockRejectedValueOnce(new Error("trading-days upstream exploded"));
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_TRADING_DAYS, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const basicCache = {
+      set: jest.fn().mockResolvedValue(undefined),
+      get: jest.fn().mockResolvedValue({
+        data: [{ market: "US", tradeDays: ["20250310"], halfTradeDays: [] }],
+        updatedAt: "2026-03-11T03:00:00.000Z",
+      }),
+    };
+    const service = new DataFetcherService(registry as any, undefined, basicCache as any);
+
+    const params = {
+      provider,
+      capability: CAPABILITY_NAMES.GET_TRADING_DAYS,
+      symbols: ["AAPL.US"],
+      apiType: "rest",
+      options: { market: "US", beginDay: "20250310", endDay: "20250314" },
+    } as any;
+
+    const successResult = await service.fetchRawData(params);
+    expect(successResult.data).toEqual([{ market: "US", tradeDays: ["20250310"], halfTradeDays: [] }]);
+    expect(basicCache.set).toHaveBeenCalledTimes(1);
+    expect(basicCache.set).toHaveBeenCalledWith(
+      expect.stringContaining('get-trading-days'),
+      expect.any(Object),
+      { ttlSeconds: 86400 },
+    );
+
+    const fallbackResult = await service.fetchRawData(params);
+
+    expect(basicCache.get).toHaveBeenCalledTimes(1);
+    expect(fallbackResult.data).toEqual([{ market: "US", tradeDays: ["20250310"], halfTradeDays: [] }]);
+    expect(fallbackResult.metadata.errors).toEqual(["STALE_FALLBACK_HIT"]);
+  });
+});

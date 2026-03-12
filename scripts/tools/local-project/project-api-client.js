@@ -61,9 +61,7 @@ function buildAuthHeaders(args) {
     };
   }
 
-  throw new Error(
-    "缺少认证头：请通过 --bearer，或同时提供 --app-key 与 --access-token",
-  );
+  throw new Error("缺少认证头：请通过 --bearer，或同时提供 --app-key 与 --access-token");
 }
 
 function createEndpointClient(argv = process.argv.slice(2)) {
@@ -73,7 +71,7 @@ function createEndpointClient(argv = process.argv.slice(2)) {
   const timeoutMs = Number(args["timeout-ms"] || 15000);
   const authHeaders = buildAuthHeaders(args);
 
-  async function post(path, body) {
+  async function post(path, body, requestOptions = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -83,6 +81,7 @@ function createEndpointClient(argv = process.argv.slice(2)) {
         headers: {
           "Content-Type": "application/json",
           ...authHeaders,
+          ...(requestOptions.headers || {}),
         },
         body: JSON.stringify(body),
         signal: controller.signal,
@@ -116,6 +115,7 @@ function createEndpointClient(argv = process.argv.slice(2)) {
 }
 
 module.exports = {
+  parseCliArgs,
   createEndpointClient,
   parseBoolean,
   parseSymbols,

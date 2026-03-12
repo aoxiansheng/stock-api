@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { StreamDataFetcherService } from "../services/stream-data-fetcher.service";
 import { StreamClientStateManager } from "../services/stream-client-state-manager.service";
+import { UpstreamSymbolSubscriptionCoordinatorService } from "../services/upstream-symbol-subscription-coordinator.service";
 import { StreamRecoveryWorkerService } from "../services/stream-recovery-worker.service";
 import { ConnectionPoolManager } from "../services/connection-pool-manager.service";
 import { StreamRateLimitGuard } from "../guards/stream-rate-limit.guard";
@@ -37,6 +38,7 @@ import { StreamCacheModule } from "../../../05-caching/module/stream-cache/modul
     // ✅ 仅保留核心业务服务
     StreamDataFetcherService,
     StreamClientStateManager,
+    UpstreamSymbolSubscriptionCoordinatorService,
     StreamRecoveryWorkerService,
     ConnectionPoolManager, // 连接池管理器
     StreamRateLimitGuard, // DoS防护 - HTTP
@@ -61,6 +63,7 @@ import { StreamCacheModule } from "../../../05-caching/module/stream-cache/modul
     // ✅ 仅导出核心业务服务
     StreamDataFetcherService,
     StreamClientStateManager,
+    UpstreamSymbolSubscriptionCoordinatorService,
     StreamRecoveryWorkerService,
     StreamRecoveryConfigService,
     // 导出强类型WebSocket服务器提供者供其他模块使用

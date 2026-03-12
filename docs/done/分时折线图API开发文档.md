@@ -1,6 +1,6 @@
 # 分时折线图 API 开发文档（推送优先 + 轮询兜底）
 
-更新时间：2026-03-08
+更新时间：2026-03-12
 
 ## 1. 背景与结论
 
@@ -29,7 +29,7 @@
 目标：
 - 提供统一分时折线接口，直接输出 `timestamp + price` 点位。
 - 首屏一次拉全量快照，后续持续增量更新。
-- 服务端统一秒桶、去重、排序、会话过滤与时区处理。
+- 服务端统一秒桶、去重、排序与交易日过滤（按市场时区）。
 
 非目标：
 - 不提供 tick 逐笔明细。
@@ -52,7 +52,6 @@
   "market": "US",
   "tradingDay": "20260308",
   "provider": "infoway",
-  "includePrePost": false,
   "pointLimit": 30000
 }
 ```
@@ -82,7 +81,7 @@
     "supportsFullDay1sHistory": false
   },
   "sync": {
-    "cursor": "eyJ2IjoxLCJsYXN0VGltZSI6IjIwMjYtMDMtMDhUMTU6NDI6MDAuMDAwWiIsInNlcSI6MTI4fQ==",
+    "cursor": "base64-signed-cursor",
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
     "serverTime": "2026-03-08T15:42:01.120Z"
   },
@@ -110,10 +109,9 @@
   "market": "US",
   "tradingDay": "20260308",
   "provider": "infoway",
-  "includePrePost": false,
-  "cursor": "eyJ2IjoxLCJsYXN0VGltZSI6IjIwMjYtMDMtMDhUMTU6NDI6MDAuMDAwWiIsInNlcSI6MTI4fQ==",
-  "since": "2026-03-08T15:42:00.000Z",
-  "limit": 2000
+  "cursor": "base64-signed-cursor",
+  "limit": 2000,
+  "strictProviderConsistency": false
 }
 ```
 
@@ -129,7 +127,7 @@
       }
     ],
     "hasMore": false,
-    "nextCursor": "eyJ2IjoxLCJsYXN0VGltZSI6IjIwMjYtMDMtMDhUMTU6NDI6MDEuMDAwWiIsInNlcSI6MTMwfQ==",
+    "nextCursor": "base64-next-cursor",
     "lastPointTimestamp": "2026-03-08T15:42:01.000Z",
     "serverTime": "2026-03-08T15:42:01.220Z"
   }
@@ -137,8 +135,11 @@
 ```
 
 契约规则：
-- `cursor` 与 `since` 可同时传；服务端优先 `cursor`。
+- `cursor` 必传。
+- `since` 当前不在请求 DTO 白名单中，传入会触发 `400 INVALID_ARGUMENT`。
 - 若 `cursor` 失效（过期/跨交易日），返回 `409 CURSOR_EXPIRED`，客户端需重新拉 Snapshot。
+- 若 `cursor` 格式非法、缺字段或签名不匹配，返回 `400 INVALID_ARGUMENT`。
+- `strictProviderConsistency=true` 时，若 `cursor.provider` 与请求 `provider` 不一致，返回 `409 CURSOR_EXPIRED`。
 - Delta 只返回新增或修正点，不返回历史全量。
 
 ### 3.3 实时主通道：WebSocket
@@ -157,7 +158,7 @@
     "price": 195.95,
     "volume": 320
   },
-  "cursor": "eyJ2IjoxLCJsYXN0VGltZSI6IjIwMjYtMDMtMDhUMTU6NDI6MDIuMDAwWiIsInNlcSI6MTMxfQ=="
+  "cursor": "base64-signed-cursor"
 }
 ```
 
@@ -177,50 +178,57 @@
 ## 5. 服务端组装规则（核心）
 
 ### 5.1 数据流
-1. 历史回填：`ReceiverService.handleRequest`，`receiverType=get-stock-history`（`1m` 基线）。
-2. 实时合并：读取 `stream-stock-quote` 最新成交价事件。
-3. 标准化：映射为 `IntradayPoint`（`timestamp/price/volume`）。
-4. 去重：按 `symbol + second(timestamp_utc)` upsert。
-5. 排序：时间升序输出。
-6. 同步锚点：输出 `cursor + lastPointTimestamp + serverTime`。
+1. 请求上下文解析：标准化 `symbol/market/tradingDay/provider`，并做参数一致性校验。
+2. 历史回填：通过 `DataFetcherService.fetchRawData` 拉取 `get-stock-history`（`1m` 基线）。
+3. 实时合并：从 `stream-cache` 读取 `quote:<SYMBOL>` 实时点位。
+4. 标准化：统一映射为 `IntradayPoint`（`timestamp/price/volume`）。
+5. 去重：按秒桶（`floor(timestamp/1000)*1000`）写入，历史先写、实时后写（实时覆盖同秒历史）。
+6. 排序与截断：按时间升序输出，并按 `pointLimit` 仅保留尾部窗口。
+7. 同步锚点：输出 `cursor + lastPointTimestamp + serverTime`。
 
 ### 5.2 秒桶与修正规则
 - 分桶键：`bucket = floor(timestamp_utc / 1000) * 1000`
-- 同秒冲突：后到事件覆盖先到值（以事件时间+序号判定）。
+- 同秒冲突：后写覆盖先写（当前实现为历史先写、实时后写）。
 - 允许“同秒修正”通过 Delta/WS 重发该秒点，客户端按秒键覆盖。
 
 ### 5.3 会话过滤
-- 默认仅常规交易时段。
-- `includePrePost=true` 时，包含盘前盘后秒级点（若 provider 支持）。
+- 当前实现按 `tradingDay` 进行交易日过滤（市场时区维度）。
+- 当前未提供 `includePrePost` 参数；若请求体传入该字段，会触发 `400`（非白名单字段）。
 
 ## 6. 代码落地方案（文件级）
 
-建议新建入口模块：
-- `src/core/01-entry/chart-intraday/controller/chart-intraday.controller.ts`
-- `src/core/01-entry/chart-intraday/services/chart-intraday.service.ts`
-- `src/core/01-entry/chart-intraday/dto/intraday-snapshot-request.dto.ts`
-- `src/core/01-entry/chart-intraday/dto/intraday-delta-request.dto.ts`
-- `src/core/01-entry/chart-intraday/dto/intraday-line-response.dto.ts`
-- `src/core/01-entry/chart-intraday/module/chart-intraday.module.ts`
+当前代码落位（已实现）：
+- `src/core/01-entry/receiver/controller/receiver-chart-intraday.controller.ts`
+- `src/core/01-entry/receiver/services/receiver-chart-intraday.service.ts`
+- `src/core/01-entry/receiver/dto/intraday-snapshot-request.dto.ts`
+- `src/core/01-entry/receiver/dto/intraday-delta-request.dto.ts`
+- `src/core/01-entry/receiver/dto/intraday-line-response.dto.ts`
+- `src/core/01-entry/receiver/module/receiver-chart-intraday.module.ts`
+- `src/core/03-fetching/chart-intraday/services/chart-intraday-read.service.ts`
+- `src/core/03-fetching/chart-intraday/services/chart-intraday-cursor.service.ts`
+- `src/core/03-fetching/chart-intraday/module/chart-intraday.module.ts`
+- `src/core/03-fetching/chart-intraday/module/chart-intraday-cursor.module.ts`
 
 应用装配：
-- `src/appcore/core/application.module.ts` 注册 `ChartIntradayModule`
+- `src/app.module.ts` 注册 `ReceiverChartIntradayModule`
 
 复用依赖：
-- `ReceiverService`：历史数据
-- `MarketStatusService`：交易日/会话判断
-- `SmartCacheStandardizedService`：Snapshot 短 TTL 缓存
+- `DataFetcherService`：历史数据拉取（`get-stock-history`）
+- `SymbolTransformerService`：标的映射
+- `ProviderRegistryService`：provider 解析
+- `StreamDataFetcherService`（`getStreamDataCache`）：实时流缓存读取
+- `ChartIntradayCursorService`：游标签名与校验
 
-## 7. 缓存与性能建议
+## 7. 当前缓存与性能行为（实现）
 
 缓存键：
-- Snapshot：`intraday_snapshot:{provider}:{symbol}:{tradingDay}:{market}:{includePrePost}`
-- Delta 游标态：`intraday_cursor:{provider}:{symbol}:{tradingDay}`
+- 实时点读取：`quote:<SYMBOL>`（来自 `stream-cache`）。
+- 当前未实现 `intraday_snapshot:*` 独立快照缓存键。
+- `cursor` 为签名载荷，不依赖服务端持久游标态。
 
-TTL（建议）：
-- Snapshot（交易时段）：`3s ~ 5s`
-- Snapshot（非交易时段）：`60s`
-- Cursor：覆盖当交易日并在收盘后延长 `2h`
+时效与上限（当前实现）：
+- Cursor 最大有效期：`2h`（含少量未来漂移容忍）。
+- 历史回填最大请求根数：`500`（由 `pointLimit` 推导并截断）。
 
 性能目标（MVP）：
 - Snapshot P95 `< 800ms`（缓存命中 `< 100ms`）
@@ -234,6 +242,8 @@ TTL（建议）：
 - `tradingDay` 可选；缺省按市场当日交易日推断
 - `pointLimit` 建议 `1 ~ 30000`
 - `delta.limit` 建议 `1 ~ 5000`
+- `cursor` 为 Delta 必填
+- `includePrePost`、`since` 当前不在白名单，传入将触发 `400`
 
 典型错误：
 - `400 INVALID_ARGUMENT`：参数非法
@@ -245,8 +255,8 @@ TTL（建议）：
 
 单元测试：
 - 秒桶归并、同秒覆盖、跨秒排序
-- `cursor/since` 优先级与增量切片正确性
-- 会话过滤（常规/盘前盘后）
+- `cursor` 签名校验、过期校验、上下文一致性与增量切片正确性
+- `tradingDay` 过滤与跨日数据剔除
 
 集成测试：
 - Snapshot + WS + Delta 兜底闭环
@@ -261,6 +271,7 @@ E2E：
 
 - 不改动现有 `get-stock-history` 与 `stream-stock-quote` 对外语义。
 - 新分时 API 上线后，客户端切到“Snapshot + WS + Delta”模式。
+- 旧客户端若仍发送 `includePrePost`/`since`，需先下线该参数再切换。
 - 保留灰度开关，必要时可回退到旧客户端拼接方案。
 
 ## 11. 文档同步要求
@@ -282,4 +293,4 @@ E2E：
   - 分时折线：Snapshot 为 `1m` 历史基线 + `1s` 实时增量窗口，不承诺全日完整 `1s` 历史。
   - 1 分钟 K 线：可通过上游分页补齐完整分钟历史（单标的每次最多 500 根）。
 
-除上述差异外，接口模式（Snapshot/Delta/WS）、恢复策略（cursor/since）、错误码、接入时序保持一致。
+除上述差异外，接口模式（Snapshot/Delta/WS）、恢复策略（cursor）、错误码、接入时序保持一致。
