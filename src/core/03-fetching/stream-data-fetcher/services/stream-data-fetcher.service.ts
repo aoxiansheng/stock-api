@@ -955,8 +955,20 @@ export class StreamDataFetcherService
         subscriptionResult,
       );
 
-      // Phase 2.4: 更新客户端状态
-      this.clientStateManager.updateSubscriptionState(connection.id, symbols, 'subscribed');
+      // Phase 2.4: 更新客户端状态（仅在 connection.id 可映射为 clientId 时执行）
+      if (this.clientStateManager.getClientSubscription(connection.id)) {
+        this.clientStateManager.updateSubscriptionState(
+          connection.id,
+          symbols,
+          "subscribed",
+        );
+      } else {
+        this.logger.debug("跳过连接级客户端状态更新（订阅）", {
+          connectionId: connection.id.substring(0, 8),
+          reason: "connection_id_is_not_client_id",
+          symbolsCount: symbols.length,
+        });
+      }
 
       // 更新指标
       this.recordSubscriptionMetrics(
@@ -1057,8 +1069,20 @@ export class StreamDataFetcherService
       // Phase 3.2: 更新缓存
       await this.removeSubscriptionFromCache(connection.id, symbols);
 
-      // Phase 3.3: 更新客户端状态
-      this.clientStateManager.updateSubscriptionState(connection.id, symbols, 'unsubscribed');
+      // Phase 3.3: 更新客户端状态（仅在 connection.id 可映射为 clientId 时执行）
+      if (this.clientStateManager.getClientSubscription(connection.id)) {
+        this.clientStateManager.updateSubscriptionState(
+          connection.id,
+          symbols,
+          "unsubscribed",
+        );
+      } else {
+        this.logger.debug("跳过连接级客户端状态更新（取消订阅）", {
+          connectionId: connection.id.substring(0, 8),
+          reason: "connection_id_is_not_client_id",
+          symbolsCount: symbols.length,
+        });
+      }
 
       // 更新指标
       this.recordSubscriptionMetrics(
@@ -1284,8 +1308,10 @@ export class StreamDataFetcherService
       // Phase 4.5: 清理缓存
       await this.clearConnectionCache(connection.id);
 
-      // Phase 4.6: 更新客户端状态
-      this.clientStateManager.removeConnection(connection.id);
+      // Phase 4.6: 更新客户端状态（仅在 connection.id 可映射为 clientId 时执行）
+      if (this.clientStateManager.getClientSubscription(connection.id)) {
+        this.clientStateManager.removeConnection(connection.id);
+      }
 
       // 更新指标
       this.recordConnectionMetrics("disconnected", connection.provider);
