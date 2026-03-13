@@ -19,8 +19,15 @@ describe("ChartIntradayReadService logging", () => {
     process.env.CHART_INTRADAY_CURSOR_SECRET = "chart-intraday-test-secret";
 
     return new ChartIntradayReadService(
-      { fetchRawData: jest.fn(), supportsCapability: jest.fn(), getProviderContext: jest.fn() } as any,
-      { transformSymbolsForProvider: jest.fn(), transformSingleSymbol: jest.fn() } as any,
+      {
+        fetchRawData: jest.fn(),
+        supportsCapability: jest.fn(),
+        getProviderContext: jest.fn(),
+      } as any,
+      {
+        transformSymbolsForProvider: jest.fn(),
+        transformSingleSymbol: jest.fn(),
+      } as any,
       {
         getCandidateProviders: jest.fn().mockReturnValue(["infoway"]),
         rankProvidersForCapability: jest.fn().mockReturnValue(["infoway"]),
@@ -32,8 +39,18 @@ describe("ChartIntradayReadService logging", () => {
         }),
         getCapability: jest.fn().mockReturnValue({ name: "get-stock-history" }),
       } as any,
-      { getStreamDataCache: jest.fn().mockReturnValue(streamCache || { getData: jest.fn().mockResolvedValue([]) }) } as any,
+      {
+        getStreamDataCache: jest
+          .fn()
+          .mockReturnValue(
+            streamCache || { getData: jest.fn().mockResolvedValue([]) },
+          ),
+      } as any,
       new ChartIntradayCursorService(),
+      {
+        ensureRealtimeSubscription: jest.fn().mockResolvedValue(undefined),
+        releaseRealtimeSubscription: jest.fn(),
+      } as any,
     );
   }
 
@@ -60,7 +77,12 @@ describe("ChartIntradayReadService logging", () => {
     (shouldLog as jest.Mock).mockReturnValue(true);
     const service = createService({
       getData: jest.fn().mockResolvedValue([
-        { s: "AAPL.US", t: Date.parse("2026-03-12T17:06:25.952Z"), p: 101.2, v: 100 },
+        {
+          s: "AAPL.US",
+          t: Date.parse("2026-03-12T17:06:25.952Z"),
+          p: 101.2,
+          v: 100,
+        },
       ]),
     });
 
@@ -105,7 +127,12 @@ describe("ChartIntradayReadService logging", () => {
     (shouldLog as jest.Mock).mockReturnValue(false);
     const service = createService({
       getData: jest.fn().mockResolvedValue([
-        { s: "AAPL.US", t: Date.parse("2026-03-12T17:06:25.952Z"), p: 101.2, v: 100 },
+        {
+          s: "AAPL.US",
+          t: Date.parse("2026-03-12T17:06:25.952Z"),
+          p: 101.2,
+          v: 100,
+        },
       ]),
     });
 

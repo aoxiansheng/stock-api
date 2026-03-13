@@ -64,7 +64,9 @@ describe("ChartIntradayReadService", () => {
   }
 
   function encodeCursor(cursorPayload: Record<string, unknown>) {
-    return Buffer.from(JSON.stringify(cursorPayload), "utf-8").toString("base64");
+    return Buffer.from(JSON.stringify(cursorPayload), "utf-8").toString(
+      "base64",
+    );
   }
 
   function decodeCursor(cursor: string): Record<string, unknown> {
@@ -124,6 +126,16 @@ describe("ChartIntradayReadService", () => {
     const streamDataFetcherService = {
       getStreamDataCache: jest.fn().mockReturnValue(streamCache),
     };
+    const chartIntradayStreamSubscriptionService = {
+      ensureRealtimeSubscription: jest.fn().mockResolvedValue(undefined),
+      releaseRealtimeSubscription: jest.fn().mockResolvedValue({
+        released: true,
+        symbol: "AAPL.US",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+        clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+      }),
+    };
 
     const chartIntradayCursorService = new ChartIntradayCursorService();
     symbolTransformerService.transformSymbolsForProvider.mockImplementation(
@@ -153,6 +165,7 @@ describe("ChartIntradayReadService", () => {
       providerRegistryService as any,
       streamDataFetcherService as any,
       chartIntradayCursorService,
+      chartIntradayStreamSubscriptionService as any,
     );
 
     return {
@@ -162,10 +175,13 @@ describe("ChartIntradayReadService", () => {
       providerRegistryService,
       streamDataFetcherService,
       streamCache,
+      chartIntradayStreamSubscriptionService,
     };
   }
 
-  function createRetryableHistoryFetchError(message = "timeout of 10000ms exceeded") {
+  function createRetryableHistoryFetchError(
+    message = "timeout of 10000ms exceeded",
+  ) {
     return new BusinessException({
       message,
       errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
@@ -195,6 +211,7 @@ describe("ChartIntradayReadService", () => {
       dataFetcherService,
       symbolTransformerService,
       streamCache,
+      chartIntradayStreamSubscriptionService,
     } = createService();
     const nowMs = Date.now();
     const t1 = Math.floor((nowMs - 120_000) / 1000);
@@ -267,6 +284,94 @@ describe("ChartIntradayReadService", () => {
     expect(result.metadata.deduplicatedPoints).toBe(1);
     expect(result.capability.supportsFullDay1sHistory).toBe(false);
     expect(result.sync.cursor).toBeTruthy();
+    expect(
+      chartIntradayStreamSubscriptionService.ensureRealtimeSubscription,
+    ).toHaveBeenCalledWith({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+    });
+  });
+
+  it("snapshot: CRYPTO 市场应路由到 GET_CRYPTO_HISTORY 并按 capability 解析 provider", async () => {
+    const {
+      service,
+      dataFetcherService,
+      providerRegistryService,
+      streamCache,
+    } = createService();
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        {
+          symbol: "BTCUSDT",
+          timestamp: "2026-01-15T00:00:00.000Z",
+          lastPrice: "45000.10",
+          volume: "10",
+        },
+      ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
+    });
+
+    await service.getSnapshot({
+      symbol: "BTCUSDT.CRYPTO",
+      market: "CRYPTO",
+      tradingDay: "20260115",
+    });
+
+    expect(providerRegistryService.getBestProvider).toHaveBeenCalledWith(
+      CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+      "CRYPTO",
+    );
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+        symbols: ["BTCUSDT.CRYPTO"],
+        options: expect.objectContaining({
+          market: "CRYPTO",
+        }),
+      }),
+    );
+  });
+
+  it("snapshot: CRYPTO 历史锚点应从 UTC 00:00:01 开始", async () => {
+    const { service, dataFetcherService, streamCache } = createService();
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        {
+          symbol: "BTCUSDT",
+          timestamp: "2026-01-15T00:00:01.000Z",
+          lastPrice: "45000.10",
+          volume: "10",
+        },
+      ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
+    });
+
+    await service.getSnapshot({
+      symbol: "BTCUSDT.CRYPTO",
+      market: "CRYPTO",
+      tradingDay: "20260115",
+    });
+
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          timestamp: Math.floor(Date.parse("2026-01-15T00:00:01.000Z") / 1000),
+        }),
+      }),
+    );
   });
 
   it("snapshot: 历史基线按 tradingDay 过滤，避免跨日污染", async () => {
@@ -308,8 +413,12 @@ describe("ChartIntradayReadService", () => {
   });
 
   it("snapshot: 保持 symbol mapper 输出大小写，不做二次大写改写", async () => {
-    const { service, dataFetcherService, symbolTransformerService, streamCache } =
-      createService();
+    const {
+      service,
+      dataFetcherService,
+      symbolTransformerService,
+      streamCache,
+    } = createService();
     const providerSymbol = "aapl.us";
     const t1 = "2026-01-15T15:00:00.000Z";
     streamCache.getData.mockResolvedValue([]);
@@ -377,8 +486,8 @@ describe("ChartIntradayReadService", () => {
       const status =
         typeof (error as { getStatus?: () => number }).getStatus === "function"
           ? (error as { getStatus: () => number }).getStatus()
-          : (error as { statusCode?: number; status?: number }).statusCode ??
-            (error as { status?: number }).status;
+          : ((error as { statusCode?: number; status?: number }).statusCode ??
+            (error as { status?: number }).status);
       expect(status).toBe(503);
     }
   });
@@ -462,7 +571,8 @@ describe("ChartIntradayReadService", () => {
   });
 
   it("delta: 合法 cursor 正常，并按 limit 返回分页增量", async () => {
-    const { service, streamCache } = createService();
+    const { service, streamCache, chartIntradayStreamSubscriptionService } =
+      createService();
     const baseMs = Date.parse("2026-01-15T15:00:00.000Z");
     const t1 = baseMs + 1000;
     const t2 = baseMs + 2000;
@@ -488,6 +598,13 @@ describe("ChartIntradayReadService", () => {
     expect(first.delta.points).toHaveLength(1);
     expect(first.delta.points[0].timestamp).toBe(new Date(t1).toISOString());
     expect(first.delta.hasMore).toBe(true);
+    expect(
+      chartIntradayStreamSubscriptionService.ensureRealtimeSubscription,
+    ).toHaveBeenCalledWith({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+    });
 
     const second = await service.getDelta({
       symbol: "AAPL.US",
@@ -497,6 +614,33 @@ describe("ChartIntradayReadService", () => {
 
     expect(second.delta.points).toHaveLength(2);
     expect(second.delta.hasMore).toBe(false);
+  });
+
+  it("release: 应释放当前 symbol 的内部实时订阅", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+
+    const result = await service.releaseRealtimeSubscription({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+    });
+
+    expect(
+      chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
+    ).toHaveBeenCalledWith({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+    });
+    expect(result).toEqual({
+      release: {
+        released: true,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+      },
+    });
   });
 
   it("delta: cursor 与请求上下文不匹配时返回 CURSOR_EXPIRED", async () => {
@@ -668,7 +812,9 @@ describe("ChartIntradayReadService", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessException);
       expect((error as BusinessException).getStatus()).toBe(400);
-      expect((error as Error).message).toContain("delta 请求必须提供带 sig 的 cursor");
+      expect((error as Error).message).toContain(
+        "delta 请求必须提供带 sig 的 cursor",
+      );
     }
   });
 

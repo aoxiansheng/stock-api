@@ -5,7 +5,7 @@
  *
  * 目标：
  * 1. 连接本地 /api/v1/stream-receiver/connect
- * 2. 订阅 stream-stock-quote
+ * 2. 订阅实时 quote 能力（默认按 symbol 自动选择 stock/crypto）
  * 3. 至少收到 MIN_TICK_COUNT 条含最新价的数据后通过
  *
  * 环境变量：
@@ -15,6 +15,7 @@
  * - USERNAME / PASSWORD: 未传 API Key 时自动登录并创建临时 API Key
  * - SYMBOL: 订阅标的（默认 AAPL.US）
  * - PROVIDER: 数据源（默认 infoway）
+ * - WS_CAPABILITY_TYPE: 可选，显式指定能力（如 stream-crypto-quote）
  * - MIN_TICK_COUNT: 最少 tick 条数（默认 10）
  * - TIMEOUT_MS: 超时毫秒（默认 45000）
  * - VERBOSE_PACKET: 1/true 时打印完整 packet
@@ -27,6 +28,9 @@ const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3001";
 const WS_PATH = process.env.WS_PATH || "/api/v1/stream-receiver/connect";
 const SYMBOL = process.env.SYMBOL || "AAPL.US";
 const PROVIDER = process.env.PROVIDER || "infoway";
+const WS_CAPABILITY_TYPE_OVERRIDE = String(
+  process.env.WS_CAPABILITY_TYPE || "",
+).trim();
 const MIN_TICK_COUNT = Number(process.env.MIN_TICK_COUNT || 10);
 const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 45000);
 const VERBOSE_PACKET = ["1", "true", "yes", "on"].includes(
@@ -35,6 +39,19 @@ const VERBOSE_PACKET = ["1", "true", "yes", "on"].includes(
 const HOLD_CONNECTION_AFTER_TARGET = ["1", "true", "yes", "on"].includes(
   String(process.env.HOLD_CONNECTION_AFTER_TARGET || "").toLowerCase(),
 );
+
+function resolveWsCapabilityType(symbol) {
+  if (WS_CAPABILITY_TYPE_OVERRIDE) {
+    return WS_CAPABILITY_TYPE_OVERRIDE;
+  }
+  const normalizedSymbol = String(symbol || "").trim().toUpperCase();
+  if (normalizedSymbol.endsWith(".CRYPTO")) {
+    return "stream-crypto-quote";
+  }
+  return "stream-stock-quote";
+}
+
+const WS_CAPABILITY_TYPE = resolveWsCapabilityType(SYMBOL);
 
 function fail(message, extra) {
   if (extra) {
@@ -142,6 +159,7 @@ async function main() {
     wsPath: WS_PATH,
     symbol: SYMBOL,
     provider: PROVIDER,
+    wsCapabilityType: WS_CAPABILITY_TYPE,
     minTickCount: MIN_TICK_COUNT,
     timeoutMs: TIMEOUT_MS,
     authSource: auth.source,
@@ -170,7 +188,10 @@ async function main() {
     if (settled) return;
     settled = true;
     try {
-      socket.emit("unsubscribe", { symbols: [SYMBOL] });
+      socket.emit("unsubscribe", {
+        symbols: [SYMBOL],
+        wsCapabilityType: WS_CAPABILITY_TYPE,
+      });
     } catch {
       // ignore
     }
@@ -209,7 +230,7 @@ async function main() {
     console.log("[connect]", socket.id);
     socket.emit("subscribe", {
       symbols: [SYMBOL],
-      wsCapabilityType: "stream-stock-quote",
+      wsCapabilityType: WS_CAPABILITY_TYPE,
       preferredProvider: PROVIDER,
     });
   });

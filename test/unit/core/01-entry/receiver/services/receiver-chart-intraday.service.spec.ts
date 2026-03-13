@@ -5,8 +5,11 @@ describe("ReceiverChartIntradayService", () => {
     const chartIntradayReadService = {
       getSnapshot: jest.fn().mockResolvedValue({ ok: true }),
       getDelta: jest.fn(),
+      releaseRealtimeSubscription: jest.fn(),
     };
-    const service = new ReceiverChartIntradayService(chartIntradayReadService as any);
+    const service = new ReceiverChartIntradayService(
+      chartIntradayReadService as any,
+    );
 
     const request = { symbol: "AAPL.US", market: "US" };
     const result = await service.getSnapshot(request as any);
@@ -20,14 +23,39 @@ describe("ReceiverChartIntradayService", () => {
     const chartIntradayReadService = {
       getSnapshot: jest.fn(),
       getDelta: jest.fn().mockResolvedValue({ ok: true }),
+      releaseRealtimeSubscription: jest.fn(),
     };
-    const service = new ReceiverChartIntradayService(chartIntradayReadService as any);
+    const service = new ReceiverChartIntradayService(
+      chartIntradayReadService as any,
+    );
 
     const request = { symbol: "AAPL.US", cursor: "cursor" };
     const result = await service.getDelta(request as any);
 
     expect(chartIntradayReadService.getDelta).toHaveBeenCalledTimes(1);
     expect(chartIntradayReadService.getDelta).toHaveBeenCalledWith(request);
+    expect(result).toEqual({ ok: true });
+  });
+
+  it("release: 应透传到 ChartIntradayReadService.releaseRealtimeSubscription", async () => {
+    const chartIntradayReadService = {
+      getSnapshot: jest.fn(),
+      getDelta: jest.fn(),
+      releaseRealtimeSubscription: jest.fn().mockResolvedValue({ ok: true }),
+    };
+    const service = new ReceiverChartIntradayService(
+      chartIntradayReadService as any,
+    );
+
+    const request = { symbol: "AAPL.US", market: "US", provider: "infoway" };
+    const result = await service.releaseRealtimeSubscription(request as any);
+
+    expect(
+      chartIntradayReadService.releaseRealtimeSubscription,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      chartIntradayReadService.releaseRealtimeSubscription,
+    ).toHaveBeenCalledWith(request);
     expect(result).toEqual({ ok: true });
   });
 });

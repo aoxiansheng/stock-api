@@ -22,11 +22,13 @@ describe("get-crypto-basic-info capability", () => {
     };
 
     const result = await getCryptoBasicInfo.execute({
-      symbols: ["BTCUSDT.CRYPTO", " btcusdt "],
+      symbols: ["BTCUSDT.CRYPTO", " btcusdt.crypto "],
       contextService: contextService as any,
     });
 
-    expect(contextService.getCryptoBasicInfo).toHaveBeenCalledWith(["BTCUSDT"]);
+    expect(contextService.getCryptoBasicInfo).toHaveBeenCalledWith([
+      "BTCUSDT.CRYPTO",
+    ]);
     expect(result).toEqual([{ symbol: "BTCUSDT" }]);
   });
 
@@ -42,7 +44,7 @@ describe("get-crypto-basic-info capability", () => {
       }),
     ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-      message: expect.stringContaining("crypto symbol 交易对格式无效"),
+      message: expect.stringContaining("crypto symbol 必须使用 .CRYPTO 后缀"),
     });
 
     expect(contextService.getCryptoBasicInfo).not.toHaveBeenCalled();

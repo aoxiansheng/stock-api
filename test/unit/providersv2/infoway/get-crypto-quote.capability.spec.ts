@@ -22,11 +22,13 @@ describe("get-crypto-quote capability", () => {
     };
 
     const result = await getCryptoQuote.execute({
-      symbols: [" btcusdt ", "BTCUSDT.CRYPTO"],
+      symbols: [" btcusdt.crypto ", "BTCUSDT.CRYPTO"],
       contextService: contextService as any,
     });
 
-    expect(contextService.getCryptoQuote).toHaveBeenCalledWith(["BTCUSDT"]);
+    expect(contextService.getCryptoQuote).toHaveBeenCalledWith([
+      "BTCUSDT.CRYPTO",
+    ]);
     expect(result).toEqual({ data: [{ s: "BTCUSDT" }] });
   });
 
@@ -42,7 +44,7 @@ describe("get-crypto-quote capability", () => {
       }),
     ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-      message: expect.stringContaining("crypto symbol 交易对格式无效"),
+      message: expect.stringContaining("crypto symbol 必须使用 .CRYPTO 后缀"),
     });
 
     expect(contextService.getCryptoQuote).not.toHaveBeenCalled();

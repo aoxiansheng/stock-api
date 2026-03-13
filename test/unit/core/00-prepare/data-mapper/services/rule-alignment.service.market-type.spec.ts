@@ -88,6 +88,48 @@ describe("MarketTypeResolverService market type resolve", () => {
     expect(marketType).toBe("US");
   });
 
+  it("infoway rest quote_fields 自动包含 CRYPTO 市场", () => {
+    const service = createService();
+    const template = {
+      name: "Infoway REST 报价模板(基于batch_trade原始字段)",
+      apiType: "rest",
+      provider: "infoway",
+      sampleData: { symbol: "AAPL.US" },
+    } as any;
+
+    const marketType = service.resolveMarketType(template, "quote_fields");
+
+    expect(marketType).toBe("HK/SH/SZ/US/CRYPTO");
+  });
+
+  it("infoway stream quote_fields 自动包含 CRYPTO 市场", () => {
+    const service = createService();
+    const template = {
+      name: "Infoway WebSocket 报价流模板(基于Trade推送原始字段)",
+      apiType: "stream",
+      provider: "infoway",
+      sampleData: { symbol: "AAPL.US" },
+    } as any;
+
+    const marketType = service.resolveMarketType(template, "quote_fields");
+
+    expect(marketType).toBe("HK/SH/SZ/US/CRYPTO");
+  });
+
+  it("infoway rest candle_fields 自动包含 CRYPTO 市场", () => {
+    const service = createService();
+    const template = {
+      name: "Infoway REST 分时K线模板(基于batch_kline原始字段)",
+      apiType: "rest",
+      provider: "infoway",
+      sampleData: { symbol: "AAPL.US" },
+    } as any;
+
+    const marketType = service.resolveMarketType(template, "candle_fields");
+
+    expect(marketType).toBe("HK/SH/SZ/US/CRYPTO");
+  });
+
   it.each([
     ["market_status_fields", "美股市场状态模板", "US"],
     ["trading_days_fields", "港股交易日模板", "HK"],

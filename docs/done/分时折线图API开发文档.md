@@ -1,6 +1,6 @@
 # 分时折线图 API 开发文档（推送优先 + 轮询兜底）
 
-更新时间：2026-03-12
+更新时间：2026-03-14
 
 ## 1. 背景与结论
 
@@ -146,6 +146,9 @@
 
 - 建议事件：`chart.intraday.point`
 - 事件映射关系：上游原始事件为 `data + wsCapabilityType=stream-stock-quote`，`chart.intraday.point` 是本系统统一后的领域事件。
+- 前端订阅方式：连接 `/api/v1/stream-receiver/connect`，发送 `subscribe + wsCapabilityType=stream-stock-quote`。
+- `chart.intraday.point` 是下游接收的事件名，不是单独的 `wsCapabilityType`。
+- 若前端要停止接收推送，应对当前 Socket 发送 `unsubscribe`；这一步只作用于“下游到我们”的 WebSocket 订阅。
 - 载荷建议：
 ```json
 {
@@ -162,6 +165,29 @@
 }
 ```
 
+### 3.4 生命周期释放：Release
+
+- `POST /api/v1/chart/intraday-line/release`
+- 作用：释放分时图 API 在 `snapshot` / `delta` 内部自动拉起的上游实时订阅。
+- 不负责：替前端当前 WebSocket 连接执行 `unsubscribe`。
+
+请求体：
+```json
+{
+  "symbol": "AAPL.US",
+  "market": "US",
+  "provider": "infoway"
+}
+```
+
+语义边界：
+- `unsubscribe`：负责“下游前端 -> 我们的 WebSocket 服务”
+- `release`：负责“我们的分时图服务 -> 上游实时流能力”
+
+因此：
+- HTTP-only 模式通常只需要 `release`
+- HTTP + WS 模式通常需要先 `unsubscribe`，再 `release`
+
 ## 4. 客户端接入时序（强约束）
 
 1. 首次进入页面，调用 Snapshot 一次，渲染当前可得的全量快照（分钟基线 + 秒级增量窗口）。
@@ -169,11 +195,14 @@
 3. WS 正常时，不执行每秒 HTTP 轮询。
 4. 仅当 WS 断开或重连恢复阶段，开启 `1s` Delta 轮询兜底。
 5. WS 恢复稳定后，停止轮询，仅保留 WS。
+6. 页面退出或切换 symbol 时，若启用了前端 WS，先发送 `unsubscribe`。
+7. 随后调用 `POST /api/v1/chart/intraday-line/release`，释放分时图接口内部自动拉起的上游订阅。
 
 说明：
 - “每秒 1 次”是兜底策略，不是常态主路径。
 - 任意时刻都不允许每秒重新拉全量历史。
 - 在未建设秒级历史库前，首屏快照的历史基线来自 `1m` 数据，随后由 WS/Delta 补齐秒级实时点。
+- 不建议试图用 `release` 代替 `unsubscribe`，因为 `release` 不携带具体 Socket/客户端上下文，无法安全表达“要退掉哪个前端连接”。
 
 ## 5. 服务端组装规则（核心）
 

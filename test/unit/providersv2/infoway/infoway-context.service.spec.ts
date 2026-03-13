@@ -211,7 +211,7 @@ describe("InfowayContextService", () => {
     expect((service as any).client.get.mock.calls.length).toBeGreaterThan(1);
   });
 
-  it("getCryptoQuote: 支持 BTCUSDT 与 BTCUSDT.CRYPTO 并调用 crypto 端点", async () => {
+  it("getCryptoQuote: 仅接受 *.CRYPTO 输入并调用 crypto 端点", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
       data: {
@@ -227,7 +227,7 @@ describe("InfowayContextService", () => {
       },
     });
 
-    const result = await service.getCryptoQuote(["BTCUSDT", "BTCUSDT.CRYPTO"]);
+    const result = await service.getCryptoQuote(["BTCUSDT.CRYPTO"]);
 
     expect((service as any).client.get).toHaveBeenCalledWith(
       "/crypto/batch_trade/BTCUSDT",
@@ -257,7 +257,7 @@ describe("InfowayContextService", () => {
       },
     });
 
-    await expect(service.getCryptoQuote(["BTCUSDT"])).rejects.toMatchObject({
+    await expect(service.getCryptoQuote(["BTCUSDT.CRYPTO"])).rejects.toMatchObject({
       message: "Infoway crypto-quote 响应异常",
       errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
       operation: "crypto-quote",
@@ -270,6 +270,83 @@ describe("InfowayContextService", () => {
         },
       },
     });
+  });
+
+  it("getCryptoHistory: 基于 trade 响应聚合为 history 兼容结构", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [
+          {
+            s: "BTCUSDT",
+            t: 1709251200999,
+            p: "65000.1",
+            v: "321",
+            vw: "20865032.1",
+          },
+        ],
+      },
+    });
+
+    const result = await service.getCryptoHistory({
+      symbols: ["BTCUSDT.CRYPTO"],
+      klineNum: 10,
+      timestamp: 1709251200,
+    });
+
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/crypto/batch_trade/BTCUSDT",
+      expect.objectContaining({
+        headers: {
+          apiKey: "test-api-key",
+        },
+      }),
+    );
+    expect(result).toEqual([
+      {
+        s: "BTCUSDT",
+        respList: [
+          {
+            t: 1709251200,
+            o: "65000.1",
+            h: "65000.1",
+            l: "65000.1",
+            c: "65000.1",
+            v: "321",
+            vw: "20865032.1",
+            vm: "20865032.1",
+            pc: "0",
+            pca: "0",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("getCryptoHistory: timestamp 晚于 trade 时返回空数组", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [
+          {
+            s: "BTCUSDT",
+            t: 1709251200999,
+            p: "65000.1",
+            v: "321",
+            vw: "20865032.1",
+          },
+        ],
+      },
+    });
+
+    const result = await service.getCryptoHistory({
+      symbols: ["BTCUSDT.CRYPTO"],
+      timestamp: 1709251201,
+    });
+
+    expect(result).toEqual([]);
   });
 
   it("getMarketStatus: data 结构异常时抛结构化业务异常", async () => {

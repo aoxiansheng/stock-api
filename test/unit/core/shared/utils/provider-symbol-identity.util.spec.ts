@@ -156,9 +156,7 @@ describe("SymbolValidationUtils.getMarketFromSymbol", () => {
     expect(SymbolValidationUtils.getMarketFromSymbol("00700.HK")).toBe(Market.HK);
     expect(SymbolValidationUtils.getMarketFromSymbol("600000.SH")).toBe(Market.SH);
     expect(SymbolValidationUtils.getMarketFromSymbol("000001.SZ")).toBe(Market.SZ);
-    expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT")).toBe(
-      Market.CRYPTO,
-    );
+    expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT")).toBeUndefined();
     expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT.CRYPTO")).toBe(
       Market.CRYPTO,
     );

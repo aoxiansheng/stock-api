@@ -257,10 +257,11 @@ describe("ReceiverService get-stock-history pipeline", () => {
       ),
     ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-      message: "klineNum/timestamp 仅允许在 get-stock-history 请求中使用",
+      message:
+        "klineNum/timestamp 仅允许在 get-stock-history/get-crypto-history 请求中使用",
       context: {
         errors: expect.arrayContaining([
-          "klineNum/timestamp 仅允许在 get-stock-history 请求中使用",
+          "klineNum/timestamp 仅允许在 get-stock-history/get-crypto-history 请求中使用",
         ]),
       },
     });
@@ -463,7 +464,6 @@ describe("ReceiverService get-stock-history pipeline", () => {
   );
 
   it.each([
-    "CRYPTO",
     "drop table users",
     "US;DELETE",
     "__proto__",
@@ -494,7 +494,7 @@ describe("ReceiverService get-stock-history pipeline", () => {
       symbols: ["AAPL.US"],
       receiverType: CAPABILITY_NAMES.GET_STOCK_HISTORY,
       options: {
-        market: "CRYPTO",
+        market: "drop table users",
         klineNum: 120,
         timestamp: 1709251260000,
       },

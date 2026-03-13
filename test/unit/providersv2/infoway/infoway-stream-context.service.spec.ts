@@ -275,6 +275,57 @@ describe("InfowayStreamContextService", () => {
     await service.cleanup();
   });
 
+  it("crypto subscribe 会将 .CRYPTO 转为上游 codes 并保留本地标准 symbol", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+
+    await service.subscribe(["BTCUSDT.CRYPTO"]);
+
+    const instance = HeaderCapableMockWebSocket.instances[0];
+    expect(instance.sent).toHaveLength(2);
+    const subscribePayload = JSON.parse(instance.sent[1]);
+    expect(subscribePayload.code).toBe(10000);
+    expect(subscribePayload.data.codes).toBe("BTCUSDT");
+    expect((service as any).subscribedSymbols.has("BTCUSDT.CRYPTO")).toBe(true);
+    expect((service as any).upstreamToStandardSymbolMap.get("BTCUSDT")).toBe(
+      "BTCUSDT.CRYPTO",
+    );
+
+    await service.cleanup();
+  });
+
+  it("预初始化为 stock 后订阅 crypto 会切换 business 并重建连接", async () => {
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_BUSINESS: "stock",
+      }),
+    );
+
+    await service.initializeWebSocket();
+    expect(HeaderCapableMockWebSocket.instances[0].url).toContain("business=stock");
+
+    await service.subscribe(["BTCUSDT.CRYPTO"]);
+
+    expect(HeaderCapableMockWebSocket.instances).toHaveLength(2);
+    expect(HeaderCapableMockWebSocket.instances[1].url).toContain("business=crypto");
+
+    const subscribePayload = JSON.parse(
+      HeaderCapableMockWebSocket.instances[1].sent[1],
+    );
+    expect(subscribePayload.code).toBe(10000);
+    expect(subscribePayload.data.codes).toBe("BTCUSDT");
+
+    await service.cleanup();
+  });
+
   it("subscribe 会先校验 symbols，再尝试初始化 WebSocket", async () => {
     const service = new InfowayStreamContextService(
       createConfigService({
@@ -286,6 +337,24 @@ describe("InfowayStreamContextService", () => {
       .mockResolvedValue();
 
     await expect(service.subscribe(["INVALID"])).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+    });
+    expect(initializeSpy).not.toHaveBeenCalled();
+  });
+
+  it("subscribe 混合股票与 crypto symbols 时抛业务异常", async () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+    const initializeSpy = jest
+      .spyOn(service, "initializeWebSocket")
+      .mockResolvedValue();
+
+    await expect(
+      service.subscribe(["AAPL.US", "BTCUSDT.CRYPTO"]),
+    ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
     });
     expect(initializeSpy).not.toHaveBeenCalled();
@@ -356,6 +425,7 @@ describe("InfowayStreamContextService", () => {
     expect(scheduleReconnectSpy).not.toHaveBeenCalled();
     expect(service.isWebSocketConnected()).toBe(false);
     expect((service as any).heartbeatTimer).toBeNull();
+    expect((service as any).upstreamToStandardSymbolMap.size).toBe(0);
   });
 
   it("cleanup 会等待 pending connectTask 收敛且不会残留连接", async () => {
@@ -413,6 +483,42 @@ describe("InfowayStreamContextService", () => {
     expect(subscribePayload.data.codes).toBe("AAPL.US,MSFT.US");
 
     await service.unsubscribe(["AAPL.US", "MSFT.US"]);
+    await service.cleanup();
+  });
+
+  it("重连成功后会按上游格式重订阅 crypto symbols", async () => {
+    jest.useFakeTimers();
+    (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
+
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+        INFOWAY_WS_RECONNECT_DELAY_MS: 1,
+        INFOWAY_WS_RECONNECT_JITTER_MS: 0,
+        INFOWAY_WS_MAX_RECONNECT_ATTEMPTS: 3,
+      }),
+    );
+
+    const subscribeTask = service.subscribe(["BTCUSDT.CRYPTO"]);
+    await flushTimers(1, 6);
+    await subscribeTask;
+
+    const firstSocket = HeaderCapableMockWebSocket.instances[0];
+    expect(firstSocket.sent).toHaveLength(2);
+    expect(JSON.parse(firstSocket.sent[1]).data.codes).toBe("BTCUSDT");
+
+    firstSocket.close();
+    await flushTimers(1, 10);
+
+    expect(HeaderCapableMockWebSocket.instances).toHaveLength(2);
+    const reconnectedSocket = HeaderCapableMockWebSocket.instances[1];
+    expect(reconnectedSocket.sent).toHaveLength(2);
+
+    const subscribePayload = JSON.parse(reconnectedSocket.sent[1]);
+    expect(subscribePayload.code).toBe(10000);
+    expect(subscribePayload.data.codes).toBe("BTCUSDT");
+
+    await service.unsubscribe(["BTCUSDT.CRYPTO"]);
     await service.cleanup();
   });
 
@@ -564,6 +670,37 @@ describe("InfowayStreamContextService", () => {
 
     expect(onQuote).toHaveBeenCalledTimes(1);
     expect(onQuote).toHaveBeenCalledWith({ p: "182.31" });
+  });
+
+  it("handleMessage: crypto 上游 s 会映射为标准 .CRYPTO symbol", () => {
+    const service = new InfowayStreamContextService(
+      createConfigService({
+        INFOWAY_API_KEY: "test-api-key",
+      }),
+    );
+    const onQuote = jest.fn();
+    (service as any).messageCallbacks.add(onQuote);
+    (service as any).subscribedSymbols.add("BTCUSDT.CRYPTO");
+    (service as any).upstreamToStandardSymbolMap.set(
+      "BTCUSDT",
+      "BTCUSDT.CRYPTO",
+    );
+
+    (service as any).handleMessage(
+      JSON.stringify({
+        code: 10002,
+        data: {
+          s: "BTCUSDT",
+          p: "62000",
+        },
+      }),
+    );
+
+    expect(onQuote).toHaveBeenCalledTimes(1);
+    expect(onQuote).toHaveBeenCalledWith({
+      s: "BTCUSDT.CRYPTO",
+      p: "62000",
+    });
   });
 
   it("关键数值配置非法时回退默认值", () => {
