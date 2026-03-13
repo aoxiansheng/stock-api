@@ -15,10 +15,22 @@ import { shouldLog } from "@common/logging/index";
 
 describe("StreamCacheStandardizedService logging", () => {
   function createService() {
+    const warmCacheStore = new Map<string, string>();
+
     return new StreamCacheStandardizedService(
       {
         status: "ready",
         on: jest.fn(),
+        get: jest.fn(async (key: string) => warmCacheStore.get(key) ?? null),
+        setex: jest.fn(async (key: string, _ttl: number, value: string) => {
+          warmCacheStore.set(key, value);
+          return "OK";
+        }),
+        scan: jest.fn(async () => ["0", []]),
+        pipeline: jest.fn(() => ({
+          get: jest.fn(),
+          exec: jest.fn(async () => []),
+        })),
         quit: jest.fn(),
         disconnect: jest.fn(),
       } as any,
@@ -89,5 +101,28 @@ describe("StreamCacheStandardizedService logging", () => {
       "分时诊断: StreamCache 读取命中 hot-cache",
       expect.anything(),
     );
+  });
+
+  it("setData: quote key 应按时间序列合并而不是覆盖旧点位", async () => {
+    const service = createService();
+
+    await service.setData("quote:AAPL.US", [{ s: "AAPL.US", p: 100, v: 1, t: 1000 }], "hot");
+    await service.setData("quote:AAPL.US", [{ s: "AAPL.US", p: 101, v: 2, t: 2000 }], "hot");
+
+    await expect(service.getData("quote:AAPL.US")).resolves.toEqual([
+      { s: "AAPL.US", p: 100, v: 1, t: 1000 },
+      { s: "AAPL.US", p: 101, v: 2, t: 2000 },
+    ]);
+  });
+
+  it("setData: 非 quote key 仍保持覆盖语义", async () => {
+    const service = createService();
+
+    await service.setData("subscription:conn-1", [{ s: "AAPL.US", p: 100, v: 1, t: 1000 }], "hot");
+    await service.setData("subscription:conn-1", [{ s: "AAPL.US", p: 101, v: 2, t: 2000 }], "hot");
+
+    await expect(service.getData("subscription:conn-1")).resolves.toEqual([
+      { s: "AAPL.US", p: 101, v: 2, t: 2000 },
+    ]);
   });
 });

@@ -1,13 +1,24 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
-const { existsSync, readFileSync } = require("node:fs");
-const { resolve } = require("node:path");
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
+const { dirname, resolve } = require("node:path");
+const {
+  parseBoolean,
+  parseCliArgs,
+  parseSymbols,
+} = require("./project-api-client");
 
 /**
- * 测试 Infoway get-support-list 新能力
- * 
- * 接口：GET /api/v1/receiver/support-list
- * 查询参数：type, symbols (可选), preferredProvider (可选)
+ * 测试 support-list 弱时效接口
+ *
+ * 接口：
+ * - GET /api/v1/query/support-list/meta
+ * - GET /api/v1/query/support-list
+ *
+ * 常用参数：
+ * --type STOCK_HK
+ * --symbols 09168.HK,00700.HK
+ * --app-key <appKey> --access-token <accessToken>
  */
 
 function parseDotEnv(filePath) {
@@ -41,14 +52,61 @@ function parseDotEnv(filePath) {
 }
 
 const DOTENV = parseDotEnv(resolve(process.cwd(), ".env"));
+const CLI_ARGS = parseCliArgs(process.argv.slice(2));
 
-const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3001";
-const API_PREFIX = process.env.API_PREFIX || "/api/v1";
-const HTTP_TIMEOUT_MS = Number(process.env.HTTP_TIMEOUT_MS || 15000);
+function findFirstPositionalToken(argv = process.argv.slice(2)) {
+    for (let index = 0; index < argv.length; index += 1) {
+        const token = String(argv[index] || "");
+        if (!token) {
+            continue;
+        }
+        if (!token.startsWith("--")) {
+            return token;
+        }
 
-const TEST_TYPE = process.env.TEST_TYPE || "STOCK_US";
-const TEST_SYMBOLS = process.env.TEST_SYMBOLS || "";
-const TEST_PROVIDER = process.env.TEST_PROVIDER || "infoway";
+        const hasInlineValue = token.includes("=");
+        if (hasInlineValue) {
+            continue;
+        }
+
+        const next = argv[index + 1];
+        if (next && !String(next).startsWith("--")) {
+            index += 1;
+        }
+    }
+    return "";
+}
+
+const BASE_URL = String(
+    CLI_ARGS["base-url"] || process.env.BASE_URL || "http://127.0.0.1:3001",
+).replace(/\/$/, "");
+const API_PREFIX = CLI_ARGS["api-prefix"] || process.env.API_PREFIX || "/api/v1";
+const HTTP_TIMEOUT_MS = Number(
+    CLI_ARGS["timeout-ms"] || process.env.HTTP_TIMEOUT_MS || 15000,
+);
+
+const TEST_TYPE = String(
+    CLI_ARGS.type || process.env.TEST_TYPE || "STOCK_US",
+).trim().toUpperCase();
+const TEST_SYMBOLS = parseSymbols(
+    CLI_ARGS.symbols ||
+        CLI_ARGS.symbol ||
+        process.env.TEST_SYMBOLS ||
+        findFirstPositionalToken(),
+    "",
+);
+const TEST_SINCE = String(
+    CLI_ARGS.since || process.env.TEST_SINCE || "",
+).trim();
+const SAMPLE_LIMIT = Math.max(
+    1,
+    Number(CLI_ARGS["sample-limit"] || process.env.SAMPLE_LIMIT || 5),
+);
+const SKIP_DELTA = parseBoolean(
+    CLI_ARGS["skip-delta"] || process.env.SKIP_DELTA,
+    false,
+);
+const OUT_FILE = CLI_ARGS["out-file"] || process.env.OUT_FILE || "support-list-query-result.json";
 
 function buildUrl(path) {
     return `${BASE_URL}${API_PREFIX}${path}`;
@@ -94,6 +152,14 @@ function isUserExistsResp(resp) {
 }
 
 async function resolveApiKeyPair() {
+    const cliPair = {
+        appKey: CLI_ARGS["app-key"],
+        accessToken: CLI_ARGS["access-token"],
+    };
+    if (cliPair.appKey && cliPair.accessToken) {
+        return { ...cliPair, source: "cli" };
+    }
+
     const envPair = {
         appKey: process.env.APP_KEY || DOTENV.APP_KEY,
         accessToken: process.env.ACCESS_TOKEN || DOTENV.ACCESS_TOKEN,
@@ -155,60 +221,210 @@ async function resolveApiKeyPair() {
     };
 }
 
-async function testSupportList(auth) {
-    const url = new URL(buildUrl("/receiver/support-list"));
+function ensureSuccessResponse(resp, label) {
+    if (!resp.ok) {
+        throw new Error(`${label} 调用失败 (${resp.status}): ${JSON.stringify(resp.data)}`);
+    }
+    if (resp.data?.success !== true || Number(resp.data?.statusCode) !== 200) {
+        throw new Error(`${label} 业务返回异常: ${JSON.stringify(resp.data)}`);
+    }
+}
+
+function ensureString(value, field) {
+    if (typeof value !== "string" || !value.trim()) {
+        throw new Error(`${field} 必须是非空字符串`);
+    }
+}
+
+function ensureArray(value, field) {
+    if (!Array.isArray(value)) {
+        throw new Error(`${field} 必须是数组`);
+    }
+}
+
+function buildSupportListUrl({ since } = {}) {
+    const url = new URL(buildUrl("/query/support-list"));
     url.searchParams.set("type", TEST_TYPE);
-    if (TEST_SYMBOLS) {
-        url.searchParams.set("symbols", TEST_SYMBOLS);
+    if (since) {
+        url.searchParams.set("since", since);
     }
-    if (TEST_PROVIDER) {
-        url.searchParams.set("preferredProvider", TEST_PROVIDER);
+    if (TEST_SYMBOLS.length > 0) {
+        url.searchParams.set("symbols", TEST_SYMBOLS.join(","));
     }
+    return url;
+}
+
+async function testSupportListMeta(authHeaders) {
+    const url = new URL(buildUrl("/query/support-list/meta"));
+    url.searchParams.set("type", TEST_TYPE);
 
     console.log(`[REQ] ${url.toString()}`);
 
     const resp = await requestJson(url.toString(), {
         method: "GET",
-        headers: {
-            "X-App-Key": auth.appKey,
-            "X-Access-Token": auth.accessToken,
-        },
+        headers: authHeaders,
     });
+    ensureSuccessResponse(resp, "query/support-list/meta");
 
-    if (!resp.ok) {
-        throw new Error(
-            `receiver 调用失败 (${resp.status}): ${JSON.stringify(resp.data)}`,
-        );
+    const payload = resp.payload || {};
+    ensureString(payload.type, "meta.type");
+    ensureString(payload.currentVersion, "meta.currentVersion");
+    ensureString(payload.lastUpdated, "meta.lastUpdated");
+
+    const retentionDays = Number(payload.retentionDays);
+    if (!Number.isInteger(retentionDays) || retentionDays <= 0) {
+        throw new Error("meta.retentionDays 必须是正整数");
     }
+
+    return payload;
+}
+
+async function testSupportListFull(authHeaders) {
+    const url = buildSupportListUrl();
+    console.log(`[REQ] ${url.toString()}`);
+
+    const resp = await requestJson(url.toString(), {
+        method: "GET",
+        headers: authHeaders,
+    });
+    ensureSuccessResponse(resp, "query/support-list(full)");
 
     const payload = resp.payload;
-    const dataList = resp.data?.data?.data || resp.data?.data || payload?.data || [];
-
-    // 把完整的原始 JSON 输出以便抓取或重定向验证
-    console.log(JSON.stringify(resp.data, null, 2));
-
-    const fs = require('fs');
-    const path = require('path');
-    const outPath = path.resolve(__dirname, '../../tmp/support-list-raw.json');
-    if (!fs.existsSync(path.dirname(outPath))) {
-        fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    if (payload?.full !== true) {
+        throw new Error(`full 返回形态异常: ${JSON.stringify(payload)}`);
     }
-    fs.writeFileSync(outPath, JSON.stringify(resp.data, null, 2), 'utf8');
+    ensureString(payload.version, "full.version");
+    ensureArray(payload.items, "full.items");
 
-    console.log("\n[PASS] get-support-list API");
-    console.log("响应项个数:", dataList.length || 0);
-    console.log(`完整原始 JSON 已保存到文件: ${outPath}`);
+    return payload;
+}
 
-    return dataList;
+async function testSupportListDelta(authHeaders, since) {
+    const url = buildSupportListUrl({ since });
+    console.log(`[REQ] ${url.toString()}`);
+
+    const resp = await requestJson(url.toString(), {
+        method: "GET",
+        headers: authHeaders,
+    });
+    ensureSuccessResponse(resp, "query/support-list(delta)");
+
+    const payload = resp.payload;
+    if (payload?.full !== false) {
+        throw new Error(`delta 返回形态异常: ${JSON.stringify(payload)}`);
+    }
+    ensureString(payload.from, "delta.from");
+    ensureString(payload.to, "delta.to");
+    ensureArray(payload.added, "delta.added");
+    ensureArray(payload.updated, "delta.updated");
+    ensureArray(payload.removed, "delta.removed");
+
+    return payload;
+}
+
+function buildAuthHeaders(auth) {
+    const bearer = String(
+        CLI_ARGS.bearer || process.env.BEARER || DOTENV.BEARER || "",
+    ).trim();
+    if (bearer) {
+        return {
+            Authorization: `Bearer ${bearer}`,
+        };
+    }
+
+    return {
+        "X-App-Key": auth.appKey,
+        "X-Access-Token": auth.accessToken,
+    };
+}
+
+function printSummary(meta, full, delta) {
+    const summary = {
+        type: TEST_TYPE,
+        symbols: TEST_SYMBOLS,
+        meta: {
+            currentVersion: meta.currentVersion,
+            lastUpdated: meta.lastUpdated,
+            retentionDays: meta.retentionDays,
+        },
+        full: {
+            version: full.version,
+            itemsCount: full.items.length,
+            sample: full.items.slice(0, SAMPLE_LIMIT),
+        },
+    };
+
+    if (delta) {
+        summary.delta = {
+            from: delta.from,
+            to: delta.to,
+            addedCount: delta.added.length,
+            updatedCount: delta.updated.length,
+            removedCount: delta.removed.length,
+            sampleAdded: delta.added.slice(0, SAMPLE_LIMIT),
+            sampleUpdated: delta.updated.slice(0, SAMPLE_LIMIT),
+            sampleRemoved: delta.removed.slice(0, SAMPLE_LIMIT),
+        };
+    }
+
+    console.log(JSON.stringify(summary, null, 2));
+}
+
+function persistResult(data) {
+    const outPath = resolve(__dirname, `../../tmp/${OUT_FILE}`);
+    if (!existsSync(dirname(outPath))) {
+        mkdirSync(dirname(outPath), { recursive: true });
+    }
+    writeFileSync(outPath, JSON.stringify(data, null, 2), "utf8");
+    return outPath;
+}
+
+async function testSupportList(auth) {
+    const authHeaders = buildAuthHeaders(auth);
+    const meta = await testSupportListMeta(authHeaders);
+    const full = await testSupportListFull(authHeaders);
+
+    let delta = null;
+    if (!SKIP_DELTA) {
+        const since = TEST_SINCE || full.version;
+        delta = await testSupportListDelta(authHeaders, since);
+    }
+
+    const outData = {
+        config: {
+            baseUrl: BASE_URL,
+            apiPrefix: API_PREFIX,
+            type: TEST_TYPE,
+            symbols: TEST_SYMBOLS,
+            since: TEST_SINCE,
+            skipDelta: SKIP_DELTA,
+            sampleLimit: SAMPLE_LIMIT,
+            authSource: auth.source,
+        },
+        data: {
+            meta,
+            full,
+            delta,
+        },
+    };
+
+    const outPath = persistResult(outData);
+    printSummary(meta, full, delta);
+
+    console.log("\n[PASS] query/support-list.* API");
+    console.log(`完整结果已保存到文件: ${outPath}`);
 }
 
 async function main() {
     const auth = await resolveApiKeyPair();
     console.log("[config]", {
         baseUrl: BASE_URL,
+        apiPrefix: API_PREFIX,
         type: TEST_TYPE,
         symbols: TEST_SYMBOLS,
-        provider: TEST_PROVIDER,
+        since: TEST_SINCE,
+        skipDelta: SKIP_DELTA,
+        sampleLimit: SAMPLE_LIMIT,
         authSource: auth.source,
     });
 

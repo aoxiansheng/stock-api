@@ -659,7 +659,11 @@ export class StreamCacheStandardizedService
       const compressedData = this.compressData(
         Array.isArray(value) ? value : [value],
       );
-      const dataSize = JSON.stringify(compressedData).length;
+      const dataToStore = await this.prepareStreamDataForStorage(
+        key,
+        compressedData,
+      );
+      const dataSize = JSON.stringify(dataToStore).length;
 
       // TTL处理
       const ttl = options?.ttl || this.streamConfig.warmCacheTTL;
@@ -670,21 +674,25 @@ export class StreamCacheStandardizedService
         priority === "hot" ||
         (priority === "auto" &&
           dataSize < 10000 &&
-          compressedData.length < 100);
+          dataToStore.length < 100);
 
       if (shouldUseHotCache) {
-        this.setToHotCache(key, compressedData);
+        this.setToHotCache(key, dataToStore);
       }
 
       // 总是同时存储到 Warm Cache 作为备份
-      await this.setToWarmCache(key, compressedData);
+      await this.setToWarmCache(key, dataToStore);
 
       if (this.shouldLogIntradayDiagnosticForKey(key)) {
         this.logger.debug("分时诊断: StreamCache 写入完成", {
           key,
-          pointsCount: compressedData.length,
+          pointsCount: dataToStore.length,
           shouldUseHotCache,
           ttl,
+          firstPoint: this.buildIntradayDiagnosticPointPreview(dataToStore[0]),
+          lastPoint: this.buildIntradayDiagnosticPointPreview(
+            dataToStore[dataToStore.length - 1],
+          ),
         });
       }
 
@@ -2535,6 +2543,90 @@ export class StreamCacheStandardizedService
 
   private shouldLogIntradayDiagnosticForKey(key: string): boolean {
     return key.startsWith("quote:") && shouldLog(StreamCacheStandardizedService.name, "debug");
+  }
+
+  private shouldMergeQuoteSeries(key: string): boolean {
+    return key.startsWith("quote:");
+  }
+
+  private async prepareStreamDataForStorage(
+    key: string,
+    incomingData: StreamDataPoint[],
+  ): Promise<StreamDataPoint[]> {
+    if (!this.shouldMergeQuoteSeries(key) || incomingData.length === 0) {
+      return incomingData;
+    }
+
+    const existingData =
+      this.getFromHotCache(key) ?? (await this.getFromWarmCache(key)) ?? [];
+    if (existingData.length === 0) {
+      return this.pruneQuoteSeriesByRetentionWindow(incomingData);
+    }
+
+    return this.mergeQuoteSeries(existingData, incomingData);
+  }
+
+  private mergeQuoteSeries(
+    existingData: StreamDataPoint[],
+    incomingData: StreamDataPoint[],
+  ): StreamDataPoint[] {
+    const withOrder = [...existingData, ...incomingData]
+      .filter(
+        (point): point is StreamDataPoint =>
+          !!point &&
+          typeof point === "object" &&
+          Number.isFinite(point.t) &&
+          point.t > 0,
+      )
+      .map((point, index) => ({ point, index }))
+      .sort((left, right) => {
+        if (left.point.t !== right.point.t) {
+          return left.point.t - right.point.t;
+        }
+        return left.index - right.index;
+      });
+
+    const deduped: StreamDataPoint[] = [];
+    const seen = new Set<string>();
+
+    for (const { point } of withOrder) {
+      const dedupeKey = [
+        point.s || "",
+        point.t,
+        point.p,
+        point.v,
+        point.c ?? "",
+        point.cp ?? "",
+      ].join("|");
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+      seen.add(dedupeKey);
+      deduped.push(point);
+    }
+
+    return this.pruneQuoteSeriesByRetentionWindow(deduped);
+  }
+
+  private pruneQuoteSeriesByRetentionWindow(
+    points: StreamDataPoint[],
+  ): StreamDataPoint[] {
+    if (points.length === 0) {
+      return points;
+    }
+
+    const latestTimestamp = points[points.length - 1]?.t;
+    if (!Number.isFinite(latestTimestamp) || latestTimestamp <= 0) {
+      return points;
+    }
+
+    const retentionWindowMs = Math.max(
+      this.streamConfig.warmCacheTTL * 1000,
+      this.streamConfig.hotCacheTTL,
+    );
+    const lowerBound = latestTimestamp - retentionWindowMs;
+
+    return points.filter((point) => point.t >= lowerBound);
   }
 
   private buildIntradayDiagnosticPointPreview(

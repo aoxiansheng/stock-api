@@ -111,6 +111,8 @@ export class ChartIntradayReadService {
   private static readonly DEFAULT_POINT_LIMIT = 30000;
   private static readonly DEFAULT_DELTA_LIMIT = 2000;
   private static readonly MAX_HISTORY_KLINE_NUM = 500;
+  private static readonly SNAPSHOT_HISTORY_MAX_ATTEMPTS = 2;
+  private static readonly SNAPSHOT_HISTORY_RETRY_DELAY_MS = 1000;
   private static readonly SUPPORTED_MARKET_SET = new Set(SUPPORTED_MARKETS);
 
   constructor(
@@ -394,18 +396,12 @@ export class ChartIntradayReadService {
         });
       }
 
-      const fetchResult = await this.dataFetcherService.fetchRawData({
-        provider: resolved.provider,
-        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
-        symbols: [transformedSymbol],
+      const fetchResult = await this.fetchHistoryBaselineWithRetry({
+        resolved,
+        transformedSymbol,
+        historyKlineNum,
+        historyEndTimestamp,
         requestId,
-        apiType: "rest",
-        options: {
-          preferredProvider: resolved.provider,
-          market: resolved.market,
-          klineNum: historyKlineNum,
-          timestamp: historyEndTimestamp,
-        },
       });
 
       const rows = this.flattenHistoryRows(this.extractRows(fetchResult?.data));
@@ -460,6 +456,125 @@ export class ChartIntradayReadService {
         },
       });
     }
+  }
+
+  private async fetchHistoryBaselineWithRetry(params: {
+    resolved: ResolvedIntradayContext;
+    transformedSymbol: string;
+    historyKlineNum: number;
+    historyEndTimestamp: number;
+    requestId: string;
+  }): Promise<any> {
+    const {
+      resolved,
+      transformedSymbol,
+      historyKlineNum,
+      historyEndTimestamp,
+      requestId,
+    } = params;
+
+    for (
+      let attempt = 1;
+      attempt <= ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        return await this.dataFetcherService.fetchRawData({
+          provider: resolved.provider,
+          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          symbols: [transformedSymbol],
+          requestId,
+          apiType: "rest",
+          options: {
+            preferredProvider: resolved.provider,
+            market: resolved.market,
+            klineNum: historyKlineNum,
+            timestamp: historyEndTimestamp,
+          },
+        });
+      } catch (error) {
+        const classifiedError =
+          this.classifySnapshotHistoryFetchError(error);
+        if (
+          !this.shouldRetrySnapshotHistoryFetch(classifiedError, attempt)
+        ) {
+          throw error;
+        }
+
+        this.logger.warn("分时诊断: snapshot 历史基线拉取失败，准备重试", {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          tradingDay: resolved.tradingDay,
+          provider: resolved.provider,
+          requestId,
+          attempt,
+          maxAttempts: ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS,
+          nextDelayMs:
+            ChartIntradayReadService.SNAPSHOT_HISTORY_RETRY_DELAY_MS,
+          errorCode: classifiedError.errorCode,
+          statusCode: classifiedError.getStatus(),
+          retryable: classifiedError.retryable,
+          message: classifiedError.message,
+        });
+
+        await this.sleep(
+          ChartIntradayReadService.SNAPSHOT_HISTORY_RETRY_DELAY_MS,
+        );
+      }
+    }
+
+    throw this.createBusinessException({
+      errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      operation: "snapshot_history_fetch",
+      message: "PROVIDER_UNAVAILABLE: 历史基线获取失败",
+      statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+      context: {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        provider: resolved.provider,
+      },
+    });
+  }
+
+  private classifySnapshotHistoryFetchError(
+    error: unknown,
+  ): BusinessException {
+    if (error instanceof BusinessException) {
+      return error;
+    }
+
+    return UniversalExceptionFactory.createFromError(
+      error,
+      "snapshot_history_fetch",
+      ComponentIdentifier.DATA_FETCHER,
+    );
+  }
+
+  private shouldRetrySnapshotHistoryFetch(
+    error: BusinessException,
+    attempt: number,
+  ): boolean {
+    if (
+      attempt >= ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS
+    ) {
+      return false;
+    }
+
+    return (
+      error.retryable &&
+      ![
+        BusinessErrorCode.DATA_VALIDATION_FAILED,
+        BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+        BusinessErrorCode.INVALID_OPERATION,
+        BusinessErrorCode.OPERATION_NOT_ALLOWED,
+        BusinessErrorCode.CONFIGURATION_ERROR,
+        BusinessErrorCode.ENVIRONMENT_ERROR,
+      ].includes(error.errorCode as BusinessErrorCode)
+    );
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async fetchRealtimePoints(

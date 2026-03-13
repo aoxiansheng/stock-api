@@ -1,6 +1,10 @@
 import { ChartIntradayCursorService } from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
 import { ChartIntradayReadService } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
-import { BusinessException } from "@common/core/exceptions";
+import {
+  BusinessException,
+  BusinessErrorCode,
+  ComponentIdentifier,
+} from "@common/core/exceptions";
 import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 import { createHmac } from "crypto";
 
@@ -159,6 +163,16 @@ describe("ChartIntradayReadService", () => {
       streamDataFetcherService,
       streamCache,
     };
+  }
+
+  function createRetryableHistoryFetchError(message = "timeout of 10000ms exceeded") {
+    return new BusinessException({
+      message,
+      errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+      operation: "fetchRawData",
+      component: ComponentIdentifier.DATA_FETCHER,
+      retryable: true,
+    });
   }
 
   beforeEach(() => {
@@ -367,6 +381,66 @@ describe("ChartIntradayReadService", () => {
             (error as { status?: number }).status;
       expect(status).toBe(503);
     }
+  });
+
+  it("snapshot: 历史基线遇到可重试错误时应重试一次后成功", async () => {
+    const { service, dataFetcherService, streamCache } = createService();
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData
+      .mockRejectedValueOnce(createRetryableHistoryFetchError())
+      .mockResolvedValueOnce({
+        data: [
+          {
+            symbol: "AAPL.US",
+            timestamp: "2026-01-15T15:00:00.000Z",
+            lastPrice: "100.20",
+            volume: "200",
+          },
+        ],
+        metadata: {
+          provider: "infoway",
+          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          processingTimeMs: 5,
+          symbolsProcessed: 1,
+        },
+      });
+
+    const result = await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      tradingDay: "20260115",
+      pointLimit: 300,
+    });
+
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(2);
+    expect(result.metadata.historyPoints).toBe(1);
+    expect(result.line.points).toHaveLength(1);
+  });
+
+  it("snapshot: 历史基线重试后仍失败时应直接返回失败", async () => {
+    const { service, dataFetcherService, streamCache } = createService();
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData.mockRejectedValue(
+      createRetryableHistoryFetchError(),
+    );
+
+    await expect(
+      service.getSnapshot({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        tradingDay: "20260115",
+        pointLimit: 300,
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: BusinessException.name,
+        errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+        retryable: true,
+      }),
+    );
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(2);
   });
 
   it("snapshot: 显式 market 与 symbol 可推断市场不一致时返回 400", async () => {
