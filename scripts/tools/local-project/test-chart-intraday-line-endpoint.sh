@@ -11,7 +11,7 @@ set -euo pipefail
 #
 # 可选参数：
 # MARKET=US TRADING_DAY=20260308 POINT_LIMIT=30000 DELTA_LIMIT=2000 NEGATIVE_TESTS=1
-# MIN_DELTA_UPDATES=10 MAX_DELTA_ATTEMPTS=30 DELTA_POLL_INTERVAL_SECONDS=1
+# MIN_DELTA_UPDATES=50 DELTA_POLL_ATTEMPTS=50 DELTA_POLL_INTERVAL_SECONDS=1
 # SNAPSHOT_PREWARM_ATTEMPTS=8 SNAPSHOT_PREWARM_INTERVAL_SECONDS=1
 # AUTO_START_WS_FEED=1 REQUIRE_REALTIME_PREWARM=1
 
@@ -27,8 +27,9 @@ POINT_LIMIT="${POINT_LIMIT:-30000}"
 DELTA_LIMIT="${DELTA_LIMIT:-2000}"
 NEGATIVE_TESTS="${NEGATIVE_TESTS:-1}"
 STRICT_MISMATCH_PROVIDER="${STRICT_MISMATCH_PROVIDER:-longport}"
-MIN_DELTA_UPDATES="${MIN_DELTA_UPDATES:-10}"
-MAX_DELTA_ATTEMPTS="${MAX_DELTA_ATTEMPTS:-30}"
+MIN_DELTA_UPDATES="${MIN_DELTA_UPDATES:-50}"
+MAX_DELTA_ATTEMPTS="${MAX_DELTA_ATTEMPTS:-50}"
+DELTA_POLL_ATTEMPTS="${DELTA_POLL_ATTEMPTS:-${MAX_DELTA_ATTEMPTS}}"
 DELTA_POLL_INTERVAL_SECONDS="${DELTA_POLL_INTERVAL_SECONDS:-1}"
 SNAPSHOT_PREWARM_ATTEMPTS="${SNAPSHOT_PREWARM_ATTEMPTS:-8}"
 SNAPSHOT_PREWARM_INTERVAL_SECONDS="${SNAPSHOT_PREWARM_INTERVAL_SECONDS:-1}"
@@ -70,6 +71,41 @@ trap cleanup EXIT
 section() {
   echo
   echo "== $1 =="
+}
+
+print_snapshot_price_trace() {
+  local label="$1"
+  local file="$2"
+  local tail_count="${3:-10}"
+
+  jq -r \
+    --arg label "${label}" \
+    --argjson tailCount "${tail_count}" \
+    '
+    (.data.line.points // []) as $points
+    | ($points | length) as $total
+    | ($points | if $total > $tailCount then .[-$tailCount:] else . end) as $display
+    | "\($label)_points=\($total)",
+      "\($label)_recent_prices=[" + ($display | map((.price // null) | tostring) | join(", ")) + "]",
+      "\($label)_last_price=" + (if $total > 0 then (($points[-1].price // null) | tostring) else "null" end),
+      "\($label)_last_timestamp=" + (if $total > 0 then ($points[-1].timestamp // "") else "" end)
+    ' "${file}" 2>/dev/null || true
+}
+
+print_delta_price_trace() {
+  local label="$1"
+  local file="$2"
+
+  jq -r \
+    --arg label "${label}" \
+    '
+    (.data.delta.points // []) as $points
+    | ($points | length) as $total
+    | "\($label)_points=\($total)",
+      "\($label)_prices=[" + ($points | map((.price // null) | tostring) | join(", ")) + "]",
+      "\($label)_last_price=" + (if $total > 0 then (($points[-1].price // null) | tostring) else "null" end),
+      "\($label)_last_timestamp=" + (if $total > 0 then ($points[-1].timestamp // "") else "" end)
+    ' "${file}" 2>/dev/null || true
 }
 
 if ! command -v curl >/dev/null 2>&1; then
@@ -223,6 +259,7 @@ while true; do
   SNAPSHOT_REALTIME_MERGED_POINTS="$(
     jq -r '.data.metadata.realtimeMergedPoints // 0' "${SNAPSHOT_FILE}" 2>/dev/null || echo "0"
   )"
+  print_snapshot_price_trace "snapshot_attempt_${SNAPSHOT_ATTEMPT}" "${SNAPSHOT_FILE}"
 
   if [[ "${MIN_DELTA_UPDATES}" -le 0 ]]; then
     break
@@ -275,6 +312,7 @@ jq '{
   realtimeMergedPoints: (.data.metadata.realtimeMergedPoints // 0),
   snapshotBaseGranularity: .data.capability.snapshotBaseGranularity,
   lastPointTimestamp: .data.sync.lastPointTimestamp,
+  lastPrice: (.data.line.points[-1].price // null),
   hasCursor: ((.data.sync.cursor // "") | length > 0)
 }' "${SNAPSHOT_FILE}" || true
 
@@ -339,13 +377,15 @@ jq '{
   pointsCount: ((.data.delta.points // []) | length),
   hasMore: .data.delta.hasMore,
   hasNextCursor: ((.data.delta.nextCursor // "") | length > 0),
-  lastPointTimestamp: .data.delta.lastPointTimestamp
+  lastPointTimestamp: .data.delta.lastPointTimestamp,
+  lastPrice: (.data.delta.points[-1].price // null)
 }' "${DELTA_FILE}" || true
+print_delta_price_trace "delta_initial" "${DELTA_FILE}"
 
-if [[ "${MIN_DELTA_UPDATES}" -gt 0 ]]; then
-  section "delta 连续拉取（至少 ${MIN_DELTA_UPDATES} 条更新）"
+if [[ "${DELTA_POLL_ATTEMPTS}" -gt 0 ]]; then
+  section "delta 连续拉取（固定 ${DELTA_POLL_ATTEMPTS} 次，每 ${DELTA_POLL_INTERVAL_SECONDS}s 一次）"
   DELTA_ATTEMPT=1
-  while [[ "${TOTAL_DELTA_POINTS}" -lt "${MIN_DELTA_UPDATES}" && "${DELTA_ATTEMPT}" -lt "${MAX_DELTA_ATTEMPTS}" ]]; do
+  while [[ "${DELTA_ATTEMPT}" -le "${DELTA_POLL_ATTEMPTS}" ]]; do
     sleep "${DELTA_POLL_INTERVAL_SECONDS}"
 
     LOOP_DELTA_PAYLOAD="$(
@@ -397,14 +437,15 @@ if [[ "${MIN_DELTA_UPDATES}" -gt 0 ]]; then
 
     TOTAL_DELTA_POINTS=$((TOTAL_DELTA_POINTS + LOOP_POINTS_COUNT))
     echo "delta_attempt=${DELTA_ATTEMPT} new_points=${LOOP_POINTS_COUNT} total_points=${TOTAL_DELTA_POINTS}"
+    print_delta_price_trace "delta_attempt_${DELTA_ATTEMPT}" "${DELTA_LOOP_FILE}"
 
     DELTA_ATTEMPT=$((DELTA_ATTEMPT + 1))
   done
+fi
 
-  if [[ "${TOTAL_DELTA_POINTS}" -lt "${MIN_DELTA_UPDATES}" ]]; then
-    jq '.' "${DELTA_LOOP_FILE}" || cat "${DELTA_LOOP_FILE}" || true
-    fail "delta 更新数量不足，要求至少 ${MIN_DELTA_UPDATES} 条，实际 ${TOTAL_DELTA_POINTS} 条（最大轮询 ${MAX_DELTA_ATTEMPTS} 次）"
-  fi
+if [[ "${MIN_DELTA_UPDATES}" -gt 0 && "${TOTAL_DELTA_POINTS}" -lt "${MIN_DELTA_UPDATES}" ]]; then
+  jq '.' "${DELTA_LOOP_FILE}" || cat "${DELTA_LOOP_FILE}" || true
+  fail "delta 更新数量不足，要求至少 ${MIN_DELTA_UPDATES} 条，实际 ${TOTAL_DELTA_POINTS} 条（固定轮询 ${DELTA_POLL_ATTEMPTS} 次）"
 fi
 
 DELTA_POINTS_COUNT="${TOTAL_DELTA_POINTS}"
@@ -557,7 +598,7 @@ echo "snapshot_points=${SNAPSHOT_POINTS_COUNT}"
 echo "snapshot_realtime_merged_points=${SNAPSHOT_REALTIME_MERGED_POINTS}"
 echo "delta_points=${DELTA_POINTS_COUNT}"
 echo "min_delta_updates=${MIN_DELTA_UPDATES}"
-echo "max_delta_attempts=${MAX_DELTA_ATTEMPTS}"
+echo "delta_poll_attempts=${DELTA_POLL_ATTEMPTS}"
 echo "delta_poll_interval_seconds=${DELTA_POLL_INTERVAL_SECONDS}"
 echo "snapshot_prewarm_attempts=${SNAPSHOT_PREWARM_ATTEMPTS}"
 echo "snapshot_prewarm_interval_seconds=${SNAPSHOT_PREWARM_INTERVAL_SECONDS}"
