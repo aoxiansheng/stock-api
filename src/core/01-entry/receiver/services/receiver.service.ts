@@ -44,6 +44,7 @@ import { StorageService } from "../../../04-storage/storage/services/storage.ser
 import { MarketInferenceService } from '@common/modules/market-inference/services/market-inference.service';
 import {
   CAPABILITY_NAMES,
+  GET_CRYPTO_HISTORY_SINGLE_SYMBOL_ERROR,
   GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR,
 } from "@providersv2/providers/constants/capability-names.constants";
 
@@ -718,9 +719,11 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       (timestampRaw !== undefined && timestampRaw !== null);
     if (
       hasHistoryOptions &&
-      request.receiverType !== CAPABILITY_NAMES.GET_STOCK_HISTORY
+      !this.isHistoryReceiverType(request.receiverType)
     ) {
-      errors.push("klineNum/timestamp 仅允许在 get-stock-history 请求中使用");
+      errors.push(
+        "klineNum/timestamp 仅允许在 get-stock-history/get-crypto-history 请求中使用",
+      );
     }
 
     if (request.receiverType === CAPABILITY_NAMES.GET_TRADING_DAYS) {
@@ -736,14 +739,18 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (
-      request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY &&
+      this.isHistoryReceiverType(request.receiverType) &&
       request.symbols.length !== 1
     ) {
-      errors.push(GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR);
+      errors.push(
+        request.receiverType === CAPABILITY_NAMES.GET_CRYPTO_HISTORY
+          ? GET_CRYPTO_HISTORY_SINGLE_SYMBOL_ERROR
+          : GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR,
+      );
     }
 
     if (
-      request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY &&
+      this.isHistoryReceiverType(request.receiverType) &&
       timestampRaw !== undefined &&
       timestampRaw !== null &&
       typeof timestampRaw === "number"
@@ -1049,7 +1056,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       if (request.receiverType === CAPABILITY_NAMES.GET_STOCK_QUOTE) {
         processedData = this.normalizeStockQuoteResponse(processedData);
       }
-      if (request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+      if (this.isHistoryReceiverType(request.receiverType)) {
         processedData = this.normalizeStockHistoryResponse(processedData);
       }
       const transformedSample = Array.isArray(processedData)
@@ -1232,7 +1239,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       return options;
     }
 
-    if (receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+    if (this.isHistoryReceiverType(receiverType)) {
       return options;
     }
 
@@ -1260,7 +1267,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    if (request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+    if (this.isHistoryReceiverType(request.receiverType)) {
       if (typeof options.klineNum === "number") {
         cacheKeyParams.klineNum = options.klineNum;
       }
@@ -1317,7 +1324,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (Array.isArray(payload)) {
-      if (receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY) {
+      if (this.isHistoryReceiverType(receiverType)) {
         return payload.length > 0 ? 1 : 0;
       }
       return Math.min(payload.length, totalRequested);
@@ -1583,7 +1590,7 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     const hasMixedMarkets = marketContext.markets.length > 1;
     const isWeakHintCapability =
       request.receiverType === CAPABILITY_NAMES.GET_STOCK_QUOTE ||
-      request.receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY;
+      this.isHistoryReceiverType(request.receiverType);
 
     if (isWeakHintCapability && inputMarket && hasMixedMarkets) {
       return {
@@ -1599,6 +1606,13 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
       resolvedMarketType: marketContext.marketType,
       marketResolutionStrategy: "symbol_inferred_market_type",
     };
+  }
+
+  private isHistoryReceiverType(receiverType: string): boolean {
+    return (
+      receiverType === CAPABILITY_NAMES.GET_STOCK_HISTORY ||
+      receiverType === CAPABILITY_NAMES.GET_CRYPTO_HISTORY
+    );
   }
 
   /**

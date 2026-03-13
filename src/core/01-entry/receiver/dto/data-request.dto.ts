@@ -132,7 +132,7 @@ export class RequestOptionsDto extends BaseRequestOptionsDto {
   market?: string;
 
   @ApiPropertyOptional({
-    description: "分时回填根数（仅 get-stock-history 使用）",
+    description: "分时回填根数（仅 get-stock-history/get-crypto-history 使用）",
     example: 240,
     minimum: 1,
     maximum: 500,
@@ -145,7 +145,7 @@ export class RequestOptionsDto extends BaseRequestOptionsDto {
 
   @ApiPropertyOptional({
     description:
-      "分时回填截止时间戳（仅 get-stock-history 使用，仅支持 10 位秒或 13 位毫秒）",
+      "分时回填截止时间戳（仅 get-stock-history/get-crypto-history 使用，仅支持 10 位秒或 13 位毫秒）",
     example: 1758553860,
   })
   @IsOptional()

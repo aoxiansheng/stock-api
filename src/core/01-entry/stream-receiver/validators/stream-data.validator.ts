@@ -220,9 +220,6 @@ export class StreamDataValidator {
     if (sanitized.endsWith('.CRYPTO')) {
       return 'CRYPTO';
     }
-    if (/^[A-Z0-9]{6,20}$/.test(sanitized) && /(USDT|USDC|BUSD|FDUSD|BTC|ETH)$/.test(sanitized)) {
-      return 'CRYPTO';
-    }
 
     return null;
   }

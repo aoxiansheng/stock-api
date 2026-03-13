@@ -11,10 +11,12 @@ import { getStockHistory } from "./capabilities/get-stock-history";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
 import { getCryptoQuote } from "./capabilities/get-crypto-quote";
 import { getCryptoBasicInfo } from "./capabilities/get-crypto-basic-info";
+import { getCryptoHistory } from "./capabilities/get-crypto-history";
 import { getMarketStatus } from "./capabilities/get-market-status";
 import { getTradingDays } from "./capabilities/get-trading-days";
 import { getSupportList } from "./capabilities/get-support-list";
 import { streamStockQuote } from "./capabilities/stream-stock-quote";
+import { streamCryptoQuote } from "./capabilities/stream-crypto-quote";
 import { InfowayContextService } from "./services/infoway-context.service";
 import { InfowayStreamContextService } from "./services/infoway-stream-context.service";
 
@@ -30,10 +32,12 @@ export class InfowayProvider implements IDataProvider {
     getStockBasicInfo,
     getCryptoQuote,
     getCryptoBasicInfo,
+    getCryptoHistory,
     getMarketStatus,
     getTradingDays,
     getSupportList,
     streamStockQuote,
+    streamCryptoQuote,
   ];
 
   constructor(

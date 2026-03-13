@@ -9,6 +9,7 @@ export const CAPABILITY_NAMES = {
   GET_STOCK_QUOTE: API_OPERATIONS.STOCK_DATA.GET_QUOTE,
   GET_STOCK_BASIC_INFO: "get-stock-basic-info",
   STREAM_STOCK_QUOTE: API_OPERATIONS.STOCK_DATA.STREAM_QUOTE,
+  STREAM_CRYPTO_QUOTE: "stream-crypto-quote",
 
   // 指数相关能力
   GET_INDEX_QUOTE: "get-index-quote",
@@ -22,6 +23,7 @@ export const CAPABILITY_NAMES = {
   // 加密资产
   GET_CRYPTO_QUOTE: "get-crypto-quote",
   GET_CRYPTO_BASIC_INFO: "get-crypto-basic-info",
+  GET_CRYPTO_HISTORY: "get-crypto-history",
 
   // 资源类
   GET_STOCK_LOGO: "get-stock-logo",
@@ -38,6 +40,9 @@ export const CAPABILITY_NAMES = {
 
 export const GET_STOCK_HISTORY_SINGLE_SYMBOL_ERROR =
   "get-stock-history 仅支持单标的请求：symbols 必须且只能包含 1 个标的";
+
+export const GET_CRYPTO_HISTORY_SINGLE_SYMBOL_ERROR =
+  "get-crypto-history 仅支持单标的请求：symbols 必须且只能包含 1 个标的";
 
 // 能力名称类型
 export type CapabilityName =

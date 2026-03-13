@@ -18,6 +18,7 @@ export type ReceiverType =
   | "get-support-list"
   | "get-global-state"
   | "get-crypto-quote"
+  | "get-crypto-history"
   | "get-crypto-basic-info"
   | "get-stock-logo"
   | "get-crypto-logo"
@@ -43,6 +44,7 @@ const TRANS_RULE_TYPE_BY_CAPABILITY = {
   [CAPABILITY_NAMES.GET_TRADING_DAYS]: "trading_days_fields",
   [CAPABILITY_NAMES.GET_SUPPORT_LIST]: "basic_info_fields",
   [CAPABILITY_NAMES.GET_CRYPTO_QUOTE]: "quote_fields",
+  [CAPABILITY_NAMES.GET_CRYPTO_HISTORY]: "candle_fields",
   [CAPABILITY_NAMES.GET_CRYPTO_BASIC_INFO]: "basic_info_fields",
   // 合理默认：无明确规则时使用报价字段
   [CAPABILITY_NAMES.GET_STOCK_REALTIME]: "quote_fields",
@@ -64,6 +66,7 @@ export const FIELD_MAPPING_CONFIG = {
     [CAPABILITY_NAMES.GET_SUPPORT_LIST]: StorageClassification.STOCK_BASIC_INFO,
     [CAPABILITY_NAMES.GET_GLOBAL_STATE]: StorageClassification.GLOBAL_STATE,
     [CAPABILITY_NAMES.GET_CRYPTO_QUOTE]: StorageClassification.CRYPTO_QUOTE,
+    [CAPABILITY_NAMES.GET_CRYPTO_HISTORY]: StorageClassification.CRYPTO_QUOTE,
     [CAPABILITY_NAMES.GET_CRYPTO_BASIC_INFO]: StorageClassification.CRYPTO_BASIC_INFO,
     [CAPABILITY_NAMES.GET_STOCK_LOGO]: StorageClassification.STOCK_LOGO,
     [CAPABILITY_NAMES.GET_CRYPTO_LOGO]: StorageClassification.CRYPTO_LOGO,

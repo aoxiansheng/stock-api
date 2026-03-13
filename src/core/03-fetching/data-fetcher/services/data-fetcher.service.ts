@@ -576,7 +576,8 @@ export class DataFetcherService implements IDataFetcher {
     const capabilityKey = String(capability || "").trim().toLowerCase();
     if (
       providerKey === "infoway" &&
-      capabilityKey === CAPABILITY_NAMES.GET_STOCK_HISTORY.toLowerCase()
+      (capabilityKey === CAPABILITY_NAMES.GET_STOCK_HISTORY.toLowerCase() ||
+        capabilityKey === CAPABILITY_NAMES.GET_CRYPTO_HISTORY.toLowerCase())
     ) {
       return "single_symbol_only";
     }

@@ -715,7 +715,14 @@ export class StreamDataFetcherService
         this.connectionPoolManager.canCreateConnection(poolKey, clientIP);
 
         // 初始化底层SDK连接
-        if (typeof ctxService.initializeWebSocket === 'function') {
+        const shouldDelayInitialization =
+          typeof ctxService.shouldDelayInitialization === "function" &&
+          ctxService.shouldDelayInitialization() === true;
+
+        if (
+          !shouldDelayInitialization &&
+          typeof ctxService.initializeWebSocket === "function"
+        ) {
           await ctxService.initializeWebSocket();
         }
 

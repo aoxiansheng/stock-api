@@ -23,6 +23,7 @@ import {
   inferSingleInfowayMarketFromSymbols,
   normalizeAndValidateInfowaySymbols,
   normalizeInfowayMarketCode,
+  toInfowayCryptoUpstreamSymbols,
 } from "../utils/infoway-symbols.util";
 import {
   normalizeInfowaySupportListSymbols,
@@ -60,6 +61,13 @@ interface InfowayHistoryParams {
   symbols: string[];
   market?: string;
   klineType?: number | string;
+  klineNum?: number | string;
+  timestamp?: number;
+}
+
+interface InfowayCryptoHistoryParams {
+  symbols: string[];
+  market?: string;
   klineNum?: number | string;
   timestamp?: number;
 }
@@ -212,13 +220,14 @@ export class InfowayContextService {
       allowEmpty: true,
       maxCount: INFOWAY_SYMBOL_LIMIT.REST,
     });
+    const upstreamSymbols = toInfowayCryptoUpstreamSymbols(normalizedSymbols);
 
-    if (normalizedSymbols.length === 0) {
+    if (upstreamSymbols.length === 0) {
       return [];
     }
 
     const quoteBatches = this.buildQuoteSymbolBatches(
-      normalizedSymbols,
+      upstreamSymbols,
       CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
     );
     const tradeItems: InfowayTradeItem[] = [];
@@ -233,13 +242,48 @@ export class InfowayContextService {
     }
 
     this.logger.debug("Infoway REST 加密货币报价获取成功", {
-      requested: normalizedSymbols.length,
+      requested: upstreamSymbols.length,
       received: tradeItems.length,
       endpoint: CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
       batchCount: quoteBatches.length,
     });
 
     return tradeItems;
+  }
+
+  async getCryptoHistory(params: InfowayCryptoHistoryParams): Promise<any[]> {
+    await this.ensureConfigured();
+
+    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(
+      params.symbols || [],
+      {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.HISTORY_SINGLE,
+      },
+    );
+    const upstreamSymbols = toInfowayCryptoUpstreamSymbols(normalizedSymbols);
+    if (upstreamSymbols.length === 0) {
+      return [];
+    }
+
+    const effectiveKlineNum = this.resolveHistoryKlineNum(params.klineNum);
+    const historyTimestamp = this.resolveHistoryTimestamp(params.timestamp);
+    const quoteItems = await this.fetchCryptoQuoteByUpstreamSymbols(upstreamSymbols);
+    const historyData = this.buildCryptoHistoryFromTrades(
+      quoteItems,
+      historyTimestamp,
+      effectiveKlineNum,
+    );
+
+    this.logger.debug("Infoway REST 加密货币历史获取成功(基于trade聚合)", {
+      requested: upstreamSymbols.length,
+      receivedEntries: historyData.length,
+      endpoint: CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+      hasTimestamp: Boolean(historyTimestamp),
+      klineNum: effectiveKlineNum,
+    });
+
+    return historyData;
   }
 
   private buildQuoteSymbolBatches(
@@ -320,6 +364,115 @@ export class InfowayContextService {
     this.assertInfowayResponse(body, operation, (data) => Array.isArray(data));
 
     return body.data as InfowayTradeItem[];
+  }
+
+  private async fetchCryptoQuoteByUpstreamSymbols(
+    upstreamSymbols: string[],
+  ): Promise<InfowayTradeItem[]> {
+    const quoteBatches = this.buildQuoteSymbolBatches(
+      upstreamSymbols,
+      CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+    );
+    const tradeItems: InfowayTradeItem[] = [];
+
+    for (const batchSymbols of quoteBatches) {
+      const batchTradeItems = await this.fetchQuoteBatchTradeItemsWithRetry(
+        batchSymbols,
+        CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+        "crypto-quote",
+      );
+      tradeItems.push(...batchTradeItems);
+    }
+
+    return tradeItems;
+  }
+
+  private buildCryptoHistoryFromTrades(
+    tradeItems: InfowayTradeItem[],
+    historyTimestampSeconds?: number,
+    klineNum = 1,
+  ): InfowayKlineRespEntry[] {
+    const historyTimestampMs =
+      typeof historyTimestampSeconds === "number"
+        ? historyTimestampSeconds * 1000
+        : undefined;
+
+    const grouped = new Map<string, InfowayKlineItem[]>();
+
+    for (const trade of tradeItems) {
+      const symbol = String(trade?.s || "").trim().toUpperCase();
+      if (!symbol) {
+        continue;
+      }
+
+      const timestampMs = this.normalizeTradeTimestampToMillis(trade?.t);
+      if (
+        typeof historyTimestampMs === "number" &&
+        Number.isFinite(timestampMs) &&
+        timestampMs < historyTimestampMs
+      ) {
+        continue;
+      }
+
+      const price = String(trade?.p ?? "").trim();
+      if (!price) {
+        continue;
+      }
+
+      const point: InfowayKlineItem = {
+        t: Number.isFinite(timestampMs)
+          ? Math.trunc(timestampMs / 1000)
+          : trade?.t,
+        o: price,
+        h: price,
+        l: price,
+        c: price,
+        v: String(trade?.v ?? "0"),
+        vw: String(trade?.vw ?? "0"),
+        vm: String(trade?.vw ?? "0"),
+        pc: "0",
+        pca: "0",
+      };
+
+      if (!grouped.has(symbol)) {
+        grouped.set(symbol, []);
+      }
+      grouped.get(symbol)!.push(point);
+    }
+
+    const results: InfowayKlineRespEntry[] = [];
+    for (const [symbol, points] of grouped.entries()) {
+      const sortedPoints = points
+        .slice()
+        .sort((left, right) => Number(left.t || 0) - Number(right.t || 0));
+      const truncatedPoints =
+        sortedPoints.length > klineNum
+          ? sortedPoints.slice(sortedPoints.length - klineNum)
+          : sortedPoints;
+      results.push({
+        s: symbol,
+        respList: truncatedPoints,
+      });
+    }
+
+    return results;
+  }
+
+  private normalizeTradeTimestampToMillis(
+    timestamp: string | number | undefined,
+  ): number {
+    const numericTimestamp = Number(timestamp);
+    if (!Number.isFinite(numericTimestamp) || numericTimestamp <= 0) {
+      return Number.NaN;
+    }
+
+    const digitCount = Math.abs(Math.trunc(numericTimestamp))
+      .toString()
+      .length;
+    if (digitCount === 10) {
+      return Math.trunc(numericTimestamp * 1000);
+    }
+    return Math.trunc(numericTimestamp);
   }
 
   private isUriTooLongError(error: unknown): boolean {
@@ -601,12 +754,13 @@ export class InfowayContextService {
       allowEmpty: true,
       maxCount: INFOWAY_SYMBOL_LIMIT.REST,
     });
-    if (normalizedSymbols.length === 0) {
+    const upstreamSymbols = toInfowayCryptoUpstreamSymbols(normalizedSymbols);
+    if (upstreamSymbols.length === 0) {
       return [];
     }
 
     const results: any[] = [];
-    const chunks = this.chunkArray(normalizedSymbols, 500);
+    const chunks = this.chunkArray(upstreamSymbols, 500);
     for (const chunk of chunks) {
       const response = await this.client.get("/common/basic/symbols/info", {
         headers: { apiKey: this.apiKey },

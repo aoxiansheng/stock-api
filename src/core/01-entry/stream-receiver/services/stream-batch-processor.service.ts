@@ -1069,14 +1069,14 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       "stream-option-quote": "option_fields",
       "stream-futures-quote": "futures_fields",
       "stream-forex-quote": "forex_fields",
-      "stream-crypto-quote": "crypto_fields",
+      "stream-crypto-quote": "quote_fields",
 
       // REST API 能力映射
       [API_OPERATIONS.STOCK_DATA.GET_QUOTE]: "quote_fields",
       "get-option-quote": "option_fields",
       "get-futures-quote": "futures_fields",
       "get-forex-quote": "forex_fields",
-      "get-crypto-quote": "crypto_fields",
+      "get-crypto-quote": "quote_fields",
 
       // 实时数据流能力（已在上方 WebSocket 流能力映射中覆盖常见项，避免重复键）
 

@@ -22,11 +22,21 @@ export class MarketTypeResolverService {
       return "*";
     }
 
-    if (
-      ruleType === "quote_fields" ||
-      ruleType === "candle_fields" ||
-      ruleType === "index_fields"
-    ) {
+    if (ruleType === "quote_fields") {
+      const resolvedMarketType = this.resolveQuoteLikeMarketType(template);
+      return this.shouldIncludeCryptoForQuoteLike(template)
+        ? this.appendCryptoMarketType(resolvedMarketType)
+        : resolvedMarketType;
+    }
+
+    if (ruleType === "candle_fields") {
+      const resolvedMarketType = this.resolveQuoteLikeMarketType(template);
+      return this.shouldIncludeCryptoForQuoteLike(template)
+        ? this.appendCryptoMarketType(resolvedMarketType)
+        : resolvedMarketType;
+    }
+
+    if (ruleType === "index_fields") {
       return this.resolveQuoteLikeMarketType(template);
     }
 
@@ -42,6 +52,30 @@ export class MarketTypeResolverService {
     }
 
     return this.resolveSampleDrivenMarketType(template);
+  }
+
+  private shouldIncludeCryptoForQuoteLike(
+    template: DataSourceTemplateDocument,
+  ): boolean {
+    const provider = (template.provider || "").toLowerCase();
+    return provider === "infoway";
+  }
+
+  private appendCryptoMarketType(marketType: string): string {
+    if (!marketType || marketType === "*") {
+      return marketType || "*";
+    }
+
+    const segments = marketType
+      .split("/")
+      .map((segment) => segment.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (!segments.includes("CRYPTO")) {
+      segments.push("CRYPTO");
+    }
+
+    return segments.join("/");
   }
 
   resolveQuoteLikeMarketType(template: DataSourceTemplateDocument): string {

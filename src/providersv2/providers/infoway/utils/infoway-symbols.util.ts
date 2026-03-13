@@ -5,8 +5,8 @@ export type InfowayMarketCode = "HK" | "US" | "CN" | "CRYPTO";
 const INFOWAY_STOCK_SYMBOL_PATTERN =
   /^(?:[A-Z0-9]+(?:[._-][A-Z0-9]+)*)\.(HK|US|SH|SZ)$/;
 const INFOWAY_STOCK_SYMBOL_MAX_LENGTH = 32;
-const INFOWAY_CRYPTO_SYMBOL_PATTERN = /^[A-Z0-9]{2,20}$/;
-const INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH = 20;
+const INFOWAY_CRYPTO_PAIR_PATTERN = /^[A-Z0-9]{2,20}$/;
+const INFOWAY_CRYPTO_PAIR_MAX_LENGTH = 20;
 const INFOWAY_CRYPTO_SUFFIX_PATTERN = /\.CRYPTO$/;
 const INFOWAY_CRYPTO_QUOTE_SUFFIXES = [
   "USDT",
@@ -111,16 +111,18 @@ function hasInfowayKnownCryptoQuoteSuffix(symbol: string): boolean {
 }
 
 function normalizeSingleInfowayCryptoSymbol(raw: unknown): string {
-  let symbol = String(raw || "").trim().toUpperCase();
-  if (!symbol) {
-    return "";
-  }
+  return String(raw || "").trim().toUpperCase();
+}
 
-  if (INFOWAY_CRYPTO_SUFFIX_PATTERN.test(symbol)) {
-    symbol = symbol.replace(INFOWAY_CRYPTO_SUFFIX_PATTERN, "");
-  }
+export function toInfowayCryptoUpstreamSymbol(symbol: string): string {
+  return String(symbol || "")
+    .trim()
+    .toUpperCase()
+    .replace(INFOWAY_CRYPTO_SUFFIX_PATTERN, "");
+}
 
-  return symbol;
+export function toInfowayCryptoUpstreamSymbols(symbols: string[]): string[] {
+  return symbols.map((symbol) => toInfowayCryptoUpstreamSymbol(symbol));
 }
 
 export function normalizeAndValidateInfowayCryptoSymbols(
@@ -149,20 +151,9 @@ export function normalizeAndValidateInfowayCryptoSymbols(
       continue;
     }
 
-    if (symbol.length > INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH) {
+    if (!INFOWAY_CRYPTO_SUFFIX_PATTERN.test(symbol)) {
       throwInfowayDataValidationError(
-        `Infoway 参数错误: crypto symbol 长度超过限制（${INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH}）`,
-        {
-          symbol,
-          maxLength: INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH,
-        },
-        "normalizeAndValidateInfowayCryptoSymbols",
-      );
-    }
-
-    if (!INFOWAY_CRYPTO_SYMBOL_PATTERN.test(symbol)) {
-      throwInfowayDataValidationError(
-        "Infoway 参数错误: crypto symbol 格式无效（仅支持大写字母和数字，如 BTCUSDT）",
+        "Infoway 参数错误: crypto symbol 必须使用 .CRYPTO 后缀（示例：BTCUSDT.CRYPTO）",
         {
           symbol,
         },
@@ -170,11 +161,36 @@ export function normalizeAndValidateInfowayCryptoSymbols(
       );
     }
 
-    if (!hasInfowayKnownCryptoQuoteSuffix(symbol)) {
+    const pair = toInfowayCryptoUpstreamSymbol(symbol);
+    if (pair.length > INFOWAY_CRYPTO_PAIR_MAX_LENGTH) {
       throwInfowayDataValidationError(
-        "Infoway 参数错误: crypto symbol 交易对格式无效（示例：BTCUSDT）",
+        `Infoway 参数错误: crypto 交易对长度超过限制（${INFOWAY_CRYPTO_PAIR_MAX_LENGTH}）`,
         {
           symbol,
+          pair,
+          maxLength: INFOWAY_CRYPTO_PAIR_MAX_LENGTH,
+        },
+        "normalizeAndValidateInfowayCryptoSymbols",
+      );
+    }
+
+    if (!INFOWAY_CRYPTO_PAIR_PATTERN.test(pair)) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: crypto symbol 格式无效（示例：BTCUSDT.CRYPTO）",
+        {
+          symbol,
+          pair,
+        },
+        "normalizeAndValidateInfowayCryptoSymbols",
+      );
+    }
+
+    if (!hasInfowayKnownCryptoQuoteSuffix(pair)) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: crypto symbol 交易对格式无效（示例：BTCUSDT.CRYPTO）",
+        {
+          symbol,
+          pair,
           allowedQuoteSuffixes: INFOWAY_CRYPTO_QUOTE_SUFFIXES,
         },
         "normalizeAndValidateInfowayCryptoSymbols",
@@ -262,12 +278,6 @@ function resolveInfowayMarketFromSymbol(symbol: unknown): InfowayMarketCode | ""
   if (normalized.endsWith(".US")) return "US";
   if (normalized.endsWith(".HK")) return "HK";
   if (normalized.endsWith(".SH") || normalized.endsWith(".SZ")) return "CN";
-  if (
-    INFOWAY_CRYPTO_SYMBOL_PATTERN.test(normalized) &&
-    hasInfowayKnownCryptoQuoteSuffix(normalized)
-  ) {
-    return "CRYPTO";
-  }
   return "";
 }
 

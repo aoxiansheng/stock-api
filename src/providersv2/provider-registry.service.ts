@@ -206,8 +206,15 @@ export class ProviderRegistryService implements OnModuleInit {
     );
   }
 
-  private isGetStockHistoryCapability(capabilityName: string): boolean {
-    return String(capabilityName || "").trim().toLowerCase() === "get-stock-history";
+  private resolveHistoryContextMethodName(capabilityName: string): string | null {
+    const normalizedCapability = String(capabilityName || "").trim().toLowerCase();
+    if (normalizedCapability === "get-stock-history") {
+      return "getStockHistory";
+    }
+    if (normalizedCapability === "get-crypto-history") {
+      return "getCryptoHistory";
+    }
+    return null;
   }
 
   // ============= 对外 API（与现有调用最小集保持一致） =============
@@ -290,9 +297,10 @@ export class ProviderRegistryService implements OnModuleInit {
       };
     }
 
+    const historyMethodName = this.resolveHistoryContextMethodName(capabilityName);
     if (
-      this.isGetStockHistoryCapability(capabilityName) &&
-      typeof (contextService as { getStockHistory?: unknown }).getStockHistory !==
+      historyMethodName &&
+      typeof (contextService as Record<string, unknown>)[historyMethodName] !==
         "function"
     ) {
       return {

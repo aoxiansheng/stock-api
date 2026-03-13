@@ -1,4 +1,3 @@
-import { CONSTANTS } from "@common/constants";
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { Market } from "../../core/shared/constants/market.constants";
 import {
@@ -40,23 +39,6 @@ export class SymbolValidationUtils {
     "VOO",
   ];
 
-  private static readonly CRYPTO_KEYWORDS = [
-    "USDT",
-    "USDC",
-    "BTC",
-    "ETH",
-    "SOL",
-  ] as const;
-
-  private static readonly CRYPTO_QUOTE_SUFFIXES = [
-    "USDT",
-    "USDC",
-    "BUSD",
-    "FDUSD",
-    "BTC",
-    "ETH",
-  ] as const;
-
   /**
    * 严格标准 symbol：必须包含市场后缀（统一真相源）
    * - HK: 1-5位数字或HSI + .HK
@@ -91,14 +73,6 @@ export class SymbolValidationUtils {
     return market;
   }
 
-  private static isCryptoSymbol(symbol: string): boolean {
-    return this.CRYPTO_KEYWORDS.some((keyword) => symbol.includes(keyword));
-  }
-
-  private static hasKnownCryptoQuoteSuffix(symbol: string): boolean {
-    return this.CRYPTO_QUOTE_SUFFIXES.some((suffix) => symbol.endsWith(suffix));
-  }
-
   /**
    * 验证严格标准 symbol（必须带市场后缀）
    */
@@ -111,18 +85,9 @@ export class SymbolValidationUtils {
       return false;
     }
 
-    if (
-      this.STRICT_STANDARD_SYMBOL_PATTERNS.some((pattern) => pattern.test(symbol))
-    ) {
-      return true;
-    }
-
-    // 兼容 Infoway 加密货币常见交易对（如 BTCUSDT）
-    if (/^[A-Z0-9]{6,20}$/.test(symbol) && this.hasKnownCryptoQuoteSuffix(symbol)) {
-      return true;
-    }
-
-    return false;
+    return this.STRICT_STANDARD_SYMBOL_PATTERNS.some((pattern) =>
+      pattern.test(symbol),
+    );
   }
 
   public static isValidSymbol(symbol: string): boolean {
@@ -179,7 +144,7 @@ export class SymbolValidationUtils {
       return true;
     }
 
-    // CRYPTO 市场: BTCUSDT 或 BTCUSDT.CRYPTO
+    // CRYPTO 市场: BTCUSDT.CRYPTO
     if (this.isValidCryptoSymbol(upperSymbol)) {
       return true;
     }
@@ -305,21 +270,16 @@ export class SymbolValidationUtils {
   /**
    * 验证加密货币代码格式
    * - 标准格式：<PAIR>.CRYPTO（如 BTCUSDT.CRYPTO）
-   * - 兼容格式：<PAIR>（如 BTCUSDT）
    */
   public static isValidCryptoSymbol(symbol: string): boolean {
     const upperSymbol = symbol.toUpperCase();
 
-    if (this.endsWithAny(upperSymbol, this.SUFFIX_GROUPS.CRYPTO)) {
-      const pair = this.stripSuffix(upperSymbol, ".CRYPTO");
-      return /^[A-Z0-9]{2,20}$/.test(pair);
-    }
-
-    if (!/^[A-Z0-9]{6,20}$/.test(upperSymbol)) {
+    if (!this.endsWithAny(upperSymbol, this.SUFFIX_GROUPS.CRYPTO)) {
       return false;
     }
 
-    return this.hasKnownCryptoQuoteSuffix(upperSymbol);
+    const pair = this.stripSuffix(upperSymbol, ".CRYPTO");
+    return /^[A-Z0-9]{2,20}$/.test(pair);
   }
 
   /**
@@ -410,7 +370,7 @@ export class SymbolValidationUtils {
       return 'SG';
     }
 
-    if (this.isValidCryptoSymbol(normalized) || this.isCryptoSymbol(normalized)) {
+    if (this.isValidCryptoSymbol(normalized)) {
       return Market.CRYPTO;
     }
 
@@ -429,7 +389,7 @@ export class SymbolValidationUtils {
       return true;
     }
 
-    return this.isValidCryptoSymbol(normalized) || this.isCryptoSymbol(normalized);
+    return this.isValidCryptoSymbol(normalized);
   }
 
   public static validateSymbols(symbols: string[]): {
@@ -492,7 +452,7 @@ export class SymbolValidationUtils {
       US: ["AAPL.US", "AAPL", "SPY.US", "SPY", "BRK.A", "BRK.A.US"],
       SZ: ["000001.SZ", "000001", "300001.SZ", "300001"],
       SH: ["600000.SH", "600000", "688001.SH", "688001"],
-      CRYPTO: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BTCUSDT.CRYPTO"],
+      CRYPTO: ["BTCUSDT.CRYPTO", "ETHUSDT.CRYPTO", "SOLUSDT.CRYPTO"],
       Others: ["D05.SG", "TSM.TW", "7203.JP"],
     };
   }

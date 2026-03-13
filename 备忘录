@@ -123,11 +123,11 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
   bash "scripts/tools/local-project/test-chart-intraday-line-endpoint.sh"
 
 
-  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" \
+  API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" \
   CODES="AAPL.US" \
   node "scripts/tools/test-infoway-trade-ws.js"
 
-  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" TYPE="STOCK_CN" SYMBOLS="000001.SZ,000002.SZ" \
+  API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" TYPE="STOCK_CN" SYMBOLS="000001.SZ,000002.SZ" \
   node "scripts/tools/upstream-sdk/test-infoway-symbols-info.js"
 
 
@@ -144,21 +144,55 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
   SYMBOL="00700.HK" \
   node "scripts/tools/local-project/test-ws-latest-price.js"
 
+  
+    node "scripts/tools/local-project/test-get-support-list.js" \
+    --type "CRYPTO" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a"
 
 
-  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" 
-  TYPE="STOCK_US" \
+  node "scripts/tools/local-project/test-get-crypto-basic-info-endpoint.js" \
+    --symbols "BTCUSDT.CRYPTO" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a"
+
+
+   API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" \
+  CODE="BTCUSDT" \
+  BUSINESS="crypto" \
+  node "scripts/tools/upstream-sdk/test-infoway-btcusdt-trade-ws.js"
+
+
+  API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" 
+  TYPE="CRYPTO" \
   node "scripts/tools/upstream-sdk/test-infoway-symbols-list.js"
 
 
 
-  API_KEY="7ffce79114f840b6a749fb59344159d2-infoway" 
+  API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" 
   SYMBOLS="AMD.US" \
   node "scripts/tools/upstream-sdk/test-infoway-symbols-info.js"
 
 
 
 
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
+  ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  BASE_URL="http://127.0.0.1:3001" \
+  SYMBOL="AAPL.US" \
+  PROVIDER="infoway" \
+  bash "scripts/tools/local-project/test-chart-intraday-line-endpoint-ws.sh"
+
+
+
+  BASE_URL="http://127.0.0.1:3001" \
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
+  ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  SYMBOL="AAPL.US" \
+  PROVIDER="infoway" \
+  TIMEOUT_MS="45000" \
+  UNSUBSCRIBE_TIMEOUT_MS="1500" \
+  bash "scripts/tools/local-project/test-chart-intraday-line-endpoint-ws.sh"
 
   - 强时效端点
     node "scripts/tools/local-project/test-get-stock-basic-info-endpoint.js" \

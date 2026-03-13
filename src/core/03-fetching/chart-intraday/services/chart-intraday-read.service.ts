@@ -16,6 +16,10 @@ import {
   type IntradayCursorPayload,
   type ResolvedIntradayCursorContext,
 } from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
+import {
+  ChartIntradayStreamSubscriptionService,
+  type ReleaseRealtimeSubscriptionResult,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-stream-subscription.service";
 import { DataFetcherService } from "@core/03-fetching/data-fetcher/services/data-fetcher.service";
 import { isValidYmdDate } from "@core/shared/utils/ymd-date.util";
 import {
@@ -45,6 +49,12 @@ export interface IntradayDeltaRequestDto {
   cursor: string;
   limit?: number;
   strictProviderConsistency?: boolean;
+}
+
+export interface IntradayReleaseRequestDto {
+  symbol: string;
+  market?: string;
+  provider?: string;
 }
 
 export interface IntradayPointDto {
@@ -98,6 +108,18 @@ export interface IntradayDeltaResponseDto {
   delta: IntradayDeltaPayloadDto;
 }
 
+export interface IntradayReleasePayloadDto {
+  released: boolean;
+  symbol: string;
+  market: string;
+  provider: string;
+  wsCapabilityType: string;
+}
+
+export interface IntradayReleaseResponseDto {
+  release: IntradayReleasePayloadDto;
+}
+
 interface MergeResult {
   points: IntradayPointDto[];
   deduplicatedPoints: number;
@@ -121,6 +143,7 @@ export class ChartIntradayReadService {
     private readonly providerRegistryService: ProviderRegistryService,
     private readonly streamDataFetcherService: StreamDataFetcherService,
     private readonly chartIntradayCursorService: ChartIntradayCursorService,
+    private readonly chartIntradayStreamSubscriptionService: ChartIntradayStreamSubscriptionService,
   ) {}
 
   async getSnapshot(
@@ -139,10 +162,9 @@ export class ChartIntradayReadService {
       pointLimit,
     });
 
-    const historyPoints = await this.fetchHistoryBaseline(
-      resolved,
-      pointLimit,
-    );
+    await this.ensureRealtimeSubscription(resolved, "snapshot");
+
+    const historyPoints = await this.fetchHistoryBaseline(resolved, pointLimit);
     const realtimePoints = await this.fetchRealtimePoints(
       resolved.symbol,
       resolved.market,
@@ -167,7 +189,8 @@ export class ChartIntradayReadService {
           historyPoints[historyPoints.length - 1]?.timestamp || null,
         realtimeLastTimestamp:
           realtimePoints[realtimePoints.length - 1]?.timestamp || null,
-        mergedLastTimestamp: merged.points[merged.points.length - 1]?.timestamp || null,
+        mergedLastTimestamp:
+          merged.points[merged.points.length - 1]?.timestamp || null,
         historyLastPoint: this.buildPointPreview(
           historyPoints[historyPoints.length - 1],
         ),
@@ -194,7 +217,8 @@ export class ChartIntradayReadService {
       });
     }
 
-    const lastPointTimestamp = merged.points[merged.points.length - 1].timestamp;
+    const lastPointTimestamp =
+      merged.points[merged.points.length - 1].timestamp;
     const cursor = this.encodeCursor({
       v: 1,
       symbol: resolved.symbol,
@@ -231,7 +255,9 @@ export class ChartIntradayReadService {
     };
   }
 
-  async getDelta(request: IntradayDeltaRequestDto): Promise<IntradayDeltaResponseDto> {
+  async getDelta(
+    request: IntradayDeltaRequestDto,
+  ): Promise<IntradayDeltaResponseDto> {
     if (!request.cursor?.trim()) {
       throw this.createBusinessException({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
@@ -261,6 +287,9 @@ export class ChartIntradayReadService {
       now,
       request.strictProviderConsistency === true,
     );
+
+    await this.ensureRealtimeSubscription(resolved, "delta");
+
     const sinceMs = this.parseTimestampToMs(cursorPayload.lastPointTimestamp);
     if (!sinceMs || Number.isNaN(sinceMs)) {
       throw this.createBusinessException({
@@ -326,7 +355,9 @@ export class ChartIntradayReadService {
     }
 
     const hasMore = incrementalPoints.length > limit;
-    const points = hasMore ? incrementalPoints.slice(0, limit) : incrementalPoints;
+    const points = hasMore
+      ? incrementalPoints.slice(0, limit)
+      : incrementalPoints;
     const lastPointTimestamp =
       points.length > 0
         ? points[points.length - 1].timestamp
@@ -353,6 +384,28 @@ export class ChartIntradayReadService {
     };
   }
 
+  async releaseRealtimeSubscription(
+    request: IntradayReleaseRequestDto,
+  ): Promise<IntradayReleaseResponseDto> {
+    const resolved = this.resolveContext({
+      symbol: request.symbol,
+      market: request.market,
+      provider: request.provider,
+    });
+    const released =
+      await this.chartIntradayStreamSubscriptionService.releaseRealtimeSubscription(
+        {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          provider: resolved.provider,
+        },
+      );
+
+    return {
+      release: this.buildReleasePayload(resolved.market, released),
+    };
+  }
+
   private async fetchHistoryBaseline(
     resolved: ResolvedIntradayContext,
     pointLimit: number,
@@ -365,7 +418,7 @@ export class ChartIntradayReadService {
       ),
     );
 
-    const historyEndTimestamp = this.resolveTradingDayEndTimestampSeconds(
+    const historyAnchorTimestamp = this.resolveHistoryAnchorTimestampSeconds(
       resolved.tradingDay,
       resolved.market,
     );
@@ -380,8 +433,7 @@ export class ChartIntradayReadService {
         );
       const transformedSymbol = String(
         symbolMapping.transformedSymbols?.[0] || "",
-      )
-        .trim();
+      ).trim();
       if (!transformedSymbol) {
         throw this.createBusinessException({
           errorCode: BusinessErrorCode.DATA_NOT_FOUND,
@@ -400,7 +452,7 @@ export class ChartIntradayReadService {
         resolved,
         transformedSymbol,
         historyKlineNum,
-        historyEndTimestamp,
+        historyAnchorTimestamp,
         requestId,
       });
 
@@ -462,16 +514,19 @@ export class ChartIntradayReadService {
     resolved: ResolvedIntradayContext;
     transformedSymbol: string;
     historyKlineNum: number;
-    historyEndTimestamp: number;
+    historyAnchorTimestamp: number;
     requestId: string;
   }): Promise<any> {
     const {
       resolved,
       transformedSymbol,
       historyKlineNum,
-      historyEndTimestamp,
+      historyAnchorTimestamp,
       requestId,
     } = params;
+    const historyCapability = this.resolveHistoryCapabilityByMarket(
+      resolved.market,
+    );
 
     for (
       let attempt = 1;
@@ -481,7 +536,7 @@ export class ChartIntradayReadService {
       try {
         return await this.dataFetcherService.fetchRawData({
           provider: resolved.provider,
-          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          capability: historyCapability,
           symbols: [transformedSymbol],
           requestId,
           apiType: "rest",
@@ -489,15 +544,12 @@ export class ChartIntradayReadService {
             preferredProvider: resolved.provider,
             market: resolved.market,
             klineNum: historyKlineNum,
-            timestamp: historyEndTimestamp,
+            timestamp: historyAnchorTimestamp,
           },
         });
       } catch (error) {
-        const classifiedError =
-          this.classifySnapshotHistoryFetchError(error);
-        if (
-          !this.shouldRetrySnapshotHistoryFetch(classifiedError, attempt)
-        ) {
+        const classifiedError = this.classifySnapshotHistoryFetchError(error);
+        if (!this.shouldRetrySnapshotHistoryFetch(classifiedError, attempt)) {
           throw error;
         }
 
@@ -509,8 +561,7 @@ export class ChartIntradayReadService {
           requestId,
           attempt,
           maxAttempts: ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS,
-          nextDelayMs:
-            ChartIntradayReadService.SNAPSHOT_HISTORY_RETRY_DELAY_MS,
+          nextDelayMs: ChartIntradayReadService.SNAPSHOT_HISTORY_RETRY_DELAY_MS,
           errorCode: classifiedError.errorCode,
           statusCode: classifiedError.getStatus(),
           retryable: classifiedError.retryable,
@@ -536,9 +587,7 @@ export class ChartIntradayReadService {
     });
   }
 
-  private classifySnapshotHistoryFetchError(
-    error: unknown,
-  ): BusinessException {
+  private classifySnapshotHistoryFetchError(error: unknown): BusinessException {
     if (error instanceof BusinessException) {
       return error;
     }
@@ -554,9 +603,7 @@ export class ChartIntradayReadService {
     error: BusinessException,
     attempt: number,
   ): boolean {
-    if (
-      attempt >= ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS
-    ) {
+    if (attempt >= ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS) {
       return false;
     }
 
@@ -739,15 +786,15 @@ export class ChartIntradayReadService {
     return hasNested ? flattened : rows;
   }
 
-  private resolveContext(
-    request: {
-      symbol: string;
-      market?: string;
-      tradingDay?: string;
-      provider?: string;
-    },
-  ): ResolvedIntradayContext {
-    const symbol = String(request.symbol || "").trim().toUpperCase();
+  private resolveContext(request: {
+    symbol: string;
+    market?: string;
+    tradingDay?: string;
+    provider?: string;
+  }): ResolvedIntradayContext {
+    const symbol = String(request.symbol || "")
+      .trim()
+      .toUpperCase();
     if (!symbol) {
       throw this.createBusinessException({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
@@ -824,21 +871,25 @@ export class ChartIntradayReadService {
     };
   }
 
-  private resolveProvider(provider: string | undefined, market: string): string {
-    const normalized = String(provider || "").trim().toLowerCase();
+  private resolveProvider(
+    provider: string | undefined,
+    market: string,
+  ): string {
+    const normalized = String(provider || "")
+      .trim()
+      .toLowerCase();
     if (normalized) {
       return normalized;
     }
 
+    const historyCapability = this.resolveHistoryCapabilityByMarket(market);
+
     try {
       const preferred =
         this.providerRegistryService.getBestProvider(
-          CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          historyCapability,
           market,
-        ) ||
-        this.providerRegistryService.getBestProvider(
-          CAPABILITY_NAMES.GET_STOCK_HISTORY,
-        );
+        ) || this.providerRegistryService.getBestProvider(historyCapability);
       if (preferred) {
         return String(preferred).trim().toLowerCase();
       }
@@ -847,6 +898,39 @@ export class ChartIntradayReadService {
     }
 
     return ChartIntradayReadService.DEFAULT_PROVIDER;
+  }
+
+  private resolveHistoryCapabilityByMarket(market: string): string {
+    const normalizedMarket = String(market || "")
+      .trim()
+      .toUpperCase();
+    switch (normalizedMarket) {
+      case "CRYPTO":
+        return CAPABILITY_NAMES.GET_CRYPTO_HISTORY;
+      case "US":
+      case "HK":
+      case "CN":
+      case "SH":
+      case "SZ":
+        return CAPABILITY_NAMES.GET_STOCK_HISTORY;
+      case "INDEX":
+      case "FOREX":
+        throw this.createBusinessException({
+          errorCode: BusinessErrorCode.INVALID_OPERATION,
+          operation: "resolve_history_capability",
+          message: `NOT_IMPLEMENTED: 分时历史暂不支持 ${normalizedMarket} 市场`,
+          statusCode: HttpStatus.NOT_IMPLEMENTED,
+          context: { market: normalizedMarket },
+        });
+      default:
+        throw this.createBusinessException({
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: "resolve_history_capability",
+          message: "INVALID_ARGUMENT: market 暂未配置分时历史能力",
+          statusCode: HttpStatus.BAD_REQUEST,
+          context: { market: normalizedMarket || market },
+        });
+    }
   }
 
   private resolveCurrentTradingDay(market: string): string {
@@ -860,16 +944,21 @@ export class ChartIntradayReadService {
     return formatter.format(new Date()).replace(/-/g, "");
   }
 
-  private resolveTradingDayEndTimestampSeconds(
+  private resolveHistoryAnchorTimestampSeconds(
     tradingDay: string,
     market: string,
   ): number {
+    const normalizedMarket = String(market || "")
+      .trim()
+      .toUpperCase();
     const timezone = resolveMarketTimezone(market);
+    const [hour, minute, second] =
+      normalizedMarket === "CRYPTO" ? [0, 0, 1] : [23, 59, 59];
     const utcMs = this.zonedDateTimeToUtcMs(
       tradingDay,
-      23,
-      59,
-      59,
+      hour,
+      minute,
+      second,
       timezone,
     );
     return Math.floor(utcMs / 1000);
@@ -908,6 +997,12 @@ export class ChartIntradayReadService {
         values[part.type] = Number(part.value);
       }
     }
+
+    // 某些运行时会把午夜格式化为 24:00:00，若直接传入 Date.UTC 会进位到次日，导致偏移误差一天。
+    if (values.hour === 24) {
+      values.hour = 0;
+    }
+
     const timezoneAsUtc = Date.UTC(
       values.year,
       values.month - 1,
@@ -953,9 +1048,11 @@ export class ChartIntradayReadService {
     return parseFlexibleTimestampToMs(value);
   }
 
-  private buildPointPreview(
-    point?: IntradayPointDto | null,
-  ): { timestamp: string | null; price: number | null; volume: number | null } | null {
+  private buildPointPreview(point?: IntradayPointDto | null): {
+    timestamp: string | null;
+    price: number | null;
+    volume: number | null;
+  } | null {
     if (!point) {
       return null;
     }
@@ -967,9 +1064,11 @@ export class ChartIntradayReadService {
     };
   }
 
-  private buildRawPointPreview(
-    point: unknown,
-  ): { timestamp: string | null; price: number | null; volume: number | null } | null {
+  private buildRawPointPreview(point: unknown): {
+    timestamp: string | null;
+    price: number | null;
+    volume: number | null;
+  } | null {
     if (!point || typeof point !== "object") {
       return null;
     }
@@ -988,6 +1087,43 @@ export class ChartIntradayReadService {
 
   private shouldTraceDebug(): boolean {
     return shouldLog(ChartIntradayReadService.name, "debug");
+  }
+
+  private buildReleasePayload(
+    market: string,
+    released: ReleaseRealtimeSubscriptionResult,
+  ): IntradayReleasePayloadDto {
+    return {
+      released: released.released,
+      symbol: released.symbol,
+      market,
+      provider: released.provider,
+      wsCapabilityType: released.wsCapabilityType,
+    };
+  }
+
+  private async ensureRealtimeSubscription(
+    resolved: ResolvedIntradayContext,
+    operation: "snapshot" | "delta",
+  ): Promise<void> {
+    try {
+      await this.chartIntradayStreamSubscriptionService.ensureRealtimeSubscription(
+        {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          provider: resolved.provider,
+        },
+      );
+    } catch (error: any) {
+      this.logger.warn("分时实时订阅确保失败，降级为历史+缓存读取", {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        provider: resolved.provider,
+        operation,
+        error: error?.message,
+      });
+    }
   }
 
   private encodeCursor(payload: IntradayCursorPayload): string {

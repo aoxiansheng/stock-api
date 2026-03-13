@@ -82,9 +82,16 @@ export class ReceiverController {
 - \`get-stock-basic-info\`: 基本信息 (公司名称、行业、财务指标等)
 - \`get-index-quote\`: 指数行情 (主要指数实时数据)
 - \`get-stock-history\`: 分时历史 (1m K 线，支持 \`options.timestamp\` + \`options.klineNum\`)
+- \`get-crypto-history\`: 加密历史兼容数据 (基于最新成交构建，支持 \`options.timestamp\` + \`options.klineNum\`)
 
 ### 🕘 get-stock-history 参数约束
 - \`symbols\` 必须且只能包含 1 个标的（单标的限制）
+- \`options.timestamp\` 为回填截止时间戳（仅支持 10 位秒或 13 位毫秒）
+- \`options.klineNum\` 为回填根数（建议 1-500）
+
+### 🕘 get-crypto-history 参数约束
+- \`symbols\` 必须且只能包含 1 个标的（单标的限制）
+- \`options.market\` 若传入，仅支持 \`CRYPTO\`
 - \`options.timestamp\` 为回填截止时间戳（仅支持 10 位秒或 13 位毫秒）
 - \`options.klineNum\` 为回填根数（建议 1-500）
 

@@ -10,7 +10,9 @@ import {
 import { sanitizeInfowayUpstreamMessage } from "../utils/infoway-error.util";
 import {
   INFOWAY_SYMBOL_LIMIT,
+  normalizeAndValidateInfowayCryptoSymbols,
   normalizeAndValidateInfowaySymbols,
+  toInfowayCryptoUpstreamSymbol,
 } from "../utils/infoway-symbols.util";
 
 type InfowayWsAuthMode = "auto" | "query" | "header" | "frame";
@@ -19,6 +21,7 @@ type InfowayResolvedWsAuthMode = Exclude<InfowayWsAuthMode, "auto">;
 @Injectable()
 export class InfowayStreamContextService implements OnModuleDestroy {
   private readonly logger = createLogger(InfowayStreamContextService.name);
+  private readonly streamCapabilityTag = "stream-quote";
 
   private readonly wsBaseUrl: string;
   private readonly apiKey: string;
@@ -46,6 +49,8 @@ export class InfowayStreamContextService implements OnModuleDestroy {
   };
 
   private readonly subscribedSymbols = new Set<string>();
+  private readonly upstreamToStandardSymbolMap = new Map<string, string>();
+  private activeBusiness: string | null = null;
   private subscriptionsInvalidated = false;
   private readonly messageCallbacks = new Set<(data: any) => void>();
 
@@ -123,6 +128,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       return;
     }
 
+    if (!this.activeBusiness) {
+      this.activeBusiness = this.business;
+    }
+
     if (!this.apiKey) {
       throwInfowayConfigurationError(
         "INFOWAY_API_KEY 未配置",
@@ -151,39 +160,45 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
   }
 
+  shouldDelayInitialization(): boolean {
+    return true;
+  }
+
   async subscribe(symbols: string[]): Promise<void> {
     if (this.isShuttingDown) {
       return;
     }
 
-    const normalized = normalizeAndValidateInfowaySymbols(symbols, {
-      allowEmpty: true,
-      maxCount: INFOWAY_SYMBOL_LIMIT.WS,
-    });
+    const requestedPairs = this.normalizeSubscriptionSymbolPairs(symbols);
 
-    if (normalized.length === 0) {
+    if (requestedPairs.length === 0) {
       return;
     }
 
+    const targetBusiness = this.resolveBusinessForSubscription(requestedPairs);
+    await this.ensureBusinessContext(targetBusiness);
+
     if (this.subscriptionsInvalidated) {
       this.logger.warn("Infoway WebSocket 订阅状态已失效，将按最新入参重建订阅", {
-        requestedCount: normalized.length,
+        requestedCount: requestedPairs.length,
       });
     }
 
-    const newSymbols = normalized.filter((symbol) => !this.subscribedSymbols.has(symbol));
-    if (newSymbols.length === 0) {
+    const newPairs = requestedPairs.filter(
+      (pair) => !this.subscribedSymbols.has(pair.standardSymbol),
+    );
+    if (newPairs.length === 0) {
       return;
     }
 
     const existing = this.subscribedSymbols.size;
-    const total = existing + newSymbols.length;
+    const total = existing + newPairs.length;
     if (total > INFOWAY_SYMBOL_LIMIT.WS) {
       throwInfowayDataValidationError(
         `Infoway 参数错误: WebSocket 订阅总量超过上限（existing + new <= ${INFOWAY_SYMBOL_LIMIT.WS}）`,
         {
           existing,
-          new: newSymbols.length,
+          new: newPairs.length,
           max: INFOWAY_SYMBOL_LIMIT.WS,
         },
         "subscribe",
@@ -192,36 +207,49 @@ export class InfowayStreamContextService implements OnModuleDestroy {
 
     await this.initializeWebSocket();
 
+    const upstreamSymbols = newPairs.map((pair) => pair.upstreamSymbol);
     this.sendJson({
       code: 10000,
       trace: randomUUID().replace(/-/g, ""),
       data: {
-        codes: newSymbols.join(","),
+        codes: upstreamSymbols.join(","),
       },
     });
 
-    newSymbols.forEach((symbol) => this.subscribedSymbols.add(symbol));
+    newPairs.forEach((pair) => {
+      this.subscribedSymbols.add(pair.standardSymbol);
+      this.upstreamToStandardSymbolMap.set(
+        pair.upstreamSymbol,
+        pair.standardSymbol,
+      );
+    });
     this.subscriptionsInvalidated = false;
 
     this.logger.debug("Infoway WebSocket 订阅发送成功", {
-      symbolsCount: newSymbols.length,
-      preview: newSymbols.slice(0, 10),
+      symbolsCount: newPairs.length,
+      preview: newPairs
+        .slice(0, 10)
+        .map((pair) => pair.standardSymbol),
+      upstreamPreview: upstreamSymbols.slice(0, 10),
       protocolCode: 10000,
     });
   }
 
   async unsubscribe(symbols: string[]): Promise<void> {
-    const normalized = normalizeAndValidateInfowaySymbols(symbols, {
-      allowEmpty: true,
-      maxCount: INFOWAY_SYMBOL_LIMIT.WS,
-    })
-      .filter((symbol) => this.subscribedSymbols.has(symbol));
+    const requestedPairs = this.normalizeSubscriptionSymbolPairs(symbols);
+    const pairsToUnsubscribe = requestedPairs.filter((pair) =>
+      this.subscribedSymbols.has(pair.standardSymbol),
+    );
 
-    if (normalized.length === 0) {
+    if (pairsToUnsubscribe.length === 0) {
       return;
     }
 
-    normalized.forEach((symbol) => this.subscribedSymbols.delete(symbol));
+    const upstreamSymbols = pairsToUnsubscribe.map((pair) => pair.upstreamSymbol);
+    pairsToUnsubscribe.forEach((pair) => {
+      this.subscribedSymbols.delete(pair.standardSymbol);
+      this.upstreamToStandardSymbolMap.delete(pair.upstreamSymbol);
+    });
 
     if (!this.isWebSocketConnected()) {
       return;
@@ -231,7 +259,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       code: 11000,
       trace: randomUUID().replace(/-/g, ""),
       data: {
-        codes: normalized.join(","),
+        codes: upstreamSymbols.join(","),
       },
     });
   }
@@ -241,6 +269,220 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     return () => {
       this.messageCallbacks.delete(callback);
     };
+  }
+
+  private normalizeSubscriptionSymbolPairs(
+    symbols: string[],
+  ): Array<{ standardSymbol: string; upstreamSymbol: string }> {
+    if (!Array.isArray(symbols)) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: symbols 必须是数组",
+        {
+          symbolsType: typeof symbols,
+        },
+        "normalizeSubscriptionSymbolPairs",
+      );
+    }
+
+    const deduplicatedSymbols = Array.from(
+      new Set(
+        symbols
+          .map((symbol) => String(symbol || "").trim().toUpperCase())
+          .filter(Boolean),
+      ),
+    );
+    if (deduplicatedSymbols.length > INFOWAY_SYMBOL_LIMIT.WS) {
+      throwInfowayDataValidationError(
+        `Infoway 参数错误: symbols 数量超过上限（最多 ${INFOWAY_SYMBOL_LIMIT.WS} 个）`,
+        {
+          currentCount: deduplicatedSymbols.length,
+          maxCount: INFOWAY_SYMBOL_LIMIT.WS,
+        },
+        "normalizeSubscriptionSymbolPairs",
+      );
+    }
+
+    const stockSymbols = deduplicatedSymbols.filter(
+      (symbol) => !symbol.endsWith(".CRYPTO"),
+    );
+    const cryptoSymbols = deduplicatedSymbols.filter((symbol) =>
+      symbol.endsWith(".CRYPTO"),
+    );
+
+    const normalizedStockSymbols = new Set(
+      normalizeAndValidateInfowaySymbols(stockSymbols, {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.WS,
+      }),
+    );
+    const normalizedCryptoSymbols = new Set(
+      normalizeAndValidateInfowayCryptoSymbols(cryptoSymbols, {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.WS,
+      }),
+    );
+
+    return deduplicatedSymbols.map((symbol) => {
+      if (normalizedCryptoSymbols.has(symbol)) {
+        return {
+          standardSymbol: symbol,
+          upstreamSymbol: toInfowayCryptoUpstreamSymbol(symbol),
+        };
+      }
+      if (normalizedStockSymbols.has(symbol)) {
+        return {
+          standardSymbol: symbol,
+          upstreamSymbol: symbol,
+        };
+      }
+
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: symbol 格式无效（仅支持 *.HK/*.US/*.SH/*.SZ 或 *.CRYPTO）",
+        {
+          symbol,
+        },
+        "normalizeSubscriptionSymbolPairs",
+      );
+    });
+  }
+
+  private resolveBusinessForSubscription(
+    pairs: Array<{ standardSymbol: string; upstreamSymbol: string }>,
+  ): string {
+    const hasCrypto = pairs.some((pair) =>
+      pair.standardSymbol.endsWith(".CRYPTO"),
+    );
+    const hasStock = pairs.some(
+      (pair) => !pair.standardSymbol.endsWith(".CRYPTO"),
+    );
+
+    if (hasCrypto && hasStock) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: 单次订阅不支持混合 CRYPTO 与股票市场，请拆分请求",
+        {
+          symbols: pairs.map((pair) => pair.standardSymbol),
+        },
+        "resolveBusinessForSubscription",
+      );
+    }
+
+    return hasCrypto ? "crypto" : this.business;
+  }
+
+  private async ensureBusinessContext(targetBusiness: string): Promise<void> {
+    const normalizedBusiness = String(targetBusiness || "")
+      .trim()
+      .toLowerCase() || this.business;
+
+    if (!this.activeBusiness) {
+      this.activeBusiness = normalizedBusiness;
+      return;
+    }
+
+    if (this.activeBusiness === normalizedBusiness) {
+      return;
+    }
+
+    if (this.subscribedSymbols.size > 0) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: 当前存在其他市场的活动订阅，请先取消后再切换",
+        {
+          currentBusiness: this.activeBusiness,
+          requestedBusiness: normalizedBusiness,
+          subscribedSymbolsCount: this.subscribedSymbols.size,
+        },
+        "ensureBusinessContext",
+      );
+    }
+
+    this.logger.log("Infoway WebSocket 切换 business 通道", {
+      from: this.activeBusiness,
+      to: normalizedBusiness,
+    });
+
+    this.stopHeartbeat();
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    const socketToClose = this.socket;
+    this.socket = null;
+    if (socketToClose && typeof socketToClose.close === "function") {
+      try {
+        socketToClose.close();
+      } catch {
+        // ignore
+      }
+    }
+
+    if (this.connectTask) {
+      try {
+        await this.connectTask;
+      } catch {
+        // ignore
+      } finally {
+        this.connectTask = null;
+      }
+    }
+
+    this.activeBusiness = normalizedBusiness;
+  }
+
+  private normalizeIncomingSymbol(rawSymbol: unknown): string | null {
+    if (typeof rawSymbol !== "string") {
+      return null;
+    }
+
+    const normalized = rawSymbol.trim().toUpperCase();
+    if (!normalized) {
+      return null;
+    }
+
+    const mappedStandardSymbol = this.upstreamToStandardSymbolMap.get(normalized);
+    if (mappedStandardSymbol) {
+      return mappedStandardSymbol;
+    }
+
+    if (this.subscribedSymbols.has(normalized)) {
+      return normalized;
+    }
+
+    const cryptoCandidate = `${normalized}.CRYPTO`;
+    if (this.subscribedSymbols.has(cryptoCandidate)) {
+      return cryptoCandidate;
+    }
+
+    return normalized;
+  }
+
+  private normalizeRealtimePayload(payload: unknown): unknown {
+    if (Array.isArray(payload)) {
+      return payload.map((item) => this.normalizeRealtimePayload(item));
+    }
+
+    if (!payload || typeof payload !== "object") {
+      return payload;
+    }
+
+    const source = payload as Record<string, unknown>;
+    const normalizedBySymbol = this.normalizeIncomingSymbol(source.symbol);
+    const normalizedByShortSymbol = this.normalizeIncomingSymbol(source.s);
+    const normalizedSymbol = normalizedBySymbol || normalizedByShortSymbol;
+
+    if (!normalizedSymbol) {
+      return payload;
+    }
+
+    const normalizedPayload = { ...source };
+    if (typeof source.symbol === "string") {
+      normalizedPayload.symbol = normalizedSymbol;
+    }
+    if (typeof source.s === "string") {
+      normalizedPayload.s = normalizedSymbol;
+    }
+
+    return normalizedPayload;
   }
 
   isWebSocketConnected(): boolean {
@@ -287,6 +529,8 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
 
     this.subscribedSymbols.clear();
+    this.upstreamToStandardSymbolMap.clear();
+    this.activeBusiness = null;
     this.subscriptionsInvalidated = false;
     this.messageCallbacks.clear();
     this.reconnectAttempts = 0;
@@ -301,6 +545,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     if (this.isShuttingDown) {
       return;
     }
+    const currentBusiness = this.activeBusiness || this.business;
 
     const WebSocketCtor = (globalThis as any).WebSocket;
     if (!WebSocketCtor) {
@@ -330,7 +575,11 @@ export class InfowayStreamContextService implements OnModuleDestroy {
           }
         | undefined;
       try {
-        socketBundle = this.createSocketWithAuth(WebSocketCtor, candidate);
+        socketBundle = this.createSocketWithAuth(
+          WebSocketCtor,
+          candidate,
+          currentBusiness,
+        );
       } catch (error: any) {
         const reason = sanitizeInfowayUpstreamMessage(error?.message);
         this.logger.warn("Infoway WebSocket 鉴权模式建连初始化失败，尝试下一模式", {
@@ -347,8 +596,8 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       const { socket, authMode, wsUrlMasked } = socketBundle;
       this.logger.log("Infoway WebSocket 开始建连", {
         provider: "infoway",
-        capability: "stream-stock-quote",
-        business: this.business,
+        capability: this.streamCapabilityTag,
+        business: currentBusiness,
         authModeConfigured: this.wsAuthMode,
         authModeResolved: authMode,
         connectTimeoutMs: this.connectTimeoutMs,
@@ -363,10 +612,11 @@ export class InfowayStreamContextService implements OnModuleDestroy {
           socket,
           authMode,
           connectStartedAt,
+          business: currentBusiness,
         });
         this.wsConnectMetrics.ws_connect_success_total += 1;
         this.logger.log("Infoway WebSocket 连接成功", {
-          business: this.business,
+          business: currentBusiness,
           authModeConfigured: this.wsAuthMode,
           authModeResolved: authMode,
           wsUrlMasked,
@@ -386,8 +636,8 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         }
         this.logger.error("Infoway WebSocket 建连失败", {
           provider: "infoway",
-          capability: "stream-stock-quote",
-          business: this.business,
+          capability: this.streamCapabilityTag,
+          business: currentBusiness,
           authModeConfigured: this.wsAuthMode,
           authModeResolved: authMode,
           wsUrlMasked,
@@ -415,8 +665,9 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     socket: any;
     authMode: InfowayResolvedWsAuthMode;
     connectStartedAt: number;
+    business: string;
   }): Promise<void> {
-    const { socket, authMode, connectStartedAt } = params;
+    const { socket, authMode, connectStartedAt, business } = params;
     return new Promise<void>((resolve, reject) => {
       let settled = false;
       const timeout = setTimeout(() => {
@@ -464,7 +715,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
 
         try {
           // 始终发送认证帧，避免握手 header/query 在部分运行时被静默忽略时发生鉴权漂移。
-          this.sendAuthFrame();
+          this.sendAuthFrame(business);
           this.logger.debug("Infoway WebSocket 认证帧发送成功", {
             authFrameCode: this.wsAuthFrameCode,
             authModeResolved: authMode,
@@ -565,9 +816,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       if (!payload.data || typeof payload.data !== "object") {
         return;
       }
+      const normalizedData = this.normalizeRealtimePayload(payload.data);
       for (const callback of this.messageCallbacks) {
         try {
-          callback(payload.data);
+          callback(normalizedData);
         } catch {
           // ignore callback failure
         }
@@ -587,9 +839,12 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
   }
 
-  private buildWsUrl(authMode: InfowayResolvedWsAuthMode): string {
+  private buildWsUrl(
+    authMode: InfowayResolvedWsAuthMode,
+    business: string,
+  ): string {
     const url = new URL(this.wsBaseUrl);
-    url.searchParams.set("business", this.business);
+    url.searchParams.set("business", business);
     if (authMode === "query") {
       url.searchParams.set("apikey", this.apiKey);
     }
@@ -599,12 +854,13 @@ export class InfowayStreamContextService implements OnModuleDestroy {
   private createSocketWithAuth(
     WebSocketCtor: any,
     authMode: InfowayResolvedWsAuthMode,
+    business: string,
   ): {
     socket: any;
     authMode: InfowayResolvedWsAuthMode;
     wsUrlMasked: string;
   } {
-    const url = this.buildWsUrl(authMode);
+    const url = this.buildWsUrl(authMode, business);
     const wsUrlMasked = this.maskWsUrl(url);
 
     if (authMode === "query") {
@@ -640,13 +896,13 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
   }
 
-  private sendAuthFrame(): void {
+  private sendAuthFrame(business: string): void {
     this.sendJson({
       code: this.wsAuthFrameCode,
       trace: randomUUID().replace(/-/g, ""),
       data: {
         apiKey: this.apiKey,
-        business: this.business,
+        business,
       },
     });
   }
@@ -719,8 +975,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       const droppedSubscriptions = this.subscribedSymbols.size;
       if (droppedSubscriptions > 0) {
         this.subscribedSymbols.clear();
+        this.upstreamToStandardSymbolMap.clear();
         this.subscriptionsInvalidated = true;
       }
+      this.activeBusiness = null;
       this.logger.error("Infoway WebSocket 重连已达到最大次数，停止重试", {
         maxReconnectAttempts: this.maxReconnectAttempts,
         droppedSubscriptions,
@@ -747,12 +1005,21 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         this.subscriptionsInvalidated = false;
 
         const symbols = Array.from(this.subscribedSymbols);
-        if (symbols.length > 0) {
+        const upstreamSymbols = Array.from(
+          new Set(
+            symbols.map((symbol) =>
+              symbol.endsWith(".CRYPTO")
+                ? toInfowayCryptoUpstreamSymbol(symbol)
+                : symbol,
+            ),
+          ),
+        );
+        if (upstreamSymbols.length > 0) {
           this.sendJson({
             code: 10000,
             trace: randomUUID().replace(/-/g, ""),
             data: {
-              codes: symbols.join(","),
+              codes: upstreamSymbols.join(","),
             },
           });
         }

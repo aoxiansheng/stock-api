@@ -4,6 +4,8 @@ import type {
   IntradayDeltaResponseDto as IntradayDeltaResponseDtoContract,
   IntradayLineDto as IntradayLineDtoContract,
   IntradayPointDto as IntradayPointDtoContract,
+  IntradayReleasePayloadDto as IntradayReleasePayloadDtoContract,
+  IntradayReleaseResponseDto as IntradayReleaseResponseDtoContract,
   IntradaySnapshotCapabilityDto as IntradaySnapshotCapabilityDtoContract,
   IntradaySnapshotMetadataDto as IntradaySnapshotMetadataDtoContract,
   IntradaySnapshotResponseDto as IntradaySnapshotResponseDtoContract,
@@ -130,4 +132,30 @@ export class IntradayDeltaResponseDto
 {
   @ApiProperty({ type: IntradayDeltaPayloadDto })
   delta: IntradayDeltaPayloadDto;
+}
+
+export class IntradayReleasePayloadDto
+  implements IntradayReleasePayloadDtoContract
+{
+  @ApiProperty({ example: true })
+  released: boolean;
+
+  @ApiProperty({ example: "AAPL.US" })
+  symbol: string;
+
+  @ApiProperty({ example: "US" })
+  market: string;
+
+  @ApiProperty({ example: "infoway" })
+  provider: string;
+
+  @ApiProperty({ example: "stream-stock-quote" })
+  wsCapabilityType: string;
+}
+
+export class IntradayReleaseResponseDto
+  implements IntradayReleaseResponseDtoContract
+{
+  @ApiProperty({ type: IntradayReleasePayloadDto })
+  release: IntradayReleasePayloadDto;
 }
