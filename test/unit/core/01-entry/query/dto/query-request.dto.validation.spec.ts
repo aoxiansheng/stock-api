@@ -38,6 +38,18 @@ describe("Query DTO queryTypeFilter 白名单校验", () => {
     expect(errors).toHaveLength(0);
   });
 
+  it("QueryRequestDto: crypto queryTypeFilter 通过校验", async () => {
+    const dto = plainToInstance(QueryRequestDto, {
+      queryType: QueryType.BY_SYMBOLS,
+      symbols: ["BTCUSDT"],
+      queryTypeFilter: CAPABILITY_NAMES.GET_CRYPTO_QUOTE,
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
+  });
+
   it("QueryRequestDto: stream-stock-quote 在 Query 入口被拒绝", async () => {
     const dto = plainToInstance(QueryRequestDto, {
       queryType: QueryType.BY_SYMBOLS,

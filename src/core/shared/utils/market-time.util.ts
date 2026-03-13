@@ -1,6 +1,6 @@
 import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 
-export const SUPPORTED_MARKETS = ["US", "HK", "CN", "SH", "SZ"] as const;
+export const SUPPORTED_MARKETS = ["US", "HK", "CN", "SH", "SZ", "CRYPTO"] as const;
 
 export type SupportedMarket = (typeof SUPPORTED_MARKETS)[number];
 export type SupportedMarketOrUnknown = SupportedMarket | "UNKNOWN";
@@ -58,6 +58,8 @@ export function resolveMarketTimezone(market: string): string {
     case "SH":
     case "SZ":
       return "Asia/Shanghai";
+    case "CRYPTO":
+      return "UTC";
     default:
       return "UTC";
   }

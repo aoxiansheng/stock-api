@@ -211,6 +211,67 @@ describe("InfowayContextService", () => {
     expect((service as any).client.get.mock.calls.length).toBeGreaterThan(1);
   });
 
+  it("getCryptoQuote: 支持 BTCUSDT 与 BTCUSDT.CRYPTO 并调用 crypto 端点", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [
+          {
+            s: "BTCUSDT",
+            t: "1709251200999",
+            p: "65000.1",
+            v: "321",
+          },
+        ],
+      },
+    });
+
+    const result = await service.getCryptoQuote(["BTCUSDT", "BTCUSDT.CRYPTO"]);
+
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/crypto/batch_trade/BTCUSDT",
+      expect.objectContaining({
+        headers: {
+          apiKey: "test-api-key",
+        },
+      }),
+    );
+    expect(result).toEqual([
+      {
+        s: "BTCUSDT",
+        t: "1709251200999",
+        p: "65000.1",
+        v: "321",
+      },
+    ]);
+  });
+
+  it("getCryptoQuote: 上游 ret 异常时抛结构化业务异常", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 500,
+        msg: "upstream failed",
+        data: [],
+      },
+    });
+
+    await expect(service.getCryptoQuote(["BTCUSDT"])).rejects.toMatchObject({
+      message: "Infoway crypto-quote 响应异常",
+      errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
+      operation: "crypto-quote",
+      context: {
+        provider: "infoway",
+        operation: "crypto-quote",
+        upstream: {
+          ret: 500,
+          msg: "upstream failed",
+        },
+      },
+    });
+  });
+
   it("getMarketStatus: data 结构异常时抛结构化业务异常", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
@@ -431,6 +492,41 @@ describe("InfowayContextService", () => {
         },
       }),
     );
+  });
+
+  it("getCryptoBasicInfo: 命中 CRYPTO type 并返回原始字段", async () => {
+    const service = createService();
+    (service as any).client.get.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [
+          {
+            symbol: "BTCUSDT",
+            market: "CRYPTO",
+            name_en: "BTC/USDT",
+          },
+        ],
+      },
+    });
+
+    const result = await service.getCryptoBasicInfo(["BTCUSDT.CRYPTO"]);
+
+    expect((service as any).client.get).toHaveBeenCalledWith(
+      "/common/basic/symbols/info",
+      expect.objectContaining({
+        params: {
+          type: "CRYPTO",
+          symbols: "BTCUSDT",
+        },
+      }),
+    );
+    expect(result).toEqual([
+      {
+        symbol: "BTCUSDT",
+        market: "CRYPTO",
+        name_en: "BTC/USDT",
+      },
+    ]);
   });
 
   it("getSupportList: data 结构异常时抛结构化业务异常", async () => {

@@ -42,6 +42,8 @@ const TRANS_RULE_TYPE_BY_CAPABILITY = {
   [CAPABILITY_NAMES.GET_MARKET_STATUS]: "market_status_fields",
   [CAPABILITY_NAMES.GET_TRADING_DAYS]: "trading_days_fields",
   [CAPABILITY_NAMES.GET_SUPPORT_LIST]: "basic_info_fields",
+  [CAPABILITY_NAMES.GET_CRYPTO_QUOTE]: "quote_fields",
+  [CAPABILITY_NAMES.GET_CRYPTO_BASIC_INFO]: "basic_info_fields",
   // 合理默认：无明确规则时使用报价字段
   [CAPABILITY_NAMES.GET_STOCK_REALTIME]: "quote_fields",
   [CAPABILITY_NAMES.GET_STOCK_HISTORY]: "candle_fields",

@@ -1,6 +1,7 @@
 import { BusinessErrorCode } from "@common/core/exceptions";
 import {
   inferSingleInfowayMarketFromSymbols,
+  normalizeAndValidateInfowayCryptoSymbols,
   normalizeAndValidateInfowaySymbols,
 } from "@providersv2/providers/infoway/utils/infoway-symbols.util";
 
@@ -61,5 +62,46 @@ describe("infoway-symbols.util", () => {
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
       });
     }
+  });
+
+  it("crypto symbols 支持纯交易对与 .CRYPTO 后缀输入，并统一去重", () => {
+    const symbols = normalizeAndValidateInfowayCryptoSymbols(
+      [" btcusdt ", "BTCUSDT.CRYPTO", "ETHUSDT.CRYPTO", "ethusdt"],
+      {
+        allowEmpty: true,
+        maxCount: 10,
+      },
+    );
+
+    expect(symbols).toEqual(["BTCUSDT", "ETHUSDT"]);
+  });
+
+  it("crypto symbols 缺少合法计价后缀时抛参数错误", () => {
+    expect.assertions(2);
+    expect(() =>
+      normalizeAndValidateInfowayCryptoSymbols(["DOGE"], {
+        allowEmpty: true,
+        maxCount: 10,
+      }),
+    ).toThrow("crypto symbol 交易对格式无效");
+
+    try {
+      normalizeAndValidateInfowayCryptoSymbols(["DOGE"], {
+        allowEmpty: true,
+        maxCount: 10,
+      });
+      throw new Error("预期抛出异常");
+    } catch (error: any) {
+      expect(error).toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+      });
+    }
+  });
+
+  it("crypto symbols 可被推断为 CRYPTO 市场", () => {
+    expect(inferSingleInfowayMarketFromSymbols(["BTCUSDT"])).toBe("CRYPTO");
+    expect(inferSingleInfowayMarketFromSymbols(["ETHUSDT.CRYPTO"])).toBe(
+      "CRYPTO",
+    );
   });
 });

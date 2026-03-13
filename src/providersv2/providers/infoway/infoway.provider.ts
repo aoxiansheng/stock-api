@@ -9,6 +9,8 @@ import { IDataProvider } from "../interfaces/provider.interface";
 import { getStockQuote } from "./capabilities/get-stock-quote";
 import { getStockHistory } from "./capabilities/get-stock-history";
 import { getStockBasicInfo } from "./capabilities/get-stock-basic-info";
+import { getCryptoQuote } from "./capabilities/get-crypto-quote";
+import { getCryptoBasicInfo } from "./capabilities/get-crypto-basic-info";
 import { getMarketStatus } from "./capabilities/get-market-status";
 import { getTradingDays } from "./capabilities/get-trading-days";
 import { getSupportList } from "./capabilities/get-support-list";
@@ -26,6 +28,8 @@ export class InfowayProvider implements IDataProvider {
     getStockQuote,
     getStockHistory,
     getStockBasicInfo,
+    getCryptoQuote,
+    getCryptoBasicInfo,
     getMarketStatus,
     getTradingDays,
     getSupportList,

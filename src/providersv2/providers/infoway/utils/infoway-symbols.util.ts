@@ -1,10 +1,27 @@
 import { throwInfowayDataValidationError } from "../helpers/capability-context.helper";
 
-export type InfowayMarketCode = "HK" | "US" | "CN";
+export type InfowayMarketCode = "HK" | "US" | "CN" | "CRYPTO";
 
-const INFOWAY_SYMBOL_PATTERN = /^(?:[A-Z0-9]+(?:[._-][A-Z0-9]+)*)\.(HK|US|SH|SZ)$/;
-const INFOWAY_SYMBOL_MAX_LENGTH = 32;
-const INFOWAY_MARKET_STABLE_ORDER: InfowayMarketCode[] = ["HK", "US", "CN"];
+const INFOWAY_STOCK_SYMBOL_PATTERN =
+  /^(?:[A-Z0-9]+(?:[._-][A-Z0-9]+)*)\.(HK|US|SH|SZ)$/;
+const INFOWAY_STOCK_SYMBOL_MAX_LENGTH = 32;
+const INFOWAY_CRYPTO_SYMBOL_PATTERN = /^[A-Z0-9]{2,20}$/;
+const INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH = 20;
+const INFOWAY_CRYPTO_SUFFIX_PATTERN = /\.CRYPTO$/;
+const INFOWAY_CRYPTO_QUOTE_SUFFIXES = [
+  "USDT",
+  "USDC",
+  "BUSD",
+  "FDUSD",
+  "BTC",
+  "ETH",
+] as const;
+const INFOWAY_MARKET_STABLE_ORDER: InfowayMarketCode[] = [
+  "HK",
+  "US",
+  "CN",
+  "CRYPTO",
+];
 
 export const INFOWAY_SYMBOL_LIMIT = {
   REST: 600,
@@ -40,18 +57,18 @@ export function normalizeAndValidateInfowaySymbols(
       continue;
     }
 
-    if (symbol.length > INFOWAY_SYMBOL_MAX_LENGTH) {
+    if (symbol.length > INFOWAY_STOCK_SYMBOL_MAX_LENGTH) {
       throwInfowayDataValidationError(
-        `Infoway 参数错误: symbol 长度超过限制（${INFOWAY_SYMBOL_MAX_LENGTH}）`,
+        `Infoway 参数错误: symbol 长度超过限制（${INFOWAY_STOCK_SYMBOL_MAX_LENGTH}）`,
         {
           symbol,
-          maxLength: INFOWAY_SYMBOL_MAX_LENGTH,
+          maxLength: INFOWAY_STOCK_SYMBOL_MAX_LENGTH,
         },
         "normalizeAndValidateInfowaySymbols",
       );
     }
 
-    if (!INFOWAY_SYMBOL_PATTERN.test(symbol)) {
+    if (!INFOWAY_STOCK_SYMBOL_PATTERN.test(symbol)) {
       throwInfowayDataValidationError(
         "Infoway 参数错误: symbol 格式无效（仅支持 *.HK/*.US/*.SH/*.SZ）",
         {
@@ -87,11 +104,119 @@ export function normalizeAndValidateInfowaySymbols(
   return normalized;
 }
 
+function hasInfowayKnownCryptoQuoteSuffix(symbol: string): boolean {
+  return INFOWAY_CRYPTO_QUOTE_SUFFIXES.some((suffix) =>
+    symbol.endsWith(suffix),
+  );
+}
+
+function normalizeSingleInfowayCryptoSymbol(raw: unknown): string {
+  let symbol = String(raw || "").trim().toUpperCase();
+  if (!symbol) {
+    return "";
+  }
+
+  if (INFOWAY_CRYPTO_SUFFIX_PATTERN.test(symbol)) {
+    symbol = symbol.replace(INFOWAY_CRYPTO_SUFFIX_PATTERN, "");
+  }
+
+  return symbol;
+}
+
+export function normalizeAndValidateInfowayCryptoSymbols(
+  symbolsInput: unknown,
+  options: NormalizeSymbolsOptions,
+): string[] {
+  const paramName = options.paramName || "symbols";
+
+  if (!Array.isArray(symbolsInput)) {
+    throwInfowayDataValidationError(
+      `Infoway 参数错误: ${paramName} 必须是数组`,
+      {
+        paramName,
+        receivedType: typeof symbolsInput,
+      },
+      "normalizeAndValidateInfowayCryptoSymbols",
+    );
+  }
+
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of symbolsInput) {
+    const symbol = normalizeSingleInfowayCryptoSymbol(raw);
+    if (!symbol) {
+      continue;
+    }
+
+    if (symbol.length > INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH) {
+      throwInfowayDataValidationError(
+        `Infoway 参数错误: crypto symbol 长度超过限制（${INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH}）`,
+        {
+          symbol,
+          maxLength: INFOWAY_CRYPTO_SYMBOL_MAX_LENGTH,
+        },
+        "normalizeAndValidateInfowayCryptoSymbols",
+      );
+    }
+
+    if (!INFOWAY_CRYPTO_SYMBOL_PATTERN.test(symbol)) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: crypto symbol 格式无效（仅支持大写字母和数字，如 BTCUSDT）",
+        {
+          symbol,
+        },
+        "normalizeAndValidateInfowayCryptoSymbols",
+      );
+    }
+
+    if (!hasInfowayKnownCryptoQuoteSuffix(symbol)) {
+      throwInfowayDataValidationError(
+        "Infoway 参数错误: crypto symbol 交易对格式无效（示例：BTCUSDT）",
+        {
+          symbol,
+          allowedQuoteSuffixes: INFOWAY_CRYPTO_QUOTE_SUFFIXES,
+        },
+        "normalizeAndValidateInfowayCryptoSymbols",
+      );
+    }
+
+    if (!seen.has(symbol)) {
+      seen.add(symbol);
+      normalized.push(symbol);
+    }
+  }
+
+  if (normalized.length > options.maxCount) {
+    throwInfowayDataValidationError(
+      `Infoway 参数错误: ${paramName} 数量超过上限（最多 ${options.maxCount} 个）`,
+      {
+        currentCount: normalized.length,
+        maxCount: options.maxCount,
+      },
+      "normalizeAndValidateInfowayCryptoSymbols",
+    );
+  }
+
+  if (!options.allowEmpty && normalized.length === 0) {
+    throwInfowayDataValidationError(
+      `Infoway 参数错误: ${paramName} 不能为空`,
+      {
+        paramName,
+      },
+      "normalizeAndValidateInfowayCryptoSymbols",
+    );
+  }
+
+  return normalized;
+}
+
 export function normalizeInfowayMarketCode(value: unknown): InfowayMarketCode | "" {
   const market = String(value || "").trim().toUpperCase();
   if (market === "HK") return "HK";
   if (market === "US") return "US";
   if (market === "CN" || market === "SH" || market === "SZ") return "CN";
+  if (market === "CRYPTO") return "CRYPTO";
   return "";
 }
 
@@ -133,9 +258,16 @@ export function inferSingleInfowayMarketFromSymbols(
 
 function resolveInfowayMarketFromSymbol(symbol: unknown): InfowayMarketCode | "" {
   const normalized = String(symbol || "").trim().toUpperCase();
+  if (INFOWAY_CRYPTO_SUFFIX_PATTERN.test(normalized)) return "CRYPTO";
   if (normalized.endsWith(".US")) return "US";
   if (normalized.endsWith(".HK")) return "HK";
   if (normalized.endsWith(".SH") || normalized.endsWith(".SZ")) return "CN";
+  if (
+    INFOWAY_CRYPTO_SYMBOL_PATTERN.test(normalized) &&
+    hasInfowayKnownCryptoQuoteSuffix(normalized)
+  ) {
+    return "CRYPTO";
+  }
   return "";
 }
 

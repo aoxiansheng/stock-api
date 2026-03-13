@@ -19,6 +19,7 @@ import {
 } from "../utils/infoway-error.util";
 import {
   INFOWAY_SYMBOL_LIMIT,
+  normalizeAndValidateInfowayCryptoSymbols,
   inferSingleInfowayMarketFromSymbols,
   normalizeAndValidateInfowaySymbols,
   normalizeInfowayMarketCode,
@@ -66,7 +67,8 @@ interface InfowayHistoryParams {
 const MAX_TRADING_DAYS_RANGE = 366;
 const MAX_INTRADAY_KLINE_NUM = 500;
 const MAX_QUOTE_BATCH_TRADE_PATH_LENGTH = 7000;
-const QUOTE_BATCH_TRADE_ENDPOINT_PREFIX = "/stock/batch_trade/";
+const STOCK_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX = "/stock/batch_trade/";
+const CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX = "/crypto/batch_trade/";
 const ALLOWED_HISTORY_KLINE_TYPES = new Set([1, 5, 15, 30, 60]);
 const INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE =
   "Infoway 参数错误: timestamp 必须是 10/13 位正整数时间戳";
@@ -178,26 +180,72 @@ export class InfowayContextService {
       return [];
     }
 
-    const quoteBatches = this.buildQuoteSymbolBatches(normalizedSymbols);
+    const quoteBatches = this.buildQuoteSymbolBatches(
+      normalizedSymbols,
+      STOCK_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+    );
     const tradeItems: InfowayTradeItem[] = [];
 
     for (const batchSymbols of quoteBatches) {
-      const batchTradeItems =
-        await this.fetchQuoteBatchTradeItemsWithRetry(batchSymbols);
+      const batchTradeItems = await this.fetchQuoteBatchTradeItemsWithRetry(
+        batchSymbols,
+        STOCK_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+        "quote",
+      );
       tradeItems.push(...batchTradeItems);
     }
 
     this.logger.debug("Infoway REST 报价获取成功", {
       requested: normalizedSymbols.length,
       received: tradeItems.length,
-      endpoint: "/stock/batch_trade/{codes}",
+      endpoint: STOCK_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
       batchCount: quoteBatches.length,
     });
 
     return tradeItems;
   }
 
-  private buildQuoteSymbolBatches(symbols: string[]): string[][] {
+  async getCryptoQuote(symbols: string[]): Promise<any[]> {
+    await this.ensureConfigured();
+
+    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(symbols, {
+      allowEmpty: true,
+      maxCount: INFOWAY_SYMBOL_LIMIT.REST,
+    });
+
+    if (normalizedSymbols.length === 0) {
+      return [];
+    }
+
+    const quoteBatches = this.buildQuoteSymbolBatches(
+      normalizedSymbols,
+      CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+    );
+    const tradeItems: InfowayTradeItem[] = [];
+
+    for (const batchSymbols of quoteBatches) {
+      const batchTradeItems = await this.fetchQuoteBatchTradeItemsWithRetry(
+        batchSymbols,
+        CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+        "crypto-quote",
+      );
+      tradeItems.push(...batchTradeItems);
+    }
+
+    this.logger.debug("Infoway REST 加密货币报价获取成功", {
+      requested: normalizedSymbols.length,
+      received: tradeItems.length,
+      endpoint: CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
+      batchCount: quoteBatches.length,
+    });
+
+    return tradeItems;
+  }
+
+  private buildQuoteSymbolBatches(
+    symbols: string[],
+    endpointPrefix: string,
+  ): string[][] {
     const batches: string[][] = [];
     let currentBatch: string[] = [];
     let currentSymbolsLength = 0;
@@ -205,9 +253,7 @@ export class InfowayContextService {
     for (const symbol of symbols) {
       const additionalLength = (currentBatch.length > 0 ? 1 : 0) + symbol.length;
       const projectedPathLength =
-        QUOTE_BATCH_TRADE_ENDPOINT_PREFIX.length +
-        currentSymbolsLength +
-        additionalLength;
+        endpointPrefix.length + currentSymbolsLength + additionalLength;
 
       if (
         currentBatch.length > 0 &&
@@ -232,9 +278,15 @@ export class InfowayContextService {
 
   private async fetchQuoteBatchTradeItemsWithRetry(
     batchSymbols: string[],
+    endpointPrefix: string,
+    operation: string,
   ): Promise<InfowayTradeItem[]> {
     try {
-      return await this.fetchQuoteBatchTradeItems(batchSymbols);
+      return await this.fetchQuoteBatchTradeItems(
+        batchSymbols,
+        endpointPrefix,
+        operation,
+      );
     } catch (error: any) {
       if (!this.isUriTooLongError(error) || batchSymbols.length <= 1) {
         throw error;
@@ -243,9 +295,13 @@ export class InfowayContextService {
       const splitIndex = Math.ceil(batchSymbols.length / 2);
       const left = await this.fetchQuoteBatchTradeItemsWithRetry(
         batchSymbols.slice(0, splitIndex),
+        endpointPrefix,
+        operation,
       );
       const right = await this.fetchQuoteBatchTradeItemsWithRetry(
         batchSymbols.slice(splitIndex),
+        endpointPrefix,
+        operation,
       );
       return [...left, ...right];
     }
@@ -253,20 +309,15 @@ export class InfowayContextService {
 
   private async fetchQuoteBatchTradeItems(
     batchSymbols: string[],
+    endpointPrefix: string,
+    operation: string,
   ): Promise<InfowayTradeItem[]> {
-    const response = await this.client.get(
-      `${QUOTE_BATCH_TRADE_ENDPOINT_PREFIX}${batchSymbols.join(",")}`,
-      {
-        headers: { apiKey: this.apiKey },
-      },
-    );
+    const response = await this.client.get(`${endpointPrefix}${batchSymbols.join(",")}`, {
+      headers: { apiKey: this.apiKey },
+    });
 
     const body = response.data || {};
-    this.assertInfowayResponse(
-      body,
-      "quote",
-      (data) => Array.isArray(data),
-    );
+    this.assertInfowayResponse(body, operation, (data) => Array.isArray(data));
 
     return body.data as InfowayTradeItem[];
   }
@@ -538,6 +589,41 @@ export class InfowayContextService {
 
         results.push(...(body.data as Array<Record<string, any>>));
       }
+    }
+
+    return results;
+  }
+
+  async getCryptoBasicInfo(symbols: string[]): Promise<any[]> {
+    await this.ensureConfigured();
+
+    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(symbols, {
+      allowEmpty: true,
+      maxCount: INFOWAY_SYMBOL_LIMIT.REST,
+    });
+    if (normalizedSymbols.length === 0) {
+      return [];
+    }
+
+    const results: any[] = [];
+    const chunks = this.chunkArray(normalizedSymbols, 500);
+    for (const chunk of chunks) {
+      const response = await this.client.get("/common/basic/symbols/info", {
+        headers: { apiKey: this.apiKey },
+        params: {
+          type: "CRYPTO",
+          symbols: chunk.join(","),
+        },
+      });
+
+      const body = response.data || {};
+      this.assertInfowayResponse(
+        body,
+        "crypto-basic-info",
+        (data) => Array.isArray(data),
+      );
+
+      results.push(...(body.data as Array<Record<string, any>>));
     }
 
     return results;

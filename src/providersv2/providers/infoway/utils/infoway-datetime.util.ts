@@ -6,6 +6,7 @@ const INFOWAY_MARKET_TIMEZONE: Record<InfowayMarketCode, string> = {
   US: "America/New_York",
   HK: "Asia/Hong_Kong",
   CN: "Asia/Shanghai",
+  CRYPTO: "UTC",
 };
 const INFOWAY_DAY_FORMATTER_BY_TZ = new Map<string, Intl.DateTimeFormat>();
 

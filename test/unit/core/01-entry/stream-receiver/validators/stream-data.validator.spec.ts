@@ -145,12 +145,14 @@ describe("StreamDataValidator provider matrix", () => {
     });
   });
 
-  describe("symbol format 统一严格标准（必须市场后缀）", () => {
-    it("接受 US/CN/SG 标准后缀格式", () => {
+  describe("symbol format 统一严格标准", () => {
+    it("接受 US/CN/SG 标准后缀格式以及 CRYPTO 兼容格式", () => {
       expect(validator.isValidSymbolFormat("AAPL.US")).toBe(true);
       expect(validator.isValidSymbolFormat("600519.SH")).toBe(true);
       expect(validator.isValidSymbolFormat("000001.SZ")).toBe(true);
       expect(validator.isValidSymbolFormat("DBS.SG")).toBe(true);
+      expect(validator.isValidSymbolFormat("BTCUSDT.CRYPTO")).toBe(true);
+      expect(validator.isValidSymbolFormat("BTCUSDT")).toBe(true);
     });
 
     it("拒绝缺失后缀或非标准后缀格式", () => {
@@ -165,6 +167,8 @@ describe("StreamDataValidator provider matrix", () => {
       expect(validator.extractMarket("700.HK")).toBe("HK");
       expect(validator.extractMarket("600519.SH")).toBe("CN");
       expect(validator.extractMarket("000001.SZ")).toBe("CN");
+      expect(validator.extractMarket("BTCUSDT")).toBe("CRYPTO");
+      expect(validator.extractMarket("BTCUSDT.CRYPTO")).toBe("CRYPTO");
       expect(validator.extractMarket("DBS.SG")).toBe("SG");
       expect(validator.extractMarket("AAPL")).toBeNull();
     });

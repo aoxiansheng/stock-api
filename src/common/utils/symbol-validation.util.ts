@@ -28,6 +28,7 @@ export class SymbolValidationUtils {
     US: [".US", ".NASDAQ", ".NYSE"],
     SZ: [".SZ"],
     SH: [".SH"],
+    CRYPTO: [".CRYPTO"],
     SG: [".SG", ".SGX"],
   } as const;
 
@@ -47,6 +48,15 @@ export class SymbolValidationUtils {
     "SOL",
   ] as const;
 
+  private static readonly CRYPTO_QUOTE_SUFFIXES = [
+    "USDT",
+    "USDC",
+    "BUSD",
+    "FDUSD",
+    "BTC",
+    "ETH",
+  ] as const;
+
   /**
    * 严格标准 symbol：必须包含市场后缀（统一真相源）
    * - HK: 1-5位数字或HSI + .HK
@@ -58,6 +68,7 @@ export class SymbolValidationUtils {
     /^(?:[0-9]{1,5}|HSI)\.HK$/i,
     /^[A-Z0-9]+(?:[.\-][A-Z0-9]+){0,2}\.US$/i,
     /^[0-9]{6}\.(?:SH|SZ)$/i,
+    /^[A-Z0-9]{2,20}\.CRYPTO$/i,
     /^[A-Z0-9]{3,5}\.SG$/i,
   ];
 
@@ -84,6 +95,10 @@ export class SymbolValidationUtils {
     return this.CRYPTO_KEYWORDS.some((keyword) => symbol.includes(keyword));
   }
 
+  private static hasKnownCryptoQuoteSuffix(symbol: string): boolean {
+    return this.CRYPTO_QUOTE_SUFFIXES.some((suffix) => symbol.endsWith(suffix));
+  }
+
   /**
    * 验证严格标准 symbol（必须带市场后缀）
    */
@@ -96,9 +111,18 @@ export class SymbolValidationUtils {
       return false;
     }
 
-    return this.STRICT_STANDARD_SYMBOL_PATTERNS.some((pattern) =>
-      pattern.test(symbol),
-    );
+    if (
+      this.STRICT_STANDARD_SYMBOL_PATTERNS.some((pattern) => pattern.test(symbol))
+    ) {
+      return true;
+    }
+
+    // 兼容 Infoway 加密货币常见交易对（如 BTCUSDT）
+    if (/^[A-Z0-9]{6,20}$/.test(symbol) && this.hasKnownCryptoQuoteSuffix(symbol)) {
+      return true;
+    }
+
+    return false;
   }
 
   public static isValidSymbol(symbol: string): boolean {
@@ -152,6 +176,11 @@ export class SymbolValidationUtils {
 
     // SH 市场: 60/68开头6位数字(600000) 或 .SH 后缀(600000.SH)
     if (this.isValidSHSymbol(upperSymbol)) {
+      return true;
+    }
+
+    // CRYPTO 市场: BTCUSDT 或 BTCUSDT.CRYPTO
+    if (this.isValidCryptoSymbol(upperSymbol)) {
       return true;
     }
 
@@ -274,6 +303,26 @@ export class SymbolValidationUtils {
   }
 
   /**
+   * 验证加密货币代码格式
+   * - 标准格式：<PAIR>.CRYPTO（如 BTCUSDT.CRYPTO）
+   * - 兼容格式：<PAIR>（如 BTCUSDT）
+   */
+  public static isValidCryptoSymbol(symbol: string): boolean {
+    const upperSymbol = symbol.toUpperCase();
+
+    if (this.endsWithAny(upperSymbol, this.SUFFIX_GROUPS.CRYPTO)) {
+      const pair = this.stripSuffix(upperSymbol, ".CRYPTO");
+      return /^[A-Z0-9]{2,20}$/.test(pair);
+    }
+
+    if (!/^[A-Z0-9]{6,20}$/.test(upperSymbol)) {
+      return false;
+    }
+
+    return this.hasKnownCryptoQuoteSuffix(upperSymbol);
+  }
+
+  /**
    * 从股票代码推断市场
    * 按照优先级顺序进行市场判断，避免格式冲突
    */
@@ -303,6 +352,9 @@ export class SymbolValidationUtils {
     if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.SH)) {
       return Market.SH;
     }
+    if (this.endsWithAny(normalized, this.SUFFIX_GROUPS.CRYPTO)) {
+      return Market.CRYPTO;
+    }
 
     if (/^(00|30)\d{4}$/.test(normalized)) {
       return Market.SZ;
@@ -317,6 +369,10 @@ export class SymbolValidationUtils {
 
     if (/^\d{4,5}$/.test(normalized)) {
       return Market.HK;
+    }
+
+    if (this.isValidCryptoSymbol(normalized)) {
+      return Market.CRYPTO;
     }
 
     return options.fallback;
@@ -354,7 +410,7 @@ export class SymbolValidationUtils {
       return 'SG';
     }
 
-    if (this.isCryptoSymbol(normalized)) {
+    if (this.isValidCryptoSymbol(normalized) || this.isCryptoSymbol(normalized)) {
       return Market.CRYPTO;
     }
 
@@ -373,7 +429,7 @@ export class SymbolValidationUtils {
       return true;
     }
 
-    return this.isCryptoSymbol(normalized);
+    return this.isValidCryptoSymbol(normalized) || this.isCryptoSymbol(normalized);
   }
 
   public static validateSymbols(symbols: string[]): {
@@ -436,6 +492,7 @@ export class SymbolValidationUtils {
       US: ["AAPL.US", "AAPL", "SPY.US", "SPY", "BRK.A", "BRK.A.US"],
       SZ: ["000001.SZ", "000001", "300001.SZ", "300001"],
       SH: ["600000.SH", "600000", "688001.SH", "688001"],
+      CRYPTO: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BTCUSDT.CRYPTO"],
       Others: ["D05.SG", "TSM.TW", "7203.JP"],
     };
   }

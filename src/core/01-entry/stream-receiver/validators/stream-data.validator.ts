@@ -46,7 +46,7 @@ export class StreamDataValidator {
   ) {}
 
   // 支持的市场前缀
-  private readonly SUPPORTED_MARKETS = ['HK', 'US', 'CN', 'SG'];
+  private readonly SUPPORTED_MARKETS = ['HK', 'US', 'CN', 'SG', 'CRYPTO'];
 
   private readonly DYNAMIC_WS_CAPABILITY_CACHE_TTL_MS = 30 * 1000;
   private dynamicWSCapabilityCache: Set<string> | null = null;
@@ -216,6 +216,12 @@ export class StreamDataValidator {
     }
     if (sanitized.endsWith('.SH') || sanitized.endsWith('.SZ')) {
       return 'CN';
+    }
+    if (sanitized.endsWith('.CRYPTO')) {
+      return 'CRYPTO';
+    }
+    if (/^[A-Z0-9]{6,20}$/.test(sanitized) && /(USDT|USDC|BUSD|FDUSD|BTC|ETH)$/.test(sanitized)) {
+      return 'CRYPTO';
     }
 
     return null;
@@ -527,6 +533,7 @@ export class StreamDataValidator {
       HK: ['0700.HK', '00700.HK', '9988.HK'],
       US: ['AAPL.US', 'GOOGL.US', 'TSLA.US'],
       CN: ['000001.SZ', '600036.SH', '300059.SZ'],
+      CRYPTO: ['BTCUSDT.CRYPTO', 'ETHUSDT.CRYPTO', 'SOLUSDT.CRYPTO'],
       SG: ['DBS.SG', 'OCBC.SG', 'UOB.SG']
     };
   }

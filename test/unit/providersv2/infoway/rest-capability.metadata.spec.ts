@@ -1,4 +1,6 @@
 import { getMarketStatus } from "@providersv2/providers/infoway/capabilities/get-market-status";
+import { getCryptoBasicInfo } from "@providersv2/providers/infoway/capabilities/get-crypto-basic-info";
+import { getCryptoQuote } from "@providersv2/providers/infoway/capabilities/get-crypto-quote";
 import { getStockBasicInfo } from "@providersv2/providers/infoway/capabilities/get-stock-basic-info";
 import { getStockHistory } from "@providersv2/providers/infoway/capabilities/get-stock-history";
 import { getStockQuote } from "@providersv2/providers/infoway/capabilities/get-stock-quote";
@@ -8,8 +10,10 @@ import { getTradingDays } from "@providersv2/providers/infoway/capabilities/get-
 describe("infoway REST capability metadata contract", () => {
   it.each([
     ["get-stock-quote", getStockQuote],
+    ["get-crypto-quote", getCryptoQuote],
     ["get-stock-history", getStockHistory],
     ["get-stock-basic-info", getStockBasicInfo],
+    ["get-crypto-basic-info", getCryptoBasicInfo],
     ["get-market-status", getMarketStatus],
     ["get-trading-days", getTradingDays],
     ["get-support-list", getSupportList],
