@@ -6,7 +6,8 @@ set -euo pipefail
 # 1. 通过 snapshot 获取首屏，确保分时图 API 可用
 # 2. 建立前端 WebSocket 连接，发送 subscribe + wsCapabilityType
 # 3. 断言能收到 chart.intraday.point
-# 4. 结束时执行 unsubscribe + release 清理
+# 4. 执行 unsubscribe，并验证退订后不再继续收到新的 chart.intraday.point
+# 5. 最后执行 release 清理
 
 node <<'NODE'
 /* eslint-disable no-console */
@@ -36,6 +37,9 @@ const TIMEOUT_MS = Number(process.env.TIMEOUT_MS || 45000);
 const UNSUBSCRIBE_TIMEOUT_MS = Number(
   process.env.UNSUBSCRIBE_TIMEOUT_MS || 1500,
 );
+const POST_UNSUBSCRIBE_OBSERVE_MS = Number(
+  process.env.POST_UNSUBSCRIBE_OBSERVE_MS || 1500,
+);
 const VERBOSE_PACKET = parseBooleanFlag(process.env.VERBOSE_PACKET, false);
 const RELEASE_AFTER_TEST = parseBooleanFlag(process.env.RELEASE_AFTER_TEST, true);
 const REQUIRE_UNSUBSCRIBE_ACK = parseBooleanFlag(
@@ -62,15 +66,7 @@ function resolveWsCapabilityType(symbol) {
 }
 
 const WS_CAPABILITY_TYPE = resolveWsCapabilityType(SYMBOL);
-
-function fail(message, extra) {
-  if (extra !== undefined) {
-    console.error(message, extra);
-  } else {
-    console.error(message);
-  }
-  process.exit(1);
-}
+const RUN_STARTED_AT_MS = Date.now();
 
 function assert(condition, message, extra) {
   if (!condition) {
@@ -78,6 +74,35 @@ function assert(condition, message, extra) {
     error.extra = extra;
     throw error;
   }
+}
+
+function toIsoTime(ms) {
+  return new Date(ms).toISOString();
+}
+
+function extractErrorMessage(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value instanceof Error && value.message) {
+    return value.message;
+  }
+  if (typeof value.message === "string") {
+    return value.message;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function printFinalSummary(summary) {
+  console.log("[final-summary]");
+  console.log(JSON.stringify(summary, null, 2));
 }
 
 async function requestJson(url, options = {}) {
@@ -408,6 +433,11 @@ async function main() {
     Number.isFinite(UNSUBSCRIBE_TIMEOUT_MS) && UNSUBSCRIBE_TIMEOUT_MS > 0,
     "[FAIL] UNSUBSCRIBE_TIMEOUT_MS 必须是正数",
   );
+  assert(
+    Number.isFinite(POST_UNSUBSCRIBE_OBSERVE_MS) &&
+      POST_UNSUBSCRIBE_OBSERVE_MS > 0,
+    "[FAIL] POST_UNSUBSCRIBE_OBSERVE_MS 必须是正数",
+  );
 
   const auth = await resolveApiKeyPair();
   const snapshotData = await callSnapshot(auth);
@@ -431,6 +461,7 @@ async function main() {
     minChartPointCount: MIN_CHART_POINT_COUNT,
     timeoutMs: TIMEOUT_MS,
     unsubscribeTimeoutMs: UNSUBSCRIBE_TIMEOUT_MS,
+    postUnsubscribeObserveMs: POST_UNSUBSCRIBE_OBSERVE_MS,
     authSource: auth.source,
     releaseAfterTest: RELEASE_AFTER_TEST,
     requireUnsubscribeAck: REQUIRE_UNSUBSCRIBE_ACK,
@@ -470,22 +501,56 @@ async function main() {
   });
 
   let settled = false;
+  let successFlowStarted = false;
+  let chartPointPhase = "active";
   let chartPointCount = 0;
   let rawDataCount = 0;
   let lastChartPayload = null;
   let lastRawPayload = null;
   let lastAck = null;
+  let cachedUnsubscribeResult = null;
+  let postUnsubscribeObserveResult = null;
+  let postUnsubscribeObserver = null;
 
-  async function cleanupAndExit(code, message, extra) {
-    if (settled) {
-      return;
-    }
-    settled = true;
+  async function observeNoMoreChartPointsAfterUnsubscribe() {
+    chartPointPhase = "observing-after-unsubscribe";
 
-    let finalCode = code;
-    let finalMessage = message;
+    return new Promise((resolve) => {
+      const startedAtMs = Date.now();
+      let finished = false;
+
+      const finish = (status, detail) => {
+        if (finished) {
+          return;
+        }
+        finished = true;
+        postUnsubscribeObserver = null;
+        chartPointPhase = "finalizing";
+
+        const result = {
+          status,
+          observeWindowMs: POST_UNSUBSCRIBE_OBSERVE_MS,
+          startedAt: toIsoTime(startedAtMs),
+          endedAt: toIsoTime(Date.now()),
+          detail,
+        };
+        postUnsubscribeObserveResult = result;
+        resolve(result);
+      };
+
+      const timer = setTimeout(() => {
+        finish("silent", null);
+      }, POST_UNSUBSCRIBE_OBSERVE_MS);
+
+      postUnsubscribeObserver = (payload) => {
+        clearTimeout(timer);
+        finish("unexpected-point", payload);
+      };
+    });
+  }
+
+  async function finalizeSuccessAfterUnsubscribeValidation() {
     let unsubscribeResult = null;
-
     try {
       unsubscribeResult = await unsubscribeWithAck(socket);
     } catch (error) {
@@ -494,6 +559,96 @@ async function main() {
         status: "exception",
         detail: error?.message || String(error || ""),
       };
+    }
+    cachedUnsubscribeResult = unsubscribeResult;
+
+    if (
+      REQUIRE_UNSUBSCRIBE_ACK &&
+      unsubscribeResult?.status !== "ack"
+    ) {
+      await cleanupAndExit(
+        1,
+        "[FAIL] unsubscribe 未收到 ack",
+        {
+          chartPointCount,
+          rawDataCount,
+          lastAck,
+          lastChartPayload,
+          unsubscribeResult,
+        },
+        { unsubscribeResult },
+      );
+      return;
+    }
+
+    const observeResult = await observeNoMoreChartPointsAfterUnsubscribe();
+
+    if (observeResult?.status !== "silent") {
+      await cleanupAndExit(
+        1,
+        "[FAIL] unsubscribe 后仍收到新的 chart.intraday.point",
+        {
+          chartPointCount,
+          rawDataCount,
+          lastAck,
+          lastChartPayload,
+          unsubscribeResult,
+          postUnsubscribeObserveResult: observeResult,
+        },
+        {
+          unsubscribeResult,
+          postUnsubscribeObserveResult: observeResult,
+        },
+      );
+      return;
+    }
+
+    await cleanupAndExit(
+      0,
+      "[PASS] chart.intraday.point 联调通过，且 unsubscribe 后已验证静默",
+      {
+        chartPointCount,
+        rawDataCount,
+        lastAck,
+        lastChartPayload,
+        unsubscribeResult,
+        postUnsubscribeObserveResult: observeResult,
+      },
+      {
+        unsubscribeResult,
+        postUnsubscribeObserveResult: observeResult,
+      },
+    );
+  }
+
+  async function cleanupAndExit(code, message, extra, cleanupOverrides = {}) {
+    if (settled) {
+      return;
+    }
+    settled = true;
+
+    let finalCode = code;
+    let finalMessage = message;
+    let unsubscribeResult =
+      cleanupOverrides.unsubscribeResult ||
+      cachedUnsubscribeResult ||
+      null;
+    let observeResult =
+      cleanupOverrides.postUnsubscribeObserveResult ||
+      postUnsubscribeObserveResult ||
+      null;
+
+    if (!unsubscribeResult) {
+      try {
+        unsubscribeResult = await unsubscribeWithAck(socket);
+      } catch (error) {
+        unsubscribeResult = {
+          attempted: true,
+          status: "exception",
+          detail: error?.message || String(error || ""),
+        };
+      }
+      cachedUnsubscribeResult = unsubscribeResult;
     }
 
     if (
@@ -543,9 +698,48 @@ async function main() {
     const payload = extra ? { ...extra } : {};
     payload.cleanup = {
       unsubscribe: unsubscribeResult,
+      postUnsubscribeObserve: observeResult,
       release: releaseResult,
     };
+
+    const nowMs = Date.now();
+    const summary = {
+      result: finalCode === 0 ? "PASS" : "FAIL",
+      exitCode: finalCode,
+      reason: finalMessage,
+      symbol: SYMBOL,
+      provider: PROVIDER,
+      wsCapabilityType: WS_CAPABILITY_TYPE,
+      startedAt: toIsoTime(RUN_STARTED_AT_MS),
+      endedAt: toIsoTime(nowMs),
+      durationMs: nowMs - RUN_STARTED_AT_MS,
+      stats: {
+        minChartPointCount: MIN_CHART_POINT_COUNT,
+        chartPointCount,
+        rawDataCount,
+        snapshotPointsCount: snapshotPoints.length,
+        snapshotCursorLength: snapshotCursor.length,
+        realtimeMergedPoints,
+      },
+      ws: {
+        subscribeAckReceived: Boolean(lastAck),
+      },
+      cleanup: {
+        unsubscribeStatus: unsubscribeResult?.status || "unknown",
+        postUnsubscribeObserveStatus: observeResult?.status || "unknown",
+        postUnsubscribeObserveWindowMs:
+          observeResult?.observeWindowMs || POST_UNSUBSCRIBE_OBSERVE_MS,
+        releaseStatus: releaseResult?.status || "unknown",
+        releaseReleased:
+          typeof releaseResult?.data?.released === "boolean"
+            ? releaseResult.data.released
+            : null,
+      },
+      error: extractErrorMessage(payload?.error),
+    };
+
     console.log(finalMessage, payload);
+    printFinalSummary(summary);
     process.exit(finalCode);
   }
 
@@ -609,6 +803,17 @@ async function main() {
   });
 
   socket.on("chart.intraday.point", (payload) => {
+    if (chartPointPhase === "observing-after-unsubscribe") {
+      if (typeof postUnsubscribeObserver === "function") {
+        postUnsubscribeObserver(payload);
+      }
+      return;
+    }
+
+    if (chartPointPhase !== "active") {
+      return;
+    }
+
     try {
       validateChartPointPayload(payload);
     } catch (error) {
@@ -634,13 +839,13 @@ async function main() {
     }
 
     if (chartPointCount >= MIN_CHART_POINT_COUNT) {
+      if (successFlowStarted) {
+        return;
+      }
+      successFlowStarted = true;
+      chartPointPhase = "verifying-unsubscribe";
       clearTimeout(timeout);
-      void cleanupAndExit(0, "[PASS] chart.intraday.point 联调通过", {
-        chartPointCount,
-        rawDataCount,
-        lastAck,
-        lastChartPayload,
-      });
+      void finalizeSuccessAfterUnsubscribeValidation();
     }
   });
 
@@ -654,11 +859,33 @@ async function main() {
 }
 
 void main().catch((error) => {
-  fail(
-    "[FAIL] 脚本执行异常",
-    error?.extra
-      ? { message: error?.message || String(error || ""), extra: error.extra }
-      : error?.stack || error?.message || String(error || ""),
-  );
+  const nowMs = Date.now();
+  const message = error?.message || String(error || "");
+  const detail = error?.extra ? error.extra : error?.stack || message;
+  console.error("[FAIL] 脚本执行异常", detail);
+  printFinalSummary({
+    result: "FAIL",
+    exitCode: 1,
+    reason: "[FAIL] 脚本执行异常",
+    symbol: SYMBOL,
+    provider: PROVIDER,
+    wsCapabilityType: WS_CAPABILITY_TYPE,
+    startedAt: toIsoTime(RUN_STARTED_AT_MS),
+    endedAt: toIsoTime(nowMs),
+    durationMs: nowMs - RUN_STARTED_AT_MS,
+    stats: {
+      minChartPointCount: MIN_CHART_POINT_COUNT,
+    },
+    ws: {
+      subscribeAckReceived: false,
+    },
+    cleanup: {
+      unsubscribeStatus: "unknown",
+      releaseStatus: "unknown",
+      releaseReleased: null,
+    },
+    error: message,
+  });
+  process.exit(1);
 });
 NODE

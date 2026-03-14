@@ -185,6 +185,19 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 
 
 
+  
+• HTTP 版：
+
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  BASE_URL="http://127.0.0.1:3001" \
+  bash "scripts/tools/local-project/test-crypto-intraday-line-endpoint.sh"
+
+  WS 版：
+
+  APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+  BASE_URL="http://127.0.0.1:3001" \
+  bash "scripts/tools/local-project/test-crypto-intraday-line-endpoint-ws.sh"
+
   BASE_URL="http://127.0.0.1:3001" \
   APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
   ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
