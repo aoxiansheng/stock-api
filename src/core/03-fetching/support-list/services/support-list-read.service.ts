@@ -1,9 +1,9 @@
 import { Injectable, BadRequestException, HttpStatus } from "@nestjs/common";
 import { BusinessException, ComponentIdentifier } from "@common/core/exceptions";
 import { createLogger } from "@common/logging/index";
-import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import {
   assertSupportListTypeSupported,
+  normalizeSupportListSymbol,
   parseSupportListTimestampVersion,
   SUPPORT_LIST_RETENTION_DAYS,
 } from "../constants/support-list.constants";
@@ -111,7 +111,7 @@ export class SupportListReadService {
     if (since) {
       this.validateSince(since, current.version);
     }
-    const symbolSet = this.buildSymbolSet(request.symbols);
+    const symbolSet = this.buildSymbolSet(type, request.symbols);
 
     if (since && isVersionAligned) {
       const historyTailVersion = meta.history[meta.history.length - 1]?.version;
@@ -145,11 +145,11 @@ export class SupportListReadService {
         );
       }
       this.logVersionMismatch(type, since, meta, current, "无 since 回退全量");
-      return this.buildFullResponse(current.version, current.items, symbolSet);
+      return this.buildFullResponse(type, current.version, current.items, symbolSet);
     }
 
     if (!since) {
-      return this.buildFullResponse(current.version, current.items, symbolSet);
+      return this.buildFullResponse(type, current.version, current.items, symbolSet);
     }
 
     if (since === meta.currentVersion) {
@@ -202,27 +202,28 @@ export class SupportListReadService {
       deltas.push(delta);
     }
 
-    const aggregated = this.aggregateDeltas(deltas);
+    const aggregated = this.aggregateDeltas(type, deltas);
     return {
       full: false,
       from: since,
       to: meta.currentVersion,
-      added: this.filterItemsBySymbolSet(aggregated.added, symbolSet),
-      updated: this.filterItemsBySymbolSet(aggregated.updated, symbolSet),
-      removed: this.filterRemovedBySymbolSet(aggregated.removed, symbolSet),
+      added: this.filterItemsBySymbolSet(type, aggregated.added, symbolSet),
+      updated: this.filterItemsBySymbolSet(type, aggregated.updated, symbolSet),
+      removed: this.filterRemovedBySymbolSet(type, aggregated.removed, symbolSet),
     };
   }
 
   private buildFullResponse(
+    type: string,
     version: string,
     items: SupportListItemRecord[],
     symbolSet: Set<string> | null,
   ): SupportListFullReadResponse {
-    const dedupedItems = this.deduplicateItemsBySymbolLastWin(items);
+    const dedupedItems = this.deduplicateItemsBySymbolLastWin(type, items);
     return {
       full: true,
       version,
-      items: this.filterItemsBySymbolSet(dedupedItems, symbolSet),
+      items: this.filterItemsBySymbolSet(type, dedupedItems, symbolSet),
     };
   }
 
@@ -240,7 +241,7 @@ export class SupportListReadService {
     };
   }
 
-  private aggregateDeltas(deltas: SupportListDeltaRecord[]): {
+  private aggregateDeltas(type: string, deltas: SupportListDeltaRecord[]): {
     added: SupportListItemRecord[];
     updated: SupportListItemRecord[];
     removed: string[];
@@ -249,7 +250,7 @@ export class SupportListReadService {
 
     for (const delta of deltas) {
       for (const item of delta.added || []) {
-        const symbol = this.extractSymbol(item);
+        const symbol = this.extractSymbol(type, item);
         if (!symbol) {
           continue;
         }
@@ -269,7 +270,7 @@ export class SupportListReadService {
       }
 
       for (const item of delta.updated || []) {
-        const symbol = this.extractSymbol(item);
+        const symbol = this.extractSymbol(type, item);
         if (!symbol) {
           continue;
         }
@@ -289,7 +290,7 @@ export class SupportListReadService {
       }
 
       for (const symbolRaw of delta.removed || []) {
-        const symbol = this.normalizeSymbol(symbolRaw);
+        const symbol = this.normalizeSymbol(type, symbolRaw);
         if (!symbol) {
           continue;
         }
@@ -330,43 +331,49 @@ export class SupportListReadService {
     }
 
     return {
-      added: this.sortItemsBySymbol(added),
-      updated: this.sortItemsBySymbol(updated),
+      added: this.sortItemsBySymbol(type, added),
+      updated: this.sortItemsBySymbol(type, updated),
       removed: removed.sort((a, b) => a.localeCompare(b)),
     };
   }
 
   private sortItemsBySymbol(
+    type: string,
     items: SupportListItemRecord[],
   ): SupportListItemRecord[] {
     return [...items].sort((a, b) =>
-      this.extractSymbol(a).localeCompare(this.extractSymbol(b)),
+      this.extractSymbol(type, a).localeCompare(this.extractSymbol(type, b)),
     );
   }
 
-  private buildSymbolSet(symbols?: string[]): Set<string> | null {
+  private buildSymbolSet(type: string, symbols?: string[]): Set<string> | null {
     if (!Array.isArray(symbols) || symbols.length === 0) {
       return null;
     }
-    return new Set(symbols.map((symbol) => this.normalizeSymbol(symbol)));
+    const normalizedSymbols = symbols
+      .map((symbol) => this.normalizeSymbol(type, symbol))
+      .filter((symbol) => symbol.length > 0);
+    return normalizedSymbols.length > 0 ? new Set(normalizedSymbols) : null;
   }
 
   private filterItemsBySymbolSet(
+    type: string,
     items: SupportListItemRecord[],
     symbolSet: Set<string> | null,
   ): SupportListItemRecord[] {
     if (!symbolSet) {
       return items;
     }
-    return items.filter((item) => symbolSet.has(this.extractSymbol(item)));
+    return items.filter((item) => symbolSet.has(this.extractSymbol(type, item)));
   }
 
   private deduplicateItemsBySymbolLastWin(
+    type: string,
     items: SupportListItemRecord[],
   ): SupportListItemRecord[] {
     const deduplicated = new Map<string, SupportListItemRecord>();
     for (const item of items || []) {
-      const symbol = this.extractSymbol(item);
+      const symbol = this.extractSymbol(type, item);
       if (!symbol) {
         continue;
       }
@@ -382,13 +389,14 @@ export class SupportListReadService {
   }
 
   private filterRemovedBySymbolSet(
+    type: string,
     removed: string[],
     symbolSet: Set<string> | null,
   ): string[] {
     if (!symbolSet) {
       return removed;
     }
-    return removed.filter((symbol) => symbolSet.has(this.normalizeSymbol(symbol)));
+    return removed.filter((symbol) => symbolSet.has(this.normalizeSymbol(type, symbol)));
   }
 
   private validateSince(since: string, currentVersion?: string): void {
@@ -464,13 +472,11 @@ export class SupportListReadService {
     });
   }
 
-  private normalizeSymbol(value: unknown): string {
-    return typeof value === "string"
-      ? SymbolValidationUtils.normalizeSymbol(value)
-      : "";
+  private normalizeSymbol(type: string, value: unknown): string {
+    return normalizeSupportListSymbol(type, value);
   }
 
-  private extractSymbol(item: SupportListItemRecord): string {
-    return this.normalizeSymbol(item?.symbol);
+  private extractSymbol(type: string, item: SupportListItemRecord): string {
+    return this.normalizeSymbol(type, item?.symbol);
   }
 }

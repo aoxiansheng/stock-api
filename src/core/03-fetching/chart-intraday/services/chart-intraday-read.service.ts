@@ -23,6 +23,7 @@ import {
 import { DataFetcherService } from "@core/03-fetching/data-fetcher/services/data-fetcher.service";
 import { isValidYmdDate } from "@core/shared/utils/ymd-date.util";
 import {
+  inferMarketFromSymbol,
   isSupportedMarket,
   isTimestampInTradingDay,
   parseFlexibleTimestampToMs,
@@ -807,10 +808,9 @@ export class ChartIntradayReadService {
     const explicitMarket = String(request.market || "")
       .trim()
       .toUpperCase();
-    const symbolSuffix = String(symbol.split(".").pop() || "")
-      .trim()
-      .toUpperCase();
-    const inferredMarket = isSupportedMarket(symbolSuffix) ? symbolSuffix : "";
+    const inferredMarketCandidate = inferMarketFromSymbol(symbol, "UNKNOWN");
+    const inferredMarket =
+      inferredMarketCandidate === "UNKNOWN" ? "" : inferredMarketCandidate;
     let market = explicitMarket;
     if (!market) {
       if (inferredMarket) {

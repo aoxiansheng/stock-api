@@ -41,7 +41,7 @@ describe("Query DTO queryTypeFilter 白名单校验", () => {
   it("QueryRequestDto: crypto queryTypeFilter 通过校验", async () => {
     const dto = plainToInstance(QueryRequestDto, {
       queryType: QueryType.BY_SYMBOLS,
-      symbols: ["BTCUSDT.CRYPTO"],
+      symbols: ["BTCUSDT"],
       queryTypeFilter: CAPABILITY_NAMES.GET_CRYPTO_QUOTE,
     });
 

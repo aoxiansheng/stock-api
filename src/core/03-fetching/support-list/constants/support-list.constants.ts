@@ -1,4 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
+import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { INFOWAY_SUPPORT_LIST_TYPES } from "@providersv2/providers/infoway/utils/infoway-support-list.util";
 
 export const SUPPORT_LIST_RETENTION_DAYS = 7;
@@ -38,6 +39,27 @@ const SUPPORT_LIST_TYPE_SET = new Set<string>(SUPPORT_LIST_TYPES);
 
 export function normalizeSupportListType(type: string): string {
   return String(type || "").trim().toUpperCase();
+}
+
+export function normalizeSupportListSymbol(
+  type: string,
+  value: unknown,
+): string {
+  const symbol =
+    typeof value === "string" ? SymbolValidationUtils.normalizeSymbol(value) : "";
+  if (!symbol) {
+    return "";
+  }
+
+  if (normalizeSupportListType(type) !== "CRYPTO") {
+    return symbol;
+  }
+
+  if (symbol.endsWith(".CRYPTO")) {
+    return "";
+  }
+
+  return symbol;
 }
 
 export function isSupportListTypeSupported(type: string): boolean {

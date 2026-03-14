@@ -179,6 +179,21 @@ describe("SupportListFetchGatewayService", () => {
     },
   );
 
+  it("CRYPTO 类型应将简单交易对标准化为裸 pair", async () => {
+    setupRankedProviders("jvquant");
+
+    dataFetcherMock.fetchRawData.mockResolvedValueOnce({
+      data: [{ symbol: " btcusdt ", name: "BTC/USDT" }],
+    } as any);
+
+    const result = await service.fetchFullList("CRYPTO");
+
+    expect(result).toEqual({
+      provider: "jvquant",
+      items: [{ symbol: "BTCUSDT", name: "BTC/USDT" }],
+    });
+  });
+
   it("STOCK_* 类型应继续严格校验并过滤非股票宽格式 symbol", async () => {
     setupRankedProviders("jvquant");
 

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 import { createHash } from "crypto";
+import { normalizeSupportListSymbol } from "../constants/support-list.constants";
 
 export type SupportListItemRecord = Record<string, unknown>;
 
@@ -15,9 +15,10 @@ export class SupportListDiffService {
   diff(
     previousItems: SupportListItemRecord[],
     currentItems: SupportListItemRecord[],
+    type: string,
   ): SupportListDiffResult {
-    const previousIndex = this.buildSnapshotIndex(previousItems);
-    const currentIndex = this.buildSnapshotIndex(currentItems);
+    const previousIndex = this.buildSnapshotIndex(previousItems, type);
+    const currentIndex = this.buildSnapshotIndex(currentItems, type);
 
     const added: SupportListItemRecord[] = [];
     const updated: SupportListItemRecord[] = [];
@@ -41,13 +42,13 @@ export class SupportListDiffService {
     }
 
     return {
-      added: this.sortBySymbol(added),
-      updated: this.sortBySymbol(updated),
+      added: this.sortBySymbol(added, type),
+      updated: this.sortBySymbol(updated, type),
       removed: removed.sort((a, b) => a.localeCompare(b)),
     };
   }
 
-  private buildSnapshotIndex(items: SupportListItemRecord[]) {
+  private buildSnapshotIndex(items: SupportListItemRecord[], type: string) {
     const index = new Map<string, { item: SupportListItemRecord; hash: string }>();
     for (const item of items || []) {
       const normalizedItem = this.toItemRecord(item);
@@ -55,35 +56,36 @@ export class SupportListDiffService {
         continue;
       }
 
-      const symbol = this.extractSymbol(normalizedItem);
+      const symbol = this.extractSymbol(normalizedItem, type);
       if (!symbol) {
         continue;
       }
 
+      const canonicalItem = {
+        ...normalizedItem,
+        symbol,
+      };
       index.set(symbol, {
-        item: {
-          ...normalizedItem,
-          symbol,
-        },
-        hash: this.hashItem(normalizedItem),
+        item: canonicalItem,
+        hash: this.hashItem(canonicalItem),
       });
     }
     return index;
   }
 
-  private sortBySymbol(items: SupportListItemRecord[]): SupportListItemRecord[] {
+  private sortBySymbol(
+    items: SupportListItemRecord[],
+    type: string,
+  ): SupportListItemRecord[] {
     return [...items].sort((a, b) => {
-      const symbolA = this.extractSymbol(a) || "";
-      const symbolB = this.extractSymbol(b) || "";
+      const symbolA = this.extractSymbol(a, type) || "";
+      const symbolB = this.extractSymbol(b, type) || "";
       return symbolA.localeCompare(symbolB);
     });
   }
 
-  private extractSymbol(item: SupportListItemRecord): string {
-    const raw = item?.symbol;
-    return typeof raw === "string"
-      ? SymbolValidationUtils.normalizeSymbol(raw)
-      : "";
+  private extractSymbol(item: SupportListItemRecord, type: string): string {
+    return normalizeSupportListSymbol(type, item?.symbol);
   }
 
   private toItemRecord(value: unknown): SupportListItemRecord | null {

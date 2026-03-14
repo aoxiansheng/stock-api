@@ -22,29 +22,27 @@ describe("get-crypto-basic-info capability", () => {
     };
 
     const result = await getCryptoBasicInfo.execute({
-      symbols: ["BTCUSDT.CRYPTO", " btcusdt.crypto "],
+      symbols: ["BTCUSDT", " btcusdt "],
       contextService: contextService as any,
     });
 
-    expect(contextService.getCryptoBasicInfo).toHaveBeenCalledWith([
-      "BTCUSDT.CRYPTO",
-    ]);
+    expect(contextService.getCryptoBasicInfo).toHaveBeenCalledWith(["BTCUSDT"]);
     expect(result).toEqual([{ symbol: "BTCUSDT" }]);
   });
 
-  it("非法 crypto symbol 时抛 DATA_VALIDATION_FAILED", async () => {
+  it("旧 .CRYPTO crypto symbol 时抛 DATA_VALIDATION_FAILED", async () => {
     const contextService = {
       getCryptoBasicInfo: jest.fn(),
     };
 
     await expect(
       getCryptoBasicInfo.execute({
-        symbols: ["DOGE"],
+        symbols: ["BTCUSDT.CRYPTO"],
         contextService: contextService as any,
       }),
     ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-      message: expect.stringContaining("crypto symbol 必须使用 .CRYPTO 后缀"),
+      message: expect.stringContaining("crypto symbol 格式无效"),
     });
 
     expect(contextService.getCryptoBasicInfo).not.toHaveBeenCalled();

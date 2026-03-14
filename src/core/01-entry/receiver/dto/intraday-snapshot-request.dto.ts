@@ -34,7 +34,7 @@ export class IntradaySnapshotRequestDto
   symbol: string;
 
   @ApiPropertyOptional({
-    description: "市场代码，缺省时由 symbol 推断",
+    description: "市场代码，缺省时由 symbol 推断；CRYPTO 支持裸交易对如 BTCUSDT",
     example: "US",
     enum: RECEIVER_ALLOWED_MARKETS,
   })

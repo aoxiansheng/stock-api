@@ -713,6 +713,9 @@ export class SmartCacheStandardizedService implements StandardCacheModuleInterfa
       if (!p) {
         p = (async () => {
           const data = await request.fetchFn();
+          if (data === undefined || data === null) {
+            throw new Error("Receiver returned no data");
+          }
           await this.set(request.cacheKey, data as any, { ttl });
           return data;
         })();

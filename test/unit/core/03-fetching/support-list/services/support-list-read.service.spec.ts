@@ -152,6 +152,38 @@ describe("SupportListReadService", () => {
     });
   });
 
+  it("CRYPTO 全量读取应保持裸 pair 标准 symbol，并按裸 pair 过滤", async () => {
+    storeServiceMock.readMeta.mockResolvedValueOnce(
+      createMetaRecord({
+        type: "CRYPTO",
+      }),
+    );
+    storeServiceMock.readCurrent.mockResolvedValueOnce(
+      createCurrentRecord({
+        type: "CRYPTO",
+        items: [
+          { symbol: "BTCUSDT", name: "BTC/USDT" },
+          { symbol: "ETHUSDT", name: "ETH/USDT" },
+          { symbol: "CRYPTO:BTCUSDT.PERPETUAL-SWAP.2026", name: "Wide" },
+        ],
+      }),
+    );
+
+    const result = await service.getSupportList({
+      type: "CRYPTO",
+      symbols: ["btcusdt", "ETHUSDT"],
+    });
+
+    expect(result).toEqual({
+      full: true,
+      version: "20260309020000",
+      items: [
+        { symbol: "BTCUSDT", name: "BTC/USDT" },
+        { symbol: "ETHUSDT", name: "ETH/USDT" },
+      ],
+    });
+  });
+
   it("current items 存在重复 symbol 时，full 返回去重且遵循 last-win", async () => {
     storeServiceMock.readCurrent.mockResolvedValueOnce({
       type: "STOCK_US",
@@ -659,6 +691,43 @@ describe("SupportListSyncService", () => {
 
     await expect(service.refreshType("STOCK_US")).rejects.toBeInstanceOf(
       ServiceUnavailableException,
+    );
+  });
+
+  it("refreshType 生成 delta 时应将标准化 type 透传给 diff service", async () => {
+    storeServiceMock.readMeta.mockResolvedValue({
+      type: "CRYPTO",
+      currentVersion: "20260308020000",
+      lastUpdated: "2026-03-08T02:00:00.000Z",
+      retentionDays: 7,
+      history: [{ version: "20260308020000", updatedAt: "2026-03-08T02:00:00.000Z" }],
+    });
+    storeServiceMock.readCurrent.mockResolvedValue({
+      type: "CRYPTO",
+      provider: "infoway",
+      version: "20260308020000",
+      updatedAt: "2026-03-08T02:00:00.000Z",
+      items: [{ symbol: "BTCUSDT" }],
+    });
+    fetchGatewayMock.fetchFullList.mockResolvedValue({
+      provider: "infoway",
+      items: [{ symbol: "BTCUSDT" }],
+    });
+    diffServiceMock.diff.mockReturnValue({
+      added: [],
+      updated: [],
+      removed: [],
+    });
+    storeServiceMock.writeDelta.mockResolvedValue();
+    storeServiceMock.writeCurrent.mockResolvedValue();
+    storeServiceMock.writeMeta.mockResolvedValue();
+
+    await service.refreshType("crypto");
+
+    expect(diffServiceMock.diff).toHaveBeenCalledWith(
+      [{ symbol: "BTCUSDT" }],
+      [{ symbol: "BTCUSDT" }],
+      "CRYPTO",
     );
   });
 

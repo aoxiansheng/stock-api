@@ -10,6 +10,7 @@ import {
 import { sanitizeInfowayUpstreamMessage } from "../utils/infoway-error.util";
 import {
   INFOWAY_SYMBOL_LIMIT,
+  isInfowayCryptoSymbol,
   normalizeAndValidateInfowayCryptoSymbols,
   normalizeAndValidateInfowaySymbols,
   toInfowayCryptoUpstreamSymbol,
@@ -303,10 +304,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     }
 
     const stockSymbols = deduplicatedSymbols.filter(
-      (symbol) => !symbol.endsWith(".CRYPTO"),
+      (symbol) => !isInfowayCryptoSymbol(symbol),
     );
     const cryptoSymbols = deduplicatedSymbols.filter((symbol) =>
-      symbol.endsWith(".CRYPTO"),
+      isInfowayCryptoSymbol(symbol),
     );
 
     const normalizedStockSymbols = new Set(
@@ -337,7 +338,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
       }
 
       throwInfowayDataValidationError(
-        "Infoway 参数错误: symbol 格式无效（仅支持 *.HK/*.US/*.SH/*.SZ 或 *.CRYPTO）",
+        "Infoway 参数错误: symbol 格式无效（仅支持 *.HK/*.US/*.SH/*.SZ 或 BTCUSDT）",
         {
           symbol,
         },
@@ -350,10 +351,10 @@ export class InfowayStreamContextService implements OnModuleDestroy {
     pairs: Array<{ standardSymbol: string; upstreamSymbol: string }>,
   ): string {
     const hasCrypto = pairs.some((pair) =>
-      pair.standardSymbol.endsWith(".CRYPTO"),
+      isInfowayCryptoSymbol(pair.standardSymbol),
     );
     const hasStock = pairs.some(
-      (pair) => !pair.standardSymbol.endsWith(".CRYPTO"),
+      (pair) => !isInfowayCryptoSymbol(pair.standardSymbol),
     );
 
     if (hasCrypto && hasStock) {
@@ -446,11 +447,6 @@ export class InfowayStreamContextService implements OnModuleDestroy {
 
     if (this.subscribedSymbols.has(normalized)) {
       return normalized;
-    }
-
-    const cryptoCandidate = `${normalized}.CRYPTO`;
-    if (this.subscribedSymbols.has(cryptoCandidate)) {
-      return cryptoCandidate;
     }
 
     return normalized;
@@ -1008,7 +1004,7 @@ export class InfowayStreamContextService implements OnModuleDestroy {
         const upstreamSymbols = Array.from(
           new Set(
             symbols.map((symbol) =>
-              symbol.endsWith(".CRYPTO")
+              isInfowayCryptoSymbol(symbol)
                 ? toInfowayCryptoUpstreamSymbol(symbol)
                 : symbol,
             ),

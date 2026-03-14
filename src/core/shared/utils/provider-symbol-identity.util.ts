@@ -20,7 +20,7 @@ function resolveProviderRawValue(rawValue?: unknown): string | undefined {
 }
 
 function canonicalizeIdentitySymbol(symbol: string): string {
-  return symbol.trim().toUpperCase();
+  return SymbolValidationUtils.normalizeSymbol(symbol);
 }
 
 export function parseStandardSymbolIdentityProviders(

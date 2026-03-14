@@ -275,7 +275,7 @@ describe("InfowayStreamContextService", () => {
     await service.cleanup();
   });
 
-  it("crypto subscribe 会将 .CRYPTO 转为上游 codes 并保留本地标准 symbol", async () => {
+  it("crypto subscribe 会使用裸 pair 作为标准 symbol 与上游 codes", async () => {
     (globalThis as any).WebSocket = HeaderCapableMockWebSocket as any;
 
     const service = new InfowayStreamContextService(
@@ -284,17 +284,15 @@ describe("InfowayStreamContextService", () => {
       }),
     );
 
-    await service.subscribe(["BTCUSDT.CRYPTO"]);
+    await service.subscribe(["BTCUSDT"]);
 
     const instance = HeaderCapableMockWebSocket.instances[0];
     expect(instance.sent).toHaveLength(2);
     const subscribePayload = JSON.parse(instance.sent[1]);
     expect(subscribePayload.code).toBe(10000);
     expect(subscribePayload.data.codes).toBe("BTCUSDT");
-    expect((service as any).subscribedSymbols.has("BTCUSDT.CRYPTO")).toBe(true);
-    expect((service as any).upstreamToStandardSymbolMap.get("BTCUSDT")).toBe(
-      "BTCUSDT.CRYPTO",
-    );
+    expect((service as any).subscribedSymbols.has("BTCUSDT")).toBe(true);
+    expect((service as any).upstreamToStandardSymbolMap.get("BTCUSDT")).toBe("BTCUSDT");
 
     await service.cleanup();
   });
@@ -312,7 +310,7 @@ describe("InfowayStreamContextService", () => {
     await service.initializeWebSocket();
     expect(HeaderCapableMockWebSocket.instances[0].url).toContain("business=stock");
 
-    await service.subscribe(["BTCUSDT.CRYPTO"]);
+    await service.subscribe(["BTCUSDT"]);
 
     expect(HeaderCapableMockWebSocket.instances).toHaveLength(2);
     expect(HeaderCapableMockWebSocket.instances[1].url).toContain("business=crypto");
@@ -353,7 +351,7 @@ describe("InfowayStreamContextService", () => {
       .mockResolvedValue();
 
     await expect(
-      service.subscribe(["AAPL.US", "BTCUSDT.CRYPTO"]),
+      service.subscribe(["AAPL.US", "BTCUSDT"]),
     ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
     });
@@ -499,7 +497,7 @@ describe("InfowayStreamContextService", () => {
       }),
     );
 
-    const subscribeTask = service.subscribe(["BTCUSDT.CRYPTO"]);
+    const subscribeTask = service.subscribe(["BTCUSDT"]);
     await flushTimers(1, 6);
     await subscribeTask;
 
@@ -518,7 +516,7 @@ describe("InfowayStreamContextService", () => {
     expect(subscribePayload.code).toBe(10000);
     expect(subscribePayload.data.codes).toBe("BTCUSDT");
 
-    await service.unsubscribe(["BTCUSDT.CRYPTO"]);
+    await service.unsubscribe(["BTCUSDT"]);
     await service.cleanup();
   });
 
@@ -672,7 +670,7 @@ describe("InfowayStreamContextService", () => {
     expect(onQuote).toHaveBeenCalledWith({ p: "182.31" });
   });
 
-  it("handleMessage: crypto 上游 s 会映射为标准 .CRYPTO symbol", () => {
+  it("handleMessage: crypto 上游 s 会映射为标准裸 pair symbol", () => {
     const service = new InfowayStreamContextService(
       createConfigService({
         INFOWAY_API_KEY: "test-api-key",
@@ -680,11 +678,8 @@ describe("InfowayStreamContextService", () => {
     );
     const onQuote = jest.fn();
     (service as any).messageCallbacks.add(onQuote);
-    (service as any).subscribedSymbols.add("BTCUSDT.CRYPTO");
-    (service as any).upstreamToStandardSymbolMap.set(
-      "BTCUSDT",
-      "BTCUSDT.CRYPTO",
-    );
+    (service as any).subscribedSymbols.add("BTCUSDT");
+    (service as any).upstreamToStandardSymbolMap.set("BTCUSDT", "BTCUSDT");
 
     (service as any).handleMessage(
       JSON.stringify({
@@ -698,7 +693,7 @@ describe("InfowayStreamContextService", () => {
 
     expect(onQuote).toHaveBeenCalledTimes(1);
     expect(onQuote).toHaveBeenCalledWith({
-      s: "BTCUSDT.CRYPTO",
+      s: "BTCUSDT",
       p: "62000",
     });
   });

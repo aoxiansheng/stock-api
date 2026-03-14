@@ -64,29 +64,29 @@ describe("infoway-symbols.util", () => {
     }
   });
 
-  it("crypto symbols 仅支持 .CRYPTO 标准格式输入，并统一去重", () => {
+  it("crypto symbols 仅支持裸 pair 标准格式输入，并统一去重", () => {
     const symbols = normalizeAndValidateInfowayCryptoSymbols(
-      [" btcusdt.crypto ", "BTCUSDT.CRYPTO", "ETHUSDT.CRYPTO", "ethusdt.crypto"],
+      [" btcusdt ", "BTCUSDT", "ETHUSDT", "ethusdt"],
       {
         allowEmpty: true,
         maxCount: 10,
       },
     );
 
-    expect(symbols).toEqual(["BTCUSDT.CRYPTO", "ETHUSDT.CRYPTO"]);
+    expect(symbols).toEqual(["BTCUSDT", "ETHUSDT"]);
   });
 
-  it("crypto symbols 缺少 .CRYPTO 后缀时抛参数错误", () => {
+  it("crypto symbols 使用旧 .CRYPTO 格式时抛参数错误", () => {
     expect.assertions(2);
     expect(() =>
-      normalizeAndValidateInfowayCryptoSymbols(["DOGE"], {
+      normalizeAndValidateInfowayCryptoSymbols(["BTCUSDT.CRYPTO"], {
         allowEmpty: true,
         maxCount: 10,
       }),
-    ).toThrow("crypto symbol 必须使用 .CRYPTO 后缀");
+    ).toThrow("crypto symbol 格式无效");
 
     try {
-      normalizeAndValidateInfowayCryptoSymbols(["DOGE"], {
+      normalizeAndValidateInfowayCryptoSymbols(["BTCUSDT.CRYPTO"], {
         allowEmpty: true,
         maxCount: 10,
       });
@@ -99,9 +99,7 @@ describe("infoway-symbols.util", () => {
   });
 
   it("crypto symbols 可被推断为 CRYPTO 市场", () => {
-    expect(inferSingleInfowayMarketFromSymbols(["BTCUSDT"])).toBe("");
-    expect(inferSingleInfowayMarketFromSymbols(["ETHUSDT.CRYPTO"])).toBe(
-      "CRYPTO",
-    );
+    expect(inferSingleInfowayMarketFromSymbols(["BTCUSDT"])).toBe("CRYPTO");
+    expect(inferSingleInfowayMarketFromSymbols(["ETHUSDT.CRYPTO"])).toBe("");
   });
 });

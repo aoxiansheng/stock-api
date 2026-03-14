@@ -211,7 +211,7 @@ describe("InfowayContextService", () => {
     expect((service as any).client.get.mock.calls.length).toBeGreaterThan(1);
   });
 
-  it("getCryptoQuote: 仅接受 *.CRYPTO 输入并调用 crypto 端点", async () => {
+  it("getCryptoQuote: 仅接受裸 pair 输入并调用 crypto 端点", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({
       data: {
@@ -227,7 +227,7 @@ describe("InfowayContextService", () => {
       },
     });
 
-    const result = await service.getCryptoQuote(["BTCUSDT.CRYPTO"]);
+    const result = await service.getCryptoQuote(["BTCUSDT"]);
 
     expect((service as any).client.get).toHaveBeenCalledWith(
       "/crypto/batch_trade/BTCUSDT",
@@ -257,7 +257,7 @@ describe("InfowayContextService", () => {
       },
     });
 
-    await expect(service.getCryptoQuote(["BTCUSDT.CRYPTO"])).rejects.toMatchObject({
+    await expect(service.getCryptoQuote(["BTCUSDT"])).rejects.toMatchObject({
       message: "Infoway crypto-quote 响应异常",
       errorCode: BusinessErrorCode.EXTERNAL_API_ERROR,
       operation: "crypto-quote",
@@ -290,7 +290,7 @@ describe("InfowayContextService", () => {
     });
 
     const result = await service.getCryptoHistory({
-      symbols: ["BTCUSDT.CRYPTO"],
+      symbols: ["BTCUSDT"],
       klineNum: 10,
       timestamp: 1709251200,
     });
@@ -342,7 +342,7 @@ describe("InfowayContextService", () => {
     });
 
     const result = await service.getCryptoHistory({
-      symbols: ["BTCUSDT.CRYPTO"],
+      symbols: ["BTCUSDT"],
       timestamp: 1709251201,
     });
 
@@ -586,7 +586,7 @@ describe("InfowayContextService", () => {
       },
     });
 
-    const result = await service.getCryptoBasicInfo(["BTCUSDT.CRYPTO"]);
+    const result = await service.getCryptoBasicInfo(["BTCUSDT"]);
 
     expect((service as any).client.get).toHaveBeenCalledWith(
       "/common/basic/symbols/info",

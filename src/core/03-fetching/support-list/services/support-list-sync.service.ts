@@ -180,6 +180,7 @@ export class SupportListSyncService {
       const diff = this.supportListDiffService.diff(
         previousCurrent.items,
         fetched.items,
+        normalizedType,
       );
       await this.supportListStoreService.writeDelta({
         type: normalizedType,

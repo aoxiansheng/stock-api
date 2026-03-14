@@ -11,6 +11,7 @@ import { DataFetcherService } from "../../data-fetcher/services/data-fetcher.ser
 import { SupportListItemRecord } from "./support-list-diff.service";
 import {
   assertSupportListTypeSupported,
+  normalizeSupportListSymbol,
   resolveSupportListGatewayErrorReasonMaxLength,
   resolveSupportListMaxItems,
   resolveSupportListMaxPayloadBytes,
@@ -141,7 +142,7 @@ export class SupportListFetchGatewayService {
       return null;
     }
 
-    const symbol = SymbolValidationUtils.normalizeSymbol(rawSymbol);
+    const symbol = normalizeSupportListSymbol(type, rawSymbol);
     if (!symbol) {
       return null;
     }

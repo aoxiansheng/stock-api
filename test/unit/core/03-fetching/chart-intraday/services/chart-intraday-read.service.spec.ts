@@ -293,7 +293,7 @@ describe("ChartIntradayReadService", () => {
     });
   });
 
-  it("snapshot: CRYPTO 市场应路由到 GET_CRYPTO_HISTORY 并按 capability 解析 provider", async () => {
+  it("snapshot: CRYPTO 裸 pair 未传 market 时应自动推断并路由到 GET_CRYPTO_HISTORY", async () => {
     const {
       service,
       dataFetcherService,
@@ -319,8 +319,7 @@ describe("ChartIntradayReadService", () => {
     });
 
     await service.getSnapshot({
-      symbol: "BTCUSDT.CRYPTO",
-      market: "CRYPTO",
+      symbol: "BTCUSDT",
       tradingDay: "20260115",
     });
 
@@ -331,7 +330,7 @@ describe("ChartIntradayReadService", () => {
     expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
       expect.objectContaining({
         capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
-        symbols: ["BTCUSDT.CRYPTO"],
+        symbols: ["BTCUSDT"],
         options: expect.objectContaining({
           market: "CRYPTO",
         }),
@@ -360,7 +359,7 @@ describe("ChartIntradayReadService", () => {
     });
 
     await service.getSnapshot({
-      symbol: "BTCUSDT.CRYPTO",
+      symbol: "BTCUSDT",
       market: "CRYPTO",
       tradingDay: "20260115",
     });
@@ -639,6 +638,41 @@ describe("ChartIntradayReadService", () => {
         market: "US",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+      },
+    });
+  });
+
+  it("release: CRYPTO 裸 pair 未传 market 时应自动推断并释放订阅", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    chartIntradayStreamSubscriptionService.releaseRealtimeSubscription.mockResolvedValueOnce(
+      {
+        released: true,
+        symbol: "BTCUSDT",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE,
+        clientId: "chart-intraday:auto:infoway:stream-crypto-quote:BTCUSDT",
+      },
+    );
+
+    const result = await service.releaseRealtimeSubscription({
+      symbol: "BTCUSDT",
+      provider: "infoway",
+    });
+
+    expect(
+      chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
+    ).toHaveBeenCalledWith({
+      symbol: "BTCUSDT",
+      market: "CRYPTO",
+      provider: "infoway",
+    });
+    expect(result).toEqual({
+      release: {
+        released: true,
+        symbol: "BTCUSDT",
+        market: "CRYPTO",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE,
       },
     });
   });

@@ -204,24 +204,10 @@ export class StreamDataValidator {
     if (!SymbolValidationUtils.isStrictStandardSymbol(sanitized)) {
       return null;
     }
-
-    if (sanitized.endsWith('.HK')) {
-      return 'HK';
-    }
-    if (sanitized.endsWith('.US')) {
-      return 'US';
-    }
-    if (sanitized.endsWith('.SG')) {
-      return 'SG';
-    }
-    if (sanitized.endsWith('.SH') || sanitized.endsWith('.SZ')) {
-      return 'CN';
-    }
-    if (sanitized.endsWith('.CRYPTO')) {
-      return 'CRYPTO';
-    }
-
-    return null;
+    const detected = SymbolValidationUtils.inferMarketLabel(sanitized, {
+      collapseChina: true,
+    });
+    return detected === "UNKNOWN" ? null : detected;
   }
 
   /**
@@ -530,7 +516,7 @@ export class StreamDataValidator {
       HK: ['0700.HK', '00700.HK', '9988.HK'],
       US: ['AAPL.US', 'GOOGL.US', 'TSLA.US'],
       CN: ['000001.SZ', '600036.SH', '300059.SZ'],
-      CRYPTO: ['BTCUSDT.CRYPTO', 'ETHUSDT.CRYPTO', 'SOLUSDT.CRYPTO'],
+      CRYPTO: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
       SG: ['DBS.SG', 'OCBC.SG', 'UOB.SG']
     };
   }

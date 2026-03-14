@@ -760,8 +760,19 @@ export class InfowayContextService {
     }
 
     const results: any[] = [];
-    const chunks = this.chunkArray(upstreamSymbols, 500);
-    for (const chunk of chunks) {
+    const standardChunks = this.chunkArray(normalizedSymbols, 500);
+    const upstreamChunks = this.chunkArray(upstreamSymbols, 500);
+    for (const [chunkIndex, chunk] of upstreamChunks.entries()) {
+      const standardChunk = standardChunks[chunkIndex] || [];
+      this.logger.debug("Infoway CRYPTO 基础信息请求出站", {
+        operation: "getCryptoBasicInfo",
+        chunkIndex,
+        chunkCount: upstreamChunks.length,
+        standardSymbols: standardChunk,
+        upstreamSymbols: chunk,
+        requestType: "CRYPTO",
+      });
+
       const response = await this.client.get("/common/basic/symbols/info", {
         headers: { apiKey: this.apiKey },
         params: {
@@ -771,13 +782,33 @@ export class InfowayContextService {
       });
 
       const body = response.data || {};
+      const bodyData = Array.isArray(body?.data) ? body.data : [];
+      this.logger.debug("Infoway CRYPTO 基础信息响应摘要", {
+        operation: "getCryptoBasicInfo",
+        chunkIndex,
+        chunkCount: upstreamChunks.length,
+        standardSymbols: standardChunk,
+        upstreamSymbols: chunk,
+        upstreamRet: body?.ret ?? null,
+        upstreamMsg: sanitizeInfowayUpstreamMessage(body?.msg),
+        responseDataCount: bodyData.length,
+      });
       this.assertInfowayResponse(
         body,
         "crypto-basic-info",
         (data) => Array.isArray(data),
       );
 
-      results.push(...(body.data as Array<Record<string, any>>));
+      results.push(...(bodyData as Array<Record<string, any>>));
+    }
+
+    if (results.length === 0) {
+      this.logger.warn("Infoway CRYPTO 基础信息返回空结果", {
+        operation: "getCryptoBasicInfo",
+        standardSymbols: normalizedSymbols,
+        upstreamSymbols,
+        chunkCount: upstreamChunks.length,
+      });
     }
 
     return results;

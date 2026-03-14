@@ -10,7 +10,7 @@ describe("get-crypto-history capability", () => {
 
     await expect(
       getCryptoHistory.execute({
-        symbols: ["BTCUSDT.CRYPTO"],
+        symbols: ["BTCUSDT"],
         market: "US",
         contextService: contextService as any,
       }),
@@ -29,7 +29,7 @@ describe("get-crypto-history capability", () => {
 
     await expect(
       getCryptoHistory.execute({
-        symbols: ["BTCUSDT.CRYPTO", "ETHUSDT.CRYPTO"],
+        symbols: ["BTCUSDT", "ETHUSDT"],
         contextService: contextService as any,
       }),
     ).rejects.toMatchObject({
@@ -50,7 +50,7 @@ describe("get-crypto-history capability", () => {
     };
 
     const result = await getCryptoHistory.execute({
-      symbols: [" btcusdt.crypto "],
+      symbols: [" btcusdt "],
       market: "CRYPTO",
       klineNum: 120,
       timestamp: 1758553860,
@@ -58,7 +58,7 @@ describe("get-crypto-history capability", () => {
     });
 
     expect(contextService.getCryptoHistory).toHaveBeenCalledWith({
-      symbols: ["BTCUSDT.CRYPTO"],
+      symbols: ["BTCUSDT"],
       market: "CRYPTO",
       klineNum: 120,
       timestamp: 1758553860,
@@ -89,7 +89,7 @@ describe("get-crypto-history capability", () => {
 
       await expect(
         getCryptoHistory.execute({
-          symbols: ["BTCUSDT.CRYPTO"],
+          symbols: ["BTCUSDT"],
           timestamp,
           contextService: contextService as any,
         } as any),

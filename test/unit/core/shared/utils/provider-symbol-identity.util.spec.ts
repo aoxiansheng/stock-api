@@ -79,19 +79,21 @@ describe("provider-symbol-identity.util", () => {
     expect(result).toEqual(["00700", "AAPL", "AAPL US", "700.HK ", "BAD$SYMBOL"]);
   });
 
-  it("isStandardIdentitySymbol 仅接受带市场后缀的标准格式", () => {
+  it("isStandardIdentitySymbol 接受带市场后缀的标准格式，CRYPTO 例外为裸 pair", () => {
     expect(isStandardIdentitySymbol("AAPL.US")).toBe(true);
     expect(isStandardIdentitySymbol("00700.HK")).toBe(true);
     expect(isStandardIdentitySymbol("HSI.HK")).toBe(true);
     expect(isStandardIdentitySymbol("600519.SH")).toBe(true);
     expect(isStandardIdentitySymbol("000001.SZ")).toBe(true);
     expect(isStandardIdentitySymbol("dbs.sg")).toBe(true);
+    expect(isStandardIdentitySymbol("BTCUSDT")).toBe(true);
 
     expect(isStandardIdentitySymbol("AAPL")).toBe(false);
     expect(isStandardIdentitySymbol("00700")).toBe(false);
     expect(isStandardIdentitySymbol("AAPL.NASDAQ")).toBe(false);
     expect(isStandardIdentitySymbol("HSIA.HK")).toBe(false);
     expect(isStandardIdentitySymbol("123456.HK")).toBe(false);
+    expect(isStandardIdentitySymbol("BTCUSDT.CRYPTO")).toBe(false);
     expect(isStandardIdentitySymbol(" AAPL.US ")).toBe(false);
   });
 
@@ -156,10 +158,8 @@ describe("SymbolValidationUtils.getMarketFromSymbol", () => {
     expect(SymbolValidationUtils.getMarketFromSymbol("00700.HK")).toBe(Market.HK);
     expect(SymbolValidationUtils.getMarketFromSymbol("600000.SH")).toBe(Market.SH);
     expect(SymbolValidationUtils.getMarketFromSymbol("000001.SZ")).toBe(Market.SZ);
-    expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT")).toBeUndefined();
-    expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT.CRYPTO")).toBe(
-      Market.CRYPTO,
-    );
+    expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT")).toBe(Market.CRYPTO);
+    expect(SymbolValidationUtils.getMarketFromSymbol("BTCUSDT.CRYPTO")).toBeUndefined();
   });
 });
 
