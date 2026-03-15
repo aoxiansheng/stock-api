@@ -52,6 +52,7 @@ describe("get-crypto-history capability", () => {
     const result = await getCryptoHistory.execute({
       symbols: [" btcusdt "],
       market: "CRYPTO",
+      klineType: 8,
       klineNum: 120,
       timestamp: 1758553860,
       contextService: contextService as any,
@@ -60,6 +61,7 @@ describe("get-crypto-history capability", () => {
     expect(contextService.getCryptoHistory).toHaveBeenCalledWith({
       symbols: ["BTCUSDT"],
       market: "CRYPTO",
+      klineType: 8,
       klineNum: 120,
       timestamp: 1758553860,
     });
@@ -95,7 +97,9 @@ describe("get-crypto-history capability", () => {
         } as any),
       ).rejects.toMatchObject({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        message: expect.stringContaining(
+          "timestamp 必须是 10/13 位正整数时间戳",
+        ),
         operation: "getCryptoHistory.execute",
       });
 

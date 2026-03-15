@@ -52,7 +52,7 @@ describe("get-stock-history capability", () => {
     const result = await getStockHistory.execute({
       symbols: ["600000.SH"],
       market: "SH",
-      klineType: 5,
+      klineType: 8,
       klineNum: 240,
       timestamp: 1758553860,
       contextService: contextService as any,
@@ -61,11 +61,11 @@ describe("get-stock-history capability", () => {
     expect(contextService.getStockHistory).toHaveBeenCalledWith({
       symbols: ["600000.SH"],
       market: "CN",
-      klineType: 5,
+      klineType: 8,
       klineNum: 240,
       timestamp: 1758553860,
     });
-    expect(result).toEqual({ quote_data: [{ symbol: "600000.SH" }] });
+    expect(result).toEqual({ data: [{ symbol: "600000.SH" }] });
   });
 
   it("symbols 为空时直接返回空数组，不调用 contextService", async () => {
@@ -78,7 +78,7 @@ describe("get-stock-history capability", () => {
       contextService: contextService as any,
     });
 
-    expect(result).toEqual({ quote_data: [] });
+    expect(result).toEqual({ data: [] });
     expect(contextService.getStockHistory).not.toHaveBeenCalled();
   });
 
@@ -97,7 +97,9 @@ describe("get-stock-history capability", () => {
         } as any),
       ).rejects.toMatchObject({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        message: expect.stringContaining(
+          "timestamp 必须是 10/13 位正整数时间戳",
+        ),
         operation: "getStockHistory.execute",
       });
 

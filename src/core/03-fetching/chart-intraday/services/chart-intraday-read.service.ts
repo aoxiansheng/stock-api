@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from "@nestjs/common";
+import { HttpStatus, Injectable, Optional } from "@nestjs/common";
 import { v4 as uuidv4 } from "uuid";
 
 import { createLogger, shouldLog } from "@common/logging/index";
@@ -31,6 +31,7 @@ import {
   SUPPORTED_MARKETS,
 } from "@core/shared/utils/market-time.util";
 import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
+import { BasicCacheService } from "@core/05-caching/module/basic-cache";
 
 type ResolvedIntradayContext = ResolvedIntradayCursorContext;
 
@@ -77,6 +78,15 @@ export interface IntradaySnapshotCapabilityDto {
   supportsFullDay1sHistory: boolean;
 }
 
+export interface IntradaySnapshotReferenceDto {
+  previousClosePrice: number | null;
+  sessionOpenPrice: number | null;
+  priceBase: "previous_close";
+  marketSession: "regular" | "utc_day";
+  timezone: string;
+  status: "complete" | "partial" | "unavailable";
+}
+
 export interface IntradaySyncDto {
   cursor: string;
   lastPointTimestamp: string;
@@ -93,6 +103,7 @@ export interface IntradaySnapshotMetadataDto {
 export interface IntradaySnapshotResponseDto {
   line: IntradayLineDto;
   capability: IntradaySnapshotCapabilityDto;
+  reference: IntradaySnapshotReferenceDto;
   sync: IntradaySyncDto;
   metadata: IntradaySnapshotMetadataDto;
 }
@@ -126,6 +137,12 @@ interface MergeResult {
   deduplicatedPoints: number;
 }
 
+interface HistoryPriceRow {
+  timestampMs: number;
+  openPrice: number;
+  closePrice: number;
+}
+
 @Injectable()
 export class ChartIntradayReadService {
   private readonly logger = createLogger(ChartIntradayReadService.name);
@@ -136,6 +153,7 @@ export class ChartIntradayReadService {
   private static readonly MAX_HISTORY_KLINE_NUM = 500;
   private static readonly SNAPSHOT_HISTORY_MAX_ATTEMPTS = 2;
   private static readonly SNAPSHOT_HISTORY_RETRY_DELAY_MS = 1000;
+  private static readonly SNAPSHOT_REFERENCE_CACHE_TTL_SECONDS = 86400;
   private static readonly SUPPORTED_MARKET_SET = new Set(SUPPORTED_MARKETS);
 
   constructor(
@@ -145,6 +163,7 @@ export class ChartIntradayReadService {
     private readonly streamDataFetcherService: StreamDataFetcherService,
     private readonly chartIntradayCursorService: ChartIntradayCursorService,
     private readonly chartIntradayStreamSubscriptionService: ChartIntradayStreamSubscriptionService,
+    @Optional() private readonly basicCacheService?: BasicCacheService,
   ) {}
 
   async getSnapshot(
@@ -154,6 +173,7 @@ export class ChartIntradayReadService {
     const pointLimit =
       request.pointLimit ?? ChartIntradayReadService.DEFAULT_POINT_LIMIT;
     const now = new Date();
+    const requestId = uuidv4();
 
     this.logger.log("开始生成分时快照", {
       symbol: resolved.symbol,
@@ -165,7 +185,21 @@ export class ChartIntradayReadService {
 
     await this.ensureRealtimeSubscription(resolved, "snapshot");
 
-    const historyPoints = await this.fetchHistoryBaseline(resolved, pointLimit);
+    const transformedSymbol = await this.resolveProviderSymbol(
+      resolved,
+      requestId,
+    );
+    const historyPoints = await this.fetchHistoryBaseline(
+      resolved,
+      transformedSymbol,
+      pointLimit,
+      requestId,
+    );
+    const reference = await this.fetchSnapshotReference(
+      resolved,
+      transformedSymbol,
+      requestId,
+    );
     const realtimePoints = await this.fetchRealtimePoints(
       resolved.symbol,
       resolved.market,
@@ -242,6 +276,7 @@ export class ChartIntradayReadService {
         snapshotBaseGranularity: "1m",
         supportsFullDay1sHistory: false,
       },
+      reference,
       sync: {
         cursor,
         lastPointTimestamp,
@@ -409,7 +444,9 @@ export class ChartIntradayReadService {
 
   private async fetchHistoryBaseline(
     resolved: ResolvedIntradayContext,
+    transformedSymbol: string,
     pointLimit: number,
+    requestId: string,
   ): Promise<IntradayPointDto[]> {
     const historyKlineNum = Math.max(
       1,
@@ -425,30 +462,6 @@ export class ChartIntradayReadService {
     );
 
     try {
-      const requestId = uuidv4();
-      const symbolMapping =
-        await this.symbolTransformerService.transformSymbolsForProvider(
-          resolved.provider,
-          [resolved.symbol],
-          requestId,
-        );
-      const transformedSymbol = String(
-        symbolMapping.transformedSymbols?.[0] || "",
-      ).trim();
-      if (!transformedSymbol) {
-        throw this.createBusinessException({
-          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-          operation: "snapshot_history_fetch",
-          message: "SYMBOL_TRANSFORM_FAILED: 无法转换标的",
-          statusCode: HttpStatus.NOT_FOUND,
-          context: {
-            symbol: resolved.symbol,
-            market: resolved.market,
-            provider: resolved.provider,
-          },
-        });
-      }
-
       const fetchResult = await this.fetchHistoryBaselineWithRetry({
         resolved,
         transformedSymbol,
@@ -458,37 +471,7 @@ export class ChartIntradayReadService {
       });
 
       const rows = this.flattenHistoryRows(this.extractRows(fetchResult?.data));
-      const normalized = rows
-        .map((row) => {
-          const timestampMs = this.parseTimestampToMs(row?.timestamp ?? row?.t);
-          const price = this.parseNumber(
-            row?.lastPrice ?? row?.closePrice ?? row?.close ?? row?.c,
-          );
-          const volume = this.parseNumber(row?.volume ?? row?.v ?? 0);
-          if (!timestampMs || !Number.isFinite(price)) {
-            return null;
-          }
-          if (
-            !this.isPointInTradingDay(
-              timestampMs,
-              resolved.tradingDay,
-              resolved.market,
-            )
-          ) {
-            return null;
-          }
-          return {
-            timestamp: new Date(timestampMs).toISOString(),
-            price,
-            volume: Number.isFinite(volume) ? volume : 0,
-          } as IntradayPointDto;
-        })
-        .filter((item): item is IntradayPointDto => !!item)
-        .sort(
-          (a, b) =>
-            this.parseTimestampToMs(a.timestamp)! -
-            this.parseTimestampToMs(b.timestamp)!,
-        );
+      const normalized = this.normalizeIntradayHistoryRows(rows, resolved);
 
       return normalized;
     } catch (error: any) {
@@ -507,6 +490,207 @@ export class ChartIntradayReadService {
           provider: resolved.provider,
           error: error?.message,
         },
+      });
+    }
+  }
+
+  private async fetchSnapshotReference(
+    resolved: ResolvedIntradayContext,
+    transformedSymbol: string,
+    requestId: string,
+  ): Promise<IntradaySnapshotReferenceDto> {
+    const fallback = this.buildSnapshotReference({
+      market: resolved.market,
+      previousClosePrice: null,
+      sessionOpenPrice: null,
+    });
+    const cacheKey = this.buildSnapshotReferenceCacheKey(resolved);
+    const cachedReference = await this.getCachedSnapshotReference(cacheKey);
+    if (cachedReference) {
+      return cachedReference;
+    }
+
+    try {
+      const reference = await this.fetchSnapshotReferenceWithRetry({
+        resolved,
+        transformedSymbol,
+        requestId,
+      });
+      await this.cacheSnapshotReference(cacheKey, reference);
+      return reference;
+    } catch (error: any) {
+      this.logger.warn("分时诊断: snapshot reference 拉取失败，已降级为空", {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        provider: resolved.provider,
+        requestId,
+        reason: error?.message ?? "unknown",
+      });
+      return fallback;
+    }
+  }
+
+  private async fetchSnapshotReferenceWithRetry(params: {
+    resolved: ResolvedIntradayContext;
+    transformedSymbol: string;
+    requestId: string;
+  }): Promise<IntradaySnapshotReferenceDto> {
+    const { resolved, transformedSymbol, requestId } = params;
+
+    for (
+      let attempt = 1;
+      attempt <= ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        const historyCapability = this.resolveHistoryCapabilityByMarket(
+          resolved.market,
+        );
+        const referenceAnchorTimestamp =
+          this.resolveReferenceAnchorTimestampSeconds(
+            resolved.tradingDay,
+            resolved.market,
+          );
+        const fetchResult = await this.dataFetcherService.fetchRawData({
+          provider: resolved.provider,
+          capability: historyCapability,
+          symbols: [transformedSymbol],
+          requestId: `${requestId}:reference`,
+          apiType: "rest",
+          options: {
+            preferredProvider: resolved.provider,
+            market: resolved.market,
+            klineType: 8,
+            klineNum: 2,
+            timestamp: referenceAnchorTimestamp,
+          },
+        });
+
+        const rows = this.flattenHistoryRows(
+          this.extractRows(fetchResult?.data),
+        );
+        return this.buildSnapshotReferenceFromRows(resolved, rows);
+      } catch (error) {
+        const classifiedError = this.classifySnapshotHistoryFetchError(error);
+        if (!this.shouldRetrySnapshotHistoryFetch(classifiedError, attempt)) {
+          throw error;
+        }
+
+        this.logger.warn("分时诊断: snapshot reference 拉取失败，准备重试", {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          tradingDay: resolved.tradingDay,
+          provider: resolved.provider,
+          requestId,
+          attempt,
+          maxAttempts: ChartIntradayReadService.SNAPSHOT_HISTORY_MAX_ATTEMPTS,
+          nextDelayMs: ChartIntradayReadService.SNAPSHOT_HISTORY_RETRY_DELAY_MS,
+          errorCode: classifiedError.errorCode,
+          statusCode: classifiedError.getStatus(),
+          retryable: classifiedError.retryable,
+          message: classifiedError.message,
+        });
+
+        await this.sleep(
+          ChartIntradayReadService.SNAPSHOT_HISTORY_RETRY_DELAY_MS,
+        );
+      }
+    }
+
+    throw this.createBusinessException({
+      errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      operation: "snapshot_reference_fetch",
+      message: "PROVIDER_UNAVAILABLE: 分时参考价获取失败",
+      statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+      context: {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        provider: resolved.provider,
+      },
+    });
+  }
+
+  private buildSnapshotReferenceFromRows(
+    resolved: ResolvedIntradayContext,
+    rows: Record<string, unknown>[],
+  ): IntradaySnapshotReferenceDto {
+    const priceRows = this.normalizeHistoryPriceRows(rows).sort(
+      (left, right) => right.timestampMs - left.timestampMs,
+    );
+    const tradingDayStartMs = this.resolveTradingDayStartTimestampMs(
+      resolved.tradingDay,
+      resolved.market,
+    );
+    const sessionRow =
+      priceRows.find((row) =>
+        this.isPointInTradingDay(
+          row.timestampMs,
+          resolved.tradingDay,
+          resolved.market,
+        ),
+      ) || null;
+    const previousRow =
+      priceRows.find((row) => row.timestampMs < tradingDayStartMs) || null;
+
+    return this.buildSnapshotReference({
+      market: resolved.market,
+      previousClosePrice: previousRow?.closePrice ?? null,
+      sessionOpenPrice: sessionRow?.openPrice ?? null,
+    });
+  }
+
+  private buildSnapshotReferenceCacheKey(
+    resolved: ResolvedIntradayContext,
+  ): string {
+    return [
+      "chart-intraday",
+      "snapshot-reference",
+      "v1",
+      resolved.provider,
+      resolved.market,
+      resolved.tradingDay,
+      resolved.symbol,
+    ].join(":");
+  }
+
+  private async getCachedSnapshotReference(
+    key: string,
+  ): Promise<IntradaySnapshotReferenceDto | null> {
+    if (!this.basicCacheService) {
+      return null;
+    }
+
+    try {
+      return await this.basicCacheService.get<IntradaySnapshotReferenceDto>(
+        key,
+      );
+    } catch (error: any) {
+      this.logger.warn("分时诊断: snapshot reference 缓存读取失败，已忽略", {
+        key,
+        reason: error?.message ?? "unknown",
+      });
+      return null;
+    }
+  }
+
+  private async cacheSnapshotReference(
+    key: string,
+    reference: IntradaySnapshotReferenceDto,
+  ): Promise<void> {
+    if (!this.basicCacheService || reference.status === "unavailable") {
+      return;
+    }
+
+    try {
+      await this.basicCacheService.set(key, reference, {
+        ttlSeconds:
+          ChartIntradayReadService.SNAPSHOT_REFERENCE_CACHE_TTL_SECONDS,
+      });
+    } catch (error: any) {
+      this.logger.warn("分时诊断: snapshot reference 缓存写入失败，已忽略", {
+        key,
+        reason: error?.message ?? "unknown",
       });
     }
   }
@@ -623,6 +807,36 @@ export class ChartIntradayReadService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async resolveProviderSymbol(
+    resolved: ResolvedIntradayContext,
+    requestId: string,
+  ): Promise<string> {
+    const symbolMapping =
+      await this.symbolTransformerService.transformSymbolsForProvider(
+        resolved.provider,
+        [resolved.symbol],
+        requestId,
+      );
+    const transformedSymbol = String(
+      symbolMapping.transformedSymbols?.[0] || "",
+    ).trim();
+    if (transformedSymbol) {
+      return transformedSymbol;
+    }
+
+    throw this.createBusinessException({
+      errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+      operation: "resolve_provider_symbol",
+      message: "SYMBOL_TRANSFORM_FAILED: 无法转换标的",
+      statusCode: HttpStatus.NOT_FOUND,
+      context: {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        provider: resolved.provider,
+      },
+    });
   }
 
   private async fetchRealtimePoints(
@@ -819,6 +1033,71 @@ export class ChartIntradayReadService {
     return hasNested ? flattened : rows;
   }
 
+  private normalizeIntradayHistoryRows(
+    rows: Record<string, unknown>[],
+    resolved: ResolvedIntradayContext,
+  ): IntradayPointDto[] {
+    return rows
+      .map((row) => {
+        const timestampMs = this.parseTimestampToMs(row?.timestamp ?? row?.t);
+        const price = this.parseNumber(
+          row?.lastPrice ?? row?.closePrice ?? row?.close ?? row?.c,
+        );
+        const volume = this.parseNumber(row?.volume ?? row?.v ?? 0);
+        if (!timestampMs || !Number.isFinite(price)) {
+          return null;
+        }
+        if (
+          !this.isPointInTradingDay(
+            timestampMs,
+            resolved.tradingDay,
+            resolved.market,
+          )
+        ) {
+          return null;
+        }
+        return {
+          timestamp: new Date(timestampMs).toISOString(),
+          price,
+          volume: Number.isFinite(volume) ? volume : 0,
+        } as IntradayPointDto;
+      })
+      .filter((item): item is IntradayPointDto => !!item)
+      .sort(
+        (a, b) =>
+          this.parseTimestampToMs(a.timestamp)! -
+          this.parseTimestampToMs(b.timestamp)!,
+      );
+  }
+
+  private normalizeHistoryPriceRows(
+    rows: Record<string, unknown>[],
+  ): HistoryPriceRow[] {
+    return rows
+      .map((row) => {
+        const timestampMs = this.parseTimestampToMs(row?.timestamp ?? row?.t);
+        const openPrice = this.parseNumber(
+          row?.openPrice ?? row?.open ?? row?.o,
+        );
+        const closePrice = this.parseNumber(
+          row?.lastPrice ?? row?.closePrice ?? row?.close ?? row?.c,
+        );
+        if (
+          !timestampMs ||
+          !Number.isFinite(openPrice) ||
+          !Number.isFinite(closePrice)
+        ) {
+          return null;
+        }
+        return {
+          timestampMs,
+          openPrice,
+          closePrice,
+        } as HistoryPriceRow;
+      })
+      .filter((item): item is HistoryPriceRow => !!item);
+  }
+
   private resolveContext(request: {
     symbol: string;
     market?: string;
@@ -983,9 +1262,17 @@ export class ChartIntradayReadService {
     const normalizedMarket = String(market || "")
       .trim()
       .toUpperCase();
+    if (normalizedMarket === "CRYPTO") {
+      const currentTradingDay = this.resolveCurrentTradingDay("CRYPTO");
+      if (tradingDay === currentTradingDay) {
+        return Math.floor(Date.now() / 1000);
+      }
+      const utcMs = this.zonedDateTimeToUtcMs(tradingDay, 23, 59, 59, "UTC");
+      return Math.floor(utcMs / 1000);
+    }
+
     const timezone = resolveMarketTimezone(market);
-    const [hour, minute, second] =
-      normalizedMarket === "CRYPTO" ? [0, 0, 1] : [23, 59, 59];
+    const [hour, minute, second] = [23, 59, 59];
     const utcMs = this.zonedDateTimeToUtcMs(
       tradingDay,
       hour,
@@ -994,6 +1281,65 @@ export class ChartIntradayReadService {
       timezone,
     );
     return Math.floor(utcMs / 1000);
+  }
+
+  private resolveReferenceAnchorTimestampSeconds(
+    tradingDay: string,
+    market: string,
+  ): number {
+    return this.resolveHistoryAnchorTimestampSeconds(tradingDay, market);
+  }
+
+  private resolveTradingDayStartTimestampMs(
+    tradingDay: string,
+    market: string,
+  ): number {
+    const timezone =
+      String(market || "")
+        .trim()
+        .toUpperCase() === "CRYPTO"
+        ? "UTC"
+        : resolveMarketTimezone(market);
+    return this.zonedDateTimeToUtcMs(tradingDay, 0, 0, 0, timezone);
+  }
+
+  private buildSnapshotReference(params: {
+    market: string;
+    previousClosePrice: number | null;
+    sessionOpenPrice: number | null;
+  }): IntradaySnapshotReferenceDto {
+    const timezone = resolveMarketTimezone(params.market);
+    const previousClosePrice = Number.isFinite(
+      params.previousClosePrice as number,
+    )
+      ? (params.previousClosePrice as number)
+      : null;
+    const sessionOpenPrice = Number.isFinite(params.sessionOpenPrice as number)
+      ? (params.sessionOpenPrice as number)
+      : null;
+    const availableCount = [previousClosePrice, sessionOpenPrice].filter(
+      (value) => value !== null,
+    ).length;
+    const status =
+      availableCount === 2
+        ? "complete"
+        : availableCount === 1
+          ? "partial"
+          : "unavailable";
+
+    return {
+      previousClosePrice,
+      sessionOpenPrice,
+      priceBase: "previous_close",
+      marketSession:
+        String(params.market || "")
+          .trim()
+          .toUpperCase() === "CRYPTO"
+          ? "utc_day"
+          : "regular",
+      timezone,
+      status,
+    };
   }
 
   private zonedDateTimeToUtcMs(

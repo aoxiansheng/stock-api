@@ -9,7 +9,9 @@ function createConfigService(values: Record<string, any>): ConfigService {
   } as any;
 }
 
-function createService(configValues: Record<string, any> = {}): InfowayContextService {
+function createService(
+  configValues: Record<string, any> = {},
+): InfowayContextService {
   const service = new InfowayContextService(
     createConfigService({
       INFOWAY_API_KEY: "test-api-key",
@@ -272,18 +274,38 @@ describe("InfowayContextService", () => {
     });
   });
 
-  it("getCryptoHistory: 基于 trade 响应聚合为 history 兼容结构", async () => {
+  it("getCryptoHistory: 返回 crypto batch_kline 原始字段", async () => {
     const service = createService();
-    (service as any).client.get.mockResolvedValue({
+    (service as any).client.post.mockResolvedValue({
       data: {
         ret: 200,
         data: [
           {
             s: "BTCUSDT",
-            t: 1709251200999,
-            p: "65000.1",
-            v: "321",
-            vw: "20865032.1",
+            respList: [
+              {
+                t: "1709251200",
+                o: "64990.0",
+                h: "65010.0",
+                l: "64980.0",
+                c: "65000.1",
+                v: "321",
+                vw: "20865032.1",
+                pc: "0.10%",
+                pca: "65.0",
+              },
+              {
+                t: "1709251140",
+                o: "64970.0",
+                h: "64995.0",
+                l: "64960.0",
+                c: "64990.0",
+                v: "210",
+                vw: "13647900.0",
+                pc: "0.05%",
+                pca: "32.0",
+              },
+            ],
           },
         ],
       },
@@ -295,8 +317,14 @@ describe("InfowayContextService", () => {
       timestamp: 1709251200,
     });
 
-    expect((service as any).client.get).toHaveBeenCalledWith(
-      "/crypto/batch_trade/BTCUSDT",
+    expect((service as any).client.post).toHaveBeenCalledWith(
+      "/crypto/v2/batch_kline",
+      expect.objectContaining({
+        klineType: 1,
+        klineNum: 10,
+        codes: "BTCUSDT",
+        timestamp: 1709251200,
+      }),
       expect.objectContaining({
         headers: {
           apiKey: "test-api-key",
@@ -308,46 +336,94 @@ describe("InfowayContextService", () => {
         s: "BTCUSDT",
         respList: [
           {
-            t: 1709251200,
-            o: "65000.1",
-            h: "65000.1",
-            l: "65000.1",
+            t: "1709251200",
+            o: "64990.0",
+            h: "65010.0",
+            l: "64980.0",
             c: "65000.1",
             v: "321",
             vw: "20865032.1",
-            vm: "20865032.1",
-            pc: "0",
-            pca: "0",
+            pc: "0.10%",
+            pca: "65.0",
+          },
+          {
+            t: "1709251140",
+            o: "64970.0",
+            h: "64995.0",
+            l: "64960.0",
+            c: "64990.0",
+            v: "210",
+            vw: "13647900.0",
+            pc: "0.05%",
+            pca: "32.0",
           },
         ],
       },
     ]);
   });
 
-  it("getCryptoHistory: timestamp 晚于 trade 时返回空数组", async () => {
+  it("getCryptoHistory: 允许按请求透传日 K 类型", async () => {
     const service = createService();
-    (service as any).client.get.mockResolvedValue({
+    (service as any).client.post.mockResolvedValue({
       data: {
         ret: 200,
-        data: [
-          {
-            s: "BTCUSDT",
-            t: 1709251200999,
-            p: "65000.1",
-            v: "321",
-            vw: "20865032.1",
-          },
-        ],
+        data: [],
       },
     });
 
-    const result = await service.getCryptoHistory({
+    await service.getCryptoHistory({
       symbols: ["BTCUSDT"],
-      timestamp: 1709251201,
-    });
+      klineType: 8,
+      klineNum: 2,
+    } as any);
 
-    expect(result).toEqual([]);
+    expect((service as any).client.post).toHaveBeenCalledWith(
+      "/crypto/v2/batch_kline",
+      expect.objectContaining({
+        klineType: 8,
+        klineNum: 2,
+        codes: "BTCUSDT",
+      }),
+      expect.any(Object),
+    );
   });
+
+  it.each([
+    {
+      title: "10位秒级时间戳",
+      input: 1709251200,
+      expected: 1709251200,
+    },
+    {
+      title: "13位毫秒时间戳",
+      input: 1709251200123,
+      expected: 1709251200,
+    },
+  ])(
+    "getCryptoHistory: $title 应按正确单位转换并透传",
+    async ({ input, expected }) => {
+      const service = createService();
+      (service as any).client.post.mockResolvedValue({
+        data: {
+          ret: 200,
+          data: [],
+        },
+      });
+
+      await service.getCryptoHistory({
+        symbols: ["BTCUSDT"],
+        timestamp: input,
+      });
+
+      expect((service as any).client.post).toHaveBeenCalledWith(
+        "/crypto/v2/batch_kline",
+        expect.objectContaining({
+          timestamp: expected,
+        }),
+        expect.any(Object),
+      );
+    },
+  );
 
   it("getMarketStatus: data 结构异常时抛结构化业务异常", async () => {
     const service = createService();
@@ -763,6 +839,34 @@ describe("InfowayContextService", () => {
     ]);
   });
 
+  it("getStockHistory: 允许按请求透传日 K 类型", async () => {
+    const service = createService({
+      INFOWAY_INTRADAY_KLINE_TYPE: 5,
+    });
+    (service as any).client.post.mockResolvedValue({
+      data: {
+        ret: 200,
+        data: [],
+      },
+    });
+
+    await service.getStockHistory({
+      symbols: ["AAPL.US"],
+      klineType: 8,
+      klineNum: 2,
+    });
+
+    expect((service as any).client.post).toHaveBeenCalledWith(
+      "/stock/v2/batch_kline",
+      expect.objectContaining({
+        klineType: 8,
+        klineNum: 2,
+        codes: "AAPL.US",
+      }),
+      expect.any(Object),
+    );
+  });
+
   it.each([0, -1, 1.5, "bad-type", 3, 999])(
     "getStockHistory: klineType=%p 非法时回退默认配置值",
     async (klineType) => {
@@ -803,28 +907,31 @@ describe("InfowayContextService", () => {
       input: 1758553860123,
       expected: 1758553860,
     },
-  ])("getStockHistory: $title 应按正确单位转换并透传", async ({ input, expected }) => {
-    const service = createService();
-    (service as any).client.post.mockResolvedValue({
-      data: {
-        ret: 200,
-        data: [],
-      },
-    });
+  ])(
+    "getStockHistory: $title 应按正确单位转换并透传",
+    async ({ input, expected }) => {
+      const service = createService();
+      (service as any).client.post.mockResolvedValue({
+        data: {
+          ret: 200,
+          data: [],
+        },
+      });
 
-    await service.getStockHistory({
-      symbols: ["AAPL.US"],
-      timestamp: input,
-    });
+      await service.getStockHistory({
+        symbols: ["AAPL.US"],
+        timestamp: input,
+      });
 
-    expect((service as any).client.post).toHaveBeenCalledWith(
-      "/stock/v2/batch_kline",
-      expect.objectContaining({
-        timestamp: expected,
-      }),
-      expect.any(Object),
-    );
-  });
+      expect((service as any).client.post).toHaveBeenCalledWith(
+        "/stock/v2/batch_kline",
+        expect.objectContaining({
+          timestamp: expected,
+        }),
+        expect.any(Object),
+      );
+    },
+  );
 
   it.each([17092512600, 946684800000])(
     "getStockHistory: 11/12位数字 timestamp=%p 时抛参数错误并阻断上游请求",
@@ -837,7 +944,9 @@ describe("InfowayContextService", () => {
           timestamp,
         } as any),
       ).rejects.toMatchObject({
-        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        message: expect.stringContaining(
+          "timestamp 必须是 10/13 位正整数时间戳",
+        ),
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
       });
 
@@ -856,7 +965,9 @@ describe("InfowayContextService", () => {
           timestamp,
         } as any),
       ).rejects.toMatchObject({
-        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        message: expect.stringContaining(
+          "timestamp 必须是 10/13 位正整数时间戳",
+        ),
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
       });
 
@@ -891,7 +1002,9 @@ describe("InfowayContextService", () => {
           timestamp,
         } as any),
       ).rejects.toMatchObject({
-        message: expect.stringContaining("timestamp 必须是 10/13 位正整数时间戳"),
+        message: expect.stringContaining(
+          "timestamp 必须是 10/13 位正整数时间戳",
+        ),
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
       });
 

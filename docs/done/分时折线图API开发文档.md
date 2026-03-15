@@ -81,6 +81,14 @@
     "snapshotBaseGranularity": "1m",
     "supportsFullDay1sHistory": false
   },
+  "reference": {
+    "previousClosePrice": 194.83,
+    "sessionOpenPrice": 195.12,
+    "priceBase": "previous_close",
+    "marketSession": "regular",
+    "timezone": "America/New_York",
+    "status": "complete"
+  },
   "sync": {
     "cursor": "base64-signed-cursor",
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
@@ -98,6 +106,16 @@
 说明：
 - `supportsFullDay1sHistory=false` 时，表示当前快照中的 `1s` 点位由“`1m` 历史基线 + 实时流窗口”拼接而成，不是完整当日秒级历史回放。
 - `supportsFullDay1sHistory=true` 仅在后端具备秒级历史存储/回放能力后成立。
+- `reference` 为分时图基准参考值，由后端按市场语义统一计算，供前端直接消费：
+  - `previousClosePrice`：昨收参考价
+  - `sessionOpenPrice`：本交易日/本 UTC 日开盘参考价
+  - `priceBase`：当前固定为 `previous_close`
+  - `marketSession`：`US/HK/CN` 为 `regular`，`CRYPTO` 为 `utc_day`
+  - `timezone`：参考值对应的市场时区
+  - `status`：`complete | partial | unavailable`
+- 参考值计算规则：
+  - `US/HK/CN`：通过日 K 取“当前交易日 open + 上一交易日 close”
+  - `CRYPTO`：通过 UTC 日 K 取“当日 open + 前一日 close”
 
 ### 3.2 增量兜底：Delta（仅增量）
 

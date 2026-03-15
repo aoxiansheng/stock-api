@@ -68,6 +68,7 @@ interface InfowayHistoryParams {
 interface InfowayCryptoHistoryParams {
   symbols: string[];
   market?: string;
+  klineType?: number | string;
   klineNum?: number | string;
   timestamp?: number;
 }
@@ -77,7 +78,11 @@ const MAX_INTRADAY_KLINE_NUM = 500;
 const MAX_QUOTE_BATCH_TRADE_PATH_LENGTH = 7000;
 const STOCK_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX = "/stock/batch_trade/";
 const CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX = "/crypto/batch_trade/";
-const ALLOWED_HISTORY_KLINE_TYPES = new Set([1, 5, 15, 30, 60]);
+const ALLOWED_INTRADAY_HISTORY_KLINE_TYPES = new Set([1, 5, 15, 30, 60]);
+const ALLOWED_REQUEST_HISTORY_KLINE_TYPES = new Set([
+  ...ALLOWED_INTRADAY_HISTORY_KLINE_TYPES,
+  8,
+]);
 const INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE =
   "Infoway 参数错误: timestamp 必须是 10/13 位正整数时间戳";
 
@@ -148,10 +153,8 @@ export class InfowayContextService {
         headers: { apiKey: this.apiKey },
       });
       const body = response?.data || {};
-      this.assertInfowayResponse(
-        body,
-        "test-connection",
-        (data) => Array.isArray(data),
+      this.assertInfowayResponse(body, "test-connection", (data) =>
+        Array.isArray(data),
       );
       return true;
     } catch (error: any) {
@@ -216,10 +219,13 @@ export class InfowayContextService {
   async getCryptoQuote(symbols: string[]): Promise<any[]> {
     await this.ensureConfigured();
 
-    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(symbols, {
-      allowEmpty: true,
-      maxCount: INFOWAY_SYMBOL_LIMIT.REST,
-    });
+    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(
+      symbols,
+      {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.REST,
+      },
+    );
     const upstreamSymbols = toInfowayCryptoUpstreamSymbols(normalizedSymbols);
 
     if (upstreamSymbols.length === 0) {
@@ -267,20 +273,41 @@ export class InfowayContextService {
     }
 
     const effectiveKlineNum = this.resolveHistoryKlineNum(params.klineNum);
+    const effectiveKlineType = this.resolveHistoryKlineType(params.klineType);
     const historyTimestamp = this.resolveHistoryTimestamp(params.timestamp);
-    const quoteItems = await this.fetchCryptoQuoteByUpstreamSymbols(upstreamSymbols);
-    const historyData = this.buildCryptoHistoryFromTrades(
-      quoteItems,
-      historyTimestamp,
-      effectiveKlineNum,
+    const payload: Record<string, any> = {
+      klineType: effectiveKlineType,
+      klineNum: effectiveKlineNum,
+      codes: upstreamSymbols.join(","),
+    };
+    if (historyTimestamp) {
+      payload.timestamp = historyTimestamp;
+    }
+
+    const response = await this.client.post("/crypto/v2/batch_kline", payload, {
+      headers: { apiKey: this.apiKey },
+    });
+
+    const body = response.data || {};
+    this.assertInfowayResponse(body, "crypto-history", (data) =>
+      Array.isArray(data),
     );
 
-    this.logger.debug("Infoway REST 加密货币历史获取成功(基于trade聚合)", {
+    const historyData = body.data as InfowayKlineRespEntry[];
+    const pointCount = historyData.reduce((count, entry) => {
+      if (!Array.isArray(entry?.respList)) {
+        return count;
+      }
+      return count + entry.respList.length;
+    }, 0);
+
+    this.logger.debug("Infoway 加密货币分时历史获取成功", {
       requested: upstreamSymbols.length,
       receivedEntries: historyData.length,
-      endpoint: CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
-      hasTimestamp: Boolean(historyTimestamp),
+      receivedPoints: pointCount,
+      klineType: effectiveKlineType,
       klineNum: effectiveKlineNum,
+      hasTimestamp: Boolean(historyTimestamp),
     });
 
     return historyData;
@@ -295,7 +322,8 @@ export class InfowayContextService {
     let currentSymbolsLength = 0;
 
     for (const symbol of symbols) {
-      const additionalLength = (currentBatch.length > 0 ? 1 : 0) + symbol.length;
+      const additionalLength =
+        (currentBatch.length > 0 ? 1 : 0) + symbol.length;
       const projectedPathLength =
         endpointPrefix.length + currentSymbolsLength + additionalLength;
 
@@ -356,106 +384,17 @@ export class InfowayContextService {
     endpointPrefix: string,
     operation: string,
   ): Promise<InfowayTradeItem[]> {
-    const response = await this.client.get(`${endpointPrefix}${batchSymbols.join(",")}`, {
-      headers: { apiKey: this.apiKey },
-    });
+    const response = await this.client.get(
+      `${endpointPrefix}${batchSymbols.join(",")}`,
+      {
+        headers: { apiKey: this.apiKey },
+      },
+    );
 
     const body = response.data || {};
     this.assertInfowayResponse(body, operation, (data) => Array.isArray(data));
 
     return body.data as InfowayTradeItem[];
-  }
-
-  private async fetchCryptoQuoteByUpstreamSymbols(
-    upstreamSymbols: string[],
-  ): Promise<InfowayTradeItem[]> {
-    const quoteBatches = this.buildQuoteSymbolBatches(
-      upstreamSymbols,
-      CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
-    );
-    const tradeItems: InfowayTradeItem[] = [];
-
-    for (const batchSymbols of quoteBatches) {
-      const batchTradeItems = await this.fetchQuoteBatchTradeItemsWithRetry(
-        batchSymbols,
-        CRYPTO_QUOTE_BATCH_TRADE_ENDPOINT_PREFIX,
-        "crypto-quote",
-      );
-      tradeItems.push(...batchTradeItems);
-    }
-
-    return tradeItems;
-  }
-
-  private buildCryptoHistoryFromTrades(
-    tradeItems: InfowayTradeItem[],
-    historyTimestampSeconds?: number,
-    klineNum = 1,
-  ): InfowayKlineRespEntry[] {
-    const historyTimestampMs =
-      typeof historyTimestampSeconds === "number"
-        ? historyTimestampSeconds * 1000
-        : undefined;
-
-    const grouped = new Map<string, InfowayKlineItem[]>();
-
-    for (const trade of tradeItems) {
-      const symbol = String(trade?.s || "").trim().toUpperCase();
-      if (!symbol) {
-        continue;
-      }
-
-      const timestampMs = this.normalizeTradeTimestampToMillis(trade?.t);
-      if (
-        typeof historyTimestampMs === "number" &&
-        Number.isFinite(timestampMs) &&
-        timestampMs < historyTimestampMs
-      ) {
-        continue;
-      }
-
-      const price = String(trade?.p ?? "").trim();
-      if (!price) {
-        continue;
-      }
-
-      const point: InfowayKlineItem = {
-        t: Number.isFinite(timestampMs)
-          ? Math.trunc(timestampMs / 1000)
-          : trade?.t,
-        o: price,
-        h: price,
-        l: price,
-        c: price,
-        v: String(trade?.v ?? "0"),
-        vw: String(trade?.vw ?? "0"),
-        vm: String(trade?.vw ?? "0"),
-        pc: "0",
-        pca: "0",
-      };
-
-      if (!grouped.has(symbol)) {
-        grouped.set(symbol, []);
-      }
-      grouped.get(symbol)!.push(point);
-    }
-
-    const results: InfowayKlineRespEntry[] = [];
-    for (const [symbol, points] of grouped.entries()) {
-      const sortedPoints = points
-        .slice()
-        .sort((left, right) => Number(left.t || 0) - Number(right.t || 0));
-      const truncatedPoints =
-        sortedPoints.length > klineNum
-          ? sortedPoints.slice(sortedPoints.length - klineNum)
-          : sortedPoints;
-      results.push({
-        s: symbol,
-        respList: truncatedPoints,
-      });
-    }
-
-    return results;
   }
 
   private normalizeTradeTimestampToMillis(
@@ -466,9 +405,7 @@ export class InfowayContextService {
       return Number.NaN;
     }
 
-    const digitCount = Math.abs(Math.trunc(numericTimestamp))
-      .toString()
-      .length;
+    const digitCount = Math.abs(Math.trunc(numericTimestamp)).toString().length;
     if (digitCount === 10) {
       return Math.trunc(numericTimestamp * 1000);
     }
@@ -502,7 +439,8 @@ export class InfowayContextService {
       params.market,
       "getStockHistory",
     );
-    const inferredMarket = inferSingleInfowayMarketFromSymbols(normalizedSymbols);
+    const inferredMarket =
+      inferSingleInfowayMarketFromSymbols(normalizedSymbols);
     if (
       normalizedMarketHint &&
       inferredMarket &&
@@ -536,10 +474,8 @@ export class InfowayContextService {
     });
 
     const body = response.data || {};
-    this.assertInfowayResponse(
-      body,
-      "stock-history",
-      (data) => Array.isArray(data),
+    this.assertInfowayResponse(body, "stock-history", (data) =>
+      Array.isArray(data),
     );
 
     const historyData = body.data as InfowayKlineRespEntry[];
@@ -570,14 +506,14 @@ export class InfowayContextService {
     });
 
     const body = response.data || {};
-    this.assertInfowayResponse(
-      body,
-      "market-status",
-      (data) => Array.isArray(data),
+    this.assertInfowayResponse(body, "market-status", (data) =>
+      Array.isArray(data),
     );
 
     const expectedMarkets = new Set(
-      (markets || []).map((value) => normalizeInfowayMarketCode(value)).filter(Boolean),
+      (markets || [])
+        .map((value) => normalizeInfowayMarketCode(value))
+        .filter(Boolean),
     );
     const rawItems = body.data as Array<Record<string, any>>;
 
@@ -605,7 +541,8 @@ export class InfowayContextService {
         maxCount: INFOWAY_SYMBOL_LIMIT.REST,
       },
     );
-    const hasExplicitMarket = params.market !== undefined && params.market !== null;
+    const hasExplicitMarket =
+      params.market !== undefined && params.market !== null;
     let market = "";
 
     if (hasExplicitMarket) {
@@ -638,14 +575,17 @@ export class InfowayContextService {
       market,
     );
 
-    const response = await this.client.get("/common/basic/markets/trading_days", {
-      headers: { apiKey: this.apiKey },
-      params: {
-        market,
-        beginDay,
-        endDay,
+    const response = await this.client.get(
+      "/common/basic/markets/trading_days",
+      {
+        headers: { apiKey: this.apiKey },
+        params: {
+          market,
+          beginDay,
+          endDay,
+        },
       },
-    });
+    );
 
     const body = response.data || {};
     this.assertInfowayResponse(
@@ -680,16 +620,17 @@ export class InfowayContextService {
     });
 
     const body = response.data || {};
-    this.assertInfowayResponse(
-      body,
-      "support-list",
-      (data) => Array.isArray(data),
+    this.assertInfowayResponse(body, "support-list", (data) =>
+      Array.isArray(data),
     );
 
     return body.data as Array<Record<string, any>>;
   }
 
-  async getStockBasicInfo(symbols: string[], marketHint?: string): Promise<any[]> {
+  async getStockBasicInfo(
+    symbols: string[],
+    marketHint?: string,
+  ): Promise<any[]> {
     await this.ensureConfigured();
 
     const normalizedSymbols = normalizeAndValidateInfowaySymbols(symbols, {
@@ -734,10 +675,8 @@ export class InfowayContextService {
         });
 
         const body = response.data || {};
-        this.assertInfowayResponse(
-          body,
-          "basic-info",
-          (data) => Array.isArray(data),
+        this.assertInfowayResponse(body, "basic-info", (data) =>
+          Array.isArray(data),
         );
 
         results.push(...(body.data as Array<Record<string, any>>));
@@ -750,10 +689,13 @@ export class InfowayContextService {
   async getCryptoBasicInfo(symbols: string[]): Promise<any[]> {
     await this.ensureConfigured();
 
-    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(symbols, {
-      allowEmpty: true,
-      maxCount: INFOWAY_SYMBOL_LIMIT.REST,
-    });
+    const normalizedSymbols = normalizeAndValidateInfowayCryptoSymbols(
+      symbols,
+      {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.REST,
+      },
+    );
     const upstreamSymbols = toInfowayCryptoUpstreamSymbols(normalizedSymbols);
     if (upstreamSymbols.length === 0) {
       return [];
@@ -793,10 +735,8 @@ export class InfowayContextService {
         upstreamMsg: sanitizeInfowayUpstreamMessage(body?.msg),
         responseDataCount: bodyData.length,
       });
-      this.assertInfowayResponse(
-        body,
-        "crypto-basic-info",
-        (data) => Array.isArray(data),
+      this.assertInfowayResponse(body, "crypto-basic-info", (data) =>
+        Array.isArray(data),
       );
 
       results.push(...(bodyData as Array<Record<string, any>>));
@@ -823,7 +763,11 @@ export class InfowayContextService {
         MAX_INTRADAY_KLINE_NUM,
       ),
     );
-    if (klineNumInput === undefined || klineNumInput === null || klineNumInput === "") {
+    if (
+      klineNumInput === undefined ||
+      klineNumInput === null ||
+      klineNumInput === ""
+    ) {
       return defaultKlineNum;
     }
 
@@ -856,10 +800,7 @@ export class InfowayContextService {
     if (klineTypeInput === undefined || klineTypeInput === null) {
       return this.intradayKlineType;
     }
-    if (
-      typeof klineTypeInput === "string" &&
-      klineTypeInput.trim() === ""
-    ) {
+    if (typeof klineTypeInput === "string" && klineTypeInput.trim() === "") {
       return this.intradayKlineType;
     }
 
@@ -867,7 +808,7 @@ export class InfowayContextService {
     const isValid =
       Number.isFinite(parsed) &&
       Number.isInteger(parsed) &&
-      ALLOWED_HISTORY_KLINE_TYPES.has(parsed);
+      ALLOWED_REQUEST_HISTORY_KLINE_TYPES.has(parsed);
     if (isValid) {
       return parsed;
     }
@@ -880,7 +821,7 @@ export class InfowayContextService {
   }
 
   private normalizeConfiguredHistoryKlineType(klineType: number): number {
-    if (ALLOWED_HISTORY_KLINE_TYPES.has(klineType)) {
+    if (ALLOWED_INTRADAY_HISTORY_KLINE_TYPES.has(klineType)) {
       return klineType;
     }
 
@@ -977,7 +918,6 @@ export class InfowayContextService {
     return defaultValue;
   }
 
-
   private normalizeStockInfoMarketHint(
     marketHint?: string,
     operation = "getStockBasicInfo",
@@ -1059,11 +999,13 @@ export class InfowayContextService {
       endDay = normalizedMarket
         ? formatInfowayYmdByMarket(today, normalizedMarket)
         : formatInfowayYmd(today);
-      const begin = new Date(Date.UTC(
-        Number(endDay.slice(0, 4)),
-        Number(endDay.slice(4, 6)) - 1,
-        Number(endDay.slice(6, 8)),
-      ));
+      const begin = new Date(
+        Date.UTC(
+          Number(endDay.slice(0, 4)),
+          Number(endDay.slice(4, 6)) - 1,
+          Number(endDay.slice(6, 8)),
+        ),
+      );
       begin.setUTCDate(begin.getUTCDate() - 30);
       beginDay = formatInfowayYmd(begin);
     } else if (!beginDay && endDay) {
@@ -1113,7 +1055,6 @@ export class InfowayContextService {
     return chunks;
   }
 
-
   private assertInfowayResponse(
     body: any,
     operation: string,
@@ -1136,5 +1077,4 @@ export class InfowayContextService {
       msg: body?.msg,
     });
   }
-
 }

@@ -19,7 +19,9 @@ import {
 const INFOWAY_HISTORY_TIMESTAMP_ERROR_MESSAGE =
   "Infoway 参数错误: timestamp 必须是 10/13 位正整数时间戳";
 
-function validateInfowayHistoryTimestamp(timestamp?: number): number | undefined {
+function validateInfowayHistoryTimestamp(
+  timestamp?: number,
+): number | undefined {
   if (timestamp === undefined || timestamp === null) {
     return undefined;
   }
@@ -53,11 +55,11 @@ function validateInfowayHistoryTimestamp(timestamp?: number): number | undefined
 
 /**
  * Infoway REST 加密货币分时历史能力
- * 说明：当前通过最新成交（trade）聚合为 history 兼容结构，供 fetching 层统一处理。
+ * 说明：当前走 batch_kline 返回真实 K 线历史，供 fetching 层统一处理。
  */
 export const getCryptoHistory: ICapability = {
   name: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
-  description: "Infoway REST 获取加密货币分时历史（基于 batch_trade 最新成交）",
+  description: "Infoway REST 获取加密货币分时历史（返回 batch_kline 原始字段）",
   transport: "rest",
   apiType: "rest",
   supportedMarkets: [Market.CRYPTO],
@@ -70,6 +72,7 @@ export const getCryptoHistory: ICapability = {
   async execute(params: {
     symbols: string[];
     market?: string;
+    klineType?: number | string;
     klineNum?: number;
     timestamp?: number;
     contextService?: InfowayContextService;
@@ -92,10 +95,13 @@ export const getCryptoHistory: ICapability = {
       );
     }
 
-    const symbols = normalizeAndValidateInfowayCryptoSymbols(params.symbols || [], {
-      allowEmpty: true,
-      maxCount: INFOWAY_SYMBOL_LIMIT.HISTORY_SINGLE,
-    });
+    const symbols = normalizeAndValidateInfowayCryptoSymbols(
+      params.symbols || [],
+      {
+        allowEmpty: true,
+        maxCount: INFOWAY_SYMBOL_LIMIT.HISTORY_SINGLE,
+      },
+    );
 
     const hasMarketHint =
       params.market !== undefined &&
@@ -121,6 +127,7 @@ export const getCryptoHistory: ICapability = {
     const historyData = await contextService.getCryptoHistory({
       symbols,
       market: "CRYPTO",
+      klineType: params.klineType,
       klineNum: params.klineNum,
       timestamp,
     });

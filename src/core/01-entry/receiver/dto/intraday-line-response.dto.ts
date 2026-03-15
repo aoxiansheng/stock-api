@@ -8,6 +8,7 @@ import type {
   IntradayReleaseResponseDto as IntradayReleaseResponseDtoContract,
   IntradaySnapshotCapabilityDto as IntradaySnapshotCapabilityDtoContract,
   IntradaySnapshotMetadataDto as IntradaySnapshotMetadataDtoContract,
+  IntradaySnapshotReferenceDto as IntradaySnapshotReferenceDtoContract,
   IntradaySnapshotResponseDto as IntradaySnapshotResponseDtoContract,
   IntradaySyncDto as IntradaySyncDtoContract,
 } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
@@ -89,6 +90,28 @@ export class IntradaySnapshotMetadataDto
   deduplicatedPoints: number;
 }
 
+export class IntradaySnapshotReferenceDto
+  implements IntradaySnapshotReferenceDtoContract
+{
+  @ApiProperty({ example: 255.76, nullable: true })
+  previousClosePrice: number | null;
+
+  @ApiProperty({ example: 255.48, nullable: true })
+  sessionOpenPrice: number | null;
+
+  @ApiProperty({ example: "previous_close" })
+  priceBase: "previous_close";
+
+  @ApiProperty({ example: "regular" })
+  marketSession: "regular" | "utc_day";
+
+  @ApiProperty({ example: "America/New_York" })
+  timezone: string;
+
+  @ApiProperty({ example: "complete" })
+  status: "complete" | "partial" | "unavailable";
+}
+
 export class IntradaySnapshotResponseDto
   implements IntradaySnapshotResponseDtoContract
 {
@@ -97,6 +120,9 @@ export class IntradaySnapshotResponseDto
 
   @ApiProperty({ type: IntradaySnapshotCapabilityDto })
   capability: IntradaySnapshotCapabilityDto;
+
+  @ApiProperty({ type: IntradaySnapshotReferenceDto })
+  reference: IntradaySnapshotReferenceDto;
 
   @ApiProperty({ type: IntradaySyncDto })
   sync: IntradaySyncDto;

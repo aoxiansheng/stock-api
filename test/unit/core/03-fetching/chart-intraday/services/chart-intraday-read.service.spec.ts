@@ -136,6 +136,10 @@ describe("ChartIntradayReadService", () => {
         clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
       }),
     };
+    const basicCacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
 
     const chartIntradayCursorService = new ChartIntradayCursorService();
     symbolTransformerService.transformSymbolsForProvider.mockImplementation(
@@ -166,6 +170,7 @@ describe("ChartIntradayReadService", () => {
       streamDataFetcherService as any,
       chartIntradayCursorService,
       chartIntradayStreamSubscriptionService as any,
+      basicCacheService as any,
     );
 
     return {
@@ -176,6 +181,7 @@ describe("ChartIntradayReadService", () => {
       streamDataFetcherService,
       streamCache,
       chartIntradayStreamSubscriptionService,
+      basicCacheService,
     };
   }
 
@@ -193,6 +199,10 @@ describe("ChartIntradayReadService", () => {
 
   beforeEach(() => {
     setCursorSecret(DEFAULT_CURSOR_SECRET);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   afterAll(() => {
@@ -338,14 +348,15 @@ describe("ChartIntradayReadService", () => {
     );
   });
 
-  it("snapshot: CRYPTO 历史锚点应从 UTC 00:00:01 开始", async () => {
+  it("snapshot: CRYPTO 当日历史锚点应使用当前 UTC 时间", async () => {
     const { service, dataFetcherService, streamCache } = createService();
+    jest.useFakeTimers().setSystemTime(new Date("2026-01-15T12:34:56.000Z"));
     streamCache.getData.mockResolvedValue([]);
     dataFetcherService.fetchRawData.mockResolvedValue({
       data: [
         {
           symbol: "BTCUSDT",
-          timestamp: "2026-01-15T00:00:01.000Z",
+          timestamp: "2026-01-15T12:34:00.000Z",
           lastPrice: "45000.10",
           volume: "10",
         },
@@ -367,7 +378,132 @@ describe("ChartIntradayReadService", () => {
     expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
-          timestamp: Math.floor(Date.parse("2026-01-15T00:00:01.000Z") / 1000),
+          timestamp: Math.floor(Date.parse("2026-01-15T12:34:56.000Z") / 1000),
+        }),
+      }),
+    );
+  });
+
+  it("snapshot: CRYPTO 历史日锚点应使用 UTC 23:59:59", async () => {
+    const { service, dataFetcherService, streamCache } = createService();
+    jest.useFakeTimers().setSystemTime(new Date("2026-01-15T12:34:56.000Z"));
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        {
+          symbol: "BTCUSDT",
+          timestamp: "2026-01-14T23:59:00.000Z",
+          lastPrice: "44990.10",
+          volume: "20",
+        },
+      ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
+    });
+
+    await service.getSnapshot({
+      symbol: "BTCUSDT",
+      market: "CRYPTO",
+      tradingDay: "20260114",
+    });
+
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          timestamp: Math.floor(Date.parse("2026-01-14T23:59:59.000Z") / 1000),
+        }),
+      }),
+    );
+  });
+
+  it("snapshot: 应返回 market-aware 的昨收与今开参考值", async () => {
+    const { service, dataFetcherService, streamCache, basicCacheService } =
+      createService();
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData.mockImplementation(async (params: any) => {
+      if (params?.options?.klineType === 8) {
+        return {
+          data: [
+            {
+              s: "AAPL.US",
+              respList: [
+                {
+                  t: "1773374400",
+                  o: "255.48",
+                  c: "250.12",
+                },
+                {
+                  t: "1773288000",
+                  o: "258.66",
+                  c: "255.76",
+                },
+              ],
+            },
+          ],
+          metadata: {
+            provider: "infoway",
+            capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+            processingTimeMs: 5,
+            symbolsProcessed: 1,
+          },
+        };
+      }
+
+      return {
+        data: [
+          {
+            symbol: "AAPL.US",
+            timestamp: "2026-03-13T14:30:00.000Z",
+            lastPrice: "250.12",
+            volume: "1000",
+          },
+          {
+            symbol: "AAPL.US",
+            timestamp: "2026-03-13T14:31:00.000Z",
+            lastPrice: "250.18",
+            volume: "1200",
+          },
+        ],
+        metadata: {
+          provider: "infoway",
+          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          processingTimeMs: 5,
+          symbolsProcessed: 1,
+        },
+      };
+    });
+
+    const result = await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      tradingDay: "20260313",
+      provider: "infoway",
+    });
+
+    expect(result.reference).toEqual({
+      previousClosePrice: 255.76,
+      sessionOpenPrice: 255.48,
+      priceBase: "previous_close",
+      marketSession: "regular",
+      timezone: "America/New_York",
+      status: "complete",
+    });
+    expect(basicCacheService.set).toHaveBeenCalledWith(
+      "chart-intraday:snapshot-reference:v1:infoway:US:20260313:AAPL.US",
+      result.reference,
+      expect.objectContaining({
+        ttlSeconds: 86400,
+      }),
+    );
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          klineType: 8,
+          klineNum: 2,
         }),
       }),
     );
@@ -521,7 +657,9 @@ describe("ChartIntradayReadService", () => {
       pointLimit: 300,
     });
 
-    expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(2);
+    expect(
+      dataFetcherService.fetchRawData.mock.calls.length,
+    ).toBeGreaterThanOrEqual(2);
     expect(result.metadata.historyPoints).toBe(1);
     expect(result.line.points).toHaveLength(1);
   });
@@ -549,6 +687,128 @@ describe("ChartIntradayReadService", () => {
       }),
     );
     expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(2);
+  });
+
+  it("snapshot: reference 命中缓存时应直接返回缓存值且不额外拉日线", async () => {
+    const { service, dataFetcherService, streamCache, basicCacheService } =
+      createService();
+    streamCache.getData.mockResolvedValue([]);
+    basicCacheService.get.mockResolvedValue({
+      previousClosePrice: 255.76,
+      sessionOpenPrice: 255.48,
+      priceBase: "previous_close",
+      marketSession: "regular",
+      timezone: "America/New_York",
+      status: "complete",
+    });
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [
+        {
+          symbol: "AAPL.US",
+          timestamp: "2026-03-13T14:30:00.000Z",
+          lastPrice: "250.12",
+          volume: "1000",
+        },
+      ],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        processingTimeMs: 5,
+        symbolsProcessed: 1,
+      },
+    });
+
+    const result = await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      tradingDay: "20260313",
+      provider: "infoway",
+    });
+
+    expect(result.reference).toEqual({
+      previousClosePrice: 255.76,
+      sessionOpenPrice: 255.48,
+      priceBase: "previous_close",
+      marketSession: "regular",
+      timezone: "America/New_York",
+      status: "complete",
+    });
+    expect(basicCacheService.get).toHaveBeenCalledWith(
+      "chart-intraday:snapshot-reference:v1:infoway:US:20260313:AAPL.US",
+    );
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(1);
+    expect(dataFetcherService.fetchRawData).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          klineType: 8,
+        }),
+      }),
+    );
+  });
+
+  it("snapshot: reference 首次拉取失败后应重试并成功返回", async () => {
+    const { service, dataFetcherService, streamCache } = createService();
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData
+      .mockResolvedValueOnce({
+        data: [
+          {
+            symbol: "BTCUSDT",
+            timestamp: "2026-03-15T00:00:00.000Z",
+            lastPrice: "71211.95",
+            volume: "10",
+          },
+        ],
+        metadata: {
+          provider: "infoway",
+          capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+          processingTimeMs: 5,
+          symbolsProcessed: 1,
+        },
+      })
+      .mockRejectedValueOnce(createRetryableHistoryFetchError("429"))
+      .mockResolvedValueOnce({
+        data: [
+          {
+            s: "BTCUSDT",
+            respList: [
+              {
+                t: "1773532800",
+                o: "71211.95000",
+                c: "71630.00000",
+              },
+              {
+                t: "1773446400",
+                o: "70930.01000",
+                c: "71211.95000",
+              },
+            ],
+          },
+        ],
+        metadata: {
+          provider: "infoway",
+          capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+          processingTimeMs: 5,
+          symbolsProcessed: 1,
+        },
+      });
+
+    const result = await service.getSnapshot({
+      symbol: "BTCUSDT",
+      market: "CRYPTO",
+      tradingDay: "20260315",
+      provider: "infoway",
+    });
+
+    expect(result.reference).toEqual({
+      previousClosePrice: 71211.95,
+      sessionOpenPrice: 71211.95,
+      priceBase: "previous_close",
+      marketSession: "utc_day",
+      timezone: "UTC",
+      status: "complete",
+    });
+    expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(3);
   });
 
   it("snapshot: 显式 market 与 symbol 可推断市场不一致时返回 400", async () => {

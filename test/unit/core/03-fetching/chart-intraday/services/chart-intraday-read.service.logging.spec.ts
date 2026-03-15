@@ -51,6 +51,10 @@ describe("ChartIntradayReadService logging", () => {
         ensureRealtimeSubscription: jest.fn().mockResolvedValue(undefined),
         releaseRealtimeSubscription: jest.fn(),
       } as any,
+      {
+        get: jest.fn().mockResolvedValue(null),
+        set: jest.fn().mockResolvedValue(undefined),
+      } as any,
     );
   }
 
@@ -112,12 +116,12 @@ describe("ChartIntradayReadService logging", () => {
         firstPoint: expect.objectContaining({
           price: 101.2,
           volume: 100,
-          timestamp: "2026-03-12T17:06:25.952Z",
+          timestamp: "2026-03-12T17:06:25.000Z",
         }),
         lastPoint: expect.objectContaining({
           price: 101.2,
           volume: 100,
-          timestamp: "2026-03-12T17:06:25.952Z",
+          timestamp: "2026-03-12T17:06:25.000Z",
         }),
       }),
     );
