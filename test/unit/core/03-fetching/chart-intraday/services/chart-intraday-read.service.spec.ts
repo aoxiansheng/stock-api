@@ -615,6 +615,42 @@ describe("ChartIntradayReadService", () => {
     expect(second.delta.hasMore).toBe(false);
   });
 
+  it("delta: 同秒多笔实时点仅保留该秒最后一个点", async () => {
+    const { service, streamCache } = createService();
+    const baseMs = Date.parse("2026-01-15T15:00:00.000Z");
+
+    streamCache.getData.mockResolvedValue([
+      { s: "AAPL.US", t: baseMs + 1000, p: 100.1, v: 10 },
+      { s: "AAPL.US", t: baseMs + 1500, p: 100.2, v: 20 },
+      { s: "AAPL.US", t: baseMs + 2000, p: 100.3, v: 30 },
+      { s: "AAPL.US", t: baseMs + 2800, p: 100.4, v: 40 },
+    ]);
+
+    const result = await service.getDelta({
+      symbol: "AAPL.US",
+      cursor: createSignedCursor({
+        symbol: "AAPL.US",
+        market: "US",
+        tradingDay: "20260115",
+        provider: "infoway",
+        lastPointTimestamp: new Date(baseMs).toISOString(),
+      }),
+      limit: 10,
+    });
+
+    expect(result.delta.points).toHaveLength(2);
+    expect(result.delta.points[0]).toEqual({
+      timestamp: new Date(baseMs + 1000).toISOString(),
+      price: 100.2,
+      volume: 20,
+    });
+    expect(result.delta.points[1]).toEqual({
+      timestamp: new Date(baseMs + 2000).toISOString(),
+      price: 100.4,
+      volume: 40,
+    });
+  });
+
   it("release: 应释放当前 symbol 的内部实时订阅", async () => {
     const { service, chartIntradayStreamSubscriptionService } = createService();
 

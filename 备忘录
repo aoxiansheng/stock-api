@@ -1,3 +1,9 @@
+ 如果不需要终端回显，只要文件：
+
+  mkdir -p "logs"
+  bun run start:prod >> "logs/app.log" 2>&1
+
+
 脚本已给你，路径：
   tests script
 

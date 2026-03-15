@@ -96,7 +96,9 @@ function createService(options?: {
     },
     providerRegistryService: {
       getBestProvider: jest.fn(() => REFERENCE_DATA.PROVIDER_IDS.LONGPORT),
-      getCandidateProviders: jest.fn(() => [REFERENCE_DATA.PROVIDER_IDS.LONGPORT]),
+      getCandidateProviders: jest.fn(() => [
+        REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      ]),
       rankProvidersForCapability: jest.fn((_: string, providers: string[]) => [
         ...providers,
       ]),
@@ -262,16 +264,22 @@ describe("StreamReceiverService request validation fail-fast", () => {
       operation: "subscribeStream",
     });
 
-    expect(mocks.dataValidator.validateSubscribeRequest).toHaveBeenCalledWith(dto);
+    expect(mocks.dataValidator.validateSubscribeRequest).toHaveBeenCalledWith(
+      dto,
+    );
     expect(mocks.rateLimitService.checkRateLimit).toHaveBeenCalledTimes(1);
     const rateLimitOrder =
       mocks.rateLimitService.checkRateLimit.mock.invocationCallOrder[0];
     const validateOrder =
       mocks.dataValidator.validateSubscribeRequest.mock.invocationCallOrder[0];
     expect(rateLimitOrder).toBeLessThan(validateOrder);
-    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+    expect(
+      mocks.connectionManager.getOrCreateConnection,
+    ).not.toHaveBeenCalled();
     expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
-    expect(mocks.clientStateManager.addClientSubscription).not.toHaveBeenCalled();
+    expect(
+      mocks.clientStateManager.addClientSubscription,
+    ).not.toHaveBeenCalled();
   });
 
   it("subscribeStream: 限速超限时应短路且不触发 validateSubscribeRequest", async () => {
@@ -297,9 +305,13 @@ describe("StreamReceiverService request validation fail-fast", () => {
 
     expect(mocks.rateLimitService.checkRateLimit).toHaveBeenCalledTimes(1);
     expect(mocks.dataValidator.validateSubscribeRequest).not.toHaveBeenCalled();
-    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+    expect(
+      mocks.connectionManager.getOrCreateConnection,
+    ).not.toHaveBeenCalled();
     expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
-    expect(mocks.clientStateManager.addClientSubscription).not.toHaveBeenCalled();
+    expect(
+      mocks.clientStateManager.addClientSubscription,
+    ).not.toHaveBeenCalled();
   });
 
   it("subscribeStream: 连接已认证时应通知 validator 跳过消息级认证校验", async () => {
@@ -352,7 +364,9 @@ describe("StreamReceiverService request validation fail-fast", () => {
       },
     });
 
-    await expect(service.subscribeStream(dto as any, "client-1")).rejects.toMatchObject({
+    await expect(
+      service.subscribeStream(dto as any, "client-1"),
+    ).rejects.toMatchObject({
       errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
       operation: "subscribeStream",
       context: expect.objectContaining({
@@ -360,7 +374,9 @@ describe("StreamReceiverService request validation fail-fast", () => {
       }),
     });
 
-    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+    expect(
+      mocks.connectionManager.getOrCreateConnection,
+    ).not.toHaveBeenCalled();
     expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
   });
 
@@ -384,10 +400,18 @@ describe("StreamReceiverService request validation fail-fast", () => {
       operation: "unsubscribeStream",
     });
 
-    expect(mocks.dataValidator.validateUnsubscribeRequest).toHaveBeenCalledWith(dto);
-    expect(mocks.clientStateManager.getClientSubscription).not.toHaveBeenCalled();
-    expect(mocks.streamDataFetcher.unsubscribeFromSymbols).not.toHaveBeenCalled();
-    expect(mocks.clientStateManager.removeClientSubscription).not.toHaveBeenCalled();
+    expect(mocks.dataValidator.validateUnsubscribeRequest).toHaveBeenCalledWith(
+      dto,
+    );
+    expect(
+      mocks.clientStateManager.getClientSubscription,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.streamDataFetcher.unsubscribeFromSymbols,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.clientStateManager.removeClientSubscription,
+    ).not.toHaveBeenCalled();
   });
 });
 
@@ -404,18 +428,24 @@ describe("StreamReceiverService subscription lifecycle", () => {
       standardSymbols: ["AAPL.US"],
       providerSymbols: ["AAPL.US"],
     });
-    jest.spyOn(service as any, "setupDataReceiving").mockImplementation(jest.fn());
+    jest
+      .spyOn(service as any, "setupDataReceiving")
+      .mockImplementation(jest.fn());
 
-    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({ id: "conn-1" });
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      id: "conn-1",
+    });
     mocks.streamDataFetcher.subscribeToSymbols.mockRejectedValue(
       new Error("subscribe failed"),
     );
 
-    await expect(service.subscribeStream(dto as any, "client-1")).rejects.toThrow(
-      "subscribe failed",
-    );
+    await expect(
+      service.subscribeStream(dto as any, "client-1"),
+    ).rejects.toThrow("subscribe failed");
 
-    expect(mocks.clientStateManager.addClientSubscription).not.toHaveBeenCalled();
+    expect(
+      mocks.clientStateManager.addClientSubscription,
+    ).not.toHaveBeenCalled();
   });
 
   it("subscribeStream: 订阅成功后才写入客户端订阅状态", async () => {
@@ -430,9 +460,13 @@ describe("StreamReceiverService subscription lifecycle", () => {
       standardSymbols: ["AAPL.US"],
       providerSymbols: ["AAPL.US"],
     });
-    jest.spyOn(service as any, "setupDataReceiving").mockImplementation(jest.fn());
+    jest
+      .spyOn(service as any, "setupDataReceiving")
+      .mockImplementation(jest.fn());
 
-    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({ id: "conn-1" });
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      id: "conn-1",
+    });
     mocks.streamDataFetcher.subscribeToSymbols.mockResolvedValue(undefined);
 
     await service.subscribeStream(dto as any, "client-1");
@@ -447,7 +481,8 @@ describe("StreamReceiverService subscription lifecycle", () => {
     const subscribeCallOrder =
       mocks.streamDataFetcher.subscribeToSymbols.mock.invocationCallOrder[0];
     const addStateCallOrder =
-      mocks.clientStateManager.addClientSubscription.mock.invocationCallOrder[0];
+      mocks.clientStateManager.addClientSubscription.mock
+        .invocationCallOrder[0];
     expect(addStateCallOrder).toBeGreaterThan(subscribeCallOrder);
   });
 
@@ -531,7 +566,9 @@ describe("StreamReceiverService provider级标准符号直通", () => {
     expect(
       mocks.symbolTransformerService.transformSymbolsForProvider,
     ).not.toHaveBeenCalled();
-    expect(mocks.symbolTransformerService.transformSymbols).not.toHaveBeenCalled();
+    expect(
+      mocks.symbolTransformerService.transformSymbols,
+    ).not.toHaveBeenCalled();
   });
 
   it("ensureSymbolConsistency: provider 命中 identity 时仅 canonical 且不触发 transformSymbols", async () => {
@@ -545,7 +582,9 @@ describe("StreamReceiverService provider级标准符号直通", () => {
     );
 
     expect(result).toEqual(["AAPL.US", "00700.HK"]);
-    expect(mocks.symbolTransformerService.transformSymbols).not.toHaveBeenCalled();
+    expect(
+      mocks.symbolTransformerService.transformSymbols,
+    ).not.toHaveBeenCalled();
   });
 
   it("provider 命中时遇到非标准符号应抛 DATA_VALIDATION_FAILED", async () => {
@@ -566,7 +605,9 @@ describe("StreamReceiverService provider级标准符号直通", () => {
     expect(
       mocks.symbolTransformerService.transformSymbolsForProvider,
     ).not.toHaveBeenCalled();
-    expect(mocks.symbolTransformerService.transformSymbols).not.toHaveBeenCalled();
+    expect(
+      mocks.symbolTransformerService.transformSymbols,
+    ).not.toHaveBeenCalled();
   });
 
   it("provider 未命中时应保持原有符号映射行为", async () => {
@@ -580,15 +621,17 @@ describe("StreamReceiverService provider级标准符号直通", () => {
         "00700": "00700.HK",
       },
     });
-    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
-      transformedSymbols: ["AAPL", "700"],
-      mappingResults: {
-        transformedSymbols: {
-          "AAPL.US": "AAPL",
-          "00700.HK": "700",
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue(
+      {
+        transformedSymbols: ["AAPL", "700"],
+        mappingResults: {
+          transformedSymbols: {
+            "AAPL.US": "AAPL",
+            "00700.HK": "700",
+          },
         },
       },
-    });
+    );
 
     const result = await (service as any).resolveSymbolMappings(
       ["AAPL", "00700"],
@@ -600,7 +643,9 @@ describe("StreamReceiverService provider级标准符号直通", () => {
       standardSymbols: ["AAPL.US", "00700.HK"],
       providerSymbols: ["AAPL", "700"],
     });
-    expect(mocks.symbolTransformerService.transformSymbols).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.symbolTransformerService.transformSymbols,
+    ).toHaveBeenCalledTimes(1);
     expect(
       mocks.symbolTransformerService.transformSymbolsForProvider,
     ).toHaveBeenCalledWith(
@@ -631,8 +676,12 @@ describe("StreamReceiverService symbol room key consistency", () => {
       standardSymbols: ["aapl.us", "AAPL.US"],
       providerSymbols: ["aapl.us"],
     });
-    jest.spyOn(service as any, "setupDataReceiving").mockImplementation(jest.fn());
-    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({ id: "conn-1" });
+    jest
+      .spyOn(service as any, "setupDataReceiving")
+      .mockImplementation(jest.fn());
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      id: "conn-1",
+    });
     mocks.streamDataFetcher.subscribeToSymbols.mockResolvedValue(undefined);
 
     await service.subscribeStream(subscribeDto as any, "client-1");
@@ -674,37 +723,69 @@ describe("StreamReceiverService symbol room key consistency", () => {
 
   it("pipelineBroadcastData: 广播路径应按 canonical symbol 聚合并分发", async () => {
     const { batchProcessor, mocks } = createBatchProcessor();
-    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(
+      undefined,
+    );
 
     await (batchProcessor as any).pipelineBroadcastData(
       [
-        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100, payload: 1 },
-        { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200", payload: 2 },
-        { symbol: "00700.hk", price: 300.45, timestamp: 1700000001000, volume: 300, payload: 3 },
+        {
+          symbol: "aapl.us",
+          price: 190.12,
+          timestamp: 1700000000000,
+          volume: 100,
+          payload: 1,
+        },
+        {
+          symbol: "AAPL.US",
+          lastPrice: "191.30",
+          timestamp: "2024-01-01T00:00:00.000Z",
+          volume: "200",
+          payload: 2,
+        },
+        {
+          symbol: "00700.hk",
+          price: 300.45,
+          timestamp: 1700000001000,
+          volume: 300,
+          payload: 3,
+        },
       ],
       ["aapl.us", "00700.hk"],
     );
 
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(2);
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenNthCalledWith(
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenNthCalledWith(
       1,
       "AAPL.US",
       expect.any(Array),
       mocks.webSocketProvider,
     );
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenNthCalledWith(
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenNthCalledWith(
       2,
       "00700.HK",
       expect.any(Array),
       mocks.webSocketProvider,
     );
 
-    const firstPayload = mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[0][1];
-    const secondPayload = mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[1][1];
+    const firstPayload =
+      mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[0][1];
+    const secondPayload =
+      mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[1][1];
     expect(firstPayload).toHaveLength(2);
     expect(secondPayload).toHaveLength(1);
-    expect(firstPayload.every((item: any) => item.symbol === "AAPL.US")).toBe(true);
-    expect(firstPayload.every((item: any) => typeof item.timestamp === "number")).toBe(true);
+    expect(firstPayload.every((item: any) => item.symbol === "AAPL.US")).toBe(
+      true,
+    );
+    expect(
+      firstPayload.every((item: any) => typeof item.timestamp === "number"),
+    ).toBe(true);
   });
 
   it("pipelineCacheData: 缓存键应与 room/broadcast 使用同一 canonical 规则", async () => {
@@ -721,8 +802,20 @@ describe("StreamReceiverService symbol room key consistency", () => {
 
     await (batchProcessor as any).pipelineCacheData(
       [
-        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100, payload: 1 },
-        { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200", payload: 2 },
+        {
+          symbol: "aapl.us",
+          price: 190.12,
+          timestamp: 1700000000000,
+          volume: 100,
+          payload: 1,
+        },
+        {
+          symbol: "AAPL.US",
+          lastPrice: "191.30",
+          timestamp: "2024-01-01T00:00:00.000Z",
+          volume: "200",
+          payload: 2,
+        },
       ],
       ["aapl.us"],
     );
@@ -735,26 +828,44 @@ describe("StreamReceiverService symbol room key consistency", () => {
     );
     const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
     expect(cachedPoints).toHaveLength(2);
-    expect(cachedPoints.every((point: any) => point.s === canonicalSymbol)).toBe(true);
+    expect(
+      cachedPoints.every((point: any) => point.s === canonicalSymbol),
+    ).toBe(true);
   });
 
   it("pipelineBroadcastData: 非法 payload 应统一丢弃并记录原因", async () => {
     const { batchProcessor, mocks } = createBatchProcessor();
-    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(
+      undefined,
+    );
 
     await (batchProcessor as any).pipelineBroadcastData(
       [
-        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100 },
+        {
+          symbol: "aapl.us",
+          price: 190.12,
+          timestamp: 1700000000000,
+          volume: 100,
+        },
         { symbol: "  ", price: 1, timestamp: 1700000000000, volume: 1 },
-        { symbol: "TSLA.US", price: "NaN", timestamp: 1700000000000, volume: 1 },
+        {
+          symbol: "TSLA.US",
+          price: "NaN",
+          timestamp: 1700000000000,
+          volume: 1,
+        },
         { symbol: "NVDA.US", price: 1, timestamp: "not-a-time", volume: 1 },
         { symbol: "MSFT.US", price: 1, timestamp: 1700000000000, volume: -1 },
       ],
       ["aapl.us", "TSLA.US"],
     );
 
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(1);
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledWith(
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledWith(
       "AAPL.US",
       expect.any(Array),
       mocks.webSocketProvider,
@@ -779,10 +890,25 @@ describe("StreamReceiverService symbol room key consistency", () => {
 
     await (batchProcessor as any).pipelineCacheData(
       [
-        { symbol: "aapl.us", price: 190.12, timestamp: 1700000000000, volume: 100 },
-        { symbol: "AAPL.US", lastPrice: "191.30", timestamp: "2024-01-01T00:00:00.000Z", volume: "200" },
+        {
+          symbol: "aapl.us",
+          price: 190.12,
+          timestamp: 1700000000000,
+          volume: 100,
+        },
+        {
+          symbol: "AAPL.US",
+          lastPrice: "191.30",
+          timestamp: "2024-01-01T00:00:00.000Z",
+          volume: "200",
+        },
         { symbol: "", price: 1, timestamp: 1700000000000, volume: 1 },
-        { symbol: "TSLA.US", price: "NaN", timestamp: 1700000000000, volume: 1 },
+        {
+          symbol: "TSLA.US",
+          price: "NaN",
+          timestamp: 1700000000000,
+          volume: 1,
+        },
       ],
       ["aapl.us"],
     );
@@ -792,12 +918,65 @@ describe("StreamReceiverService symbol room key consistency", () => {
     const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
     expect(cacheKey).toBe("quote:AAPL.US");
     expect(cachedPoints).toHaveLength(2);
-    expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(true);
+    expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(
+      true,
+    );
     expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
       "流数据因无效payload被丢弃",
       expect.objectContaining({
         stage: "cache",
       }),
+    );
+  });
+
+  it("pipelineCacheData: 批内完全重复 payload 应去重后再写缓存", async () => {
+    const { batchProcessor, mocks } = createBatchProcessor();
+
+    await (batchProcessor as any).pipelineCacheData(
+      [
+        {
+          symbol: "AAPL.US",
+          price: 70665.56,
+          timestamp: 1700000000000,
+          volume: 0.00015,
+          turnover: "10.59",
+          tradeDirection: 1,
+        },
+        {
+          symbol: "AAPL.US",
+          price: 70665.56,
+          timestamp: 1700000000000,
+          volume: 0.00015,
+          turnover: "10.59",
+          tradeDirection: 1,
+        },
+        {
+          symbol: "AAPL.US",
+          price: 70665.57,
+          timestamp: 1700000000100,
+          volume: 0.0002,
+          turnover: "14.13",
+          tradeDirection: 1,
+        },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(mocks.streamCache.setData).toHaveBeenCalledTimes(1);
+    const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
+    expect(cachedPoints).toHaveLength(2);
+    expect(
+      ((batchProcessor as any).logger.debug as jest.Mock).mock.calls,
+    ).toEqual(
+      expect.arrayContaining([
+        [
+          "流数据批内重复payload已去重",
+          expect.objectContaining({
+            stage: "cache",
+            deduplicatedCount: 1,
+          }),
+        ],
+      ]),
     );
   });
 
@@ -807,7 +986,12 @@ describe("StreamReceiverService symbol room key consistency", () => {
     await (batchProcessor as any).pipelineCacheData(
       [
         { symbol: "aapl.us", price: "", timestamp: 1700000000000, volume: 1 },
-        { symbol: "AAPL.US", price: "   ", timestamp: 1700000000001, volume: 1 },
+        {
+          symbol: "AAPL.US",
+          price: "   ",
+          timestamp: 1700000000001,
+          volume: 1,
+        },
         { symbol: "AAPL.US", price: 0, timestamp: 1700000000002, volume: 1 },
         { symbol: "AAPL.US", price: "0", timestamp: 1700000000003, volume: 1 },
         { symbol: "AAPL.US", price: 2, timestamp: "1700000000000", volume: 1 },
@@ -831,9 +1015,13 @@ describe("StreamReceiverService symbol room key consistency", () => {
     );
     const cachedPoints = mocks.streamCache.setData.mock.calls[0][1];
     expect(cachedPoints).toHaveLength(4);
-    expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(true);
+    expect(cachedPoints.every((point: any) => point.s === "AAPL.US")).toBe(
+      true,
+    );
     expect(cachedPoints.filter((point: any) => point.p === 0)).toHaveLength(2);
-    expect(cachedPoints.some((point: any) => point.t === 1700000000000)).toBe(true);
+    expect(cachedPoints.some((point: any) => point.t === 1700000000000)).toBe(
+      true,
+    );
     expect(
       cachedPoints.some(
         (point: any) => point.t === Date.parse("2024-01-01T00:00:00.000Z"),
@@ -854,12 +1042,19 @@ describe("StreamReceiverService symbol room key consistency", () => {
 
   it("pipelineBroadcastData: I-01/I-02 边界输入应仅广播合法点并记录 droppedReasons", async () => {
     const { batchProcessor, mocks } = createBatchProcessor();
-    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(
+      undefined,
+    );
 
     await (batchProcessor as any).pipelineBroadcastData(
       [
         { symbol: "aapl.us", price: "", timestamp: 1700000000000, volume: 1 },
-        { symbol: "AAPL.US", price: "   ", timestamp: 1700000000001, volume: 1 },
+        {
+          symbol: "AAPL.US",
+          price: "   ",
+          timestamp: 1700000000001,
+          volume: 1,
+        },
         { symbol: "AAPL.US", price: 0, timestamp: 1700000000002, volume: 1 },
         { symbol: "AAPL.US", price: "0", timestamp: 1700000000003, volume: 1 },
         { symbol: "AAPL.US", price: 2, timestamp: "1700000000000", volume: 1 },
@@ -875,8 +1070,12 @@ describe("StreamReceiverService symbol room key consistency", () => {
       ["AAPL.US"],
     );
 
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(1);
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledWith(
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledWith(
       "AAPL.US",
       expect.any(Array),
       mocks.webSocketProvider,
@@ -887,13 +1086,16 @@ describe("StreamReceiverService symbol room key consistency", () => {
     expect(
       broadcastPayload.every((item: any) => item.symbol === "AAPL.US"),
     ).toBe(true);
-    expect(broadcastPayload.filter((item: any) => item.price === 0)).toHaveLength(2);
+    expect(
+      broadcastPayload.filter((item: any) => item.price === 0),
+    ).toHaveLength(2);
     expect(
       broadcastPayload.some((item: any) => item.timestamp === 1700000000000),
     ).toBe(true);
     expect(
       broadcastPayload.some(
-        (item: any) => item.timestamp === Date.parse("2024-01-01T00:00:00.000Z"),
+        (item: any) =>
+          item.timestamp === Date.parse("2024-01-01T00:00:00.000Z"),
       ),
     ).toBe(true);
     expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
@@ -906,6 +1108,63 @@ describe("StreamReceiverService symbol room key consistency", () => {
           invalid_timestamp: 2,
         }),
       }),
+    );
+  });
+
+  it("pipelineBroadcastData: 批内完全重复 payload 应去重后再广播", async () => {
+    const { batchProcessor, mocks } = createBatchProcessor();
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(
+      undefined,
+    );
+
+    await (batchProcessor as any).pipelineBroadcastData(
+      [
+        {
+          symbol: "AAPL.US",
+          price: 70665.56,
+          timestamp: 1700000000000,
+          volume: 0.00015,
+          turnover: "10.59",
+          tradeDirection: 1,
+        },
+        {
+          symbol: "AAPL.US",
+          price: 70665.56,
+          timestamp: 1700000000000,
+          volume: 0.00015,
+          turnover: "10.59",
+          tradeDirection: 1,
+        },
+        {
+          symbol: "AAPL.US",
+          price: 70665.57,
+          timestamp: 1700000000100,
+          volume: 0.0002,
+          turnover: "14.13",
+          tradeDirection: 1,
+        },
+      ],
+      ["AAPL.US"],
+    );
+
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledTimes(1);
+    const broadcastPayload =
+      mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls[0][1];
+    expect(broadcastPayload).toHaveLength(2);
+    expect(
+      ((batchProcessor as any).logger.debug as jest.Mock).mock.calls,
+    ).toEqual(
+      expect.arrayContaining([
+        [
+          "流数据批内重复payload已去重",
+          expect.objectContaining({
+            stage: "broadcast",
+            deduplicatedCount: 1,
+          }),
+        ],
+      ]),
     );
   });
 
@@ -933,8 +1192,7 @@ describe("StreamReceiverService symbol room key consistency", () => {
     expect(cachedPoints).toHaveLength(2);
     expect(
       cachedPoints.every(
-        (point: any) =>
-          point.s === "AAPL.US" && point.t === 1700000000000,
+        (point: any) => point.s === "AAPL.US" && point.t === 1700000000000,
       ),
     ).toBe(true);
     expect((batchProcessor as any).logger.warn).toHaveBeenCalledWith(
@@ -983,7 +1241,9 @@ describe("StreamReceiverService symbol room key consistency", () => {
 
   it("pipelineBroadcastData: I-03 timestamp 秒级字符串/数字应转毫秒，11位与小数输入应按 invalid_timestamp 丢弃", async () => {
     const { batchProcessor, mocks } = createBatchProcessor();
-    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(
+      undefined,
+    );
 
     await (batchProcessor as any).pipelineBroadcastData(
       [
@@ -996,8 +1256,12 @@ describe("StreamReceiverService symbol room key consistency", () => {
       ["AAPL.US"],
     );
 
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledTimes(1);
-    expect(mocks.clientStateManager.broadcastToSymbolViaGateway).toHaveBeenCalledWith(
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.clientStateManager.broadcastToSymbolViaGateway,
+    ).toHaveBeenCalledWith(
       "AAPL.US",
       expect.any(Array),
       mocks.webSocketProvider,
@@ -1025,17 +1289,40 @@ describe("StreamReceiverService symbol room key consistency", () => {
 
   it("pipeline cache/broadcast: 应复用同一symbol校验结果并丢弃非空非法symbol", async () => {
     const { batchProcessor, mocks } = createBatchProcessor();
-    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(undefined);
+    mocks.clientStateManager.broadcastToSymbolViaGateway.mockResolvedValue(
+      undefined,
+    );
 
     const transformedData = [
-      { symbol: "AAPL.US", price: 190.12, timestamp: 1700000000000, volume: 100 },
+      {
+        symbol: "AAPL.US",
+        price: 190.12,
+        timestamp: 1700000000000,
+        volume: 100,
+      },
       { symbol: "AAPL", price: 190.12, timestamp: 1700000000001, volume: 100 },
-      { symbol: "AAPL US", price: 190.12, timestamp: 1700000000002, volume: 100 },
-      { symbol: "00700.HK", price: 300.45, timestamp: 1700000001000, volume: 300 },
+      {
+        symbol: "AAPL US",
+        price: 190.12,
+        timestamp: 1700000000002,
+        volume: 100,
+      },
+      {
+        symbol: "00700.HK",
+        price: 300.45,
+        timestamp: 1700000001000,
+        volume: 300,
+      },
     ];
 
-    await (batchProcessor as any).pipelineCacheData(transformedData, ["AAPL.US", "00700.HK"]);
-    await (batchProcessor as any).pipelineBroadcastData(transformedData, ["AAPL.US", "00700.HK"]);
+    await (batchProcessor as any).pipelineCacheData(transformedData, [
+      "AAPL.US",
+      "00700.HK",
+    ]);
+    await (batchProcessor as any).pipelineBroadcastData(transformedData, [
+      "AAPL.US",
+      "00700.HK",
+    ]);
 
     expect(mocks.dataValidator.isValidSymbolFormat).toHaveBeenCalledTimes(8);
 
@@ -1044,12 +1331,15 @@ describe("StreamReceiverService symbol room key consistency", () => {
       .sort();
     expect(cacheKeys).toEqual(["quote:00700.HK", "quote:AAPL.US"]);
 
-    const broadcastSymbols = mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls
-      .map((call: any[]) => call[0])
-      .sort();
+    const broadcastSymbols =
+      mocks.clientStateManager.broadcastToSymbolViaGateway.mock.calls
+        .map((call: any[]) => call[0])
+        .sort();
     expect(broadcastSymbols).toEqual(["00700.HK", "AAPL.US"]);
 
-    const droppedWarnCalls = ((batchProcessor as any).logger.warn as jest.Mock).mock.calls.filter(
+    const droppedWarnCalls = (
+      (batchProcessor as any).logger.warn as jest.Mock
+    ).mock.calls.filter(
       ([message]: [string]) => message === "流数据因无效payload被丢弃",
     );
     expect(droppedWarnCalls).toHaveLength(2);
@@ -1085,24 +1375,24 @@ describe("StreamBatchProcessorService config parsing", () => {
     const { batchProcessor, mocks } = createBatchProcessor();
 
     mocks.configService.get.mockReturnValueOnce(true);
-    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
-      true,
-    );
+    expect(
+      (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false),
+    ).toBe(true);
 
     mocks.configService.get.mockReturnValueOnce(false);
-    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
-      false,
-    );
+    expect(
+      (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true),
+    ).toBe(false);
 
     mocks.configService.get.mockReturnValueOnce(1);
-    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
-      true,
-    );
+    expect(
+      (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false),
+    ).toBe(true);
 
     mocks.configService.get.mockReturnValueOnce(0);
-    expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
-      false,
-    );
+    expect(
+      (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true),
+    ).toBe(false);
   });
 
   it.each(["true", " TRUE ", "1", "yes", "on"])(
@@ -1111,9 +1401,12 @@ describe("StreamBatchProcessorService config parsing", () => {
       const { batchProcessor, mocks } = createBatchProcessor();
       mocks.configService.get.mockReturnValueOnce(rawValue);
 
-      expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", false)).toBe(
-        true,
-      );
+      expect(
+        (batchProcessor as any).readBooleanConfig(
+          "STREAM_CACHE_ENABLED",
+          false,
+        ),
+      ).toBe(true);
     },
   );
 
@@ -1123,9 +1416,9 @@ describe("StreamBatchProcessorService config parsing", () => {
       const { batchProcessor, mocks } = createBatchProcessor();
       mocks.configService.get.mockReturnValueOnce(rawValue);
 
-      expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
-        false,
-      );
+      expect(
+        (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true),
+      ).toBe(false);
     },
   );
 
@@ -1135,9 +1428,9 @@ describe("StreamBatchProcessorService config parsing", () => {
       const { batchProcessor, mocks } = createBatchProcessor();
       mocks.configService.get.mockReturnValueOnce(rawValue);
 
-      expect((batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true)).toBe(
-        true,
-      );
+      expect(
+        (batchProcessor as any).readBooleanConfig("STREAM_CACHE_ENABLED", true),
+      ).toBe(true);
     },
   );
 
@@ -1163,9 +1456,9 @@ describe("StreamReceiverService private branch coverage", () => {
   it("extractSymbolsFromData: 应覆盖 symbol/s/symbols[]/quote.symbol/quote.s 分支", () => {
     const { service } = createService();
 
-    expect((service as any).extractSymbolsFromData({ symbol: "AAPL.US" })).toEqual([
-      "AAPL.US",
-    ]);
+    expect(
+      (service as any).extractSymbolsFromData({ symbol: "AAPL.US" }),
+    ).toEqual(["AAPL.US"]);
     expect((service as any).extractSymbolsFromData({ s: "00700.HK" })).toEqual([
       "00700.HK",
     ]);
@@ -1210,26 +1503,30 @@ describe("StreamReceiverService private branch coverage", () => {
   );
 });
 
-
 describe("StreamReceiverService upstream subscription coordinator integration", () => {
   it("subscribeStream 仅对协调器返回的 symbol 发起上游订阅", async () => {
     const { service, mocks } = createService();
-    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
-      transformedSymbols: ["AAPL.US"],
-      originalSymbols: ["AAPL.US"],
-      success: true,
-      mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
-    });
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue(
+      {
+        transformedSymbols: ["AAPL.US"],
+        originalSymbols: ["AAPL.US"],
+        success: true,
+        mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
+      },
+    );
     mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
       ...mocks.connectionMock,
     });
     mocks.upstreamSymbolSubscriptionCoordinator.acquire.mockReturnValue([]);
 
-    await service.subscribeStream({
-      symbols: ["AAPL.US"],
-      wsCapabilityType: "stream-stock-quote",
-      preferredProvider: "longport",
-    } as any, "client-1");
+    await service.subscribeStream(
+      {
+        symbols: ["AAPL.US"],
+        wsCapabilityType: "stream-stock-quote",
+        preferredProvider: "longport",
+      } as any,
+      "client-1",
+    );
 
     expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
     expect(mocks.clientStateManager.addClientSubscription).toHaveBeenCalled();
@@ -1242,21 +1539,32 @@ describe("StreamReceiverService upstream subscription coordinator integration", 
       wsCapabilityType: "stream-stock-quote",
       symbols: new Set(["AAPL.US"]),
     });
-    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
-      transformedSymbols: ["AAPL.US"],
-      originalSymbols: ["AAPL.US"],
-      success: true,
-      mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
-    });
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue(
+      {
+        transformedSymbols: ["AAPL.US"],
+        originalSymbols: ["AAPL.US"],
+        success: true,
+        mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
+      },
+    );
     mocks.connectionManager.isConnectionActive.mockReturnValue(true);
     mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
       ...mocks.connectionMock,
     });
-    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue([]);
+    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue(
+      [],
+    );
 
-    await service.unsubscribeStream({ symbols: ["AAPL.US"] } as any, "client-1");
+    await service.unsubscribeStream(
+      { symbols: ["AAPL.US"] } as any,
+      "client-1",
+    );
 
-    expect(mocks.streamDataFetcher.unsubscribeFromSymbols).not.toHaveBeenCalled();
-    expect(mocks.clientStateManager.removeClientSubscription).toHaveBeenCalledWith("client-1", ["AAPL.US"]);
+    expect(
+      mocks.streamDataFetcher.unsubscribeFromSymbols,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.clientStateManager.removeClientSubscription,
+    ).toHaveBeenCalledWith("client-1", ["AAPL.US"]);
   });
 });

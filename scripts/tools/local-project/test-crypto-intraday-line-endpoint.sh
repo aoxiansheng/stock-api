@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-export SYMBOL="${SYMBOL:-BTCUSDT.CRYPTO}"
+export SYMBOL="${SYMBOL:-BTCUSDT}"
 export MARKET="${MARKET:-CRYPTO}"
 export PROVIDER="${PROVIDER:-infoway}"
 export SNAPSHOT_ENDPOINT="${SNAPSHOT_ENDPOINT:-/api/v1/chart/intraday-line/snapshot}"

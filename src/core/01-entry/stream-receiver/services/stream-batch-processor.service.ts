@@ -19,8 +19,8 @@ import {
   UniversalExceptionFactory,
   BusinessErrorCode,
   ComponentIdentifier,
-  BusinessException
-} from '@common/core/exceptions';
+  BusinessException,
+} from "@common/core/exceptions";
 
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { DataTransformRequestDto } from "../../../02-processing/transformer/dto/data-transform-request.dto";
@@ -33,7 +33,10 @@ import {
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import { StreamClientStateManager } from "../../../03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 
-import { QuoteData, DataPipelineMetrics } from '../interfaces/data-processing.interface';
+import {
+  QuoteData,
+  DataPipelineMetrics,
+} from "../interfaces/data-processing.interface";
 import {
   BatchProcessingStats,
   DynamicBatchingState,
@@ -59,7 +62,9 @@ import {
 import { parseFlexibleTimestampToMs } from "@core/shared/utils/market-time.util";
 
 @Injectable()
-export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProcessor {
+export class StreamBatchProcessorService
+  implements OnModuleDestroy, IBatchProcessor
+{
   private readonly logger = createLogger("StreamBatchProcessor");
   private readonly config: StreamReceiverConfig;
 
@@ -109,7 +114,8 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     private readonly streamDataFetcher: StreamDataFetcherService,
     private readonly clientStateManager: StreamClientStateManager,
     private readonly dataValidator: StreamDataValidator,
-    @Optional() @Inject(WEBSOCKET_SERVER_TOKEN)
+    @Optional()
+    @Inject(WEBSOCKET_SERVER_TOKEN)
     private readonly webSocketProvider?: WebSocketServerProvider,
   ) {
     // 初始化配置
@@ -120,7 +126,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
         batchProcessingInterval: this.config.batchProcessingInterval,
         dynamicBatching: this.config.dynamicBatching.enabled,
         maxRetryAttempts: this.config.maxRetryAttempts,
-      }
+      },
     });
 
     // 初始化批处理管道
@@ -207,7 +213,8 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
     this.logger.log("动态批处理间隔优化已启用", {
       baseInterval: this.config.batchProcessingInterval,
-      adjustmentFrequency: this.config.dynamicBatching.loadDetection.adjustmentFrequency,
+      adjustmentFrequency:
+        this.config.dynamicBatching.loadDetection.adjustmentFrequency,
     });
   }
 
@@ -225,14 +232,17 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     }
 
     // 计算平均负载
-    const averageLoad = loadSamples.reduce((sum, load) => sum + load, 0) / loadSamples.length;
+    const averageLoad =
+      loadSamples.reduce((sum, load) => sum + load, 0) / loadSamples.length;
     this.dynamicBatchingMetrics.averageLoadPer5s = averageLoad;
 
     // 确定负载趋势
     const recentSamples = loadSamples.slice(-Math.min(5, loadSamples.length));
     const oldSamples = loadSamples.slice(0, Math.min(5, loadSamples.length));
-    const recentAvg = recentSamples.reduce((sum, load) => sum + load, 0) / recentSamples.length;
-    const oldAvg = oldSamples.reduce((sum, load) => sum + load, 0) / oldSamples.length;
+    const recentAvg =
+      recentSamples.reduce((sum, load) => sum + load, 0) / recentSamples.length;
+    const oldAvg =
+      oldSamples.reduce((sum, load) => sum + load, 0) / oldSamples.length;
 
     if (recentAvg > oldAvg * 1.1) {
       this.dynamicBatchingMetrics.loadTrend = "increasing";
@@ -249,13 +259,15 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       // 高负载：降低间隔，提高响应速度
       newInterval = Math.max(
         this.config.dynamicBatching.minInterval,
-        this.dynamicBatchingState.currentInterval - loadDetection.adjustmentStep,
+        this.dynamicBatchingState.currentInterval -
+          loadDetection.adjustmentStep,
       );
     } else if (averageLoad < loadDetection.lowLoadThreshold) {
       // 低负载：提高间隔，节省资源
       newInterval = Math.min(
         this.config.dynamicBatching.maxInterval,
-        this.dynamicBatchingState.currentInterval + loadDetection.adjustmentStep,
+        this.dynamicBatchingState.currentInterval +
+          loadDetection.adjustmentStep,
       );
     }
 
@@ -300,11 +312,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       // 使用新的间隔初始化批处理管道
       this.quoteBatchSubject
         .pipe(
-          bufferTime(
-            this.dynamicBatchingState.currentInterval,
-            undefined,
-            200,
-          ),
+          bufferTime(this.dynamicBatchingState.currentInterval, undefined, 200),
           filter((batch) => batch.length > 0),
           mergeMap(async (batch) => this.processBatch(batch)),
         )
@@ -333,13 +341,12 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
   private updateDynamicBatchingMetrics(): void {
     // 计算当前5秒窗口内的吞吐量
     const now = Date.now();
-    const windowSize = this.config.dynamicBatching.loadDetection.adjustmentFrequency;
+    const windowSize =
+      this.config.dynamicBatching.loadDetection.adjustmentFrequency;
 
     if (now - (this.dynamicBatchingState.lastAdjustment || 0) >= windowSize) {
       const batchesPerSecond =
-        (this.dynamicBatchingMetrics.batchCountInWindow *
-          1000) /
-        windowSize;
+        (this.dynamicBatchingMetrics.batchCountInWindow * 1000) / windowSize;
 
       this.dynamicBatchingState.loadSamples.push(batchesPerSecond);
 
@@ -350,7 +357,6 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
     this.dynamicBatchingMetrics.batchCountInWindow++;
   }
-
 
   /**
    * 获取动态批处理状态信息
@@ -409,11 +415,14 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
         return;
       } catch (error) {
         lastError = error as Error;
-        this.logger.warn(`批量处理失败，尝试 ${attempt}/${this.config.maxRetryAttempts}`, {
-          error: error.message,
-          batchSize: batch.length,
-          attempt,
-        });
+        this.logger.warn(
+          `批量处理失败，尝试 ${attempt}/${this.config.maxRetryAttempts}`,
+          {
+            error: error.message,
+            batchSize: batch.length,
+            attempt,
+          },
+        );
 
         // 记录失败
         this.recordCircuitBreakerFailure();
@@ -459,10 +468,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     await this.updateBatchStatsThreadSafe(batch.length, processingTimeMs);
 
     // 记录批处理监控指标
-    this.recordBatchProcessingMetrics(
-      batch.length,
-      processingTimeMs,
-    );
+    this.recordBatchProcessingMetrics(batch.length, processingTimeMs);
 
     this.logger.debug("批量处理完成", {
       batchSize: batch.length,
@@ -538,7 +544,8 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       const dataTransformRequestDto: DataTransformRequestDto = {
         provider: provider,
         apiType: "stream" as const,
-        transDataRuleListType: this.mapCapabilityToTransDataRuleListType(capability),
+        transDataRuleListType:
+          this.mapCapabilityToTransDataRuleListType(capability),
         rawData: quotes.map((q) => q.rawData),
         marketType,
       };
@@ -570,7 +577,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       const rawSymbols = Array.from(symbolsSet);
 
       // Step 4: 符号标准化
-      const standardizedSymbols = await this.ensureSymbolConsistency(rawSymbols, provider);
+      const standardizedSymbols = await this.ensureSymbolConsistency(
+        rawSymbols,
+        provider,
+      );
       const providerToStandardMap = buildProviderToStandardMap(
         rawSymbols,
         standardizedSymbols,
@@ -587,7 +597,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
       // Step 6: 广播数据
       const broadcastStartTime = Date.now();
-      await this.pipelineBroadcastData(normalizedDataArray, standardizedSymbols);
+      await this.pipelineBroadcastData(
+        normalizedDataArray,
+        standardizedSymbols,
+      );
       const broadcastDuration = Date.now() - broadcastStartTime;
 
       // Step 7: 性能监控埋点
@@ -629,7 +642,12 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       });
 
       // 记录错误指标
-      this.recordPipelineError(provider, capability, error.message, errorDuration);
+      this.recordPipelineError(
+        provider,
+        capability,
+        error.message,
+        errorDuration,
+      );
 
       throw error;
     }
@@ -752,7 +770,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       symbols,
       MappingDirection.TO_STANDARD,
     );
-    if (Array.isArray(result.failedSymbols) && result.failedSymbols.length > 0) {
+    if (
+      Array.isArray(result.failedSymbols) &&
+      result.failedSymbols.length > 0
+    ) {
       throw UniversalExceptionFactory.createBusinessException({
         component: ComponentIdentifier.STREAM_RECEIVER,
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
@@ -766,7 +787,9 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       });
     }
 
-    const mappedSymbols = symbols.map((symbol) => result.mappingDetails[symbol]);
+    const mappedSymbols = symbols.map(
+      (symbol) => result.mappingDetails[symbol],
+    );
     const missingSymbols = symbols.filter(
       (symbol, index) => !mappedSymbols[index],
     );
@@ -787,9 +810,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     return mappedSymbols as string[];
   }
 
-  private canonicalizePipelinePayload(
-    rawItem: any,
-  ): { item?: any; reason?: string } {
+  private canonicalizePipelinePayload(rawItem: any): {
+    item?: any;
+    reason?: string;
+  } {
     const canonicalSymbol = this.buildSymbolBroadcastKey(rawItem?.symbol);
     if (!canonicalSymbol) {
       return { reason: "invalid_symbol" };
@@ -822,7 +846,8 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     }
 
     const rawVolume = rawItem?.volume ?? 0;
-    const volume = typeof rawVolume === "number" ? rawVolume : Number(rawVolume);
+    const volume =
+      typeof rawVolume === "number" ? rawVolume : Number(rawVolume);
     if (!Number.isFinite(volume) || volume < 0) {
       return { reason: "invalid_volume" };
     }
@@ -875,7 +900,52 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       });
     }
 
-    return validItems;
+    return this.deduplicateCanonicalizedPayloads(validItems, stage);
+  }
+
+  private deduplicateCanonicalizedPayloads(
+    items: any[],
+    stage: "cache" | "broadcast",
+  ): any[] {
+    if (items.length <= 1) {
+      return items;
+    }
+
+    const deduplicated = new Map<string, any>();
+
+    for (const item of items) {
+      const dedupKey = this.buildPipelinePayloadDedupKey(item);
+      if (deduplicated.has(dedupKey)) {
+        deduplicated.delete(dedupKey);
+      }
+      deduplicated.set(dedupKey, item);
+    }
+
+    const uniqueItems = Array.from(deduplicated.values());
+    const deduplicatedCount = items.length - uniqueItems.length;
+    if (deduplicatedCount > 0) {
+      this.logger.debug("流数据批内重复payload已去重", {
+        stage,
+        inputCount: items.length,
+        outputCount: uniqueItems.length,
+        deduplicatedCount,
+      });
+    }
+
+    return uniqueItems;
+  }
+
+  private buildPipelinePayloadDedupKey(item: any): string {
+    return [
+      item?.symbol ?? "",
+      item?.timestamp ?? "",
+      item?.price ?? item?.lastPrice ?? "",
+      item?.volume ?? "",
+      item?.turnover ?? "",
+      item?.tradeDirection ?? "",
+      item?.change ?? "",
+      item?.changePercent ?? "",
+    ].join("|");
   }
 
   private async pipelineCacheData(
@@ -885,7 +955,9 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     try {
       const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
       if (!cacheEnabled) {
-        this.logger.debug("流缓存已禁用，跳过缓存写入", { symbolsCount: symbols.length });
+        this.logger.debug("流缓存已禁用，跳过缓存写入", {
+          symbolsCount: symbols.length,
+        });
         return;
       }
 
@@ -942,7 +1014,9 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       ) {
         throw error;
       }
-      this.logger.warn("流缓存处理异常(忽略)", { error: (error as any)?.message });
+      this.logger.warn("流缓存处理异常(忽略)", {
+        error: (error as any)?.message,
+      });
     }
   }
 
@@ -956,11 +1030,16 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
         true,
       );
       if (!broadcastEnabled) {
-        this.logger.debug("流广播已禁用，跳过广播", { symbolsCount: symbols.length });
+        this.logger.debug("流广播已禁用，跳过广播", {
+          symbolsCount: symbols.length,
+        });
         return;
       }
 
-      if (!this.webSocketProvider || !this.webSocketProvider.isServerAvailable()) {
+      if (
+        !this.webSocketProvider ||
+        !this.webSocketProvider.isServerAvailable()
+      ) {
         this.logger.warn("WebSocketProvider不可用，跳过广播");
         return;
       }
@@ -1006,7 +1085,9 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       ) {
         throw error;
       }
-      this.logger.warn("流广播处理异常(忽略)", { error: (error as any)?.message });
+      this.logger.warn("流广播处理异常(忽略)", {
+        error: (error as any)?.message,
+      });
     }
   }
 
@@ -1086,7 +1167,9 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
     const transDataRuleListType = capabilityMappingTable[capability];
     if (!transDataRuleListType) {
-      this.logger.warn(`未知的能力类型: ${capability}，使用默认映射 quote_fields`);
+      this.logger.warn(
+        `未知的能力类型: ${capability}，使用默认映射 quote_fields`,
+      );
       return "quote_fields";
     }
 
@@ -1114,7 +1197,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       const analyzeResult = this.analyzeBatchForFallback(batch);
 
       // 尝试智能部分恢复
-      const partialRecoveryResult = await this.attemptPartialRecovery(batch, reason);
+      const partialRecoveryResult = await this.attemptPartialRecovery(
+        batch,
+        reason,
+      );
 
       // 更新降级统计
       await this.updateFallbackStatsThreadSafe(
@@ -1124,7 +1210,12 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       );
 
       // 发送降级事件
-      this.emitFallbackEvent(batch, reason, analyzeResult, partialRecoveryResult);
+      this.emitFallbackEvent(
+        batch,
+        reason,
+        analyzeResult,
+        partialRecoveryResult,
+      );
 
       this.logger.log("降级处理完成", {
         batchSize: batch.length,
@@ -1157,9 +1248,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       ),
     );
 
-    const avgTimestamp = batch.length > 0
-      ? batch.reduce((sum, quote) => sum + quote.timestamp, 0) / batch.length
-      : Date.now();
+    const avgTimestamp =
+      batch.length > 0
+        ? batch.reduce((sum, quote) => sum + quote.timestamp, 0) / batch.length
+        : Date.now();
 
     return {
       symbolsCount: symbols.size,
@@ -1202,13 +1294,14 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
     try {
       // 优先处理重要的报价（如果有优先级标识）
-      const priorityQuotes = batch.filter(quote =>
-        quote.symbols.some(symbol =>
-          symbol.includes(".HK") || symbol.includes(".US")
-        )
+      const priorityQuotes = batch.filter((quote) =>
+        quote.symbols.some(
+          (symbol) => symbol.includes(".HK") || symbol.includes(".US"),
+        ),
       );
 
-      const quotesToProcess = priorityQuotes.length > 0 ? priorityQuotes : batch.slice(0, 5);
+      const quotesToProcess =
+        priorityQuotes.length > 0 ? priorityQuotes : batch.slice(0, 5);
 
       for (const quote of quotesToProcess) {
         try {
@@ -1277,8 +1370,6 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
       this.logger.warn("更新降级统计失败", { error: error.message });
     }
   }
-
-
 
   /**
    * 记录降级失败指标
@@ -1375,7 +1466,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
 
     // 如果断路器开启且还在重置超时期内
     if (this.circuitBreakerState.isOpen) {
-      if (now - this.circuitBreakerState.lastFailureTime < this.config.circuitBreakerResetTimeout) {
+      if (
+        now - this.circuitBreakerState.lastFailureTime <
+        this.config.circuitBreakerResetTimeout
+      ) {
         return true;
       } else {
         // 重置断路器状态
@@ -1393,8 +1487,13 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     this.circuitBreakerState.lastFailureTime = Date.now();
 
     // 检查是否达到断路器阈值
-    const totalAttempts = this.circuitBreakerState.failureCount + this.circuitBreakerState.successCount;
-    const failureRate = totalAttempts > 0 ? (this.circuitBreakerState.failureCount / totalAttempts) * 100 : 0;
+    const totalAttempts =
+      this.circuitBreakerState.failureCount +
+      this.circuitBreakerState.successCount;
+    const failureRate =
+      totalAttempts > 0
+        ? (this.circuitBreakerState.failureCount / totalAttempts) * 100
+        : 0;
 
     if (failureRate >= this.config.circuitBreakerThreshold) {
       this.circuitBreakerState.isOpen = true;
@@ -1410,7 +1509,10 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
     this.circuitBreakerState.successCount++;
     // 成功后可以重置失败计数器
     if (this.circuitBreakerState.successCount > 10) {
-      this.circuitBreakerState.failureCount = Math.max(0, this.circuitBreakerState.failureCount - 1);
+      this.circuitBreakerState.failureCount = Math.max(
+        0,
+        this.circuitBreakerState.failureCount - 1,
+      );
     }
   }
 
@@ -1425,7 +1527,7 @@ export class StreamBatchProcessorService implements OnModuleDestroy, IBatchProce
    * 休眠工具方法
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**

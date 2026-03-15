@@ -47,6 +47,35 @@ export interface SubscriptionChangeEvent {
   timestamp: number;
 }
 
+interface IntradayEmittedBucketState {
+  emittedAtMs: number;
+  price: number;
+}
+
+interface IntradayDomainEventCandidate {
+  bucketMs: number;
+  timestampMs: number;
+  signature: string;
+  payload: {
+    symbol: string;
+    market: string;
+    tradingDay: string;
+    granularity: "1s";
+    point: {
+      timestamp: string;
+      price: number;
+      volume: number;
+    };
+    cursor: string;
+  };
+}
+
+interface PendingIntradayBucketEmission {
+  candidate: IntradayDomainEventCandidate;
+  webSocketProvider: any;
+  timer: NodeJS.Timeout | null;
+}
+
 /**
  * StreamClientStateManager - 客户端状态管理器
  *
@@ -66,10 +95,28 @@ export interface SubscriptionChangeEvent {
 @Injectable()
 export class StreamClientStateManager implements OnModuleDestroy {
   private readonly logger = createLogger("StreamClientStateManager");
-  private readonly intradayEmitBatchSize = 8;
+  private readonly intradayBucketStateTtlMs = 5 * 60 * 1000;
+  private readonly intradayMaxBucketStatesPerSymbol = 512;
+  private readonly intradayBucketFlushGraceMs = this.readIntegerEnv(
+    "CHART_INTRADAY_BUCKET_FLUSH_GRACE_MS",
+    50,
+    0,
+  );
 
   private intradayCursorService: ChartIntradayCursorService | null = null;
   private intradayCursorServiceUnavailable = false;
+  private readonly intradayBucketStates = new Map<
+    string,
+    Map<number, IntradayEmittedBucketState>
+  >();
+  private readonly intradayLatestEmittedState = new Map<
+    string,
+    { bucketMs: number; price: number }
+  >();
+  private readonly pendingIntradayBucketEmissions = new Map<
+    string,
+    Map<number, PendingIntradayBucketEmission>
+  >();
 
   // 客户端订阅信息
   private readonly clientSubscriptions = new Map<
@@ -131,6 +178,18 @@ export class StreamClientStateManager implements OnModuleDestroy {
       this.cleanupInterval = null;
       this.logger.debug("客户端清理调度器已停止");
     }
+
+    for (const symbolEntries of this.pendingIntradayBucketEmissions.values()) {
+      for (const entry of symbolEntries.values()) {
+        if (entry.timer) {
+          clearTimeout(entry.timer);
+        }
+      }
+    }
+
+    this.pendingIntradayBucketEmissions.clear();
+    this.intradayBucketStates.clear();
+    this.intradayLatestEmittedState.clear();
   }
 
   /**
@@ -350,7 +409,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
   updateSubscriptionState(
     connectionId: string,
     symbols: string[],
-    action: 'subscribed' | 'unsubscribed'
+    action: "subscribed" | "unsubscribed",
   ): void {
     const clientSub = this.clientSubscriptions.get(connectionId);
 
@@ -364,15 +423,15 @@ export class StreamClientStateManager implements OnModuleDestroy {
     }
 
     // 更新符号集合
-    if (action === 'subscribed') {
-      symbols.forEach(symbol => clientSub.symbols.add(symbol));
+    if (action === "subscribed") {
+      symbols.forEach((symbol) => clientSub.symbols.add(symbol));
       this.logger.debug("客户端订阅状态已更新（添加）", {
         connectionId,
         addedSymbols: symbols,
         totalSymbols: clientSub.symbols.size,
       });
     } else {
-      symbols.forEach(symbol => clientSub.symbols.delete(symbol));
+      symbols.forEach((symbol) => clientSub.symbols.delete(symbol));
       this.logger.debug("客户端订阅状态已更新（移除）", {
         connectionId,
         removedSymbols: symbols,
@@ -387,7 +446,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
     this.emitSubscriptionChange({
       clientId: connectionId,
       symbols,
-      action: action === 'subscribed' ? 'subscribe' : 'unsubscribe',
+      action: action === "subscribed" ? "subscribe" : "unsubscribe",
       provider: clientSub.providerName,
       capability: clientSub.wsCapabilityType,
       timestamp: Date.now(),
@@ -573,7 +632,9 @@ export class StreamClientStateManager implements OnModuleDestroy {
     webSocketProvider: any,
   ): void {
     void Promise.resolve()
-      .then(() => this.emitIntradayDomainEvents(symbol, data, webSocketProvider))
+      .then(() =>
+        this.emitIntradayDomainEvents(symbol, data, webSocketProvider),
+      )
       .catch((error) => {
         this.logger.warn("分时领域事件异步广播异常（已忽略）", {
           symbol,
@@ -587,48 +648,34 @@ export class StreamClientStateManager implements OnModuleDestroy {
     data: any,
     webSocketProvider: any,
   ): Promise<number> {
-    const events = this.buildIntradayDomainEvents(symbol, data);
-    if (events.length === 0) {
+    const candidates = this.buildIntradayDomainEventCandidates(symbol, data);
+    if (candidates.length === 0) {
       return 0;
     }
 
-    let emittedCount = 0;
-    for (let index = 0; index < events.length; index += this.intradayEmitBatchSize) {
-      const batch = events.slice(index, index + this.intradayEmitBatchSize);
-      const results = await Promise.allSettled(
-        batch.map((payload) =>
-          webSocketProvider.broadcastToRoom(
-            `symbol:${symbol}`,
-            "chart.intraday.point",
-            payload,
-          ),
-        ),
+    for (const candidate of candidates) {
+      this.scheduleIntradayBucketEmission(
+        candidate.payload.symbol,
+        candidate,
+        webSocketProvider,
       );
-      results.forEach((result) => {
-        if (result.status === "fulfilled") {
-          if (result.value) {
-            emittedCount += 1;
-          }
-          return;
-        }
-
-        this.logger.warn("分时领域事件广播失败（已忽略）", {
-          symbol,
-          error: result.reason?.message || String(result.reason || ""),
-        });
-      });
     }
 
-    return emittedCount;
+    return candidates.length;
   }
 
-  private buildIntradayDomainEvents(symbol: string, data: any): any[] {
+  private buildIntradayDomainEventCandidates(
+    symbol: string,
+    data: any,
+  ): IntradayDomainEventCandidate[] {
     const items = Array.isArray(data) ? data : [data];
-    const events: any[] = [];
-    const normalizedSymbol = String(symbol || "").trim().toUpperCase();
+    const candidatesByBucket = new Map<number, IntradayDomainEventCandidate>();
+    const normalizedSymbol = String(symbol || "")
+      .trim()
+      .toUpperCase();
     const cursorService = this.getIntradayCursorService();
     if (!cursorService) {
-      return events;
+      return [];
     }
 
     for (const item of items) {
@@ -645,35 +692,223 @@ export class StreamClientStateManager implements OnModuleDestroy {
       }
 
       const tradingDay = formatTradingDayFromTimestamp(timestampMs, market);
-      const timestampIso = new Date(timestampMs).toISOString();
+      const bucketMs = Math.floor(timestampMs / 1000) * 1000;
+      const bucketTimestampIso = new Date(bucketMs).toISOString();
+      const normalizedVolume = Number.isFinite(volume) ? volume : 0;
       const cursorPayload: IntradayCursorPayload = {
         v: 1,
         symbol: normalizedSymbol,
         market,
         tradingDay,
-        lastPointTimestamp: timestampIso,
+        lastPointTimestamp: bucketTimestampIso,
         issuedAt: new Date().toISOString(),
       };
       const cursor = cursorService.encodeCursor(cursorPayload);
+      const signature = `${bucketTimestampIso}|${price}|${normalizedVolume}`;
+      const existingCandidate = candidatesByBucket.get(bucketMs);
+      if (existingCandidate && existingCandidate.timestampMs > timestampMs) {
+        continue;
+      }
 
-      events.push({
-        symbol: normalizedSymbol,
-        market,
-        tradingDay,
-        granularity: "1s",
-        point: {
-          timestamp: timestampIso,
-          price,
-          volume: Number.isFinite(volume) ? volume : 0,
+      candidatesByBucket.set(bucketMs, {
+        bucketMs,
+        timestampMs,
+        signature,
+        payload: {
+          symbol: normalizedSymbol,
+          market,
+          tradingDay,
+          granularity: "1s",
+          point: {
+            timestamp: bucketTimestampIso,
+            price,
+            volume: normalizedVolume,
+          },
+          cursor,
         },
-        cursor,
       });
     }
 
-    return events;
+    return Array.from(candidatesByBucket.values()).sort(
+      (left, right) => left.bucketMs - right.bucketMs,
+    );
   }
 
-  private resolveIntradayMarket(normalizedSymbol: string, item: any): string | null {
+  private scheduleIntradayBucketEmission(
+    symbol: string,
+    candidate: IntradayDomainEventCandidate,
+    webSocketProvider: any,
+  ): void {
+    const symbolEntries = this.getPendingIntradayBucketEmissions(symbol);
+    const existingEntry = symbolEntries.get(candidate.bucketMs);
+
+    if (existingEntry) {
+      if (candidate.timestampMs >= existingEntry.candidate.timestampMs) {
+        existingEntry.candidate = candidate;
+        existingEntry.webSocketProvider = webSocketProvider;
+      }
+      return;
+    }
+
+    const pendingEntry: PendingIntradayBucketEmission = {
+      candidate,
+      webSocketProvider,
+      timer: null,
+    };
+    symbolEntries.set(candidate.bucketMs, pendingEntry);
+
+    const emitAtMs =
+      candidate.bucketMs + 1000 + this.intradayBucketFlushGraceMs;
+    const delayMs = emitAtMs - Date.now();
+    if (delayMs <= 0) {
+      void Promise.resolve().then(() =>
+        this.flushIntradayBucketEmission(symbol, candidate.bucketMs),
+      );
+      return;
+    }
+
+    pendingEntry.timer = setTimeout(() => {
+      void this.flushIntradayBucketEmission(symbol, candidate.bucketMs);
+    }, delayMs);
+    pendingEntry.timer.unref?.();
+  }
+
+  private getPendingIntradayBucketEmissions(
+    symbol: string,
+  ): Map<number, PendingIntradayBucketEmission> {
+    let symbolEntries = this.pendingIntradayBucketEmissions.get(symbol);
+    if (!symbolEntries) {
+      symbolEntries = new Map<number, PendingIntradayBucketEmission>();
+      this.pendingIntradayBucketEmissions.set(symbol, symbolEntries);
+    }
+    return symbolEntries;
+  }
+
+  private async flushIntradayBucketEmission(
+    symbol: string,
+    bucketMs: number,
+  ): Promise<void> {
+    const symbolEntries = this.pendingIntradayBucketEmissions.get(symbol);
+    const pendingEntry = symbolEntries?.get(bucketMs);
+    if (!pendingEntry) {
+      return;
+    }
+
+    if (pendingEntry.timer) {
+      clearTimeout(pendingEntry.timer);
+      pendingEntry.timer = null;
+    }
+
+    symbolEntries?.delete(bucketMs);
+    if (symbolEntries && symbolEntries.size === 0) {
+      this.pendingIntradayBucketEmissions.delete(symbol);
+    }
+
+    if (!this.shouldEmitIntradayEvent(symbol, pendingEntry.candidate)) {
+      return;
+    }
+
+    try {
+      const success = await pendingEntry.webSocketProvider.broadcastToRoom(
+        `symbol:${symbol}`,
+        "chart.intraday.point",
+        pendingEntry.candidate.payload,
+      );
+      if (!success) {
+        this.logger.warn("分时领域事件广播失败（已忽略）", {
+          symbol,
+          bucketMs,
+          reason: "Gateway广播返回失败状态",
+        });
+      }
+    } catch (error: any) {
+      this.logger.warn("分时领域事件广播失败（已忽略）", {
+        symbol,
+        bucketMs,
+        error: error?.message || String(error || ""),
+      });
+    }
+  }
+
+  private shouldEmitIntradayEvent(
+    symbol: string,
+    candidate: IntradayDomainEventCandidate,
+  ): boolean {
+    const symbolBucketStates = this.getIntradayBucketStates(symbol);
+    this.pruneIntradayBucketStates(symbolBucketStates, candidate.bucketMs);
+
+    const existingState = symbolBucketStates.get(candidate.bucketMs);
+    if (existingState) {
+      return false;
+    }
+
+    const latestEmittedState = this.intradayLatestEmittedState.get(symbol);
+    if (
+      latestEmittedState &&
+      candidate.bucketMs < latestEmittedState.bucketMs
+    ) {
+      return false;
+    }
+
+    if (
+      latestEmittedState &&
+      candidate.bucketMs > latestEmittedState.bucketMs &&
+      latestEmittedState.price === candidate.payload.point.price
+    ) {
+      return false;
+    }
+
+    symbolBucketStates.set(candidate.bucketMs, {
+      emittedAtMs: Date.now(),
+      price: candidate.payload.point.price,
+    });
+    this.intradayLatestEmittedState.set(symbol, {
+      bucketMs: candidate.bucketMs,
+      price: candidate.payload.point.price,
+    });
+    this.trimIntradayBucketStates(symbolBucketStates);
+    return true;
+  }
+
+  private getIntradayBucketStates(
+    symbol: string,
+  ): Map<number, IntradayEmittedBucketState> {
+    let symbolBucketStates = this.intradayBucketStates.get(symbol);
+    if (!symbolBucketStates) {
+      symbolBucketStates = new Map<number, IntradayEmittedBucketState>();
+      this.intradayBucketStates.set(symbol, symbolBucketStates);
+    }
+    return symbolBucketStates;
+  }
+
+  private pruneIntradayBucketStates(
+    symbolBucketStates: Map<number, IntradayEmittedBucketState>,
+    currentBucketMs: number,
+  ): void {
+    const thresholdBucketMs = currentBucketMs - this.intradayBucketStateTtlMs;
+    for (const bucketMs of symbolBucketStates.keys()) {
+      if (bucketMs < thresholdBucketMs) {
+        symbolBucketStates.delete(bucketMs);
+      }
+    }
+  }
+
+  private trimIntradayBucketStates(
+    symbolBucketStates: Map<number, IntradayEmittedBucketState>,
+  ): void {
+    while (symbolBucketStates.size > this.intradayMaxBucketStatesPerSymbol) {
+      const oldestBucket = symbolBucketStates.keys().next().value;
+      if (typeof oldestBucket !== "number") {
+        return;
+      }
+      symbolBucketStates.delete(oldestBucket);
+    }
+  }
+
+  private resolveIntradayMarket(
+    normalizedSymbol: string,
+    item: any,
+  ): string | null {
     const inferredMarket = inferMarketFromSymbol(normalizedSymbol);
     if (inferredMarket !== "UNKNOWN") {
       return inferredMarket;
@@ -709,6 +944,15 @@ export class StreamClientStateManager implements OnModuleDestroy {
     return normalized ? normalized : null;
   }
 
+  private readIntegerEnv(key: string, fallback: number, min: number): number {
+    const rawValue = process.env[key];
+    const parsedValue = Number(rawValue);
+    if (!Number.isFinite(parsedValue)) {
+      return fallback;
+    }
+    return Math.max(min, Math.floor(parsedValue));
+  }
+
   private getIntradayCursorService(): ChartIntradayCursorService | null {
     if (this.intradayCursorService) {
       return this.intradayCursorService;
@@ -717,7 +961,9 @@ export class StreamClientStateManager implements OnModuleDestroy {
       return null;
     }
 
-    const secret = String(process.env.CHART_INTRADAY_CURSOR_SECRET || "").trim();
+    const secret = String(
+      process.env.CHART_INTRADAY_CURSOR_SECRET || "",
+    ).trim();
     if (!secret) {
       this.intradayCursorServiceUnavailable = true;
       this.logger.warn("分时游标密钥未配置，已跳过分时领域事件广播");

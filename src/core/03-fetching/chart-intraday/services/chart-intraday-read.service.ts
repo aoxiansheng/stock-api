@@ -664,7 +664,7 @@ export class ChartIntradayReadService {
       return [];
     }
 
-    const points = rawPoints
+    const rawRealtimePoints = rawPoints
       .map((point) => {
         const timestampMs = this.parseTimestampToMs(point?.t);
         const price = this.parseNumber(point?.p);
@@ -687,6 +687,7 @@ export class ChartIntradayReadService {
           this.parseTimestampToMs(a.timestamp)! -
           this.parseTimestampToMs(b.timestamp)!,
       );
+    const points = this.projectPointsToSecondBuckets(rawRealtimePoints);
 
     if (this.shouldTraceDebug()) {
       this.logger.debug("分时诊断: 流缓存过滤后点位", {
@@ -694,6 +695,7 @@ export class ChartIntradayReadService {
         symbol,
         market,
         tradingDay,
+        rawRealtimePointsCount: rawRealtimePoints.length,
         filteredPointsCount: points.length,
         firstTimestamp: points[0]?.timestamp || null,
         lastTimestamp: points[points.length - 1]?.timestamp || null,
@@ -705,6 +707,28 @@ export class ChartIntradayReadService {
     return points;
   }
 
+  private projectPointsToSecondBuckets(
+    points: IntradayPointDto[],
+  ): IntradayPointDto[] {
+    const bucketMap = new Map<number, IntradayPointDto>();
+
+    for (const point of points) {
+      const normalizedPoint = this.normalizePointToSecondBucket(point);
+      if (!normalizedPoint) {
+        continue;
+      }
+      const bucket = this.toSecondBucket(normalizedPoint.timestamp);
+      if (!bucket) {
+        continue;
+      }
+      bucketMap.set(bucket, normalizedPoint);
+    }
+
+    return Array.from(bucketMap.entries())
+      .sort((left, right) => left[0] - right[0])
+      .map(([, point]) => point);
+  }
+
   private mergeAndNormalizePoints(
     historyPoints: IntradayPointDto[],
     realtimePoints: IntradayPointDto[],
@@ -714,21 +738,29 @@ export class ChartIntradayReadService {
     let inputCount = 0;
 
     for (const point of historyPoints) {
-      const bucket = this.toSecondBucket(point.timestamp);
+      const normalizedPoint = this.normalizePointToSecondBucket(point);
+      if (!normalizedPoint) {
+        continue;
+      }
+      const bucket = this.toSecondBucket(normalizedPoint.timestamp);
       if (!bucket) {
         continue;
       }
       inputCount += 1;
-      bucketMap.set(bucket, point);
+      bucketMap.set(bucket, normalizedPoint);
     }
 
     for (const point of realtimePoints) {
-      const bucket = this.toSecondBucket(point.timestamp);
+      const normalizedPoint = this.normalizePointToSecondBucket(point);
+      if (!normalizedPoint) {
+        continue;
+      }
+      const bucket = this.toSecondBucket(normalizedPoint.timestamp);
       if (!bucket) {
         continue;
       }
       inputCount += 1;
-      bucketMap.set(bucket, point);
+      bucketMap.set(bucket, normalizedPoint);
     }
 
     const deduplicatedPoints = Math.max(0, inputCount - bucketMap.size);
@@ -1042,6 +1074,20 @@ export class ChartIntradayReadService {
       return null;
     }
     return Math.floor(ms / 1000) * 1000;
+  }
+
+  private normalizePointToSecondBucket(
+    point: IntradayPointDto,
+  ): IntradayPointDto | null {
+    const bucket = this.toSecondBucket(point.timestamp);
+    if (!bucket) {
+      return null;
+    }
+
+    return {
+      ...point,
+      timestamp: new Date(bucket).toISOString(),
+    };
   }
 
   private parseTimestampToMs(value: unknown): number | null {

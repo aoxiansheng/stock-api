@@ -189,10 +189,7 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
 
     await createConnection("req-1");
 
-    expect(callOrder).toEqual([
-      "canCreateConnection",
-      "initializeWebSocket",
-    ]);
+    expect(callOrder).toEqual(["canCreateConnection", "initializeWebSocket"]);
   });
 
   it("超限拒绝路径不进入 initialize/register/active map", async () => {
@@ -248,7 +245,6 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     expect(clientStateManager.removeConnection).not.toHaveBeenCalled();
   });
 
-
   it("unsubscribeFromSymbols 不再触碰客户端状态管理器", async () => {
     const conn = await createConnection("req-unsubscribe-no-client-state");
     const symbols = ["AAPL", "TSLA"];
@@ -261,7 +257,6 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     expect(clientStateManager.updateSubscriptionState).not.toHaveBeenCalled();
     expect(clientStateManager.removeConnection).not.toHaveBeenCalled();
   });
-
 
   it("conn.close() 统一走 closeConnection 语义，并保持幂等", async () => {
     const conn = await createConnection("req-1");
@@ -315,7 +310,9 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
   it("closeConnection 退订失败时仅告警且不阻断关闭主流程", async () => {
     const conn = await createConnection("req-1");
     conn.subscribedSymbols.add("AAPL");
-    ctxService.unsubscribe.mockRejectedValueOnce(new Error("unsubscribe-failed"));
+    ctxService.unsubscribe.mockRejectedValueOnce(
+      new Error("unsubscribe-failed"),
+    );
 
     await expect(service.closeConnection(conn)).resolves.toBeUndefined();
 
@@ -341,7 +338,6 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     expect(clientStateManager.updateSubscriptionState).not.toHaveBeenCalled();
     expect(clientStateManager.removeConnection).not.toHaveBeenCalled();
   });
-
 
   it("重复 closeConnection 不会重复执行退订", async () => {
     const conn = await createConnection("req-1");
@@ -388,7 +384,9 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     const pendingInitialize = new Promise<void>((resolve) => {
       resolveInitialize = resolve;
     });
-    ctxService.initializeWebSocket.mockImplementationOnce(() => pendingInitialize);
+    ctxService.initializeWebSocket.mockImplementationOnce(
+      () => pendingInitialize,
+    );
 
     const establishPromise = service.establishStreamConnection({
       provider: "mock-provider",
@@ -527,10 +525,8 @@ describe("StreamDataFetcherService close/cleanup 解耦", () => {
     );
     await expect(service.closeConnection(conn)).resolves.toBeUndefined();
 
-    const closedConnectionErrors = (service as any).closedConnectionErrors as Map<
-      string,
-      string
-    >;
+    const closedConnectionErrors = (service as any)
+      .closedConnectionErrors as Map<string, string>;
     expect(closedConnectionErrors.has(conn.id)).toBe(false);
     expect(ctxService.cleanup).toHaveBeenCalledTimes(3);
   });
@@ -647,6 +643,343 @@ describe("StreamClientStateManager intraday domain events", () => {
       .digest("hex");
 
     expect(decodedCursor.sig).toBe(expectedSig);
+  });
+
+  it("同一批次内仅广播每个秒桶的最后一个分时点", async () => {
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        [
+          {
+            lastPrice: 70679.87,
+            timestamp: "2026-03-14T16:56:50.056Z",
+            volume: 0.02,
+          },
+          {
+            lastPrice: 70679.87,
+            timestamp: "2026-03-14T16:56:50.577Z",
+            volume: 0.02,
+          },
+          {
+            lastPrice: 70679.88,
+            timestamp: "2026-03-14T16:56:51.056Z",
+            volume: 0.02,
+          },
+          {
+            lastPrice: 70679.89,
+            timestamp: "2026-03-14T16:56:51.577Z",
+            volume: 0.02,
+          },
+        ],
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(3);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      2,
+      "symbol:BTCUSDT",
+      "chart.intraday.point",
+      expect.objectContaining({
+        point: expect.objectContaining({
+          timestamp: "2026-03-14T16:56:50.000Z",
+          price: 70679.87,
+          volume: 0.02,
+        }),
+      }),
+    );
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      3,
+      "symbol:BTCUSDT",
+      "chart.intraday.point",
+      expect.objectContaining({
+        point: expect.objectContaining({
+          timestamp: "2026-03-14T16:56:51.000Z",
+          price: 70679.89,
+          volume: 0.02,
+        }),
+      }),
+    );
+  });
+
+  it("秒桶已广播后，同秒内容重放或修正都跳过", async () => {
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.87,
+          timestamp: "2026-03-14T16:56:50.577Z",
+          volume: 0.02,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+
+    webSocketProvider.broadcastToRoom.mockClear();
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.87,
+          timestamp: "2026-03-14T16:56:50.577Z",
+          volume: 0.02,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:BTCUSDT",
+      "data",
+      expect.any(Object),
+    );
+
+    webSocketProvider.broadcastToRoom.mockClear();
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.88,
+          timestamp: "2026-03-14T16:56:50.900Z",
+          volume: 0.03,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:BTCUSDT",
+      "data",
+      expect.any(Object),
+    );
+  });
+
+  it("当前秒桶内多次更新仅在秒桶结束后广播一次最终点", async () => {
+    await manager.onModuleDestroy();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-14T16:56:50.100Z"));
+
+    manager = new StreamClientStateManager();
+    webSocketProvider = {
+      isServerAvailable: jest.fn().mockReturnValue(true),
+      healthCheck: jest
+        .fn()
+        .mockReturnValue({ status: "healthy", details: { reason: "ok" } }),
+      broadcastToRoom: jest.fn().mockResolvedValue(true),
+    };
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.87,
+          timestamp: "2026-03-14T16:56:50.120Z",
+          volume: 0.02,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:BTCUSDT",
+      "data",
+      expect.any(Object),
+    );
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.88,
+          timestamp: "2026-03-14T16:56:50.920Z",
+          volume: 0.03,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve();
+
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(3);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      3,
+      "symbol:BTCUSDT",
+      "chart.intraday.point",
+      expect.objectContaining({
+        point: expect.objectContaining({
+          timestamp: "2026-03-14T16:56:50.000Z",
+          price: 70679.88,
+          volume: 0.03,
+        }),
+      }),
+    );
+
+    jest.useRealTimers();
+  });
+
+  it("秒桶 flush 后到达的同秒晚到数据不会再次触发 intraday 广播", async () => {
+    await manager.onModuleDestroy();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-14T16:56:50.100Z"));
+
+    manager = new StreamClientStateManager();
+    webSocketProvider = {
+      isServerAvailable: jest.fn().mockReturnValue(true),
+      healthCheck: jest
+        .fn()
+        .mockReturnValue({ status: "healthy", details: { reason: "ok" } }),
+      broadcastToRoom: jest.fn().mockResolvedValue(true),
+    };
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.87,
+          timestamp: "2026-03-14T16:56:50.520Z",
+          volume: 0.02,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve();
+
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      2,
+      "symbol:BTCUSDT",
+      "chart.intraday.point",
+      expect.objectContaining({
+        point: expect.objectContaining({
+          timestamp: "2026-03-14T16:56:50.000Z",
+          price: 70679.87,
+          volume: 0.02,
+        }),
+      }),
+    );
+
+    webSocketProvider.broadcastToRoom.mockClear();
+    jest.setSystemTime(new Date("2026-03-14T16:56:51.400Z"));
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.88,
+          timestamp: "2026-03-14T16:56:50.946Z",
+          volume: 0.03,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:BTCUSDT",
+      "data",
+      expect.any(Object),
+    );
+
+    jest.useRealTimers();
+  });
+
+  it("跨秒价格未变化时跳过后续 intraday 广播", async () => {
+    await manager.onModuleDestroy();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-14T16:56:50.100Z"));
+
+    manager = new StreamClientStateManager();
+    webSocketProvider = {
+      isServerAvailable: jest.fn().mockReturnValue(true),
+      healthCheck: jest
+        .fn()
+        .mockReturnValue({ status: "healthy", details: { reason: "ok" } }),
+      broadcastToRoom: jest.fn().mockResolvedValue(true),
+    };
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.87,
+          timestamp: "2026-03-14T16:56:50.520Z",
+          volume: 0.02,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve();
+
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(2);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      2,
+      "symbol:BTCUSDT",
+      "chart.intraday.point",
+      expect.objectContaining({
+        point: expect.objectContaining({
+          timestamp: "2026-03-14T16:56:50.000Z",
+          price: 70679.87,
+        }),
+      }),
+    );
+
+    webSocketProvider.broadcastToRoom.mockClear();
+    jest.setSystemTime(new Date("2026-03-14T16:56:51.100Z"));
+
+    await expect(
+      manager.broadcastToSymbolViaGateway(
+        "BTCUSDT",
+        {
+          lastPrice: 70679.87,
+          timestamp: "2026-03-14T16:56:51.520Z",
+          volume: 0.03,
+        },
+        webSocketProvider,
+      ),
+    ).resolves.toBeUndefined();
+
+    await Promise.resolve();
+    jest.advanceTimersByTime(1000);
+    await Promise.resolve();
+
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenCalledTimes(1);
+    expect(webSocketProvider.broadcastToRoom).toHaveBeenNthCalledWith(
+      1,
+      "symbol:BTCUSDT",
+      "data",
+      expect.any(Object),
+    );
+
+    jest.useRealTimers();
   });
 
   it("无效 item 被跳过", async () => {
