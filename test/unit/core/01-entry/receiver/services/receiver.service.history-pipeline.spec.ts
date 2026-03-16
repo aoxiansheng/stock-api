@@ -582,6 +582,74 @@ describe("ReceiverService get-stock-history pipeline", () => {
     expect(response.data[0].symbol).toBe("AAPL.US");
   });
 
+  it("命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 且 CN 入参对应 SZ 标准代码时，Transformer 应使用交易所级 marketType", async () => {
+    const {
+      service,
+      dataFetcherService,
+      dataTransformerService,
+      marketInferenceService,
+    } = createReceiverService("infoway");
+
+    marketInferenceService.inferMarkets.mockReturnValue(["CN"]);
+    marketInferenceService.inferDominantMarket.mockReturnValue("CN");
+
+    dataFetcherService.fetchRawData.mockResolvedValue({
+      data: [{ s: "000600.SZ", p: "9.52" }],
+      metadata: {
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+        processingTimeMs: 3,
+        symbolsProcessed: 1,
+      },
+    });
+    dataTransformerService.transform.mockResolvedValue({
+      transformedData: [{ symbol: "000600.SZ", lastPrice: 9.52 }],
+      metadata: {},
+    });
+
+    await (service as any).executeDataFetching(
+      {
+        symbols: ["000600.SZ"],
+        receiverType: CAPABILITY_NAMES.GET_STOCK_QUOTE,
+        options: {
+          market: "CN",
+        },
+      } as any,
+      "infoway",
+      {
+        transformedSymbols: ["000600.SZ"],
+        mappingResults: {
+          transformedSymbols: {
+            "000600.SZ": "000600.SZ",
+          },
+          failedSymbols: [],
+          metadata: {
+            provider: "infoway",
+            totalSymbols: 1,
+            successfulTransformations: 1,
+            failedTransformations: 0,
+            processingTimeMs: 0,
+          },
+        },
+      } as any,
+      "request-identity-market-1",
+      {
+        primaryMarket: "CN",
+        marketType: "CN",
+        markets: ["CN"],
+        candidates: ["CN", "*"],
+      },
+    );
+
+    expect(dataTransformerService.transform).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "infoway",
+        transDataRuleListType: "quote_fields",
+        marketType: "SZ",
+      }),
+    );
+  });
+
   it("命中 STANDARD_SYMBOL_IDENTITY_PROVIDERS 且存在非标准 symbol 时抛 DATA_VALIDATION_FAILED", async () => {
     const { service, symbolTransformerService, dataFetcherService } =
       createReceiverService("infoway");

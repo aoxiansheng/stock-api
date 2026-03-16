@@ -109,6 +109,7 @@ export const REFERENCE_DATA = Object.freeze({
     LONGPORT_US: "longport-us", // 长桥美国
     JVQUANT: "jvquant", // JvQuant WebSocket 行情提供商
     INFOWAY: "infoway", // Infoway 行情提供商（REST + WebSocket）
+    COINGECKO: "coingecko", // CoinGecko REST 加密货币基础信息提供商
 
     // 其他提供商
 

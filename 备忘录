@@ -181,13 +181,22 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
 
 
 
+   curl -X POST "https://data.infoway.io/stock/v2/batch_kline" \
+    -H "Content-Type: application/json" \
+    -H "apiKey: f05eaa21cb3c41a99d4e0aa4958757fc-infoway" \
+    --data-raw '{
+      "klineType": 8,
+      "klineNum": 10,
+      "codes": "000600.SZ"
+    }'
+
 
 
   API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" 
   SYMBOLS="BTCUSDT.CRYPTO" \
   node "scripts/tools/upstream-sdk/test-infoway-crypto-info-raw.js"
 
-
+ API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" CODE="BTCUSDT" TYPE=1 BUSINESS="crypto" node "scripts/tools/upstream-sdk/test-infoway-kline-ws.js"
 
   APP_KEY="7f007ab34a8f42adbd6ff82dc040f486" \
   ACCESS_TOKEN="a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
@@ -252,3 +261,17 @@ JWT_ACCESS_TOKEN=<REDACTED_JWT_ACCESS_TOKEN>
     --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
     --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
     --symbols "00700.HK" 
+
+
+  API_KEY="f05eaa21cb3c41a99d4e0aa4958757fc-infoway" \
+  MARKETS="CN,HK,US" \
+  node "scripts/tools/upstream-sdk/test-infoway-market-schedules.js"   
+
+
+    node "scripts/tools/local-project/test-get-trading-days-endpoint.js" \
+    --app-key "7f007ab34a8f42adbd6ff82dc040f486" \
+    --access-token "a1db4af52e02457f81f87f93b87c612ff317bb4f6ad84895a02375c4471e6d7a" \
+    --symbols "00700.HK" \
+    --market "HK" \
+    --begin-day "20260101" \
+    --end-day "20260131"

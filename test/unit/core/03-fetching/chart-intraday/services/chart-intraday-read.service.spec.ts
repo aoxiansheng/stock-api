@@ -20,6 +20,8 @@ type CursorPayload = {
 
 describe("ChartIntradayReadService", () => {
   const DEFAULT_CURSOR_SECRET = "chart-intraday-test-secret";
+  const originalStandardSymbolIdentityProviders =
+    process.env.STANDARD_SYMBOL_IDENTITY_PROVIDERS;
   const CURSOR_SECRET_ENV_KEYS = [
     "CHART_INTRADAY_CURSOR_SECRET",
     "CURSOR_SIGNING_SECRET",
@@ -203,6 +205,12 @@ describe("ChartIntradayReadService", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    if (originalStandardSymbolIdentityProviders === undefined) {
+      delete process.env.STANDARD_SYMBOL_IDENTITY_PROVIDERS;
+    } else {
+      process.env.STANDARD_SYMBOL_IDENTITY_PROVIDERS =
+        originalStandardSymbolIdentityProviders;
+    }
   });
 
   afterAll(() => {
@@ -827,6 +835,84 @@ describe("ChartIntradayReadService", () => {
         "market 与 symbol 推断市场不一致",
       );
     }
+  });
+
+  it("snapshot: infoway 命中标准代码直通时接受 CN 入参并规范为交易所级市场", async () => {
+    process.env.STANDARD_SYMBOL_IDENTITY_PROVIDERS = "infoway";
+
+    const {
+      service,
+      dataFetcherService,
+      chartIntradayStreamSubscriptionService,
+      streamCache,
+    } = createService();
+
+    chartIntradayStreamSubscriptionService.ensureRealtimeSubscription.mockResolvedValue(
+      undefined,
+    );
+    streamCache.getData.mockResolvedValue([]);
+    dataFetcherService.fetchRawData
+      .mockResolvedValueOnce({
+        data: [
+          {
+            symbol: "000600.SZ",
+            market: "SZ",
+            timestamp: "2026-03-16T01:30:00.000Z",
+            lastPrice: "9.52",
+            volume: "9882",
+          },
+        ],
+        metadata: {
+          provider: "infoway",
+          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          processingTimeMs: 3,
+          symbolsProcessed: 1,
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            symbol: "000600.SZ",
+            market: "SZ",
+            timestamp: "2026-03-15T16:00:00.000Z",
+            open: "9.50",
+            close: "9.48",
+          },
+          {
+            symbol: "000600.SZ",
+            market: "SZ",
+            timestamp: "2026-03-16T16:00:00.000Z",
+            open: "9.49",
+            close: "9.52",
+          },
+        ],
+        metadata: {
+          provider: "infoway",
+          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+          processingTimeMs: 3,
+          symbolsProcessed: 1,
+        },
+      });
+
+    const result = await service.getSnapshot({
+      symbol: "000600.SZ",
+      market: "CN",
+      tradingDay: "20260316",
+      provider: "infoway",
+    });
+
+    expect(result.line.market).toBe("SZ");
+    expect(dataFetcherService.fetchRawData).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        provider: "infoway",
+        capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
+        symbols: ["000600.SZ"],
+        options: expect.objectContaining({
+          market: "SZ",
+        }),
+      }),
+    );
   });
 
   it("delta: 合法 cursor 正常，并按 limit 返回分页增量", async () => {

@@ -79,11 +79,13 @@ import {
   MarketTypeContext,
 } from "@core/shared/utils/market-type.util";
 import {
+  areStandardIdentityMarketsCompatible,
   buildIdentitySymbolTransformResult,
   findNonStandardSymbolsForIdentityProvider,
   isStandardSymbolIdentityProvider,
   STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
 } from "@core/shared/utils/provider-symbol-identity.util";
+import { inferMarketFromSymbol } from "@core/shared/utils/market-time.util";
 import { validateYmdDateRange } from "@core/shared/utils/ymd-date.util";
 
 const TRADING_DAYS_MIN_YMD = "19000101";
@@ -984,6 +986,8 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     const transformMarketResolution = this.resolveTransformMarketResolution(
       request,
       effectiveMarketContext,
+      provider,
+      mappedSymbols.transformedSymbols,
     );
     const sanitizedOptions = this.sanitizeFetchOptions(
       request.options,
@@ -1582,6 +1586,8 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
   private resolveTransformMarketResolution(
     request: DataRequestDto,
     marketContext: MarketTypeContext,
+    provider?: string,
+    transformedSymbols: string[] = request.symbols || [],
   ): TransformMarketResolution {
     const inputMarket =
       typeof request.options?.market === "string"
@@ -1598,6 +1604,20 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         resolvedMarketType: "*",
         marketResolutionStrategy:
           "explicit_market_with_mixed_symbols_uses_wildcard",
+      };
+    }
+
+    const identityProviderExactMarketType = this.resolveIdentityProviderExactMarketType(
+      provider,
+      transformedSymbols,
+      inputMarket,
+    );
+    if (identityProviderExactMarketType) {
+      return {
+        inputMarket,
+        resolvedMarketType: identityProviderExactMarketType,
+        marketResolutionStrategy:
+          "standard_identity_provider_symbol_exact_market_type",
       };
     }
 
@@ -1620,6 +1640,43 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
    */
   private getMarketContext(symbols: string[]): MarketTypeContext {
     return resolveMarketTypeFromSymbols(this.marketInferenceService, symbols);
+  }
+
+  private resolveIdentityProviderExactMarketType(
+    provider: string | undefined,
+    symbols: string[],
+    inputMarket?: string,
+  ): string | null {
+    if (!provider || !this.isIdentityProviderEnabled(provider)) {
+      return null;
+    }
+
+    const exactMarkets = Array.from(
+      new Set(
+        (symbols || [])
+          .map((symbol) => inferMarketFromSymbol(symbol, "UNKNOWN"))
+          .filter((market) => market !== "UNKNOWN"),
+      ),
+    );
+
+    if (exactMarkets.length === 0) {
+      return null;
+    }
+
+    if (
+      inputMarket &&
+      !exactMarkets.every((market) =>
+        areStandardIdentityMarketsCompatible(inputMarket, market),
+      )
+    ) {
+      return null;
+    }
+
+    if (exactMarkets.length === 1) {
+      return exactMarkets[0];
+    }
+
+    return exactMarkets.sort((left, right) => left.localeCompare(right)).join("/");
   }
 
   /**

@@ -16,19 +16,29 @@ function assert(condition, message, extra) {
   throw new Error(message);
 }
 
-const STRICT_CRYPTO_SYMBOL_PATTERN = /^[A-Z0-9]{2,20}\.CRYPTO$/;
+const CRYPTO_SYMBOL_PATTERN = /^[A-Z0-9]{2,20}$/;
+const CRYPTO_QUOTE_SUFFIXES = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
 
 function normalizeCryptoSymbol(symbol) {
   return String(symbol || "").trim().toUpperCase();
 }
 
+function isValidCryptoPairSymbol(symbol) {
+  return (
+    CRYPTO_SYMBOL_PATTERN.test(symbol) &&
+    CRYPTO_QUOTE_SUFFIXES.some(
+      (suffix) => symbol.endsWith(suffix) && symbol.length > suffix.length,
+    )
+  );
+}
+
 function assertStrictCryptoSymbols(symbols) {
   const invalidSymbols = symbols
     .map((symbol) => normalizeCryptoSymbol(symbol))
-    .filter((symbol) => !STRICT_CRYPTO_SYMBOL_PATTERN.test(symbol));
-  assert(invalidSymbols.length === 0, "crypto symbols 必须使用 *.CRYPTO 格式", {
+    .filter((symbol) => !isValidCryptoPairSymbol(symbol));
+  assert(invalidSymbols.length === 0, "crypto symbols 必须使用裸交易对格式", {
     invalidSymbols,
-    example: "BTCUSDT.CRYPTO",
+    example: "BTCUSDT",
   });
 }
 
@@ -74,8 +84,8 @@ function validateRows(rows) {
 async function main() {
   const client = createEndpointClient();
   const { args } = client;
-  const symbols = parseSymbols(args.symbols, "BTCUSDT.CRYPTO");
-  const provider = String(args.provider || "infoway").trim().toLowerCase();
+  const symbols = parseSymbols(args.symbols, "BTCUSDT");
+  const provider = String(args.provider || "").trim().toLowerCase();
   const market = String(args.market || "CRYPTO").trim().toUpperCase();
   const receiverType = String(args["receiver-type"] || "get-crypto-history").trim();
   const klineNum = Math.max(1, Number(args["kline-num"] || args.klineNum || 5));
@@ -91,15 +101,19 @@ async function main() {
     klineNum,
   });
 
+  const requestOptions = {
+    market,
+    klineNum,
+    useSmartCache: false,
+  };
+  if (provider) {
+    requestOptions.preferredProvider = provider;
+  }
+
   const requestBody = {
     symbols,
     receiverType,
-    options: {
-      preferredProvider: provider,
-      market,
-      klineNum,
-      useSmartCache: false,
-    },
+    options: requestOptions,
   };
 
   if (timestampArg) {
@@ -107,7 +121,7 @@ async function main() {
     assert(Number.isSafeInteger(timestamp) && timestamp > 0, "timestamp 必须是正整数", {
       timestamp: timestampArg,
     });
-    requestBody.options.timestamp = timestamp;
+    requestOptions.timestamp = timestamp;
   }
 
   const response = await client.post("/receiver/data", requestBody);
@@ -160,6 +174,7 @@ async function main() {
         endpoint: "POST /api/v1/receiver/data",
         receiverType,
         requestedSymbols: symbols,
+        requestedProvider: provider || null,
         returnedCount: rows.length,
         provider: metadata.provider || null,
         upstreamErrors,

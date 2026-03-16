@@ -114,6 +114,13 @@ export class RuleAlignmentService {
       "bps", // 每股净资产
       "dividendYield", // 股息率
       "stockDerivatives", // 衍生品类型
+      "currentPrice", // 当前价格（适用于加密资产等）
+      "marketCap", // 当前市值
+      "marketCapRank", // 市值排名
+      "circulatingSupply", // 流通供应量
+      "totalSupply", // 总供应量
+      "maxSupply", // 最大供应量
+      "fullyDilutedValuation", // 完全摊薄估值
     ],
 
     // 市场状态字段
@@ -915,6 +922,31 @@ export class RuleAlignmentService {
         "stock_derivatives",
         "stockderivatives",
         "derivatives",
+      ],
+      currentprice: [
+        "current_price",
+        "currentprice",
+        "price_usd",
+        "price",
+      ],
+      marketcap: [
+        "market_cap",
+        "marketcap",
+        "market_capitalization",
+        "marketcapitalization",
+      ],
+      marketcaprank: ["market_cap_rank", "marketcaprank", "cap_rank"],
+      circulatingsupply: [
+        "circulating_supply",
+        "circulatingsupply",
+        "circulating_amount",
+      ],
+      totalsupply: ["total_supply", "totalsupply", "supply_total"],
+      maxsupply: ["max_supply", "maxsupply", "supply_max"],
+      fullydilutedvaluation: [
+        "fully_diluted_valuation",
+        "fullydilutedvaluation",
+        "fdv",
       ],
       board: ["board"],
       tradeschedules: ["trade_schedules", "tradeschedules"],

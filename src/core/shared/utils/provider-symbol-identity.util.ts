@@ -3,6 +3,9 @@ import { SymbolValidationUtils } from "@common/utils/symbol-validation.util";
 export const STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY =
   "STANDARD_SYMBOL_IDENTITY_PROVIDERS";
 
+const CHINA_AGGREGATE_MARKET = "CN";
+const CHINA_EXCHANGE_MARKETS = new Set(["SH", "SZ"]);
+
 type ParsedIdentityProviderCache = {
   rawValue: string | undefined;
   providers: string[];
@@ -17,6 +20,10 @@ function normalizeProviderName(providerName: string): string {
 
 function resolveProviderRawValue(rawValue?: unknown): string | undefined {
   return typeof rawValue === "string" ? rawValue : undefined;
+}
+
+function normalizeMarketLike(market?: unknown): string {
+  return typeof market === "string" ? market.trim().toUpperCase() : "";
 }
 
 function canonicalizeIdentitySymbol(symbol: string): string {
@@ -77,6 +84,67 @@ export function isStandardSymbolIdentityProvider(
   return getParsedIdentityProviderCache(rawValue).providerSet.has(
     normalizedProvider,
   );
+}
+
+export function areStandardIdentityMarketsCompatible(
+  explicitMarket?: string,
+  inferredMarket?: string,
+): boolean {
+  const normalizedExplicit = normalizeMarketLike(explicitMarket);
+  const normalizedInferred = normalizeMarketLike(inferredMarket);
+
+  if (!normalizedExplicit || !normalizedInferred) {
+    return true;
+  }
+
+  if (normalizedExplicit === normalizedInferred) {
+    return true;
+  }
+
+  if (
+    normalizedExplicit === CHINA_AGGREGATE_MARKET &&
+    CHINA_EXCHANGE_MARKETS.has(normalizedInferred)
+  ) {
+    return true;
+  }
+
+  if (
+    normalizedInferred === CHINA_AGGREGATE_MARKET &&
+    CHINA_EXCHANGE_MARKETS.has(normalizedExplicit)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function canonicalizeStandardIdentityMarket(
+  explicitMarket?: string,
+  inferredMarket?: string,
+): string | undefined {
+  const normalizedExplicit = normalizeMarketLike(explicitMarket);
+  const normalizedInferred = normalizeMarketLike(inferredMarket);
+
+  if (
+    normalizedInferred &&
+    CHINA_EXCHANGE_MARKETS.has(normalizedInferred) &&
+    areStandardIdentityMarketsCompatible(
+      normalizedExplicit,
+      normalizedInferred,
+    )
+  ) {
+    return normalizedInferred;
+  }
+
+  if (normalizedExplicit) {
+    return normalizedExplicit;
+  }
+
+  if (normalizedInferred) {
+    return normalizedInferred;
+  }
+
+  return undefined;
 }
 
 export function findNonStandardSymbolsForIdentityProvider(

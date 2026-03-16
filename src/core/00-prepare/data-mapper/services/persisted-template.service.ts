@@ -141,6 +141,50 @@ export class PersistedTemplateService {
     };
   }
 
+  private createCoinGeckoCryptoBasicInfoSampleData() {
+    return {
+      symbol: "BTCUSDT",
+      market: "CRYPTO",
+      name_en: "Bitcoin",
+      exchange: "COINGECKO",
+      currency: "USD",
+      board: "CRYPTO",
+      current_price: 68000.12,
+      market_cap: 1340000000000,
+      market_cap_rank: 1,
+      circulating_supply: 19700000,
+      total_supply: 21000000,
+      max_supply: 21000000,
+      fully_diluted_valuation: 1428000000000,
+      coingecko_id: "bitcoin",
+      coingecko_symbol: "BTC",
+      quote_symbol: "USDT",
+    };
+  }
+
+  private createCoinGeckoCryptoBasicInfoExtractedFields() {
+    return [
+      { fieldPath: "symbol", fieldName: "symbol", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "market", fieldName: "market", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "name_en", fieldName: "name_en", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "exchange", fieldName: "exchange", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "currency", fieldName: "currency", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "board", fieldName: "board", fieldType: "string", confidence: 0.95 },
+      { fieldPath: "current_price", fieldName: "current_price", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "market_cap", fieldName: "market_cap", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "market_cap_rank", fieldName: "market_cap_rank", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "circulating_supply", fieldName: "circulating_supply", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "total_supply", fieldName: "total_supply", fieldType: "number", confidence: 0.95 },
+      { fieldPath: "max_supply", fieldName: "max_supply", fieldType: "number", confidence: 0.95 },
+      {
+        fieldPath: "fully_diluted_valuation",
+        fieldName: "fully_diluted_valuation",
+        fieldType: "number",
+        confidence: 0.95,
+      },
+    ];
+  }
+
 
   /**
    * 预设模板的硬编码原始配置
@@ -683,6 +727,20 @@ export class PersistedTemplateService {
     this.createInfowayQuoteTemplate("rest"),
     this.createInfowayCandleTemplate(),
     this.createInfowayQuoteTemplate("stream"),
+    {
+      name: "CoinGecko REST 加密货币基础信息模板",
+      provider: REFERENCE_DATA.PROVIDER_IDS.COINGECKO,
+      apiType: "rest" as const,
+      isPreset: true,
+      isDefault: false,
+      description:
+        "CoinGecko REST 加密货币基础信息模板（provider 返回 CoinGecko 原始字段与标准 symbol，由映射层转换）",
+      sampleData: this.createCoinGeckoCryptoBasicInfoSampleData(),
+      extractedFields: this.createCoinGeckoCryptoBasicInfoExtractedFields(),
+      totalFields: 13,
+      confidence: 0.95,
+      isActive: true,
+    },
     {
       name: "Infoway REST 股票基础信息模板",
       provider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,

@@ -32,6 +32,12 @@ import {
 } from "@core/shared/utils/market-time.util";
 import { StreamDataFetcherService } from "@core/03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import { BasicCacheService } from "@core/05-caching/module/basic-cache";
+import {
+  areStandardIdentityMarketsCompatible,
+  canonicalizeStandardIdentityMarket,
+  isStandardSymbolIdentityProvider,
+  STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY,
+} from "@core/shared/utils/provider-symbol-identity.util";
 
 type ResolvedIntradayContext = ResolvedIntradayCursorContext;
 
@@ -1137,7 +1143,25 @@ export class ChartIntradayReadService {
       }
     }
 
-    if (explicitMarket && inferredMarket && explicitMarket !== inferredMarket) {
+    const provisionalMarket = market;
+    const resolvedProvider = this.resolveProvider(
+      request.provider,
+      provisionalMarket,
+    );
+    const isIdentityProvider = isStandardSymbolIdentityProvider(
+      resolvedProvider,
+      process.env[STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY],
+    );
+
+    if (
+      explicitMarket &&
+      inferredMarket &&
+      !(
+        isIdentityProvider &&
+        areStandardIdentityMarketsCompatible(explicitMarket, inferredMarket)
+      ) &&
+      explicitMarket !== inferredMarket
+    ) {
       throw this.createBusinessException({
         errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
         operation: "resolve_context",
@@ -1150,6 +1174,16 @@ export class ChartIntradayReadService {
           inferredMarket,
         },
       });
+    }
+
+    if (isIdentityProvider) {
+      const canonicalMarket = canonicalizeStandardIdentityMarket(
+        explicitMarket,
+        inferredMarket,
+      );
+      if (canonicalMarket) {
+        market = canonicalMarket;
+      }
     }
 
     if (!isSupportedMarket(market)) {
@@ -1178,7 +1212,7 @@ export class ChartIntradayReadService {
       symbol,
       market,
       tradingDay,
-      provider: this.resolveProvider(request.provider, market),
+      provider: resolvedProvider,
     };
   }
 

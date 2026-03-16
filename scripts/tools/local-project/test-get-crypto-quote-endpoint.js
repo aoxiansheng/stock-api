@@ -16,19 +16,29 @@ function assert(condition, message, extra) {
   throw new Error(message);
 }
 
-const STRICT_CRYPTO_SYMBOL_PATTERN = /^[A-Z0-9]{2,20}\.CRYPTO$/;
+const CRYPTO_SYMBOL_PATTERN = /^[A-Z0-9]{2,20}$/;
+const CRYPTO_QUOTE_SUFFIXES = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
 
 function normalizeCryptoSymbol(symbol) {
   return String(symbol || "").trim().toUpperCase();
 }
 
+function isValidCryptoPairSymbol(symbol) {
+  return (
+    CRYPTO_SYMBOL_PATTERN.test(symbol) &&
+    CRYPTO_QUOTE_SUFFIXES.some(
+      (suffix) => symbol.endsWith(suffix) && symbol.length > suffix.length,
+    )
+  );
+}
+
 function assertStrictCryptoSymbols(symbols) {
   const invalidSymbols = symbols
     .map((symbol) => normalizeCryptoSymbol(symbol))
-    .filter((symbol) => !STRICT_CRYPTO_SYMBOL_PATTERN.test(symbol));
-  assert(invalidSymbols.length === 0, "crypto symbols 必须使用 *.CRYPTO 格式", {
+    .filter((symbol) => !isValidCryptoPairSymbol(symbol));
+  assert(invalidSymbols.length === 0, "crypto symbols 必须使用裸交易对格式", {
     invalidSymbols,
-    example: "BTCUSDT.CRYPTO",
+    example: "BTCUSDT",
   });
 }
 
@@ -91,30 +101,37 @@ async function main() {
   const client = createEndpointClient();
   const { args } = client;
 
-  const symbols = parseSymbols(args.symbols, "BTCUSDT.CRYPTO");
-  const provider = String(args.provider || "infoway").trim().toLowerCase();
+  const symbols = parseSymbols(args.symbols, "BTCUSDT");
+  const provider = String(args.provider || "").trim().toLowerCase();
   const market = String(args.market || "CRYPTO").trim().toUpperCase();
   const receiverType = String(args["receiver-type"] || "get-crypto-quote").trim();
 
   const realtime = parseBoolean(args.realtime, true);
   const allowEmpty = parseBoolean(args["allow-empty"], false);
   const allowUpstreamErrors = parseBoolean(args["allow-upstream-errors"], false);
-  const requireProviderMatch = parseBoolean(args["require-provider-match"], true);
+  const requireProviderMatch = parseBoolean(
+    args["require-provider-match"],
+    Boolean(provider),
+  );
   const strictSymbolMatch = parseBoolean(args["strict-symbol-match"], true);
   const sampleLimit = Math.max(1, Number(args["sample-limit"] || 5));
 
   assert(symbols.length > 0, "symbols 不能为空");
   assertStrictCryptoSymbols(symbols);
 
+  const requestOptions = {
+    realtime,
+    useSmartCache: false,
+    market,
+  };
+  if (provider) {
+    requestOptions.preferredProvider = provider;
+  }
+
   const requestBody = {
     symbols,
     receiverType,
-    options: {
-      preferredProvider: provider,
-      realtime,
-      useSmartCache: false,
-      market,
-    },
+    options: requestOptions,
   };
 
   const response = await client.post("/receiver/data", requestBody);
@@ -178,6 +195,7 @@ async function main() {
         receiverType,
         market,
         requestedSymbols: symbols,
+        requestedProvider: provider || null,
         returnedCount: rows.length,
         provider: metadata.provider || null,
         upstreamErrors,

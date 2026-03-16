@@ -1,6 +1,8 @@
 import {
+  areStandardIdentityMarketsCompatible,
   buildIdentitySymbolMappingPair,
   buildIdentitySymbolTransformResult,
+  canonicalizeStandardIdentityMarket,
   findNonStandardSymbolsForIdentityProvider,
   isStandardIdentitySymbol,
   isStandardSymbolIdentityProvider,
@@ -137,6 +139,21 @@ describe("provider-symbol-identity.util", () => {
       standardSymbols: ["AAPL.US", "00700.HK"],
       providerSymbols: ["AAPL.US", "00700.HK"],
     });
+  });
+
+  it("标准代码直通 provider 应视 CN 与 SH/SZ 为兼容市场语义", () => {
+    expect(areStandardIdentityMarketsCompatible("CN", "SZ")).toBe(true);
+    expect(areStandardIdentityMarketsCompatible("CN", "SH")).toBe(true);
+    expect(areStandardIdentityMarketsCompatible("SZ", "CN")).toBe(true);
+    expect(areStandardIdentityMarketsCompatible("SH", "CN")).toBe(true);
+    expect(areStandardIdentityMarketsCompatible("HK", "CN")).toBe(false);
+  });
+
+  it("标准代码直通 provider 应优先保留 symbol 推断出的交易所级市场", () => {
+    expect(canonicalizeStandardIdentityMarket("CN", "SZ")).toBe("SZ");
+    expect(canonicalizeStandardIdentityMarket("CN", "SH")).toBe("SH");
+    expect(canonicalizeStandardIdentityMarket(undefined, "SZ")).toBe("SZ");
+    expect(canonicalizeStandardIdentityMarket("HK", "HK")).toBe("HK");
   });
 });
 

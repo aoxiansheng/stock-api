@@ -87,7 +87,7 @@ export class SymbolValidationUtils {
   private static formatMarketLabel(
     market: (typeof Market)[keyof typeof Market] | undefined,
     collapseChina?: boolean,
-  ): string | undefined {
+  ): (typeof Market)[keyof typeof Market] | undefined {
     if (!market) return undefined;
     if (collapseChina && (market === Market.SZ || market === Market.SH || market === Market.CN)) {
       return Market.CN;

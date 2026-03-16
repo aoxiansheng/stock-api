@@ -5,9 +5,11 @@ import { REFERENCE_DATA } from "@common/constants/domain";
 import { LongportProvider } from "./providers/longport/longport.provider";
 import { JvQuantProvider } from "./providers/jvquant/jvquant.provider";
 import { InfowayProvider } from "./providers/infoway/infoway.provider";
+import { CoinGeckoProvider } from "./providers/coingecko/coingecko.provider";
 import { LongportModule } from "./providers/longport/module/longport.module";
 import { JvQuantModule } from "./providers/jvquant/module/jvquant.module";
 import { InfowayModule } from "./providers/infoway/module/infoway.module";
+import { CoinGeckoModule } from "./providers/coingecko/module/coingecko.module";
 import type { IDataProvider } from "./providers/interfaces/provider.interface";
 
 interface ProviderManifestDefinition {
@@ -34,6 +36,12 @@ const ACTIVE_PROVIDER_MANIFEST_DEFINITIONS = Object.freeze([
     key: "INFOWAY",
     module: InfowayModule,
     providerToken: InfowayProvider,
+    aliases: [],
+  },
+  {
+    key: "COINGECKO",
+    module: CoinGeckoModule,
+    providerToken: CoinGeckoProvider,
     aliases: [],
   },
 ] as const satisfies readonly ProviderManifestDefinition[]);

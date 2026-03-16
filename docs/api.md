@@ -108,6 +108,7 @@ HTTP 请求头（API Key）：
 - 缓存策略（当前实现）：`STRONG_TIMELINESS` 使用统一强时效 TTL（`realTimeTtlSeconds`，默认 5s，可通过环境变量调整）。
 - `receiverType` 当前支持能力：
   - `get-stock-quote`
+  - `get-crypto-basic-info`
   - `get-stock-basic-info`
   - `get-stock-history`
   - `get-index-quote`
@@ -122,8 +123,10 @@ HTTP 请求头（API Key）：
 
 `get-trading-days`
 - 用途：查询交易日/半日市信息
-- 常用参数：`symbols[]`、`options.market`、`options.beginDay`、`options.endDay`
+- 常用参数：`options.market`、`options.beginDay`、`options.endDay`
 - 约束：
+  - 交易日查询是市场级能力，结果由 `options.market + beginDay + endDay` 决定
+  - `AAPL.US` 这类 `symbols` 不参与交易日结果计算，不应被理解为业务查询条件
   - `beginDay/endDay` 仅允许用于 `get-trading-days`
   - 日期格式为 `YYYYMMDD`
   - 区间需满足 `beginDay <= endDay`（服务端范围约束：`19000101` 到 `20991231`，最大 366 天）
@@ -175,10 +178,9 @@ HTTP 请求头（API Key）：
 }
 ```
 
-示例：`get-trading-days`
+示例：`get-trading-days`（核心业务参数）
 ```json
 {
-  "symbols": ["AAPL.US"],
   "receiverType": "get-trading-days",
   "options": {
     "market": "US",
@@ -187,6 +189,9 @@ HTTP 请求头（API Key）：
   }
 }
 ```
+
+补充说明：
+- 若走当前 `/api/v1/receiver/data` 通用请求结构，外层仍可能携带 `symbols` 字段；该字段在 `get-trading-days` 中仅作协议兼容占位，不作为交易日查询条件。
 
 示例：`get-market-status`
 ```json
@@ -328,6 +333,7 @@ HTTP 请求头（API Key）：
 - 已实现的查询类型：`by_symbols`
 - `queryTypeFilter` 当前支持能力：
   - `get-stock-quote`
+  - `get-crypto-basic-info`
   - `get-stock-basic-info`
   - `get-stock-history`
   - `get-index-quote`

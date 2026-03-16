@@ -33,6 +33,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.INFOWAY,
       PROVIDER_IDS.JVQUANT,
       PROVIDER_IDS.LONGPORT,
+      PROVIDER_IDS.COINGECKO,
     ]);
   });
 
@@ -45,6 +46,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.JVQUANT,
       PROVIDER_IDS.LONGPORT,
       PROVIDER_IDS.INFOWAY,
+      PROVIDER_IDS.COINGECKO,
     ]);
   });
 
@@ -55,6 +57,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.LONGPORT,
       PROVIDER_IDS.JVQUANT,
       PROVIDER_IDS.INFOWAY,
+      PROVIDER_IDS.COINGECKO,
     ]);
   });
 
@@ -67,6 +70,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.INFOWAY,
       PROVIDER_IDS.LONGPORT,
       PROVIDER_IDS.JVQUANT,
+      PROVIDER_IDS.COINGECKO,
     ]);
   });
 
@@ -99,6 +103,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.JVQUANT,
       PROVIDER_IDS.LONGPORT,
       PROVIDER_IDS.INFOWAY,
+      PROVIDER_IDS.COINGECKO,
     ]);
   });
 
@@ -123,6 +128,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.LONGPORT,
       PROVIDER_IDS.JVQUANT,
       PROVIDER_IDS.INFOWAY,
+      PROVIDER_IDS.COINGECKO,
     ]);
 
     process.env.PROVIDER_PRIORITY_DEFAULT = "jvquant,infoway,longport";
@@ -131,6 +137,7 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.JVQUANT,
       PROVIDER_IDS.INFOWAY,
       PROVIDER_IDS.LONGPORT,
+      PROVIDER_IDS.COINGECKO,
     ]);
   });
 });
