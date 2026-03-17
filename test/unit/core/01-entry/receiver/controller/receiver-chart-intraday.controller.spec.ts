@@ -48,7 +48,6 @@ describe("ReceiverChartIntradayController", () => {
     const request = {
       symbol: "AAPL.US",
       cursor: "cursor",
-      sessionId: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
       limit: 200,
     };
     const req = {};
@@ -71,7 +70,6 @@ describe("ReceiverChartIntradayController", () => {
       symbol: "AAPL.US",
       market: "US",
       provider: "infoway",
-      sessionId: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
     };
     const req = {};
 

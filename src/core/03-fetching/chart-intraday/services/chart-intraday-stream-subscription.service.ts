@@ -37,10 +37,37 @@ export interface OpenRealtimeSessionParams
   extends UpstreamRealtimeParams,
     ChartIntradayOwnerContext {}
 
+export interface OpenPassiveSessionParams
+  extends UpstreamRealtimeParams,
+    ChartIntradayOwnerContext {}
+
+export interface TouchRealtimeOwnerLeaseParams
+  extends UpstreamRealtimeParams,
+    ChartIntradayOwnerContext {}
+
+export interface ReleaseRealtimeOwnerLeaseParams
+  extends ChartIntradayOwnerContext {
+  symbol: string;
+  market: string;
+  provider?: string;
+}
+
 export interface TouchRealtimeSessionParams
   extends UpstreamRealtimeParams,
     ChartIntradayOwnerContext {
   sessionId: string;
+}
+
+export interface TouchPassiveSessionParams
+  extends UpstreamRealtimeParams,
+    ChartIntradayOwnerContext {
+  sessionId: string;
+}
+
+export interface FindRealtimeOwnerLeaseParams extends ChartIntradayOwnerContext {
+  symbol: string;
+  market?: string;
+  provider?: string;
 }
 
 export interface BindRealtimeSessionClientParams
@@ -52,6 +79,8 @@ export interface UnbindRealtimeClientSessionsParams {
   clientId: string;
   symbols: string[];
 }
+
+export interface RuntimeUpstreamParams extends UpstreamRealtimeParams {}
 
 export interface OpenRealtimeSessionResult {
   sessionId: string;
@@ -157,11 +186,11 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       ...normalized,
       wsCapabilityType,
       clientId,
-      runtimeOwnerId: this.instanceId,
     });
 
     try {
       await this.retainLocalUpstreamSession(result.session, "snapshot");
+      await this.claimRuntimeOwner(result.session);
     } catch (error) {
       const rollback = await this.chartIntradaySessionService.releaseSession({
         sessionId: result.session.sessionId,
@@ -187,15 +216,180 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     };
   }
 
+  async openPassiveSession(
+    params: OpenPassiveSessionParams,
+  ): Promise<OpenRealtimeSessionResult> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
+      normalized.market,
+    );
+    const clientId = this.buildInternalClientId(
+      normalized.provider,
+      wsCapabilityType,
+      normalized.symbol,
+    );
+
+    const result = await this.chartIntradaySessionService.createSession({
+      ...normalized,
+      wsCapabilityType,
+      clientId,
+    });
+    this.addLocalUpstreamReference(result.session);
+    await this.claimRuntimeOwner(result.session);
+
+    return {
+      sessionId: result.session.sessionId,
+      symbol: result.session.symbol,
+      provider: result.session.provider,
+      wsCapabilityType,
+      clientId,
+    };
+  }
+
+  async openRealtimeOwnerLease(
+    params: OpenRealtimeSessionParams,
+  ): Promise<OpenRealtimeSessionResult> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
+      normalized.market,
+    );
+    const clientId = this.buildInternalClientId(
+      normalized.provider,
+      wsCapabilityType,
+      normalized.symbol,
+    );
+    const result =
+      await this.chartIntradaySessionService.getOrCreateSessionByOwnerLease({
+        ...normalized,
+        wsCapabilityType,
+        clientId,
+      });
+
+    try {
+      await this.retainLocalUpstreamSession(result.session, "snapshot");
+      await this.claimRuntimeOwner(result.session);
+    } catch (error) {
+      if (result.leaseCreated) {
+        const rollback = await this.chartIntradaySessionService.releaseSession({
+          sessionId: result.session.sessionId,
+          symbol: result.session.symbol,
+          market: result.session.market,
+          provider: result.session.provider,
+          ownerIdentity: result.session.ownerIdentity,
+        });
+        if (rollback.activeSessionCount === 0) {
+          await this.chartIntradaySessionService.deleteUpstream(
+            rollback.upstream.upstreamKey,
+          );
+        }
+      }
+      throw error;
+    }
+
+    return {
+      sessionId: result.session.sessionId,
+      symbol: result.session.symbol,
+      provider: result.session.provider,
+      wsCapabilityType,
+      clientId,
+    };
+  }
+
+  async openPassiveOwnerLease(
+    params: OpenPassiveSessionParams,
+  ): Promise<OpenRealtimeSessionResult> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
+      normalized.market,
+    );
+    const clientId = this.buildInternalClientId(
+      normalized.provider,
+      wsCapabilityType,
+      normalized.symbol,
+    );
+    const result =
+      await this.chartIntradaySessionService.getOrCreateSessionByOwnerLease({
+        ...normalized,
+        wsCapabilityType,
+        clientId,
+      });
+    this.addLocalUpstreamReference(result.session);
+    await this.claimRuntimeOwner(result.session);
+
+    return {
+      sessionId: result.session.sessionId,
+      symbol: result.session.symbol,
+      provider: result.session.provider,
+      wsCapabilityType,
+      clientId,
+    };
+  }
+
   async touchRealtimeSession(
     params: TouchRealtimeSessionParams,
   ): Promise<TouchRealtimeSessionResult> {
     const normalized = this.normalizeTouchParams(params);
-    const result = await this.chartIntradaySessionService.touchSession({
-      ...normalized,
-      runtimeOwnerId: this.instanceId,
-    });
+    const result = await this.chartIntradaySessionService.touchSession(normalized);
     await this.retainLocalUpstreamSession(result.session, "delta");
+    await this.claimRuntimeOwner(result.session);
+
+    return this.buildTouchResult(result.session);
+  }
+
+  async touchPassiveSession(
+    params: TouchPassiveSessionParams,
+  ): Promise<TouchRealtimeSessionResult> {
+    const normalized = this.normalizeTouchParams(params);
+    const result = await this.chartIntradaySessionService.touchSession(normalized);
+    this.addLocalUpstreamReference(result.session);
+    await this.claimRuntimeOwner(result.session);
+
+    return this.buildTouchResult(result.session);
+  }
+
+  async touchRealtimeOwnerLease(
+    params: TouchRealtimeOwnerLeaseParams,
+  ): Promise<TouchRealtimeSessionResult> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const result =
+      await this.chartIntradaySessionService.touchSessionByOwnerLease({
+        ...normalized,
+        wsCapabilityType: this.resolveRealtimeCapabilityByMarket(
+          normalized.market,
+        ),
+        clientId: this.buildInternalClientId(
+          normalized.provider,
+          this.resolveRealtimeCapabilityByMarket(normalized.market),
+          normalized.symbol,
+        ),
+        ownerIdentity: normalized.ownerIdentity,
+      });
+    await this.retainLocalUpstreamSession(result.session, "delta");
+    await this.claimRuntimeOwner(result.session);
+
+    return this.buildTouchResult(result.session);
+  }
+
+  async touchPassiveOwnerLease(
+    params: TouchRealtimeOwnerLeaseParams,
+  ): Promise<TouchRealtimeSessionResult> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
+      normalized.market,
+    );
+    const result =
+      await this.chartIntradaySessionService.touchSessionByOwnerLease({
+        ...normalized,
+        wsCapabilityType,
+        clientId: this.buildInternalClientId(
+          normalized.provider,
+          wsCapabilityType,
+          normalized.symbol,
+        ),
+        ownerIdentity: normalized.ownerIdentity,
+      });
+    this.addLocalUpstreamReference(result.session);
+    await this.claimRuntimeOwner(result.session);
 
     return this.buildTouchResult(result.session);
   }
@@ -207,11 +401,103 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     const result = await this.chartIntradaySessionService.bindClientToSession({
       ...normalized,
       clientId: params.clientId,
-      runtimeOwnerId: this.instanceId,
     });
     await this.retainLocalUpstreamSession(result.session, "delta");
+    await this.claimRuntimeOwner(result.session);
 
     return this.buildTouchResult(result.session);
+  }
+
+  async pauseRealtimeUpstream(params: RuntimeUpstreamParams): Promise<boolean> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const upstreamKey = this.buildUpstreamKey({
+      provider: normalized.provider,
+      wsCapabilityType: this.resolveRealtimeCapabilityByMarket(
+        normalized.market,
+      ),
+      symbol: normalized.symbol,
+    });
+    const upstream = this.localUpstreamStates.get(upstreamKey);
+    if (!upstream) {
+      return false;
+    }
+
+    this.clearLocalPendingRelease(upstreamKey);
+    const released = await this.pauseLocalUpstream(upstream);
+    if (released) {
+      await this.chartIntradaySessionService.markUpstreamReleased(upstreamKey);
+    }
+    return released;
+  }
+
+  async resumeRealtimeUpstream(params: RuntimeUpstreamParams): Promise<boolean> {
+    const normalized = this.normalizeRealtimeParams(params);
+    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
+      normalized.market,
+    );
+    const upstreamKey = this.buildUpstreamKey({
+      provider: normalized.provider,
+      wsCapabilityType,
+      symbol: normalized.symbol,
+    });
+    const activeSessionCount =
+      await this.chartIntradaySessionService.getUpstreamActiveSessionCount(
+        upstreamKey,
+      );
+    if (activeSessionCount <= 0) {
+      return false;
+    }
+
+    const upstream =
+      this.localUpstreamStates.get(upstreamKey) || {
+        upstreamKey,
+        symbol: normalized.symbol,
+        provider: normalized.provider,
+        wsCapabilityType,
+        clientId: this.buildInternalClientId(
+          normalized.provider,
+          wsCapabilityType,
+          normalized.symbol,
+        ),
+      };
+    this.localUpstreamStates.set(upstreamKey, upstream);
+    this.clearLocalPendingRelease(upstreamKey);
+
+    if (
+      this.hasActiveSubscription(
+        upstream.clientId,
+        upstream.symbol,
+        upstream.provider,
+        upstream.wsCapabilityType,
+      )
+    ) {
+      await this.chartIntradaySessionService.clearUpstreamReleaseState(
+        upstreamKey,
+      );
+      return true;
+    }
+
+    await this.streamReceiverService.subscribeStream(
+      {
+        symbols: [upstream.symbol],
+        wsCapabilityType: upstream.wsCapabilityType,
+        preferredProvider: upstream.provider,
+      } as any,
+      upstream.clientId,
+      undefined,
+      { connectionAuthenticated: true },
+    );
+    await this.chartIntradaySessionService.clearUpstreamReleaseState(
+      upstreamKey,
+    );
+    this.logger.log("分时实时订阅已恢复", {
+      symbol: upstream.symbol,
+      provider: upstream.provider,
+      wsCapabilityType: upstream.wsCapabilityType,
+      clientId: upstream.clientId,
+      instanceId: this.instanceId,
+    });
+    return true;
   }
 
   touchRealtimeSessionsForClient(clientId: string): number {
@@ -277,6 +563,95 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     };
   }
 
+  async releaseRealtimeOwnerLease(
+    params: ReleaseRealtimeOwnerLeaseParams,
+  ): Promise<ReleaseRealtimeSubscriptionResult> {
+    const normalized = this.normalizeReleaseOwnerLeaseParams(params);
+    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
+      normalized.market,
+    );
+    const releaseProvider = normalized.provider
+      ? normalized.provider
+      : await this.resolveUniqueOwnerLeaseProvider({
+          ownerIdentity: normalized.ownerIdentity,
+          symbol: normalized.symbol,
+          market: normalized.market,
+        });
+    if (!releaseProvider) {
+      return this.buildAlreadyReleasedOwnerLeaseResult({
+        symbol: normalized.symbol,
+        provider: "",
+        wsCapabilityType,
+        clientId: "",
+      });
+    }
+
+    const upstreamKey = this.buildUpstreamKey({
+      provider: releaseProvider,
+      wsCapabilityType,
+      symbol: normalized.symbol,
+    });
+    const matchedSessions =
+      await this.chartIntradaySessionService.listOwnerSymbolSessions({
+        ownerIdentity: normalized.ownerIdentity,
+        symbol: normalized.symbol,
+        market: normalized.market,
+        provider: releaseProvider,
+      });
+    const leaseSession =
+      await this.chartIntradaySessionService.getSessionByOwnerLease({
+        ownerIdentity: normalized.ownerIdentity,
+        upstreamKey,
+      });
+    if (!leaseSession && matchedSessions.length > 1) {
+      throw new Error("OWNER_LEASE_AMBIGUOUS");
+    }
+
+    const releasableSession = leaseSession || matchedSessions[0] || null;
+    if (!releasableSession) {
+      return this.buildAlreadyReleasedOwnerLeaseResult({
+        symbol: normalized.symbol,
+        provider: releaseProvider,
+        wsCapabilityType,
+        clientId: this.buildInternalClientId(
+          releaseProvider,
+          wsCapabilityType,
+          normalized.symbol,
+        ),
+        upstreamKey,
+      });
+    }
+
+    return this.releaseRealtimeSubscription({
+      sessionId: releasableSession.sessionId,
+      symbol: releasableSession.symbol,
+      market: releasableSession.market,
+      provider: releasableSession.provider,
+      ownerIdentity: normalized.ownerIdentity,
+    });
+  }
+
+  async findRealtimeOwnerLease(
+    params: FindRealtimeOwnerLeaseParams,
+  ): Promise<TouchRealtimeSessionResult | null> {
+    const normalized = this.normalizeLookupRealtimeParams({
+      ...params,
+      market: params.market || "",
+      provider: params.provider || "",
+    });
+    const session = await this.chartIntradaySessionService.findOwnerSymbolSession({
+      ownerIdentity: normalized.ownerIdentity,
+      symbol: normalized.symbol,
+      market: normalized.market,
+      provider: normalized.provider,
+    });
+    if (!session) {
+      return null;
+    }
+
+    return this.buildTouchResult(session);
+  }
+
   async validateWsSessionBinding(
     params: ChartIntradayWsSessionContext,
   ): Promise<TouchRealtimeSessionResult> {
@@ -287,9 +662,9 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     });
     const result = await this.chartIntradaySessionService.touchSession({
       ...normalized,
-      runtimeOwnerId: this.instanceId,
     });
     await this.retainLocalUpstreamSession(result.session, "delta");
+    await this.claimRuntimeOwner(result.session);
 
     return this.buildTouchResult(result.session);
   }
@@ -404,6 +779,23 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     }
   }
 
+  private async claimRuntimeOwner(
+    session: ChartIntradaySessionRecord,
+  ): Promise<void> {
+    try {
+      const claimed = await this.chartIntradaySessionService.claimRuntimeOwner({
+        sessionId: session.sessionId,
+        runtimeOwnerId: this.instanceId,
+      });
+      if (!claimed) {
+        throw new Error("SESSION_NOT_FOUND");
+      }
+    } catch (error) {
+      await this.releaseLocalUpstreamReference(session, "explicit_release");
+      throw error;
+    }
+  }
+
   private async releaseLocalUpstreamReference(
     session: ChartIntradaySessionRecord,
     reason: "explicit_release" | "session_expired",
@@ -424,7 +816,23 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     upstreamKey: string,
     reason: "explicit_release" | "session_expired",
   ): Promise<{ upstreamReleased: boolean; graceExpiresAt: string | null }> {
-    if (!this.localUpstreamStates.has(upstreamKey)) {
+    const upstream = this.localUpstreamStates.get(upstreamKey);
+    if (!upstream) {
+      return {
+        upstreamReleased: false,
+        graceExpiresAt: null,
+      };
+    }
+
+    if (
+      !this.hasActiveSubscription(
+        upstream.clientId,
+        upstream.symbol,
+        upstream.provider,
+        upstream.wsCapabilityType,
+      )
+    ) {
+      this.cleanupLocalUpstreamState(upstreamKey);
       return {
         upstreamReleased: false,
         graceExpiresAt: null,
@@ -595,8 +1003,7 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       )
     ) {
       this.cleanupLocalUpstreamState(upstreamKey);
-      await this.chartIntradaySessionService.markUpstreamReleased(upstreamKey);
-      return true;
+      return false;
     }
 
     const unsubscribed = await this.unsubscribeUpstream(
@@ -622,7 +1029,8 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       | "explicit_release"
       | "grace_expired"
       | "session_expired"
-      | "module_destroy",
+      | "module_destroy"
+      | "runtime_pause",
     throwOnError: boolean,
   ): Promise<boolean> {
     try {
@@ -657,6 +1065,26 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       }
       return false;
     }
+  }
+
+  private async pauseLocalUpstream(upstream: {
+    symbol: string;
+    provider: string;
+    wsCapabilityType: string;
+    clientId: string;
+  }): Promise<boolean> {
+    if (
+      !this.hasActiveSubscription(
+        upstream.clientId,
+        upstream.symbol,
+        upstream.provider,
+        upstream.wsCapabilityType,
+      )
+    ) {
+      return false;
+    }
+
+    return this.unsubscribeUpstream(upstream, "runtime_pause", true);
   }
 
   private hasActiveSubscription(
@@ -786,6 +1214,14 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     return `chart-intraday:auto:${provider}:${wsCapabilityType}:${symbol}`;
   }
 
+  private buildUpstreamKey(params: {
+    provider: string;
+    wsCapabilityType: string;
+    symbol: string;
+  }): string {
+    return `${params.provider}:${params.wsCapabilityType}:${params.symbol}`;
+  }
+
   private async buildAlreadyReleasedResult(
     session: ReleasedChartIntradaySessionRecord,
     activeSessionCount: number,
@@ -818,6 +1254,47 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     };
   }
 
+  private async buildAlreadyReleasedOwnerLeaseResult(params: {
+    symbol: string;
+    provider: string;
+    wsCapabilityType: string;
+    clientId: string;
+    upstreamKey?: string;
+  }): Promise<ReleaseRealtimeSubscriptionResult> {
+    const normalizedUpstreamKey = String(params.upstreamKey || "").trim();
+    const activeSessionCount = normalizedUpstreamKey
+      ? await this.chartIntradaySessionService.getUpstreamActiveSessionCount(
+          normalizedUpstreamKey,
+        )
+      : 0;
+    let upstreamReleased = false;
+    let graceExpiresAt: string | null = null;
+
+    if (activeSessionCount === 0 && normalizedUpstreamKey) {
+      const sharedState =
+        await this.chartIntradaySessionService.getUpstreamReleaseState(
+          normalizedUpstreamKey,
+        );
+      if (sharedState?.state === "released") {
+        upstreamReleased = true;
+      } else if (sharedState?.state === "scheduled") {
+        graceExpiresAt = sharedState.graceExpiresAt;
+      }
+    }
+
+    return {
+      sessionReleased: false,
+      upstreamReleased,
+      reason: "ALREADY_RELEASED",
+      symbol: params.symbol,
+      provider: params.provider,
+      wsCapabilityType: params.wsCapabilityType,
+      clientId: params.clientId,
+      activeSessionCount,
+      graceExpiresAt,
+    };
+  }
+
   private async syncSharedUpstreamReleaseState(
     upstreamKey: string,
     activeSessionCount: number,
@@ -843,9 +1320,46 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       return;
     }
 
+    const sharedState =
+      await this.chartIntradaySessionService.getUpstreamReleaseState(upstreamKey);
+    if (sharedState?.state === "released") {
+      return;
+    }
+
     await this.chartIntradaySessionService.clearUpstreamReleaseState(
       upstreamKey,
     );
+  }
+
+  private async resolveUniqueOwnerLeaseProvider(params: {
+    ownerIdentity: string;
+    symbol: string;
+    market: string;
+  }): Promise<string | null> {
+    const sessions = await this.chartIntradaySessionService.listOwnerSymbolSessions({
+      ownerIdentity: params.ownerIdentity,
+      symbol: params.symbol,
+      market: params.market,
+    });
+    if (sessions.length === 0) {
+      return null;
+    }
+
+    const matchedProviders = Array.from(
+      new Set(
+        sessions.map((session) =>
+          String(session.provider || "")
+            .trim()
+            .toLowerCase(),
+        ),
+      ),
+    ).filter((provider) => !!provider);
+
+    if (matchedProviders.length !== 1) {
+      throw new Error("OWNER_LEASE_AMBIGUOUS");
+    }
+
+    return matchedProviders[0] || null;
   }
 
   private normalizeRealtimeParams<T extends UpstreamRealtimeParams>(
@@ -853,6 +1367,40 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
   ): T {
     return {
       ...params,
+      symbol: String(params.symbol || "")
+        .trim()
+        .toUpperCase(),
+      market: String(params.market || "")
+        .trim()
+        .toUpperCase(),
+      provider: String(params.provider || "")
+        .trim()
+        .toLowerCase(),
+    };
+  }
+
+  private normalizeLookupRealtimeParams(
+    params: FindRealtimeOwnerLeaseParams,
+  ): FindRealtimeOwnerLeaseParams {
+    return {
+      ownerIdentity: String(params.ownerIdentity || "").trim(),
+      symbol: String(params.symbol || "")
+        .trim()
+        .toUpperCase(),
+      market: String(params.market || "")
+        .trim()
+        .toUpperCase(),
+      provider: String(params.provider || "")
+        .trim()
+        .toLowerCase(),
+    };
+  }
+
+  private normalizeReleaseOwnerLeaseParams(
+    params: ReleaseRealtimeOwnerLeaseParams,
+  ): ReleaseRealtimeOwnerLeaseParams {
+    return {
+      ownerIdentity: String(params.ownerIdentity || "").trim(),
       symbol: String(params.symbol || "")
         .trim()
         .toUpperCase(),

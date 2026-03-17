@@ -20,6 +20,17 @@ import {
   ChartIntradayStreamSubscriptionService,
   type ReleaseRealtimeSubscriptionResult,
 } from "@core/03-fetching/chart-intraday/services/chart-intraday-stream-subscription.service";
+import {
+  ChartIntradayFrozenSnapshotService,
+  type ChartIntradayFrozenSnapshotLookupResult,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-frozen-snapshot.service";
+import {
+  ChartIntradayRuntimeOrchestratorService,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-runtime-orchestrator.service";
+import type {
+  ChartIntradayRuntimeDecision,
+  ChartIntradayRuntimeMode,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-session-policy.service";
 import { DataFetcherService } from "@core/03-fetching/data-fetcher/services/data-fetcher.service";
 import { isValidYmdDate } from "@core/shared/utils/ymd-date.util";
 import {
@@ -41,6 +52,12 @@ import {
 
 type ResolvedIntradayContext = ResolvedIntradayCursorContext;
 
+interface ResolvedIntradayReleaseContext {
+  symbol: string;
+  market: string;
+  provider?: string;
+}
+
 export interface IntradaySnapshotRequestDto {
   symbol: string;
   market?: string;
@@ -56,7 +73,6 @@ export interface IntradayDeltaRequestDto {
   tradingDay?: string;
   provider?: string;
   cursor: string;
-  sessionId: string;
   limit?: number;
   strictProviderConsistency?: boolean;
   ownerIdentity?: string;
@@ -66,7 +82,6 @@ export interface IntradayReleaseRequestDto {
   symbol: string;
   market?: string;
   provider?: string;
-  sessionId: string;
   ownerIdentity?: string;
 }
 
@@ -100,7 +115,6 @@ export interface IntradaySnapshotReferenceDto {
 
 export interface IntradaySyncDto {
   cursor: string;
-  sessionId: string;
   lastPointTimestamp: string;
   serverTime: string;
 }
@@ -110,6 +124,10 @@ export interface IntradaySnapshotMetadataDto {
   historyPoints: number;
   realtimeMergedPoints: number;
   deduplicatedPoints: number;
+  runtimeMode: ChartIntradayRuntimeMode;
+  effectiveTradingDay: string;
+  frozenSnapshotHit: boolean;
+  frozenSnapshotFallback: boolean;
 }
 
 export interface IntradaySnapshotResponseDto {
@@ -133,14 +151,14 @@ export interface IntradayDeltaResponseDto {
 }
 
 export interface IntradayReleasePayloadDto {
-  sessionReleased: boolean;
+  leaseReleased: boolean;
   upstreamReleased: boolean;
   reason: "RELEASED" | "ALREADY_RELEASED";
   symbol: string;
   market: string;
   provider: string;
   wsCapabilityType: string;
-  activeSessionCount: number;
+  activeLeaseCount: number;
   graceExpiresAt: string | null;
 }
 
@@ -179,6 +197,8 @@ export class ChartIntradayReadService {
     private readonly streamDataFetcherService: StreamDataFetcherService,
     private readonly chartIntradayCursorService: ChartIntradayCursorService,
     private readonly chartIntradayStreamSubscriptionService: ChartIntradayStreamSubscriptionService,
+    private readonly chartIntradayFrozenSnapshotService: ChartIntradayFrozenSnapshotService,
+    private readonly chartIntradayRuntimeOrchestratorService: ChartIntradayRuntimeOrchestratorService,
     @Optional() private readonly basicCacheService?: BasicCacheService,
   ) {}
 
@@ -190,6 +210,11 @@ export class ChartIntradayReadService {
       request.pointLimit ?? ChartIntradayReadService.DEFAULT_POINT_LIMIT;
     const now = new Date();
     const requestId = uuidv4();
+    const runtimeDecision =
+      await this.chartIntradayRuntimeOrchestratorService.decideRuntime({
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+      });
 
     this.logger.log("开始生成分时快照", {
       symbol: resolved.symbol,
@@ -197,13 +222,15 @@ export class ChartIntradayReadService {
       tradingDay: resolved.tradingDay,
       provider: resolved.provider,
       pointLimit,
+      runtimeMode: runtimeDecision.mode,
+      runtimeReason: runtimeDecision.reason,
     });
 
     const ownerIdentity = this.resolveOwnerIdentity(request.ownerIdentity);
     let session:
       | Awaited<
           ReturnType<
-            ChartIntradayStreamSubscriptionService["openRealtimeSession"]
+            ChartIntradayRuntimeOrchestratorService["openSnapshotSession"]
           >
         >
       | null = null;
@@ -211,19 +238,69 @@ export class ChartIntradayReadService {
     try {
       try {
         session =
-          await this.chartIntradayStreamSubscriptionService.openRealtimeSession({
+          await this.chartIntradayRuntimeOrchestratorService.openSnapshotSession(
+            {
+              symbol: resolved.symbol,
+              market: resolved.market,
+              provider: resolved.provider,
+              ownerIdentity,
+              tradingDay: resolved.tradingDay,
+              decision: runtimeDecision,
+            },
+          );
+      } catch (error) {
+        if (runtimeDecision.mode === "live") {
+          this.throwRealtimeSubscriptionUnavailable("snapshot", error, {
             symbol: resolved.symbol,
             market: resolved.market,
             provider: resolved.provider,
-            ownerIdentity,
+            tradingDay: resolved.tradingDay,
           });
-      } catch (error) {
-        this.throwRealtimeSubscriptionUnavailable("snapshot", error, {
-          symbol: resolved.symbol,
-          market: resolved.market,
-          provider: resolved.provider,
-          tradingDay: resolved.tradingDay,
+        }
+        throw error;
+      }
+
+      if (runtimeDecision.mode !== "live") {
+        const frozenSnapshot = await this.findFrozenSnapshotForRuntime(
+          resolved,
+          runtimeDecision,
+        );
+        if (frozenSnapshot) {
+          return this.buildSnapshotResponseFromFrozenSnapshot({
+            resolved,
+            runtimeDecision,
+            now,
+            frozenSnapshot,
+          });
+        }
+
+        const transformedSymbol = await this.resolveProviderSymbol(
+          resolved,
+          requestId,
+        );
+        const historyPoints = await this.fetchHistoryBaseline(
+          resolved,
+          transformedSymbol,
+          pointLimit,
+          requestId,
+        );
+        const reference = await this.fetchSnapshotReference(
+          resolved,
+          transformedSymbol,
+          requestId,
+        );
+        const merged = this.mergeAndNormalizePoints(historyPoints, [], pointLimit);
+        const response = this.buildColdStartSnapshotResponse({
+          resolved,
+          runtimeDecision,
+          now,
+          merged,
+          reference,
+          historyPointsCount: historyPoints.length,
         });
+        await this.persistFrozenSnapshot(response);
+
+        return response;
       }
 
       const transformedSymbol = await this.resolveProviderSymbol(
@@ -280,58 +357,17 @@ export class ChartIntradayReadService {
         });
       }
 
-      if (merged.points.length === 0) {
-        throw this.createBusinessException({
-          errorCode: BusinessErrorCode.DATA_NOT_FOUND,
-          operation: "snapshot",
-          message: "NO_DATA: 当前无可用分时点位",
-          statusCode: HttpStatus.NOT_FOUND,
-          context: {
-            symbol: resolved.symbol,
-            market: resolved.market,
-            tradingDay: resolved.tradingDay,
-          },
-        });
-      }
-
-      const lastPointTimestamp =
-        merged.points[merged.points.length - 1].timestamp;
-      const cursor = this.encodeCursor({
-        v: 1,
-        symbol: resolved.symbol,
-        market: resolved.market,
-        tradingDay: resolved.tradingDay,
-        provider: resolved.provider,
-        lastPointTimestamp,
-        issuedAt: now.toISOString(),
-      });
-
-      return {
-        line: {
-          symbol: resolved.symbol,
-          market: resolved.market,
-          tradingDay: resolved.tradingDay,
-          granularity: "1s",
-          points: merged.points,
-        },
-        capability: {
-          snapshotBaseGranularity: "1m",
-          supportsFullDay1sHistory: false,
-        },
+      const response = this.buildLiveSnapshotResponse({
+        resolved,
+        now,
+        merged,
         reference,
-        sync: {
-          cursor,
-          sessionId: session.sessionId,
-          lastPointTimestamp,
-          serverTime: now.toISOString(),
-        },
-        metadata: {
-          provider: resolved.provider,
-          historyPoints: historyPoints.length,
-          realtimeMergedPoints: realtimePoints.length,
-          deduplicatedPoints: merged.deduplicatedPoints,
-        },
-      };
+        historyPointsCount: historyPoints.length,
+        realtimePointsCount: realtimePoints.length,
+      });
+      await this.persistFrozenSnapshot(response);
+
+      return response;
     } catch (error) {
       if (session) {
         try {
@@ -376,20 +412,6 @@ export class ChartIntradayReadService {
         },
       });
     }
-    if (!request.sessionId?.trim()) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: "delta",
-        message: "INVALID_ARGUMENT: delta 请求必须提供 sessionId",
-        statusCode: HttpStatus.BAD_REQUEST,
-        context: {
-          symbol: request.symbol,
-          market: request.market,
-          tradingDay: request.tradingDay,
-        },
-      });
-    }
-
     const cursorPayload = this.decodeCursor(request.cursor);
     const resolved = this.resolveContext({
       ...request,
@@ -405,29 +427,38 @@ export class ChartIntradayReadService {
       now,
       request.strictProviderConsistency === true,
     );
+    const runtimeDecision =
+      await this.chartIntradayRuntimeOrchestratorService.decideRuntime({
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+      });
 
     try {
-      await this.chartIntradayStreamSubscriptionService.touchRealtimeSession({
-        sessionId: request.sessionId,
+      await this.chartIntradayRuntimeOrchestratorService.touchDeltaSession({
         symbol: resolved.symbol,
         market: resolved.market,
         provider: resolved.provider,
         ownerIdentity: this.resolveOwnerIdentity(request.ownerIdentity),
+        tradingDay: resolved.tradingDay,
+        decision: runtimeDecision,
       });
     } catch (error: any) {
       if (this.isSessionConflictError(error)) {
-        this.throwSessionConflictException("delta", request.sessionId, error, {
+        this.throwSessionConflictException("delta", error, {
           symbol: resolved.symbol,
           market: resolved.market,
           provider: resolved.provider,
         });
       }
-      this.throwRealtimeSubscriptionUnavailable("delta", error, {
-        symbol: resolved.symbol,
-        market: resolved.market,
-        provider: resolved.provider,
-        tradingDay: resolved.tradingDay,
-      });
+      if (runtimeDecision.mode === "live") {
+        this.throwRealtimeSubscriptionUnavailable("delta", error, {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          provider: resolved.provider,
+          tradingDay: resolved.tradingDay,
+        });
+      }
+      throw error;
     }
 
     const sinceMs = this.parseTimestampToMs(cursorPayload.lastPointTimestamp);
@@ -443,6 +474,16 @@ export class ChartIntradayReadService {
           tradingDay: resolved.tradingDay,
         },
       });
+    }
+
+    if (runtimeDecision.mode !== "live") {
+      return {
+        delta: this.buildEmptyDeltaPayload(
+          resolved,
+          now,
+          cursorPayload.lastPointTimestamp,
+        ),
+      };
     }
 
     const realtimePoints = await this.fetchRealtimePoints(
@@ -528,58 +569,300 @@ export class ChartIntradayReadService {
   async releaseRealtimeSubscription(
     request: IntradayReleaseRequestDto,
   ): Promise<IntradayReleaseResponseDto> {
-    if (!request.sessionId?.trim()) {
-      throw this.createBusinessException({
-        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
-        operation: "release",
-        message: "INVALID_ARGUMENT: release 请求必须提供 sessionId",
-        statusCode: HttpStatus.BAD_REQUEST,
-        context: {
-          symbol: request.symbol,
-          market: request.market,
-          provider: request.provider,
-        },
-      });
-    }
-
-    const resolved = this.resolveContext({
-      symbol: request.symbol,
-      market: request.market,
-      provider: request.provider,
-    });
+    const ownerIdentity = this.resolveOwnerIdentity(request.ownerIdentity);
+    const resolved = this.resolveReleaseContext(request);
     let released;
     try {
       released =
-        await this.chartIntradayStreamSubscriptionService.releaseRealtimeSubscription(
+        await this.chartIntradayStreamSubscriptionService.releaseRealtimeOwnerLease(
           {
-            sessionId: request.sessionId,
             symbol: resolved.symbol,
             market: resolved.market,
             provider: resolved.provider,
-            ownerIdentity: this.resolveOwnerIdentity(request.ownerIdentity),
+            ownerIdentity,
           },
         );
     } catch (error: any) {
       if (this.isSessionReleaseInProgressError(error)) {
-        this.throwReleaseInProgressException(request.sessionId, error, {
+        this.throwReleaseInProgressException(error, {
           symbol: resolved.symbol,
           market: resolved.market,
-          provider: resolved.provider,
+          provider: resolved.provider || "",
         });
       }
       if (this.isSessionConflictError(error)) {
-        this.throwSessionConflictException("release", request.sessionId, error, {
+        this.throwSessionConflictException("release", error, {
           symbol: resolved.symbol,
           market: resolved.market,
-          provider: resolved.provider,
+          provider: resolved.provider || "",
         });
       }
       throw error;
     }
 
+    if (released.provider) {
+      await this.chartIntradayRuntimeOrchestratorService.handleRelease({
+        symbol: resolved.symbol,
+        market: resolved.market,
+        provider: released.provider,
+        activeSessionCount: released.activeSessionCount,
+      });
+    }
+
     return {
       release: this.buildReleasePayload(resolved.market, released),
     };
+  }
+
+  private buildLiveSnapshotResponse(params: {
+    resolved: ResolvedIntradayContext;
+    now: Date;
+    merged: MergeResult;
+    reference: IntradaySnapshotReferenceDto;
+    historyPointsCount: number;
+    realtimePointsCount: number;
+  }): IntradaySnapshotResponseDto {
+    return this.buildSnapshotResponse({
+      resolved: params.resolved,
+      now: params.now,
+      merged: params.merged,
+      reference: params.reference,
+      historyPointsCount: params.historyPointsCount,
+      realtimePointsCount: params.realtimePointsCount,
+      runtimeMode: "live",
+      effectiveTradingDay: params.resolved.tradingDay,
+      frozenSnapshotHit: false,
+      frozenSnapshotFallback: false,
+    });
+  }
+
+  private buildColdStartSnapshotResponse(params: {
+    resolved: ResolvedIntradayContext;
+    runtimeDecision: ChartIntradayRuntimeDecision;
+    now: Date;
+    merged: MergeResult;
+    reference: IntradaySnapshotReferenceDto;
+    historyPointsCount: number;
+  }): IntradaySnapshotResponseDto {
+    return this.buildSnapshotResponse({
+      resolved: params.resolved,
+      now: params.now,
+      merged: params.merged,
+      reference: params.reference,
+      historyPointsCount: params.historyPointsCount,
+      realtimePointsCount: 0,
+      runtimeMode: params.runtimeDecision.mode,
+      effectiveTradingDay: params.resolved.tradingDay,
+      frozenSnapshotHit: false,
+      frozenSnapshotFallback: false,
+    });
+  }
+
+  private buildSnapshotResponse(params: {
+    resolved: ResolvedIntradayContext;
+    now: Date;
+    merged: MergeResult;
+    reference: IntradaySnapshotReferenceDto;
+    historyPointsCount: number;
+    realtimePointsCount: number;
+    runtimeMode: ChartIntradayRuntimeMode;
+    effectiveTradingDay: string;
+    frozenSnapshotHit: boolean;
+    frozenSnapshotFallback: boolean;
+  }): IntradaySnapshotResponseDto {
+    const { resolved, now, merged, reference } = params;
+    if (merged.points.length === 0) {
+      throw this.createBusinessException({
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: "snapshot",
+        message: "NO_DATA: 当前无可用分时点位",
+        statusCode: HttpStatus.NOT_FOUND,
+        context: {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          tradingDay: resolved.tradingDay,
+        },
+      });
+    }
+
+    const lastPointTimestamp =
+      merged.points[merged.points.length - 1].timestamp;
+    const cursor = this.encodeCursor({
+      v: 1,
+      symbol: resolved.symbol,
+      market: resolved.market,
+      tradingDay: resolved.tradingDay,
+      provider: resolved.provider,
+      lastPointTimestamp,
+      issuedAt: now.toISOString(),
+    });
+
+    return {
+      line: {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        granularity: "1s",
+        points: merged.points,
+      },
+      capability: {
+        snapshotBaseGranularity: "1m",
+        supportsFullDay1sHistory: false,
+      },
+      reference,
+      sync: {
+        cursor,
+        lastPointTimestamp,
+        serverTime: now.toISOString(),
+      },
+      metadata: {
+        provider: resolved.provider,
+        historyPoints: params.historyPointsCount,
+        realtimeMergedPoints: params.realtimePointsCount,
+        deduplicatedPoints: merged.deduplicatedPoints,
+        runtimeMode: params.runtimeMode,
+        effectiveTradingDay: params.effectiveTradingDay,
+        frozenSnapshotHit: params.frozenSnapshotHit,
+        frozenSnapshotFallback: params.frozenSnapshotFallback,
+      },
+    };
+  }
+
+  private async findFrozenSnapshotForRuntime(
+    resolved: ResolvedIntradayContext,
+    runtimeDecision: ChartIntradayRuntimeDecision,
+  ): Promise<ChartIntradayFrozenSnapshotLookupResult | null> {
+    const frozenSnapshot =
+      await this.chartIntradayFrozenSnapshotService.findSnapshot({
+        provider: resolved.provider,
+        market: resolved.market,
+        symbol: resolved.symbol,
+        tradingDay: resolved.tradingDay,
+        allowPreviousTradingDayFallback: false,
+      });
+
+    if (!frozenSnapshot) {
+      return null;
+    }
+
+    if (
+      frozenSnapshot.fallback ||
+      frozenSnapshot.effectiveTradingDay !== resolved.tradingDay
+    ) {
+      this.logger.warn("分时诊断: 非 live snapshot 忽略非请求日冻结快照", {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        provider: resolved.provider,
+        runtimeMode: runtimeDecision.mode,
+        effectiveTradingDay: frozenSnapshot.effectiveTradingDay,
+        fallback: frozenSnapshot.fallback,
+      });
+      return null;
+    }
+
+    return frozenSnapshot;
+  }
+
+  private buildSnapshotResponseFromFrozenSnapshot(params: {
+    resolved: ResolvedIntradayContext;
+    runtimeDecision: ChartIntradayRuntimeDecision;
+    now: Date;
+    frozenSnapshot: ChartIntradayFrozenSnapshotLookupResult;
+  }): IntradaySnapshotResponseDto {
+    const { resolved, runtimeDecision, now, frozenSnapshot } = params;
+    const points = frozenSnapshot.payload.line.points || [];
+    if (points.length === 0) {
+      throw this.createBusinessException({
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation: "snapshot",
+        message: "NO_DATA: 冻结快照不包含可用分时点位",
+        statusCode: HttpStatus.NOT_FOUND,
+        context: {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          tradingDay: resolved.tradingDay,
+          provider: resolved.provider,
+          effectiveTradingDay: frozenSnapshot.effectiveTradingDay,
+        },
+      });
+    }
+
+    const lastPointTimestamp = points[points.length - 1].timestamp;
+    const cursor = this.encodeCursor({
+      v: 1,
+      symbol: resolved.symbol,
+      market: resolved.market,
+      tradingDay: resolved.tradingDay,
+      provider: resolved.provider,
+      lastPointTimestamp,
+      issuedAt: now.toISOString(),
+    });
+
+    return {
+      line: {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        granularity: frozenSnapshot.payload.line.granularity,
+        points,
+      },
+      capability: frozenSnapshot.payload.capability,
+      reference: frozenSnapshot.payload.reference,
+      sync: {
+        cursor,
+        lastPointTimestamp,
+        serverTime: now.toISOString(),
+      },
+      metadata: {
+        provider: resolved.provider,
+        historyPoints: frozenSnapshot.payload.metadata.historyPoints,
+        realtimeMergedPoints: frozenSnapshot.payload.metadata.realtimeMergedPoints,
+        deduplicatedPoints: frozenSnapshot.payload.metadata.deduplicatedPoints,
+        runtimeMode: runtimeDecision.mode,
+        effectiveTradingDay: frozenSnapshot.effectiveTradingDay,
+        frozenSnapshotHit: true,
+        frozenSnapshotFallback: frozenSnapshot.fallback,
+      },
+    };
+  }
+
+  private buildEmptyDeltaPayload(
+    resolved: ResolvedIntradayContext,
+    now: Date,
+    lastPointTimestamp: string,
+  ): IntradayDeltaPayloadDto {
+    return {
+      points: [],
+      hasMore: false,
+      nextCursor: this.encodeCursor({
+        v: 1,
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        provider: resolved.provider,
+        lastPointTimestamp,
+        issuedAt: now.toISOString(),
+      }),
+      lastPointTimestamp,
+      serverTime: now.toISOString(),
+    };
+  }
+
+  private async persistFrozenSnapshot(
+    response: IntradaySnapshotResponseDto,
+  ): Promise<void> {
+    try {
+      await this.chartIntradayFrozenSnapshotService.writeSnapshot(response);
+    } catch (error: any) {
+      this.logger.warn("分时诊断: 冻结快照写入失败，已忽略", {
+        symbol: response.line.symbol,
+        market: response.line.market,
+        tradingDay: response.line.tradingDay,
+        provider: response.metadata.provider,
+        reason: error?.message ?? "unknown",
+      });
+    }
   }
 
   private async fetchHistoryBaseline(
@@ -1454,6 +1737,102 @@ export class ChartIntradayReadService {
     };
   }
 
+  private resolveReleaseContext(
+    request: IntradayReleaseRequestDto,
+  ): ResolvedIntradayReleaseContext {
+    const normalizedProvider = String(request.provider || "")
+      .trim()
+      .toLowerCase();
+    if (normalizedProvider) {
+      const resolved = this.resolveContext({
+        symbol: request.symbol,
+        market: request.market,
+        provider: normalizedProvider,
+      });
+      return {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        provider: resolved.provider,
+      };
+    }
+
+    const symbol = String(request.symbol || "")
+      .trim()
+      .toUpperCase();
+    if (!symbol) {
+      throw this.createBusinessException({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "resolve_release_context",
+        message: "INVALID_ARGUMENT: symbol 不能为空",
+        statusCode: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    const explicitMarket = String(request.market || "")
+      .trim()
+      .toUpperCase();
+    const inferredMarketCandidate = inferMarketFromSymbol(symbol, "UNKNOWN");
+    const inferredMarket =
+      inferredMarketCandidate === "UNKNOWN" ? "" : inferredMarketCandidate;
+    let market = explicitMarket || inferredMarket;
+
+    if (!market) {
+      throw this.createBusinessException({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "resolve_release_context",
+        message: "INVALID_ARGUMENT: 未传 market 且无法从 symbol 推断 market",
+        statusCode: HttpStatus.BAD_REQUEST,
+        context: { symbol },
+      });
+    }
+
+    if (
+      explicitMarket &&
+      inferredMarket &&
+      explicitMarket !== inferredMarket
+    ) {
+      if (
+        !areStandardIdentityMarketsCompatible(explicitMarket, inferredMarket)
+      ) {
+        throw this.createBusinessException({
+          errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+          operation: "resolve_release_context",
+          message:
+            "INVALID_ARGUMENT: market 与 symbol 推断市场不一致，请修正请求参数",
+          statusCode: HttpStatus.BAD_REQUEST,
+          context: {
+            symbol,
+            explicitMarket,
+            inferredMarket,
+          },
+        });
+      }
+
+      const canonicalMarket = canonicalizeStandardIdentityMarket(
+        explicitMarket,
+        inferredMarket,
+      );
+      if (canonicalMarket) {
+        market = canonicalMarket;
+      }
+    }
+
+    if (!isSupportedMarket(market)) {
+      throw this.createBusinessException({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "resolve_release_context",
+        message: "INVALID_ARGUMENT: market 不合法",
+        statusCode: HttpStatus.BAD_REQUEST,
+        context: { market },
+      });
+    }
+
+    return {
+      symbol,
+      market,
+    };
+  }
+
   private resolveProvider(
     provider: string | undefined,
     market: string,
@@ -1481,6 +1860,23 @@ export class ChartIntradayReadService {
     }
 
     return ChartIntradayReadService.DEFAULT_PROVIDER;
+  }
+
+  private resolveRealtimeCapabilityByMarket(market: string): string {
+    const normalizedMarket = String(market || "")
+      .trim()
+      .toUpperCase();
+    switch (normalizedMarket) {
+      case "CRYPTO":
+        return CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE;
+      case "US":
+      case "HK":
+      case "CN":
+      case "SH":
+      case "SZ":
+      default:
+        return CAPABILITY_NAMES.STREAM_STOCK_QUOTE;
+    }
   }
 
   private resolveHistoryCapabilityByMarket(market: string): string {
@@ -1758,14 +2154,14 @@ export class ChartIntradayReadService {
     released: ReleaseRealtimeSubscriptionResult,
   ): IntradayReleasePayloadDto {
     return {
-      sessionReleased: released.sessionReleased,
+      leaseReleased: released.sessionReleased,
       upstreamReleased: released.upstreamReleased,
       reason: released.reason,
       symbol: released.symbol,
       market,
       provider: released.provider,
       wsCapabilityType: released.wsCapabilityType,
-      activeSessionCount: released.activeSessionCount,
+      activeLeaseCount: released.activeSessionCount,
       graceExpiresAt: released.graceExpiresAt,
     };
   }
@@ -1779,7 +2175,13 @@ export class ChartIntradayReadService {
     const reason =
       typeof error?.message === "string" ? error.message.trim() : "";
 
-    return reason === "UPSTREAM_NOT_FOUND" || reason.startsWith("SESSION_");
+    return (
+      reason === "OWNER_LEASE_AMBIGUOUS" ||
+      reason === "OWNER_LEASE_LOCK_TIMEOUT" ||
+      reason === "UPSTREAM_NOT_FOUND" ||
+      reason === "OWNER_LEASE_NOT_FOUND" ||
+      reason.startsWith("SESSION_")
+    );
   }
 
   private isSessionReleaseInProgressError(error: any): boolean {
@@ -1791,22 +2193,23 @@ export class ChartIntradayReadService {
 
   private throwSessionConflictException(
     operation: "delta" | "release",
-    sessionId: string,
     error: any,
     context?: Record<string, unknown>,
   ): never {
     const reason =
       typeof error?.message === "string" && error.message
         ? error.message
-        : "SESSION_CONFLICT";
+        : "OWNER_LEASE_CONFLICT";
+    const message =
+      operation === "release" && reason === "OWNER_LEASE_AMBIGUOUS"
+        ? "LEASE_CONFLICT: 当前存在多个 provider 的活跃分时图租约，请显式指定 provider 后重试"
+        : "LEASE_CONFLICT: 当前用户未持有该标的的活跃分时图租约，请重新拉取 snapshot";
     throw this.createBusinessException({
       errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
       operation,
-      message:
-        "SESSION_CONFLICT: sessionId 无效、已失效或与当前请求上下文不匹配，请重新拉取 snapshot",
+      message,
       statusCode: HttpStatus.CONFLICT,
       context: {
-        sessionId,
         reason,
         ...(context || {}),
       },
@@ -1814,7 +2217,6 @@ export class ChartIntradayReadService {
   }
 
   private throwReleaseInProgressException(
-    sessionId: string,
     error: any,
     context?: Record<string, unknown>,
   ): never {
@@ -1825,10 +2227,9 @@ export class ChartIntradayReadService {
     throw this.createBusinessException({
       errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
       operation: "release_realtime_subscription",
-      message: "RELEASE_IN_PROGRESS: 当前 session release 正在处理中，请稍后重试",
+      message: "RELEASE_IN_PROGRESS: 当前租约释放正在处理中，请稍后重试",
       statusCode: HttpStatus.SERVICE_UNAVAILABLE,
       context: {
-        sessionId,
         reason,
         ...(context || {}),
       },

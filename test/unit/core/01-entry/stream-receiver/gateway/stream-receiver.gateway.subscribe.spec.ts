@@ -16,13 +16,14 @@ import { StreamSubscribeDto } from "@core/01-entry/stream-receiver/dto";
 import { StreamReceiverGateway } from "@core/01-entry/stream-receiver/gateway/stream-receiver.gateway";
 import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 
-describe("StreamReceiverGateway subscribe(sessionId)", () => {
+describe("StreamReceiverGateway subscribe", () => {
   function createGateway() {
     const streamReceiverService = {
       subscribeStream: jest.fn().mockResolvedValue(undefined),
       unsubscribeStream: jest.fn().mockResolvedValue(undefined),
     };
     const chartIntradayStreamSubscriptionService = {
+      findRealtimeOwnerLease: jest.fn().mockResolvedValue(null),
       validateWsSessionBinding: jest.fn().mockResolvedValue({
         sessionId: "chart_session_abc123",
         symbol: "AAPL.US",
@@ -157,6 +158,45 @@ describe("StreamReceiverGateway subscribe(sessionId)", () => {
       provider: "infoway",
       ownerIdentity: "user:user-1",
     });
+    expect(client.emit).toHaveBeenCalledWith(
+      "subscribe-ack",
+      expect.objectContaining({
+        success: true,
+      }),
+    );
+  });
+
+  it("未显式提供 sessionId 时不应自动匹配 owner lease 或绑定 client", async () => {
+    const {
+      gateway,
+      streamReceiverService,
+      chartIntradayStreamSubscriptionService,
+    } = createGateway();
+    const client = createClient();
+
+    await gateway.handleSubscribe(client, {
+      symbols: ["AAPL.US"],
+      preferredProvider: "infoway",
+    } as any);
+
+    expect(
+      chartIntradayStreamSubscriptionService.findRealtimeOwnerLease,
+    ).not.toHaveBeenCalled();
+    expect(
+      chartIntradayStreamSubscriptionService.validateWsSessionBinding,
+    ).not.toHaveBeenCalled();
+    expect(streamReceiverService.subscribeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        symbols: ["AAPL.US"],
+        preferredProvider: "infoway",
+      }),
+      "client-1",
+      undefined,
+      { connectionAuthenticated: true },
+    );
+    expect(
+      chartIntradayStreamSubscriptionService.bindRealtimeClientToSession,
+    ).not.toHaveBeenCalled();
     expect(client.emit).toHaveBeenCalledWith(
       "subscribe-ack",
       expect.objectContaining({

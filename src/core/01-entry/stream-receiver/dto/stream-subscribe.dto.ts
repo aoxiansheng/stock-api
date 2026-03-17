@@ -68,7 +68,8 @@ export class StreamSubscribeDto {
   preferredProvider?: string;
 
   @ApiProperty({
-    description: "分时图会话ID，仅 chart-intraday + WS 联动时使用",
+    description:
+      "遗留兼容字段。仅在显式 chart-intraday WS 绑定时传入；未传入时不会自动匹配或绑定分时图租约",
     example: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
     required: false,
   })

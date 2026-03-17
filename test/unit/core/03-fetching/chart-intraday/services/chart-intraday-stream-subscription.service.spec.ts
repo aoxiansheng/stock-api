@@ -40,7 +40,11 @@ describe("ChartIntradayStreamSubscriptionService", () => {
         return null;
       }
       if (typeof value === "string") {
-        return clone(JSON.parse(value) as T);
+        try {
+          return clone(JSON.parse(value) as T);
+        } catch {
+          return value as T;
+        }
       }
       return clone(value as T);
     };
@@ -105,7 +109,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
             _script: string,
             keyCount: number,
             ...args: string[]
-          ): Promise<number | [number, number]> => {
+          ): Promise<number | [number, number | string]> => {
             purgeExpiredKeys();
 
             if (keyCount === 1) {
@@ -115,6 +119,56 @@ describe("ChartIntradayStreamSubscriptionService", () => {
                 return store.delete(lockKey) ? 1 : 0;
               }
               return 0;
+            }
+
+            if (keyCount === 5) {
+              const [
+                ownerLeaseKey,
+                sessionKey,
+                countKey,
+                upstreamKey,
+                releaseStateKey,
+                ownerLeaseTtlSeconds,
+                sessionId,
+                sessionTtlSeconds,
+                sessionPayload,
+                countTtlSeconds,
+                upstreamTtlSeconds,
+                upstreamPayload,
+              ] = args;
+
+              purgeExpiredKey(ownerLeaseKey);
+              if (store.has(ownerLeaseKey)) {
+                return [0, String(store.get(ownerLeaseKey) || "")];
+              }
+
+              store.set(ownerLeaseKey, sessionId);
+              expiries.set(
+                ownerLeaseKey,
+                Date.now() + Number(ownerLeaseTtlSeconds || 0) * 1000,
+              );
+              store.set(sessionKey, sessionPayload);
+              expiries.set(
+                sessionKey,
+                Date.now() + Number(sessionTtlSeconds || 0) * 1000,
+              );
+
+              const next = toNumber(store.get(countKey)) + 1;
+              store.set(countKey, next);
+              expiries.set(
+                countKey,
+                Date.now() + Number(countTtlSeconds || 0) * 1000,
+              );
+
+              store.set(upstreamKey, upstreamPayload);
+              expiries.set(
+                upstreamKey,
+                Date.now() + Number(upstreamTtlSeconds || 0) * 1000,
+              );
+
+              expiries.delete(releaseStateKey);
+              store.delete(releaseStateKey);
+              return [1, next];
             }
 
             const [
@@ -397,6 +451,188 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     await service.onModuleDestroy();
   });
 
+  it("owner lease 并发获取必须原子复用同一 session，不能创建多个共享 session", async () => {
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const [first, second] = await Promise.all([
+      firstInstance.service.openRealtimeOwnerLease({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+      secondInstance.service.openRealtimeOwnerLease({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ]);
+
+    expect(first.sessionId).toBe(second.sessionId);
+    expect(
+      await firstInstance.chartIntradaySessionService.getUpstreamActiveSessionCount(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBe(1);
+    expect(
+      await firstInstance.chartIntradaySessionService.listOwnerSymbolSessions({
+        ownerIdentity: "appkey:test-key",
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+      }),
+    ).toHaveLength(1);
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
+  });
+
+  it("被动 owner lease 创建时不应提前写入 released 共享状态", async () => {
+    const { service, chartIntradaySessionService } = createService();
+
+    const opened = await service.openPassiveOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    expect(
+      await chartIntradaySessionService.getUpstreamReleaseState(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBeNull();
+    expect(
+      (
+        await chartIntradaySessionService.getRequiredSession(opened.sessionId)
+      ).runtimeOwnerId,
+    ).toMatch(/^chart-intraday-instance-/);
+
+    await service.onModuleDestroy();
+  });
+
+  it("release owner lease 在 provider 缺失且唯一时应释放唯一活跃 lease", async () => {
+    const { service } = createService();
+
+    await service.openRealtimeOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "longport",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    const result = await service.releaseRealtimeOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        sessionReleased: true,
+        upstreamReleased: false,
+        reason: "RELEASED",
+        provider: "longport",
+        activeSessionCount: 0,
+        graceExpiresAt: expect.any(String),
+      }),
+    );
+
+    await service.onModuleDestroy();
+  });
+
+  it("release owner lease 在 provider 缺失且存在多个 provider 时应报冲突", async () => {
+    const { service } = createService();
+
+    await service.openRealtimeOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    await service.openRealtimeOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "longport",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    await expect(
+      service.releaseRealtimeOwnerLease({
+        symbol: "AAPL.US",
+        market: "US",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ).rejects.toThrow("OWNER_LEASE_AMBIGUOUS");
+
+    await service.onModuleDestroy();
+  });
+
+  it("release owner lease 在 provider 缺失且无活跃 lease 时应返回 ALREADY_RELEASED", async () => {
+    const { service } = createService();
+
+    await expect(
+      service.releaseRealtimeOwnerLease({
+        symbol: "AAPL.US",
+        market: "US",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        upstreamReleased: false,
+        reason: "ALREADY_RELEASED",
+        provider: "",
+        activeSessionCount: 0,
+        graceExpiresAt: null,
+      }),
+    );
+
+    await service.onModuleDestroy();
+  });
+
+  it("findRealtimeOwnerLease 应保持为纯查询，不应 touch 或抢占 ownership", async () => {
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const opened = await firstInstance.service.openRealtimeOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    const before = await firstInstance.chartIntradaySessionService.getRequiredSession(
+      opened.sessionId,
+    );
+
+    const found = await secondInstance.service.findRealtimeOwnerLease({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    const after = await firstInstance.chartIntradaySessionService.getRequiredSession(
+      opened.sessionId,
+    );
+    expect(found).toEqual(
+      expect.objectContaining({
+        sessionId: opened.sessionId,
+        provider: "infoway",
+      }),
+    );
+    expect(after.lastSeenAt).toBe(before.lastSeenAt);
+    expect(after.runtimeOwnerId).toBe(before.runtimeOwnerId);
+    expect(secondInstance.streamReceiverService.subscribeStream).not.toHaveBeenCalled();
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
+  });
+
   it("上游订阅建立失败时应回滚刚创建的 session 与 upstream", async () => {
     const { service, streamReceiverService, chartIntradaySessionService } =
       createService();
@@ -468,6 +704,44 @@ describe("ChartIntradayStreamSubscriptionService", () => {
 
     await service.onModuleDestroy();
     await nextInstanceService.onModuleDestroy();
+  });
+
+  it("本地订阅失败时不能提前污染 runtimeOwnerId ownership", async () => {
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const opened = await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    const before = await firstInstance.chartIntradaySessionService.getRequiredSession(
+      opened.sessionId,
+    );
+
+    secondInstance.streamReceiverService.subscribeStream.mockRejectedValueOnce(
+      new Error("subscribe-failed"),
+    );
+
+    await expect(
+      secondInstance.service.touchRealtimeSession({
+        sessionId: opened.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ).rejects.toThrow("subscribe-failed");
+
+    const after = await firstInstance.chartIntradaySessionService.getRequiredSession(
+      opened.sessionId,
+    );
+    expect(after.runtimeOwnerId).toBe(before.runtimeOwnerId);
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
   });
 
   it("跨实例 touch 后，旧实例应在巡检中回收本地订阅", async () => {
@@ -793,6 +1067,57 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     expect(await chartIntradaySessionService.listIdleUpstreamKeys()).toHaveLength(
       0,
     );
+  });
+
+  it("runtime pause 真实退订失败时不得写入 released 共享状态", async () => {
+    const { service, streamReceiverService, chartIntradaySessionService } =
+      createService();
+
+    await service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    streamReceiverService.unsubscribeStream.mockRejectedValueOnce(
+      new Error("unsubscribe-failed"),
+    );
+
+    await expect(
+      service.pauseRealtimeUpstream({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+      }),
+    ).rejects.toThrow("unsubscribe-failed");
+
+    expect(
+      await chartIntradaySessionService.getUpstreamReleaseState(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBeNull();
+
+    await service.onModuleDestroy();
+  });
+
+  it("runtime pause 在无本地 upstream 时应返回 false 且不写入 released 共享状态", async () => {
+    const { service, chartIntradaySessionService } = createService();
+
+    await expect(
+      service.pauseRealtimeUpstream({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+      }),
+    ).resolves.toBe(false);
+    expect(
+      await chartIntradaySessionService.getUpstreamReleaseState(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBeNull();
+
+    await service.onModuleDestroy();
   });
 
   it("onModuleDestroy 应释放残留 upstream，且单个失败不阻断其他清理", async () => {

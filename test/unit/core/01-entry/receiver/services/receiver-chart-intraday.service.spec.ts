@@ -1,9 +1,6 @@
 import { ReceiverChartIntradayService } from "@core/01-entry/receiver/services/receiver-chart-intraday.service";
 
 describe("ReceiverChartIntradayService", () => {
-  const VALID_SESSION_ID =
-    "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a";
-
   it("snapshot: 应透传到 ChartIntradayReadService.getSnapshot", async () => {
     const chartIntradayReadService = {
       getSnapshot: jest.fn().mockResolvedValue({ ok: true }),
@@ -39,7 +36,6 @@ describe("ReceiverChartIntradayService", () => {
     const request = {
       symbol: "AAPL.US",
       cursor: "cursor",
-      sessionId: VALID_SESSION_ID,
       ownerIdentity: "anonymous:chart-intraday",
     };
     const result = await service.getDelta(request as any);
@@ -63,7 +59,6 @@ describe("ReceiverChartIntradayService", () => {
       symbol: "AAPL.US",
       market: "US",
       provider: "infoway",
-      sessionId: VALID_SESSION_ID,
       ownerIdentity: "anonymous:chart-intraday",
     };
     const result = await service.releaseRealtimeSubscription(request as any);

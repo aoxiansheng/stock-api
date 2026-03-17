@@ -20,6 +20,12 @@ export interface ChartIntradayUpstreamContext {
   clientId: string;
 }
 
+export interface ChartIntradayOwnerLeaseContext
+  extends ChartIntradayUpstreamContext,
+    ChartIntradayOwnerContext {
+  runtimeOwnerId?: string;
+}
+
 export interface ChartIntradaySessionRecord
   extends ChartIntradayUpstreamContext,
     ChartIntradayOwnerContext {
@@ -79,6 +85,11 @@ export interface CreateChartIntradaySessionResult {
   upstreamCreated: boolean;
 }
 
+export interface AcquireChartIntradayOwnerLeaseResult
+  extends CreateChartIntradaySessionResult {
+  leaseCreated: boolean;
+}
+
 export interface TouchChartIntradaySessionResult {
   session: ChartIntradaySessionRecord;
   upstream: ChartIntradayUpstreamRecord;
@@ -132,6 +143,8 @@ export function buildChartIntradayOwnerIdentity(subject?: {
 export class ChartIntradaySessionService implements OnModuleDestroy {
   private static readonly SESSION_CACHE_KEY_PREFIX =
     "chart-intraday:session:v1:";
+  private static readonly OWNER_LEASE_CACHE_KEY_PREFIX =
+    "chart-intraday:owner-lease:v1:";
   private static readonly RELEASED_SESSION_CACHE_KEY_PREFIX =
     "chart-intraday:released-session:v1:";
   private static readonly RELEASE_LOCK_CACHE_KEY_PREFIX =
@@ -168,6 +181,22 @@ end
 redis.call("SETEX", KEYS[4], tonumber(ARGV[2]), ARGV[4])
 return {1, next}
 `;
+  private static readonly OWNER_LEASE_CREATE_SESSION_SCRIPT = `
+local existingLease = redis.call("GET", KEYS[1])
+if existingLease then
+  return {0, existingLease}
+end
+redis.call("SETEX", KEYS[1], tonumber(ARGV[1]), ARGV[2])
+redis.call("SETEX", KEYS[2], tonumber(ARGV[3]), ARGV[4])
+local next = redis.call("INCRBY", KEYS[3], 1)
+local countTtl = tonumber(ARGV[5])
+if countTtl and countTtl > 0 then
+  redis.call("EXPIRE", KEYS[3], countTtl)
+end
+redis.call("SETEX", KEYS[4], tonumber(ARGV[6]), ARGV[7])
+redis.call("DEL", KEYS[5])
+return {1, next}
+`;
 
   private readonly logger = createLogger(ChartIntradaySessionService.name);
   private readonly recordTtlSeconds = this.parseInteger(
@@ -191,6 +220,7 @@ return {1, next}
     5,
   );
   private readonly localClientToSessionIds = new Map<string, Set<string>>();
+  private readonly localOwnerLeaseGates = new Map<string, Promise<void>>();
   private readonly localReleaseGates = new Map<string, Promise<void>>();
 
   constructor(
@@ -200,6 +230,7 @@ return {1, next}
 
   onModuleDestroy(): void {
     this.localClientToSessionIds.clear();
+    this.localOwnerLeaseGates.clear();
     this.localReleaseGates.clear();
   }
 
@@ -216,7 +247,7 @@ return {1, next}
       upstreamKey,
       createdAt: now,
       lastSeenAt: now,
-      runtimeOwnerId: String(params.runtimeOwnerId || "").trim() || null,
+      runtimeOwnerId: null,
       boundClientIds: new Set<string>(),
     };
 
@@ -244,17 +275,258 @@ return {1, next}
     };
   }
 
+  async releaseOwnerLeaseSession(
+    params: ChartIntradayOwnerLeaseContext,
+  ): Promise<ReleaseChartIntradaySessionResult | null> {
+    const upstreamKey = this.buildUpstreamKey(params);
+    const session = await this.getSessionByOwnerLease({
+      ownerIdentity: params.ownerIdentity,
+      upstreamKey,
+    });
+    if (!session) {
+      return null;
+    }
+
+    const result = await this.releaseSession({
+      sessionId: session.sessionId,
+      symbol: params.symbol,
+      market: params.market,
+      provider: params.provider,
+      ownerIdentity: params.ownerIdentity,
+      runtimeOwnerId: params.runtimeOwnerId,
+    });
+    return result;
+  }
+
+  async getOrCreateSessionByOwnerLease(
+    params: ChartIntradayUpstreamContext &
+      ChartIntradayOwnerContext & { runtimeOwnerId?: string },
+  ): Promise<AcquireChartIntradayOwnerLeaseResult> {
+    const upstreamKey = this.buildUpstreamKey(params);
+    const ownerLeaseKey = this.buildOwnerLeaseCacheKey(
+      params.ownerIdentity,
+      upstreamKey,
+    );
+
+    if (!this.redis) {
+      return this.withLocalSerializedGate(
+        this.localOwnerLeaseGates,
+        ownerLeaseKey,
+        async () => this.getOrCreateSessionByOwnerLeaseLocally(params, upstreamKey),
+      );
+    }
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const existingSession = await this.getSessionByOwnerLease({
+        ownerIdentity: params.ownerIdentity,
+        upstreamKey,
+      });
+      if (existingSession) {
+        return this.retainExistingOwnerLeaseSession(existingSession);
+      }
+
+      const created = await this.tryCreateSessionByOwnerLeaseAtomically(
+        params,
+        upstreamKey,
+      );
+      if (created) {
+        return created;
+      }
+    }
+
+    throw new Error("OWNER_LEASE_ACQUIRE_FAILED");
+  }
+
+  private async getOrCreateSessionByOwnerLeaseLocally(
+    params: ChartIntradayUpstreamContext &
+      ChartIntradayOwnerContext & { runtimeOwnerId?: string },
+    upstreamKey: string,
+  ): Promise<AcquireChartIntradayOwnerLeaseResult> {
+    const existingSession = await this.getSessionByOwnerLease({
+      ownerIdentity: params.ownerIdentity,
+      upstreamKey,
+    });
+    if (existingSession) {
+      return this.retainExistingOwnerLeaseSession(existingSession);
+    }
+
+    const created = await this.createSession({
+      ...params,
+      runtimeOwnerId: undefined,
+    });
+    await this.writeOwnerLease(created.session);
+    return {
+      ...created,
+      leaseCreated: true,
+    };
+  }
+
+  private async retainExistingOwnerLeaseSession(
+    session: ChartIntradaySessionRecord,
+  ): Promise<AcquireChartIntradayOwnerLeaseResult> {
+    session.lastSeenAt = Date.now();
+    await this.writeSession(session);
+    await this.writeOwnerLease(session);
+    await this.refreshUpstreamTtl(session.upstreamKey);
+    await this.clearUpstreamReleaseState(session.upstreamKey);
+
+    return {
+      session,
+      upstream: await this.getRequiredUpstream(session.upstreamKey, session),
+      upstreamCreated: false,
+      leaseCreated: false,
+    };
+  }
+
+  private async tryCreateSessionByOwnerLeaseAtomically(
+    params: ChartIntradayUpstreamContext &
+      ChartIntradayOwnerContext & { runtimeOwnerId?: string },
+    upstreamKey: string,
+  ): Promise<AcquireChartIntradayOwnerLeaseResult | null> {
+    if (!this.redis) {
+      return null;
+    }
+
+    const now = Date.now();
+    const sessionId = `chart_session_${randomUUID().replace(/-/g, "")}`;
+    const session: ChartIntradaySessionRecord = {
+      ...params,
+      sessionId,
+      upstreamKey,
+      createdAt: now,
+      lastSeenAt: now,
+      runtimeOwnerId: null,
+      boundClientIds: new Set<string>(),
+    };
+
+    const upstreamMeta: ChartIntradayUpstreamRecord = {
+      ...params,
+      upstreamKey,
+      activeSessionCount: 0,
+    };
+    const result = await this.redis.eval(
+      ChartIntradaySessionService.OWNER_LEASE_CREATE_SESSION_SCRIPT,
+      5,
+      this.buildOwnerLeaseCacheKey(params.ownerIdentity, upstreamKey),
+      this.buildSessionCacheKey(session.sessionId),
+      this.buildUpstreamCountCacheKey(upstreamKey),
+      this.buildUpstreamCacheKey(upstreamKey),
+      this.buildUpstreamReleaseStateCacheKey(upstreamKey),
+      String(this.recordTtlSeconds),
+      session.sessionId,
+      String(this.recordTtlSeconds),
+      JSON.stringify(this.serializeSession(session)),
+      String(this.recordTtlSeconds),
+      String(this.recordTtlSeconds),
+      JSON.stringify(this.serializeUpstream(upstreamMeta)),
+    );
+
+    const [created, activeCount] = Array.isArray(result) ? result : [0, 0];
+    if (Number(created) !== 1) {
+      return null;
+    }
+
+    const activeSessionCount = Math.max(0, Math.floor(Number(activeCount) || 0));
+    return {
+      session,
+      upstream: {
+        ...upstreamMeta,
+        activeSessionCount,
+      },
+      upstreamCreated: activeSessionCount === 1,
+      leaseCreated: true,
+    };
+  }
+
+  async claimRuntimeOwner(params: {
+    sessionId: string;
+    runtimeOwnerId?: string;
+  }): Promise<ChartIntradaySessionRecord> {
+    const runtimeOwnerId = String(params.runtimeOwnerId || "").trim();
+    if (!runtimeOwnerId) {
+      return this.getRequiredSession(params.sessionId);
+    }
+
+    const session = await this.getRequiredSession(params.sessionId);
+
+    if (session.runtimeOwnerId === runtimeOwnerId) {
+      return session;
+    }
+
+    session.runtimeOwnerId = runtimeOwnerId;
+    session.lastSeenAt = Date.now();
+    await this.writeSession(session);
+    await this.refreshSessionRelations(session);
+    return session;
+  }
+
+  async listOwnerSymbolSessions(params: {
+    ownerIdentity: string;
+    symbol: string;
+    market?: string;
+    provider?: string;
+  }): Promise<ChartIntradaySessionRecord[]> {
+    const ownerIdentity = String(params.ownerIdentity || "").trim();
+    const symbol = String(params.symbol || "")
+      .trim()
+      .toUpperCase();
+    const market = String(params.market || "")
+      .trim()
+      .toUpperCase();
+    const provider = String(params.provider || "")
+      .trim()
+      .toLowerCase();
+
+    if (!ownerIdentity || !symbol) {
+      return [];
+    }
+
+    const sessions = await this.listSessions();
+    return sessions.filter((session) => {
+      if (session.ownerIdentity !== ownerIdentity || session.symbol !== symbol) {
+        return false;
+      }
+      if (market && session.market !== market) {
+        return false;
+      }
+      if (provider && session.provider !== provider) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   async touchSession(
     params: ChartIntradayWsSessionContext,
   ): Promise<TouchChartIntradaySessionResult> {
     const session = await this.getRequiredSession(params.sessionId);
     this.assertSessionMatches(session, params);
     session.lastSeenAt = Date.now();
-    const runtimeOwnerId = String(params.runtimeOwnerId || "").trim();
-    if (runtimeOwnerId) {
-      session.runtimeOwnerId = runtimeOwnerId;
-    }
     await this.writeSession(session);
+    await this.refreshSessionRelations(session);
+
+    return {
+      session,
+      upstream: await this.getRequiredUpstream(session.upstreamKey, session),
+    };
+  }
+
+  async touchSessionByOwnerLease(
+    params: ChartIntradayUpstreamContext &
+      ChartIntradayOwnerContext & { runtimeOwnerId?: string },
+  ): Promise<TouchChartIntradaySessionResult> {
+    const upstreamKey = this.buildUpstreamKey(params);
+    const session = await this.getSessionByOwnerLease({
+      ownerIdentity: params.ownerIdentity,
+      upstreamKey,
+    });
+    if (!session) {
+      throw new Error("OWNER_LEASE_NOT_FOUND");
+    }
+
+    session.lastSeenAt = Date.now();
+    await this.writeSession(session);
+    await this.writeOwnerLease(session);
     await this.refreshUpstreamTtl(session.upstreamKey);
 
     return {
@@ -269,14 +541,38 @@ return {1, next}
     const session = await this.getRequiredSession(params.sessionId);
     this.assertSessionMatches(session, params);
     session.lastSeenAt = Date.now();
-    const runtimeOwnerId = String(params.runtimeOwnerId || "").trim();
-    if (runtimeOwnerId) {
-      session.runtimeOwnerId = runtimeOwnerId;
-    }
     if (!session.boundClientIds.has(params.clientId)) {
       session.boundClientIds.add(params.clientId);
     }
     await this.writeSession(session);
+    await this.refreshSessionRelations(session);
+    this.addLocalClientBinding(params.clientId, session.sessionId);
+
+    return {
+      session,
+      upstream: await this.getRequiredUpstream(session.upstreamKey, session),
+    };
+  }
+
+  async bindClientToOwnerLease(
+    params: ChartIntradayUpstreamContext &
+      ChartIntradayOwnerContext & { clientId: string; runtimeOwnerId?: string },
+  ): Promise<TouchChartIntradaySessionResult> {
+    const upstreamKey = this.buildUpstreamKey(params);
+    const session = await this.getSessionByOwnerLease({
+      ownerIdentity: params.ownerIdentity,
+      upstreamKey,
+    });
+    if (!session) {
+      throw new Error("OWNER_LEASE_NOT_FOUND");
+    }
+
+    session.lastSeenAt = Date.now();
+    if (!session.boundClientIds.has(params.clientId)) {
+      session.boundClientIds.add(params.clientId);
+    }
+    await this.writeSession(session);
+    await this.writeOwnerLease(session);
     await this.refreshUpstreamTtl(session.upstreamKey);
     this.addLocalClientBinding(params.clientId, session.sessionId);
 
@@ -356,6 +652,11 @@ return {1, next}
             }
             const activeSessionCount = commitResult.activeSessionCount;
             await this.refreshUpstreamTtl(session.upstreamKey);
+            await this.deleteOwnerLease(
+              session.ownerIdentity,
+              session.upstreamKey,
+              session.sessionId,
+            );
 
             for (const clientId of session.boundClientIds) {
               this.removeLocalClientBinding(clientId, session.sessionId);
@@ -507,6 +808,76 @@ return {1, next}
     return this.readSession(normalizedSessionId);
   }
 
+  async getSessionByOwnerLease(params: {
+    ownerIdentity: string;
+    upstreamKey: string;
+  }): Promise<ChartIntradaySessionRecord | null> {
+    const ownerIdentity = String(params.ownerIdentity || "").trim();
+    const upstreamKey = String(params.upstreamKey || "").trim();
+    if (!ownerIdentity || !upstreamKey) {
+      return null;
+    }
+
+    const sessionId = await this.basicCacheService.get<string>(
+      this.buildOwnerLeaseCacheKey(ownerIdentity, upstreamKey),
+    );
+    const normalizedSessionId = String(sessionId || "").trim();
+    if (!normalizedSessionId) {
+      return null;
+    }
+
+    const session = await this.getSession(normalizedSessionId);
+    if (
+      !session ||
+      session.ownerIdentity !== ownerIdentity ||
+      session.upstreamKey !== upstreamKey
+    ) {
+      await this.deleteOwnerLease(ownerIdentity, upstreamKey, normalizedSessionId);
+      return null;
+    }
+
+    return session;
+  }
+
+  async findOwnerSymbolSession(params: {
+    ownerIdentity: string;
+    symbol: string;
+    market?: string;
+    provider?: string;
+  }): Promise<ChartIntradaySessionRecord | null> {
+    const ownerIdentity = String(params.ownerIdentity || "").trim();
+    const symbol = String(params.symbol || "")
+      .trim()
+      .toUpperCase();
+    const market = String(params.market || "")
+      .trim()
+      .toUpperCase();
+    const provider = String(params.provider || "")
+      .trim()
+      .toLowerCase();
+    const matchedSessions = await this.listOwnerSymbolSessions(params);
+
+    if (matchedSessions.length === 0) {
+      return null;
+    }
+    if (matchedSessions.length === 1) {
+      return matchedSessions[0];
+    }
+
+    const sortedSessions = matchedSessions.sort(
+      (left, right) => right.lastSeenAt - left.lastSeenAt,
+    );
+    this.logger.warn("分时 owner lease 查找到多个活跃会话，按最近活跃会话回退", {
+      ownerIdentity,
+      symbol,
+      market: market || null,
+      provider: provider || null,
+      matchedCount: matchedSessions.length,
+      sessionIds: sortedSessions.map((session) => session.sessionId),
+    });
+    return sortedSessions[0];
+  }
+
   async getRequiredSession(sessionId: string): Promise<ChartIntradaySessionRecord> {
     const session = await this.getSession(sessionId);
     if (!session) {
@@ -639,7 +1010,7 @@ return {1, next}
 
       session.lastSeenAt = Date.now();
       await this.writeSession(session);
-      await this.refreshUpstreamTtl(session.upstreamKey);
+      await this.refreshSessionRelations(session);
     }
   }
 
@@ -751,6 +1122,40 @@ return {1, next}
     await this.basicCacheService.del(this.buildSessionCacheKey(sessionId));
   }
 
+  private async writeOwnerLease(
+    session: ChartIntradaySessionRecord,
+  ): Promise<void> {
+    await this.basicCacheService.set(
+      this.buildOwnerLeaseCacheKey(session.ownerIdentity, session.upstreamKey),
+      session.sessionId,
+      { ttlSeconds: this.recordTtlSeconds },
+    );
+  }
+
+  private async deleteOwnerLease(
+    ownerIdentity: string,
+    upstreamKey: string,
+    expectedSessionId?: string,
+  ): Promise<void> {
+    const cacheKey = this.buildOwnerLeaseCacheKey(ownerIdentity, upstreamKey);
+    const normalizedExpectedSessionId = String(expectedSessionId || "").trim();
+    if (!normalizedExpectedSessionId) {
+      await this.basicCacheService.del(cacheKey);
+      return;
+    }
+
+    const sessionId = await this.basicCacheService.get<string>(cacheKey);
+    if (
+      sessionId &&
+      String(sessionId).trim() &&
+      String(sessionId).trim() !== normalizedExpectedSessionId
+    ) {
+      return;
+    }
+
+    await this.basicCacheService.del(cacheKey);
+  }
+
   private async writeReleasedSession(
     session: ReleasedChartIntradaySessionRecord,
   ): Promise<void> {
@@ -841,6 +1246,15 @@ return {1, next}
     ]);
   }
 
+  private async refreshSessionRelations(
+    session: ChartIntradaySessionRecord,
+  ): Promise<void> {
+    await Promise.allSettled([
+      this.refreshUpstreamTtl(session.upstreamKey),
+      this.writeOwnerLease(session),
+    ]);
+  }
+
   private async scanKeys(pattern: string): Promise<string[]> {
     if (!this.redis) {
       return [];
@@ -925,6 +1339,13 @@ return {1, next}
     return `${ChartIntradaySessionService.RELEASE_LOCK_CACHE_KEY_PREFIX}${sessionId}`;
   }
 
+  private buildOwnerLeaseCacheKey(
+    ownerIdentity: string,
+    upstreamKey: string,
+  ): string {
+    return `${ChartIntradaySessionService.OWNER_LEASE_CACHE_KEY_PREFIX}${ownerIdentity}:${upstreamKey}`;
+  }
+
   private buildUpstreamCacheKey(upstreamKey: string): string {
     return `${ChartIntradaySessionService.UPSTREAM_CACHE_KEY_PREFIX}${upstreamKey}`;
   }
@@ -972,6 +1393,38 @@ return {1, next}
       releaseGate();
       if (this.localReleaseGates.get(normalizedSessionId) === current) {
         this.localReleaseGates.delete(normalizedSessionId);
+      }
+    }
+  }
+
+  private async withLocalSerializedGate<T>(
+    gates: Map<string, Promise<void>>,
+    gateKey: string,
+    handler: () => Promise<T>,
+  ): Promise<T> {
+    const normalizedGateKey = String(gateKey || "").trim();
+    if (!normalizedGateKey) {
+      return handler();
+    }
+
+    const previous = gates.get(normalizedGateKey);
+    let releaseGate!: () => void;
+    const waitGate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const current = (previous || Promise.resolve()).then(() => waitGate);
+    gates.set(normalizedGateKey, current);
+
+    if (previous) {
+      await previous;
+    }
+
+    try {
+      return await handler();
+    } finally {
+      releaseGate();
+      if (gates.get(normalizedGateKey) === current) {
+        gates.delete(normalizedGateKey);
       }
     }
   }

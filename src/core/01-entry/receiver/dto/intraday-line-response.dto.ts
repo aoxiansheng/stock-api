@@ -67,11 +67,6 @@ export class IntradaySyncDto implements IntradaySyncDtoContract {
   })
   cursor: string;
 
-  @ApiProperty({
-    example: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
-  })
-  sessionId: string;
-
   @ApiProperty({ example: "2026-03-08T15:42:00.000Z" })
   lastPointTimestamp: string;
 
@@ -93,6 +88,21 @@ export class IntradaySnapshotMetadataDto
 
   @ApiProperty({ example: 8 })
   deduplicatedPoints: number;
+
+  @ApiProperty({
+    example: "live",
+    enum: ["live", "paused", "frozen"],
+  })
+  runtimeMode: "live" | "paused" | "frozen";
+
+  @ApiProperty({ example: "20260317" })
+  effectiveTradingDay: string;
+
+  @ApiProperty({ example: false })
+  frozenSnapshotHit: boolean;
+
+  @ApiProperty({ example: false })
+  frozenSnapshotFallback: boolean;
 }
 
 export class IntradaySnapshotReferenceDto
@@ -169,7 +179,7 @@ export class IntradayReleasePayloadDto
   implements IntradayReleasePayloadDtoContract
 {
   @ApiProperty({ example: true })
-  sessionReleased: boolean;
+  leaseReleased: boolean;
 
   @ApiProperty({ example: false })
   upstreamReleased: boolean;
@@ -193,7 +203,7 @@ export class IntradayReleasePayloadDto
   wsCapabilityType: string;
 
   @ApiProperty({ example: 1 })
-  activeSessionCount: number;
+  activeLeaseCount: number;
 
   @ApiProperty({
     example: "2026-03-16T15:30:00.000Z",

@@ -13,6 +13,7 @@ jest.mock("@common/logging/index", () => ({
 import { ChartIntradayCursorService } from "@core/03-fetching/chart-intraday/services/chart-intraday-cursor.service";
 import { ChartIntradayReadService } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 import { shouldLog } from "@common/logging/index";
+import { resolveMarketTimezone } from "@core/shared/utils/market-time.util";
 
 describe("ChartIntradayReadService logging", () => {
   function createService(streamCache?: { getData: jest.Mock }) {
@@ -48,8 +49,56 @@ describe("ChartIntradayReadService logging", () => {
       } as any,
       new ChartIntradayCursorService(),
       {
-        ensureRealtimeSubscription: jest.fn().mockResolvedValue(undefined),
+        openRealtimeSession: jest.fn().mockResolvedValue({
+          sessionId: "chart_session_1",
+          symbol: "AAPL.US",
+          provider: "infoway",
+          wsCapabilityType: "stream-stock-quote",
+          clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+        }),
+        openPassiveSession: jest.fn().mockResolvedValue({
+          sessionId: "chart_session_1",
+          symbol: "AAPL.US",
+          provider: "infoway",
+          wsCapabilityType: "stream-stock-quote",
+          clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+        }),
+        touchRealtimeSession: jest.fn().mockResolvedValue({
+          sessionId: "chart_session_1",
+          symbol: "AAPL.US",
+          market: "US",
+          provider: "infoway",
+          wsCapabilityType: "stream-stock-quote",
+          clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+        }),
+        touchPassiveSession: jest.fn().mockResolvedValue({
+          sessionId: "chart_session_1",
+          symbol: "AAPL.US",
+          market: "US",
+          provider: "infoway",
+          wsCapabilityType: "stream-stock-quote",
+          clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+        }),
         releaseRealtimeSubscription: jest.fn(),
+      } as any,
+      {
+        findSnapshot: jest.fn(),
+        writeSnapshot: jest.fn(),
+      } as any,
+      {
+        decideRuntime: jest.fn().mockImplementation(async (params: any) => ({
+          mode: "live",
+          reason: "CURRENT_SESSION_TRADING",
+          market: params.market,
+          requestedTradingDay: params.tradingDay,
+          currentTradingDay: params.tradingDay,
+          marketStatus: "TRADING",
+          timezone: resolveMarketTimezone(params.market),
+          nextSessionStart: null,
+        })),
+        openSnapshotSession: jest.fn(),
+        touchDeltaSession: jest.fn(),
+        handleRelease: jest.fn(),
       } as any,
       {
         get: jest.fn().mockResolvedValue(null),

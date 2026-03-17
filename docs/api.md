@@ -206,6 +206,13 @@ HTTP 请求头（API Key）：
 
 ## 分时折线接口（Chart Intraday）
 
+当前公开协议采用“用户租约”语义，而不是公开 `sessionId` 语义：
+
+- 共享上游资源：`provider + wsCapabilityType + symbol`
+- 当前调用方租约：`ownerIdentity + 共享上游资源`
+- 同一用户对同一 `symbol` 的重复 `snapshot` / `delta` 会复用同一活跃租约
+- 不同用户订阅同一 `symbol` 时，彼此 `release` 不会互相影响
+
 ### `POST /api/v1/chart/intraday-line/snapshot`
 - 认证：API Key 或 JWT（只读权限）
 - 语义：首屏全量快照（当前实现为 `1m` 历史基线 + 实时 `1s` 增量窗口）
@@ -245,9 +252,16 @@ HTTP 请求头（API Key）：
     "snapshotBaseGranularity": "1m",
     "supportsFullDay1sHistory": false
   },
+  "reference": {
+    "previousClosePrice": 194.83,
+    "sessionOpenPrice": 195.12,
+    "priceBase": "previous_close",
+    "marketSession": "regular",
+    "timezone": "America/New_York",
+    "status": "complete"
+  },
   "sync": {
     "cursor": "base64-signed-cursor",
-    "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
     "serverTime": "2026-03-08T15:42:01.120Z"
   },
@@ -255,13 +269,19 @@ HTTP 请求头（API Key）：
     "provider": "infoway",
     "historyPoints": 240,
     "realtimeMergedPoints": 12,
-    "deduplicatedPoints": 8
+    "deduplicatedPoints": 8,
+    "runtimeMode": "live",
+    "effectiveTradingDay": "20260308",
+    "frozenSnapshotHit": false,
+    "frozenSnapshotFallback": false
   }
 }
 ```
 - 说明：
   - `supportsFullDay1sHistory=false` 表示当前并非完整全日秒级历史回放。
-  - `sync.sessionId` 需要与 `cursor` 一起保存；后续 `delta`、`release` 与可选 `WS subscribe(sessionId)` 都依赖它。
+  - `sync` 只需保存 `cursor/lastPointTimestamp/serverTime`；不再返回公开 `sessionId`。
+  - `snapshot` 会为当前调用方自动创建或续用该标的的活跃租约，后续 `delta` / `release` 基于这份租约。
+  - 公开 HTTP 协议不返回 `sessionId`；未显式携带 `sessionId` 的 `WS subscribe` 不会自动匹配或绑定该租约。
   - 顶层仍由统一响应包装器包裹（`success/statusCode/message/data/timestamp`）。
 
 ### `POST /api/v1/chart/intraday-line/delta`
@@ -279,7 +299,6 @@ HTTP 请求头（API Key）：
   "tradingDay": "20260308",
   "provider": "infoway",
   "cursor": "base64-signed-cursor",
-  "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
   "limit": 2000,
   "strictProviderConsistency": false
 }
@@ -304,50 +323,50 @@ HTTP 请求头（API Key）：
 ```
 - 规则：
   - `cursor` 为必传参数。
-  - `sessionId` 为必传参数，且必须来自最近一次有效 `snapshot`。
+  - `delta` 会自动续租“当前调用方 + 当前标的”的活跃租约。
   - `strictProviderConsistency=true` 时，要求 `cursor.provider` 与请求 `provider` 一致（不一致返回 `409 CURSOR_EXPIRED`）。
   - `cursor` 跨上下文、过期、签发时间异常时返回 `409 CURSOR_EXPIRED`。
-  - `sessionId` 已释放、已过期或与当前上下文不匹配时返回 `409 SESSION_CONFLICT`。
+  - 当前调用方不存在对应活跃租约时返回 `409 LEASE_CONFLICT`，应重新拉取 `snapshot`。
   - `cursor` 缺字段、格式非法或签名不匹配时返回 `400 INVALID_ARGUMENT`。
   - 未提供 `cursor` 或传入已废弃的 `since` 参数时返回 `400 INVALID_ARGUMENT`。
   - 无新增点位时返回 `200` 且 `delta.points=[]`、`delta.hasMore=false`，并返回新的 `nextCursor`（`lastPointTimestamp` 回退为 `cursor.lastPointTimestamp`）。
-  - 典型错误：`400 INVALID_ARGUMENT`、`409 CURSOR_EXPIRED`、`409 SESSION_CONFLICT`、`503 PROVIDER_UNAVAILABLE`。
+  - 典型错误：`400 INVALID_ARGUMENT`、`409 CURSOR_EXPIRED`、`409 LEASE_CONFLICT`、`503 PROVIDER_UNAVAILABLE`。
 
 ### `POST /api/v1/chart/intraday-line/release`
 - 认证：API Key 或 JWT（只读权限）
-- 语义：释放当前分时图消费会话占用，不替代前端 Socket 的 `unsubscribe`
+- 语义：显式释放当前调用方在该标的上的分时图租约，不替代前端 Socket 的 `unsubscribe`
 - Request
 ```json
 {
   "symbol": "AAPL.US",
   "market": "US",
-  "provider": "infoway",
-  "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a"
+  "provider": "infoway"
 }
 ```
 - Response（业务数据层）
 ```json
 {
   "release": {
-    "sessionReleased": false,
+    "leaseReleased": false,
     "upstreamReleased": false,
     "reason": "ALREADY_RELEASED",
     "symbol": "AAPL.US",
     "market": "US",
     "provider": "infoway",
     "wsCapabilityType": "stream-stock-quote",
-    "activeSessionCount": 0,
+    "activeLeaseCount": 0,
     "graceExpiresAt": "2026-03-17T09:31:00.000Z"
   }
 }
 ```
 - 规则：
-  - `sessionId` 为必传参数。
-  - 重复释放同一个 `sessionId` 按幂等成功返回；典型表现为 `sessionReleased=false`、`reason=ALREADY_RELEASED`。
-  - `reason=ALREADY_RELEASED` 仅表示该 `sessionId` 已结束，不表示“本次请求刚刚触发了上游退订”。
-  - `upstreamReleased` 与 `graceExpiresAt` 表示服务端当前观测到的释放状态；若系统以多实例部署运行，其共享一致性应以最终回归结论为准，不能仅凭单个实例响应推断整个集群都已完成回收。
-  - `release` 后若还要继续消费分时图，必须重新拉取 `snapshot` 获取新的 `sessionId`。
+  - 重复释放同一租约按幂等成功返回；典型表现为 `leaseReleased=false`、`reason=ALREADY_RELEASED`。
+  - `reason=ALREADY_RELEASED` 仅表示当前调用方在该标的上已无活跃租约，不表示“本次请求刚刚触发了上游退订”。
+  - `activeLeaseCount` 表示该共享 `upstreamKey` 当前剩余的活跃租约数，不只针对当前用户。
+  - `upstreamReleased` 与 `graceExpiresAt` 表示服务端当前观测到的释放状态；若系统为多实例部署，其共享一致性应以后端回归结论为准，不能仅凭单个实例响应推断整个集群都已完成回收。
+  - `release` 后若还要继续消费分时图，必须重新拉取 `snapshot` 建立新租约。
   - 若启用了前端 WS，推荐顺序是先 `unsubscribe`，再调用 `release`。
+  - HTTP 协议不再接受 `sessionId` 作为兼容输入；旧客户端若仍传该字段会被参数校验直接拒绝。
 
 #### Cursor 协议（snapshot / delta / WS 统一）
 
@@ -448,7 +467,8 @@ HTTP 请求头（API Key）：
   - 已落地流能力：`stream-stock-quote`（可在 `subscribe` 中通过 `wsCapabilityType` 指定）
   - `subscribe` → 订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote", preferredProvider?: string, sessionId?: string }`
     - 成功：`subscribe-ack`；失败：`subscribe-error`
-    - 当携带 `sessionId` 时，`symbols` 必须且只能包含该 session 对应的一个 symbol
+    - 未显式携带 `sessionId` 时，仅执行常规实时流订阅，不会自动匹配或绑定 chart-intraday 租约
+    - `sessionId` 仅保留为遗留兼容字段；只有显式携带 `sessionId` 时才会尝试 chart-intraday WS 绑定，且 `symbols` 必须且只能包含该租约对应的一个 symbol
   - `unsubscribe` → 取消订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote" }`
     - 成功：`unsubscribe-ack`；失败：`unsubscribe-error`
   - `data` → 服务器按 `symbol:<SYMBOL>` 房间广播推送数据（兼容事件）
@@ -468,7 +488,7 @@ HTTP 请求头（API Key）：
 }
 ```
   - `ping`/`pong`，`request-recovery` 补发流，`get-info` 连接信息
-    - 对于携带 `sessionId` 的分时图 WS，会用应用层 `ping` 续租当前 session；建议客户端 `30s` 发送一次
+    - 对于已绑定分时图租约的 WS，会用应用层 `ping` 续租当前租约；建议客户端 `30s` 发送一次
 - 权限检查：需具备流权限画像（实现为 `stream:read` 或 `stream:subscribe` 命中其一即可通过）。
 
 ### 客户端示例（Node）

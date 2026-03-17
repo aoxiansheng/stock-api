@@ -7,8 +7,8 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  MaxLength,
   Matches,
+  MaxLength,
   Max,
   Min,
 } from "class-validator";
@@ -22,8 +22,6 @@ import { YMD_DATE_PATTERN } from "@core/shared/utils/ymd-date.util";
 import type { IntradayDeltaRequestDto as IntradayDeltaRequestDtoContract } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 
 const INTRADAY_CURSOR_MAX_LENGTH = 4096;
-const INTRADAY_SESSION_ID_MAX_LENGTH = 64;
-const INTRADAY_SESSION_ID_PATTERN = /^chart_session_[a-z0-9]+$/;
 
 export class IntradayDeltaRequestDto implements IntradayDeltaRequestDtoContract {
   @ApiProperty({
@@ -80,21 +78,6 @@ export class IntradayDeltaRequestDto implements IntradayDeltaRequestDtoContract 
     message: `cursor 长度不能超过 ${INTRADAY_CURSOR_MAX_LENGTH} 字符`,
   })
   cursor: string;
-
-  @ApiProperty({
-    description: `snapshot 返回的分时图会话ID（最长 ${INTRADAY_SESSION_ID_MAX_LENGTH} 字符）`,
-    example: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
-  })
-  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(INTRADAY_SESSION_ID_MAX_LENGTH, {
-    message: `sessionId 长度不能超过 ${INTRADAY_SESSION_ID_MAX_LENGTH} 字符`,
-  })
-  @Matches(INTRADAY_SESSION_ID_PATTERN, {
-    message: "sessionId 格式不正确，必须以 chart_session_ 开头且仅包含小写字母与数字",
-  })
-  sessionId: string;
 
   @ApiPropertyOptional({
     description: "增量上限",
