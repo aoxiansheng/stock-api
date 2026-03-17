@@ -149,6 +149,7 @@ describe("ChartIntradayReadService", () => {
       releaseRealtimeSubscription: jest.fn().mockResolvedValue({
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         symbol: "AAPL.US",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
@@ -1176,6 +1177,7 @@ describe("ChartIntradayReadService", () => {
       release: {
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         symbol: "AAPL.US",
         market: "US",
         provider: "infoway",
@@ -1192,6 +1194,7 @@ describe("ChartIntradayReadService", () => {
       {
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         symbol: "BTCUSDT",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE,
@@ -1220,10 +1223,49 @@ describe("ChartIntradayReadService", () => {
       release: {
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         symbol: "BTCUSDT",
         market: "CRYPTO",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE,
+        activeSessionCount: 0,
+        graceExpiresAt: null,
+      },
+    });
+  });
+
+  it("release: 已释放 session 应按幂等成功返回", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    chartIntradayStreamSubscriptionService.releaseRealtimeSubscription.mockResolvedValueOnce(
+      {
+        sessionReleased: false,
+        upstreamReleased: true,
+        reason: "ALREADY_RELEASED",
+        symbol: "AAPL.US",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+        clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+        activeSessionCount: 0,
+        graceExpiresAt: null,
+      },
+    );
+
+    const result = await service.releaseRealtimeSubscription({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      sessionId: DEFAULT_SESSION_ID,
+    });
+
+    expect(result).toEqual({
+      release: {
+        sessionReleased: false,
+        upstreamReleased: true,
+        reason: "ALREADY_RELEASED",
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
         activeSessionCount: 0,
         graceExpiresAt: null,
       },
@@ -1247,6 +1289,28 @@ describe("ChartIntradayReadService", () => {
       expect.objectContaining({
         name: BusinessException.name,
         errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+      }),
+    );
+  });
+
+  it("release: SESSION_RELEASE_IN_PROGRESS 不应误映射为 SESSION_CONFLICT", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    chartIntradayStreamSubscriptionService.releaseRealtimeSubscription.mockRejectedValueOnce(
+      new Error("SESSION_RELEASE_IN_PROGRESS"),
+    );
+
+    await expect(
+      service.releaseRealtimeSubscription({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        sessionId: DEFAULT_SESSION_ID,
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: BusinessException.name,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+        message: "RELEASE_IN_PROGRESS: 当前 session release 正在处理中，请稍后重试",
       }),
     );
   });

@@ -89,7 +89,8 @@ export class ReceiverChartIntradayController {
   @ApiConsumes("application/json")
   @ApiOperation({
     summary: "分时折线增量（仅增量）",
-    description: "基于 cursor 返回增量点位。delta 请求必须提供有效 cursor。",
+    description:
+      "基于 cursor 返回增量点位。delta 请求必须同时提供有效 cursor 与 snapshot 返回的 sessionId。",
   })
   @ApiSuccessResponse({ type: IntradayDeltaResponseDto })
   @ApiKeyAuthResponses()
@@ -109,7 +110,7 @@ export class ReceiverChartIntradayController {
   @ApiOperation({
     summary: "释放分时图内部实时订阅",
     description:
-      "显式释放由分时图接口自动拉起的内部实时订阅，适用于页面卸载或切换 symbol。",
+      "显式释放由分时图接口自动拉起的内部实时订阅。release 请求必须提供 snapshot 返回的 sessionId，重复释放按幂等成功返回。",
   })
   @ApiSuccessResponse({ type: IntradayReleaseResponseDto })
   @ApiKeyAuthResponses()

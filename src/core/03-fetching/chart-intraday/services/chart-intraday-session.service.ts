@@ -31,6 +31,18 @@ export interface ChartIntradaySessionRecord
   boundClientIds: Set<string>;
 }
 
+export interface ReleasedChartIntradaySessionRecord
+  extends ChartIntradaySessionRecord {
+  releasedAt: number;
+}
+
+export interface ChartIntradayUpstreamReleaseState {
+  upstreamKey: string;
+  state: "scheduled" | "released";
+  graceExpiresAt: string | null;
+  updatedAt: number;
+}
+
 export interface ChartIntradayUpstreamRecord
   extends ChartIntradayUpstreamContext {
   upstreamKey: string;
@@ -47,6 +59,14 @@ interface SerializedChartIntradaySessionRecord
   runtimeOwnerId: string | null;
   boundClientIds: string[];
 }
+
+interface SerializedReleasedChartIntradaySessionRecord
+  extends SerializedChartIntradaySessionRecord {
+  releasedAt: number;
+}
+
+interface SerializedChartIntradayUpstreamReleaseState
+  extends ChartIntradayUpstreamReleaseState {}
 
 interface SerializedChartIntradayUpstreamRecord
   extends ChartIntradayUpstreamContext {
@@ -65,9 +85,10 @@ export interface TouchChartIntradaySessionResult {
 }
 
 export interface ReleaseChartIntradaySessionResult {
-  releasedSession: ChartIntradaySessionRecord;
+  releasedSession: ReleasedChartIntradaySessionRecord;
   upstream: ChartIntradayUpstreamRecord;
   activeSessionCount: number;
+  releaseState: "released" | "already_released";
 }
 
 export interface ExpiredChartIntradaySessionResult {
@@ -111,10 +132,42 @@ export function buildChartIntradayOwnerIdentity(subject?: {
 export class ChartIntradaySessionService implements OnModuleDestroy {
   private static readonly SESSION_CACHE_KEY_PREFIX =
     "chart-intraday:session:v1:";
+  private static readonly RELEASED_SESSION_CACHE_KEY_PREFIX =
+    "chart-intraday:released-session:v1:";
+  private static readonly RELEASE_LOCK_CACHE_KEY_PREFIX =
+    "chart-intraday:release-lock:v1:";
   private static readonly UPSTREAM_CACHE_KEY_PREFIX =
     "chart-intraday:upstream:v1:";
   private static readonly UPSTREAM_COUNT_CACHE_KEY_PREFIX =
     "chart-intraday:upstream-count:v1:";
+  private static readonly UPSTREAM_RELEASE_STATE_CACHE_KEY_PREFIX =
+    "chart-intraday:upstream-release-state:v1:";
+  private static readonly RELEASE_LOCK_COMPARE_AND_DELETE_SCRIPT = `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+  return redis.call("DEL", KEYS[1])
+end
+return 0
+`;
+private static readonly RELEASE_SESSION_COMMIT_SCRIPT = `
+if redis.call("GET", KEYS[1]) ~= ARGV[1] then
+  return {0, 0}
+end
+local deleted = redis.call("DEL", KEYS[2])
+if deleted ~= 1 then
+  return {2, 0}
+end
+local next = redis.call("INCRBY", KEYS[3], -1)
+if next < 0 then
+  next = 0
+  redis.call("SET", KEYS[3], "0")
+end
+local countTtl = tonumber(ARGV[3])
+if countTtl and countTtl > 0 then
+  redis.call("EXPIRE", KEYS[3], countTtl)
+end
+redis.call("SETEX", KEYS[4], tonumber(ARGV[2]), ARGV[4])
+return {1, next}
+`;
 
   private readonly logger = createLogger(ChartIntradaySessionService.name);
   private readonly recordTtlSeconds = this.parseInteger(
@@ -122,7 +175,23 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
     6 * 60 * 60,
     60,
   );
+  private readonly releaseLockTtlSeconds = this.parseInteger(
+    process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS,
+    5,
+    1,
+  );
+  private readonly releaseLockWaitMs = this.parseInteger(
+    process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS,
+    500,
+    50,
+  );
+  private readonly releaseLockPollMs = this.parseInteger(
+    process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS,
+    25,
+    5,
+  );
   private readonly localClientToSessionIds = new Map<string, Set<string>>();
+  private readonly localReleaseGates = new Map<string, Promise<void>>();
 
   constructor(
     private readonly basicCacheService: BasicCacheService,
@@ -131,6 +200,7 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
 
   onModuleDestroy(): void {
     this.localClientToSessionIds.clear();
+    this.localReleaseGates.clear();
   }
 
   async createSession(
@@ -161,6 +231,7 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
       activeSessionCount,
     });
     await this.refreshUpstreamTtl(upstreamKey);
+    await this.clearUpstreamReleaseState(upstreamKey);
 
     return {
       session,
@@ -218,30 +289,107 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
   async releaseSession(
     params: ChartIntradayWsSessionContext,
   ): Promise<ReleaseChartIntradaySessionResult> {
-    const session = await this.getRequiredSession(params.sessionId);
-    this.assertSessionMatches(session, params);
+    return this.withLocalReleaseGate(params.sessionId, async () => {
+      const deadline = Date.now() + this.resolveReleaseLockWaitMs();
+      const releaseLockKey = this.buildReleaseLockCacheKey(params.sessionId);
 
-    const upstream = await this.getRequiredUpstream(session.upstreamKey, session);
+      while (true) {
+        const releasedSession = await this.getReleasedSession(params.sessionId);
+        if (releasedSession) {
+          return this.buildAlreadyReleasedResult(releasedSession, params);
+        }
 
-    await this.deleteSession(session.sessionId);
-    const activeSessionCount = await this.incrementUpstreamActiveCount(
-      session.upstreamKey,
-      -1,
-    );
-    await this.refreshUpstreamTtl(session.upstreamKey);
+        const lockToken = `release-lock:${randomUUID()}`;
+        const claimed = await this.tryAcquireReleaseLock(releaseLockKey, lockToken);
+        if (claimed) {
+          try {
+            const reloadedReleasedSession = await this.getReleasedSession(
+              params.sessionId,
+            );
+            if (reloadedReleasedSession) {
+              return this.buildAlreadyReleasedResult(
+                reloadedReleasedSession,
+                params,
+              );
+            }
 
-    for (const clientId of session.boundClientIds) {
-      this.removeLocalClientBinding(clientId, session.sessionId);
-    }
+            const session = await this.getSession(params.sessionId);
+            if (!session) {
+              const pendingReleasedSession =
+                await this.waitForReleasedSessionUntil(params.sessionId, deadline);
+              if (pendingReleasedSession) {
+                return this.buildAlreadyReleasedResult(
+                  pendingReleasedSession,
+                  params,
+                );
+              }
+              continue;
+            }
+            this.assertSessionMatches(session, params);
 
-    return {
-      releasedSession: session,
-      upstream: {
-        ...upstream,
-        activeSessionCount,
-      },
-      activeSessionCount,
-    };
+            const upstream = await this.getRequiredUpstream(
+              session.upstreamKey,
+              session,
+            );
+
+            const persistedReleasedSession: ReleasedChartIntradaySessionRecord = {
+              ...session,
+              releasedAt: Date.now(),
+            };
+            const commitResult = await this.commitReleasedSession({
+              lockKey: releaseLockKey,
+              lockToken,
+              session: persistedReleasedSession,
+            });
+            if (commitResult.status !== "committed") {
+              if (commitResult.status === "session_missing") {
+                const missingReleasedSession =
+                  await this.waitForReleasedSessionUntil(params.sessionId, deadline);
+                if (missingReleasedSession) {
+                  return this.buildAlreadyReleasedResult(
+                    missingReleasedSession,
+                    params,
+                  );
+                }
+              }
+              continue;
+            }
+            const activeSessionCount = commitResult.activeSessionCount;
+            await this.refreshUpstreamTtl(session.upstreamKey);
+
+            for (const clientId of session.boundClientIds) {
+              this.removeLocalClientBinding(clientId, session.sessionId);
+            }
+
+            if (activeSessionCount > 0) {
+              await this.clearUpstreamReleaseState(session.upstreamKey);
+            }
+
+            return {
+              releasedSession: persistedReleasedSession,
+              upstream: {
+                ...upstream,
+                activeSessionCount,
+              },
+              activeSessionCount,
+              releaseState: "released",
+            };
+          } finally {
+            await this.releaseReleaseLock(releaseLockKey, lockToken);
+          }
+        }
+
+        if (Date.now() >= deadline) {
+          const releasedSession = await this.getReleasedSession(params.sessionId);
+          if (releasedSession) {
+            return this.buildAlreadyReleasedResult(releasedSession, params);
+          }
+          throw new Error("SESSION_RELEASE_IN_PROGRESS");
+        }
+
+        await this.sleep(this.releaseLockPollMs);
+      }
+    });
   }
 
   async expireSessions(
@@ -395,6 +543,70 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
     return (await this.getUpstreamActiveCount(upstreamKey)) > 0;
   }
 
+  async getReleasedSession(
+    sessionId: string,
+  ): Promise<ReleasedChartIntradaySessionRecord | null> {
+    const normalizedSessionId = String(sessionId || "").trim();
+    if (!normalizedSessionId) {
+      return null;
+    }
+
+    const row =
+      await this.basicCacheService.get<SerializedReleasedChartIntradaySessionRecord>(
+        this.buildReleasedSessionCacheKey(normalizedSessionId),
+      );
+    return row ? this.hydrateReleasedSession(row) : null;
+  }
+
+  async getUpstreamActiveSessionCount(upstreamKey: string): Promise<number> {
+    return this.getUpstreamActiveCount(upstreamKey);
+  }
+
+  async getUpstreamReleaseState(
+    upstreamKey: string,
+  ): Promise<ChartIntradayUpstreamReleaseState | null> {
+    const row =
+      await this.basicCacheService.get<SerializedChartIntradayUpstreamReleaseState>(
+        this.buildUpstreamReleaseStateCacheKey(upstreamKey),
+      );
+    return row ? { ...row } : null;
+  }
+
+  async markUpstreamReleaseScheduled(
+    upstreamKey: string,
+    graceExpiresAt: string,
+  ): Promise<void> {
+    await this.basicCacheService.set(
+      this.buildUpstreamReleaseStateCacheKey(upstreamKey),
+      {
+        upstreamKey,
+        state: "scheduled",
+        graceExpiresAt,
+        updatedAt: Date.now(),
+      },
+      { ttlSeconds: this.recordTtlSeconds },
+    );
+  }
+
+  async markUpstreamReleased(upstreamKey: string): Promise<void> {
+    await this.basicCacheService.set(
+      this.buildUpstreamReleaseStateCacheKey(upstreamKey),
+      {
+        upstreamKey,
+        state: "released",
+        graceExpiresAt: null,
+        updatedAt: Date.now(),
+      },
+      { ttlSeconds: this.recordTtlSeconds },
+    );
+  }
+
+  async clearUpstreamReleaseState(upstreamKey: string): Promise<void> {
+    await this.basicCacheService.del(
+      this.buildUpstreamReleaseStateCacheKey(upstreamKey),
+    );
+  }
+
   async deleteUpstream(upstreamKey: string): Promise<void> {
     await Promise.all([
       this.basicCacheService.del(this.buildUpstreamCacheKey(upstreamKey)),
@@ -539,6 +751,16 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
     await this.basicCacheService.del(this.buildSessionCacheKey(sessionId));
   }
 
+  private async writeReleasedSession(
+    session: ReleasedChartIntradaySessionRecord,
+  ): Promise<void> {
+    await this.basicCacheService.set(
+      this.buildReleasedSessionCacheKey(session.sessionId),
+      this.serializeReleasedSession(session),
+      { ttlSeconds: this.recordTtlSeconds },
+    );
+  }
+
   private async readUpstream(
     upstreamKey: string,
   ): Promise<ChartIntradayUpstreamRecord | null> {
@@ -651,12 +873,30 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
     };
   }
 
+  private serializeReleasedSession(
+    session: ReleasedChartIntradaySessionRecord,
+  ): SerializedReleasedChartIntradaySessionRecord {
+    return {
+      ...this.serializeSession(session),
+      releasedAt: session.releasedAt,
+    };
+  }
+
   private hydrateSession(
     session: SerializedChartIntradaySessionRecord,
   ): ChartIntradaySessionRecord {
     return {
       ...session,
       boundClientIds: new Set(session.boundClientIds),
+    };
+  }
+
+  private hydrateReleasedSession(
+    session: SerializedReleasedChartIntradaySessionRecord,
+  ): ReleasedChartIntradaySessionRecord {
+    return {
+      ...this.hydrateSession(session),
+      releasedAt: session.releasedAt,
     };
   }
 
@@ -677,6 +917,14 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
     return `${ChartIntradaySessionService.SESSION_CACHE_KEY_PREFIX}${sessionId}`;
   }
 
+  private buildReleasedSessionCacheKey(sessionId: string): string {
+    return `${ChartIntradaySessionService.RELEASED_SESSION_CACHE_KEY_PREFIX}${sessionId}`;
+  }
+
+  private buildReleaseLockCacheKey(sessionId: string): string {
+    return `${ChartIntradaySessionService.RELEASE_LOCK_CACHE_KEY_PREFIX}${sessionId}`;
+  }
+
   private buildUpstreamCacheKey(upstreamKey: string): string {
     return `${ChartIntradaySessionService.UPSTREAM_CACHE_KEY_PREFIX}${upstreamKey}`;
   }
@@ -685,12 +933,173 @@ export class ChartIntradaySessionService implements OnModuleDestroy {
     return `${ChartIntradaySessionService.UPSTREAM_COUNT_CACHE_KEY_PREFIX}${upstreamKey}`;
   }
 
+  private buildUpstreamReleaseStateCacheKey(upstreamKey: string): string {
+    return `${ChartIntradaySessionService.UPSTREAM_RELEASE_STATE_CACHE_KEY_PREFIX}${upstreamKey}`;
+  }
+
   private buildUpstreamKey(params: {
     provider: string;
     wsCapabilityType: string;
     symbol: string;
   }): string {
     return `${params.provider}:${params.wsCapabilityType}:${params.symbol}`;
+  }
+
+  private async withLocalReleaseGate<T>(
+    sessionId: string,
+    handler: () => Promise<T>,
+  ): Promise<T> {
+    const normalizedSessionId = String(sessionId || "").trim();
+    if (!normalizedSessionId) {
+      return handler();
+    }
+
+    const previous = this.localReleaseGates.get(normalizedSessionId);
+    let releaseGate!: () => void;
+    const waitGate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const current = (previous || Promise.resolve()).then(() => waitGate);
+    this.localReleaseGates.set(normalizedSessionId, current);
+
+    if (previous) {
+      await previous;
+    }
+
+    try {
+      return await handler();
+    } finally {
+      releaseGate();
+      if (this.localReleaseGates.get(normalizedSessionId) === current) {
+        this.localReleaseGates.delete(normalizedSessionId);
+      }
+    }
+  }
+
+  private async tryAcquireReleaseLock(
+    lockKey: string,
+    lockToken: string,
+  ): Promise<boolean> {
+    if (!this.redis) {
+      return true;
+    }
+
+    const result = await this.redis.set(
+      lockKey,
+      lockToken,
+      "EX",
+      this.releaseLockTtlSeconds,
+      "NX",
+    );
+    return result === "OK";
+  }
+
+  private async releaseReleaseLock(
+    lockKey: string,
+    lockToken: string,
+  ): Promise<void> {
+    if (!this.redis) {
+      return;
+    }
+    await this.redis.eval(
+      ChartIntradaySessionService.RELEASE_LOCK_COMPARE_AND_DELETE_SCRIPT,
+      1,
+      lockKey,
+      lockToken,
+    );
+  }
+
+  private async commitReleasedSession(params: {
+    lockKey: string;
+    lockToken: string;
+    session: ReleasedChartIntradaySessionRecord;
+  }): Promise<
+    | { status: "committed"; activeSessionCount: number }
+    | { status: "lock_lost" | "session_missing" }
+  > {
+    if (!this.redis) {
+      await this.deleteSession(params.session.sessionId);
+      const activeSessionCount = await this.incrementUpstreamActiveCount(
+        params.session.upstreamKey,
+        -1,
+      );
+      await this.writeReleasedSession(params.session);
+      return {
+        status: "committed",
+        activeSessionCount,
+      };
+    }
+
+    const result = await this.redis.eval(
+      ChartIntradaySessionService.RELEASE_SESSION_COMMIT_SCRIPT,
+      4,
+      params.lockKey,
+      this.buildSessionCacheKey(params.session.sessionId),
+      this.buildUpstreamCountCacheKey(params.session.upstreamKey),
+      this.buildReleasedSessionCacheKey(params.session.sessionId),
+      params.lockToken,
+      String(this.recordTtlSeconds),
+      String(this.recordTtlSeconds),
+      JSON.stringify(this.serializeReleasedSession(params.session)),
+    );
+
+    const [committed, activeCount] = Array.isArray(result) ? result : [0, 0];
+    if (Number(committed) === 1) {
+      return {
+        status: "committed",
+        activeSessionCount: Math.max(0, Math.floor(Number(activeCount) || 0)),
+      };
+    }
+    if (Number(committed) === 2) {
+      return {
+        status: "session_missing",
+      };
+    }
+    return {
+      status: "lock_lost",
+    };
+  }
+
+  private buildAlreadyReleasedResult(
+    releasedSession: ReleasedChartIntradaySessionRecord,
+    params: ChartIntradayWsSessionContext,
+  ): Promise<ReleaseChartIntradaySessionResult> {
+    this.assertSessionMatches(releasedSession, params);
+    return this.getRequiredUpstream(
+      releasedSession.upstreamKey,
+      releasedSession,
+    ).then((upstream) => ({
+      releasedSession,
+      upstream,
+      activeSessionCount: upstream.activeSessionCount,
+      releaseState: "already_released" as const,
+    }));
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async waitForReleasedSessionUntil(
+    sessionId: string,
+    deadline: number,
+  ): Promise<ReleasedChartIntradaySessionRecord | null> {
+    while (Date.now() < deadline) {
+      const releasedSession = await this.getReleasedSession(sessionId);
+      if (releasedSession) {
+        return releasedSession;
+      }
+      await this.sleep(this.releaseLockPollMs);
+    }
+
+    return this.getReleasedSession(sessionId);
+  }
+
+  private resolveReleaseLockWaitMs(): number {
+    return Math.max(
+      this.releaseLockWaitMs,
+      this.releaseLockTtlSeconds * 1000 + this.releaseLockWaitMs,
+    );
   }
 
   private assertSessionMatches(

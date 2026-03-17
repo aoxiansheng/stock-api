@@ -7,10 +7,43 @@ describe("ChartIntradayStreamSubscriptionService", () => {
   const originalReleaseGrace = process.env.CHART_INTRADAY_RELEASE_GRACE_MS;
   const originalCleanupInterval =
     process.env.CHART_INTRADAY_STREAM_CLEANUP_INTERVAL_MS;
+  const originalReleaseLockTtl =
+    process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS;
+  const originalReleaseLockWait =
+    process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS;
+  const originalReleaseLockPoll =
+    process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS;
 
   function createBasicCacheMock() {
     const store = new Map<string, unknown>();
+    const expiries = new Map<string, number>();
     const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+    const purgeExpiredKey = (key: string) => {
+      const expiresAt = expiries.get(key);
+      if (typeof expiresAt === "number" && Date.now() >= expiresAt) {
+        store.delete(key);
+        expiries.delete(key);
+      }
+    };
+    const purgeExpiredKeys = () => {
+      for (const key of Array.from(expiries.keys())) {
+        purgeExpiredKey(key);
+      }
+    };
+    const readValue = (key: string) => {
+      purgeExpiredKey(key);
+      return store.get(key);
+    };
+    const cloneStoredValue = <T>(key: string): T | null => {
+      const value = readValue(key);
+      if (value === undefined) {
+        return null;
+      }
+      if (typeof value === "string") {
+        return clone(JSON.parse(value) as T);
+      }
+      return clone(value as T);
+    };
     const toNumber = (value: unknown) => {
       const normalized =
         typeof value === "number"
@@ -28,6 +61,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
             _matchKeyword: string,
             pattern: string,
           ): Promise<[string, string[]]> => {
+            purgeExpiredKeys();
             const prefix = pattern.endsWith("*") ? pattern.slice(0, -1) : pattern;
             const keys = Array.from(store.keys()).filter((key) =>
               key.startsWith(prefix),
@@ -35,27 +69,119 @@ describe("ChartIntradayStreamSubscriptionService", () => {
             return ["0", keys];
           },
         ),
+        set: jest.fn(
+          async (
+            key: string,
+            value: string,
+            ...args: Array<string | number>
+          ): Promise<"OK" | null> => {
+            purgeExpiredKey(key);
+            const normalizedArgs = args.map((arg) => String(arg).toUpperCase());
+            const hasNx = normalizedArgs.includes("NX");
+            if (hasNx && store.has(key)) {
+              return null;
+            }
+            const exIndex = normalizedArgs.indexOf("EX");
+            store.set(key, value);
+            if (exIndex >= 0) {
+              expiries.set(
+                key,
+                Date.now() + Number(args[exIndex + 1] || 0) * 1000,
+              );
+            } else {
+              expiries.delete(key);
+            }
+            return "OK";
+          },
+        ),
+        del: jest.fn(async (key: string) => {
+          purgeExpiredKey(key);
+          expiries.delete(key);
+          const existed = store.delete(key);
+          return existed ? 1 : 0;
+        }),
+        eval: jest.fn(
+          async (
+            _script: string,
+            keyCount: number,
+            ...args: string[]
+          ): Promise<number | [number, number]> => {
+            purgeExpiredKeys();
+
+            if (keyCount === 1) {
+              const [lockKey, lockToken] = args;
+              if (store.get(lockKey) === lockToken) {
+                expiries.delete(lockKey);
+                return store.delete(lockKey) ? 1 : 0;
+              }
+              return 0;
+            }
+
+            const [
+              lockKey,
+              sessionKey,
+              countKey,
+              releasedKey,
+              lockToken,
+              releasedTtlSeconds,
+              countTtlSeconds,
+              releasedPayload,
+            ] = args;
+
+            if (store.get(lockKey) !== lockToken) {
+              return [0, 0];
+            }
+
+            const deleted = store.delete(sessionKey) ? 1 : 0;
+            if (deleted !== 1) {
+              return [2, 0];
+            }
+            const next = Math.max(0, toNumber(store.get(countKey)) - 1);
+            store.set(countKey, next);
+            expiries.set(
+              countKey,
+              Date.now() + Number(countTtlSeconds || 0) * 1000,
+            );
+            store.set(releasedKey, releasedPayload);
+            expiries.set(
+              releasedKey,
+              Date.now() + Number(releasedTtlSeconds || 0) * 1000,
+            );
+            return [1, next];
+          },
+        ),
       },
       service: {
-        get: jest.fn(async (key: string) =>
-          store.has(key) ? clone(store.get(key)) : null,
-        ),
-        mget: jest.fn(async (keys: string[]) =>
-          keys.map((key) => (store.has(key) ? clone(store.get(key)) : null)),
-        ),
-        set: jest.fn(async (key: string, value: unknown) => {
+        get: jest.fn(async (key: string) => cloneStoredValue(key)),
+        mget: jest.fn(async (keys: string[]) => keys.map((key) => cloneStoredValue(key))),
+        set: jest.fn(async (key: string, value: unknown, opts?: { ttlSeconds?: number }) => {
           store.set(key, clone(value));
+          if (opts?.ttlSeconds) {
+            expiries.set(key, Date.now() + opts.ttlSeconds * 1000);
+          } else {
+            expiries.delete(key);
+          }
         }),
         del: jest.fn(async (key: string) => {
+          purgeExpiredKey(key);
+          expiries.delete(key);
           const existed = store.delete(key);
           return existed ? 1 : 0;
         }),
         incr: jest.fn(async (key: string, by = 1) => {
+          purgeExpiredKey(key);
           const next = toNumber(store.get(key)) + by;
           store.set(key, next);
           return next;
         }),
-        expire: jest.fn(async () => true),
+        expire: jest.fn(async (key: string, ttlSeconds: number) => {
+          purgeExpiredKey(key);
+          if (!store.has(key)) {
+            return false;
+          }
+          expiries.set(key, Date.now() + ttlSeconds * 1000);
+          return true;
+        }),
       },
     };
   }
@@ -130,6 +256,9 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     process.env.CHART_INTRADAY_SESSION_TTL_MS = "60000";
     process.env.CHART_INTRADAY_RELEASE_GRACE_MS = "60000";
     process.env.CHART_INTRADAY_STREAM_CLEANUP_INTERVAL_MS = "60000";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS = "5";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS = "500";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS = "25";
   });
 
   afterEach(async () => {
@@ -155,6 +284,27 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     } else {
       process.env.CHART_INTRADAY_STREAM_CLEANUP_INTERVAL_MS =
         originalCleanupInterval;
+    }
+
+    if (originalReleaseLockTtl === undefined) {
+      delete process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS;
+    } else {
+      process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS =
+        originalReleaseLockTtl;
+    }
+
+    if (originalReleaseLockWait === undefined) {
+      delete process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS;
+    } else {
+      process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS =
+        originalReleaseLockWait;
+    }
+
+    if (originalReleaseLockPoll === undefined) {
+      delete process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS;
+    } else {
+      process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS =
+        originalReleaseLockPoll;
     }
   });
 
@@ -409,6 +559,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
       expect.objectContaining({
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         activeSessionCount: 1,
         graceExpiresAt: null,
       }),
@@ -426,6 +577,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
       expect.objectContaining({
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         activeSessionCount: 0,
         graceExpiresAt: expect.any(String),
       }),
@@ -627,6 +779,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
       expect.objectContaining({
         sessionReleased: true,
         upstreamReleased: false,
+        reason: "RELEASED",
         activeSessionCount: 0,
       }),
     );
@@ -675,5 +828,458 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     await expect(service.onModuleDestroy()).resolves.toBeUndefined();
 
     expect(streamReceiverService.unsubscribeStream).toHaveBeenCalledTimes(2);
+  });
+
+  it("同一个 session 重复 release 应返回 ALREADY_RELEASED 且不再重复退订", async () => {
+    const { service, streamReceiverService, subscriptions } = createService();
+
+    const session = await service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    subscriptions.set(session.clientId, {
+      providerName: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      symbols: new Set([session.symbol]),
+    });
+
+    const firstRelease = await service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(firstRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: true,
+        upstreamReleased: false,
+        reason: "RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: expect.any(String),
+      }),
+    );
+
+    const secondRelease = await service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(secondRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        upstreamReleased: false,
+        reason: "ALREADY_RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: firstRelease.graceExpiresAt,
+      }),
+    );
+
+    expect(streamReceiverService.unsubscribeStream).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(streamReceiverService.unsubscribeStream).toHaveBeenCalledTimes(1);
+
+    await service.onModuleDestroy();
+  });
+
+  it("同一个 session 并发重复 release 不应重复扣减引用或抛错", async () => {
+    const { service, streamReceiverService, subscriptions, chartIntradaySessionService } =
+      createService();
+
+    const session = await service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    subscriptions.set(session.clientId, {
+      providerName: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      symbols: new Set([session.symbol]),
+    });
+
+    const results = await Promise.all([
+      service.releaseRealtimeSubscription({
+        sessionId: session.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+      service.releaseRealtimeSubscription({
+        sessionId: session.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ]);
+
+    expect(results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sessionReleased: true,
+          reason: "RELEASED",
+          activeSessionCount: 0,
+        }),
+        expect.objectContaining({
+          sessionReleased: false,
+          reason: "ALREADY_RELEASED",
+          activeSessionCount: 0,
+        }),
+      ]),
+    );
+    expect(
+      await chartIntradaySessionService.getUpstreamActiveSessionCount(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBe(0);
+    expect(streamReceiverService.unsubscribeStream).not.toHaveBeenCalled();
+
+    await service.onModuleDestroy();
+  });
+
+  it("跨实例并发重复 release 不应把共享 activeSessionCount 误扣为 0", async () => {
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const first = await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    const second = await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    firstInstance.subscriptions.set(first.clientId, {
+      providerName: first.provider,
+      wsCapabilityType: first.wsCapabilityType,
+      symbols: new Set([first.symbol]),
+    });
+
+    const pendingResults = Promise.all([
+      firstInstance.service.releaseRealtimeSubscription({
+        sessionId: first.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+      secondInstance.service.releaseRealtimeSubscription({
+        sessionId: first.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ]);
+    await jest.advanceTimersByTimeAsync(500);
+    const results = await pendingResults;
+
+    expect(results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sessionReleased: true,
+          reason: "RELEASED",
+          activeSessionCount: 1,
+        }),
+        expect.objectContaining({
+          sessionReleased: false,
+          reason: "ALREADY_RELEASED",
+          activeSessionCount: 1,
+        }),
+      ]),
+    );
+    expect(
+      await firstInstance.chartIntradaySessionService.getUpstreamActiveSessionCount(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBe(1);
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
+    void second;
+  });
+
+  it("跨实例重复 release 应返回共享宽限期状态，而不是本地推断", async () => {
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const session = await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    firstInstance.subscriptions.set(session.clientId, {
+      providerName: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      symbols: new Set([session.symbol]),
+    });
+
+    const firstRelease = await firstInstance.service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(firstRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: true,
+        upstreamReleased: false,
+        reason: "RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: expect.any(String),
+      }),
+    );
+
+    const secondRelease = await secondInstance.service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(secondRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        upstreamReleased: false,
+        reason: "ALREADY_RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: firstRelease.graceExpiresAt,
+      }),
+    );
+
+    await jest.advanceTimersByTimeAsync(60_000);
+
+    const afterGrace = await secondInstance.service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(afterGrace).toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        upstreamReleased: true,
+        reason: "ALREADY_RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: null,
+      }),
+    );
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
+  });
+
+  it("session 因 TTL 过期后再 release 应按 ALREADY_RELEASED 返回", async () => {
+    process.env.CHART_INTRADAY_STREAM_CLEANUP_INTERVAL_MS = "300000";
+    const { service, subscriptions } = createService();
+
+    const session = await service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    subscriptions.set(session.clientId, {
+      providerName: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      symbols: new Set([session.symbol]),
+    });
+
+    await jest.advanceTimersByTimeAsync(60_001);
+    await (service as any).cleanupExpiredSessions();
+
+    const releaseResult = await service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(releaseResult).toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        reason: "ALREADY_RELEASED",
+        activeSessionCount: 0,
+      }),
+    );
+
+    await service.onModuleDestroy();
+  });
+
+  it("锁租约过期后，旧持有者恢复时不得再次扣减共享 activeSessionCount", async () => {
+    process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS = "1";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS = "2000";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS = "20";
+
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const first = await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    firstInstance.subscriptions.set(first.clientId, {
+      providerName: first.provider,
+      wsCapabilityType: first.wsCapabilityType,
+      symbols: new Set([first.symbol]),
+    });
+
+    const originalEval = sharedCache.redis.eval;
+    let delayed = false;
+    sharedCache.redis.eval = jest.fn(
+      async (
+        script: string,
+        keyCount: number,
+        ...args: string[]
+      ): Promise<number | [number, number]> => {
+        if (!delayed && keyCount === 4) {
+          delayed = true;
+          await new Promise((resolve) => setTimeout(resolve, 1_200));
+        }
+        return originalEval(script, keyCount, ...args);
+      },
+    );
+
+    const pendingResults = Promise.all([
+      firstInstance.service.releaseRealtimeSubscription({
+        sessionId: first.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+      secondInstance.service.releaseRealtimeSubscription({
+        sessionId: first.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ]);
+
+    await jest.advanceTimersByTimeAsync(2_500);
+    const results = await pendingResults;
+
+    expect(results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sessionReleased: true,
+          reason: "RELEASED",
+          activeSessionCount: 1,
+        }),
+        expect.objectContaining({
+          sessionReleased: false,
+          reason: "ALREADY_RELEASED",
+          activeSessionCount: 1,
+        }),
+      ]),
+    );
+    expect(
+      await firstInstance.chartIntradaySessionService.getUpstreamActiveSessionCount(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).toBe(1);
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
+  });
+
+  it("慢 release 在锁等待期间应收敛为幂等结果，而不是忙碌错误", async () => {
+    process.env.CHART_INTRADAY_RELEASE_LOCK_TTL_SECONDS = "5";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_WAIT_MS = "200";
+    process.env.CHART_INTRADAY_RELEASE_LOCK_POLL_MS = "20";
+
+    const sharedCache = createBasicCacheMock();
+    const firstInstance = createService({ basicCache: sharedCache });
+    const secondInstance = createService({ basicCache: sharedCache });
+
+    const session = await firstInstance.service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    const originalEval = sharedCache.redis.eval;
+    let delayed = false;
+    sharedCache.redis.eval = jest.fn(
+      async (
+        script: string,
+        keyCount: number,
+        ...args: string[]
+      ): Promise<number | [number, number]> => {
+        if (!delayed && keyCount === 4) {
+          delayed = true;
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        }
+        return originalEval(script, keyCount, ...args);
+      },
+    );
+
+    const pendingResults = Promise.allSettled([
+      firstInstance.service.releaseRealtimeSubscription({
+        sessionId: session.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+      secondInstance.service.releaseRealtimeSubscription({
+        sessionId: session.sessionId,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        ownerIdentity: "appkey:test-key",
+      }),
+    ]);
+
+    await jest.advanceTimersByTimeAsync(1_500);
+    const results = await pendingResults;
+
+    expect(results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "fulfilled",
+          value: expect.objectContaining({
+            reason: "RELEASED",
+          }),
+        }),
+        expect.objectContaining({
+          status: "fulfilled",
+          value: expect.objectContaining({
+            reason: "ALREADY_RELEASED",
+          }),
+        }),
+      ]),
+    );
+
+    await firstInstance.service.onModuleDestroy();
+    await secondInstance.service.onModuleDestroy();
   });
 });

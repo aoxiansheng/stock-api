@@ -174,6 +174,12 @@ export class IntradayReleasePayloadDto
   @ApiProperty({ example: false })
   upstreamReleased: boolean;
 
+  @ApiProperty({
+    example: "RELEASED",
+    enum: ["RELEASED", "ALREADY_RELEASED"],
+  })
+  reason: "RELEASED" | "ALREADY_RELEASED";
+
   @ApiProperty({ example: "AAPL.US" })
   symbol: string;
 

@@ -9,6 +9,7 @@ import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-na
 import {
   ChartIntradaySessionService,
   type ChartIntradayOwnerContext,
+  type ReleasedChartIntradaySessionRecord,
   type ChartIntradaySessionRecord,
   type ChartIntradayWsSessionContext,
 } from "./chart-intraday-session.service";
@@ -72,6 +73,7 @@ export interface TouchRealtimeSessionResult {
 export interface ReleaseRealtimeSubscriptionResult {
   sessionReleased: boolean;
   upstreamReleased: boolean;
+  reason: "RELEASED" | "ALREADY_RELEASED";
   symbol: string;
   provider: string;
   wsCapabilityType: string;
@@ -240,9 +242,21 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     const result = await this.chartIntradaySessionService.releaseSession(
       normalized,
     );
+    if (result.releaseState === "already_released") {
+      return this.buildAlreadyReleasedResult(
+        result.releasedSession,
+        result.activeSessionCount,
+      );
+    }
+
     const localRelease = await this.releaseLocalUpstreamReference(
       result.releasedSession,
       "explicit_release",
+    );
+    await this.syncSharedUpstreamReleaseState(
+      result.releasedSession.upstreamKey,
+      result.activeSessionCount,
+      localRelease,
     );
     if (result.activeSessionCount === 0) {
       await this.chartIntradaySessionService.deleteUpstream(
@@ -253,6 +267,7 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     return {
       sessionReleased: true,
       upstreamReleased: localRelease.upstreamReleased,
+      reason: "RELEASED",
       symbol: result.releasedSession.symbol,
       provider: result.releasedSession.provider,
       wsCapabilityType: result.releasedSession.wsCapabilityType,
@@ -506,7 +521,12 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       timer,
       expiresAtMs,
     });
-    return new Date(expiresAtMs).toISOString();
+    const graceExpiresAt = new Date(expiresAtMs).toISOString();
+    void this.chartIntradaySessionService.markUpstreamReleaseScheduled(
+      upstreamKey,
+      graceExpiresAt,
+    );
+    return graceExpiresAt;
   }
 
   private async handleLocalPendingRelease(
@@ -575,7 +595,8 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       )
     ) {
       this.cleanupLocalUpstreamState(upstreamKey);
-      return false;
+      await this.chartIntradaySessionService.markUpstreamReleased(upstreamKey);
+      return true;
     }
 
     const unsubscribed = await this.unsubscribeUpstream(
@@ -585,6 +606,7 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     );
     if (unsubscribed) {
       this.cleanupLocalUpstreamState(upstreamKey);
+      await this.chartIntradaySessionService.markUpstreamReleased(upstreamKey);
     }
     return unsubscribed;
   }
@@ -762,6 +784,68 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     symbol: string,
   ): string {
     return `chart-intraday:auto:${provider}:${wsCapabilityType}:${symbol}`;
+  }
+
+  private async buildAlreadyReleasedResult(
+    session: ReleasedChartIntradaySessionRecord,
+    activeSessionCount: number,
+  ): Promise<ReleaseRealtimeSubscriptionResult> {
+    let upstreamReleased = false;
+    let graceExpiresAt: string | null = null;
+
+    if (activeSessionCount === 0) {
+      const sharedState =
+        await this.chartIntradaySessionService.getUpstreamReleaseState(
+          session.upstreamKey,
+        );
+      if (sharedState?.state === "released") {
+        upstreamReleased = true;
+      } else if (sharedState?.state === "scheduled") {
+        graceExpiresAt = sharedState.graceExpiresAt;
+      }
+    }
+
+    return {
+      sessionReleased: false,
+      upstreamReleased,
+      reason: "ALREADY_RELEASED",
+      symbol: session.symbol,
+      provider: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      clientId: session.clientId,
+      activeSessionCount,
+      graceExpiresAt,
+    };
+  }
+
+  private async syncSharedUpstreamReleaseState(
+    upstreamKey: string,
+    activeSessionCount: number,
+    localRelease: { upstreamReleased: boolean; graceExpiresAt: string | null },
+  ): Promise<void> {
+    if (activeSessionCount > 0) {
+      await this.chartIntradaySessionService.clearUpstreamReleaseState(
+        upstreamKey,
+      );
+      return;
+    }
+
+    if (localRelease.upstreamReleased) {
+      await this.chartIntradaySessionService.markUpstreamReleased(upstreamKey);
+      return;
+    }
+
+    if (localRelease.graceExpiresAt) {
+      await this.chartIntradaySessionService.markUpstreamReleaseScheduled(
+        upstreamKey,
+        localRelease.graceExpiresAt,
+      );
+      return;
+    }
+
+    await this.chartIntradaySessionService.clearUpstreamReleaseState(
+      upstreamKey,
+    );
   }
 
   private normalizeRealtimeParams<T extends UpstreamRealtimeParams>(

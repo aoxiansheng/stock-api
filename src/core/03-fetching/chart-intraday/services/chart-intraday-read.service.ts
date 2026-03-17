@@ -135,6 +135,7 @@ export interface IntradayDeltaResponseDto {
 export interface IntradayReleasePayloadDto {
   sessionReleased: boolean;
   upstreamReleased: boolean;
+  reason: "RELEASED" | "ALREADY_RELEASED";
   symbol: string;
   market: string;
   provider: string;
@@ -559,6 +560,13 @@ export class ChartIntradayReadService {
           },
         );
     } catch (error: any) {
+      if (this.isSessionReleaseInProgressError(error)) {
+        this.throwReleaseInProgressException(request.sessionId, error, {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          provider: resolved.provider,
+        });
+      }
       if (this.isSessionConflictError(error)) {
         this.throwSessionConflictException("release", request.sessionId, error, {
           symbol: resolved.symbol,
@@ -1752,6 +1760,7 @@ export class ChartIntradayReadService {
     return {
       sessionReleased: released.sessionReleased,
       upstreamReleased: released.upstreamReleased,
+      reason: released.reason,
       symbol: released.symbol,
       market,
       provider: released.provider,
@@ -1770,10 +1779,14 @@ export class ChartIntradayReadService {
     const reason =
       typeof error?.message === "string" ? error.message.trim() : "";
 
-    return (
-      reason === "UPSTREAM_NOT_FOUND" ||
-      reason.startsWith("SESSION_")
-    );
+    return reason === "UPSTREAM_NOT_FOUND" || reason.startsWith("SESSION_");
+  }
+
+  private isSessionReleaseInProgressError(error: any): boolean {
+    const reason =
+      typeof error?.message === "string" ? error.message.trim() : "";
+
+    return reason === "SESSION_RELEASE_IN_PROGRESS";
   }
 
   private throwSessionConflictException(
@@ -1792,6 +1805,28 @@ export class ChartIntradayReadService {
       message:
         "SESSION_CONFLICT: sessionId 无效、已失效或与当前请求上下文不匹配，请重新拉取 snapshot",
       statusCode: HttpStatus.CONFLICT,
+      context: {
+        sessionId,
+        reason,
+        ...(context || {}),
+      },
+    });
+  }
+
+  private throwReleaseInProgressException(
+    sessionId: string,
+    error: any,
+    context?: Record<string, unknown>,
+  ): never {
+    const reason =
+      typeof error?.message === "string" && error.message
+        ? error.message
+        : "SESSION_RELEASE_IN_PROGRESS";
+    throw this.createBusinessException({
+      errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      operation: "release_realtime_subscription",
+      message: "RELEASE_IN_PROGRESS: 当前 session release 正在处理中，请稍后重试",
+      statusCode: HttpStatus.SERVICE_UNAVAILABLE,
       context: {
         sessionId,
         reason,
