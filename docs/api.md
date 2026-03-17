@@ -247,6 +247,7 @@ HTTP 请求头（API Key）：
   },
   "sync": {
     "cursor": "base64-signed-cursor",
+    "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
     "serverTime": "2026-03-08T15:42:01.120Z"
   },
@@ -260,6 +261,7 @@ HTTP 请求头（API Key）：
 ```
 - 说明：
   - `supportsFullDay1sHistory=false` 表示当前并非完整全日秒级历史回放。
+  - `sync.sessionId` 需要与 `cursor` 一起保存；后续 `delta`、`release` 与可选 `WS subscribe(sessionId)` 都依赖它。
   - 顶层仍由统一响应包装器包裹（`success/statusCode/message/data/timestamp`）。
 
 ### `POST /api/v1/chart/intraday-line/delta`
@@ -277,6 +279,7 @@ HTTP 请求头（API Key）：
   "tradingDay": "20260308",
   "provider": "infoway",
   "cursor": "base64-signed-cursor",
+  "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
   "limit": 2000,
   "strictProviderConsistency": false
 }
@@ -301,12 +304,50 @@ HTTP 请求头（API Key）：
 ```
 - 规则：
   - `cursor` 为必传参数。
+  - `sessionId` 为必传参数，且必须来自最近一次有效 `snapshot`。
   - `strictProviderConsistency=true` 时，要求 `cursor.provider` 与请求 `provider` 一致（不一致返回 `409 CURSOR_EXPIRED`）。
   - `cursor` 跨上下文、过期、签发时间异常时返回 `409 CURSOR_EXPIRED`。
+  - `sessionId` 已释放、已过期或与当前上下文不匹配时返回 `409 SESSION_CONFLICT`。
   - `cursor` 缺字段、格式非法或签名不匹配时返回 `400 INVALID_ARGUMENT`。
   - 未提供 `cursor` 或传入已废弃的 `since` 参数时返回 `400 INVALID_ARGUMENT`。
   - 无新增点位时返回 `200` 且 `delta.points=[]`、`delta.hasMore=false`，并返回新的 `nextCursor`（`lastPointTimestamp` 回退为 `cursor.lastPointTimestamp`）。
-  - 典型错误：`400 INVALID_ARGUMENT`、`503 PROVIDER_UNAVAILABLE`。
+  - 典型错误：`400 INVALID_ARGUMENT`、`409 CURSOR_EXPIRED`、`409 SESSION_CONFLICT`、`503 PROVIDER_UNAVAILABLE`。
+
+### `POST /api/v1/chart/intraday-line/release`
+- 认证：API Key 或 JWT（只读权限）
+- 语义：释放当前分时图消费会话占用，不替代前端 Socket 的 `unsubscribe`
+- Request
+```json
+{
+  "symbol": "AAPL.US",
+  "market": "US",
+  "provider": "infoway",
+  "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a"
+}
+```
+- Response（业务数据层）
+```json
+{
+  "release": {
+    "sessionReleased": false,
+    "upstreamReleased": false,
+    "reason": "ALREADY_RELEASED",
+    "symbol": "AAPL.US",
+    "market": "US",
+    "provider": "infoway",
+    "wsCapabilityType": "stream-stock-quote",
+    "activeSessionCount": 0,
+    "graceExpiresAt": "2026-03-17T09:31:00.000Z"
+  }
+}
+```
+- 规则：
+  - `sessionId` 为必传参数。
+  - 重复释放同一个 `sessionId` 按幂等成功返回；典型表现为 `sessionReleased=false`、`reason=ALREADY_RELEASED`。
+  - `reason=ALREADY_RELEASED` 仅表示该 `sessionId` 已结束，不表示“本次请求刚刚触发了上游退订”。
+  - `upstreamReleased` 与 `graceExpiresAt` 表示服务端当前观测到的释放状态；若系统以多实例部署运行，其共享一致性应以最终回归结论为准，不能仅凭单个实例响应推断整个集群都已完成回收。
+  - `release` 后若还要继续消费分时图，必须重新拉取 `snapshot` 获取新的 `sessionId`。
+  - 若启用了前端 WS，推荐顺序是先 `unsubscribe`，再调用 `release`。
 
 #### Cursor 协议（snapshot / delta / WS 统一）
 
@@ -405,8 +446,9 @@ HTTP 请求头（API Key）：
   - 或 头：`X-App-Key`, `X-Access-Token`
 - 事件：
   - 已落地流能力：`stream-stock-quote`（可在 `subscribe` 中通过 `wsCapabilityType` 指定）
-  - `subscribe` → 订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote", preferredProvider?: string }`
+  - `subscribe` → 订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote", preferredProvider?: string, sessionId?: string }`
     - 成功：`subscribe-ack`；失败：`subscribe-error`
+    - 当携带 `sessionId` 时，`symbols` 必须且只能包含该 session 对应的一个 symbol
   - `unsubscribe` → 取消订阅 `{ symbols: string[], wsCapabilityType?: "stream-stock-quote" }`
     - 成功：`unsubscribe-ack`；失败：`unsubscribe-error`
   - `data` → 服务器按 `symbol:<SYMBOL>` 房间广播推送数据（兼容事件）
@@ -426,6 +468,7 @@ HTTP 请求头（API Key）：
 }
 ```
   - `ping`/`pong`，`request-recovery` 补发流，`get-info` 连接信息
+    - 对于携带 `sessionId` 的分时图 WS，会用应用层 `ping` 续租当前 session；建议客户端 `30s` 发送一次
 - 权限检查：需具备流权限画像（实现为 `stream:read` 或 `stream:subscribe` 命中其一即可通过）。
 
 ### 客户端示例（Node）

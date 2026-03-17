@@ -1,6 +1,6 @@
 # 分时折线图 API 开发文档（推送优先 + 轮询兜底）
 
-更新时间：2026-03-14
+更新时间：2026-03-17
 
 ## 1. 背景与结论
 
@@ -91,6 +91,7 @@
   },
   "sync": {
     "cursor": "base64-signed-cursor",
+    "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
     "serverTime": "2026-03-08T15:42:01.120Z"
   },
@@ -106,6 +107,7 @@
 说明：
 - `supportsFullDay1sHistory=false` 时，表示当前快照中的 `1s` 点位由“`1m` 历史基线 + 实时流窗口”拼接而成，不是完整当日秒级历史回放。
 - `supportsFullDay1sHistory=true` 仅在后端具备秒级历史存储/回放能力后成立。
+- `sync.sessionId` 为分时图消费会话标识；后续 `delta`、`release` 与可选 `WS subscribe(sessionId)` 均依赖它。
 - `reference` 为分时图基准参考值，由后端按市场语义统一计算，供前端直接消费：
   - `previousClosePrice`：昨收参考价
   - `sessionOpenPrice`：本交易日/本 UTC 日开盘参考价
@@ -129,6 +131,7 @@
   "tradingDay": "20260308",
   "provider": "infoway",
   "cursor": "base64-signed-cursor",
+  "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
   "limit": 2000,
   "strictProviderConsistency": false
 }
@@ -155,8 +158,10 @@
 
 契约规则：
 - `cursor` 必传。
+- `sessionId` 必传，且必须来自最近一次有效 `snapshot`。
 - `since` 当前不在请求 DTO 白名单中，传入会触发 `400 INVALID_ARGUMENT`。
 - 若 `cursor` 失效（过期/跨交易日），返回 `409 CURSOR_EXPIRED`，客户端需重新拉 Snapshot。
+- 若 `sessionId` 已释放、已过期或与上下文不匹配，返回 `409 SESSION_CONFLICT`，客户端也需重新拉 Snapshot。
 - 若 `cursor` 格式非法、缺字段或签名不匹配，返回 `400 INVALID_ARGUMENT`。
 - `strictProviderConsistency=true` 时，若 `cursor.provider` 与请求 `provider` 不一致，返回 `409 CURSOR_EXPIRED`。
 - Delta 只返回新增或修正点，不返回历史全量。
@@ -166,9 +171,11 @@
 - 建议事件：`chart.intraday.point`
 - 事件映射关系：上游原始事件为 `data + wsCapabilityType=stream-stock-quote`，`chart.intraday.point` 是本系统统一后的领域事件。
 - 前端订阅方式：连接 `/api/v1/stream-receiver/connect`，发送 `subscribe + wsCapabilityType=stream-stock-quote`。
+- 若需要把当前 Socket 绑定到分时图 session，应在 `subscribe` 中额外携带 `sessionId`，且 `symbols` 必须且只能包含该 session 对应的一个 symbol。
 - `chart.intraday.point` 是下游接收的事件名，不是单独的 `wsCapabilityType`。
 - 当前实现按秒桶聚合后广播：同一秒最多发送一个点；跨秒但价格未变化时，不强制发送新点。
 - 若前端要停止接收推送，应对当前 Socket 发送 `unsubscribe`；这一步只作用于“下游到我们”的 WebSocket 订阅。
+- 若 WS 稳定后暂停高频 `delta`，前端还需要持续发送应用层 `ping` 续租当前 session；建议 `30s` 一次。
 - 载荷建议：
 ```json
 {
@@ -196,7 +203,8 @@
 {
   "symbol": "AAPL.US",
   "market": "US",
-  "provider": "infoway"
+  "provider": "infoway",
+  "sessionId": "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a"
 }
 ```
 
@@ -204,19 +212,35 @@
 - `unsubscribe`：负责“下游前端 -> 我们的 WebSocket 服务”
 - `release`：负责“我们的分时图服务 -> 上游实时流能力”
 
+幂等语义：
+
+- 重复释放同一个 `sessionId` 不报错
+- 重复释放返回 `200`
+- 典型业务层载荷会体现：
+  - `sessionReleased=false`
+  - `reason=ALREADY_RELEASED`
+- `reason=ALREADY_RELEASED` 只表示该 session 已结束，不表示“本次请求刚刚完成了上游退订”
+- `upstreamReleased` 与 `graceExpiresAt` 需要按服务端当前观测状态解读；若部署为多实例，其共享一致性必须以专门回归结果为准，不能在未验证前写成“已完全收口”
+
+补充说明：
+
+- `release` 之后，原 `sessionId` 不可继续用于 `delta` 或 `WS subscribe(sessionId)`
+- 若要继续消费，必须重新拉取 `snapshot` 获取新的 `sessionId`
+
 因此：
 - HTTP-only 模式通常只需要 `release`
 - HTTP + WS 模式通常需要先 `unsubscribe`，再 `release`
 
 ## 4. 客户端接入时序（强约束）
 
-1. 首次进入页面，调用 Snapshot 一次，渲染当前可得的全量快照（`1m` 历史基线 + 当前秒级实时窗口）。
-2. 立即建立 WS 订阅，持续接收 `chart.intraday.point`。
-3. WS 正常时，不执行每秒 HTTP 轮询。
-4. 仅当 WS 断开或重连恢复阶段，开启 `1s` Delta 轮询兜底。
-5. WS 恢复稳定后，停止轮询，仅保留 WS。
-6. 页面退出或切换 symbol 时，若启用了前端 WS，先发送 `unsubscribe`。
-7. 随后调用 `POST /api/v1/chart/intraday-line/release`，释放分时图接口内部自动拉起的上游订阅。
+1. 首次进入页面，调用 Snapshot 一次，拿到 `cursor + sessionId`，渲染当前可得的全量快照（`1m` 历史基线 + 当前秒级实时窗口）。
+2. 若启用前端 WS，立即建立订阅，并在 `subscribe` 中携带 `sessionId`。
+3. WS 正常时，可暂停高频 HTTP 轮询，但需要继续发送应用层 `ping` 续租当前 session。
+4. 仅当 WS 断开或重连恢复阶段，开启 `1s` Delta 轮询兜底；Delta 请求始终携带当前 `sessionId`。
+5. 遇到 `CURSOR_EXPIRED` 或 `SESSION_CONFLICT` 时，重新拉取 Snapshot，刷新 `cursor + sessionId`。
+6. WS 恢复稳定后，停止高频 Delta，仅保留 WS + `ping`。
+7. 页面退出或切换 symbol 时，若启用了前端 WS，先发送 `unsubscribe`。
+8. 随后调用 `POST /api/v1/chart/intraday-line/release`，释放分时图接口内部自动拉起的上游订阅。
 
 说明：
 - “每秒 1 次”是兜底策略，不是常态主路径。
@@ -291,13 +315,15 @@
 - `tradingDay` 可选；缺省按市场当日交易日推断
 - `pointLimit` 建议 `1 ~ 30000`
 - `delta.limit` 建议 `1 ~ 5000`
-- `cursor` 为 Delta 必填
+- `cursor` 与 `sessionId` 为 Delta 必填
+- `sessionId` 为 Release 必填
 - `includePrePost`、`since` 当前不在白名单，传入将触发 `400`
 
 典型错误：
 - `400 INVALID_ARGUMENT`：参数非法
 - `404 NO_DATA`：无可用点位
 - `409 CURSOR_EXPIRED`：游标过期或跨交易日
+- `409 SESSION_CONFLICT`：session 无效、已释放、已过期或与当前上下文不匹配
 - `503 PROVIDER_UNAVAILABLE`：上游不可用
 
 ## 9. 测试计划
