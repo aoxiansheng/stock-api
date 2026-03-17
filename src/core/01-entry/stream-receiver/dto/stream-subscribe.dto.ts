@@ -1,11 +1,13 @@
 import { REFERENCE_DATA } from "@common/constants/domain";
 import { API_OPERATIONS } from "@common/constants/domain";
+import { Transform } from "class-transformer";
 import {
   IsArray,
   IsString,
   IsOptional,
   ArrayMinSize,
   ArrayMaxSize,
+  IsNotEmpty,
 } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
@@ -65,4 +67,14 @@ export class StreamSubscribeDto {
   @IsOptional()
   preferredProvider?: string;
 
+  @ApiProperty({
+    description: "分时图会话ID，仅 chart-intraday + WS 联动时使用",
+    example: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
+    required: false,
+  })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @IsOptional()
+  @IsNotEmpty()
+  sessionId?: string;
 }

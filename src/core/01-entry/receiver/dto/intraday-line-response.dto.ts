@@ -67,6 +67,11 @@ export class IntradaySyncDto implements IntradaySyncDtoContract {
   })
   cursor: string;
 
+  @ApiProperty({
+    example: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
+  })
+  sessionId: string;
+
   @ApiProperty({ example: "2026-03-08T15:42:00.000Z" })
   lastPointTimestamp: string;
 
@@ -164,7 +169,10 @@ export class IntradayReleasePayloadDto
   implements IntradayReleasePayloadDtoContract
 {
   @ApiProperty({ example: true })
-  released: boolean;
+  sessionReleased: boolean;
+
+  @ApiProperty({ example: false })
+  upstreamReleased: boolean;
 
   @ApiProperty({ example: "AAPL.US" })
   symbol: string;
@@ -177,6 +185,15 @@ export class IntradayReleasePayloadDto
 
   @ApiProperty({ example: "stream-stock-quote" })
   wsCapabilityType: string;
+
+  @ApiProperty({ example: 1 })
+  activeSessionCount: number;
+
+  @ApiProperty({
+    example: "2026-03-16T15:30:00.000Z",
+    nullable: true,
+  })
+  graceExpiresAt: string | null;
 }
 
 export class IntradayReleaseResponseDto

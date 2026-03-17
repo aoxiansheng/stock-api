@@ -20,6 +20,12 @@ describe("StreamReceiverGateway request-recovery capability", () => {
   let streamRecoveryWorker: {
     getClientRecoveryStatus: jest.Mock<Promise<any>, [string]>;
   };
+  let chartIntradayStreamSubscriptionService: {
+    validateWsSessionBinding: jest.Mock;
+    bindRealtimeClientToSession: jest.Mock;
+    touchRealtimeSessionsForClient: jest.Mock;
+    unbindRealtimeClient: jest.Mock;
+  };
   let client: {
     id: string;
     emit: jest.Mock<void, [string, unknown]>;
@@ -45,8 +51,15 @@ describe("StreamReceiverGateway request-recovery capability", () => {
         lastJobId: "job-1",
       }),
     };
+    chartIntradayStreamSubscriptionService = {
+      validateWsSessionBinding: jest.fn(),
+      bindRealtimeClientToSession: jest.fn(),
+      touchRealtimeSessionsForClient: jest.fn(),
+      unbindRealtimeClient: jest.fn(),
+    };
     gateway = new StreamReceiverGateway(
       streamReceiverService as any,
+      chartIntradayStreamSubscriptionService as any,
       {} as any,
       streamRecoveryWorker as any,
       undefined,

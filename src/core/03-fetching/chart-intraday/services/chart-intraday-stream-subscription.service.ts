@@ -1,37 +1,83 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { randomUUID } from "crypto";
 
 import { createLogger } from "@common/logging/index";
-import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 import { StreamReceiverService } from "@core/01-entry/stream-receiver/services/stream-receiver.service";
 import { StreamClientStateManager } from "@core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
+import { CAPABILITY_NAMES } from "@providersv2/providers/constants/capability-names.constants";
 
-interface EnsureRealtimeSubscriptionParams {
+import {
+  ChartIntradaySessionService,
+  type ChartIntradayOwnerContext,
+  type ChartIntradaySessionRecord,
+  type ChartIntradayWsSessionContext,
+} from "./chart-intraday-session.service";
+
+interface UpstreamRealtimeParams {
   symbol: string;
   market: string;
   provider: string;
 }
 
-interface ReleaseRealtimeSubscriptionParams {
-  symbol: string;
-  market: string;
-  provider: string;
-}
-
-interface InternalRealtimeLease {
-  leaseKey: string;
-  clientId: string;
+interface LocalRealtimeUpstreamState {
+  upstreamKey: string;
   symbol: string;
   provider: string;
   wsCapabilityType: string;
-  lastTouchedAt: number;
+  clientId: string;
+}
+
+interface PendingLocalReleaseState {
+  timer: NodeJS.Timeout;
+  expiresAtMs: number;
+}
+
+export interface OpenRealtimeSessionParams
+  extends UpstreamRealtimeParams,
+    ChartIntradayOwnerContext {}
+
+export interface TouchRealtimeSessionParams
+  extends UpstreamRealtimeParams,
+    ChartIntradayOwnerContext {
+  sessionId: string;
+}
+
+export interface BindRealtimeSessionClientParams
+  extends TouchRealtimeSessionParams {
+  clientId: string;
+}
+
+export interface UnbindRealtimeClientSessionsParams {
+  clientId: string;
+  symbols: string[];
+}
+
+export interface OpenRealtimeSessionResult {
+  sessionId: string;
+  symbol: string;
+  provider: string;
+  wsCapabilityType: string;
+  clientId: string;
+}
+
+export interface TouchRealtimeSessionResult {
+  sessionId: string;
+  symbol: string;
+  market: string;
+  provider: string;
+  wsCapabilityType: string;
+  clientId: string;
 }
 
 export interface ReleaseRealtimeSubscriptionResult {
-  released: boolean;
+  sessionReleased: boolean;
+  upstreamReleased: boolean;
   symbol: string;
   provider: string;
   wsCapabilityType: string;
   clientId: string;
+  activeSessionCount: number;
+  graceExpiresAt: string | null;
 }
 
 @Injectable()
@@ -39,160 +85,556 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
   private readonly logger = createLogger(
     ChartIntradayStreamSubscriptionService.name,
   );
+  private readonly instanceId = `chart-intraday-instance-${randomUUID()}`;
 
-  private readonly leaseTtlMs = this.parseInteger(
-    process.env.CHART_INTRADAY_STREAM_LEASE_TTL_MS,
+  private readonly sessionTtlMs = this.parseInteger(
+    process.env.CHART_INTRADAY_SESSION_TTL_MS,
     2 * 60 * 1000,
     15 * 1000,
+  );
+  private readonly releaseGraceMs = this.parseInteger(
+    process.env.CHART_INTRADAY_RELEASE_GRACE_MS,
+    60 * 1000,
+    0,
   );
   private readonly cleanupIntervalMs = this.parseInteger(
     process.env.CHART_INTRADAY_STREAM_CLEANUP_INTERVAL_MS,
     30 * 1000,
     5 * 1000,
   );
-  private readonly leases = new Map<string, InternalRealtimeLease>();
   private readonly cleanupTimer: NodeJS.Timeout;
+  private readonly localUpstreamSessionIds = new Map<string, Set<string>>();
+  private readonly localUpstreamStates = new Map<
+    string,
+    LocalRealtimeUpstreamState
+  >();
+  private readonly localPendingReleases = new Map<
+    string,
+    PendingLocalReleaseState
+  >();
 
   constructor(
     private readonly streamReceiverService: StreamReceiverService,
     private readonly streamClientStateManager: StreamClientStateManager,
+    private readonly chartIntradaySessionService: ChartIntradaySessionService,
   ) {
     this.cleanupTimer = setInterval(() => {
-      void this.cleanupExpiredLeases();
+      void this.cleanupExpiredSessions();
     }, this.cleanupIntervalMs);
   }
 
   async onModuleDestroy(): Promise<void> {
     clearInterval(this.cleanupTimer);
+    this.clearAllLocalPendingReleases();
 
-    const releaseJobs = Array.from(this.leases.values()).map((lease) =>
-      this.releaseLease(lease, "module_destroy"),
+    const upstreams = Array.from(this.localUpstreamStates.values());
+    this.localUpstreamSessionIds.clear();
+    this.localUpstreamStates.clear();
+
+    await Promise.allSettled(
+      upstreams.map((upstream) =>
+        this.unsubscribeUpstream(upstream, "module_destroy", false),
+      ),
     );
-    this.leases.clear();
-
-    await Promise.allSettled(releaseJobs);
   }
 
-  async ensureRealtimeSubscription(
-    params: EnsureRealtimeSubscriptionParams,
-  ): Promise<void> {
-    const normalizedSymbol = this.normalizeSymbol(params.symbol);
-    const normalizedProvider = this.normalizeProvider(params.provider);
+  async openRealtimeSession(
+    params: OpenRealtimeSessionParams,
+  ): Promise<OpenRealtimeSessionResult> {
+    const normalized = this.normalizeRealtimeParams(params);
     const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
-      params.market,
-    );
-    const leaseKey = this.buildLeaseKey(
-      normalizedProvider,
-      wsCapabilityType,
-      normalizedSymbol,
+      normalized.market,
     );
     const clientId = this.buildInternalClientId(
-      normalizedProvider,
+      normalized.provider,
       wsCapabilityType,
-      normalizedSymbol,
+      normalized.symbol,
     );
-    const now = Date.now();
 
-    const existingLease = this.leases.get(leaseKey);
-    if (existingLease) {
-      existingLease.lastTouchedAt = now;
-    } else {
-      this.leases.set(leaseKey, {
-        leaseKey,
-        clientId,
-        symbol: normalizedSymbol,
-        provider: normalizedProvider,
-        wsCapabilityType,
-        lastTouchedAt: now,
+    const result = await this.chartIntradaySessionService.createSession({
+      ...normalized,
+      wsCapabilityType,
+      clientId,
+      runtimeOwnerId: this.instanceId,
+    });
+
+    try {
+      await this.retainLocalUpstreamSession(result.session, "snapshot");
+    } catch (error) {
+      const rollback = await this.chartIntradaySessionService.releaseSession({
+        sessionId: result.session.sessionId,
+        symbol: result.session.symbol,
+        market: result.session.market,
+        provider: result.session.provider,
+        ownerIdentity: result.session.ownerIdentity,
       });
+      if (rollback.activeSessionCount === 0) {
+        await this.chartIntradaySessionService.deleteUpstream(
+          rollback.upstream.upstreamKey,
+        );
+      }
+      throw error;
     }
 
+    return {
+      sessionId: result.session.sessionId,
+      symbol: result.session.symbol,
+      provider: result.session.provider,
+      wsCapabilityType,
+      clientId,
+    };
+  }
+
+  async touchRealtimeSession(
+    params: TouchRealtimeSessionParams,
+  ): Promise<TouchRealtimeSessionResult> {
+    const normalized = this.normalizeTouchParams(params);
+    const result = await this.chartIntradaySessionService.touchSession({
+      ...normalized,
+      runtimeOwnerId: this.instanceId,
+    });
+    await this.retainLocalUpstreamSession(result.session, "delta");
+
+    return this.buildTouchResult(result.session);
+  }
+
+  async bindRealtimeClientToSession(
+    params: BindRealtimeSessionClientParams,
+  ): Promise<TouchRealtimeSessionResult> {
+    const normalized = this.normalizeTouchParams(params);
+    const result = await this.chartIntradaySessionService.bindClientToSession({
+      ...normalized,
+      clientId: params.clientId,
+      runtimeOwnerId: this.instanceId,
+    });
+    await this.retainLocalUpstreamSession(result.session, "delta");
+
+    return this.buildTouchResult(result.session);
+  }
+
+  touchRealtimeSessionsForClient(clientId: string): number {
+    return this.chartIntradaySessionService.touchBoundSessions(clientId);
+  }
+
+  unbindRealtimeClient(clientId: string): void {
+    this.chartIntradaySessionService.unbindClient(clientId);
+  }
+
+  async unbindRealtimeClientSessions(
+    params: UnbindRealtimeClientSessionsParams,
+  ): Promise<number> {
+    const normalizedSymbols = params.symbols
+      .map((symbol) => String(symbol || "").trim().toUpperCase())
+      .filter(Boolean);
+
+    return this.chartIntradaySessionService.unbindClientSessions({
+      clientId: params.clientId,
+      symbols: normalizedSymbols,
+    });
+  }
+
+  async releaseRealtimeSubscription(
+    params: TouchRealtimeSessionParams,
+  ): Promise<ReleaseRealtimeSubscriptionResult> {
+    const normalized = this.normalizeTouchParams(params);
+    const result = await this.chartIntradaySessionService.releaseSession(
+      normalized,
+    );
+    const localRelease = await this.releaseLocalUpstreamReference(
+      result.releasedSession,
+      "explicit_release",
+    );
+    if (result.activeSessionCount === 0) {
+      await this.chartIntradaySessionService.deleteUpstream(
+        result.releasedSession.upstreamKey,
+      );
+    }
+
+    return {
+      sessionReleased: true,
+      upstreamReleased: localRelease.upstreamReleased,
+      symbol: result.releasedSession.symbol,
+      provider: result.releasedSession.provider,
+      wsCapabilityType: result.releasedSession.wsCapabilityType,
+      clientId: result.releasedSession.clientId,
+      activeSessionCount: result.activeSessionCount,
+      graceExpiresAt: localRelease.graceExpiresAt,
+    };
+  }
+
+  async validateWsSessionBinding(
+    params: ChartIntradayWsSessionContext,
+  ): Promise<TouchRealtimeSessionResult> {
+    const normalized = this.normalizeTouchParams({
+      ...params,
+      market: params.market,
+      provider: params.provider,
+    });
+    const result = await this.chartIntradaySessionService.touchSession({
+      ...normalized,
+      runtimeOwnerId: this.instanceId,
+    });
+    await this.retainLocalUpstreamSession(result.session, "delta");
+
+    return this.buildTouchResult(result.session);
+  }
+
+  private async cleanupExpiredSessions(): Promise<void> {
+    const expiredResult = await this.chartIntradaySessionService.expireSessions(
+      this.sessionTtlMs,
+    );
+    const expiredUpstreamKeys = new Set<string>();
+    let directReleasedUpstreamCount = 0;
+    let directScheduledReleaseCount = 0;
+
+    for (const session of expiredResult.expiredSessions) {
+      this.localUpstreamStates.set(session.upstreamKey, {
+        upstreamKey: session.upstreamKey,
+        symbol: session.symbol,
+        provider: session.provider,
+        wsCapabilityType: session.wsCapabilityType,
+        clientId: session.clientId,
+      });
+      this.dropLocalUpstreamReference(session.upstreamKey, session.sessionId);
+      expiredUpstreamKeys.add(session.upstreamKey);
+    }
+    await Promise.allSettled(
+      expiredResult.idleUpstreamKeys.map((upstreamKey) =>
+        this.chartIntradaySessionService.deleteUpstream(upstreamKey),
+      ),
+    );
+    for (const upstreamKey of expiredUpstreamKeys) {
+      const result = await this.scheduleOrReleaseLocalUpstream(
+        upstreamKey,
+        "session_expired",
+      );
+      if (result.upstreamReleased) {
+        directReleasedUpstreamCount += 1;
+      } else if (result.graceExpiresAt) {
+        directScheduledReleaseCount += 1;
+      }
+    }
+
+    const reconciled = await this.reconcileLocalUpstreams(
+      "session_expired",
+      expiredUpstreamKeys,
+    );
+    if (
+      expiredResult.expiredSessions.length === 0 &&
+      reconciled.prunedSessionCount === 0 &&
+      reconciled.releasedUpstreamCount + directReleasedUpstreamCount === 0 &&
+      reconciled.scheduledReleaseCount + directScheduledReleaseCount === 0
+    ) {
+      return;
+    }
+
+    this.logger.log("分时会话清理完成", {
+      expiredSessionCount: expiredResult.expiredSessions.length,
+      prunedSessionCount: reconciled.prunedSessionCount,
+      releasedUpstreamCount:
+        reconciled.releasedUpstreamCount + directReleasedUpstreamCount,
+      scheduledReleaseCount:
+        reconciled.scheduledReleaseCount + directScheduledReleaseCount,
+    });
+  }
+
+  private async retainLocalUpstreamSession(
+    session: ChartIntradaySessionRecord,
+    operation: "snapshot" | "delta",
+  ): Promise<void> {
+    this.addLocalUpstreamReference(session);
     if (
       this.hasActiveSubscription(
-        clientId,
-        normalizedSymbol,
-        normalizedProvider,
-        wsCapabilityType,
+        session.clientId,
+        session.symbol,
+        session.provider,
+        session.wsCapabilityType,
       )
     ) {
       return;
     }
 
-    await this.streamReceiverService.subscribeStream(
-      {
-        symbols: [normalizedSymbol],
-        wsCapabilityType,
-        preferredProvider: normalizedProvider,
-      } as any,
-      clientId,
-      undefined,
-      { connectionAuthenticated: true },
-    );
-
-    this.logger.log("分时实时订阅已确保", {
-      symbol: normalizedSymbol,
-      provider: normalizedProvider,
-      wsCapabilityType,
-      clientId,
-    });
+    try {
+      await this.streamReceiverService.subscribeStream(
+        {
+          symbols: [session.symbol],
+          wsCapabilityType: session.wsCapabilityType,
+          preferredProvider: session.provider,
+        } as any,
+        session.clientId,
+        undefined,
+        { connectionAuthenticated: true },
+      );
+      this.logger.log("分时实时订阅已确保", {
+        symbol: session.symbol,
+        provider: session.provider,
+        wsCapabilityType: session.wsCapabilityType,
+        clientId: session.clientId,
+        operation,
+        instanceId: this.instanceId,
+      });
+    } catch (error: any) {
+      this.dropLocalUpstreamReference(session.upstreamKey, session.sessionId);
+      this.cleanupLocalUpstreamStateIfUnused(session.upstreamKey);
+      this.logger.warn("分时实时订阅确保失败", {
+        symbol: session.symbol,
+        provider: session.provider,
+        wsCapabilityType: session.wsCapabilityType,
+        clientId: session.clientId,
+        operation,
+        instanceId: this.instanceId,
+        error: error?.message,
+      });
+      throw error;
+    }
   }
 
-  async releaseRealtimeSubscription(
-    params: ReleaseRealtimeSubscriptionParams,
-  ): Promise<ReleaseRealtimeSubscriptionResult> {
-    const normalizedSymbol = this.normalizeSymbol(params.symbol);
-    const normalizedProvider = this.normalizeProvider(params.provider);
-    const wsCapabilityType = this.resolveRealtimeCapabilityByMarket(
-      params.market,
-    );
-    const leaseKey = this.buildLeaseKey(
-      normalizedProvider,
-      wsCapabilityType,
-      normalizedSymbol,
-    );
-    const clientId = this.buildInternalClientId(
-      normalizedProvider,
-      wsCapabilityType,
-      normalizedSymbol,
-    );
-    const existingLease = this.leases.get(leaseKey);
-    const hasActiveSubscription = this.hasActiveSubscription(
-      clientId,
-      normalizedSymbol,
-      normalizedProvider,
-      wsCapabilityType,
-    );
+  private async releaseLocalUpstreamReference(
+    session: ChartIntradaySessionRecord,
+    reason: "explicit_release" | "session_expired",
+  ): Promise<{ upstreamReleased: boolean; graceExpiresAt: string | null }> {
+    this.dropLocalUpstreamReference(session.upstreamKey, session.sessionId);
 
-    if (!existingLease && !hasActiveSubscription) {
+    if (this.hasLocalSessionReferences(session.upstreamKey)) {
       return {
-        released: false,
-        symbol: normalizedSymbol,
-        provider: normalizedProvider,
-        wsCapabilityType,
-        clientId,
+        upstreamReleased: false,
+        graceExpiresAt: null,
       };
     }
 
-    this.leases.delete(leaseKey);
-    await this.releaseLease(
-      existingLease || {
-        leaseKey,
-        clientId,
-        symbol: normalizedSymbol,
-        provider: normalizedProvider,
-        wsCapabilityType,
-        lastTouchedAt: Date.now(),
-      },
-      "explicit_release",
+    return this.scheduleOrReleaseLocalUpstream(session.upstreamKey, reason);
+  }
+
+  private async scheduleOrReleaseLocalUpstream(
+    upstreamKey: string,
+    reason: "explicit_release" | "session_expired",
+  ): Promise<{ upstreamReleased: boolean; graceExpiresAt: string | null }> {
+    if (!this.localUpstreamStates.has(upstreamKey)) {
+      return {
+        upstreamReleased: false,
+        graceExpiresAt: null,
+      };
+    }
+
+    if (this.releaseGraceMs <= 0) {
+      return {
+        upstreamReleased: await this.unsubscribeLocalUpstreamIfIdle(
+          upstreamKey,
+          reason,
+          false,
+        ),
+        graceExpiresAt: null,
+      };
+    }
+
+    const scheduled = this.scheduleLocalPendingRelease(
+      upstreamKey,
+      reason === "explicit_release" ? "grace_expired" : "session_expired",
     );
+    return {
+      upstreamReleased: false,
+      graceExpiresAt: scheduled,
+    };
+  }
+
+  private async reconcileLocalUpstreams(
+    reason: "session_expired",
+    skipUpstreamKeys: Set<string> = new Set<string>(),
+  ): Promise<{
+    prunedSessionCount: number;
+    releasedUpstreamCount: number;
+    scheduledReleaseCount: number;
+  }> {
+    let prunedSessionCount = 0;
+    let releasedUpstreamCount = 0;
+    let scheduledReleaseCount = 0;
+
+    for (const upstreamKey of this.localUpstreamStates.keys()) {
+      if (skipUpstreamKeys.has(upstreamKey)) {
+        continue;
+      }
+      const sessionIds =
+        this.localUpstreamSessionIds.get(upstreamKey) || new Set<string>();
+      for (const sessionId of Array.from(sessionIds)) {
+        const session = await this.chartIntradaySessionService.getSession(sessionId);
+        if (!session || this.isSessionOwnedByAnotherInstance(session)) {
+          sessionIds.delete(sessionId);
+          prunedSessionCount += 1;
+        }
+      }
+
+      if (sessionIds.size > 0) {
+        continue;
+      }
+
+      const result = await this.scheduleOrReleaseLocalUpstream(upstreamKey, reason);
+      if (result.upstreamReleased) {
+        releasedUpstreamCount += 1;
+        continue;
+      }
+      if (result.graceExpiresAt) {
+        scheduledReleaseCount += 1;
+      }
+    }
 
     return {
-      released: true,
-      symbol: normalizedSymbol,
-      provider: normalizedProvider,
-      wsCapabilityType,
-      clientId,
+      prunedSessionCount,
+      releasedUpstreamCount,
+      scheduledReleaseCount,
     };
+  }
+
+  private scheduleLocalPendingRelease(
+    upstreamKey: string,
+    reason: "grace_expired" | "session_expired",
+  ): string | null {
+    const existing = this.localPendingReleases.get(upstreamKey);
+    if (existing) {
+      return new Date(existing.expiresAtMs).toISOString();
+    }
+
+    const upstream = this.localUpstreamStates.get(upstreamKey);
+    if (!upstream) {
+      return null;
+    }
+
+    const expiresAtMs = Date.now() + this.releaseGraceMs;
+    const timer = setTimeout(() => {
+      void this.handleLocalPendingRelease(upstreamKey, expiresAtMs, reason);
+    }, this.releaseGraceMs);
+    this.localPendingReleases.set(upstreamKey, {
+      timer,
+      expiresAtMs,
+    });
+    return new Date(expiresAtMs).toISOString();
+  }
+
+  private async handleLocalPendingRelease(
+    upstreamKey: string,
+    expectedExpiresAtMs: number,
+    reason: "grace_expired" | "session_expired",
+  ): Promise<void> {
+    const pending = this.localPendingReleases.get(upstreamKey);
+    if (!pending || pending.expiresAtMs !== expectedExpiresAtMs) {
+      return;
+    }
+
+    try {
+      await this.unsubscribeLocalUpstreamIfIdle(upstreamKey, reason, false);
+    } finally {
+      const latest = this.localPendingReleases.get(upstreamKey);
+      if (latest?.expiresAtMs === expectedExpiresAtMs) {
+        clearTimeout(latest.timer);
+        this.localPendingReleases.delete(upstreamKey);
+      }
+    }
+  }
+
+  private clearLocalPendingRelease(upstreamKey: string): void {
+    const pending = this.localPendingReleases.get(upstreamKey);
+    if (!pending) {
+      return;
+    }
+    clearTimeout(pending.timer);
+    this.localPendingReleases.delete(upstreamKey);
+  }
+
+  private clearAllLocalPendingReleases(): void {
+    for (const pending of this.localPendingReleases.values()) {
+      clearTimeout(pending.timer);
+    }
+    this.localPendingReleases.clear();
+  }
+
+  private async unsubscribeLocalUpstreamIfIdle(
+    upstreamKey: string,
+    reason:
+      | "explicit_release"
+      | "grace_expired"
+      | "session_expired"
+      | "module_destroy",
+    throwOnError: boolean,
+  ): Promise<boolean> {
+    if (this.hasLocalSessionReferences(upstreamKey)) {
+      return false;
+    }
+
+    const upstream = this.localUpstreamStates.get(upstreamKey);
+    if (!upstream) {
+      return false;
+    }
+
+    this.clearLocalPendingRelease(upstreamKey);
+
+    if (
+      !this.hasActiveSubscription(
+        upstream.clientId,
+        upstream.symbol,
+        upstream.provider,
+        upstream.wsCapabilityType,
+      )
+    ) {
+      this.cleanupLocalUpstreamState(upstreamKey);
+      return false;
+    }
+
+    const unsubscribed = await this.unsubscribeUpstream(
+      upstream,
+      reason,
+      throwOnError,
+    );
+    if (unsubscribed) {
+      this.cleanupLocalUpstreamState(upstreamKey);
+    }
+    return unsubscribed;
+  }
+
+  private async unsubscribeUpstream(
+    upstream: {
+      symbol: string;
+      provider: string;
+      wsCapabilityType: string;
+      clientId: string;
+    },
+    reason:
+      | "explicit_release"
+      | "grace_expired"
+      | "session_expired"
+      | "module_destroy",
+    throwOnError: boolean,
+  ): Promise<boolean> {
+    try {
+      await this.streamReceiverService.unsubscribeStream(
+        {
+          symbols: [upstream.symbol],
+          wsCapabilityType: upstream.wsCapabilityType,
+        } as any,
+        upstream.clientId,
+      );
+      this.logger.log("分时实时订阅已释放", {
+        symbol: upstream.symbol,
+        provider: upstream.provider,
+        wsCapabilityType: upstream.wsCapabilityType,
+        clientId: upstream.clientId,
+        reason,
+        instanceId: this.instanceId,
+      });
+      return true;
+    } catch (error: any) {
+      this.logger.warn("分时实时订阅释放失败", {
+        symbol: upstream.symbol,
+        provider: upstream.provider,
+        wsCapabilityType: upstream.wsCapabilityType,
+        clientId: upstream.clientId,
+        reason,
+        instanceId: this.instanceId,
+        error: error?.message,
+      });
+      if (throwOnError) {
+        throw error;
+      }
+      return false;
+    }
   }
 
   private hasActiveSubscription(
@@ -214,54 +656,86 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     );
   }
 
-  private async cleanupExpiredLeases(): Promise<void> {
-    const now = Date.now();
-    const expiredLeases = Array.from(this.leases.values()).filter(
-      (lease) => now - lease.lastTouchedAt >= this.leaseTtlMs,
-    );
+  private addLocalUpstreamReference(session: ChartIntradaySessionRecord): void {
+    let sessionIds = this.localUpstreamSessionIds.get(session.upstreamKey);
+    if (!sessionIds) {
+      sessionIds = new Set<string>();
+      this.localUpstreamSessionIds.set(session.upstreamKey, sessionIds);
+    }
+    sessionIds.add(session.sessionId);
+    this.localUpstreamStates.set(session.upstreamKey, {
+      upstreamKey: session.upstreamKey,
+      symbol: session.symbol,
+      provider: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      clientId: session.clientId,
+    });
+    this.clearLocalPendingRelease(session.upstreamKey);
+  }
 
-    if (expiredLeases.length === 0) {
+  private dropLocalUpstreamReference(
+    upstreamKey: string,
+    sessionId: string,
+  ): void {
+    const sessionIds = this.localUpstreamSessionIds.get(upstreamKey);
+    if (!sessionIds) {
       return;
     }
 
-    for (const lease of expiredLeases) {
-      await this.releaseLease(lease, "lease_expired");
-      this.leases.delete(lease.leaseKey);
+    sessionIds.delete(sessionId);
+    if (sessionIds.size === 0) {
+      this.localUpstreamSessionIds.delete(upstreamKey);
     }
   }
 
-  private async releaseLease(
-    lease: InternalRealtimeLease,
-    reason: "lease_expired" | "module_destroy" | "explicit_release",
-  ): Promise<void> {
-    try {
-      await this.streamReceiverService.unsubscribeStream(
-        {
-          symbols: [lease.symbol],
-          wsCapabilityType: lease.wsCapabilityType,
-        } as any,
-        lease.clientId,
-      );
-      this.logger.log("分时实时订阅已释放", {
-        symbol: lease.symbol,
-        provider: lease.provider,
-        wsCapabilityType: lease.wsCapabilityType,
-        clientId: lease.clientId,
-        reason,
-      });
-    } catch (error: any) {
-      this.logger.warn("分时实时订阅释放失败", {
-        symbol: lease.symbol,
-        provider: lease.provider,
-        wsCapabilityType: lease.wsCapabilityType,
-        clientId: lease.clientId,
-        reason,
-        error: error?.message,
-      });
-      if (reason === "explicit_release") {
-        throw error;
-      }
+  private cleanupLocalUpstreamStateIfUnused(upstreamKey: string): void {
+    if (this.hasLocalSessionReferences(upstreamKey)) {
+      return;
     }
+    const upstream = this.localUpstreamStates.get(upstreamKey);
+    if (!upstream) {
+      return;
+    }
+    if (
+      this.hasActiveSubscription(
+        upstream.clientId,
+        upstream.symbol,
+        upstream.provider,
+        upstream.wsCapabilityType,
+      )
+    ) {
+      return;
+    }
+    this.cleanupLocalUpstreamState(upstreamKey);
+  }
+
+  private cleanupLocalUpstreamState(upstreamKey: string): void {
+    this.clearLocalPendingRelease(upstreamKey);
+    this.localUpstreamSessionIds.delete(upstreamKey);
+    this.localUpstreamStates.delete(upstreamKey);
+  }
+
+  private hasLocalSessionReferences(upstreamKey: string): boolean {
+    return (this.localUpstreamSessionIds.get(upstreamKey)?.size || 0) > 0;
+  }
+
+  private isSessionOwnedByAnotherInstance(
+    session: ChartIntradaySessionRecord,
+  ): boolean {
+    return !!session.runtimeOwnerId && session.runtimeOwnerId !== this.instanceId;
+  }
+
+  private buildTouchResult(
+    session: ChartIntradaySessionRecord,
+  ): TouchRealtimeSessionResult {
+    return {
+      sessionId: session.sessionId,
+      symbol: session.symbol,
+      market: session.market,
+      provider: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      clientId: session.clientId,
+    };
   }
 
   private resolveRealtimeCapabilityByMarket(market: string): string {
@@ -282,14 +756,6 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     }
   }
 
-  private buildLeaseKey(
-    provider: string,
-    wsCapabilityType: string,
-    symbol: string,
-  ): string {
-    return `${provider}:${wsCapabilityType}:${symbol}`;
-  }
-
   private buildInternalClientId(
     provider: string,
     wsCapabilityType: string,
@@ -298,16 +764,39 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     return `chart-intraday:auto:${provider}:${wsCapabilityType}:${symbol}`;
   }
 
-  private normalizeSymbol(symbol: string): string {
-    return String(symbol || "")
-      .trim()
-      .toUpperCase();
+  private normalizeRealtimeParams<T extends UpstreamRealtimeParams>(
+    params: T,
+  ): T {
+    return {
+      ...params,
+      symbol: String(params.symbol || "")
+        .trim()
+        .toUpperCase(),
+      market: String(params.market || "")
+        .trim()
+        .toUpperCase(),
+      provider: String(params.provider || "")
+        .trim()
+        .toLowerCase(),
+    };
   }
 
-  private normalizeProvider(provider: string): string {
-    return String(provider || "")
-      .trim()
-      .toLowerCase();
+  private normalizeTouchParams(
+    params: TouchRealtimeSessionParams | ChartIntradayWsSessionContext,
+  ): TouchRealtimeSessionParams {
+    const normalizedBase = this.normalizeRealtimeParams({
+      symbol: params.symbol,
+      market: params.market || "",
+      provider: params.provider || "",
+    });
+
+    return {
+      sessionId: String(params.sessionId || "").trim(),
+      symbol: normalizedBase.symbol,
+      market: normalizedBase.market,
+      provider: normalizedBase.provider,
+      ownerIdentity: String(params.ownerIdentity || "").trim(),
+    };
   }
 
   private parseInteger(

@@ -177,6 +177,7 @@ export class WsAuthGuard implements CanActivate {
       client.data.apiKey = {
         id: apiKeyDoc._id,
         name: (apiKeyDoc as any).appKey,
+        userId: (apiKeyDoc as any).userId,
         permissions: Array.from(permissions as any),
         authType: "apikey",
       };

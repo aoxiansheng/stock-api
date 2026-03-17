@@ -1,14 +1,21 @@
 import { Injectable } from "@nestjs/common";
 
 import { ChartIntradayReadService } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
-import { IntradayDeltaRequestDto } from "../dto/intraday-delta-request.dto";
-import { IntradayReleaseRequestDto } from "../dto/intraday-release-request.dto";
 import {
   IntradayDeltaResponseDto,
   IntradayReleaseResponseDto,
   IntradaySnapshotResponseDto,
 } from "../dto/intraday-line-response.dto";
-import { IntradaySnapshotRequestDto } from "../dto/intraday-snapshot-request.dto";
+
+type ReceiverIntradaySnapshotRequest = Parameters<
+  ChartIntradayReadService["getSnapshot"]
+>[0];
+type ReceiverIntradayDeltaRequest = Parameters<
+  ChartIntradayReadService["getDelta"]
+>[0];
+type ReceiverIntradayReleaseRequest = Parameters<
+  ChartIntradayReadService["releaseRealtimeSubscription"]
+>[0];
 
 @Injectable()
 export class ReceiverChartIntradayService {
@@ -17,19 +24,19 @@ export class ReceiverChartIntradayService {
   ) {}
 
   getSnapshot(
-    request: IntradaySnapshotRequestDto,
+    request: ReceiverIntradaySnapshotRequest,
   ): Promise<IntradaySnapshotResponseDto> {
     return this.chartIntradayReadService.getSnapshot(request);
   }
 
   getDelta(
-    request: IntradayDeltaRequestDto,
+    request: ReceiverIntradayDeltaRequest,
   ): Promise<IntradayDeltaResponseDto> {
     return this.chartIntradayReadService.getDelta(request);
   }
 
   releaseRealtimeSubscription(
-    request: IntradayReleaseRequestDto,
+    request: ReceiverIntradayReleaseRequest,
   ): Promise<IntradayReleaseResponseDto> {
     return this.chartIntradayReadService.releaseRealtimeSubscription(request);
   }

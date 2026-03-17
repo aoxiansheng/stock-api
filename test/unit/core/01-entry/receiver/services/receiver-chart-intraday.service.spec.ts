@@ -1,6 +1,9 @@
 import { ReceiverChartIntradayService } from "@core/01-entry/receiver/services/receiver-chart-intraday.service";
 
 describe("ReceiverChartIntradayService", () => {
+  const VALID_SESSION_ID =
+    "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a";
+
   it("snapshot: 应透传到 ChartIntradayReadService.getSnapshot", async () => {
     const chartIntradayReadService = {
       getSnapshot: jest.fn().mockResolvedValue({ ok: true }),
@@ -11,7 +14,11 @@ describe("ReceiverChartIntradayService", () => {
       chartIntradayReadService as any,
     );
 
-    const request = { symbol: "AAPL.US", market: "US" };
+    const request = {
+      symbol: "AAPL.US",
+      market: "US",
+      ownerIdentity: "user:user-1",
+    };
     const result = await service.getSnapshot(request as any);
 
     expect(chartIntradayReadService.getSnapshot).toHaveBeenCalledTimes(1);
@@ -29,7 +36,12 @@ describe("ReceiverChartIntradayService", () => {
       chartIntradayReadService as any,
     );
 
-    const request = { symbol: "AAPL.US", cursor: "cursor" };
+    const request = {
+      symbol: "AAPL.US",
+      cursor: "cursor",
+      sessionId: VALID_SESSION_ID,
+      ownerIdentity: "anonymous:chart-intraday",
+    };
     const result = await service.getDelta(request as any);
 
     expect(chartIntradayReadService.getDelta).toHaveBeenCalledTimes(1);
@@ -47,7 +59,13 @@ describe("ReceiverChartIntradayService", () => {
       chartIntradayReadService as any,
     );
 
-    const request = { symbol: "AAPL.US", market: "US", provider: "infoway" };
+    const request = {
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      sessionId: VALID_SESSION_ID,
+      ownerIdentity: "anonymous:chart-intraday",
+    };
     const result = await service.releaseRealtimeSubscription(request as any);
 
     expect(

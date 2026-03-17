@@ -1,6 +1,13 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from "class-validator";
 
 import { IsValidSymbolFormat } from "@common/validators/symbol-format.validator";
 import {
@@ -9,10 +16,13 @@ import {
 } from "./data-request.dto";
 import type { IntradayReleaseRequestDto as IntradayReleaseRequestDtoContract } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 
+const INTRADAY_SESSION_ID_MAX_LENGTH = 64;
+const INTRADAY_SESSION_ID_PATTERN = /^chart_session_[a-z0-9]+$/;
+
 export class IntradayReleaseRequestDto
   implements IntradayReleaseRequestDtoContract
 {
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: "标的代码（单标的）",
     example: "AAPL.US",
   })
@@ -45,4 +55,19 @@ export class IntradayReleaseRequestDto
   @IsOptional()
   @IsString()
   provider?: string;
+
+  @ApiProperty({
+    description: `snapshot 返回的分时图会话ID（最长 ${INTRADAY_SESSION_ID_MAX_LENGTH} 字符）`,
+    example: "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a",
+  })
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(INTRADAY_SESSION_ID_MAX_LENGTH, {
+    message: `sessionId 长度不能超过 ${INTRADAY_SESSION_ID_MAX_LENGTH} 字符`,
+  })
+  @Matches(INTRADAY_SESSION_ID_PATTERN, {
+    message: "sessionId 格式不正确，必须以 chart_session_ 开头且仅包含小写字母与数字",
+  })
+  sessionId: string;
 }

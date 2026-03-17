@@ -12,6 +12,8 @@ import { SymbolMapperModule } from "../../../00-prepare/symbol-mapper/module/sym
 import { SymbolTransformerModule } from "../../../02-processing/symbol-transformer/module/symbol-transformer.module";
 import { TransformerModule } from "../../../02-processing/transformer/module/data-transformer.module";
 import { StreamDataFetcherModule } from "../../../03-fetching/stream-data-fetcher/module/stream-data-fetcher.module";
+import { ChartIntradaySessionModule } from "../../../03-fetching/chart-intraday/module/chart-intraday-session.module";
+import { ChartIntradayStreamSubscriptionService } from "../../../03-fetching/chart-intraday/services/chart-intraday-stream-subscription.service";
 import { ProvidersV2Module } from "@providersv2";
 
 /**
@@ -31,6 +33,7 @@ import { WsAuthGuard } from "../guards/ws-auth.guard";
     SymbolTransformerModule, // 🔥 符号转换执行服务
     TransformerModule, // 数据转换服务 (统一处理所有转换)
     StreamDataFetcherModule, // 🚀 流数据获取、缓存、客户端管理
+    ChartIntradaySessionModule,
     MarketInferenceModule,
   ],
   providers: [
@@ -40,6 +43,7 @@ import { WsAuthGuard } from "../guards/ws-auth.guard";
     StreamConnectionManagerService,
     StreamDataProcessorService,
     StreamDataValidator,
+    ChartIntradayStreamSubscriptionService,
     WsAuthGuard
   ],
   exports: [
@@ -48,7 +52,8 @@ import { WsAuthGuard } from "../guards/ws-auth.guard";
     StreamBatchProcessorService,
     StreamConnectionManagerService,
     StreamDataProcessorService,
-    StreamDataValidator
+    StreamDataValidator,
+    ChartIntradayStreamSubscriptionService,
   ],
 })
 export class StreamReceiverModule {}

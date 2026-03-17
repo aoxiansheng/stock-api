@@ -287,6 +287,7 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
             normalizedDataArray,
             standardizedSymbols,
             shouldTraceIntraday,
+            provider,
           ),
         this.processingConfig.cacheTimeoutMs,
         "数据缓存",
@@ -410,6 +411,20 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
 
   private buildSymbolCacheKey(symbol: string): string {
     return this.buildCanonicalSymbolKey(symbol, "quote:");
+  }
+
+  private buildProviderScopedSymbolCacheKey(
+    symbol: string,
+    provider?: string,
+  ): string {
+    const canonicalSymbol = this.toCanonicalSymbol(symbol);
+    const normalizedProvider = String(provider || "")
+      .trim()
+      .toLowerCase();
+    if (!canonicalSymbol || !normalizedProvider) {
+      return "";
+    }
+    return `quote:${normalizedProvider}:${canonicalSymbol}`;
   }
 
   private getStandardSymbolIdentityProvidersConfig(): string {
@@ -549,6 +564,7 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
     transformedData: any[],
     symbols: string[],
     shouldTraceIntraday: boolean,
+    provider?: string,
   ): Promise<void> {
     try {
       const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
@@ -589,6 +605,9 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
       }
 
       const bySymbol = new Map<string, any[]>();
+      const normalizedProvider = String(provider || "")
+        .trim()
+        .toLowerCase();
       for (const item of canonicalizedData) {
         const canonicalSymbol = item.symbol;
         const point = {
@@ -598,24 +617,30 @@ export class StreamDataProcessorService implements OnModuleDestroy, IDataProcess
           t: item.timestamp,
           c: item?.change,
           cp: item?.changePercent,
+          ...(normalizedProvider ? { provider: normalizedProvider } : {}),
         };
         if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
         bySymbol.get(canonicalSymbol)!.push(point);
       }
 
       for (const [canonicalSymbol, points] of bySymbol.entries()) {
-        const key = this.buildSymbolCacheKey(canonicalSymbol);
-        if (!key) continue;
+        const cacheKeys = [
+          this.buildSymbolCacheKey(canonicalSymbol),
+          this.buildProviderScopedSymbolCacheKey(canonicalSymbol, provider),
+        ].filter(Boolean);
+        if (cacheKeys.length === 0) continue;
         try {
-          await streamCache.setData(key, points, "hot");
-          if (shouldTraceIntraday) {
-            this.logger.debug("分时诊断: 写入流缓存", {
-              symbol: canonicalSymbol,
-              key,
-              pointsCount: points.length,
-              firstTimestamp: points[0]?.t ?? null,
-              lastTimestamp: points[points.length - 1]?.t ?? null,
-            });
+          for (const key of cacheKeys) {
+            await streamCache.setData(key, points, "hot");
+            if (shouldTraceIntraday) {
+              this.logger.debug("分时诊断: 写入流缓存", {
+                symbol: canonicalSymbol,
+                key,
+                pointsCount: points.length,
+                firstTimestamp: points[0]?.t ?? null,
+                lastTimestamp: points[points.length - 1]?.t ?? null,
+              });
+            }
           }
         } catch (err) {
           this.logger.warn("写入StreamCache失败(忽略)", {

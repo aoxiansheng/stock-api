@@ -3,11 +3,14 @@ import {
   Controller,
   HttpCode,
   Post,
+  Req,
   ValidationPipe,
 } from "@nestjs/common";
 import { ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Request as ExpressRequest } from "express";
 
 import { ReadAccess } from "@authv2/decorators";
+import { buildChartIntradayOwnerIdentity } from "@core/03-fetching/chart-intraday/services/chart-intraday-session.service";
 import {
   ApiKeyAuthResponses,
   ApiSuccessResponse,
@@ -30,6 +33,36 @@ export class ReceiverChartIntradayController {
     private readonly receiverChartIntradayService: ReceiverChartIntradayService,
   ) {}
 
+  private buildSnapshotRequest(
+    body: IntradaySnapshotRequestDto,
+    req: ExpressRequest & { user?: any },
+  ): Parameters<ReceiverChartIntradayService["getSnapshot"]>[0] {
+    return {
+      ...body,
+      ownerIdentity: buildChartIntradayOwnerIdentity(req?.user),
+    };
+  }
+
+  private buildDeltaRequest(
+    body: IntradayDeltaRequestDto,
+    req: ExpressRequest & { user?: any },
+  ): Parameters<ReceiverChartIntradayService["getDelta"]>[0] {
+    return {
+      ...body,
+      ownerIdentity: buildChartIntradayOwnerIdentity(req?.user),
+    };
+  }
+
+  private buildReleaseRequest(
+    body: IntradayReleaseRequestDto,
+    req: ExpressRequest & { user?: any },
+  ): Parameters<ReceiverChartIntradayService["releaseRealtimeSubscription"]>[0] {
+    return {
+      ...body,
+      ownerIdentity: buildChartIntradayOwnerIdentity(req?.user),
+    };
+  }
+
   @ReadAccess()
   @Post("snapshot")
   @HttpCode(200)
@@ -41,8 +74,13 @@ export class ReceiverChartIntradayController {
   })
   @ApiSuccessResponse({ type: IntradaySnapshotResponseDto })
   @ApiKeyAuthResponses()
-  getSnapshot(@Body(ValidationPipe) body: IntradaySnapshotRequestDto) {
-    return this.receiverChartIntradayService.getSnapshot(body);
+  getSnapshot(
+    @Body(ValidationPipe) body: IntradaySnapshotRequestDto,
+    @Req() req: ExpressRequest & { user?: any },
+  ) {
+    return this.receiverChartIntradayService.getSnapshot(
+      this.buildSnapshotRequest(body, req),
+    );
   }
 
   @ReadAccess()
@@ -55,8 +93,13 @@ export class ReceiverChartIntradayController {
   })
   @ApiSuccessResponse({ type: IntradayDeltaResponseDto })
   @ApiKeyAuthResponses()
-  getDelta(@Body(ValidationPipe) body: IntradayDeltaRequestDto) {
-    return this.receiverChartIntradayService.getDelta(body);
+  getDelta(
+    @Body(ValidationPipe) body: IntradayDeltaRequestDto,
+    @Req() req: ExpressRequest & { user?: any },
+  ) {
+    return this.receiverChartIntradayService.getDelta(
+      this.buildDeltaRequest(body, req),
+    );
   }
 
   @ReadAccess()
@@ -72,7 +115,10 @@ export class ReceiverChartIntradayController {
   @ApiKeyAuthResponses()
   releaseRealtimeSubscription(
     @Body(ValidationPipe) body: IntradayReleaseRequestDto,
+    @Req() req: ExpressRequest & { user?: any },
   ) {
-    return this.receiverChartIntradayService.releaseRealtimeSubscription(body);
+    return this.receiverChartIntradayService.releaseRealtimeSubscription(
+      this.buildReleaseRequest(body, req),
+    );
   }
 }

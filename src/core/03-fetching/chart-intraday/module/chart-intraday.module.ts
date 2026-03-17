@@ -8,6 +8,7 @@ import { BasicCacheModule } from "@core/05-caching/module/basic-cache";
 import { ProvidersV2Module } from "@providersv2";
 
 import { ChartIntradayCursorModule } from "./chart-intraday-cursor.module";
+import { ChartIntradaySessionModule } from "./chart-intraday-session.module";
 import { ChartIntradayReadService } from "../services/chart-intraday-read.service";
 import { ChartIntradayStreamSubscriptionService } from "../services/chart-intraday-stream-subscription.service";
 
@@ -20,8 +21,9 @@ import { ChartIntradayStreamSubscriptionService } from "../services/chart-intrad
     StreamDataFetcherModule,
     BasicCacheModule,
     ChartIntradayCursorModule,
+    ChartIntradaySessionModule,
   ],
-  providers: [ChartIntradayReadService, ChartIntradayStreamSubscriptionService],
+  providers: [ChartIntradayReadService],
   exports: [ChartIntradayReadService, ChartIntradayStreamSubscriptionService],
 })
 export class ChartIntradayModule {}

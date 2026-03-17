@@ -592,7 +592,11 @@ export class StreamBatchProcessorService
 
       // Step 5: 缓存数据
       const cacheStartTime = Date.now();
-      await this.pipelineCacheData(normalizedDataArray, standardizedSymbols);
+      await this.pipelineCacheData(
+        normalizedDataArray,
+        standardizedSymbols,
+        provider,
+      );
       const cacheDuration = Date.now() - cacheStartTime;
 
       // Step 6: 广播数据
@@ -719,6 +723,20 @@ export class StreamBatchProcessorService
 
   private buildSymbolCacheKey(symbol: string): string {
     return this.buildCanonicalSymbolKey(symbol, "quote:");
+  }
+
+  private buildProviderScopedSymbolCacheKey(
+    symbol: string,
+    provider?: string,
+  ): string {
+    const canonicalSymbol = this.toCanonicalSymbol(symbol);
+    const normalizedProvider = String(provider || "")
+      .trim()
+      .toLowerCase();
+    if (!canonicalSymbol || !normalizedProvider) {
+      return "";
+    }
+    return `quote:${normalizedProvider}:${canonicalSymbol}`;
   }
 
   private getStandardSymbolIdentityProvidersConfig(): string {
@@ -951,6 +969,7 @@ export class StreamBatchProcessorService
   private async pipelineCacheData(
     transformedData: any[],
     symbols: string[],
+    provider?: string,
   ): Promise<void> {
     try {
       const cacheEnabled = this.readBooleanConfig("STREAM_CACHE_ENABLED", true);
@@ -976,6 +995,9 @@ export class StreamBatchProcessorService
       }
 
       const bySymbol = new Map<string, any[]>();
+      const normalizedProvider = String(provider || "")
+        .trim()
+        .toLowerCase();
       for (const item of canonicalizedData) {
         const canonicalSymbol = item.symbol;
         const point = {
@@ -985,16 +1007,22 @@ export class StreamBatchProcessorService
           t: item.timestamp,
           c: item?.change,
           cp: item?.changePercent,
+          ...(normalizedProvider ? { provider: normalizedProvider } : {}),
         };
         if (!bySymbol.has(canonicalSymbol)) bySymbol.set(canonicalSymbol, []);
         bySymbol.get(canonicalSymbol)!.push(point);
       }
 
       for (const [canonicalSymbol, points] of bySymbol.entries()) {
-        const key = this.buildSymbolCacheKey(canonicalSymbol);
-        if (!key) continue;
+        const cacheKeys = [
+          this.buildSymbolCacheKey(canonicalSymbol),
+          this.buildProviderScopedSymbolCacheKey(canonicalSymbol, provider),
+        ].filter(Boolean);
+        if (cacheKeys.length === 0) continue;
         try {
-          await streamCache.setData(key, points, "hot");
+          for (const key of cacheKeys) {
+            await streamCache.setData(key, points, "hot");
+          }
         } catch (err) {
           this.logger.warn("写入StreamCache失败(忽略)", {
             symbol: canonicalSymbol,

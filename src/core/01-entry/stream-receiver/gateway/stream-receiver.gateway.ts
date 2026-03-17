@@ -12,6 +12,10 @@ import {
 import { UsePipes, ValidationPipe, Optional } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { createLogger } from "@common/logging/index";
+import {
+  buildChartIntradayOwnerIdentity,
+} from "@core/03-fetching/chart-intraday/services/chart-intraday-session.service";
+import { ChartIntradayStreamSubscriptionService } from "@core/03-fetching/chart-intraday/services/chart-intraday-stream-subscription.service";
 import { StreamReceiverService } from "../services/stream-receiver.service";
 import { StreamSubscribeDto, StreamUnsubscribeDto } from "../dto";
 import { Permission } from "@authv2/enums";
@@ -70,6 +74,7 @@ export class StreamReceiverGateway
 
   constructor(
     private readonly streamReceiverService: StreamReceiverService,
+    private readonly chartIntradayStreamSubscriptionService: ChartIntradayStreamSubscriptionService,
     @InjectModel('ApiKey') private readonly apiKeyModel: Model<ApiKeyDocument>,
     @Optional()
     private readonly streamRecoveryWorker?: StreamRecoveryWorkerService,
@@ -233,6 +238,9 @@ export class StreamReceiverGateway
       this.logger.debug("客户端断开连接，状态管理器将自动清理", {
         clientId: client.id,
       });
+      this.chartIntradayStreamSubscriptionService.unbindRealtimeClient(
+        client.id,
+      );
     } catch (error) {
       this.logger.error("清理客户端订阅失败", {
         clientId: client.id,
@@ -263,36 +271,143 @@ export class StreamReceiverGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: StreamSubscribeDto,
   ) {
+    let subscribeData: StreamSubscribeDto = data;
+    let subscriptionEstablished = false;
     try {
+      const ownerIdentity = buildChartIntradayOwnerIdentity({
+        userId: client.data?.apiKey?.userId,
+        appKey: client.data?.apiKey?.name,
+      });
+      let sessionBinding: {
+        sessionId: string;
+        symbol: string;
+        market: string;
+        provider: string;
+        wsCapabilityType: string;
+      } | null = null;
+
+      if (data.sessionId?.trim()) {
+        if (!Array.isArray(data.symbols) || data.symbols.length !== 1) {
+          throw new WsException(
+            "chart-intraday WS 订阅携带 sessionId 时必须且只能订阅一个 symbol",
+          );
+        }
+
+        try {
+          const touched =
+            await this.chartIntradayStreamSubscriptionService.validateWsSessionBinding(
+              {
+                sessionId: data.sessionId,
+                symbol: String(data.symbols[0] || "")
+                  .trim()
+                  .toUpperCase(),
+                provider: String(data.preferredProvider || "")
+                  .trim()
+                  .toLowerCase(),
+                ownerIdentity,
+              },
+            );
+
+          sessionBinding = {
+            sessionId: touched.sessionId,
+            symbol: touched.symbol,
+            market: touched.market,
+            provider: touched.provider,
+            wsCapabilityType: touched.wsCapabilityType,
+          };
+          subscribeData = {
+            sessionId: data.sessionId,
+            ...data,
+            symbols: [touched.symbol],
+            preferredProvider: touched.provider,
+            wsCapabilityType: touched.wsCapabilityType,
+          };
+        } catch (error) {
+          if (!this.isChartIntradaySessionConflictError(error)) {
+            throw error;
+          }
+          throw new WsException(
+            "chart-intraday sessionId 无效、已失效或与当前订阅上下文不匹配",
+          );
+        }
+      }
+
       // 连接级别认证已完成，直接使用已验证的信息
       this.logger.log("收到 WebSocket 订阅请求", {
         clientId: client.id,
-        symbols: data.symbols,
-        wsCapabilityType: data.wsCapabilityType,
+        symbols: subscribeData.symbols,
+        wsCapabilityType: subscribeData.wsCapabilityType,
         apiKeyName: client.data?.apiKey?.name || "未知",
       });
 
       // 执行订阅 - 通过Gateway直接广播
       await this.streamReceiverService.subscribeStream(
-        data,
+        subscribeData,
         client.id, // WebSocket客户端ID
         undefined,
         {
           connectionAuthenticated: client.data?.authenticated === true,
         },
       );
+      subscriptionEstablished = true;
+
+      if (sessionBinding) {
+        await this.chartIntradayStreamSubscriptionService.bindRealtimeClientToSession(
+          {
+            sessionId: sessionBinding.sessionId,
+            clientId: client.id,
+            symbol: sessionBinding.symbol,
+            market: sessionBinding.market,
+            provider: sessionBinding.provider,
+            ownerIdentity,
+          },
+        );
+      }
 
       // 注册客户端数据推送监听 - 通过Gateway事件系统
       this.logger.debug("客户端订阅已建立，通过Gateway广播推送数据", {
         clientId: client.id,
-        symbols: data.symbols,
-        wsCapabilityType: data.wsCapabilityType,
+        symbols: subscribeData.symbols,
+        wsCapabilityType: subscribeData.wsCapabilityType,
         message: "messageCallback功能已由Gateway广播替代",
       });
 
       // 发送订阅成功确认
-      client.emit("subscribe-ack", StreamResponses.subscribeSuccess(data.symbols, data.wsCapabilityType));
+      client.emit(
+        "subscribe-ack",
+        StreamResponses.subscribeSuccess(
+          subscribeData.symbols,
+          subscribeData.wsCapabilityType,
+        ),
+      );
     } catch (error) {
+      const rollbackError = subscriptionEstablished
+        ? await this.rollbackClientSubscription(client.id, subscribeData, error)
+        : null;
+      if (rollbackError) {
+        const fatalMessage =
+          "Subscription rollback failed; connection state is unsafe and will be closed";
+        this.logger.error("WebSocket 订阅回滚失败，连接将被关闭", {
+          clientId: client.id,
+          symbols: subscribeData.symbols,
+          wsCapabilityType: subscribeData.wsCapabilityType,
+          preferredProvider: subscribeData.preferredProvider,
+          originalError: this.resolveErrorMessage(error),
+          rollbackError: this.resolveErrorMessage(rollbackError),
+        });
+        client.emit(
+          "subscribe-error",
+          StreamResponses.subscribeError(
+            fatalMessage,
+            subscribeData.symbols || data?.symbols || [],
+          ),
+        );
+        if (typeof client.disconnect === "function") {
+          client.disconnect(true);
+        }
+        return;
+      }
+
       // 处理 WsException
       if (error instanceof WsException) {
         this.logger.warn("WebSocket 订阅验证失败", {
@@ -348,6 +463,7 @@ export class StreamReceiverGateway
 
       // 执行取消订阅 - ✅ Phase 3 - P2: 传递WebSocket客户端ID
       await this.streamReceiverService.unsubscribeStream(data, client.id);
+      await this.unbindChartIntradaySessions(client.id, data.symbols);
 
       // 发送取消订阅成功确认
       client.emit("unsubscribe-ack", StreamResponses.unsubscribeSuccess(data.symbols));
@@ -397,6 +513,9 @@ export class StreamReceiverGateway
    */
   @SubscribeMessage("ping")
   async handlePing(@ConnectedSocket() client: Socket) {
+    this.chartIntradayStreamSubscriptionService.touchRealtimeSessionsForClient(
+      client.id,
+    );
     client.emit("pong", {
       timestamp: Date.now(),
     });
@@ -599,6 +718,13 @@ export class StreamReceiverGateway
         };
       }
 
+      if (this.isApiKeyExpired(apiKeyDoc)) {
+        return {
+          success: false,
+          reason: "API Key expired",
+        };
+      }
+
       // 检查流权限：permissions 为空时直接拒绝
       const permissions = Array.isArray((apiKeyDoc as any).permissions)
         ? (apiKeyDoc as any).permissions
@@ -623,6 +749,7 @@ export class StreamReceiverGateway
       client.data.apiKey = {
         id: apiKeyDoc._id,
         name: (apiKeyDoc as any).appKey,
+        userId: (apiKeyDoc as any).userId,
         permissions: Array.from(permissions as any),
         authType: "apikey",
       };
@@ -639,6 +766,79 @@ export class StreamReceiverGateway
         reason: `Authentication error: ${error.message}`,
       };
     }
+  }
+
+  private async rollbackClientSubscription(
+    clientId: string,
+    subscribeData: StreamSubscribeDto,
+    originalError: unknown,
+  ): Promise<Error | null> {
+    try {
+      await this.streamReceiverService.unsubscribeStream(
+        {
+          symbols: subscribeData.symbols,
+          wsCapabilityType: subscribeData.wsCapabilityType,
+          preferredProvider: subscribeData.preferredProvider,
+        },
+        clientId,
+      );
+      return null;
+    } catch (rollbackError: any) {
+      this.logger.warn("WebSocket 订阅回滚失败", {
+        clientId,
+        symbols: subscribeData.symbols,
+        wsCapabilityType: subscribeData.wsCapabilityType,
+        preferredProvider: subscribeData.preferredProvider,
+        originalError:
+          originalError instanceof Error
+            ? originalError.message
+            : String(originalError),
+        rollbackError: rollbackError?.message,
+      });
+      return rollbackError instanceof Error
+        ? rollbackError
+        : new Error(String(rollbackError));
+    }
+  }
+
+  private isChartIntradaySessionConflictError(error: unknown): boolean {
+    const message = this.resolveErrorMessage(error);
+    return message === "UPSTREAM_NOT_FOUND" || message.startsWith("SESSION_");
+  }
+
+  private isApiKeyExpired(apiKeyDoc: ApiKeyDocument): boolean {
+    return !!apiKeyDoc.expiresAt && apiKeyDoc.expiresAt.getTime() < Date.now();
+  }
+
+  private resolveErrorMessage(error: unknown): string {
+    if (error instanceof WsException) {
+      const payload = error.getError();
+      return typeof payload === "string" ? payload : JSON.stringify(payload);
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  }
+
+  private async unbindChartIntradaySessions(
+    clientId: string,
+    symbols: string[],
+  ): Promise<void> {
+    const normalizedSymbols = symbols
+      .map((symbol) => String(symbol || "").trim().toUpperCase())
+      .filter(Boolean);
+
+    if (normalizedSymbols.length === 0) {
+      return;
+    }
+
+    await this.chartIntradayStreamSubscriptionService.unbindRealtimeClientSessions(
+      {
+        clientId,
+        symbols: normalizedSymbols,
+      },
+    );
   }
 
   /**

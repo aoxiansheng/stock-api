@@ -20,6 +20,8 @@ type CursorPayload = {
 
 describe("ChartIntradayReadService", () => {
   const DEFAULT_CURSOR_SECRET = "chart-intraday-test-secret";
+  const DEFAULT_SESSION_ID =
+    "chart_session_7b7f3e1c6cb84f1494f8f1b31580aa4a";
   const originalStandardSymbolIdentityProviders =
     process.env.STANDARD_SYMBOL_IDENTITY_PROVIDERS;
   const CURSOR_SECRET_ENV_KEYS = [
@@ -129,13 +131,30 @@ describe("ChartIntradayReadService", () => {
       getStreamDataCache: jest.fn().mockReturnValue(streamCache),
     };
     const chartIntradayStreamSubscriptionService = {
-      ensureRealtimeSubscription: jest.fn().mockResolvedValue(undefined),
-      releaseRealtimeSubscription: jest.fn().mockResolvedValue({
-        released: true,
+      openRealtimeSession: jest.fn().mockResolvedValue({
+        sessionId: DEFAULT_SESSION_ID,
         symbol: "AAPL.US",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
         clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+      }),
+      touchRealtimeSession: jest.fn().mockResolvedValue({
+        sessionId: DEFAULT_SESSION_ID,
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+        clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+      }),
+      releaseRealtimeSubscription: jest.fn().mockResolvedValue({
+        sessionReleased: true,
+        upstreamReleased: false,
+        symbol: "AAPL.US",
+        provider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+        clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+        activeSessionCount: 0,
+        graceExpiresAt: "2026-01-15T09:31:00.000Z",
       }),
     };
     const basicCacheService = {
@@ -302,13 +321,18 @@ describe("ChartIntradayReadService", () => {
     expect(result.metadata.deduplicatedPoints).toBe(1);
     expect(result.capability.supportsFullDay1sHistory).toBe(false);
     expect(result.sync.cursor).toBeTruthy();
+    expect(result.sync.sessionId).toBe(DEFAULT_SESSION_ID);
     expect(
-      chartIntradayStreamSubscriptionService.ensureRealtimeSubscription,
+      chartIntradayStreamSubscriptionService.openRealtimeSession,
     ).toHaveBeenCalledWith({
       symbol: "AAPL.US",
       market: "US",
       provider: "infoway",
+      ownerIdentity: "anonymous:chart-intraday",
     });
+    expect(
+      chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
+    ).not.toHaveBeenCalled();
   });
 
   it("snapshot: CRYPTO 裸 pair 未传 market 时应自动推断并路由到 GET_CRYPTO_HISTORY", async () => {
@@ -354,6 +378,29 @@ describe("ChartIntradayReadService", () => {
         }),
       }),
     );
+  });
+
+  it("snapshot: 上游实时订阅建立失败时应返回 503，且不回传假成功 session", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    chartIntradayStreamSubscriptionService.openRealtimeSession.mockRejectedValueOnce(
+      new Error("stream subscribe failed"),
+    );
+
+    await expect(
+      service.getSnapshot({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: BusinessException.name,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      }),
+    );
+    expect(
+      chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
+    ).not.toHaveBeenCalled();
   });
 
   it("snapshot: CRYPTO 当日历史锚点应使用当前 UTC 时间", async () => {
@@ -611,13 +658,14 @@ describe("ChartIntradayReadService", () => {
     );
   });
 
-  it("snapshot: provider 拉取失败时返回 503", async () => {
-    const { service, dataFetcherService } = createService();
+  it("snapshot: provider 拉取失败时应回滚已创建 session，并返回 503", async () => {
+    const { service, dataFetcherService, chartIntradayStreamSubscriptionService } =
+      createService();
     dataFetcherService.fetchRawData.mockRejectedValue(
       new Error("provider unavailable"),
     );
 
-    expect.assertions(1);
+    expect.assertions(2);
     try {
       await service.getSnapshot({
         symbol: "AAPL.US",
@@ -633,6 +681,15 @@ describe("ChartIntradayReadService", () => {
             (error as { status?: number }).status);
       expect(status).toBe(503);
     }
+    expect(
+      chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
+    ).toHaveBeenCalledWith({
+      sessionId: DEFAULT_SESSION_ID,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "anonymous:chart-intraday",
+    });
   });
 
   it("snapshot: 历史基线遇到可重试错误时应重试一次后成功", async () => {
@@ -672,8 +729,13 @@ describe("ChartIntradayReadService", () => {
     expect(result.line.points).toHaveLength(1);
   });
 
-  it("snapshot: 历史基线重试后仍失败时应直接返回失败", async () => {
-    const { service, dataFetcherService, streamCache } = createService();
+  it("snapshot: 历史基线重试后仍失败时应回滚已创建 session", async () => {
+    const {
+      service,
+      dataFetcherService,
+      streamCache,
+      chartIntradayStreamSubscriptionService,
+    } = createService();
     streamCache.getData.mockResolvedValue([]);
     dataFetcherService.fetchRawData.mockRejectedValue(
       createRetryableHistoryFetchError(),
@@ -695,6 +757,15 @@ describe("ChartIntradayReadService", () => {
       }),
     );
     expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(2);
+    expect(
+      chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
+    ).toHaveBeenCalledWith({
+      sessionId: DEFAULT_SESSION_ID,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "anonymous:chart-intraday",
+    });
   });
 
   it("snapshot: reference 命中缓存时应直接返回缓存值且不额外拉日线", async () => {
@@ -847,9 +918,6 @@ describe("ChartIntradayReadService", () => {
       streamCache,
     } = createService();
 
-    chartIntradayStreamSubscriptionService.ensureRealtimeSubscription.mockResolvedValue(
-      undefined,
-    );
     streamCache.getData.mockResolvedValue([]);
     dataFetcherService.fetchRawData
       .mockResolvedValueOnce({
@@ -930,6 +998,7 @@ describe("ChartIntradayReadService", () => {
 
     const first = await service.getDelta({
       symbol: "AAPL.US",
+      sessionId: DEFAULT_SESSION_ID,
       cursor: createSignedCursor({
         symbol: "AAPL.US",
         market: "US",
@@ -944,21 +1013,81 @@ describe("ChartIntradayReadService", () => {
     expect(first.delta.points[0].timestamp).toBe(new Date(t1).toISOString());
     expect(first.delta.hasMore).toBe(true);
     expect(
-      chartIntradayStreamSubscriptionService.ensureRealtimeSubscription,
+      chartIntradayStreamSubscriptionService.touchRealtimeSession,
     ).toHaveBeenCalledWith({
+      sessionId: DEFAULT_SESSION_ID,
       symbol: "AAPL.US",
       market: "US",
       provider: "infoway",
+      ownerIdentity: "anonymous:chart-intraday",
     });
 
     const second = await service.getDelta({
       symbol: "AAPL.US",
+      sessionId: DEFAULT_SESSION_ID,
       cursor: first.delta.nextCursor,
       limit: 10,
     });
 
     expect(second.delta.points).toHaveLength(2);
     expect(second.delta.hasMore).toBe(false);
+  });
+
+  it("delta: provider-scoped 缓存缺失时，只能从 legacy 中回收同 provider 的点", async () => {
+    const { service, streamCache } = createService();
+    const baseMs = Date.parse("2026-01-15T15:00:00.000Z");
+
+    streamCache.getData.mockImplementation(async (key: string) => {
+      if (key === "quote:infoway:AAPL.US") {
+        return [];
+      }
+      if (key === "quote:AAPL.US") {
+        return [
+          {
+            s: "AAPL.US",
+            t: baseMs + 1000,
+            p: 301.1,
+            v: 11,
+            provider: "longport",
+          },
+          {
+            s: "AAPL.US",
+            t: baseMs + 2000,
+            p: 301.2,
+            v: 22,
+            provider: "infoway",
+          },
+          { s: "AAPL.US", t: baseMs + 3000, p: 301.3, v: 33 },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.getDelta({
+      symbol: "AAPL.US",
+      sessionId: DEFAULT_SESSION_ID,
+      provider: "infoway",
+      cursor: createSignedCursor({
+        symbol: "AAPL.US",
+        market: "US",
+        tradingDay: "20260115",
+        provider: "infoway",
+        lastPointTimestamp: new Date(baseMs).toISOString(),
+      }),
+      limit: 10,
+    });
+
+    expect(streamCache.getData).toHaveBeenNthCalledWith(
+      1,
+      "quote:infoway:AAPL.US",
+    );
+    expect(streamCache.getData).toHaveBeenNthCalledWith(2, "quote:AAPL.US");
+    expect(result.delta.points).toHaveLength(1);
+    expect(result.delta.points[0]).toEqual({
+      timestamp: new Date(baseMs + 2000).toISOString(),
+      price: 301.2,
+      volume: 22,
+    });
   });
 
   it("delta: 同秒多笔实时点仅保留该秒最后一个点", async () => {
@@ -974,6 +1103,7 @@ describe("ChartIntradayReadService", () => {
 
     const result = await service.getDelta({
       symbol: "AAPL.US",
+      sessionId: DEFAULT_SESSION_ID,
       cursor: createSignedCursor({
         symbol: "AAPL.US",
         market: "US",
@@ -997,6 +1127,32 @@ describe("ChartIntradayReadService", () => {
     });
   });
 
+  it("delta: 上游实时订阅建立失败时应返回 503，而不是空增量成功", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    chartIntradayStreamSubscriptionService.touchRealtimeSession.mockRejectedValueOnce(
+      new Error("stream subscribe failed"),
+    );
+
+    await expect(
+      service.getDelta({
+        symbol: "AAPL.US",
+        sessionId: DEFAULT_SESSION_ID,
+        cursor: createSignedCursor({
+          symbol: "AAPL.US",
+          market: "US",
+          tradingDay: "20260115",
+          provider: "infoway",
+          lastPointTimestamp: "2026-01-15T15:00:00.000Z",
+        }),
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: BusinessException.name,
+        errorCode: BusinessErrorCode.EXTERNAL_SERVICE_UNAVAILABLE,
+      }),
+    );
+  });
+
   it("release: 应释放当前 symbol 的内部实时订阅", async () => {
     const { service, chartIntradayStreamSubscriptionService } = createService();
 
@@ -1004,22 +1160,28 @@ describe("ChartIntradayReadService", () => {
       symbol: "AAPL.US",
       market: "US",
       provider: "infoway",
+      sessionId: DEFAULT_SESSION_ID,
     });
 
     expect(
       chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
     ).toHaveBeenCalledWith({
+      sessionId: DEFAULT_SESSION_ID,
       symbol: "AAPL.US",
       market: "US",
       provider: "infoway",
+      ownerIdentity: "anonymous:chart-intraday",
     });
     expect(result).toEqual({
       release: {
-        released: true,
+        sessionReleased: true,
+        upstreamReleased: false,
         symbol: "AAPL.US",
         market: "US",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+        activeSessionCount: 0,
+        graceExpiresAt: "2026-01-15T09:31:00.000Z",
       },
     });
   });
@@ -1028,35 +1190,82 @@ describe("ChartIntradayReadService", () => {
     const { service, chartIntradayStreamSubscriptionService } = createService();
     chartIntradayStreamSubscriptionService.releaseRealtimeSubscription.mockResolvedValueOnce(
       {
-        released: true,
+        sessionReleased: true,
+        upstreamReleased: false,
         symbol: "BTCUSDT",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE,
         clientId: "chart-intraday:auto:infoway:stream-crypto-quote:BTCUSDT",
+        activeSessionCount: 0,
+        graceExpiresAt: null,
       },
     );
 
     const result = await service.releaseRealtimeSubscription({
       symbol: "BTCUSDT",
       provider: "infoway",
+      sessionId: DEFAULT_SESSION_ID,
     });
 
     expect(
       chartIntradayStreamSubscriptionService.releaseRealtimeSubscription,
     ).toHaveBeenCalledWith({
+      sessionId: DEFAULT_SESSION_ID,
       symbol: "BTCUSDT",
       market: "CRYPTO",
       provider: "infoway",
+      ownerIdentity: "anonymous:chart-intraday",
     });
     expect(result).toEqual({
       release: {
-        released: true,
+        sessionReleased: true,
+        upstreamReleased: false,
         symbol: "BTCUSDT",
         market: "CRYPTO",
         provider: "infoway",
         wsCapabilityType: CAPABILITY_NAMES.STREAM_CRYPTO_QUOTE,
+        activeSessionCount: 0,
+        graceExpiresAt: null,
       },
     });
+  });
+
+  it("release: session 冲突类错误应映射为 409 SESSION_CONFLICT", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    chartIntradayStreamSubscriptionService.releaseRealtimeSubscription.mockRejectedValueOnce(
+      new Error("SESSION_OWNER_MISMATCH"),
+    );
+
+    await expect(
+      service.releaseRealtimeSubscription({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        sessionId: DEFAULT_SESSION_ID,
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        name: BusinessException.name,
+        errorCode: BusinessErrorCode.RESOURCE_CONFLICT,
+      }),
+    );
+  });
+
+  it("release: 真实上游退订失败不应误报为 SESSION_CONFLICT", async () => {
+    const { service, chartIntradayStreamSubscriptionService } = createService();
+    const upstreamError = new Error("unsubscribe failed");
+    chartIntradayStreamSubscriptionService.releaseRealtimeSubscription.mockRejectedValueOnce(
+      upstreamError,
+    );
+
+    await expect(
+      service.releaseRealtimeSubscription({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+        sessionId: DEFAULT_SESSION_ID,
+      }),
+    ).rejects.toBe(upstreamError);
   });
 
   it("delta: cursor 与请求上下文不匹配时返回 CURSOR_EXPIRED", async () => {
@@ -1065,6 +1274,7 @@ describe("ChartIntradayReadService", () => {
     await expect(
       service.getDelta({
         symbol: "MSFT.US",
+        sessionId: DEFAULT_SESSION_ID,
         cursor: createSignedCursor({
           symbol: "AAPL.US",
           market: "US",
@@ -1089,6 +1299,7 @@ describe("ChartIntradayReadService", () => {
       await service.getDelta({
         symbol: "AAPL.US",
         market: "HK",
+        sessionId: DEFAULT_SESSION_ID,
         cursor: createSignedCursor({
           symbol: "AAPL.US",
           market: "US",
@@ -1113,6 +1324,7 @@ describe("ChartIntradayReadService", () => {
       service.getDelta({
         symbol: "AAPL.US",
         provider: "longport",
+        sessionId: DEFAULT_SESSION_ID,
         cursor: createSignedCursor({
           symbol: "AAPL.US",
           market: "US",
@@ -1147,6 +1359,7 @@ describe("ChartIntradayReadService", () => {
     await expect(
       service.getDelta({
         symbol: "AAPL.US",
+        sessionId: DEFAULT_SESSION_ID,
         cursor: tampered,
       }),
     ).rejects.toEqual(
@@ -1178,6 +1391,7 @@ describe("ChartIntradayReadService", () => {
       service.getDelta({
         symbol: "AAPL.US",
         market: "US",
+        sessionId: DEFAULT_SESSION_ID,
         cursor,
       }),
     ).rejects.toEqual(
@@ -1194,6 +1408,7 @@ describe("ChartIntradayReadService", () => {
     try {
       await service.getDelta({
         symbol: "AAPL.US",
+        sessionId: DEFAULT_SESSION_ID,
       } as any);
     } catch (error) {
       expect(error).toBeInstanceOf(BusinessException);
@@ -1208,6 +1423,7 @@ describe("ChartIntradayReadService", () => {
     try {
       await service.getDelta({
         symbol: "AAPL.US",
+        sessionId: DEFAULT_SESSION_ID,
         cursor: "a".repeat(4097),
       });
     } catch (error) {
@@ -1223,6 +1439,7 @@ describe("ChartIntradayReadService", () => {
     try {
       await service.getDelta({
         symbol: "AAPL.US",
+        sessionId: DEFAULT_SESSION_ID,
         since: new Date().toISOString(),
       } as any);
     } catch (error) {
@@ -1246,6 +1463,7 @@ describe("ChartIntradayReadService", () => {
 
     const result = await service.getDelta({
       symbol: "AAPL.US",
+      sessionId: DEFAULT_SESSION_ID,
       cursor: createSignedCursor({
         symbol: "AAPL.US",
         market: "US",

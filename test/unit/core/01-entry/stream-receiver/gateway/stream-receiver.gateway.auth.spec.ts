@@ -14,6 +14,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { PIPES_METADATA } from "@nestjs/common/constants";
 import { WsException } from "@nestjs/websockets";
 import * as bcrypt from "bcrypt";
+import { Permission } from "@authv2/enums";
 import { StreamUnsubscribeDto } from "@core/01-entry/stream-receiver/dto";
 import { StreamReceiverGateway } from "@core/01-entry/stream-receiver/gateway/stream-receiver.gateway";
 
@@ -34,15 +35,27 @@ describe("StreamReceiverGateway auth + unsubscribe validation", () => {
           : jest.fn().mockResolvedValue(options?.findOneExecResult),
       })),
     };
+    const chartIntradayStreamSubscriptionService = {
+      validateWsSessionBinding: jest.fn(),
+      bindRealtimeClientToSession: jest.fn(),
+      touchRealtimeSessionsForClient: jest.fn(),
+      unbindRealtimeClient: jest.fn(),
+    };
 
     const gateway = new StreamReceiverGateway(
       streamReceiverService as any,
+      chartIntradayStreamSubscriptionService as any,
       apiKeyModel as any,
       undefined,
       undefined,
     );
 
-    return { gateway, streamReceiverService, apiKeyModel };
+    return {
+      gateway,
+      streamReceiverService,
+      apiKeyModel,
+      chartIntradayStreamSubscriptionService,
+    };
   };
 
   const createClient = (authenticated?: boolean) =>
@@ -50,8 +63,9 @@ describe("StreamReceiverGateway auth + unsubscribe validation", () => {
       id: "client-1",
       data: {
         authenticated,
-        apiKey: { name: "test-key" },
+        apiKey: { name: "test-key", userId: "user-1" },
       },
+      disconnect: jest.fn(),
       emit: jest.fn(),
       handshake: {
         auth: { appKey: "app-key", accessToken: "access-token" },
@@ -152,6 +166,52 @@ describe("StreamReceiverGateway auth + unsubscribe validation", () => {
     expect(result).toEqual({
       success: false,
       reason: "Insufficient stream permissions",
+    });
+    expect(client.data.authenticated).toBe(false);
+  });
+
+  it("authenticateConnection: 成功认证时写入 userId，供 chart-intraday owner 统一使用", async () => {
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    const { gateway } = createGateway({
+      findOneExecResult: {
+        _id: "id",
+        appKey: "app-key",
+        userId: "user-1",
+        accessToken: "hashed-access-token",
+        permissions: [Permission.STREAM_READ],
+      },
+    });
+    const client = createClient(true);
+
+    const result = await (gateway as any).authenticateConnection(client);
+
+    expect(result.success).toBe(true);
+    expect(client.data.apiKey).toEqual(
+      expect.objectContaining({
+        name: "app-key",
+        userId: "user-1",
+      }),
+    );
+  });
+
+  it("authenticateConnection: API Key 过期时拒绝认证", async () => {
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    const { gateway } = createGateway({
+      findOneExecResult: {
+        _id: "id",
+        appKey: "app-key",
+        accessToken: "hashed-access-token",
+        expiresAt: new Date(Date.now() - 1_000),
+        permissions: [Permission.STREAM_READ],
+      },
+    });
+    const client = createClient(true);
+
+    const result = await (gateway as any).authenticateConnection(client);
+
+    expect(result).toEqual({
+      success: false,
+      reason: "API Key expired",
     });
     expect(client.data.authenticated).toBe(false);
   });
