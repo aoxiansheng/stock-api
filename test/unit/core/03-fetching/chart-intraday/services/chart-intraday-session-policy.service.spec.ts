@@ -14,6 +14,14 @@ describe("ChartIntradaySessionPolicyService", () => {
     };
   }
 
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("CN 午休应返回 paused", async () => {
     const { service, marketStatusService } = createService();
     marketStatusService.getMarketStatus.mockResolvedValue({
@@ -85,5 +93,19 @@ describe("ChartIntradaySessionPolicyService", () => {
     expect(result.mode).toBe("frozen");
     expect(result.reason).toBe("REQUESTED_TRADING_DAY_NOT_CURRENT");
     expect(marketStatusService.getMarketStatus).not.toHaveBeenCalled();
+  });
+
+  it("US 夏令时切换后，纽约时间仍应计算为切换日前一交易日", () => {
+    const { service } = createService();
+    jest.setSystemTime(new Date("2026-03-09T03:30:00.000Z"));
+
+    expect((service as any).resolveCurrentTradingDay("US")).toBe("20260308");
+  });
+
+  it("US 夏令时切换后跨过纽约午夜，应进入新的交易日", () => {
+    const { service } = createService();
+    jest.setSystemTime(new Date("2026-03-09T04:30:00.000Z"));
+
+    expect((service as any).resolveCurrentTradingDay("US")).toBe("20260309");
   });
 });

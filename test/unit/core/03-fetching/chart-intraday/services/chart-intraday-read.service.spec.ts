@@ -1761,7 +1761,7 @@ describe("ChartIntradayReadService", () => {
     expect(result.line.tradingDay).toBe("20260317");
   });
 
-  it("snapshot: frozen 模式命中前一交易日回退快照时应忽略并按请求日冷启动", async () => {
+  it("snapshot: frozen 模式未命中请求日冻结快照时应返回空快照降级且不回源", async () => {
     const {
       service,
       dataFetcherService,
@@ -1817,40 +1817,6 @@ describe("ChartIntradayReadService", () => {
         storedAt: "2026-03-14T16:00:00.000Z",
       },
     });
-    dataFetcherService.fetchRawData
-      .mockResolvedValueOnce({
-        data: [
-          {
-            symbol: "AAPL.US",
-            timestamp: "2026-03-17T15:59:59.000Z",
-            lastPrice: "101.20",
-            volume: "100",
-          },
-        ],
-        metadata: {
-          provider: "infoway",
-          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
-          processingTimeMs: 5,
-          symbolsProcessed: 1,
-        },
-      })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            symbol: "AAPL.US",
-            timestamp: "2026-03-17T14:30:00.000Z",
-            openPrice: "100.80",
-            closePrice: "101.20",
-            volume: "100",
-          },
-        ],
-        metadata: {
-          provider: "infoway",
-          capability: CAPABILITY_NAMES.GET_STOCK_HISTORY,
-          processingTimeMs: 5,
-          symbolsProcessed: 1,
-        },
-      });
 
     const result = await service.getSnapshot({
       symbol: "AAPL.US",
@@ -1859,24 +1825,65 @@ describe("ChartIntradayReadService", () => {
       provider: "infoway",
     });
 
-    expect(dataFetcherService.fetchRawData).toHaveBeenCalledTimes(2);
+    const decodedCursor = decodeCursor(result.sync.cursor);
+
+    expect(dataFetcherService.fetchRawData).not.toHaveBeenCalled();
     expect(
       chartIntradayStreamSubscriptionService.openPassiveOwnerLease,
     ).toHaveBeenCalledTimes(1);
+    expect(chartIntradayFrozenSnapshotService.writeSnapshot).not.toHaveBeenCalled();
     expect(result.metadata.runtimeMode).toBe("frozen");
     expect(result.metadata.frozenSnapshotHit).toBe(false);
     expect(result.metadata.frozenSnapshotFallback).toBe(false);
     expect(result.metadata.effectiveTradingDay).toBe("20260317");
-    expect(result.metadata.historyPoints).toBe(1);
+    expect(result.metadata.historyPoints).toBe(0);
     expect(result.metadata.realtimeMergedPoints).toBe(0);
+    expect(result.metadata.deduplicatedPoints).toBe(0);
     expect(result.line.tradingDay).toBe("20260317");
-    expect(result.line.points).toEqual([
-      {
-        timestamp: "2026-03-17T15:59:59.000Z",
-        price: 101.2,
-        volume: 100,
-      },
-    ]);
+    expect(result.line.points).toEqual([]);
+    expect(result.reference.status).toBe("unavailable");
+    expect(result.sync.lastPointTimestamp).toBe("2026-03-17T04:00:00.000Z");
+    expect(decodedCursor.lastPointTimestamp).toBe(result.sync.lastPointTimestamp);
+    expect(decodedCursor.tradingDay).toBe("20260317");
+  });
+
+  it("snapshot: paused 模式未命中请求日冻结快照时应返回空快照降级且不回源", async () => {
+    const {
+      service,
+      dataFetcherService,
+      streamCache,
+      chartIntradayFrozenSnapshotService,
+      chartIntradayRuntimeOrchestratorService,
+      chartIntradayStreamSubscriptionService,
+    } = createService();
+    chartIntradayRuntimeOrchestratorService.decideRuntime.mockResolvedValue({
+      mode: "paused",
+      reason: "LUNCH_BREAK",
+      market: "CN",
+      requestedTradingDay: "20260317",
+      currentTradingDay: "20260317",
+      marketStatus: "LUNCH_BREAK",
+      timezone: "Asia/Shanghai",
+      nextSessionStart: "2026-03-17T05:00:00.000Z",
+    });
+    chartIntradayFrozenSnapshotService.findSnapshot.mockResolvedValue(null);
+
+    const result = await service.getSnapshot({
+      symbol: "000001.SZ",
+      market: "SZ",
+      tradingDay: "20260317",
+      provider: "infoway",
+    });
+
+    expect(dataFetcherService.fetchRawData).not.toHaveBeenCalled();
+    expect(streamCache.getData).not.toHaveBeenCalled();
+    expect(
+      chartIntradayStreamSubscriptionService.openPassiveOwnerLease,
+    ).toHaveBeenCalledTimes(1);
+    expect(result.metadata.runtimeMode).toBe("paused");
+    expect(result.line.points).toEqual([]);
+    expect(result.reference.status).toBe("unavailable");
+    expect(result.sync.lastPointTimestamp).toBe("2026-03-16T16:00:00.000Z");
   });
 
   it("delta: paused 模式直接返回空增量且不读取实时缓存", async () => {
