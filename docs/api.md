@@ -277,8 +277,46 @@ HTTP 请求头（API Key）：
   }
 }
 ```
+- Response（非 `live` 且请求日冻结快照未命中时的空快照示例）
+```json
+{
+  "line": {
+    "symbol": "AAPL.US",
+    "market": "US",
+    "tradingDay": "20260317",
+    "granularity": "1s",
+    "points": []
+  },
+  "reference": {
+    "previousClosePrice": null,
+    "sessionOpenPrice": null,
+    "priceBase": "previous_close",
+    "marketSession": "regular",
+    "timezone": "America/New_York",
+    "status": "unavailable"
+  },
+  "sync": {
+    "cursor": "base64-signed-cursor",
+    "lastPointTimestamp": "2026-03-17T04:00:00.000Z",
+    "serverTime": "2026-03-17T04:00:01.120Z"
+  },
+  "metadata": {
+    "provider": "infoway",
+    "historyPoints": 0,
+    "realtimeMergedPoints": 0,
+    "deduplicatedPoints": 0,
+    "runtimeMode": "frozen",
+    "effectiveTradingDay": "20260317",
+    "frozenSnapshotHit": false,
+    "frozenSnapshotFallback": false
+  }
+}
+```
 - 说明：
   - `supportsFullDay1sHistory=false` 表示当前并非完整全日秒级历史回放。
+  - `paused / frozen` 模式不会发起新的上游历史基线拉取或参考价拉取；优先读取请求日冻结快照，未命中时允许返回空快照。
+  - 空快照是合法 `200` 响应：`line.points=[]`、`reference.status=unavailable`，用于明确表达“当前无可用请求日冻结快照，但请求上下文有效”。
+  - 空快照中的 `sync.lastPointTimestamp` 固定为“请求日市场时区 `00:00:00` 对应的 UTC 时间”；例如 `US 20260317 -> 2026-03-17T04:00:00.000Z`，`CN/SZ/HK` 会按各自市场时区换算。
   - `sync` 只需保存 `cursor/lastPointTimestamp/serverTime`；不再返回公开 `sessionId`。
   - `snapshot` 会为当前调用方自动创建或续用该标的的活跃租约，后续 `delta` / `release` 基于这份租约。
   - 公开 HTTP 协议不返回 `sessionId`；未显式携带 `sessionId` 的 `WS subscribe` 不会自动匹配或绑定该租约。
@@ -330,6 +368,7 @@ HTTP 请求头（API Key）：
   - `cursor` 缺字段、格式非法或签名不匹配时返回 `400 INVALID_ARGUMENT`。
   - 未提供 `cursor` 或传入已废弃的 `since` 参数时返回 `400 INVALID_ARGUMENT`。
   - 无新增点位时返回 `200` 且 `delta.points=[]`、`delta.hasMore=false`，并返回新的 `nextCursor`（`lastPointTimestamp` 回退为 `cursor.lastPointTimestamp`）。
+  - `paused / frozen` 模式下，`delta` 直接返回空增量，不会触发新的上游历史、参考价或实时订阅请求。
   - 典型错误：`400 INVALID_ARGUMENT`、`409 CURSOR_EXPIRED`、`409 LEASE_CONFLICT`、`503 PROVIDER_UNAVAILABLE`。
 
 ### `POST /api/v1/chart/intraday-line/release`

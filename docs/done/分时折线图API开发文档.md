@@ -1,6 +1,6 @@
 # 分时折线图 API 开发文档（租约语义版）
 
-更新时间：2026-03-17
+更新时间：2026-03-20
 
 ## 1. 背景与结论
 
@@ -108,7 +108,7 @@
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
     "serverTime": "2026-03-08T15:42:01.120Z"
   },
-  "metadata": {
+ "metadata": {
     "provider": "infoway",
     "historyPoints": 240,
     "realtimeMergedPoints": 12,
@@ -121,10 +121,50 @@
 }
 ```
 
+非 `live` 且请求日冻结快照未命中时，当前实现会返回合法空快照：
+
+```json
+{
+  "line": {
+    "symbol": "AAPL.US",
+    "market": "US",
+    "tradingDay": "20260317",
+    "granularity": "1s",
+    "points": []
+  },
+  "reference": {
+    "previousClosePrice": null,
+    "sessionOpenPrice": null,
+    "priceBase": "previous_close",
+    "marketSession": "regular",
+    "timezone": "America/New_York",
+    "status": "unavailable"
+  },
+  "sync": {
+    "cursor": "base64-signed-cursor",
+    "lastPointTimestamp": "2026-03-17T04:00:00.000Z",
+    "serverTime": "2026-03-17T04:00:01.120Z"
+  },
+  "metadata": {
+    "provider": "infoway",
+    "historyPoints": 0,
+    "realtimeMergedPoints": 0,
+    "deduplicatedPoints": 0,
+    "runtimeMode": "frozen",
+    "effectiveTradingDay": "20260317",
+    "frozenSnapshotHit": false,
+    "frozenSnapshotFallback": false
+  }
+}
+```
+
 说明：
 
 - 当前快照仍是 `1m` 历史基线 + 实时 `1s` 窗口
 - `supportsFullDay1sHistory=false` 时，不承诺完整全日秒级历史回放
+- `paused / frozen` 模式不会发起新的上游历史基线拉取或参考价拉取；优先读取请求日冻结快照，未命中时允许返回空快照
+- 空快照是合法 `200` 响应：`line.points=[]`、`reference.status=unavailable`，用于表达“请求上下文有效，但当前无可用请求日冻结快照”
+- 空快照中的 `sync.lastPointTimestamp` 固定为“请求日市场时区 `00:00:00` 对应的 UTC 时间”
 - `sync` 不再返回公开 `sessionId`
 - `snapshot` 会自动为当前调用方创建或续用该标的的活跃租约
 
@@ -174,7 +214,9 @@
 - 若 `cursor` 失效，返回 `409 CURSOR_EXPIRED`
 - 若 `cursor` 格式非法、缺字段或签名不匹配，返回 `400 INVALID_ARGUMENT`
 - `strictProviderConsistency=true` 时，若 `cursor.provider` 与请求 `provider` 不一致，返回 `409 CURSOR_EXPIRED`
-- 历史客户端即使仍传 `sessionId`，当前也不再作为标准校验前提
+- 无新增点位时返回 `200` 且 `delta.points=[]`、`delta.hasMore=false`，并返回新的 `nextCursor`
+- `paused / frozen` 模式下，`delta` 直接返回空增量，不会触发新的上游历史、参考价或实时订阅请求
+- HTTP 协议不再接受 `sessionId` 作为兼容输入；旧客户端若仍传该字段会被参数校验直接拒绝
 
 ### 3.3 WebSocket
 
@@ -194,12 +236,12 @@
 
 当前行为：
 
-- 当 `subscribe` 只订阅一个 `symbol` 且当前调用方已持有该标的的活跃租约时，服务端会自动匹配并绑定该租约
-- 若显式传入 `preferredProvider`，会按该 provider 精确匹配租约
-- 若未传 `preferredProvider`，当前实现会按“当前调用方 + symbol”查找；若命中多个 provider 的活跃租约，则按最近活跃租约回退
-- 因此推荐 `preferredProvider` 与最近一次 `snapshot` 使用的 provider 保持一致
-- 绑定成功后，应用层 `ping` 会续租当前 Socket 绑定的分时图租约
-- `sessionId` 仍保留为遗留兼容字段，但不再是标准接入方式
+- 未显式携带 `sessionId` 时，仅执行常规实时流订阅，不会自动匹配或绑定 chart-intraday 租约
+- `sessionId` 仅保留为遗留兼容字段；只有显式携带 `sessionId` 时才会尝试 chart-intraday WS 绑定
+- 显式携带 `sessionId` 时，`symbols` 必须且只能包含该租约对应的一个 `symbol`
+- `preferredProvider` 仍可作为常规流订阅的 provider 偏好；但它本身不会触发 chart-intraday 租约自动匹配
+- 只有已经绑定到分时图租约的 WS，应用层 `ping` 才会续租当前绑定租约
+- 因此当前公开标准协议仍以 `snapshot + delta + release` 为主，WS 绑定属于显式 `sessionId` 的兼容/内部路径
 
 事件载荷：
 
@@ -276,10 +318,10 @@
 ### 4.2 HTTP + WS
 
 1. 首次进入页面调用一次 `snapshot`
-2. 建立前端 WS，单 symbol 订阅，推荐带上 `preferredProvider`
-3. WS 正常时可暂停高频 `delta`，但需要持续发送应用层 `ping`
-4. WS 断开时恢复 `delta` 轮询补洞
-5. 页面退出或切换 `symbol` 时，先 `unsubscribe`，再 `release`
+2. 若仅订阅常规实时流，可建立前端 WS，单 symbol 订阅并按需携带 `preferredProvider`
+3. 未显式携带 `sessionId` 的 WS 不会自动绑定 chart-intraday 租约，因此 `delta` 仍是当前公开协议下的标准补洞与续租通道
+4. 只有遗留兼容/内部场景下显式传入 `sessionId` 成功绑定后，应用层 `ping` 才会续租该 WS 绑定的分时图租约
+5. 页面退出或切换 `symbol` 时，若启用了前端 WS，先 `unsubscribe`，再 `release`
 
 ## 5. 服务端实现要点
 
@@ -333,7 +375,7 @@
 - `src/core/03-fetching/chart-intraday/services/chart-intraday-session.service.ts`
 - `src/core/03-fetching/chart-intraday/services/chart-intraday-cursor.service.ts`
 
-WS 自动绑定：
+WS 绑定入口：
 
 - `src/core/01-entry/stream-receiver/gateway/stream-receiver.gateway.ts`
 
@@ -349,8 +391,9 @@ WS 自动绑定：
 
 兼容说明：
 
-- 历史客户端若在 `delta` / `release` / `subscribe` 中继续传 `sessionId`，当前走兼容路径
-- 新接入和新文档统一不再要求下游显式管理 `sessionId`
+- HTTP `delta` / `release` 已不再接受 `sessionId` 作为兼容输入
+- `subscribe` 中的 `sessionId` 仅保留为遗留兼容字段；未显式携带时不会自动绑定 chart-intraday 租约
+- 新接入统一不应再依赖公开 `sessionId` 语义
 
 ## 8. 验收要点
 
@@ -380,4 +423,5 @@ WS 自动绑定：
 - 在当前代码基础上保留内部 session 机制
 - 对外统一成“当前调用方租约”语义
 - 让不同用户共享上游而互不误伤
-- 让下游继续以 `snapshot + delta + release + 可选 WS` 的简单模型接入
+- 让下游继续以 `snapshot + delta + release + 可选常规 WS` 的简单模型接入
+- 将显式 `sessionId` 的 WS 绑定收敛为遗留兼容/内部路径，而不是公开标准接入方式

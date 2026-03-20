@@ -42,6 +42,8 @@
     "tool:bootstrap-apikey": "node scripts/tools/local-project/bootstrap-apikey.js --raw",
     "tool:test-jvquant-ws": "node scripts/tools/local-project/test-jvquant-ws.js",
     "tool:test-infoway-rest": "node scripts/tools/local-project/test-infoway-rest.js",
+    "tool:test-chart-intraday-api-contract": "node scripts/tools/local-project/test-chart-intraday-api-contract.js",
+    "tool:test-chart-intraday-snapshot-window": "node scripts/tools/local-project/test-chart-intraday-snapshot-window.js",
     "tool:verify-scripts": "node scripts/tools/verify-tool-scripts.js",
     "typecheck:file": "node scripts/tsc-single-file.js",
     "// ========== Knip 代码清理工具 ==========": "",

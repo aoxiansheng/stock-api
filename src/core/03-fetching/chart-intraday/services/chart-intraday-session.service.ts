@@ -818,11 +818,18 @@ return {1, next}
       return null;
     }
 
-    const sessionId = await this.basicCacheService.get<string>(
-      this.buildOwnerLeaseCacheKey(ownerIdentity, upstreamKey),
+    const ownerLeaseKey = this.buildOwnerLeaseCacheKey(
+      ownerIdentity,
+      upstreamKey,
     );
-    const normalizedSessionId = String(sessionId || "").trim();
+    const rawOwnerLease =
+      await this.readOwnerLeaseSessionIdRaw(ownerLeaseKey);
+    const normalizedSessionId =
+      this.normalizeOwnerLeaseSessionId(rawOwnerLease);
     if (!normalizedSessionId) {
+      if (rawOwnerLease !== null) {
+        await this.basicCacheService.del(ownerLeaseKey);
+      }
       return null;
     }
 
@@ -1125,11 +1132,22 @@ return {1, next}
   private async writeOwnerLease(
     session: ChartIntradaySessionRecord,
   ): Promise<void> {
-    await this.basicCacheService.set(
-      this.buildOwnerLeaseCacheKey(session.ownerIdentity, session.upstreamKey),
-      session.sessionId,
-      { ttlSeconds: this.recordTtlSeconds },
+    const ownerLeaseKey = this.buildOwnerLeaseCacheKey(
+      session.ownerIdentity,
+      session.upstreamKey,
     );
+    if (this.hasRedisRawOwnerLeaseSupport()) {
+      await this.redis.setex(
+        ownerLeaseKey,
+        this.recordTtlSeconds,
+        session.sessionId,
+      );
+      return;
+    }
+
+    await this.basicCacheService.set(ownerLeaseKey, session.sessionId, {
+      ttlSeconds: this.recordTtlSeconds,
+    });
   }
 
   private async deleteOwnerLease(
@@ -1144,7 +1162,9 @@ return {1, next}
       return;
     }
 
-    const sessionId = await this.basicCacheService.get<string>(cacheKey);
+    const sessionId = this.normalizeOwnerLeaseSessionId(
+      await this.readOwnerLeaseSessionIdRaw(cacheKey),
+    );
     if (
       sessionId &&
       String(sessionId).trim() &&
@@ -1253,6 +1273,54 @@ return {1, next}
       this.refreshUpstreamTtl(session.upstreamKey),
       this.writeOwnerLease(session),
     ]);
+  }
+
+  private async readOwnerLeaseSessionIdRaw(
+    cacheKey: string,
+  ): Promise<string | null> {
+    if (this.hasRedisRawOwnerLeaseSupport()) {
+      const raw = await this.redis.get(cacheKey);
+      return raw === null ? null : String(raw);
+    }
+
+    const raw = await this.basicCacheService.get<string>(cacheKey);
+    return raw === null ? null : String(raw);
+  }
+
+  private normalizeOwnerLeaseSessionId(
+    rawValue: string | null | undefined,
+  ): string | null {
+    const normalized = String(rawValue || "").trim();
+    if (!normalized) {
+      return null;
+    }
+
+    if (normalized.startsWith('"') && normalized.endsWith('"')) {
+      try {
+        const parsed = JSON.parse(normalized);
+        if (typeof parsed === "string" && parsed.trim()) {
+          return parsed.trim();
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    return normalized;
+  }
+
+  private hasRedisRawOwnerLeaseSupport(): this is this & {
+    redis: Redis & {
+      get(key: string): Promise<string | null>;
+      setex(key: string, seconds: number, value: string): Promise<unknown>;
+    };
+  } {
+    return Boolean(
+      this.redis &&
+        typeof (this.redis as Redis & { get?: unknown }).get === "function" &&
+        typeof (this.redis as Redis & { setex?: unknown }).setex ===
+          "function",
+    );
   }
 
   private async scanKeys(pattern: string): Promise<string[]> {

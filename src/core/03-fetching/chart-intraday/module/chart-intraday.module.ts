@@ -14,7 +14,6 @@ import { ChartIntradayFrozenSnapshotService } from "../services/chart-intraday-f
 import { ChartIntradayReadService } from "../services/chart-intraday-read.service";
 import { ChartIntradayRuntimeOrchestratorService } from "../services/chart-intraday-runtime-orchestrator.service";
 import { ChartIntradaySessionPolicyService } from "../services/chart-intraday-session-policy.service";
-import { ChartIntradayStreamSubscriptionService } from "../services/chart-intraday-stream-subscription.service";
 
 @Module({
   imports: [
@@ -34,6 +33,6 @@ import { ChartIntradayStreamSubscriptionService } from "../services/chart-intrad
     ChartIntradayFrozenSnapshotService,
     ChartIntradayRuntimeOrchestratorService,
   ],
-  exports: [ChartIntradayReadService, ChartIntradayStreamSubscriptionService],
+  exports: [ChartIntradayReadService],
 })
 export class ChartIntradayModule {}

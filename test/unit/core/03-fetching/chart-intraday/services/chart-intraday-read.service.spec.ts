@@ -1847,6 +1847,157 @@ describe("ChartIntradayReadService", () => {
     expect(decodedCursor.tradingDay).toBe("20260317");
   });
 
+  it("snapshot: frozen 模式遇到 fallback=true 且请求日匹配时仍应忽略快照并返回空快照", async () => {
+    const {
+      service,
+      dataFetcherService,
+      chartIntradayFrozenSnapshotService,
+      chartIntradayRuntimeOrchestratorService,
+      chartIntradayStreamSubscriptionService,
+    } = createService();
+    chartIntradayRuntimeOrchestratorService.decideRuntime.mockResolvedValue({
+      mode: "frozen",
+      reason: "MARKET_CLOSED",
+      market: "US",
+      requestedTradingDay: "20260317",
+      currentTradingDay: "20260317",
+      marketStatus: "MARKET_CLOSED",
+      timezone: "America/New_York",
+      nextSessionStart: null,
+    });
+    chartIntradayFrozenSnapshotService.findSnapshot.mockResolvedValue({
+      effectiveTradingDay: "20260317",
+      fallback: true,
+      payload: {
+        line: {
+          symbol: "AAPL.US",
+          market: "US",
+          tradingDay: "20260317",
+          granularity: "1s",
+          points: [
+            {
+              timestamp: "2026-03-17T15:59:59.000Z",
+              price: 101.2,
+              volume: 100,
+            },
+          ],
+        },
+        capability: {
+          snapshotBaseGranularity: "1m",
+          supportsFullDay1sHistory: false,
+        },
+        reference: {
+          previousClosePrice: 100.5,
+          sessionOpenPrice: 100.8,
+          priceBase: "previous_close",
+          marketSession: "regular",
+          timezone: "America/New_York",
+          status: "complete",
+        },
+        metadata: {
+          provider: "infoway",
+          historyPoints: 240,
+          realtimeMergedPoints: 0,
+          deduplicatedPoints: 0,
+        },
+        storedAt: "2026-03-17T16:00:00.000Z",
+      },
+    });
+
+    const result = await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      tradingDay: "20260317",
+      provider: "infoway",
+    });
+
+    expect(dataFetcherService.fetchRawData).not.toHaveBeenCalled();
+    expect(
+      chartIntradayStreamSubscriptionService.openPassiveOwnerLease,
+    ).toHaveBeenCalledTimes(1);
+    expect(result.metadata.runtimeMode).toBe("frozen");
+    expect(result.metadata.frozenSnapshotHit).toBe(false);
+    expect(result.line.points).toEqual([]);
+    expect(result.reference.status).toBe("unavailable");
+    expect(result.sync.lastPointTimestamp).toBe("2026-03-17T04:00:00.000Z");
+  });
+
+  it("snapshot: frozen 模式遇到 effectiveTradingDay 不匹配且 fallback=false 时仍应忽略快照并返回空快照", async () => {
+    const {
+      service,
+      dataFetcherService,
+      chartIntradayFrozenSnapshotService,
+      chartIntradayRuntimeOrchestratorService,
+      chartIntradayStreamSubscriptionService,
+    } = createService();
+    chartIntradayRuntimeOrchestratorService.decideRuntime.mockResolvedValue({
+      mode: "frozen",
+      reason: "MARKET_CLOSED",
+      market: "US",
+      requestedTradingDay: "20260317",
+      currentTradingDay: "20260317",
+      marketStatus: "MARKET_CLOSED",
+      timezone: "America/New_York",
+      nextSessionStart: null,
+    });
+    chartIntradayFrozenSnapshotService.findSnapshot.mockResolvedValue({
+      effectiveTradingDay: "20260316",
+      fallback: false,
+      payload: {
+        line: {
+          symbol: "AAPL.US",
+          market: "US",
+          tradingDay: "20260316",
+          granularity: "1s",
+          points: [
+            {
+              timestamp: "2026-03-16T15:59:59.000Z",
+              price: 99.9,
+              volume: 88,
+            },
+          ],
+        },
+        capability: {
+          snapshotBaseGranularity: "1m",
+          supportsFullDay1sHistory: false,
+        },
+        reference: {
+          previousClosePrice: 99.1,
+          sessionOpenPrice: 99.5,
+          priceBase: "previous_close",
+          marketSession: "regular",
+          timezone: "America/New_York",
+          status: "complete",
+        },
+        metadata: {
+          provider: "infoway",
+          historyPoints: 240,
+          realtimeMergedPoints: 0,
+          deduplicatedPoints: 0,
+        },
+        storedAt: "2026-03-16T16:00:00.000Z",
+      },
+    });
+
+    const result = await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      tradingDay: "20260317",
+      provider: "infoway",
+    });
+
+    expect(dataFetcherService.fetchRawData).not.toHaveBeenCalled();
+    expect(
+      chartIntradayStreamSubscriptionService.openPassiveOwnerLease,
+    ).toHaveBeenCalledTimes(1);
+    expect(result.metadata.runtimeMode).toBe("frozen");
+    expect(result.metadata.frozenSnapshotHit).toBe(false);
+    expect(result.metadata.effectiveTradingDay).toBe("20260317");
+    expect(result.line.points).toEqual([]);
+    expect(result.reference.status).toBe("unavailable");
+    expect(result.sync.lastPointTimestamp).toBe("2026-03-17T04:00:00.000Z");
+  });
+
   it("snapshot: paused 模式未命中请求日冻结快照时应返回空快照降级且不回源", async () => {
     const {
       service,
@@ -1875,6 +2026,8 @@ describe("ChartIntradayReadService", () => {
       provider: "infoway",
     });
 
+    const decodedCursor = decodeCursor(result.sync.cursor);
+
     expect(dataFetcherService.fetchRawData).not.toHaveBeenCalled();
     expect(streamCache.getData).not.toHaveBeenCalled();
     expect(
@@ -1884,6 +2037,11 @@ describe("ChartIntradayReadService", () => {
     expect(result.line.points).toEqual([]);
     expect(result.reference.status).toBe("unavailable");
     expect(result.sync.lastPointTimestamp).toBe("2026-03-16T16:00:00.000Z");
+    expect(decodedCursor.symbol).toBe("000001.SZ");
+    expect(decodedCursor.market).toBe("SZ");
+    expect(decodedCursor.tradingDay).toBe("20260317");
+    expect(decodedCursor.provider).toBe("infoway");
+    expect(decodedCursor.lastPointTimestamp).toBe(result.sync.lastPointTimestamp);
   });
 
   it("delta: paused 模式直接返回空增量且不读取实时缓存", async () => {
@@ -1925,5 +2083,52 @@ describe("ChartIntradayReadService", () => {
     expect(result.delta.points).toEqual([]);
     expect(result.delta.hasMore).toBe(false);
     expect(result.delta.lastPointTimestamp).toBe("2026-03-17T03:29:59.000Z");
+  });
+
+  it("delta: frozen 模式应接受空 snapshot 的 cursor 并返回空增量且不读取实时缓存", async () => {
+    const {
+      service,
+      streamCache,
+      chartIntradayFrozenSnapshotService,
+      chartIntradayRuntimeOrchestratorService,
+      chartIntradayStreamSubscriptionService,
+    } = createService();
+    chartIntradayRuntimeOrchestratorService.decideRuntime.mockResolvedValue({
+      mode: "frozen",
+      reason: "MARKET_CLOSED",
+      market: "US",
+      requestedTradingDay: "20260317",
+      currentTradingDay: "20260317",
+      marketStatus: "MARKET_CLOSED",
+      timezone: "America/New_York",
+      nextSessionStart: null,
+    });
+    chartIntradayFrozenSnapshotService.findSnapshot.mockResolvedValue(null);
+
+    const snapshot = await service.getSnapshot({
+      symbol: "AAPL.US",
+      market: "US",
+      tradingDay: "20260317",
+      provider: "infoway",
+    });
+
+    const result = await service.getDelta({
+      symbol: "AAPL.US",
+      market: "US",
+      tradingDay: "20260317",
+      provider: "infoway",
+      cursor: snapshot.sync.cursor,
+    });
+
+    expect(
+      chartIntradayStreamSubscriptionService.openPassiveOwnerLease,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      chartIntradayStreamSubscriptionService.touchPassiveOwnerLease,
+    ).toHaveBeenCalledTimes(1);
+    expect(streamCache.getData).not.toHaveBeenCalled();
+    expect(result.delta.points).toEqual([]);
+    expect(result.delta.hasMore).toBe(false);
+    expect(result.delta.lastPointTimestamp).toBe(snapshot.sync.lastPointTimestamp);
   });
 });

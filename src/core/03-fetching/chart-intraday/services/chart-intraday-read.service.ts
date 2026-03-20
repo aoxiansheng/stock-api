@@ -274,33 +274,20 @@ export class ChartIntradayReadService {
           });
         }
 
-        const transformedSymbol = await this.resolveProviderSymbol(
-          resolved,
-          requestId,
-        );
-        const historyPoints = await this.fetchHistoryBaseline(
-          resolved,
-          transformedSymbol,
-          pointLimit,
-          requestId,
-        );
-        const reference = await this.fetchSnapshotReference(
-          resolved,
-          transformedSymbol,
-          requestId,
-        );
-        const merged = this.mergeAndNormalizePoints(historyPoints, [], pointLimit);
-        const response = this.buildColdStartSnapshotResponse({
+        this.logger.log("分时诊断: 非 live snapshot 未命中请求日冻结快照，返回空快照降级", {
+          symbol: resolved.symbol,
+          market: resolved.market,
+          tradingDay: resolved.tradingDay,
+          provider: resolved.provider,
+          runtimeMode: runtimeDecision.mode,
+          runtimeReason: runtimeDecision.reason,
+        });
+
+        return this.buildEmptySnapshotResponse({
           resolved,
           runtimeDecision,
           now,
-          merged,
-          reference,
-          historyPointsCount: historyPoints.length,
         });
-        await this.persistFrozenSnapshot(response);
-
-        return response;
       }
 
       const transformedSymbol = await this.resolveProviderSymbol(
@@ -636,28 +623,6 @@ export class ChartIntradayReadService {
     });
   }
 
-  private buildColdStartSnapshotResponse(params: {
-    resolved: ResolvedIntradayContext;
-    runtimeDecision: ChartIntradayRuntimeDecision;
-    now: Date;
-    merged: MergeResult;
-    reference: IntradaySnapshotReferenceDto;
-    historyPointsCount: number;
-  }): IntradaySnapshotResponseDto {
-    return this.buildSnapshotResponse({
-      resolved: params.resolved,
-      now: params.now,
-      merged: params.merged,
-      reference: params.reference,
-      historyPointsCount: params.historyPointsCount,
-      realtimePointsCount: 0,
-      runtimeMode: params.runtimeDecision.mode,
-      effectiveTradingDay: params.resolved.tradingDay,
-      frozenSnapshotHit: false,
-      frozenSnapshotFallback: false,
-    });
-  }
-
   private buildSnapshotResponse(params: {
     resolved: ResolvedIntradayContext;
     now: Date;
@@ -724,6 +689,62 @@ export class ChartIntradayReadService {
         effectiveTradingDay: params.effectiveTradingDay,
         frozenSnapshotHit: params.frozenSnapshotHit,
         frozenSnapshotFallback: params.frozenSnapshotFallback,
+      },
+    };
+  }
+
+  private buildEmptySnapshotResponse(params: {
+    resolved: ResolvedIntradayContext;
+    runtimeDecision: ChartIntradayRuntimeDecision;
+    now: Date;
+  }): IntradaySnapshotResponseDto {
+    const { resolved, runtimeDecision, now } = params;
+    const lastPointTimestamp = new Date(
+      this.resolveTradingDayStartTimestampMs(
+        resolved.tradingDay,
+        resolved.market,
+      ),
+    ).toISOString();
+
+    return {
+      line: {
+        symbol: resolved.symbol,
+        market: resolved.market,
+        tradingDay: resolved.tradingDay,
+        granularity: "1s",
+        points: [],
+      },
+      capability: {
+        snapshotBaseGranularity: "1m",
+        supportsFullDay1sHistory: false,
+      },
+      reference: this.buildSnapshotReference({
+        market: resolved.market,
+        previousClosePrice: null,
+        sessionOpenPrice: null,
+      }),
+      sync: {
+        cursor: this.encodeCursor({
+          v: 1,
+          symbol: resolved.symbol,
+          market: resolved.market,
+          tradingDay: resolved.tradingDay,
+          provider: resolved.provider,
+          lastPointTimestamp,
+          issuedAt: now.toISOString(),
+        }),
+        lastPointTimestamp,
+        serverTime: now.toISOString(),
+      },
+      metadata: {
+        provider: resolved.provider,
+        historyPoints: 0,
+        realtimeMergedPoints: 0,
+        deduplicatedPoints: 0,
+        runtimeMode: runtimeDecision.mode,
+        effectiveTradingDay: resolved.tradingDay,
+        frozenSnapshotHit: false,
+        frozenSnapshotFallback: false,
       },
     };
   }
