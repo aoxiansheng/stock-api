@@ -1,6 +1,6 @@
 # 分时折线图 API 开发文档（租约语义版）
 
-更新时间：2026-03-20
+更新时间：2026-03-21
 
 ## 1. 背景与结论
 
@@ -13,21 +13,21 @@
 
 - 输出 `1s` 粒度点序列
 - 首屏一次 `snapshot`
-- 后续通过 `delta` 和可选 `WS` 持续增量推进
+- 后续通过 WS 主推送持续增量，`delta` 作为断线补洞通道
 - 严禁每秒回拉全量历史
 
 本次方案的核心调整不是点位协议，而是资源模型：
 
 - 上游实时流是共享资源，按 `provider + wsCapabilityType + symbol` 聚合
-- 下游消费是“当前调用方在该标的上的租约”
+- 下游消费是"当前调用方在该标的上的租约"
 - 不再把 `sessionId` 暴露为公开协议的必需字段
 - 不同用户同时订阅同一 `symbol` 时，其中一个用户 `release` 不会影响其他用户
 
 结论：
 
-- 对外协议统一改为“用户租约”语义
+- 对外协议统一改为"用户租约"语义
 - 内部仍可保留 `sessionId` 作为实现细节、TTL 与兼容层
-- 新接入方只需要理解 `snapshot -> delta -> release`
+- 新接入方只需要理解 `snapshot -> WS -> delta(补洞) -> release`
 
 ## 2. 核心资源模型
 
@@ -48,8 +48,8 @@
 
 - 同一用户对同一 `symbol` 重复调用 `snapshot`，复用现有活跃租约
 - 不同用户订阅同一 `symbol` 时，共享上游但各自持有独立租约
-- `delta` 只续租“当前调用方自己的租约”
-- `release` 只释放“当前调用方自己的租约”
+- `delta` 只续租"当前调用方自己的租约"
+- `release` 只释放"当前调用方自己的租约"
 - 只有最后一个活跃租约结束后，系统才会在宽限期后尝试真正退上游
 
 ## 3. 对外接口设计
@@ -106,7 +106,12 @@
   "sync": {
     "cursor": "base64-signed-cursor",
     "lastPointTimestamp": "2026-03-08T15:42:00.000Z",
-    "serverTime": "2026-03-08T15:42:01.120Z"
+    "serverTime": "2026-03-08T15:42:01.120Z",
+    "realtime": {
+      "wsCapabilityType": "stream-stock-quote",
+      "event": "chart.intraday.point",
+      "preferredProvider": "infoway"
+    }
   },
  "metadata": {
     "provider": "infoway",
@@ -143,7 +148,8 @@
   "sync": {
     "cursor": "base64-signed-cursor",
     "lastPointTimestamp": "2026-03-17T04:00:00.000Z",
-    "serverTime": "2026-03-17T04:00:01.120Z"
+    "serverTime": "2026-03-17T04:00:01.120Z",
+    "realtime": null
   },
   "metadata": {
     "provider": "infoway",
@@ -163,9 +169,10 @@
 - 当前快照仍是 `1m` 历史基线 + 实时 `1s` 窗口
 - `supportsFullDay1sHistory=false` 时，不承诺完整全日秒级历史回放
 - `paused / frozen` 模式不会发起新的上游历史基线拉取或参考价拉取；优先读取请求日冻结快照，未命中时允许返回空快照
-- 空快照是合法 `200` 响应：`line.points=[]`、`reference.status=unavailable`，用于表达“请求上下文有效，但当前无可用请求日冻结快照”
-- 空快照中的 `sync.lastPointTimestamp` 固定为“请求日市场时区 `00:00:00` 对应的 UTC 时间”
+- 空快照是合法 `200` 响应：`line.points=[]`、`reference.status=unavailable`，用于表达"请求上下文有效，但当前无可用请求日冻结快照"
+- 空快照中的 `sync.lastPointTimestamp` 固定为"请求日市场时区 `00:00:00` 对应的 UTC 时间"
 - `sync` 不再返回公开 `sessionId`
+- `sync.realtime` 在 `metadata.runtimeMode === "live"` 时返回实时提示信息（`wsCapabilityType`、`event`、`preferredProvider`），前端据此建立 WS 订阅；非 `live` 模式时为 `null`，表示无需建立 WS
 - `snapshot` 会自动为当前调用方创建或续用该标的的活跃租约
 
 ### 3.2 Delta
@@ -209,7 +216,8 @@
 契约规则：
 
 - `cursor` 必传
-- `delta` 会自动续租“当前调用方 + 当前标的”的活跃租约
+- `delta` 的起点 cursor 优先使用"最近一次收到的 WS 事件里的 cursor"，其次使用 `snapshot` 返回的 cursor。注意：WS 事件中的 cursor 不含 `provider` 字段，因此使用 WS cursor 调 `delta` 时应保持 `strictProviderConsistency=false`（默认值），否则会因 provider 缺失返回 `409 CURSOR_EXPIRED`
+- `delta` 会自动续租"当前调用方 + 当前标的"的活跃租约
 - 若当前调用方不存在对应活跃租约，返回 `409 LEASE_CONFLICT`
 - 若 `cursor` 失效，返回 `409 CURSOR_EXPIRED`
 - 若 `cursor` 格式非法、缺字段或签名不匹配，返回 `400 INVALID_ARGUMENT`
@@ -221,10 +229,10 @@
 ### 3.3 WebSocket
 
 - 连接路径：`/api/v1/stream-receiver/connect`
-- 使用能力：`wsCapabilityType=stream-stock-quote`
+- 使用能力：`wsCapabilityType=stream-stock-quote`（或 `stream-crypto-quote`）
 - 分时领域事件：`chart.intraday.point`
 
-标准订阅方式：
+标准订阅方式（无需 `sessionId`）：
 
 ```json
 {
@@ -234,14 +242,15 @@
 }
 ```
 
+前端应从 `snapshot` 响应的 `sync.realtime` 中获取 `wsCapabilityType` 和 `preferredProvider`，而非硬编码。
+
 当前行为：
 
-- 未显式携带 `sessionId` 时，仅执行常规实时流订阅，不会自动匹配或绑定 chart-intraday 租约
-- `sessionId` 仅保留为遗留兼容字段；只有显式携带 `sessionId` 时才会尝试 chart-intraday WS 绑定
-- 显式携带 `sessionId` 时，`symbols` 必须且只能包含该租约对应的一个 `symbol`
-- `preferredProvider` 仍可作为常规流订阅的 provider 偏好；但它本身不会触发 chart-intraday 租约自动匹配
-- 只有已经绑定到分时图租约的 WS，应用层 `ping` 才会续租当前绑定租约
-- 因此当前公开标准协议仍以 `snapshot + delta + release` 为主，WS 绑定属于显式 `sessionId` 的兼容/内部路径
+- 未携带 `sessionId` 时，若满足分时图标准场景（单 symbol、已认证、请求显式携带 `preferredProvider`），服务端自动按 `ownerIdentity + symbol + provider` 查找 `snapshot` 建立的分时图租约，并将当前 WS client 绑定到该租约
+- 自动绑定成功后，应用层 `ping` 会续租当前绑定的分时图租约
+- 若 owner lease 未命中（如 `snapshot` 尚未调用、lease 已过期），静默降级为普通 stream 订阅，不报错
+- 若查找过程遇到系统异常（Redis 抖动等），同样降级为普通订阅，但以 `warn` 级别记录日志
+- 显式携带 `sessionId` 时仍保留遗留兼容路径，但新接入方不应使用
 
 事件载荷：
 
@@ -262,9 +271,9 @@
 
 边界：
 
-- `unsubscribe` 只负责“前端 Socket -> 我们的 WS 服务”
+- `unsubscribe` 只负责"前端 Socket -> 我们的 WS 服务"
 - 不会替代 `release`
-- 即使启用 WS，`delta` 仍建议作为补洞与恢复通道保留
+- WS 是分时图的主实时增量通道；`delta` 作为 WS 断线后的补洞通道保留
 
 ### 3.4 Release
 
@@ -300,9 +309,9 @@
 
 语义边界：
 
-- `release` 释放的是“当前调用方自己的租约”
+- `release` 释放的是"当前调用方自己的租约"
 - 不负责替当前前端 WebSocket 连接执行 `unsubscribe`
-- 若还有其他活跃租约，`upstreamReleased=false`
+- `upstreamReleased` 反映的是共享上游是否被真正退订：只有当前调用方是最后一个活跃消费者、且上游退订实际执行成功时才为 `true`；若仍有其他活跃租约、进入宽限期等待、或上游退订未实际执行，均为 `false`
 - 若当前调用方本来就没有活跃租约，幂等返回 `leaseReleased=false`、`reason=ALREADY_RELEASED`
 
 ## 4. 客户端接入时序
@@ -315,24 +324,26 @@
 4. 遇到 `CURSOR_EXPIRED` 或 `LEASE_CONFLICT` 时重新拉取 `snapshot`
 5. 页面退出或切换 `symbol` 时调用 `release`
 
-### 4.2 HTTP + WS
+### 4.2 HTTP + WS（标准推荐）
 
 1. 首次进入页面调用一次 `snapshot`
-2. 若仅订阅常规实时流，可建立前端 WS，单 symbol 订阅并按需携带 `preferredProvider`
-3. 未显式携带 `sessionId` 的 WS 不会自动绑定 chart-intraday 租约，因此 `delta` 仍是当前公开协议下的标准补洞与续租通道
-4. 只有遗留兼容/内部场景下显式传入 `sessionId` 成功绑定后，应用层 `ping` 才会续租该 WS 绑定的分时图租约
-5. 页面退出或切换 `symbol` 时，若启用了前端 WS，先 `unsubscribe`，再 `release`
+2. 从 `snapshot` 响应的 `sync.realtime` 获取 `wsCapabilityType` 和 `preferredProvider`
+3. 建立前端 WS，使用 `subscribe({ symbols: [symbol], wsCapabilityType, preferredProvider })` 订阅（无需传 `sessionId`）
+4. 服务端自动按 owner lease 绑定 WS client 到分时图租约，`ping` 自动续租
+5. WS 作为主增量通道持续接收 `chart.intraday.point`，每次更新本地 `cursor`
+6. WS 断线后重连，用最近 `cursor` 调 `delta` 补洞，补齐后继续消费 WS
+7. 页面退出或切换 `symbol` 时，先 `unsubscribe`，再 `release`
 
 ## 5. 服务端实现要点
 
 ### 5.1 为什么不公开 `sessionId`
 
-原因不是“不能做”，而是“没有必要让下游感知”：
+原因不是"不能做"，而是"没有必要让下游感知"：
 
 - 同一用户对同一 `symbol` 的真实业务前提就是只消费一份分时图
 - 公开 `sessionId` 会强制下游同步 API 变更
 - 公开 `sessionId` 会把内部锁、TTL、实现细节暴露给外部
-- 对外真正需要的只是“我现在是否持有这个标的的租约”
+- 对外真正需要的只是"我现在是否持有这个标的的租约"
 
 ### 5.2 为什么仍保留内部 `sessionId`
 
@@ -392,7 +403,7 @@ WS 绑定入口：
 兼容说明：
 
 - HTTP `delta` / `release` 已不再接受 `sessionId` 作为兼容输入
-- `subscribe` 中的 `sessionId` 仅保留为遗留兼容字段；未显式携带时不会自动绑定 chart-intraday 租约
+- WS `subscribe` 中的 `sessionId` 仅保留为遗留兼容字段；标准接入方式为 `subscribe(symbol + preferredProvider)`，服务端自动按 owner lease 绑定
 - 新接入统一不应再依赖公开 `sessionId` 语义
 
 ## 8. 验收要点
@@ -418,10 +429,13 @@ WS 绑定入口：
 
 ## 9. 结论
 
-本次落地不是回退到“没有 session 的旧实现”，也不是继续把 `sessionId` 扩散到公开 API，而是：
+本次落地不是回退到"没有 session 的旧实现"，也不是继续把 `sessionId` 扩散到公开 API，而是：
 
 - 在当前代码基础上保留内部 session 机制
-- 对外统一成“当前调用方租约”语义
+- 对外统一成"当前调用方租约"语义
 - 让不同用户共享上游而互不误伤
-- 让下游继续以 `snapshot + delta + release + 可选常规 WS` 的简单模型接入
-- 将显式 `sessionId` 的 WS 绑定收敛为遗留兼容/内部路径，而不是公开标准接入方式
+- 让下游以 `snapshot + WS + delta(补洞) + release` 的标准模型接入
+- WS 无需 `sessionId` 即可自动绑定分时图租约，成为主实时增量通道
+- `snapshot` 通过 `sync.realtime` 直接引导前端建立 WS 订阅
+- `delta` 收敛为 WS 断线后的补洞通道
+- `release` 的 `upstreamReleased` 准确反映共享上游是否被真正退订

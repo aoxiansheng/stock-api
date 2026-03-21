@@ -127,6 +127,9 @@ export class StreamClientStateManager implements OnModuleDestroy {
   // 符号到客户端的反向映射 - 用于快速查找哪些客户端订阅了某个符号
   private readonly symbolToClients = new Map<string, Set<string>>();
 
+  // provider+capability+symbol 到客户端的反向映射 - 用于精确控制上游订阅引用计数
+  private readonly upstreamToClients = new Map<string, Set<string>>();
+
   // 提供商到客户端的映射
   private readonly providerToClients = new Map<string, Set<string>>();
 
@@ -227,12 +230,12 @@ export class StreamClientStateManager implements OnModuleDestroy {
       if (!clientSub!.symbols.has(symbol)) {
         clientSub!.symbols.add(symbol);
         newSymbols.push(symbol);
-
-        // 更新符号到客户端的映射
-        if (!this.symbolToClients.has(symbol)) {
-          this.symbolToClients.set(symbol, new Set());
-        }
-        this.symbolToClients.get(symbol)!.add(clientId);
+        this.addClientToSubscriptionIndexes(
+          clientId,
+          symbol,
+          providerName,
+          wsCapabilityType,
+        );
       }
     });
 
@@ -291,15 +294,12 @@ export class StreamClientStateManager implements OnModuleDestroy {
         if (clientSub.symbols.has(symbol)) {
           clientSub.symbols.delete(symbol);
           removedSymbols.push(symbol);
-
-          // 更新符号到客户端的映射
-          const symbolClients = this.symbolToClients.get(symbol);
-          if (symbolClients) {
-            symbolClients.delete(clientId);
-            if (symbolClients.size === 0) {
-              this.symbolToClients.delete(symbol);
-            }
-          }
+          this.removeClientFromSubscriptionIndexes(
+            clientId,
+            symbol,
+            clientSub.providerName,
+            clientSub.wsCapabilityType,
+          );
         }
       });
 
@@ -340,6 +340,17 @@ export class StreamClientStateManager implements OnModuleDestroy {
 
   getClientCountForSymbol(symbol: string): number {
     const clients = this.symbolToClients.get(symbol);
+    return clients ? clients.size : 0;
+  }
+
+  getClientCountForUpstream(
+    provider: string,
+    capability: string,
+    symbol: string,
+  ): number {
+    const clients = this.upstreamToClients.get(
+      this.buildUpstreamSubscriptionKey(provider, capability, symbol),
+    );
     return clients ? clients.size : 0;
   }
 
@@ -424,14 +435,36 @@ export class StreamClientStateManager implements OnModuleDestroy {
 
     // 更新符号集合
     if (action === "subscribed") {
-      symbols.forEach((symbol) => clientSub.symbols.add(symbol));
+      symbols.forEach((symbol) => {
+        if (clientSub.symbols.has(symbol)) {
+          return;
+        }
+        clientSub.symbols.add(symbol);
+        this.addClientToSubscriptionIndexes(
+          connectionId,
+          symbol,
+          clientSub.providerName,
+          clientSub.wsCapabilityType,
+        );
+      });
       this.logger.debug("客户端订阅状态已更新（添加）", {
         connectionId,
         addedSymbols: symbols,
         totalSymbols: clientSub.symbols.size,
       });
     } else {
-      symbols.forEach((symbol) => clientSub.symbols.delete(symbol));
+      symbols.forEach((symbol) => {
+        if (!clientSub.symbols.has(symbol)) {
+          return;
+        }
+        clientSub.symbols.delete(symbol);
+        this.removeClientFromSubscriptionIndexes(
+          connectionId,
+          symbol,
+          clientSub.providerName,
+          clientSub.wsCapabilityType,
+        );
+      });
       this.logger.debug("客户端订阅状态已更新（移除）", {
         connectionId,
         removedSymbols: symbols,
@@ -1102,6 +1135,7 @@ export class StreamClientStateManager implements OnModuleDestroy {
   clearAll(): void {
     this.clientSubscriptions.clear();
     this.symbolToClients.clear();
+    this.upstreamToClients.clear();
     this.providerToClients.clear();
     this.logger.log("所有客户端订阅已清理");
   }
@@ -1117,13 +1151,12 @@ export class StreamClientStateManager implements OnModuleDestroy {
 
     // 从符号映射中移除客户端
     clientSub.symbols.forEach((symbol) => {
-      const symbolClients = this.symbolToClients.get(symbol);
-      if (symbolClients) {
-        symbolClients.delete(clientId);
-        if (symbolClients.size === 0) {
-          this.symbolToClients.delete(symbol);
-        }
-      }
+      this.removeClientFromSubscriptionIndexes(
+        clientId,
+        symbol,
+        clientSub.providerName,
+        clientSub.wsCapabilityType,
+      );
     });
 
     // 从提供商映射中移除客户端
@@ -1137,6 +1170,64 @@ export class StreamClientStateManager implements OnModuleDestroy {
 
     // 移除客户端订阅
     this.clientSubscriptions.delete(clientId);
+  }
+
+  private addClientToSubscriptionIndexes(
+    clientId: string,
+    symbol: string,
+    providerName: string,
+    wsCapabilityType: string,
+  ): void {
+    if (!this.symbolToClients.has(symbol)) {
+      this.symbolToClients.set(symbol, new Set());
+    }
+    this.symbolToClients.get(symbol)!.add(clientId);
+
+    const upstreamKey = this.buildUpstreamSubscriptionKey(
+      providerName,
+      wsCapabilityType,
+      symbol,
+    );
+    if (!this.upstreamToClients.has(upstreamKey)) {
+      this.upstreamToClients.set(upstreamKey, new Set());
+    }
+    this.upstreamToClients.get(upstreamKey)!.add(clientId);
+  }
+
+  private removeClientFromSubscriptionIndexes(
+    clientId: string,
+    symbol: string,
+    providerName: string,
+    wsCapabilityType: string,
+  ): void {
+    const symbolClients = this.symbolToClients.get(symbol);
+    if (symbolClients) {
+      symbolClients.delete(clientId);
+      if (symbolClients.size === 0) {
+        this.symbolToClients.delete(symbol);
+      }
+    }
+
+    const upstreamKey = this.buildUpstreamSubscriptionKey(
+      providerName,
+      wsCapabilityType,
+      symbol,
+    );
+    const upstreamClients = this.upstreamToClients.get(upstreamKey);
+    if (upstreamClients) {
+      upstreamClients.delete(clientId);
+      if (upstreamClients.size === 0) {
+        this.upstreamToClients.delete(upstreamKey);
+      }
+    }
+  }
+
+  private buildUpstreamSubscriptionKey(
+    provider: string,
+    capability: string,
+    symbol: string,
+  ): string {
+    return `${String(provider || "").trim().toLowerCase()}:${String(capability || "").trim().toLowerCase()}:${String(symbol || "").trim().toUpperCase()}`;
   }
 
   /**

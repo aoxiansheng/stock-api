@@ -33,6 +33,16 @@ interface PendingLocalReleaseState {
   expiresAtMs: number;
 }
 
+interface UpstreamUnsubscribeOutcome {
+  upstreamReleased: boolean;
+  graceExpiresAt: string | null;
+}
+
+interface ScheduledUpstreamReleaseEntry {
+  symbol: string;
+  graceExpiresAt: string | null;
+}
+
 export interface OpenRealtimeSessionParams
   extends UpstreamRealtimeParams,
     ChartIntradayOwnerContext {}
@@ -840,14 +850,7 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
     }
 
     if (this.releaseGraceMs <= 0) {
-      return {
-        upstreamReleased: await this.unsubscribeLocalUpstreamIfIdle(
-          upstreamKey,
-          reason,
-          false,
-        ),
-        graceExpiresAt: null,
-      };
+      return this.unsubscribeLocalUpstreamIfIdle(upstreamKey, reason, false);
     }
 
     const scheduled = this.scheduleLocalPendingRelease(
@@ -982,14 +985,20 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       | "session_expired"
       | "module_destroy",
     throwOnError: boolean,
-  ): Promise<boolean> {
+  ): Promise<UpstreamUnsubscribeOutcome> {
     if (this.hasLocalSessionReferences(upstreamKey)) {
-      return false;
+      return {
+        upstreamReleased: false,
+        graceExpiresAt: null,
+      };
     }
 
     const upstream = this.localUpstreamStates.get(upstreamKey);
     if (!upstream) {
-      return false;
+      return {
+        upstreamReleased: false,
+        graceExpiresAt: null,
+      };
     }
 
     this.clearLocalPendingRelease(upstreamKey);
@@ -1003,28 +1012,32 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       )
     ) {
       this.cleanupLocalUpstreamState(upstreamKey);
-      return false;
+      return {
+        upstreamReleased: false,
+        graceExpiresAt: null,
+      };
     }
 
-    const unsubscribed = await this.unsubscribeUpstream(
+    const result = await this.unsubscribeUpstream(
       upstream,
       reason,
       throwOnError,
     );
-    if (unsubscribed) {
+    if (result.upstreamReleased) {
       this.cleanupLocalUpstreamState(upstreamKey);
       await this.chartIntradaySessionService.markUpstreamReleased(upstreamKey);
     }
-    return unsubscribed;
+    if (result.graceExpiresAt) {
+      await this.chartIntradaySessionService.markUpstreamReleaseScheduled(
+        upstreamKey,
+        result.graceExpiresAt,
+      );
+    }
+    return result;
   }
 
   private async unsubscribeUpstream(
-    upstream: {
-      symbol: string;
-      provider: string;
-      wsCapabilityType: string;
-      clientId: string;
-    },
+    upstream: LocalRealtimeUpstreamState,
     reason:
       | "explicit_release"
       | "grace_expired"
@@ -1032,14 +1045,29 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       | "module_destroy"
       | "runtime_pause",
     throwOnError: boolean,
-  ): Promise<boolean> {
+  ): Promise<UpstreamUnsubscribeOutcome> {
     try {
-      await this.streamReceiverService.unsubscribeStream(
+      const rawResult = (await this.streamReceiverService.unsubscribeStream(
         {
           symbols: [upstream.symbol],
           wsCapabilityType: upstream.wsCapabilityType,
         } as any,
         upstream.clientId,
+        {
+          onUpstreamReleased: async (releasedSymbols) => {
+            if (!releasedSymbols.includes(upstream.symbol)) {
+              return;
+            }
+            this.cleanupLocalUpstreamState(upstream.upstreamKey);
+            await this.chartIntradaySessionService.markUpstreamReleased(
+              upstream.upstreamKey,
+            );
+          },
+        },
+      )) as unknown;
+      const result = this.resolveUpstreamUnsubscribeOutcome(
+        rawResult,
+        upstream.symbol,
       );
       this.logger.log("分时实时订阅已释放", {
         symbol: upstream.symbol,
@@ -1048,8 +1076,10 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
         clientId: upstream.clientId,
         reason,
         instanceId: this.instanceId,
+        actuallyReleased: result.upstreamReleased,
+        graceExpiresAt: result.graceExpiresAt,
       });
-      return true;
+      return result;
     } catch (error: any) {
       this.logger.warn("分时实时订阅释放失败", {
         symbol: upstream.symbol,
@@ -1063,16 +1093,16 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       if (throwOnError) {
         throw error;
       }
-      return false;
+      return {
+        upstreamReleased: false,
+        graceExpiresAt: null,
+      };
     }
   }
 
-  private async pauseLocalUpstream(upstream: {
-    symbol: string;
-    provider: string;
-    wsCapabilityType: string;
-    clientId: string;
-  }): Promise<boolean> {
+  private async pauseLocalUpstream(
+    upstream: LocalRealtimeUpstreamState,
+  ): Promise<boolean> {
     if (
       !this.hasActiveSubscription(
         upstream.clientId,
@@ -1084,7 +1114,14 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       return false;
     }
 
-    return this.unsubscribeUpstream(upstream, "runtime_pause", true);
+    const result = await this.unsubscribeUpstream(upstream, "runtime_pause", true);
+    if (result.graceExpiresAt) {
+      await this.chartIntradaySessionService.markUpstreamReleaseScheduled(
+        upstream.upstreamKey,
+        result.graceExpiresAt,
+      );
+    }
+    return result.upstreamReleased;
   }
 
   private hasActiveSubscription(
@@ -1186,6 +1223,76 @@ export class ChartIntradayStreamSubscriptionService implements OnModuleDestroy {
       wsCapabilityType: session.wsCapabilityType,
       clientId: session.clientId,
     };
+  }
+
+  private resolveUpstreamUnsubscribeOutcome(
+    rawResult: unknown,
+    symbol: string,
+  ): UpstreamUnsubscribeOutcome {
+    const result =
+      rawResult && typeof rawResult === "object"
+        ? (rawResult as Record<string, unknown>)
+        : {};
+    const releasedSymbols = Array.isArray(result.upstreamReleasedSymbols)
+      ? result.upstreamReleasedSymbols
+          .map((value) => String(value || "").trim().toUpperCase())
+          .filter(Boolean)
+      : [];
+    if (releasedSymbols.includes(symbol)) {
+      return {
+        upstreamReleased: true,
+        graceExpiresAt: null,
+      };
+    }
+
+    const scheduledEntry = this.extractScheduledUpstreamReleaseEntries(result).find(
+      (entry) => entry.symbol === symbol,
+    );
+    return {
+      upstreamReleased: false,
+      graceExpiresAt: scheduledEntry?.graceExpiresAt || null,
+    };
+  }
+
+  private extractScheduledUpstreamReleaseEntries(
+    result: Record<string, unknown>,
+  ): ScheduledUpstreamReleaseEntry[] {
+    const rawEntries = result.upstreamScheduledSymbols;
+    if (!Array.isArray(rawEntries)) {
+      return [];
+    }
+
+    return rawEntries
+      .map((entry) => {
+        if (typeof entry === "string") {
+          const symbol = String(entry || "").trim().toUpperCase();
+          return symbol
+            ? {
+                symbol,
+                graceExpiresAt: null,
+              }
+            : null;
+        }
+        if (!entry || typeof entry !== "object") {
+          return null;
+        }
+        const normalized = entry as Record<string, unknown>;
+        const symbol = String(normalized.symbol || "")
+          .trim()
+          .toUpperCase();
+        const graceExpiresAt =
+          normalized.graceExpiresAt == null
+            ? null
+            : String(normalized.graceExpiresAt || "").trim() || null;
+        if (!symbol) {
+          return null;
+        }
+        return {
+          symbol,
+          graceExpiresAt,
+        };
+      })
+      .filter((entry): entry is ScheduledUpstreamReleaseEntry => entry !== null);
   }
 
   private resolveRealtimeCapabilityByMarket(market: string): string {

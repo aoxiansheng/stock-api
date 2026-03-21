@@ -15,7 +15,10 @@ import { SymbolTransformerService } from "../../../02-processing/symbol-transfor
 import { DataTransformerService } from "../../../02-processing/transformer/services/data-transformer.service";
 import { StreamDataFetcherService } from "../../../03-fetching/stream-data-fetcher/services/stream-data-fetcher.service";
 import { StreamClientStateManager } from "../../../03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
-import { UpstreamSymbolSubscriptionCoordinatorService } from "../../../03-fetching/stream-data-fetcher/services/upstream-symbol-subscription-coordinator.service";
+import {
+  UpstreamSymbolSubscriptionCoordinatorService,
+  type ScheduledUpstreamRelease,
+} from "../../../03-fetching/stream-data-fetcher/services/upstream-symbol-subscription-coordinator.service";
 import {
   StreamRecoveryWorkerService,
   RecoveryJob,
@@ -55,6 +58,18 @@ import {
 } from "@core/shared/utils/provider-symbol-identity.util";
 
 
+
+export interface UnsubscribeStreamResult {
+  unsubscribedSymbols: string[];
+  upstreamReleasedSymbols: string[];
+  upstreamScheduledSymbols: ScheduledUpstreamRelease[];
+}
+
+export interface UnsubscribeStreamOptions {
+  onUpstreamReleased?: (
+    releasedSymbols: string[],
+  ) => Promise<void> | void;
+}
 
 /**
  * StreamReceiver - 重构后的流数据接收器
@@ -574,6 +589,11 @@ export class StreamReceiverService implements OnModuleDestroy {
     const providerName =
       preferredProvider ||
       this.getDefaultProvider(symbols, wsCapabilityType, marketContext);
+    this.assertSubscriptionContextCompatibility(
+      resolvedClientId,
+      providerName,
+      wsCapabilityType,
+    );
     this.validateIdentityProviderRawSymbolsNoBoundaryWhitespace(
       subscribeDto?.symbols,
       providerName,
@@ -691,7 +711,8 @@ export class StreamReceiverService implements OnModuleDestroy {
   async unsubscribeStream(
     unsubscribeDto: StreamUnsubscribeDto,
     clientId?: string,
-  ): Promise<void> {
+    options?: UnsubscribeStreamOptions,
+  ): Promise<UnsubscribeStreamResult> {
     const validationResult = this.dataValidator.validateUnsubscribeRequest(unsubscribeDto);
     if (!validationResult.isValid) {
       const error = UniversalExceptionFactory.createBusinessException({
@@ -729,7 +750,11 @@ export class StreamReceiverService implements OnModuleDestroy {
         symbolsCount: symbols?.length || 0,
         fallbackBehavior: "skip_operation",
       });
-      return;
+      return {
+        unsubscribedSymbols: [],
+        upstreamReleasedSymbols: [],
+        upstreamScheduledSymbols: [],
+      };
     }
 
     this.logger.log("开始取消订阅流数据", {
@@ -743,7 +768,11 @@ export class StreamReceiverService implements OnModuleDestroy {
       const clientSub = this.clientStateManager.getClientSubscription(clientId);
       if (!clientSub) {
         this.logger.warn("客户端订阅不存在", { clientId });
-        return;
+        return {
+          unsubscribedSymbols: [],
+          upstreamReleasedSymbols: [],
+          upstreamScheduledSymbols: [],
+        };
       }
 
       // 获取要取消订阅的符号
@@ -754,7 +783,11 @@ export class StreamReceiverService implements OnModuleDestroy {
 
       if (symbolsToUnsubscribe.length === 0) {
         this.logger.warn("没有需要取消订阅的符号", { clientId });
-        return;
+        return {
+          unsubscribedSymbols: [],
+          upstreamReleasedSymbols: [],
+          upstreamScheduledSymbols: [],
+        };
       }
 
       // 映射符号（标准化 + Provider格式）
@@ -778,6 +811,8 @@ export class StreamReceiverService implements OnModuleDestroy {
       // 获取连接（通过连接管理器；仅在现有连接活跃时执行退订，避免误建新连接）
       const connectionKey = `${clientSub.providerName}:${clientSub.wsCapabilityType}`;
       let connection: StreamConnection | undefined;
+      let immediateUnsubscribeSymbols: string[] = [];
+      let scheduledUpstreamSymbols: ScheduledUpstreamRelease[] = [];
       if (this.connectionManager.isConnectionActive(connectionKey)) {
         connection = await this.connectionManager.getOrCreateConnection(
           clientSub.providerName,
@@ -786,30 +821,32 @@ export class StreamReceiverService implements OnModuleDestroy {
           symbolsToUnsubscribe,
           clientId,
         );
-        const immediateUnsubscribeSymbols =
-          this.upstreamSymbolSubscriptionCoordinator.scheduleRelease(
-            {
-              clientId,
-              provider: clientSub.providerName,
-              capability: clientSub.wsCapabilityType,
-              symbols: standardSymbols,
-            },
-            async (readySymbols) => {
-              if (!connection) {
-                return;
-              }
-              const readyProviderSymbols = providerSymbols.filter((providerSymbol, index) =>
-                readySymbols.includes(standardSymbols[index]),
-              );
-              if (readyProviderSymbols.length === 0) {
-                return;
-              }
-              await this.streamDataFetcher.unsubscribeFromSymbols(
-                connection,
-                readyProviderSymbols,
-              );
-            },
+        const releasePlan = this.upstreamSymbolSubscriptionCoordinator.scheduleRelease(
+          {
+            clientId,
+            provider: clientSub.providerName,
+            capability: clientSub.wsCapabilityType,
+            symbols: standardSymbols,
+          },
+          async (readySymbols) => {
+            if (!connection) {
+              return;
+            }
+            const readyProviderSymbols = providerSymbols.filter((providerSymbol, index) =>
+              readySymbols.includes(standardSymbols[index]),
+            );
+          if (readyProviderSymbols.length === 0) {
+            return;
+          }
+          await this.streamDataFetcher.unsubscribeFromSymbols(
+            connection,
+            readyProviderSymbols,
           );
+          await this.notifyUpstreamReleased(options, readySymbols);
+        },
+      );
+        immediateUnsubscribeSymbols = releasePlan.immediateSymbols;
+        scheduledUpstreamSymbols = releasePlan.scheduledSymbols;
 
         const immediateProviderSymbols = providerSymbols.filter((providerSymbol, index) =>
           immediateUnsubscribeSymbols.includes(standardSymbols[index]),
@@ -819,6 +856,7 @@ export class StreamReceiverService implements OnModuleDestroy {
             connection,
             immediateProviderSymbols,
           );
+          await this.notifyUpstreamReleased(options, immediateUnsubscribeSymbols);
         }
       } else {
         this.logger.warn("未找到活跃连接，跳过上游退订", {
@@ -827,6 +865,25 @@ export class StreamReceiverService implements OnModuleDestroy {
           capability: clientSub.wsCapabilityType,
           connectionKey,
         });
+        // 将客户端从房间移除
+        try {
+          if (this.webSocketProvider && standardSymbols?.length) {
+            const rooms = this.buildSymbolRooms(standardSymbols);
+            await this.webSocketProvider.leaveClientFromRooms(clientId, rooms);
+          }
+        } catch (err) {
+          this.logger.warn("退出房间失败(忽略)", { clientId, error: (err as any)?.message });
+        }
+
+        this.logger.log("流数据取消订阅成功", {
+          clientId,
+          symbolsCount: standardSymbols.length,
+        });
+        return {
+          unsubscribedSymbols: standardSymbols,
+          upstreamReleasedSymbols: [],
+          upstreamScheduledSymbols: [],
+        };
       }
 
       // 将客户端从房间移除
@@ -843,6 +900,11 @@ export class StreamReceiverService implements OnModuleDestroy {
         clientId,
         symbolsCount: standardSymbols.length,
       });
+      return {
+        unsubscribedSymbols: standardSymbols,
+        upstreamReleasedSymbols: immediateUnsubscribeSymbols || [],
+        upstreamScheduledSymbols: scheduledUpstreamSymbols,
+      };
     } catch (error) {
       this.logger.error("流数据取消订阅失败", {
         clientId,
@@ -1496,6 +1558,71 @@ export class StreamReceiverService implements OnModuleDestroy {
     );
 
     return { standardSymbols, providerSymbols };
+  }
+
+  private async notifyUpstreamReleased(
+    options: UnsubscribeStreamOptions | undefined,
+    releasedSymbols: string[],
+  ): Promise<void> {
+    if (!options?.onUpstreamReleased || releasedSymbols.length === 0) {
+      return;
+    }
+
+    try {
+      await options.onUpstreamReleased(releasedSymbols);
+    } catch (error) {
+      this.logger.warn("上游释放回调失败(忽略)", {
+        releasedSymbols,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private assertSubscriptionContextCompatibility(
+    clientId: string,
+    providerName: string,
+    wsCapabilityType: string,
+  ): void {
+    const existingSubscription =
+      this.clientStateManager.getClientSubscription(clientId);
+    if (!existingSubscription || existingSubscription.symbols.size === 0) {
+      return;
+    }
+
+    const normalizedProvider = String(providerName || "").trim().toLowerCase();
+    const normalizedCapability = String(wsCapabilityType || "")
+      .trim()
+      .toLowerCase();
+    const existingProvider = String(existingSubscription.providerName || "")
+      .trim()
+      .toLowerCase();
+    const existingCapability = String(existingSubscription.wsCapabilityType || "")
+      .trim()
+      .toLowerCase();
+
+    if (
+      existingProvider === normalizedProvider &&
+      existingCapability === normalizedCapability
+    ) {
+      return;
+    }
+
+    throw UniversalExceptionFactory.createBusinessException({
+      component: ComponentIdentifier.STREAM_RECEIVER,
+      errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+      operation: "subscribeStream",
+      message:
+        "Mixed provider/capability subscriptions are not allowed on the same client connection",
+      context: {
+        clientId,
+        providerName: normalizedProvider,
+        wsCapabilityType: normalizedCapability,
+        existingProvider: existingProvider || null,
+        existingWsCapabilityType: existingCapability || null,
+        errorType: STREAM_RECEIVER_ERROR_CODES.SUBSCRIPTION_FAILED,
+        reason: "mixed_subscription_context_for_same_client",
+      },
+    });
   }
 
   /**

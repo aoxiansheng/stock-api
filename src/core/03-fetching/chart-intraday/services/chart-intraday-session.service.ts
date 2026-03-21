@@ -79,6 +79,11 @@ interface SerializedChartIntradayUpstreamRecord
   upstreamKey: string;
 }
 
+interface OwnerLeaseRedisClient {
+  get(key: string): Promise<string | null>;
+  setex(key: string, seconds: number, value: string): Promise<unknown>;
+}
+
 export interface CreateChartIntradaySessionResult {
   session: ChartIntradaySessionRecord;
   upstream: ChartIntradayUpstreamRecord;
@@ -547,6 +552,18 @@ return {1, next}
     await this.writeSession(session);
     await this.refreshSessionRelations(session);
     this.addLocalClientBinding(params.clientId, session.sessionId);
+
+    return {
+      session,
+      upstream: await this.getRequiredUpstream(session.upstreamKey, session),
+    };
+  }
+
+  async resolveSessionBindingContext(
+    params: ChartIntradayWsSessionContext,
+  ): Promise<TouchChartIntradaySessionResult> {
+    const session = await this.getRequiredSession(params.sessionId);
+    this.assertSessionMatches(session, params);
 
     return {
       session,
@@ -1136,8 +1153,9 @@ return {1, next}
       session.ownerIdentity,
       session.upstreamKey,
     );
-    if (this.hasRedisRawOwnerLeaseSupport()) {
-      await this.redis.setex(
+    const redisClient = this.getOwnerLeaseRedisClient();
+    if (redisClient) {
+      await redisClient.setex(
         ownerLeaseKey,
         this.recordTtlSeconds,
         session.sessionId,
@@ -1278,8 +1296,9 @@ return {1, next}
   private async readOwnerLeaseSessionIdRaw(
     cacheKey: string,
   ): Promise<string | null> {
-    if (this.hasRedisRawOwnerLeaseSupport()) {
-      const raw = await this.redis.get(cacheKey);
+    const redisClient = this.getOwnerLeaseRedisClient();
+    if (redisClient) {
+      const raw = await redisClient.get(cacheKey);
       return raw === null ? null : String(raw);
     }
 
@@ -1309,18 +1328,19 @@ return {1, next}
     return normalized;
   }
 
-  private hasRedisRawOwnerLeaseSupport(): this is this & {
-    redis: Redis & {
-      get(key: string): Promise<string | null>;
-      setex(key: string, seconds: number, value: string): Promise<unknown>;
-    };
-  } {
-    return Boolean(
-      this.redis &&
-        typeof (this.redis as Redis & { get?: unknown }).get === "function" &&
-        typeof (this.redis as Redis & { setex?: unknown }).setex ===
-          "function",
-    );
+  private getOwnerLeaseRedisClient(): OwnerLeaseRedisClient | null {
+    const redisClient = this.redis as
+      | (Redis & Partial<OwnerLeaseRedisClient>)
+      | undefined;
+    if (
+      !redisClient ||
+      typeof redisClient.get !== "function" ||
+      typeof redisClient.setex !== "function"
+    ) {
+      return null;
+    }
+
+    return redisClient as OwnerLeaseRedisClient;
   }
 
   private async scanKeys(pattern: string): Promise<string[]> {

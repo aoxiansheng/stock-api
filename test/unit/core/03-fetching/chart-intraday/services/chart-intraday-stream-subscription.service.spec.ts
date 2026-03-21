@@ -255,12 +255,19 @@ describe("ChartIntradayStreamSubscriptionService", () => {
           symbols: new Set(payload.symbols || []),
         });
       }),
-      unsubscribeStream: jest.fn(async (payload: any, clientId?: string) => {
-        if (!clientId) {
-          return { unsubscribedSymbols: [], upstreamReleasedSymbols: [] };
-        }
-        const current = subscriptions.get(clientId);
-        if (!current) {
+      unsubscribeStream: jest.fn(
+        async (
+          payload: any,
+          clientId?: string,
+          options?: {
+            onUpstreamReleased?: (releasedSymbols: string[]) => Promise<void> | void;
+          },
+        ) => {
+          if (!clientId) {
+            return { unsubscribedSymbols: [], upstreamReleasedSymbols: [] };
+          }
+          const current = subscriptions.get(clientId);
+          if (!current) {
           return { unsubscribedSymbols: [], upstreamReleasedSymbols: [] };
         }
         const symbols =
@@ -272,11 +279,13 @@ describe("ChartIntradayStreamSubscriptionService", () => {
         }
         if (current.symbols.size === 0) {
           subscriptions.delete(clientId);
+          await options?.onUpstreamReleased?.(symbols);
           return { unsubscribedSymbols: symbols, upstreamReleasedSymbols: symbols };
         }
         subscriptions.set(clientId, current);
         return { unsubscribedSymbols: symbols, upstreamReleasedSymbols: [] };
-      }),
+        },
+      ),
     };
 
     const streamClientStateManager = {
@@ -867,6 +876,9 @@ describe("ChartIntradayStreamSubscriptionService", () => {
         wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
       },
       "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+      expect.objectContaining({
+        onUpstreamReleased: expect.any(Function),
+      }),
     );
 
     await service.onModuleDestroy();
@@ -1105,6 +1117,70 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     await service.onModuleDestroy();
   });
 
+  it("runtime pause 若底层仅安排 upstream grace，应写入 scheduled 共享状态并返回 false", async () => {
+    const { service, streamReceiverService, chartIntradaySessionService } =
+      createService();
+
+    await service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+
+    const upstreamGraceExpiresAt = new Date(Date.now() + 15_000).toISOString();
+    streamReceiverService.unsubscribeStream.mockImplementationOnce(
+      async (_payload: any, _clientId?: string, options?: any) => {
+        setTimeout(() => {
+          void options?.onUpstreamReleased?.(["AAPL.US"]);
+        }, 15_000);
+        return {
+          unsubscribedSymbols: ["AAPL.US"],
+          upstreamReleasedSymbols: [],
+          upstreamScheduledSymbols: [
+            {
+              symbol: "AAPL.US",
+              graceExpiresAt: upstreamGraceExpiresAt,
+            },
+          ],
+        };
+      },
+    );
+
+    await expect(
+      service.pauseRealtimeUpstream({
+        symbol: "AAPL.US",
+        market: "US",
+        provider: "infoway",
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      chartIntradaySessionService.getUpstreamReleaseState(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        state: "scheduled",
+        graceExpiresAt: upstreamGraceExpiresAt,
+      }),
+    );
+
+    await jest.advanceTimersByTimeAsync(15_000);
+
+    await expect(
+      chartIntradaySessionService.getUpstreamReleaseState(
+        `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        state: "released",
+        graceExpiresAt: null,
+      }),
+    );
+
+    await service.onModuleDestroy();
+  });
+
   it("runtime pause 在无本地 upstream 时应返回 false 且不写入 released 共享状态", async () => {
     const { service, chartIntradaySessionService } = createService();
 
@@ -1214,6 +1290,110 @@ describe("ChartIntradayStreamSubscriptionService", () => {
     expect(streamReceiverService.unsubscribeStream).not.toHaveBeenCalled();
     await jest.advanceTimersByTimeAsync(60_000);
     expect(streamReceiverService.unsubscribeStream).toHaveBeenCalledTimes(1);
+
+    await service.onModuleDestroy();
+  });
+
+  it("本地 grace 到期后若底层仅安排 upstream grace，应刷新共享 graceExpiresAt", async () => {
+    const { service, streamReceiverService, subscriptions, chartIntradaySessionService } =
+      createService();
+
+    const session = await service.openRealtimeSession({
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    subscriptions.set(session.clientId, {
+      providerName: session.provider,
+      wsCapabilityType: session.wsCapabilityType,
+      symbols: new Set([session.symbol]),
+    });
+
+    const upstreamKey = `infoway:${CAPABILITY_NAMES.STREAM_STOCK_QUOTE}:AAPL.US`;
+    const upstreamGraceExpiresAt = new Date(Date.now() + 75_000).toISOString();
+    streamReceiverService.unsubscribeStream.mockImplementationOnce(
+      async (_payload: any, _clientId?: string, options?: any) => {
+        setTimeout(() => {
+          void options?.onUpstreamReleased?.(["AAPL.US"]);
+        }, 15_000);
+        return {
+          unsubscribedSymbols: ["AAPL.US"],
+          upstreamReleasedSymbols: [],
+          upstreamScheduledSymbols: [
+            {
+              symbol: "AAPL.US",
+              graceExpiresAt: upstreamGraceExpiresAt,
+            },
+          ],
+        };
+      },
+    );
+
+    const firstRelease = await service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(firstRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: true,
+        upstreamReleased: false,
+        reason: "RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: expect.any(String),
+      }),
+    );
+    expect(firstRelease.graceExpiresAt).not.toBe(upstreamGraceExpiresAt);
+
+    await jest.advanceTimersByTimeAsync(60_000);
+
+    await expect(
+      chartIntradaySessionService.getUpstreamReleaseState(upstreamKey),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        state: "scheduled",
+        graceExpiresAt: upstreamGraceExpiresAt,
+      }),
+    );
+
+    const secondRelease = await service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(secondRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        upstreamReleased: false,
+        reason: "ALREADY_RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: upstreamGraceExpiresAt,
+      }),
+    );
+
+    await jest.advanceTimersByTimeAsync(15_000);
+
+    const thirdRelease = await service.releaseRealtimeSubscription({
+      sessionId: session.sessionId,
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "appkey:test-key",
+    });
+    expect(thirdRelease).toEqual(
+      expect.objectContaining({
+        sessionReleased: false,
+        upstreamReleased: true,
+        reason: "ALREADY_RELEASED",
+        activeSessionCount: 0,
+        graceExpiresAt: null,
+      }),
+    );
 
     await service.onModuleDestroy();
   });

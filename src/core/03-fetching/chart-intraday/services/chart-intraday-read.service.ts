@@ -113,10 +113,17 @@ export interface IntradaySnapshotReferenceDto {
   status: "complete" | "partial" | "unavailable";
 }
 
+export interface IntradaySyncRealtimeDto {
+  wsCapabilityType: string;
+  event: string;
+  preferredProvider: string;
+}
+
 export interface IntradaySyncDto {
   cursor: string;
   lastPointTimestamp: string;
   serverTime: string;
+  realtime: IntradaySyncRealtimeDto | null;
 }
 
 export interface IntradaySnapshotMetadataDto {
@@ -609,7 +616,7 @@ export class ChartIntradayReadService {
     historyPointsCount: number;
     realtimePointsCount: number;
   }): IntradaySnapshotResponseDto {
-    return this.buildSnapshotResponse({
+    const response = this.buildSnapshotResponse({
       resolved: params.resolved,
       now: params.now,
       merged: params.merged,
@@ -621,6 +628,12 @@ export class ChartIntradayReadService {
       frozenSnapshotHit: false,
       frozenSnapshotFallback: false,
     });
+    response.sync.realtime = {
+      wsCapabilityType: this.resolveRealtimeCapabilityByMarket(params.resolved.market),
+      event: "chart.intraday.point",
+      preferredProvider: params.resolved.provider,
+    };
+    return response;
   }
 
   private buildSnapshotResponse(params: {
@@ -679,6 +692,7 @@ export class ChartIntradayReadService {
         cursor,
         lastPointTimestamp,
         serverTime: now.toISOString(),
+        realtime: null,
       },
       metadata: {
         provider: resolved.provider,
@@ -735,6 +749,7 @@ export class ChartIntradayReadService {
         }),
         lastPointTimestamp,
         serverTime: now.toISOString(),
+        realtime: null,
       },
       metadata: {
         provider: resolved.provider,
@@ -834,6 +849,7 @@ export class ChartIntradayReadService {
         cursor,
         lastPointTimestamp,
         serverTime: now.toISOString(),
+        realtime: null,
       },
       metadata: {
         provider: resolved.provider,

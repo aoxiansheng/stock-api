@@ -11,6 +11,7 @@ import type {
   IntradaySnapshotReferenceDto as IntradaySnapshotReferenceDtoContract,
   IntradaySnapshotResponseDto as IntradaySnapshotResponseDtoContract,
   IntradaySyncDto as IntradaySyncDtoContract,
+  IntradaySyncRealtimeDto as IntradaySyncRealtimeDtoContract,
 } from "@core/03-fetching/chart-intraday/services/chart-intraday-read.service";
 
 export class IntradayPointDto implements IntradayPointDtoContract {
@@ -60,6 +61,17 @@ export class IntradaySnapshotCapabilityDto
   supportsFullDay1sHistory: boolean;
 }
 
+export class IntradaySyncRealtimeDto implements IntradaySyncRealtimeDtoContract {
+  @ApiProperty({ example: "stream-stock-quote" })
+  wsCapabilityType: string;
+
+  @ApiProperty({ example: "chart.intraday.point" })
+  event: string;
+
+  @ApiProperty({ example: "infoway" })
+  preferredProvider: string;
+}
+
 export class IntradaySyncDto implements IntradaySyncDtoContract {
   @ApiProperty({
     example:
@@ -72,6 +84,9 @@ export class IntradaySyncDto implements IntradaySyncDtoContract {
 
   @ApiProperty({ example: "2026-03-08T15:42:01.120Z" })
   serverTime: string;
+
+  @ApiProperty({ type: IntradaySyncRealtimeDto, nullable: true })
+  realtime: IntradaySyncRealtimeDto | null;
 }
 
 export class IntradaySnapshotMetadataDto
@@ -217,4 +232,21 @@ export class IntradayReleaseResponseDto
 {
   @ApiProperty({ type: IntradayReleasePayloadDto })
   release: IntradayReleasePayloadDto;
+}
+
+/**
+ * chart.intraday.point WS 事件的公开契约。
+ * 实际发射逻辑在 StreamClientStateManager.flushIntradayBucketEmission() 中。
+ */
+export interface IntradayPointEventDto {
+  symbol: string;
+  market: string;
+  tradingDay: string;
+  granularity: "1s";
+  point: {
+    timestamp: string;
+    price: number;
+    volume: number;
+  };
+  cursor: string;
 }

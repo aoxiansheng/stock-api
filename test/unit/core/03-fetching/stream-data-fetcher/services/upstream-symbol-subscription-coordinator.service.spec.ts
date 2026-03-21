@@ -8,6 +8,7 @@ jest.mock("@common/logging/index", () => ({
 }));
 
 import { UpstreamSymbolSubscriptionCoordinatorService } from "@core/03-fetching/stream-data-fetcher/services/upstream-symbol-subscription-coordinator.service";
+import { StreamClientStateManager } from "@core/03-fetching/stream-data-fetcher/services/stream-client-state-manager.service";
 
 describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
   const originalEnv = process.env;
@@ -26,9 +27,14 @@ describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
     process.env = originalEnv;
   });
 
-  function createCoordinator(clientCountBySymbol: Record<string, number>) {
+  function createCoordinator(clientCountByUpstream: Record<string, number>) {
     const clientStateManager = {
-      getClientCountForSymbol: jest.fn((symbol: string) => clientCountBySymbol[symbol] || 0),
+      getClientCountForUpstream: jest.fn(
+        (provider: string, capability: string, symbol: string) =>
+          clientCountByUpstream[
+            `${provider}:${capability}:${String(symbol || "").toUpperCase()}`
+          ] || 0,
+      ),
     } as any;
     return {
       coordinator: new UpstreamSymbolSubscriptionCoordinatorService(clientStateManager),
@@ -49,7 +55,9 @@ describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
   });
 
   it("已有订阅者时不再返回上游订阅动作", () => {
-    const { coordinator } = createCoordinator({ "AAPL.US": 1 });
+    const { coordinator } = createCoordinator({
+      "jvquant:stream-stock-quote:AAPL.US": 1,
+    });
     const result = coordinator.acquire({
       clientId: "client-2",
       provider: "jvquant",
@@ -61,11 +69,11 @@ describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
   });
 
   it("1 -> 0 时进入 grace period，超时后触发退订", async () => {
-    const clientCountBySymbol = { "AAPL.US": 0 };
-    const { coordinator } = createCoordinator(clientCountBySymbol);
+    const clientCountByUpstream = { "jvquant:stream-stock-quote:AAPL.US": 0 };
+    const { coordinator } = createCoordinator(clientCountByUpstream);
     const onReadyToUnsubscribe = jest.fn();
 
-    const immediate = coordinator.scheduleRelease(
+    const result = coordinator.scheduleRelease(
       {
         clientId: "client-1",
         provider: "jvquant",
@@ -75,14 +83,20 @@ describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
       onReadyToUnsubscribe,
     );
 
-    expect(immediate).toEqual([]);
+    expect(result.immediateSymbols).toEqual([]);
+    expect(result.scheduledSymbols).toEqual([
+      expect.objectContaining({
+        symbol: "AAPL.US",
+        graceExpiresAt: expect.any(String),
+      }),
+    ]);
     await jest.advanceTimersByTimeAsync(100);
     expect(onReadyToUnsubscribe).toHaveBeenCalledWith(["AAPL.US"]);
   });
 
   it("grace period 内重新订阅会取消待退订", async () => {
-    const clientCountBySymbol = { "AAPL.US": 0 };
-    const { coordinator } = createCoordinator(clientCountBySymbol);
+    const clientCountByUpstream = { "jvquant:stream-stock-quote:AAPL.US": 0 };
+    const { coordinator } = createCoordinator(clientCountByUpstream);
     const onReadyToUnsubscribe = jest.fn();
 
     coordinator.scheduleRelease(
@@ -95,7 +109,7 @@ describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
       onReadyToUnsubscribe,
     );
 
-    clientCountBySymbol["AAPL.US"] = 1;
+    clientCountByUpstream["jvquant:stream-stock-quote:AAPL.US"] = 1;
     coordinator.acquire({
       clientId: "client-2",
       provider: "jvquant",
@@ -105,5 +119,121 @@ describe("UpstreamSymbolSubscriptionCoordinatorService", () => {
 
     await jest.advanceTimersByTimeAsync(100);
     expect(onReadyToUnsubscribe).not.toHaveBeenCalled();
+  });
+
+  it("同 symbol 跨 provider 订阅时，第二个 provider 仍需发起真实上游订阅", () => {
+    const { coordinator } = createCoordinator({
+      "jvquant:stream-stock-quote:AAPL.US": 1,
+      "infoway:stream-stock-quote:AAPL.US": 0,
+    });
+
+    const result = coordinator.acquire({
+      clientId: "client-2",
+      provider: "infoway",
+      capability: "stream-stock-quote",
+      symbols: ["AAPL.US"],
+    });
+
+    expect(result).toEqual(["AAPL.US"]);
+  });
+
+  it("同 symbol 跨 provider 释放时，不应被其他 provider 的订阅阻塞", () => {
+    const { coordinator } = createCoordinator({
+      "jvquant:stream-stock-quote:AAPL.US": 1,
+      "infoway:stream-stock-quote:AAPL.US": 0,
+    });
+
+    const result = coordinator.scheduleRelease(
+      {
+        clientId: "client-2",
+        provider: "infoway",
+        capability: "stream-stock-quote",
+        symbols: ["AAPL.US"],
+      },
+      jest.fn(),
+    );
+
+    expect(result.immediateSymbols).toEqual([]);
+    expect(result.scheduledSymbols).toEqual([
+      expect.objectContaining({
+        symbol: "AAPL.US",
+        graceExpiresAt: expect.any(String),
+      }),
+    ]);
+  });
+
+  it("真实状态管理器通过 updateSubscriptionState 添加订阅后，不应重复发起上游订阅", async () => {
+    const clientStateManager = new StreamClientStateManager();
+    const coordinator = new UpstreamSymbolSubscriptionCoordinatorService(
+      clientStateManager,
+    );
+
+    try {
+      clientStateManager.addClientSubscription(
+        "client-1",
+        [],
+        "stream-stock-quote",
+        "jvquant",
+      );
+      clientStateManager.updateSubscriptionState(
+        "client-1",
+        ["AAPL.US"],
+        "subscribed",
+      );
+
+      expect(
+        coordinator.acquire({
+          clientId: "client-2",
+          provider: "jvquant",
+          capability: "stream-stock-quote",
+          symbols: ["AAPL.US"],
+        }),
+      ).toEqual([]);
+    } finally {
+      coordinator.onModuleDestroy();
+      await clientStateManager.onModuleDestroy();
+    }
+  });
+
+  it("真实状态管理器通过 updateSubscriptionState 移除订阅后，应允许进入 release 判定", async () => {
+    const clientStateManager = new StreamClientStateManager();
+    const coordinator = new UpstreamSymbolSubscriptionCoordinatorService(
+      clientStateManager,
+    );
+
+    try {
+      clientStateManager.addClientSubscription(
+        "client-1",
+        ["AAPL.US"],
+        "stream-stock-quote",
+        "jvquant",
+      );
+      clientStateManager.updateSubscriptionState(
+        "client-1",
+        ["AAPL.US"],
+        "unsubscribed",
+      );
+
+      const result = coordinator.scheduleRelease(
+        {
+          clientId: "client-1",
+          provider: "jvquant",
+          capability: "stream-stock-quote",
+          symbols: ["AAPL.US"],
+        },
+        jest.fn(),
+      );
+
+      expect(result.immediateSymbols).toEqual([]);
+      expect(result.scheduledSymbols).toEqual([
+        expect.objectContaining({
+          symbol: "AAPL.US",
+          graceExpiresAt: expect.any(String),
+        }),
+      ]);
+    } finally {
+      coordinator.onModuleDestroy();
+      await clientStateManager.onModuleDestroy();
+    }
   });
 });

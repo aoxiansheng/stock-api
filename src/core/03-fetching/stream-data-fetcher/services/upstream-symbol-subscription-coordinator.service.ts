@@ -8,6 +8,16 @@ import type {
   UpstreamReleaseParams,
 } from "../interfaces/upstream-symbol-ref.interface";
 
+export interface ScheduledUpstreamRelease {
+  symbol: string;
+  graceExpiresAt: string;
+}
+
+export interface UpstreamReleaseScheduleResult {
+  immediateSymbols: string[];
+  scheduledSymbols: ScheduledUpstreamRelease[];
+}
+
 @Injectable()
 export class UpstreamSymbolSubscriptionCoordinatorService implements OnModuleDestroy {
   private readonly logger = createLogger(
@@ -44,7 +54,11 @@ export class UpstreamSymbolSubscriptionCoordinatorService implements OnModuleDes
     const upstreamSymbolsToSubscribe: string[] = [];
     for (const symbol of normalizedSymbols) {
       const symbolKey = this.buildSymbolKey(params.provider, params.capability, symbol);
-      const currentRefCount = this.clientStateManager.getClientCountForSymbol(symbol);
+      const currentRefCount = this.clientStateManager.getClientCountForUpstream(
+        params.provider,
+        params.capability,
+        symbol,
+      );
       if (currentRefCount === 0) {
         upstreamSymbolsToSubscribe.push(symbol);
       }
@@ -58,15 +72,23 @@ export class UpstreamSymbolSubscriptionCoordinatorService implements OnModuleDes
   scheduleRelease(
     params: UpstreamReleaseParams,
     onReadyToUnsubscribe: (symbols: string[]) => Promise<void> | void,
-  ): string[] {
+  ): UpstreamReleaseScheduleResult {
     const normalizedSymbols = this.normalizeSymbols(params.symbols);
     if (!this.enabled || normalizedSymbols.length === 0) {
-      return normalizedSymbols;
+      return {
+        immediateSymbols: normalizedSymbols,
+        scheduledSymbols: [],
+      };
     }
 
     const immediateSymbols: string[] = [];
+    const scheduledSymbols: ScheduledUpstreamRelease[] = [];
     for (const symbol of normalizedSymbols) {
-      const currentRefCount = this.clientStateManager.getClientCountForSymbol(symbol);
+      const currentRefCount = this.clientStateManager.getClientCountForUpstream(
+        params.provider,
+        params.capability,
+        symbol,
+      );
       if (currentRefCount > 0) {
         continue;
       }
@@ -78,9 +100,16 @@ export class UpstreamSymbolSubscriptionCoordinatorService implements OnModuleDes
 
       const symbolKey = this.buildSymbolKey(params.provider, params.capability, symbol);
       this.cancelPendingUnsubscribeByKey(symbolKey);
+      const graceExpiresAt = new Date(Date.now() + this.unsubscribeGraceMs).toISOString();
       const timer = setTimeout(async () => {
         try {
-          if (this.clientStateManager.getClientCountForSymbol(symbol) > 0) {
+          if (
+            this.clientStateManager.getClientCountForUpstream(
+              params.provider,
+              params.capability,
+              symbol,
+            ) > 0
+          ) {
             return;
           }
           await onReadyToUnsubscribe([symbol]);
@@ -97,9 +126,16 @@ export class UpstreamSymbolSubscriptionCoordinatorService implements OnModuleDes
         timer,
         scheduledAt: Date.now(),
       });
+      scheduledSymbols.push({
+        symbol,
+        graceExpiresAt,
+      });
     }
 
-    return immediateSymbols;
+    return {
+      immediateSymbols,
+      scheduledSymbols,
+    };
   }
 
   cancelPendingUnsubscribe(

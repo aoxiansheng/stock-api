@@ -20,6 +20,8 @@ type ValidationResult = {
   sanitizedData?: any;
 };
 
+const createdBatchProcessors: StreamBatchProcessorService[] = [];
+
 function createService(options?: {
   subscribeValidation?: ValidationResult;
   unsubscribeValidation?: ValidationResult;
@@ -133,7 +135,10 @@ function createService(options?: {
     },
     upstreamSymbolSubscriptionCoordinator: {
       acquire: jest.fn((params: any) => params.symbols),
-      scheduleRelease: jest.fn((params: any, _callback: any) => params.symbols),
+      scheduleRelease: jest.fn((params: any, _callback: any) => ({
+        immediateSymbols: params.symbols,
+        scheduledSymbols: [],
+      })),
       cancelPendingUnsubscribe: jest.fn(),
     },
     webSocketProvider: {
@@ -232,9 +237,20 @@ function createBatchProcessor(options?: {
     mocks.dataValidator as any,
     mocks.webSocketProvider as any,
   );
+  createdBatchProcessors.push(batchProcessor);
 
   return { batchProcessor, mocks };
 }
+
+afterEach(async () => {
+  while (createdBatchProcessors.length > 0) {
+    const batchProcessor = createdBatchProcessors.pop();
+    if (!batchProcessor) {
+      continue;
+    }
+    await batchProcessor.onModuleDestroy();
+  }
+});
 
 describe("StreamReceiverService request validation fail-fast", () => {
   it("subscribeStream: 非法请求也应先经过连接限速门禁，再进行请求校验", async () => {
@@ -484,6 +500,82 @@ describe("StreamReceiverService subscription lifecycle", () => {
       mocks.clientStateManager.addClientSubscription.mock
         .invocationCallOrder[0];
     expect(addStateCallOrder).toBeGreaterThan(subscribeCallOrder);
+  });
+
+  it("subscribeStream: 同一 client 不允许混用不同 provider", async () => {
+    const dto = {
+      symbols: ["MSFT.US"],
+      wsCapabilityType: "stream-stock-quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: dto,
+      },
+    });
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "infoway",
+      wsCapabilityType: "stream-stock-quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+
+    await expect(
+      service.subscribeStream(dto as any, "client-1"),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+      operation: "subscribeStream",
+      context: expect.objectContaining({
+        reason: "mixed_subscription_context_for_same_client",
+      }),
+    });
+
+    expect(
+      mocks.connectionManager.getOrCreateConnection,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.upstreamSymbolSubscriptionCoordinator.acquire,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("subscribeStream: 同一 client 不允许混用不同 capability", async () => {
+    const dto = {
+      symbols: ["AAPL.US"],
+      wsCapabilityType: "stream-crypto-quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: dto,
+      },
+    });
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "stream-stock-quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+
+    await expect(
+      service.subscribeStream(dto as any, "client-1"),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+      operation: "subscribeStream",
+      context: expect.objectContaining({
+        reason: "mixed_subscription_context_for_same_client",
+      }),
+    });
+
+    expect(
+      mocks.connectionManager.getOrCreateConnection,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.upstreamSymbolSubscriptionCoordinator.acquire,
+    ).not.toHaveBeenCalled();
   });
 
   it("initializeConnectionCleanup: cleanup 异常应被捕获且不向外抛出", async () => {
@@ -1551,9 +1643,10 @@ describe("StreamReceiverService upstream subscription coordinator integration", 
     mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
       ...mocks.connectionMock,
     });
-    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue(
-      [],
-    );
+    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue({
+      immediateSymbols: [],
+      scheduledSymbols: [],
+    });
 
     await service.unsubscribeStream(
       { symbols: ["AAPL.US"] } as any,
@@ -1566,5 +1659,83 @@ describe("StreamReceiverService upstream subscription coordinator integration", 
     expect(
       mocks.clientStateManager.removeClientSubscription,
     ).toHaveBeenCalledWith("client-1", ["AAPL.US"]);
+  });
+
+  it("unsubscribeStream 最后一个订阅者进入 upstream grace 时应返回 scheduled release 信息", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "stream-stock-quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue(
+      {
+        transformedSymbols: ["AAPL.US"],
+        originalSymbols: ["AAPL.US"],
+        success: true,
+        mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
+      },
+    );
+    mocks.connectionManager.isConnectionActive.mockReturnValue(true);
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      ...mocks.connectionMock,
+    });
+    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue({
+      immediateSymbols: [],
+      scheduledSymbols: [
+        {
+          symbol: "AAPL.US",
+          graceExpiresAt: "2026-03-21T12:00:15.000Z",
+        },
+      ],
+    });
+
+    const result = await service.unsubscribeStream(
+      { symbols: ["AAPL.US"] } as any,
+      "client-1",
+    );
+
+    expect(result).toEqual({
+      unsubscribedSymbols: ["AAPL.US"],
+      upstreamReleasedSymbols: [],
+      upstreamScheduledSymbols: [
+        {
+          symbol: "AAPL.US",
+          graceExpiresAt: "2026-03-21T12:00:15.000Z",
+        },
+      ],
+    });
+    expect(
+      mocks.streamDataFetcher.unsubscribeFromSymbols,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("unsubscribeStream 连接不存在时不应伪造 upstream scheduled release 信息", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "stream-stock-quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue(
+      {
+        transformedSymbols: ["AAPL.US"],
+        originalSymbols: ["AAPL.US"],
+        success: true,
+        mappingResults: { transformedSymbols: { "AAPL.US": "AAPL.US" } },
+      },
+    );
+    mocks.connectionManager.isConnectionActive.mockReturnValue(false);
+
+    const result = await service.unsubscribeStream(
+      { symbols: ["AAPL.US"] } as any,
+      "client-1",
+    );
+
+    expect(result).toEqual({
+      unsubscribedSymbols: ["AAPL.US"],
+      upstreamReleasedSymbols: [],
+      upstreamScheduledSymbols: [],
+    });
   });
 });
