@@ -7,20 +7,20 @@ const {
   createEndpointClient,
   parseBoolean,
   parseCliArgs,
-} = require("./project-api-client");
+} = require("../project-api-client");
 
 const tradingDayFormatterCache = new Map();
 
 function printHelp() {
   console.log(`用法:
-node "scripts/tools/local-project/test-chart-intraday-snapshot-window.js" \\
+node "scripts/tools/local-project/intraday/test-chart-intraday-snapshot-window.js" \\
   --app-key "<APP_KEY>" \\
   --access-token "<ACCESS_TOKEN>" \\
   --symbol "AAPL.US"
 
 也支持环境变量：
 APP_KEY=xxx ACCESS_TOKEN=yyy BASE_URL="http://127.0.0.1:3001" \\
-node "scripts/tools/local-project/test-chart-intraday-snapshot-window.js"
+node "scripts/tools/local-project/intraday/test-chart-intraday-snapshot-window.js"
 
 参数：
   --base-url                         默认 http://127.0.0.1:3001
@@ -399,10 +399,10 @@ function isRateLimitResponse(response) {
 function extractErrorMessage(response) {
   return String(
     response?.data?.message ||
-      response?.data?.error?.message ||
-      response?.data?.error?.code ||
-      response?.status ||
-      "unknown error",
+    response?.data?.error?.message ||
+    response?.data?.error?.code ||
+    response?.status ||
+    "unknown error",
   ).trim();
 }
 

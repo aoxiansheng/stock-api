@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-const { createEndpointClient, parseBoolean } = require("./project-api-client");
+const { createEndpointClient, parseBoolean } = require("../project-api-client");
 
 function assert(condition, message, extra) {
   if (condition) {
@@ -15,6 +15,29 @@ function assert(condition, message, extra) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function appendArg(argv, key, value) {
+  if (value === undefined || value === null || value === "") {
+    return;
+  }
+  argv.push(`--${key}`, String(value));
+}
+
+function buildClientArgv() {
+  const argv = [];
+  appendArg(argv, "base-url", process.env.BASE_URL);
+  appendArg(argv, "api-prefix", process.env.API_PREFIX);
+  appendArg(argv, "timeout-ms", process.env.TIMEOUT_MS);
+
+  if (process.env.AUTH_BEARER || process.env.BEARER) {
+    appendArg(argv, "bearer", process.env.AUTH_BEARER || process.env.BEARER);
+    return argv;
+  }
+
+  appendArg(argv, "app-key", process.env.APP_KEY);
+  appendArg(argv, "access-token", process.env.ACCESS_TOKEN);
+  return [...argv, ...process.argv.slice(2)];
 }
 
 function toIsoFromSeconds(seconds) {
@@ -91,12 +114,12 @@ function normalizeSnapshotReference(reference) {
   return {
     previousClosePrice:
       typeof reference?.previousClosePrice === "number" &&
-      Number.isFinite(reference.previousClosePrice)
+        Number.isFinite(reference.previousClosePrice)
         ? reference.previousClosePrice
         : null,
     sessionOpenPrice:
       typeof reference?.sessionOpenPrice === "number" &&
-      Number.isFinite(reference.sessionOpenPrice)
+        Number.isFinite(reference.sessionOpenPrice)
         ? reference.sessionOpenPrice
         : null,
     priceBase: String(reference?.priceBase || "").trim() || null,
@@ -145,7 +168,7 @@ async function postWithRetry(client, path, body, options = {}) {
 }
 
 async function main() {
-  const client = createEndpointClient();
+  const client = createEndpointClient(buildClientArgv());
   const { args } = client;
 
   const symbol = String(args.symbol || "BTCUSDT")
@@ -154,7 +177,7 @@ async function main() {
   const market = String(args.market || "CRYPTO")
     .trim()
     .toUpperCase();
-  const provider = String(args.provider || "infoway")
+  const provider = String(args.provider || "")
     .trim()
     .toLowerCase();
   const pointLimit = Math.max(1, Number(args["point-limit"] || 30000));
@@ -177,22 +200,12 @@ async function main() {
   const snapshotRequest = {
     symbol,
     market,
-    provider,
     tradingDay,
     pointLimit,
   };
-
-  const historyRequest = {
-    symbols: [symbol],
-    receiverType: "get-crypto-history",
-    options: {
-      preferredProvider: provider,
-      market,
-      klineNum,
-      timestamp: anchorTimestamp,
-      useSmartCache: false,
-    },
-  };
+  if (provider) {
+    snapshotRequest.provider = provider;
+  }
 
   const snapshotResponse = await postWithRetry(
     client,
@@ -204,6 +217,30 @@ async function main() {
       label: "snapshot",
     },
   );
+  assert(snapshotResponse.ok, "snapshot 调用失败", snapshotResponse);
+
+  const snapshotData = snapshotResponse.data?.data || {};
+  const snapshotPoints = Array.isArray(snapshotData?.line?.points)
+    ? snapshotData.line.points
+    : [];
+  const snapshotMetadata = snapshotData?.metadata || {};
+  const snapshotReference = normalizeSnapshotReference(snapshotData?.reference);
+  const resolvedProvider = String(snapshotMetadata.provider || provider)
+    .trim()
+    .toLowerCase();
+
+  const historyRequest = {
+    symbols: [symbol],
+    receiverType: "get-crypto-history",
+    options: {
+      preferredProvider: resolvedProvider,
+      market,
+      klineNum,
+      timestamp: anchorTimestamp,
+      useSmartCache: false,
+    },
+  };
+
   const historyResponse = await postWithRetry(
     client,
     "/receiver/data",
@@ -214,16 +251,8 @@ async function main() {
       label: "get-crypto-history",
     },
   );
-
-  assert(snapshotResponse.ok, "snapshot 调用失败", snapshotResponse);
   assert(historyResponse.ok, "get-crypto-history 调用失败", historyResponse);
 
-  const snapshotData = snapshotResponse.data?.data || {};
-  const snapshotPoints = Array.isArray(snapshotData?.line?.points)
-    ? snapshotData.line.points
-    : [];
-  const snapshotMetadata = snapshotData?.metadata || {};
-  const snapshotReference = normalizeSnapshotReference(snapshotData?.reference);
   const historyRows = normalizeHistoryRows(historyResponse.data);
   const inTradingDayRows = filterRowsByTradingDay(historyRows, tradingDay);
 
@@ -284,6 +313,22 @@ async function main() {
     );
   }
 
+  const releaseResponse = await postWithRetry(
+    client,
+    "/chart/intraday-line/release",
+    {
+      symbol,
+      market,
+      provider: resolvedProvider,
+    },
+    {
+      maxAttempts,
+      retryDelayMs,
+      label: "release",
+    },
+  );
+  assert(releaseResponse.ok, "release 调用失败", releaseResponse);
+
   console.log("[PASS] crypto intraday snapshot anchor repro");
   console.log(
     JSON.stringify(
@@ -291,7 +336,8 @@ async function main() {
         baseUrl: client.baseUrl,
         tradingDay,
         market,
-        provider,
+        requestedProvider: provider || null,
+        resolvedProvider,
         symbol,
         pointLimit,
         klineNum,
@@ -319,6 +365,12 @@ async function main() {
           firstInTradingDayRow: inTradingDayRows[0] || null,
           lastInTradingDayRow:
             inTradingDayRows[inTradingDayRows.length - 1] || null,
+        },
+        cleanup: {
+          success: releaseResponse.data?.success ?? null,
+          statusCode:
+            releaseResponse.data?.statusCode ?? releaseResponse.status,
+          release: releaseResponse.data?.data?.release || null,
         },
       },
       null,

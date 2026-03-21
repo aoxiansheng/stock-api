@@ -8,9 +8,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export SYMBOL="${SYMBOL:-BTCUSDT}"
 export MARKET="${MARKET:-CRYPTO}"
-export PROVIDER="${PROVIDER:-infoway}"
-export SNAPSHOT_ENDPOINT="${SNAPSHOT_ENDPOINT:-/api/v1/chart/intraday-line/snapshot}"
-export RELEASE_ENDPOINT="${RELEASE_ENDPOINT:-/api/v1/chart/intraday-line/release}"
-export WS_CAPABILITY_TYPE="${WS_CAPABILITY_TYPE:-stream-crypto-quote}"
+export PROVIDER="${PROVIDER:-}"
 
 exec bash "${SCRIPT_DIR}/test-chart-intraday-line-endpoint-ws.sh"

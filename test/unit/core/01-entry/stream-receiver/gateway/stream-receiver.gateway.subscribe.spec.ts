@@ -166,7 +166,7 @@ describe("StreamReceiverGateway subscribe", () => {
     );
   });
 
-  it("未显式提供 sessionId 时不应自动匹配 owner lease 或绑定 client", async () => {
+  it("未显式提供 sessionId 时单 symbol + preferredProvider 应尝试自动查找 owner lease", async () => {
     const {
       gateway,
       streamReceiverService,
@@ -181,7 +181,12 @@ describe("StreamReceiverGateway subscribe", () => {
 
     expect(
       chartIntradayStreamSubscriptionService.findRealtimeOwnerLease,
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalledWith({
+      ownerIdentity: "user:user-1",
+      symbol: "AAPL.US",
+      provider: "infoway",
+    });
+    // findRealtimeOwnerLease 返回 null，降级为普通订阅
     expect(
       chartIntradayStreamSubscriptionService.validateWsSessionBinding,
     ).not.toHaveBeenCalled();
@@ -202,6 +207,133 @@ describe("StreamReceiverGateway subscribe", () => {
       expect.objectContaining({
         success: true,
       }),
+    );
+  });
+
+  it("无 sessionId + owner lease 命中时应自动绑定并使用 lease 的 provider/capability", async () => {
+    const {
+      gateway,
+      streamReceiverService,
+      chartIntradayStreamSubscriptionService,
+    } = createGateway();
+    const client = createClient();
+    chartIntradayStreamSubscriptionService.findRealtimeOwnerLease.mockResolvedValueOnce({
+      sessionId: "chart_session_auto_bound",
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+      clientId: "chart-intraday:auto:infoway:stream-stock-quote:AAPL.US",
+    });
+
+    await gateway.handleSubscribe(client, {
+      symbols: ["aapl.us"],
+      preferredProvider: "infoway",
+    } as any);
+
+    expect(
+      chartIntradayStreamSubscriptionService.findRealtimeOwnerLease,
+    ).toHaveBeenCalledWith({
+      ownerIdentity: "user:user-1",
+      symbol: "AAPL.US",
+      provider: "infoway",
+    });
+    expect(streamReceiverService.subscribeStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        symbols: ["AAPL.US"],
+        preferredProvider: "infoway",
+        wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+      }),
+      "client-1",
+      undefined,
+      { connectionAuthenticated: true },
+    );
+    expect(
+      chartIntradayStreamSubscriptionService.bindRealtimeClientToSession,
+    ).toHaveBeenCalledWith({
+      sessionId: "chart_session_auto_bound",
+      clientId: "client-1",
+      symbol: "AAPL.US",
+      market: "US",
+      provider: "infoway",
+      ownerIdentity: "user:user-1",
+    });
+    expect(client.emit).toHaveBeenCalledWith(
+      "subscribe-ack",
+      expect.objectContaining({ success: true }),
+    );
+  });
+
+  it("无 sessionId + owner lease 查找抛出系统异常时应降级为普通订阅（warn 级别）", async () => {
+    const {
+      gateway,
+      streamReceiverService,
+      chartIntradayStreamSubscriptionService,
+    } = createGateway();
+    const client = createClient();
+    chartIntradayStreamSubscriptionService.findRealtimeOwnerLease.mockRejectedValueOnce(
+      new Error("redis timeout"),
+    );
+
+    await gateway.handleSubscribe(client, {
+      symbols: ["AAPL.US"],
+      preferredProvider: "infoway",
+    } as any);
+
+    expect(streamReceiverService.subscribeStream).toHaveBeenCalledTimes(1);
+    expect(
+      chartIntradayStreamSubscriptionService.bindRealtimeClientToSession,
+    ).not.toHaveBeenCalled();
+    expect(client.emit).toHaveBeenCalledWith(
+      "subscribe-ack",
+      expect.objectContaining({ success: true }),
+    );
+  });
+
+  it("多 symbol 订阅不应触发 owner lease 自动绑定", async () => {
+    const {
+      gateway,
+      streamReceiverService,
+      chartIntradayStreamSubscriptionService,
+    } = createGateway();
+    const client = createClient();
+
+    await gateway.handleSubscribe(client, {
+      symbols: ["AAPL.US", "MSFT.US"],
+      preferredProvider: "infoway",
+    } as any);
+
+    expect(
+      chartIntradayStreamSubscriptionService.findRealtimeOwnerLease,
+    ).not.toHaveBeenCalled();
+    expect(streamReceiverService.subscribeStream).toHaveBeenCalledTimes(1);
+    expect(client.emit).toHaveBeenCalledWith(
+      "subscribe-ack",
+      expect.objectContaining({ success: true }),
+    );
+  });
+
+  it("未认证连接不应触发 owner lease 自动绑定", async () => {
+    const {
+      gateway,
+      streamReceiverService,
+      chartIntradayStreamSubscriptionService,
+    } = createGateway();
+    const client = createClient();
+    client.data.authenticated = false;
+
+    await gateway.handleSubscribe(client, {
+      symbols: ["AAPL.US"],
+      preferredProvider: "infoway",
+    } as any);
+
+    expect(
+      chartIntradayStreamSubscriptionService.findRealtimeOwnerLease,
+    ).not.toHaveBeenCalled();
+    expect(streamReceiverService.subscribeStream).toHaveBeenCalledTimes(1);
+    expect(client.emit).toHaveBeenCalledWith(
+      "subscribe-ack",
+      expect.objectContaining({ success: true }),
     );
   });
 

@@ -3,18 +3,18 @@
 
 const fs = require("fs");
 const path = require("path");
-const { createEndpointClient, parseBoolean, parseCliArgs } = require("./project-api-client");
+const { createEndpointClient, parseBoolean, parseCliArgs } = require("../project-api-client");
 
 function printHelp() {
   console.log(`用法:
-node "scripts/tools/local-project/test-chart-intraday-api-contract.js" \\
+node "scripts/tools/local-project/intraday/test-chart-intraday-api-contract.js" \\
   --app-key "<APP_KEY>" \\
   --access-token "<ACCESS_TOKEN>" \\
   --symbol "AAPL.US"
 
 也支持环境变量：
 APP_KEY=xxx ACCESS_TOKEN=yyy BASE_URL="http://127.0.0.1:3001" \\
-node "scripts/tools/local-project/test-chart-intraday-api-contract.js"
+node "scripts/tools/local-project/intraday/test-chart-intraday-api-contract.js"
 
 可选参数：
   --base-url                     默认 http://127.0.0.1:3001
@@ -306,6 +306,30 @@ function validateSnapshotResponse(response, expected, options) {
     metadata,
   );
 
+  const runtimeMode = String(metadata.runtimeMode || "").trim();
+  if (runtimeMode === "live") {
+    assert(sync.realtime && typeof sync.realtime === "object", "live snapshot sync.realtime 缺失", sync);
+    assert(
+      typeof sync.realtime.wsCapabilityType === "string" && sync.realtime.wsCapabilityType.trim(),
+      "live snapshot sync.realtime.wsCapabilityType 非法",
+      sync.realtime,
+    );
+    assert(sync.realtime.event === "chart.intraday.point", "live snapshot sync.realtime.event 非法", sync.realtime);
+    assert(
+      normalizeProvider(sync.realtime.preferredProvider) === normalizeProvider(metadata.provider),
+      "live snapshot sync.realtime.preferredProvider 应与 metadata.provider 一致",
+      {
+        realtime: sync.realtime,
+        metadata,
+      },
+    );
+  } else {
+    assert(sync.realtime === null, "非 live snapshot sync.realtime 应为 null", {
+      runtimeMode,
+      realtime: sync.realtime,
+    });
+  }
+
   return {
     symbol: normalizeSymbol(line.symbol),
     market: String(line.market).trim().toUpperCase(),
@@ -313,11 +337,12 @@ function validateSnapshotResponse(response, expected, options) {
     provider: normalizeProvider(metadata.provider || expected.provider),
     cursor: String(sync.cursor).trim(),
     lastPointTimestamp: String(sync.lastPointTimestamp).trim(),
-    runtimeMode: String(metadata.runtimeMode).trim(),
+    runtimeMode,
     referenceStatus: String(reference.status || "").trim(),
     pointsCount: points.length,
     capability,
     metadata,
+    realtime: sync.realtime || null,
     firstPoint: points[0] || null,
     lastPoint: points[points.length - 1] || null,
   };
@@ -564,6 +589,7 @@ async function main() {
     runtimeMode: snapshotContext.runtimeMode,
     referenceStatus: snapshotContext.referenceStatus,
     pointsCount: snapshotContext.pointsCount,
+    realtime: snapshotContext.realtime,
     capability: snapshotContext.capability,
     metadata: snapshotContext.metadata,
     firstPoint: snapshotContext.firstPoint,
@@ -575,7 +601,7 @@ async function main() {
     buildDeltaBody(snapshotContext, {
       cursor: snapshotContext.cursor,
       limit: deltaLimit,
-      includeProvider: providerExplicitlySet,
+      provider: snapshotContext.provider,
     }),
   );
   const deltaSummary = validateDeltaResponse(deltaResponse);
@@ -589,7 +615,7 @@ async function main() {
         market: snapshotContext.market,
         tradingDay: snapshotContext.tradingDay,
         limit: deltaLimit,
-        ...(providerExplicitlySet ? { provider: snapshotContext.provider } : {}),
+        provider: snapshotContext.provider,
       },
     );
     assertErrorStatus(noCursorResponse, {
@@ -603,7 +629,7 @@ async function main() {
       buildDeltaBody(snapshotContext, {
         cursor: tamperCursor(snapshotContext.cursor),
         limit: deltaLimit,
-        includeProvider: providerExplicitlySet,
+        provider: snapshotContext.provider,
       }),
     );
     assertErrorStatus(tamperedCursorResponse, {
@@ -635,7 +661,7 @@ async function main() {
       buildDeltaBody(snapshotContext, {
         cursor: deltaSummary.nextCursor,
         limit: deltaLimit,
-        includeProvider: providerExplicitlySet,
+        provider: snapshotContext.provider,
         extraFields: {
           since: new Date().toISOString(),
         },
@@ -666,7 +692,7 @@ async function main() {
   const releaseResponse = await primaryClient.post(
     "/chart/intraday-line/release",
     buildReleaseBody(snapshotContext, {
-      includeProvider: providerExplicitlySet,
+      provider: snapshotContext.provider,
     }),
   );
   report.primary.release = validateReleaseResponse(releaseResponse, {
@@ -679,7 +705,7 @@ async function main() {
   const releaseAgainResponse = await primaryClient.post(
     "/chart/intraday-line/release",
     buildReleaseBody(snapshotContext, {
-      includeProvider: providerExplicitlySet,
+      provider: snapshotContext.provider,
     }),
   );
   report.primary.releaseAgain = validateReleaseResponse(releaseAgainResponse, {
@@ -694,7 +720,7 @@ async function main() {
     buildDeltaBody(snapshotContext, {
       cursor: deltaSummary.nextCursor,
       limit: deltaLimit,
-      includeProvider: providerExplicitlySet,
+      provider: snapshotContext.provider,
     }),
   );
   assertErrorStatus(deltaAfterReleaseResponse, {
@@ -728,7 +754,7 @@ async function main() {
     const primaryIsolationReleaseResponse = await primaryClient.post(
       "/chart/intraday-line/release",
       buildReleaseBody(primaryIsolationContext, {
-        includeProvider: providerExplicitlySet,
+        provider: primaryIsolationContext.provider,
       }),
     );
     const primaryIsolationRelease = validateReleaseResponse(primaryIsolationReleaseResponse, {
@@ -743,7 +769,7 @@ async function main() {
       buildDeltaBody(secondarySnapshotContext, {
         cursor: secondarySnapshotContext.cursor,
         limit: deltaLimit,
-        includeProvider: providerExplicitlySet,
+        provider: secondarySnapshotContext.provider,
       }),
     );
     const secondaryDelta = validateDeltaResponse(secondaryDeltaResponse);
@@ -753,7 +779,7 @@ async function main() {
       buildDeltaBody(primaryIsolationContext, {
         cursor: primaryIsolationContext.cursor,
         limit: deltaLimit,
-        includeProvider: providerExplicitlySet,
+        provider: primaryIsolationContext.provider,
       }),
     );
     assertErrorStatus(primaryDeltaAfterOwnReleaseResponse, {
@@ -765,7 +791,7 @@ async function main() {
     const secondaryReleaseResponse = await secondaryClient.post(
       "/chart/intraday-line/release",
       buildReleaseBody(secondarySnapshotContext, {
-        includeProvider: providerExplicitlySet,
+        provider: secondarySnapshotContext.provider,
       }),
     );
     const secondaryRelease = validateReleaseResponse(secondaryReleaseResponse, {

@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export SYMBOL="${SYMBOL:-BTCUSDT}"
 export MARKET="${MARKET:-CRYPTO}"
-export PROVIDER="${PROVIDER:-infoway}"
+export PROVIDER="${PROVIDER:-}"
 export SNAPSHOT_ENDPOINT="${SNAPSHOT_ENDPOINT:-/api/v1/chart/intraday-line/snapshot}"
 export DELTA_ENDPOINT="${DELTA_ENDPOINT:-/api/v1/chart/intraday-line/delta}"
 export OUTPUT_DIR="${OUTPUT_DIR:-/tmp/crypto-intraday-line-test}"

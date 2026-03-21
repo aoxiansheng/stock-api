@@ -1,8 +1,8 @@
 # 分时图 API 协议统一方案
 
-更新时间：2026-03-20 23:42:10 +0800  
-版本：v1  
-状态：待开发
+更新时间：2026-03-21
+版本：v1.2（开发完成）
+状态：已完成
 
 ## 1. 文档定位
 
@@ -66,7 +66,7 @@
 2. WS 网关的 chart-intraday 绑定逻辑仍主要依赖“显式传入 `sessionId`”
 3. 没有 `sessionId` 的标准 WS 订阅路径，不会自动按 owner lease 查找并绑定分时图租约
 4. WS 事件明明已经带 `cursor`，却没有被正式收敛成“主增量协议”
-5. `release` 仍主要按 chart lease/session 语义工作，尚未完全收敛成“收尾释放且不误伤其他消费者”
+5. `release` 退订逻辑的 consumer 统计维度存在不匹配：`scheduleRelease()` 通过 refCount 检查已能防止误伤其他消费者，但 refCount 按裸 `symbol` 统计，而上游退订队列的 `symbolKey` 按 `provider:capability:symbol` 构建，在同一 symbol 多 provider 场景下可能导致上游连接无法被正确释放
 
 所以现在的实际状态是：
 
@@ -118,6 +118,7 @@
 - `symbol`
 - `market`
 - `tradingDay`
+- `granularity`（当前固定为 `"1s"`）
 - `point`
 - `cursor`
 
@@ -325,6 +326,7 @@
   - `wsCapabilityType`
   - `event = "chart.intraday.point"`
   - `preferredProvider = metadata.provider`
+- 注意：`sync.realtime` 块仅在 `metadata.runtimeMode === "live"` 时才有意义。当 `runtimeMode` 为 `"paused"` 或 `"frozen"` 时，上游 WS 已被 `pauseRealtimeUpstream()` 暂停，此时 `sync.realtime` 应为 `null` 或不返回，前端据此判断是否需要建立 WS 订阅
 
 验收条件：
 
@@ -344,13 +346,14 @@
 
 具体做法：
 
-1. 保留现有“显式 `sessionId` 绑定”兼容路径
+1. 保留现有”显式 `sessionId` 绑定”兼容路径
 2. 在未传 `sessionId` 时，若满足分时图标准场景：
    - 单 symbol
    - owner 已认证
    - provider 可确定
    则自动调用 owner lease 查找逻辑
 3. 查找到 owner lease 后，复用现有 session 绑定流程，把当前 client 绑定进该 lease
+4. 若 owner lease 查找失败（如 `snapshot` 尚未调用、lease 已过期），应静默降级为普通 stream 订阅，不报错。这保证非分时图场景和异常场景下的 WS 订阅不受影响
 
 验收条件：
 
@@ -422,10 +425,9 @@
 
 具体做法：
 
-1. consumer 统计改为按共享上游域而不是裸 `symbol`
-2. 区分 internal consumer 与 external consumer
-3. `unsubscribeStream()` 返回结构化退订结果
-4. `release` 只在共享上游真实退订时才返回 `upstreamReleased=true`
+1. 修正 consumer 统计维度不匹配问题：当前 `getClientCountForSymbol()` 按裸 `symbol` 统计 refCount，而 `buildSymbolKey()` 按 `provider:capability:symbol` 构建上游退订 key。在同一 symbol 多 provider 场景下，某个 provider 的消费者全部退出后，因裸 symbol 的 refCount 仍 > 0，该 provider 的上游连接无法被释放。需将 refCount 统计维度对齐到 `symbolKey`（或确认业务上同一 symbol 不会出现多 provider，则标注为已知限制）
+2. `unsubscribeStream()` 返回结构化退订结果
+3. `release` 只在共享上游真实退订时才返回 `upstreamReleased=true`
 
 验收条件：
 

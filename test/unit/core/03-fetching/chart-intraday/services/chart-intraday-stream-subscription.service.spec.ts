@@ -257,11 +257,11 @@ describe("ChartIntradayStreamSubscriptionService", () => {
       }),
       unsubscribeStream: jest.fn(async (payload: any, clientId?: string) => {
         if (!clientId) {
-          return;
+          return { unsubscribedSymbols: [], upstreamReleasedSymbols: [] };
         }
         const current = subscriptions.get(clientId);
         if (!current) {
-          return;
+          return { unsubscribedSymbols: [], upstreamReleasedSymbols: [] };
         }
         const symbols =
           Array.isArray(payload?.symbols) && payload.symbols.length > 0
@@ -272,9 +272,10 @@ describe("ChartIntradayStreamSubscriptionService", () => {
         }
         if (current.symbols.size === 0) {
           subscriptions.delete(clientId);
-          return;
+          return { unsubscribedSymbols: symbols, upstreamReleasedSymbols: symbols };
         }
         subscriptions.set(clientId, current);
+        return { unsubscribedSymbols: symbols, upstreamReleasedSymbols: [] };
       }),
     };
 
@@ -1040,7 +1041,10 @@ describe("ChartIntradayStreamSubscriptionService", () => {
 
     streamReceiverService.unsubscribeStream
       .mockRejectedValueOnce(new Error("unsubscribe-failed"))
-      .mockResolvedValueOnce(undefined);
+      .mockResolvedValueOnce({
+        unsubscribedSymbols: ["AAPL.US"],
+        upstreamReleasedSymbols: ["AAPL.US"],
+      });
 
     const releaseResult = await service.releaseRealtimeSubscription({
       sessionId: session.sessionId,
@@ -1148,7 +1152,10 @@ describe("ChartIntradayStreamSubscriptionService", () => {
 
     streamReceiverService.unsubscribeStream
       .mockRejectedValueOnce(new Error("unsubscribe-failed"))
-      .mockResolvedValueOnce(undefined);
+      .mockResolvedValueOnce({
+        unsubscribedSymbols: ["BTCUSDT"],
+        upstreamReleasedSymbols: ["BTCUSDT"],
+      });
 
     await expect(service.onModuleDestroy()).resolves.toBeUndefined();
 

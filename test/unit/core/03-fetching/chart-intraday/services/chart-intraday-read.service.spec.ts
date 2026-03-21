@@ -403,6 +403,11 @@ describe("ChartIntradayReadService", () => {
     expect(result.metadata.deduplicatedPoints).toBe(1);
     expect(result.capability.supportsFullDay1sHistory).toBe(false);
     expect(result.sync.cursor).toBeTruthy();
+    expect(result.sync.realtime).toEqual({
+      wsCapabilityType: CAPABILITY_NAMES.STREAM_STOCK_QUOTE,
+      event: "chart.intraday.point",
+      preferredProvider: "infoway",
+    });
     expect(
       chartIntradayStreamSubscriptionService.openRealtimeOwnerLease,
     ).toHaveBeenCalledWith({
@@ -1758,6 +1763,7 @@ describe("ChartIntradayReadService", () => {
     expect(result.metadata.frozenSnapshotHit).toBe(true);
     expect(result.metadata.frozenSnapshotFallback).toBe(false);
     expect(result.metadata.effectiveTradingDay).toBe("20260317");
+    expect(result.sync.realtime).toBeNull();
     expect(result.line.tradingDay).toBe("20260317");
   });
 
@@ -1843,6 +1849,7 @@ describe("ChartIntradayReadService", () => {
     expect(result.line.points).toEqual([]);
     expect(result.reference.status).toBe("unavailable");
     expect(result.sync.lastPointTimestamp).toBe("2026-03-17T04:00:00.000Z");
+    expect(result.sync.realtime).toBeNull();
     expect(decodedCursor.lastPointTimestamp).toBe(result.sync.lastPointTimestamp);
     expect(decodedCursor.tradingDay).toBe("20260317");
   });
@@ -2037,6 +2044,7 @@ describe("ChartIntradayReadService", () => {
     expect(result.line.points).toEqual([]);
     expect(result.reference.status).toBe("unavailable");
     expect(result.sync.lastPointTimestamp).toBe("2026-03-16T16:00:00.000Z");
+    expect(result.sync.realtime).toBeNull();
     expect(decodedCursor.symbol).toBe("000001.SZ");
     expect(decodedCursor.market).toBe("SZ");
     expect(decodedCursor.tradingDay).toBe("20260317");
