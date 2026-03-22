@@ -1669,7 +1669,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
         script: string,
         keyCount: number,
         ...args: string[]
-      ): Promise<number | [number, number]> => {
+      ): Promise<number | [number, number | string]> => {
         if (!delayed && keyCount === 4) {
           delayed = true;
           await new Promise((resolve) => setTimeout(resolve, 1_200));
@@ -1745,7 +1745,7 @@ describe("ChartIntradayStreamSubscriptionService", () => {
         script: string,
         keyCount: number,
         ...args: string[]
-      ): Promise<number | [number, number]> => {
+      ): Promise<number | [number, number | string]> => {
         if (!delayed && keyCount === 4) {
           delayed = true;
           await new Promise((resolve) => setTimeout(resolve, 600));

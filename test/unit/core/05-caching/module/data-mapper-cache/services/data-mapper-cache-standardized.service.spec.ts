@@ -164,19 +164,21 @@ describe("DataMapperCacheStandardizedService best-rule cache key", () => {
 
     const rule = createRule("rule-1");
     const otherRule = createRule("rule-2");
+    const ruleApiType = rule.apiType as "stream" | "rest";
+    const otherRuleApiType = otherRule.apiType as "stream" | "rest";
     otherRule.provider = "infoway";
 
     await service.cacheRuleById(rule);
     await service.cacheBestMatchingRule(
       rule.provider,
-      rule.apiType,
+      ruleApiType,
       rule.transDataRuleListType,
       "US",
       rule,
     );
     await service.cacheBestMatchingRule(
       rule.provider,
-      rule.apiType,
+      ruleApiType,
       rule.transDataRuleListType,
       "US",
       rule,
@@ -184,7 +186,7 @@ describe("DataMapperCacheStandardizedService best-rule cache key", () => {
     );
     await service.cacheBestMatchingRule(
       otherRule.provider,
-      otherRule.apiType,
+      otherRuleApiType,
       otherRule.transDataRuleListType,
       "US",
       otherRule,
@@ -196,7 +198,7 @@ describe("DataMapperCacheStandardizedService best-rule cache key", () => {
     await expect(
       service.getCachedBestMatchingRule(
         rule.provider,
-        rule.apiType,
+        ruleApiType,
         rule.transDataRuleListType,
         "US",
       ),
@@ -204,7 +206,7 @@ describe("DataMapperCacheStandardizedService best-rule cache key", () => {
     await expect(
       service.getCachedBestMatchingRule(
         rule.provider,
-        rule.apiType,
+        ruleApiType,
         rule.transDataRuleListType,
         "US",
         { strictWildcardOnly: true },
@@ -213,7 +215,7 @@ describe("DataMapperCacheStandardizedService best-rule cache key", () => {
     await expect(
       service.getCachedBestMatchingRule(
         otherRule.provider,
-        otherRule.apiType,
+        otherRuleApiType,
         otherRule.transDataRuleListType,
         "US",
       ),

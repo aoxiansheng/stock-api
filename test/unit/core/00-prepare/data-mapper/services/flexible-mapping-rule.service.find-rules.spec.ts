@@ -56,11 +56,15 @@ describe("FlexibleMappingRuleService 脏数据容错", () => {
           limit: number,
           total: number,
         ) => ({
-          data,
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
+          items: data,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNext: page * limit < total,
+            hasPrev: page > 1,
+          },
         }),
       ),
     };
@@ -104,8 +108,8 @@ describe("FlexibleMappingRuleService 脏数据容错", () => {
     const findFilter = ruleModelMock.find.mock.calls[0][0];
     const countFilter = ruleModelMock.countDocuments.mock.calls[0][0];
 
-    expect(result.data).toHaveLength(1);
-    expect(result.data[0].id).toBe("rule-valid");
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe("rule-valid");
     expect(findFilter).toEqual(countFilter);
     expect(findFilter.transDataRuleListType).toEqual({
       $in: RULE_LIST_TYPE_VALUES,

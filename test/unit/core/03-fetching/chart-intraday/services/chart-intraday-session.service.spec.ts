@@ -56,7 +56,13 @@ describe("ChartIntradaySessionService", () => {
         return JSON.parse(raw) as T;
       }),
       mget: jest.fn(async <T>(keys: string[]): Promise<(T | null)[]> =>
-        Promise.all(keys.map((key) => basicCache.get<T>(key))),
+        keys.map((key) => {
+          const raw = readRaw(key);
+          if (raw === null) {
+            return null;
+          }
+          return JSON.parse(raw) as T;
+        }),
       ),
       set: jest.fn(async (key: string, value: unknown, opts?: { ttlSeconds?: number }) => {
         store.set(key, JSON.stringify(value));

@@ -13,6 +13,7 @@ describe("SupportListDiffService", () => {
         { symbol: "AAPL.US", name: "Apple New" },
         { symbol: "TSLA.US", name: "Tesla" },
       ],
+      "US",
     );
 
     expect(result.added).toEqual([{ symbol: "TSLA.US", name: "Tesla" }]);
@@ -27,6 +28,7 @@ describe("SupportListDiffService", () => {
         { symbol: "AAPL.US", name: "v1" },
         { symbol: "AAPL.US", name: "v2" },
       ],
+      "US",
     );
 
     expect(result.added).toEqual([{ symbol: "AAPL.US", name: "v2" }]);
