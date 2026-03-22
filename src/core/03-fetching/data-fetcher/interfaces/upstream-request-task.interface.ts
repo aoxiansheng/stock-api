@@ -33,6 +33,7 @@ export interface UpstreamScheduledTask {
 export interface UpstreamDispatchEntry {
   taskId: string;
   queueKey: string;
+  dispatchScopeKey: string;
   mergeKey: string;
   capability: string;
   provider: string;
@@ -45,6 +46,7 @@ export interface UpstreamDispatchEntry {
 export interface UpstreamMergeBucket {
   mergeKey: string;
   queueKey: string;
+  dispatchScopeKey: string;
   provider: string;
   capability: string;
   mergeMode: UpstreamMergeMode;
@@ -55,7 +57,8 @@ export interface UpstreamMergeBucket {
 }
 
 export interface UpstreamQueueState {
-  queueKey: string;
+  /** 共享调度域键，多个 capability 可能共享同一个 */
+  dispatchScopeKey: string;
   pending: UpstreamDispatchEntry[];
   active: boolean;
   lastDispatchAt: number;

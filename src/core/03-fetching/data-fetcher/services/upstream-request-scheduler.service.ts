@@ -4,6 +4,8 @@ import {
   UPSTREAM_SCHEDULER_CAPABILITIES,
   UPSTREAM_SCHEDULER_DEFAULT_ALLOWLIST,
   UPSTREAM_SCHEDULER_DEFAULTS,
+  UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MAP,
+  UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MIN_INTERVAL_MS_MAP,
 } from "../constants/upstream-scheduler.constants";
 import type {
   UpstreamDispatchEntry,
@@ -39,12 +41,13 @@ export class UpstreamRequestSchedulerService {
     process.env.UPSTREAM_SCHEDULER_ALLOWLIST,
   );
 
-  /** 首次加载时打印 allowlist 内容，方便排查配置问题 */
+  /** 首次加载时打印 allowlist 与共享调度域映射，方便排查配置问题 */
   private readonly _logAllowlistOnce = (() => {
     this.logger.log("上游调度器 allowlist 已加载", {
       enabled: this.enabled,
       allowlist: Array.from(this.allowlist),
       source: process.env.UPSTREAM_SCHEDULER_ALLOWLIST ? "env" : "default",
+      dispatchScopeMap: UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MAP,
     });
   })();
   private readonly defaultRps = this.parseInteger(
@@ -155,9 +158,11 @@ export class UpstreamRequestSchedulerService {
       return;
     }
 
+    const dispatchScopeKey = this.buildDispatchScopeKey(task.provider, task.capability);
     const bucket: UpstreamMergeBucket = {
       mergeKey: task.mergeKey,
       queueKey: task.queueKey,
+      dispatchScopeKey,
       provider: task.provider,
       capability: task.capability,
       mergeMode: task.mergeMode,
@@ -187,7 +192,8 @@ export class UpstreamRequestSchedulerService {
   }
 
   private tryMergeIntoPendingEntry(task: UpstreamScheduledTask): boolean {
-    const queue = this.queues.get(task.queueKey);
+    const dispatchScopeKey = this.buildDispatchScopeKey(task.provider, task.capability);
+    const queue = this.queues.get(dispatchScopeKey);
     if (!queue || queue.pending.length === 0) {
       return false;
     }
@@ -243,9 +249,10 @@ export class UpstreamRequestSchedulerService {
     }
 
     this.mergeBuckets.delete(mergeKey);
-    const queue = this.getOrCreateQueue(bucket.queueKey);
+    const { dispatchScopeKey } = bucket;
+    const queue = this.getOrCreateQueue(dispatchScopeKey);
     if (queue.pending.length >= this.maxQueueSize) {
-      const error = new Error(`Upstream scheduler queue overflow: ${bucket.queueKey}`);
+      const error = new Error(`Upstream scheduler queue overflow: ${dispatchScopeKey}`);
       bucket.tasks.forEach((task) => task.reject(error));
       return;
     }
@@ -253,6 +260,7 @@ export class UpstreamRequestSchedulerService {
     const entry: UpstreamDispatchEntry = {
       taskId: bucket.tasks.map((task) => task.taskId).join(","),
       queueKey: bucket.queueKey,
+      dispatchScopeKey,
       mergeKey: bucket.mergeKey,
       capability: bucket.capability,
       provider: bucket.provider,
@@ -265,17 +273,18 @@ export class UpstreamRequestSchedulerService {
     queue.pending.push(entry);
     this.stats.maxQueueDepth = Math.max(this.stats.maxQueueDepth, queue.pending.length);
     this.logger.debug("上游调度任务入队", {
+      dispatchScopeKey,
       queueKey: bucket.queueKey,
       mergeKey: bucket.mergeKey,
       queueDepth: queue.pending.length,
       tasks: bucket.tasks.length,
       symbols: entry.symbols.length,
     });
-    void this.processQueue(bucket.queueKey);
+    void this.processQueue(dispatchScopeKey);
   }
 
-  private async processQueue(queueKey: string): Promise<void> {
-    const queue = this.getOrCreateQueue(queueKey);
+  private async processQueue(dispatchScopeKey: string): Promise<void> {
+    const queue = this.getOrCreateQueue(dispatchScopeKey);
     if (queue.active) {
       return;
     }
@@ -297,7 +306,8 @@ export class UpstreamRequestSchedulerService {
             queue.cooldownUntil = Date.now() + this.cooldownMsOn429;
             this.stats.cooldownHits += 1;
             this.logger.warn("上游请求触发 429 冷却", {
-              queueKey,
+              dispatchScopeKey,
+              queueKey: entry.queueKey,
               cooldownMs: this.cooldownMsOn429,
               tasks: entry.tasks.length,
             });
@@ -318,6 +328,7 @@ export class UpstreamRequestSchedulerService {
     this.activeEntries.set(entry.mergeKey, entry);
     try {
       this.logger.debug("上游调度任务发车", {
+        dispatchScopeKey: entry.dispatchScopeKey,
         queueKey: entry.queueKey,
         mergeKey: entry.mergeKey,
         tasks: entry.tasks.length,
@@ -435,26 +446,27 @@ export class UpstreamRequestSchedulerService {
       await this.sleep(queue.cooldownUntil - now);
     }
 
+    const effectiveMinIntervalMs = this.resolveMinIntervalMs(queue.dispatchScopeKey);
     const elapsed = Date.now() - queue.lastDispatchAt;
-    if (queue.lastDispatchAt > 0 && elapsed < this.minIntervalMs) {
-      await this.sleep(this.minIntervalMs - elapsed);
+    if (queue.lastDispatchAt > 0 && elapsed < effectiveMinIntervalMs) {
+      await this.sleep(effectiveMinIntervalMs - elapsed);
     }
   }
 
-  private getOrCreateQueue(queueKey: string): UpstreamQueueState {
-    const existing = this.queues.get(queueKey);
+  private getOrCreateQueue(dispatchScopeKey: string): UpstreamQueueState {
+    const existing = this.queues.get(dispatchScopeKey);
     if (existing) {
       return existing;
     }
 
     const queue: UpstreamQueueState = {
-      queueKey,
+      dispatchScopeKey,
       pending: [],
       active: false,
       lastDispatchAt: 0,
       cooldownUntil: 0,
     };
-    this.queues.set(queueKey, queue);
+    this.queues.set(dispatchScopeKey, queue);
     return queue;
   }
 
@@ -582,6 +594,23 @@ export class UpstreamRequestSchedulerService {
       tasks: entry.tasks.length,
     });
     throw error;
+  }
+
+  /** 解析共享调度域的有效最小发车间隔，未命中覆盖映射时回退全局默认值 */
+  private resolveMinIntervalMs(dispatchScopeKey: string): number {
+    return (
+      UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MIN_INTERVAL_MS_MAP[dispatchScopeKey] ??
+      this.minIntervalMs
+    );
+  }
+
+  /**
+   * 将 provider:capability 映射到共享调度域。
+   * 命中映射表的 capability 共享发车间隔与 429 冷却；未命中则回退为 provider:capability 粒度。
+   */
+  private buildDispatchScopeKey(provider: string, capability: string): string {
+    const allowlistKey = this.buildAllowlistKey(provider, capability);
+    return UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MAP[allowlistKey] ?? allowlistKey;
   }
 
   private buildAllowlistKey(provider: string, capability: string): string {

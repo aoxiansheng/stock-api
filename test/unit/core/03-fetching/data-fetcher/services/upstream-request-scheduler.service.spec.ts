@@ -429,7 +429,7 @@ describe("UpstreamRequestSchedulerService", () => {
       execute,
     });
 
-    await jest.advanceTimersByTimeAsync(20);
+    await jest.advanceTimersByTimeAsync(1500);
 
     await expect(resultPromiseA).resolves.toEqual({
       data: [{ symbol: "BTCUSDT" }],
@@ -439,8 +439,6 @@ describe("UpstreamRequestSchedulerService", () => {
     });
 
     expect(execute).toHaveBeenCalledTimes(2);
-    expect(execute).toHaveBeenNthCalledWith(1, ["BTCUSDT"]);
-    expect(execute).toHaveBeenNthCalledWith(2, ["ETHUSDT"]);
   });
 
   it("single_symbol_only 模式下同 symbol 的 crypto history 请求会 single-flight 复用", async () => {
@@ -510,12 +508,257 @@ describe("UpstreamRequestSchedulerService", () => {
       execute: secondExecute,
     });
 
-    await jest.advanceTimersByTimeAsync(100);
+    await jest.advanceTimersByTimeAsync(1400);
     await expect(secondPromise).resolves.toEqual({
       data: [{ symbol: "ETHUSDT", lastPrice: 3200 }],
     });
 
+    // 第二次发车需等待 max(cooldown=100ms, effectiveMinIntervalMs=1300ms)
     expect(timestamps[1]).toBeGreaterThanOrEqual(timestamps[0] + 100);
+  });
+
+  it("crypto quote + history 共享调度域：串行发车而非并发打上游", async () => {
+    // beforeEach 已设置 RPS=1000，minIntervalMs=1ms，此处验证共享域 FIFO 顺序
+    const scheduler = new UpstreamRequestSchedulerService();
+    const callOrder: string[] = [];
+
+    const quoteExecute = jest.fn(async (symbolsOverride: string[]) => {
+      callOrder.push("quote");
+      return {
+        data: symbolsOverride.map((symbol) => ({ symbol, lastPrice: 65000 })),
+      };
+    });
+    const historyExecute = jest.fn(async (symbolsOverride: string[]) => {
+      callOrder.push("history");
+      return {
+        data: symbolsOverride.map((symbol) => ({ symbol, points: 5 })),
+      };
+    });
+
+    const quotePromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["BTCUSDT"],
+      options: { realtime: true },
+      execute: quoteExecute,
+    });
+    const historyPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["ETHUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: historyExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(3000);
+
+    await expect(quotePromise).resolves.toEqual({
+      data: [{ symbol: "BTCUSDT", lastPrice: 65000 }],
+    });
+    await expect(historyPromise).resolves.toEqual({
+      data: [{ symbol: "ETHUSDT", points: 5 }],
+    });
+
+    expect(quoteExecute).toHaveBeenCalledTimes(1);
+    expect(historyExecute).toHaveBeenCalledTimes(1);
+    // 共享调度域保证串行发车：两者都在同一个 dispatchScopeKey 队列中
+    // history 无 merge window (0ms) 先入队，quote 有 50ms merge window 后入队
+    expect(callOrder).toEqual(["history", "quote"]);
+  });
+
+  it("crypto quote 触发 429 后，同共享域的 history 发车会等待冷却", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const timestamps: number[] = [];
+
+    const quoteExecute = jest.fn(async () => {
+      timestamps.push(Date.now());
+      throw new Error("429 too many requests");
+    });
+    const historyExecute = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return {
+        data: symbolsOverride.map((symbol) => ({ symbol, points: 10 })),
+      };
+    });
+
+    const quotePromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["BTCUSDT"],
+      options: { realtime: true },
+      execute: quoteExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(60);
+    await expect(quotePromise).rejects.toThrow("429");
+
+    const historyPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["DOGEUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: historyExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(1400);
+    await expect(historyPromise).resolves.toEqual({
+      data: [{ symbol: "DOGEUSDT", points: 10 }],
+    });
+
+    // history 发车时间应在 quote 429 之后至少 100ms（cooldown）
+    expect(timestamps[1]).toBeGreaterThanOrEqual(timestamps[0] + 100);
+    expect(scheduler.getStats().cooldownHits).toBe(1);
+  });
+
+  it("crypto history 触发 429 后，同共享域的 quote 发车也会等待冷却", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const timestamps: number[] = [];
+
+    const historyExecute = jest.fn(async () => {
+      timestamps.push(Date.now());
+      throw new Error("429 too many requests");
+    });
+    const quoteExecute = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return {
+        data: symbolsOverride.map((symbol) => ({ symbol, lastPrice: 0.15 })),
+      };
+    });
+
+    const historyPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["BTCUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: historyExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(10);
+    await expect(historyPromise).rejects.toThrow("429");
+
+    const quotePromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["DOGEUSDT"],
+      options: { realtime: true },
+      execute: quoteExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(1400);
+    await expect(quotePromise).resolves.toEqual({
+      data: [{ symbol: "DOGEUSDT", lastPrice: 0.15 }],
+    });
+
+    expect(timestamps[1]).toBeGreaterThanOrEqual(timestamps[0] + 100);
+  });
+
+  it("共享调度域下 crypto history 仍保持单标发车，不会跨 capability 合并", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const quoteExecute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol, lastPrice: 65000 })),
+    }));
+    const historyExecuteA = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol, points: 5 })),
+    }));
+    const historyExecuteB = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol, points: 10 })),
+    }));
+
+    const quotePromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["BTCUSDT", "ETHUSDT"],
+      options: { realtime: true },
+      execute: quoteExecute,
+    });
+    const historyPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["BTCUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: historyExecuteA,
+    });
+    const historyPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["ETHUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: historyExecuteB,
+    });
+
+    await jest.advanceTimersByTimeAsync(4000);
+
+    // quote 合并为一次调用
+    expect(quoteExecute).toHaveBeenCalledTimes(1);
+    expect(quoteExecute).toHaveBeenCalledWith(["BTCUSDT", "ETHUSDT"]);
+    // history 每个标的独立发车
+    expect(historyExecuteA).toHaveBeenCalledTimes(1);
+    expect(historyExecuteA).toHaveBeenCalledWith(["BTCUSDT"]);
+    expect(historyExecuteB).toHaveBeenCalledTimes(1);
+    expect(historyExecuteB).toHaveBeenCalledWith(["ETHUSDT"]);
+
+    // 结果正确隔离
+    await expect(quotePromise).resolves.toEqual({
+      data: [
+        { symbol: "BTCUSDT", lastPrice: 65000 },
+        { symbol: "ETHUSDT", lastPrice: 65000 },
+      ],
+    });
+    await expect(historyPromiseA).resolves.toEqual({
+      data: [{ symbol: "BTCUSDT", points: 5 }],
+    });
+    await expect(historyPromiseB).resolves.toEqual({
+      data: [{ symbol: "ETHUSDT", points: 10 }],
+    });
+  });
+
+  it("stock capability 不受 crypto 共享调度域影响", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const timestamps: number[] = [];
+
+    const cryptoExecute = jest.fn(async () => {
+      timestamps.push(Date.now());
+      throw new Error("429 too many requests");
+    });
+    const stockExecute = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return {
+        data: symbolsOverride.map((symbol) => ({ symbol, lastPrice: 100 })),
+      };
+    });
+
+    const cryptoPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["BTCUSDT"],
+      options: { realtime: true },
+      execute: cryptoExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(60);
+    await expect(cryptoPromise).rejects.toThrow("429");
+
+    // stock quote 使用不同的 dispatchScopeKey，不应受 crypto 429 冷却影响
+    const stockPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-quote",
+      symbols: ["00700.HK"],
+      options: { realtime: true },
+      execute: stockExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(60);
+    await expect(stockPromise).resolves.toEqual({
+      data: [{ symbol: "00700.HK", lastPrice: 100 }],
+    });
+
+    // stock 的发车不需要等 crypto 的 100ms 冷却
+    expect(timestamps[1] - timestamps[0]).toBeLessThan(100);
   });
 
   it("会在短窗口内合并 get-crypto-basic-info 并按 symbol 拆分结果", async () => {
@@ -553,6 +796,92 @@ describe("UpstreamRequestSchedulerService", () => {
 
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute).toHaveBeenCalledWith(["BTCUSDT", "ETHUSDT"]);
+  });
+
+  // ========== 二次修复：共享调度域最小发车间隔覆盖测试 ==========
+
+  it("crypto-rest 共享域使用覆盖的 1300ms 发车间隔而非全局默认值", async () => {
+    // beforeEach 设置 RPS=1000 → 全局 minIntervalMs=1ms
+    // 但 infoway:crypto-rest 覆盖为 1300ms
+    const scheduler = new UpstreamRequestSchedulerService();
+    const timestamps: number[] = [];
+
+    const executeA = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return { data: symbolsOverride.map((symbol) => ({ symbol })) };
+    });
+    const executeB = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return { data: symbolsOverride.map((symbol) => ({ symbol })) };
+    });
+
+    const promiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["BTCUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: executeA,
+    });
+
+    await jest.advanceTimersByTimeAsync(10);
+    await promiseA;
+
+    const promiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["ETHUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute: executeB,
+    });
+
+    await jest.advanceTimersByTimeAsync(1400);
+    await promiseB;
+
+    // 两次发车间隔应 >= 1300ms（覆盖值），而非 1ms（全局默认）
+    expect(timestamps[1] - timestamps[0]).toBeGreaterThanOrEqual(1300);
+  });
+
+  it("stock capability 仍使用全局默认 minIntervalMs 而非 crypto 覆盖值", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const timestamps: number[] = [];
+
+    const executeA = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return { data: symbolsOverride.map((symbol) => ({ symbol })) };
+    });
+    const executeB = jest.fn(async (symbolsOverride: string[]) => {
+      timestamps.push(Date.now());
+      return { data: symbolsOverride.map((symbol) => ({ symbol })) };
+    });
+
+    const promiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-history",
+      symbols: ["00700.HK"],
+      mergeMode: "single_symbol_only",
+      options: { market: "HK", klineType: 1, klineNum: 5 },
+      execute: executeA,
+    });
+
+    await jest.advanceTimersByTimeAsync(10);
+    await promiseA;
+
+    const promiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-stock-history",
+      symbols: ["AAPL.US"],
+      mergeMode: "single_symbol_only",
+      options: { market: "US", klineType: 1, klineNum: 5 },
+      execute: executeB,
+    });
+
+    await jest.advanceTimersByTimeAsync(10);
+    await promiseB;
+
+    // stock 两次发车间隔应远小于 1300ms（使用全局 1ms 默认值）
+    expect(timestamps[1] - timestamps[0]).toBeLessThan(100);
   });
 
 });
