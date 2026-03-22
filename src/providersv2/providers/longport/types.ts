@@ -30,10 +30,6 @@ export interface LongportExtendedQuote {
   timestamp: number;
 }
 
-export interface LongportQuoteResponse {
-  secu_quote: LongportQuoteData[];
-}
-
 export interface LongportBasicInfo {
   symbol: string;
   name_cn: string;

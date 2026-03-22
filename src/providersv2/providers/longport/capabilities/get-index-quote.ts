@@ -2,7 +2,7 @@ import { createLogger } from "@common/logging/index";
 import { Market } from "../../../../core/shared/constants/market.constants";
 
 import { ICapability } from "../../../providers/interfaces/capability.interface";
-import { LongportQuoteResponse } from "../types";
+import { LongportQuoteData } from "../types";
 import { CAPABILITY_NAMES, SYMBOL_FORMATS } from "../../../providers/constants";
 
 /**
@@ -22,7 +22,7 @@ export const getIndexQuote: ICapability = {
   async execute(params: {
     symbols: string[];
     contextService?: any;
-  }): Promise<LongportQuoteResponse> {
+  }): Promise<LongportQuoteData[]> {
     const logger = createLogger("LongportGetIndexQuote");
     try {
       logger.debug("调用 LongPort SDK 获取指数报价", {
@@ -37,8 +37,8 @@ export const getIndexQuote: ICapability = {
       const ctx = await params.contextService.getQuoteContext();
       const quotes = await ctx.quote(params.symbols);
 
-      // 直接返回SDK原始格式，不做任何字段名转换
-      return { secu_quote: quotes };
+      // 直接返回SDK原始数组，与 DataFetcher.processRawData 输入契约对齐
+      return quotes;
     } catch (error) {
       throw new Error(`LongPort 获取指数报价失败: ${error.message}`);
     }
