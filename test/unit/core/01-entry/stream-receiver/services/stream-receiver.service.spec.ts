@@ -97,6 +97,27 @@ function createService(options?: {
       isConnectionActive: jest.fn(() => false),
     },
     providerRegistryService: {
+      getProvider: jest.fn((providerName: string) => ({
+        name:
+          String(providerName || "").trim().toLowerCase() ||
+          REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      })),
+      getCapability: jest.fn((_providerName: string, capabilityName: string) => ({
+        name: capabilityName,
+        supportedMarkets: ["US", "HK", "CN", "SG", "JP", "UNKNOWN"],
+      })),
+      getProviderSelectionDiagnostics: jest.fn(
+        (capabilityName: string, market?: string) => ({
+          capabilityName,
+          market: market ? String(market).trim().toUpperCase() : null,
+          candidatesBefore: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+          configuredOrder: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+          rankedCandidates: [REFERENCE_DATA.PROVIDER_IDS.LONGPORT],
+          selectedProvider: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+          selectionReason: "configured",
+          orderSource: "capability",
+        }),
+      ),
       getBestProvider: jest.fn(() => REFERENCE_DATA.PROVIDER_IDS.LONGPORT),
       getCandidateProviders: jest.fn(() => [
         REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
@@ -636,6 +657,159 @@ describe("StreamReceiverService provider mapping consistency", () => {
       );
       expect(strategy.marketPriorities[market]).toEqual([expectedProvider]);
     }
+  });
+});
+
+describe("StreamReceiverService capability-aware provider selection", () => {
+  it("subscribeStream 自动选源应按 capability 级诊断结果选 provider", async () => {
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: {
+          symbols: ["BTCUSDT"],
+          wsCapabilityType: "stream-crypto-quote",
+        },
+      },
+    });
+    mocks.marketInferenceService.inferDominantMarket.mockReturnValue("US");
+    mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue({
+      symbols: ["BTCUSDT"],
+    });
+    mocks.providerRegistryService.getProviderSelectionDiagnostics.mockImplementation(
+      (capabilityName: string, market?: string) => ({
+        capabilityName,
+        market: market ? String(market).trim().toUpperCase() : null,
+        candidatesBefore: [REFERENCE_DATA.PROVIDER_IDS.INFOWAY],
+        configuredOrder: [REFERENCE_DATA.PROVIDER_IDS.INFOWAY],
+        rankedCandidates: [REFERENCE_DATA.PROVIDER_IDS.INFOWAY],
+        selectedProvider: REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+        selectionReason: "configured",
+        orderSource: "capability",
+      }),
+    );
+
+    await service.subscribeStream(
+      {
+        symbols: ["BTCUSDT"],
+        wsCapabilityType: "stream-crypto-quote",
+      } as any,
+      "client-crypto",
+    );
+
+    expect(
+      mocks.providerRegistryService.getProviderSelectionDiagnostics,
+    ).toHaveBeenCalledWith("stream-crypto-quote", "US");
+    expect(mocks.connectionManager.getOrCreateConnection).toHaveBeenCalledWith(
+      REFERENCE_DATA.PROVIDER_IDS.INFOWAY,
+      "stream-crypto-quote",
+      expect.any(String),
+      ["BTCUSDT"],
+      "client-crypto",
+    );
+  });
+
+  it("subscribeStream 指定的 preferredProvider 不支持 capability 时应 fail-fast", async () => {
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: {
+          symbols: ["AAPL.US"],
+          wsCapabilityType: "stream-crypto-quote",
+          preferredProvider: "longport",
+        },
+      },
+    });
+    mocks.providerRegistryService.getCapability.mockReturnValue(null);
+
+    await expect(
+      service.subscribeStream(
+        {
+          symbols: ["AAPL.US"],
+          wsCapabilityType: "stream-crypto-quote",
+          preferredProvider: "longport",
+        } as any,
+        "client-preferred-miss",
+      ),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+      operation: "subscribeStream",
+      context: expect.objectContaining({
+        reason: "preferred_provider_capability_missing",
+      }),
+    });
+
+    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+  });
+
+  it("subscribeStream 自动选源无候选 provider 时应抛 DATA_NOT_FOUND", async () => {
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: {
+          symbols: ["BTCUSDT"],
+          wsCapabilityType: "stream-crypto-quote",
+        },
+      },
+    });
+    mocks.providerRegistryService.getProviderSelectionDiagnostics.mockReturnValue({
+      capabilityName: "stream-crypto-quote",
+      market: "US",
+      candidatesBefore: [],
+      configuredOrder: [REFERENCE_DATA.PROVIDER_IDS.INFOWAY],
+      rankedCandidates: [],
+      selectedProvider: null,
+      selectionReason: "configured",
+      orderSource: "capability",
+    });
+
+    await expect(
+      service.subscribeStream(
+        {
+          symbols: ["BTCUSDT"],
+          wsCapabilityType: "stream-crypto-quote",
+        } as any,
+        "client-no-provider",
+      ),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+      operation: "subscribeStream",
+      context: expect.objectContaining({
+        reason: "no_provider_for_capability_market",
+      }),
+    });
+
+    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
+  });
+
+  it("handleClientReconnect 应复用 preferredProvider 市场校验", async () => {
+    const { service, mocks } = createService();
+    mocks.providerRegistryService.getCapability.mockReturnValue({
+      name: "stream-stock-quote",
+      supportedMarkets: ["HK"],
+    });
+
+    const result = await service.handleClientReconnect({
+      clientId: "client-reconnect",
+      lastReceiveTimestamp: Date.now() - 1000,
+      symbols: ["AAPL.US"],
+      wsCapabilityType: "stream-stock-quote",
+      preferredProvider: "longport",
+      reason: "network_error",
+    } as any);
+
+    expect(result.success).toBe(false);
+    expect(result.instructions?.params).toEqual(
+      expect.objectContaining({
+        reason: expect.stringContaining("Preferred provider 'longport'"),
+      }),
+    );
+    expect(mocks.connectionManager.getOrCreateConnection).not.toHaveBeenCalled();
   });
 });
 

@@ -171,6 +171,58 @@ describe("ProviderRegistryService", () => {
     );
   });
 
+  it("应返回 provider 选择诊断信息，便于 entry 层记录 selectionReason", async () => {
+    process.env.PROVIDER_PRIORITY_GET_STOCK_QUOTE = "infoway,longport,jvquant";
+
+    const service = createRegistryService(
+      createModuleRefMock({
+        [PROVIDER_IDS.LONGPORT]: createProvider(
+          PROVIDER_IDS.LONGPORT,
+          "get-stock-quote",
+          ["US"],
+        ),
+        [PROVIDER_IDS.JVQUANT]: createProvider(
+          PROVIDER_IDS.JVQUANT,
+          "get-stock-quote",
+          ["US"],
+        ),
+        [PROVIDER_IDS.INFOWAY]: createProvider(
+          PROVIDER_IDS.INFOWAY,
+          "get-stock-quote",
+          ["US"],
+        ),
+      }),
+    );
+
+    await service.onModuleInit();
+
+    expect(
+      service.getProviderSelectionDiagnostics("get-stock-quote", "US"),
+    ).toEqual({
+      capabilityName: "get-stock-quote",
+      market: "US",
+      candidatesBefore: [
+        PROVIDER_IDS.LONGPORT,
+        PROVIDER_IDS.JVQUANT,
+        PROVIDER_IDS.INFOWAY,
+      ],
+      configuredOrder: [
+        PROVIDER_IDS.INFOWAY,
+        PROVIDER_IDS.LONGPORT,
+        PROVIDER_IDS.JVQUANT,
+        PROVIDER_IDS.COINGECKO,
+      ],
+      rankedCandidates: [
+        PROVIDER_IDS.INFOWAY,
+        PROVIDER_IDS.LONGPORT,
+        PROVIDER_IDS.JVQUANT,
+      ],
+      selectedProvider: PROVIDER_IDS.INFOWAY,
+      selectionReason: "configured",
+      orderSource: "capability",
+    });
+  });
+
   it("应支持 provider 名称标准化解析", async () => {
     const canonicalProvider = createProvider(
       PROVIDER_IDS.LONGPORT,

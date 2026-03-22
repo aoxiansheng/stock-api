@@ -817,10 +817,12 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         marketContext?.primaryMarket ||
         this.marketInferenceService.inferDominantMarket(symbols);
       const capabilityName = receiverType;
-      const bestProvider = this.capabilityRegistryService.getBestProvider(
-        capabilityName,
-        inferredMarket,
-      );
+      const selectionDiagnostics =
+        this.capabilityRegistryService.getProviderSelectionDiagnostics(
+          capabilityName,
+          inferredMarket,
+        );
+      const bestProvider = selectionDiagnostics.selectedProvider;
 
       if (bestProvider) {
         this.logger.debug(
@@ -829,8 +831,13 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
             requestId,
             provider: bestProvider,
             receiverType,
-            market: market,
+            market: inferredMarket,
             symbolsCount: symbols.length,
+            candidatesBefore: selectionDiagnostics.candidatesBefore,
+            configuredOrder: selectionDiagnostics.configuredOrder,
+            rankedCandidates: selectionDiagnostics.rankedCandidates,
+            selectedProvider: bestProvider,
+            selectionReason: selectionDiagnostics.selectionReason,
             operation: "determineOptimalProvider",
           }),
         );
@@ -844,8 +851,10 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         message: `No provider found for receiver type '${receiverType}' and market '${inferredMarket}'`,
         context: {
           receiverType,
-          market: market,
-          availableProviders: [],
+          market: inferredMarket,
+          availableProviders: selectionDiagnostics.candidatesBefore,
+          configuredOrder: selectionDiagnostics.configuredOrder,
+          selectionReason: selectionDiagnostics.selectionReason,
           providerSelectionFailed: true
         }
       });
@@ -896,6 +905,11 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
     requestId?: string,
   ): Promise<string | null> {
     const capabilityName = receiverType;
+    const selectionDiagnostics =
+      this.capabilityRegistryService.getProviderSelectionDiagnostics(
+        capabilityName,
+        market,
+      );
     const capability = this.capabilityRegistryService.getCapability(
       preferredProvider,
       capabilityName,
@@ -962,6 +976,10 @@ export class ReceiverService implements OnModuleInit, OnModuleDestroy {
         provider: preferredProvider,
         receiverType,
         market,
+        candidatesBefore: selectionDiagnostics.candidatesBefore,
+        configuredOrder: selectionDiagnostics.configuredOrder,
+        selectedProvider: preferredProvider,
+        selectionReason: "preferred",
         operation: "validatePreferredProvider",
       }),
     );

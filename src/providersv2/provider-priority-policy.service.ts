@@ -1,7 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { createLogger } from "@common/logging/index";
 import { ACTIVE_PROVIDER_MANIFEST } from "./provider-id.constants";
-import { ProviderPriorityPolicyCache } from "./provider-priority-policy.cache";
+import {
+  ProviderPriorityPolicyCache,
+  type ProviderPriorityResolution,
+} from "./provider-priority-policy.cache";
 
 const DEFAULT_PRIORITY_ENV_KEY = "PROVIDER_PRIORITY_DEFAULT";
 const CAPABILITY_PRIORITY_ENV_KEY_PREFIX = "PROVIDER_PRIORITY_";
@@ -18,30 +21,43 @@ export class ProviderPriorityPolicyService {
   private readonly orderCache = new ProviderPriorityPolicyCache();
 
   getOrderForCapability(capabilityName: string): string[] {
+    return [...this.resolveOrderForCapability(capabilityName).order];
+  }
+
+  resolveOrderForCapability(capabilityName: string): ProviderPriorityResolution {
     const capabilityEnvKey = this.buildCapabilityPriorityEnvKey(capabilityName);
     const cacheSignature = this.buildCacheSignature(capabilityEnvKey);
     const cachedOrder = this.orderCache.get(capabilityEnvKey, cacheSignature);
     if (cachedOrder) {
-      return cachedOrder;
+      return this.cloneResolution(cachedOrder);
     }
 
     const capabilityOrder = this.parseConfiguredOrder(capabilityEnvKey);
     if (capabilityOrder.length > 0) {
-      const resolved = this.appendMissingRegisteredProviders(capabilityOrder);
+      const resolved = this.buildResolution(
+        this.appendMissingRegisteredProviders(capabilityOrder),
+        "capability",
+      );
       this.orderCache.set(capabilityEnvKey, cacheSignature, resolved);
-      return [...resolved];
+      return this.cloneResolution(resolved);
     }
 
     const defaultOrder = this.parseConfiguredOrder(DEFAULT_PRIORITY_ENV_KEY);
     if (defaultOrder.length > 0) {
-      const resolved = this.appendMissingRegisteredProviders(defaultOrder);
+      const resolved = this.buildResolution(
+        this.appendMissingRegisteredProviders(defaultOrder),
+        "default",
+      );
       this.orderCache.set(capabilityEnvKey, cacheSignature, resolved);
-      return [...resolved];
+      return this.cloneResolution(resolved);
     }
 
-    const fallbackOrder = [...this.registeredProviders];
+    const fallbackOrder = this.buildResolution(
+      [...this.registeredProviders],
+      "registration",
+    );
     this.orderCache.set(capabilityEnvKey, cacheSignature, fallbackOrder);
-    return fallbackOrder;
+    return this.cloneResolution(fallbackOrder);
   }
 
   rankCandidates(capabilityName: string, candidates: string[]): string[] {
@@ -50,7 +66,7 @@ export class ProviderPriorityPolicyService {
       return normalizedCandidates;
     }
 
-    const configuredOrder = this.getOrderForCapability(capabilityName);
+    const configuredOrder = this.resolveOrderForCapability(capabilityName).order;
     const orderIndex = new Map(
       configuredOrder.map((provider, index) => [provider, index]),
     );
@@ -152,5 +168,24 @@ export class ProviderPriorityPolicyService {
       .replace(/^_+|_+$/g, "");
 
     return `${CAPABILITY_PRIORITY_ENV_KEY_PREFIX}${capabilityKey}`;
+  }
+
+  private buildResolution(
+    order: string[],
+    source: ProviderPriorityResolution["source"],
+  ): ProviderPriorityResolution {
+    return {
+      order: [...order],
+      source,
+    };
+  }
+
+  private cloneResolution(
+    resolution: ProviderPriorityResolution,
+  ): ProviderPriorityResolution {
+    return {
+      order: [...resolution.order],
+      source: resolution.source,
+    };
   }
 }

@@ -103,7 +103,10 @@ import {
   WebSocketServerProvider,
   WEBSOCKET_SERVER_TOKEN,
 } from "../../../03-fetching/stream-data-fetcher/providers/websocket-server.provider";
-import { ProviderRegistryService } from "@providersv2/provider-registry.service";
+import {
+  normalizeProviderName,
+  ProviderRegistryService,
+} from "@providersv2/provider-registry.service";
 
 @Injectable()
 export class StreamReceiverService implements OnModuleDestroy {
@@ -586,9 +589,14 @@ export class StreamReceiverService implements OnModuleDestroy {
       this.marketInferenceService,
       symbols,
     );
-    const providerName =
-      preferredProvider ||
-      this.getDefaultProvider(symbols, wsCapabilityType, marketContext);
+    const providerName = this.resolveProviderForStreamRequest({
+      symbols,
+      capability: wsCapabilityType,
+      preferredProvider,
+      marketContext,
+      operation: "subscribeStream",
+      requestId,
+    });
     this.assertSubscriptionContextCompatibility(
       resolvedClientId,
       providerName,
@@ -933,10 +941,10 @@ export class StreamReceiverService implements OnModuleDestroy {
       this.marketInferenceService,
       symbols,
     );
-    const providerName =
-      preferredProvider ||
-      this.getDefaultProvider(symbols, wsCapabilityType, marketContext);
     const requestId = `reconnect_${Date.now()}`;
+    let providerName = preferredProvider
+      ? normalizeProviderName(preferredProvider)
+      : "";
 
     this.logger.log("客户端重连请求", {
       clientId,
@@ -960,6 +968,15 @@ export class StreamReceiverService implements OnModuleDestroy {
           }
         });
       }
+
+      providerName = this.resolveProviderForStreamRequest({
+        symbols,
+        capability: wsCapabilityType,
+        preferredProvider,
+        marketContext,
+        operation: "handleClientReconnect",
+        requestId,
+      });
 
       // 2. 映射符号（标准化 + Provider格式）
       const { standardSymbols, providerSymbols } =
@@ -1989,40 +2006,71 @@ export class StreamReceiverService implements OnModuleDestroy {
     symbols: string[],
     capability: string,
     marketContext?: MarketTypeContext,
+    operation: "subscribeStream" | "handleClientReconnect" = "subscribeStream",
+    requestId?: string,
   ): string {
-    try {
-      const primaryMarket =
-        marketContext?.primaryMarket ||
-        this.marketInferenceService.inferDominantMarket(symbols);
+    const primaryMarket =
+      marketContext?.primaryMarket ||
+      this.marketInferenceService.inferDominantMarket(symbols);
 
-      const provider =
-        this.providerRegistryService.getBestProvider(capability, primaryMarket) ||
-        this.providerRegistryService.getBestProvider(capability);
+    try {
+      const selectionDiagnostics =
+        this.providerRegistryService.getProviderSelectionDiagnostics(
+          capability,
+          primaryMarket,
+        );
+      const provider = selectionDiagnostics.selectedProvider;
 
       if (provider) {
         this.logger.debug("基于能力注册表找到最佳提供商", {
+          requestId,
+          operation,
           capability,
           market: primaryMarket,
-          provider,
           symbolsCount: symbols.length,
+          candidatesBefore: selectionDiagnostics.candidatesBefore,
+          configuredOrder: selectionDiagnostics.configuredOrder,
+          rankedCandidates: selectionDiagnostics.rankedCandidates,
+          selectedProvider: provider,
+          selectionReason: selectionDiagnostics.selectionReason,
           method: "capability_registry",
         });
         return provider;
       }
 
-      const fallback = this.getProviderByMarketPriority(primaryMarket);
-      this.logger.warn("未找到支持能力的Provider，使用兜底Provider", {
+      this.logger.warn("未找到支持能力的Provider", {
+        requestId,
+        operation,
         capability,
         market: primaryMarket,
-        fallback,
+        candidatesBefore: selectionDiagnostics.candidatesBefore,
+        configuredOrder: selectionDiagnostics.configuredOrder,
+        selectionReason: selectionDiagnostics.selectionReason,
       });
-      return fallback;
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation,
+        message: `No provider found for capability '${capability}' and market '${primaryMarket}'`,
+        context: {
+          capability,
+          market: primaryMarket || null,
+          availableProviders: selectionDiagnostics.candidatesBefore,
+          configuredOrder: selectionDiagnostics.configuredOrder,
+          selectionReason: selectionDiagnostics.selectionReason,
+          errorType: STREAM_RECEIVER_ERROR_CODES.SUBSCRIPTION_FAILED,
+          reason: "no_provider_for_capability_market",
+        },
+      });
     } catch (error) {
-      this.logger.warn("Provider选择失败，使用默认", {
-        error: error.message,
-        fallback: REFERENCE_DATA.PROVIDER_IDS.LONGPORT,
+      this.logger.error("Provider选择失败", {
+        requestId,
+        operation,
+        capability,
+        market: primaryMarket,
+        error: error instanceof Error ? error.message : String(error),
       });
-      return REFERENCE_DATA.PROVIDER_IDS.LONGPORT; // 安全回退
+      throw error;
     }
   }
 
@@ -2031,6 +2079,111 @@ export class StreamReceiverService implements OnModuleDestroy {
    */
   private getProviderByMarketPriority(market: string): string {
     return this.getPrimaryProviderByMarket(market);
+  }
+
+  private resolveProviderForStreamRequest(params: {
+    symbols: string[];
+    capability: string;
+    preferredProvider?: string;
+    marketContext?: MarketTypeContext;
+    operation: "subscribeStream" | "handleClientReconnect";
+    requestId: string;
+  }): string {
+    const primaryMarket =
+      params.marketContext?.primaryMarket ||
+      this.marketInferenceService.inferDominantMarket(params.symbols);
+    if (params.preferredProvider) {
+      return this.validatePreferredProviderForStream(
+        params.preferredProvider,
+        params.capability,
+        primaryMarket,
+        params.operation,
+        params.requestId,
+      );
+    }
+
+    return this.getDefaultProvider(
+      params.symbols,
+      params.capability,
+      params.marketContext,
+      params.operation,
+      params.requestId,
+    );
+  }
+
+  private validatePreferredProviderForStream(
+    preferredProvider: string,
+    capabilityName: string,
+    market: string | undefined,
+    operation: "subscribeStream" | "handleClientReconnect",
+    requestId?: string,
+  ): string {
+    const selectionDiagnostics =
+      this.providerRegistryService.getProviderSelectionDiagnostics(
+        capabilityName,
+        market,
+      );
+    const provider = this.providerRegistryService.getProvider(preferredProvider);
+    const capability = this.providerRegistryService.getCapability(
+      preferredProvider,
+      capabilityName,
+    );
+    if (!capability) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation,
+        message: `Preferred provider '${preferredProvider}' is unavailable for stream capability '${capabilityName}'`,
+        context: {
+          preferredProvider,
+          capabilityName,
+          market: market || "any",
+          availableProviders: selectionDiagnostics.candidatesBefore,
+          configuredOrder: selectionDiagnostics.configuredOrder,
+          errorType: STREAM_RECEIVER_ERROR_CODES.SUBSCRIPTION_FAILED,
+          reason: "preferred_provider_capability_missing",
+        },
+      });
+    }
+
+    const normalizedMarket = market ? String(market).trim().toUpperCase() : null;
+    const supportedMarkets = Array.isArray(capability.supportedMarkets)
+      ? capability.supportedMarkets.map((supportedMarket) =>
+          String(supportedMarket || "").trim().toUpperCase(),
+        )
+      : [];
+    if (normalizedMarket && !supportedMarkets.includes(normalizedMarket)) {
+      throw UniversalExceptionFactory.createBusinessException({
+        component: ComponentIdentifier.STREAM_RECEIVER,
+        errorCode: BusinessErrorCode.DATA_NOT_FOUND,
+        operation,
+        message: `Preferred provider '${preferredProvider}' is unavailable for market '${normalizedMarket}'`,
+        context: {
+          preferredProvider,
+          capabilityName,
+          market: normalizedMarket,
+          supportedMarkets,
+          configuredOrder: selectionDiagnostics.configuredOrder,
+          errorType: STREAM_RECEIVER_ERROR_CODES.SUBSCRIPTION_FAILED,
+          reason: "preferred_provider_market_not_supported",
+        },
+      });
+    }
+
+    const resolvedProviderName = provider
+      ? normalizeProviderName(provider.name)
+      : normalizeProviderName(preferredProvider);
+    this.logger.debug("使用首选流提供商", {
+      requestId,
+      operation,
+      capability: capabilityName,
+      market: normalizedMarket,
+      candidatesBefore: selectionDiagnostics.candidatesBefore,
+      configuredOrder: selectionDiagnostics.configuredOrder,
+      selectedProvider: resolvedProviderName,
+      selectionReason: "preferred",
+    });
+    return resolvedProviderName;
   }
 
   private buildMarketDistributionMap(

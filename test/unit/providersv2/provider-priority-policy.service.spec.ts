@@ -35,6 +35,15 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.LONGPORT,
       PROVIDER_IDS.COINGECKO,
     ]);
+    expect(service.resolveOrderForCapability("get-stock-quote")).toEqual({
+      order: [
+        PROVIDER_IDS.INFOWAY,
+        PROVIDER_IDS.JVQUANT,
+        PROVIDER_IDS.LONGPORT,
+        PROVIDER_IDS.COINGECKO,
+      ],
+      source: "capability",
+    });
   });
 
   it("能力级配置缺失时应回退默认配置", () => {
@@ -59,6 +68,9 @@ describe("ProviderPriorityPolicyService", () => {
       PROVIDER_IDS.INFOWAY,
       PROVIDER_IDS.COINGECKO,
     ]);
+    expect(service.resolveOrderForCapability("get-stock-quote").source).toBe(
+      "registration",
+    );
   });
 
   it("配置包含未知 provider 时应忽略并追加缺失 provider", () => {

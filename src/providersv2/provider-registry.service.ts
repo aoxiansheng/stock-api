@@ -7,6 +7,10 @@ import {
   type ProviderManifestEntry,
 } from "./provider-id.constants";
 import { ProviderPriorityPolicyService } from "./provider-priority-policy.service";
+import type {
+  ProviderPriorityOrderSource,
+  ProviderPriorityResolution,
+} from "./provider-priority-policy.cache";
 import { ICapability } from "./providers/interfaces/capability.interface";
 import { IDataProvider } from "./providers/interfaces/provider.interface";
 
@@ -26,6 +30,24 @@ export interface HistoryExecutionContextResolution {
   capability: ICapability | null;
   contextService: unknown | null;
   reasonCode: HistoryExecutionContextReasonCode;
+}
+
+export type ProviderSelectionReason = "configured" | "fallback";
+
+export interface ProviderSelectionDiagnostics {
+  capabilityName: string;
+  market: string | null;
+  candidatesBefore: string[];
+  configuredOrder: string[];
+  rankedCandidates: string[];
+  selectedProvider: string | null;
+  selectionReason: ProviderSelectionReason;
+  orderSource: ProviderPriorityOrderSource;
+}
+
+export interface ProviderPrioritySnapshotEntry {
+  order: string[];
+  source: ProviderPriorityOrderSource;
 }
 
 export function normalizeProviderName(
@@ -71,6 +93,7 @@ export class ProviderRegistryService implements OnModuleInit {
         (sum, m) => sum + m.size,
         0,
       ),
+      prioritySnapshot: this.buildProviderPrioritySnapshot(),
     });
   }
 
@@ -242,14 +265,67 @@ export class ProviderRegistryService implements OnModuleInit {
     );
   }
 
-  getBestProvider(capabilityName: string, market?: string): string | null {
-    const candidates = this.getCandidateProviders(capabilityName, market);
-    if (candidates.length === 0) {
-      return null;
-    }
+  getProviderPriorityResolution(capabilityName: string): ProviderPriorityResolution {
+    return this.providerPriorityPolicyService.resolveOrderForCapability(
+      capabilityName,
+    );
+  }
 
-    const ranked = this.rankProvidersForCapability(capabilityName, candidates);
-    return ranked[0] ?? null;
+  getProviderSelectionDiagnostics(
+    capabilityName: string,
+    market?: string,
+  ): ProviderSelectionDiagnostics {
+    const normalizedMarket = market ? String(market).trim().toUpperCase() : null;
+    const candidatesBefore = this.getCandidateProviders(
+      capabilityName,
+      normalizedMarket || undefined,
+    ).map((provider) => normalizeProviderName(provider));
+    const priorityResolution =
+      this.getProviderPriorityResolution(capabilityName);
+    const rankedCandidates = this.rankProvidersForCapability(
+      capabilityName,
+      candidatesBefore,
+    );
+
+    return {
+      capabilityName,
+      market: normalizedMarket,
+      candidatesBefore,
+      configuredOrder: [...priorityResolution.order],
+      rankedCandidates,
+      selectedProvider: rankedCandidates[0] ?? null,
+      selectionReason:
+        priorityResolution.source === "registration" ? "fallback" : "configured",
+      orderSource: priorityResolution.source,
+    };
+  }
+
+  buildProviderPrioritySnapshot(
+    capabilityNames?: string[],
+  ): Record<string, ProviderPrioritySnapshotEntry> {
+    const targetCapabilities =
+      capabilityNames && capabilityNames.length > 0
+        ? [...new Set(capabilityNames)]
+        : this.collectActiveCapabilityNames();
+
+    return targetCapabilities
+      .sort((left, right) => left.localeCompare(right))
+      .reduce(
+        (snapshot, capabilityName) => {
+          const resolution = this.getProviderPriorityResolution(capabilityName);
+          snapshot[capabilityName] = {
+            order: [...resolution.order],
+            source: resolution.source,
+          };
+          return snapshot;
+        },
+        {} as Record<string, ProviderPrioritySnapshotEntry>,
+      );
+  }
+
+  getBestProvider(capabilityName: string, market?: string): string | null {
+    return this.getProviderSelectionDiagnostics(capabilityName, market)
+      .selectedProvider;
   }
 
   getCapability(providerName: string, capabilityName: string): ICapability | null {
@@ -319,5 +395,20 @@ export class ProviderRegistryService implements OnModuleInit {
 
   getAllCapabilities(): Map<string, Map<string, CapabilityMeta>> {
     return this.capabilities;
+  }
+
+  private collectActiveCapabilityNames(): string[] {
+    const capabilityNames = new Set<string>();
+
+    for (const providerCapabilities of this.capabilities.values()) {
+      for (const [capabilityName, meta] of providerCapabilities.entries()) {
+        if (meta?.isEnabled === false) {
+          continue;
+        }
+        capabilityNames.add(capabilityName);
+      }
+    }
+
+    return [...capabilityNames];
   }
 }
