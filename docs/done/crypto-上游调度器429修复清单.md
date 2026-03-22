@@ -1,7 +1,7 @@
 # Crypto 强时效链路 429 修复方案
 
-版本：v2  
-更新时间：2026-03-22 11:25:38 CST
+版本：v2.1  
+更新时间：2026-03-22 12:36:05 CST
 
 ## 1. 当前结论
 
@@ -126,10 +126,30 @@
 
 - `dispatchScopeKey`
 
+建议使用常量映射表，而不是在方法体里堆 `if-else`：
+
+```ts
+export const UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MAP = Object.freeze({
+  "infoway:get-crypto-quote": "infoway:crypto-rest",
+  "infoway:get-crypto-history": "infoway:crypto-rest",
+  "infoway:get-crypto-basic-info": "infoway:crypto-rest",
+} as const);
+```
+
+调度器中未命中映射时，回退为当前默认语义：
+
+```ts
+private buildDispatchScopeKey(provider: string, capability: string): string {
+  const key = this.buildAllowlistKey(provider, capability);
+  return UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MAP[key] ?? key;
+}
+```
+
 建议映射：
 
 - `infoway:get-crypto-quote` -> `infoway:crypto-rest`
 - `infoway:get-crypto-history` -> `infoway:crypto-rest`
+- `infoway:get-crypto-basic-info` -> `infoway:crypto-rest`
 
 保持不变的部分：
 
@@ -160,6 +180,7 @@
 - 比“重做成分布式共享额度控制”更便宜
 - 比“继续加缓存掩盖问题”更符合第一原理
 - 比“把 quote/history 硬拼成同一个 merge 规则”更安全
+- 比手写多段 capability `if-else` 更容易控制扩展边界，同时仍保持 KISS
 
 ## 5.3 与缓存器是否冲突
 
@@ -202,7 +223,7 @@
 
 验收条件：
 
-- 单元测试可证明 `get-crypto-quote` 与 `get-crypto-history` 命中同一 `dispatchScopeKey`
+- 单元测试可证明 `get-crypto-quote`、`get-crypto-history`、`get-crypto-basic-info` 命中预期 `dispatchScopeKey`
 - stock 相关 capability 不受影响
 - 其它 provider 不受影响
 
@@ -231,34 +252,10 @@
 
 - 当 `get-crypto-quote` 触发 `429` 时，同共享域内的 `get-crypto-history` 后续发车会等待冷却
 - 反向场景也成立
+- `pending` 继续保持 FIFO，谁先入队谁先发车，不新增 capability 优先级排序
 - 非 crypto capability 的冷却不被误伤
 
-### P0-3 保持 merge 语义不变
-
-背景：
-
-- 本轮问题在发车域，不在 merge 语义
-
-修复目标：
-
-- 共享发车域时，不破坏现有 quote/history 各自合并规则
-
-涉及文件：
-
-- `src/core/03-fetching/data-fetcher/services/upstream-request-scheduler.service.ts`
-
-函数级原子步骤：
-
-1. 保持 `buildMergeKey()` 仍按 capability 生成
-2. 保持 `get-crypto-history` 继续走 `single_symbol_only`
-3. 保持 `get-crypto-quote` 的 symbol 回填逻辑不变
-
-验收条件：
-
-- 不出现 quote/history 跨 capability 合并
-- 不出现错 symbol、漏 symbol、history 多标发车
-
-### P0-4 补齐混合并发单元测试
+### P0-3 补齐混合并发单元测试
 
 背景：
 
@@ -282,9 +279,14 @@
 验收条件：
 
 - 单测可稳定证明共享调度域生效
-- 单测可稳定证明 merge 语义未退化
+- 单测可稳定证明以下约束未退化：
+  - `buildMergeKey()` 仍按 capability 生成
+  - `get-crypto-history` 继续走 `single_symbol_only`
+  - `get-crypto-quote` 的 symbol 回填逻辑不变
+  - 不出现 quote/history 跨 capability 合并
+  - 不出现错 symbol、漏 symbol、history 多标发车
 
-### P0-5 固化本地专项回归
+### P0-4 固化本地专项回归
 
 背景：
 
@@ -343,16 +345,51 @@
 - `docs/系统限速说明.md`
 - `docs/端点缓存分层与回源行为说明.md`
 
+### P1-3 共享调度域日志口径
+
+目标：
+
+- 明确区分 capability 级标识与共享调度域标识，避免后续误把 FIFO 理解为 capability 优先级调度
+
+涉及文件：
+
+- `src/core/03-fetching/data-fetcher/services/upstream-request-scheduler.service.ts`
+
+建议：
+
+- 入队日志打印：
+  - `dispatchScopeKey`
+  - `queueKey`
+  - `mergeKey`
+- 发车日志继续保持 FIFO 语义，不增加按 capability 排序逻辑
+
+### P2-1 共享调度域独立 RPS 覆盖
+
+结论：
+
+- 本轮不做
+
+原因：
+
+- 当前 `.env` 中 `UPSTREAM_SCHEDULER_DEFAULT_RPS=1`
+- 对本轮 `1 次 quote + 3 次 history` 的固定场景足够
+- 现在没有证据表明需要把 `infoway:crypto-rest` 的 RPS 从默认值单独抬高
+
+后续触发条件：
+
+- crypto 标的数显著增加
+- 共享调度域成为新的吞吐瓶颈
+- 压测显示 1 RPS 已经影响可接受时延
+
 ## 8. 实施顺序
 
 建议顺序：
 
 1. 先做共享调度域建模
 2. 再把发车间隔与 `429` 冷却迁到共享域
-3. 保证 merge 语义不变
-4. 补混合并发单元测试
-5. 用专项脚本做本地回归
-6. 最后补日志与文档
+3. 补混合并发单元测试，并同时守住 merge 语义不退化
+4. 用专项脚本做本地回归
+5. 最后补日志与文档
 
 ## 9. 风险与控制
 
@@ -366,6 +403,7 @@
 - 不扩展到 stock
 - 不扩展到其它 provider
 - 不扩展到 stream
+- `pending` 保持 FIFO，不引入 capability 优先级调度
 
 可接受代价：
 
@@ -384,7 +422,8 @@
 3. `smart-cache + scheduler` 专项脚本连续 4 轮无 `429`
 4. 失败对象不再在 `quote/history` 之间漂移
 5. `crypto history` 仍保持单标契约
-6. 不引入新的缓存层，不引入新的兼容回退逻辑
+6. `pending` 保持 FIFO，不引入 capability 优先级调度
+7. 不引入新的缓存层，不引入新的兼容回退逻辑
 
 ## 11. 当前建议结论
 
