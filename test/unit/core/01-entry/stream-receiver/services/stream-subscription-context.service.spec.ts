@@ -7,6 +7,7 @@ jest.mock("@common/logging/index", () => ({
   }),
 }));
 
+import { BusinessException, BusinessErrorCode } from "@common/core/exceptions";
 import { StreamSubscriptionContextService } from "@core/01-entry/stream-receiver/services/stream-subscription-context.service";
 import { STANDARD_SYMBOL_IDENTITY_PROVIDERS_ENV_KEY } from "@core/shared/utils/provider-symbol-identity.util";
 import { MappingDirection } from "@core/shared/constants";
@@ -297,6 +298,16 @@ describe("StreamSubscriptionContextService 符号映射", () => {
         mocks.symbolTransformerService.transformSymbolsForProvider,
       ).not.toHaveBeenCalled();
     });
+
+    it("identity provider 输入包含空白符号时应抛异常，避免漏出空 canonical symbol", async () => {
+      const { service } = createService({
+        standardSymbolIdentityProviders: "longport",
+      });
+
+      await expect(
+        service.resolveSymbolMappings(["AAPL.US", "   "], "longport", "req-1"),
+      ).rejects.toBeInstanceOf(BusinessException);
+    });
   });
 
   // 10. resolveSymbolMappings - 非 identity provider
@@ -335,16 +346,23 @@ describe("StreamSubscriptionContextService 符号映射", () => {
     });
   });
 
-  // 11. mapSymbols - 映射失败时降级
+  // 11. mapSymbols - 映射失败时抛异常
   describe("mapSymbols", () => {
-    it("映射失败时降级返回原始 symbols", async () => {
+    it("映射失败时应抛业务异常而不是返回原始 symbols", async () => {
       const { service, mocks } = createService();
       mocks.symbolTransformerService.transformSymbols.mockRejectedValue(
         new Error("mapping failed"),
       );
 
-      const result = await service.mapSymbols(["AAPL"], "longport");
-      expect(result).toEqual(["AAPL"]);
+      await expect(service.mapSymbols(["AAPL"], "longport", "req-1")).rejects.toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "mapSymbols",
+        context: expect.objectContaining({
+          provider: "longport",
+          requestId: "req-1",
+          reason: "symbol_mapping_failed",
+        }),
+      });
     });
 
     it("映射成功时返回映射后的 symbols", async () => {
@@ -360,17 +378,76 @@ describe("StreamSubscriptionContextService 符号映射", () => {
       expect(result).toEqual(["AAPL.US", "00700.HK"]);
     });
 
-    it("部分映射缺失时应保留原始符号", async () => {
+    it("部分映射缺失且原始 symbol 不是标准格式时应抛业务异常", async () => {
       const { service, mocks } = createService();
       mocks.symbolTransformerService.transformSymbols.mockResolvedValue({
         mappingDetails: { AAPL: "AAPL.US" },
       });
 
-      const result = await service.mapSymbols(
-        ["AAPL", "UNKNOWN"],
-        "longport",
+      await expect(
+        service.mapSymbols(["AAPL", "UNKNOWN"], "longport", "req-partial"),
+      ).rejects.toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "mapSymbols",
+        context: expect.objectContaining({
+          provider: "longport",
+          requestId: "req-partial",
+          reason: "symbol_mapping_failed",
+        }),
+      });
+    });
+  });
+
+  describe("mapSymbolsForProvider", () => {
+    it("provider 符号映射失败时应抛业务异常", async () => {
+      const { service, mocks } = createService();
+      mocks.symbolTransformerService.transformSymbolsForProvider.mockRejectedValue(
+        new Error("provider mapping failed"),
       );
-      expect(result).toEqual(["AAPL.US", "UNKNOWN"]);
+
+      await expect(
+        service.mapSymbolsForProvider(
+          "longport",
+          ["AAPL.US"],
+          ["AAPL"],
+          "req-provider",
+        ),
+      ).rejects.toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "mapSymbolsForProvider",
+        context: expect.objectContaining({
+          provider: "longport",
+          requestId: "req-provider",
+          reason: "symbol_mapping_failed",
+        }),
+      });
+    });
+
+    it("provider 映射结果缺失时应抛业务异常", async () => {
+      const { service, mocks } = createService();
+      mocks.symbolTransformerService.transformSymbolsForProvider.mockResolvedValue(
+        {
+          transformedSymbols: [],
+          mappingResults: { transformedSymbols: {} },
+        },
+      );
+
+      await expect(
+        service.mapSymbolsForProvider(
+          "longport",
+          ["AAPL.US"],
+          ["AAPL"],
+          "req-provider-missing",
+        ),
+      ).rejects.toMatchObject({
+        errorCode: BusinessErrorCode.DATA_VALIDATION_FAILED,
+        operation: "mapSymbolsForProvider",
+        context: expect.objectContaining({
+          provider: "longport",
+          requestId: "req-provider-missing",
+          reason: "symbol_mapping_failed",
+        }),
+      });
     });
   });
 });

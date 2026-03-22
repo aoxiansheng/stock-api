@@ -330,6 +330,54 @@ export class StreamReceiverGateway
             "chart-intraday sessionId 无效、已失效或与当前订阅上下文不匹配",
           );
         }
+      } else if (
+        client.data?.authenticated === true &&
+        Array.isArray(data.symbols) &&
+        data.symbols.length === 1 &&
+        typeof data.preferredProvider === "string" &&
+        data.preferredProvider.trim().length > 0
+      ) {
+        const normalizedSymbol = String(data.symbols[0] || "")
+          .trim()
+          .toUpperCase();
+        const normalizedProvider = String(data.preferredProvider || "")
+          .trim()
+          .toLowerCase();
+
+        try {
+          const ownerLease =
+            await this.chartIntradayStreamSubscriptionService.findRealtimeOwnerLease(
+              {
+                ownerIdentity,
+                symbol: normalizedSymbol,
+                provider: normalizedProvider,
+              },
+            );
+
+          if (ownerLease) {
+            sessionBinding = {
+              sessionId: ownerLease.sessionId,
+              symbol: ownerLease.symbol,
+              market: ownerLease.market,
+              provider: ownerLease.provider,
+              wsCapabilityType: ownerLease.wsCapabilityType,
+            };
+            subscribeData = {
+              ...data,
+              symbols: [ownerLease.symbol],
+              preferredProvider: ownerLease.provider,
+              wsCapabilityType: ownerLease.wsCapabilityType,
+            };
+          }
+        } catch (error) {
+          this.logger.warn("owner lease 自动查找失败，降级为普通订阅", {
+            clientId: client.id,
+            ownerIdentity,
+            symbol: normalizedSymbol,
+            provider: normalizedProvider,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
       // 连接级别认证已完成，直接使用已验证的信息

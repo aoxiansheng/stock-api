@@ -4,6 +4,10 @@ import { StreamReceiverService } from "../services/stream-receiver.service";
 import { StreamBatchProcessorService } from "../services/stream-batch-processor.service";
 import { StreamConnectionManagerService } from "../services/stream-connection-manager.service";
 import { StreamDataProcessorService } from "../services/stream-data-processor.service";
+import { StreamSubscriptionContextService } from "../services/stream-subscription-context.service";
+import { StreamProviderResolutionService } from "../services/stream-provider-resolution.service";
+import { StreamReconnectCoordinatorService } from "../services/stream-reconnect-coordinator.service";
+import { StreamIngressBindingService } from "../services/stream-ingress-binding.service";
 import { StreamDataValidator } from "../validators/stream-data.validator";
 
 // 导入依赖模块 - Phase 2 重构后精简依赖
@@ -41,6 +45,10 @@ import { WsAuthGuard } from "../guards/ws-auth.guard";
     StreamReceiverService,
     StreamBatchProcessorService,
     StreamConnectionManagerService,
+    StreamSubscriptionContextService,
+    StreamProviderResolutionService,
+    StreamReconnectCoordinatorService,
+    StreamIngressBindingService,
     StreamDataProcessorService,
     StreamDataValidator,
     ChartIntradayStreamSubscriptionService,
@@ -54,6 +62,8 @@ import { WsAuthGuard } from "../guards/ws-auth.guard";
     StreamDataProcessorService,
     StreamDataValidator,
     ChartIntradayStreamSubscriptionService,
+    // 注意：StreamSubscriptionContextService / StreamProviderResolutionService / StreamReconnectCoordinatorService
+    // 为组件内部协作者，不对外导出，避免外部耦合
   ],
 })
 export class StreamReceiverModule {}

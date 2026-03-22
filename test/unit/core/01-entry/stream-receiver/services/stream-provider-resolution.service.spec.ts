@@ -46,7 +46,7 @@ describe("StreamProviderResolutionService", () => {
       requestId: "req-1",
     };
 
-    it("有 preferredProvider 且 capability 存在且 market 匹配 → 返回 normalized provider name", () => {
+    it("有 preferredProvider 且 capability 存在且 market 匹配 → 查询前先规范化 provider 名称", () => {
       const { service, providerRegistryService } = createService();
 
       providerRegistryService.getProvider.mockReturnValue({ name: "LongPort" });
@@ -63,15 +63,16 @@ describe("StreamProviderResolutionService", () => {
 
       const result = service.resolveProviderForStreamRequest({
         ...baseParams,
-        preferredProvider: "LongPort",
+        preferredProvider: " LongPort ",
         marketContext: { primaryMarket: "US" } as any,
       });
 
       expect(result).toBe("longport");
       expect(providerRegistryService.getCapability).toHaveBeenCalledWith(
-        "LongPort",
+        "longport",
         "quote",
       );
+      expect(providerRegistryService.getProvider).toHaveBeenCalledWith("longport");
     });
 
     it("有 preferredProvider 但 capability 不存在 → 抛 DATA_NOT_FOUND (reason: preferred_provider_capability_missing)", () => {

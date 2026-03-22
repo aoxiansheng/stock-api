@@ -169,6 +169,55 @@ describe("StreamReconnectCoordinatorService", () => {
       
       expect(service.handleReconnection).toHaveBeenCalledWith("client-timeout", "heartbeat_timeout");
     });
+
+    it("should dedupe heartbeat timeout clients before dispatching reconnection", () => {
+      mocks.clientStateManager.getClientStateStats.mockReturnValue({
+        totalClients: 2,
+        providerBreakdown: {},
+      });
+      mocks.clientStateManager.getClientsWithHeartbeatTimeout.mockReturnValue([
+        "client-timeout",
+        "client-timeout",
+      ]);
+
+      const service = createService(mocks);
+      service.handleReconnection = jest.fn().mockResolvedValue(undefined);
+
+      service.detectReconnection();
+
+      expect(service.handleReconnection).toHaveBeenCalledTimes(1);
+      expect(service.handleReconnection).toHaveBeenCalledWith(
+        "client-timeout",
+        "heartbeat_timeout",
+      );
+    });
+
+    it("should dedupe provider reconnect clients before dispatching reconnection", () => {
+      mocks.clientStateManager.getClientStateStats.mockReturnValue({
+        totalClients: 2,
+        providerBreakdown: { longport: { count: 2 } },
+      });
+      mocks.streamDataFetcher.getConnectionStatsByProvider.mockReturnValue({
+        total: 0,
+        active: 0,
+        connections: [],
+      });
+      mocks.clientStateManager.getClientsByProvider.mockReturnValue([
+        "client-prod-drop",
+        "client-prod-drop",
+      ]);
+
+      const service = createService(mocks);
+      service.handleReconnection = jest.fn().mockResolvedValue(undefined);
+
+      service.detectReconnection();
+
+      expect(service.handleReconnection).toHaveBeenCalledTimes(1);
+      expect(service.handleReconnection).toHaveBeenCalledWith(
+        "client-prod-drop",
+        "provider_disconnected",
+      );
+    });
   });
 
   // ── handleReconnection ──────────────────────────────────────────────

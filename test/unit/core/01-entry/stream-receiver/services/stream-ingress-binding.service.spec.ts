@@ -86,6 +86,20 @@ describe("StreamIngressBindingService", () => {
       ).toEqual(["AAPL.US", "00700.HK"]);
     });
 
+    it("should ignore dirty array items without throwing", () => {
+      const service = createService(mocks);
+      expect(
+        service.extractSymbolsFromData([
+          null,
+          undefined,
+          1,
+          "AAPL.US",
+          { symbol: "AAPL.US" },
+          { s: "00700.HK" },
+        ]),
+      ).toEqual(["AAPL.US", "00700.HK"]);
+    });
+
     it.each([null, undefined, 0, "", "AAPL.US", { symbols: "AAPL.US" }, {}])(
       "should return empty array for invalid input %p",
       (invalidInput) => {
@@ -137,6 +151,31 @@ describe("StreamIngressBindingService", () => {
           symbols: ["AAPL.US"],
         }),
       );
+    });
+
+    it("should bind the same connection only once", () => {
+      const connection = {
+        id: "conn-1",
+        onData: jest.fn(),
+        onError: jest.fn(),
+        onStatusChange: jest.fn(),
+      };
+
+      const service = createService(mocks);
+      service.setupDataReceiving(
+        connection as unknown as StreamConnection,
+        "longport",
+        "quote",
+      );
+      service.setupDataReceiving(
+        connection as unknown as StreamConnection,
+        "longport",
+        "quote",
+      );
+
+      expect(connection.onData).toHaveBeenCalledTimes(1);
+      expect(connection.onError).toHaveBeenCalledTimes(1);
+      expect(connection.onStatusChange).toHaveBeenCalledTimes(1);
     });
   });
 

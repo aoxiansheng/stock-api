@@ -530,6 +530,34 @@ export class StreamClientStateManager implements OnModuleDestroy {
   }
 
   /**
+   * 按提供商获取客户端列表
+   * @param providerName 提供商名称
+   * @returns 客户端ID列表
+   */
+  getClientsByProvider(providerName: string): string[] {
+    const clients = this.providerToClients.get(providerName);
+    return clients ? Array.from(clients) : [];
+  }
+
+  /**
+   * 获取心跳超时的客户端列表
+   * @param timeoutMs 超时时间阈值
+   * @returns 客户端ID列表
+   */
+  getClientsWithHeartbeatTimeout(timeoutMs: number): string[] {
+    const now = Date.now();
+    const timeoutClients: string[] = [];
+
+    for (const [clientId, clientSub] of this.clientSubscriptions.entries()) {
+      if (now - clientSub.lastActiveTime > timeoutMs) {
+        timeoutClients.push(clientId);
+      }
+    }
+
+    return timeoutClients;
+  }
+
+  /**
    * 新的统一广播方法 - 通过WebSocket Gateway
    * @param symbol 符号
    * @param data 消息数据

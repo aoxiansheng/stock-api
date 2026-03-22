@@ -237,8 +237,8 @@ function createService(options?: {
     },
     webSocketProvider: {
       isServerAvailable: jest.fn(() => options?.webSocketAvailable ?? true),
-      joinClientToRooms: jest.fn(),
-      leaveClientFromRooms: jest.fn(),
+      joinClientToRooms: jest.fn().mockResolvedValue(true),
+      leaveClientFromRooms: jest.fn().mockResolvedValue(true),
     },
     clientStateManager,
     streamCache,
@@ -423,6 +423,38 @@ describe("StreamReceiverService request validation fail-fast", () => {
     ).not.toHaveBeenCalled();
   });
 
+  it("subscribeStream: 限流依赖异常时应拒绝连接且不触发 validateSubscribeRequest", async () => {
+    const dto = {
+      symbols: ["AAPL.US"],
+      wsCapabilityType: "quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService();
+    mocks.rateLimitService.checkRateLimit.mockRejectedValue(
+      new Error("redis unavailable"),
+    );
+
+    await expect(
+      service.subscribeStream(
+        dto as unknown as StreamSubscribeDto,
+        "client-1",
+        "127.0.0.1",
+      ),
+    ).rejects.toMatchObject({
+      errorCode: BusinessErrorCode.BUSINESS_RULE_VIOLATION,
+      operation: "subscribeStream",
+      context: expect.objectContaining({
+        reason: "rate_limit_service_unavailable",
+      }),
+    });
+
+    expect(mocks.dataValidator.validateSubscribeRequest).not.toHaveBeenCalled();
+    expect(
+      mocks.connectionManager.getOrCreateConnection,
+    ).not.toHaveBeenCalled();
+    expect(mocks.streamDataFetcher.subscribeToSymbols).not.toHaveBeenCalled();
+  });
+
   it("subscribeStream: 连接已认证时应通知 validator 跳过消息级认证校验", async () => {
     const dto = {
       symbols: ["AAPL.US"],
@@ -590,6 +622,35 @@ describe("StreamReceiverService subscription lifecycle", () => {
       mocks.clientStateManager.addClientSubscription.mock
         .invocationCallOrder[0];
     expect(addStateCallOrder).toBeGreaterThan(subscribeCallOrder);
+  });
+
+  it("subscribeStream: 真实 websocket 客户端加入房间失败时应回滚本地订阅与本次上游订阅", async () => {
+    const dto = {
+      symbols: ["AAPL.US"],
+      wsCapabilityType: "quote",
+      preferredProvider: "longport",
+    };
+    const { service, mocks } = createService({
+      subscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: dto,
+      },
+    });
+
+    mocks.webSocketProvider.joinClientToRooms.mockResolvedValue(false);
+
+    await expect(
+      service.subscribeStream(dto as unknown as StreamSubscribeDto, "client-1"),
+    ).rejects.toThrow("join websocket rooms failed");
+
+    expect(
+      mocks.clientStateManager.removeClientSubscription,
+    ).toHaveBeenCalledWith("client-1", ["AAPL.US"]);
+    expect(
+      mocks.streamDataFetcher.unsubscribeFromSymbols,
+    ).toHaveBeenCalledWith(mocks.connectionMock, ["AAPL.US"]);
   });
 
   it("subscribeStream: 同一 client 不允许混用不同 provider", async () => {
@@ -1038,6 +1099,38 @@ describe("StreamReceiverService symbol room key consistency", () => {
       "client-1",
       ["symbol:AAPL.US"],
     );
+  });
+
+  it("unsubscribeStream: 真实 websocket 客户端退出房间失败时应回滚本地订阅", async () => {
+    const unsubscribeDto = {
+      symbols: ["AAPL.US"],
+    };
+    const { service, mocks } = createService({
+      unsubscribeValidation: {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        sanitizedData: unsubscribeDto,
+      },
+    });
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+    mocks.connectionManager.isConnectionActive.mockReturnValue(false);
+    mocks.webSocketProvider.leaveClientFromRooms.mockResolvedValue(false);
+
+    await expect(
+      service.unsubscribeStream(
+        unsubscribeDto as unknown as StreamUnsubscribeDto,
+        "client-1",
+      ),
+    ).rejects.toThrow("leave websocket rooms failed");
+
+    expect(
+      mocks.clientStateManager.addClientSubscription,
+    ).toHaveBeenCalledWith("client-1", ["AAPL.US"], "quote", "longport");
   });
 
   it("pipelineBroadcastData: 广播路径应按 canonical symbol 聚合并分发", async () => {
@@ -1888,6 +1981,51 @@ describe("StreamReceiverService upstream subscription coordinator integration", 
     expect(
       mocks.streamDataFetcher.unsubscribeFromSymbols,
     ).not.toHaveBeenCalled();
+  });
+
+  it("unsubscribeStream 即时上游退订失败时应回滚本地状态并取消待退订", async () => {
+    const { service, mocks } = createService();
+    mocks.clientStateManager.getClientSubscription.mockReturnValue({
+      providerName: "longport",
+      wsCapabilityType: "stream-stock-quote",
+      symbols: new Set(["AAPL.US"]),
+    });
+    mocks.connectionManager.isConnectionActive.mockReturnValue(true);
+    mocks.connectionManager.getOrCreateConnection.mockResolvedValue({
+      ...mocks.connectionMock,
+    });
+    mocks.upstreamSymbolSubscriptionCoordinator.scheduleRelease.mockReturnValue({
+      immediateSymbols: ["AAPL.US"],
+      scheduledSymbols: [],
+    });
+    mocks.streamDataFetcher.unsubscribeFromSymbols.mockRejectedValue(
+      new Error("unsubscribe failed"),
+    );
+
+    await expect(
+      service.unsubscribeStream(
+        { symbols: ["AAPL.US"] } as unknown as StreamUnsubscribeDto,
+        "client-1",
+      ),
+    ).rejects.toThrow("unsubscribe failed");
+
+    expect(
+      mocks.upstreamSymbolSubscriptionCoordinator.cancelPendingUnsubscribe,
+    ).toHaveBeenCalledWith(
+      "longport",
+      "stream-stock-quote",
+      ["AAPL.US"],
+    );
+    expect(mocks.streamDataFetcher.subscribeToSymbols).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "conn-1" }),
+      ["AAPL.US"],
+    );
+    expect(mocks.clientStateManager.addClientSubscription).toHaveBeenCalledWith(
+      "client-1",
+      ["AAPL.US"],
+      "stream-stock-quote",
+      "longport",
+    );
   });
 
   it("unsubscribeStream 连接不存在时不应伪造 upstream scheduled release 信息", async () => {
