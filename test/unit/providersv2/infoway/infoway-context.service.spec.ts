@@ -647,41 +647,6 @@ describe("InfowayContextService", () => {
     );
   });
 
-  it("getCryptoBasicInfo: 命中 CRYPTO type 并返回原始字段", async () => {
-    const service = createService();
-    (service as any).client.get.mockResolvedValue({
-      data: {
-        ret: 200,
-        data: [
-          {
-            symbol: "BTCUSDT",
-            market: "CRYPTO",
-            name_en: "BTC/USDT",
-          },
-        ],
-      },
-    });
-
-    const result = await service.getCryptoBasicInfo(["BTCUSDT"]);
-
-    expect((service as any).client.get).toHaveBeenCalledWith(
-      "/common/basic/symbols/info",
-      expect.objectContaining({
-        params: {
-          type: "CRYPTO",
-          symbols: "BTCUSDT",
-        },
-      }),
-    );
-    expect(result).toEqual([
-      {
-        symbol: "BTCUSDT",
-        market: "CRYPTO",
-        name_en: "BTC/USDT",
-      },
-    ]);
-  });
-
   it("getSupportList: data 结构异常时抛结构化业务异常", async () => {
     const service = createService();
     (service as any).client.get.mockResolvedValue({

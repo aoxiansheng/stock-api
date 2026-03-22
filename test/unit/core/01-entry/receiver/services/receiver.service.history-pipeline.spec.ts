@@ -54,6 +54,13 @@ describe("ReceiverService get-stock-history pipeline", () => {
       getProvider: jest.fn().mockReturnValue({
         getContextService: () => contextService,
       }),
+      getProviderSelectionDiagnostics: jest.fn().mockReturnValue({
+        selectedProvider: "infoway",
+        candidatesBefore: ["infoway"],
+        configuredOrder: ["infoway"],
+        rankedCandidates: ["infoway"],
+        selectionReason: "mock",
+      }),
     };
 
     const marketStatusService = {

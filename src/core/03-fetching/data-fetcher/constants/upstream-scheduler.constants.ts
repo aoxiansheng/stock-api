@@ -4,7 +4,6 @@ export const UPSTREAM_SCHEDULER_DEFAULT_ALLOWLIST = Object.freeze([
   "infoway:get-stock-basic-info",
   "infoway:get-stock-history",
   "infoway:get-crypto-quote",
-  "infoway:get-crypto-basic-info",
   "infoway:get-crypto-history",
 ]);
 
@@ -26,7 +25,6 @@ export const UPSTREAM_SCHEDULER_CAPABILITIES = Object.freeze({
 export const UPSTREAM_SCHEDULER_DISPATCH_SCOPE_MAP: Readonly<Record<string, string>> = Object.freeze({
   "infoway:get-crypto-quote": "infoway:crypto-rest",
   "infoway:get-crypto-history": "infoway:crypto-rest",
-  "infoway:get-crypto-basic-info": "infoway:crypto-rest",
 });
 
 /**

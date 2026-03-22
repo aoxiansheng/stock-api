@@ -1,5 +1,4 @@
 import { getMarketStatus } from "@providersv2/providers/infoway/capabilities/get-market-status";
-import { getCryptoBasicInfo } from "@providersv2/providers/infoway/capabilities/get-crypto-basic-info";
 import { getCryptoHistory } from "@providersv2/providers/infoway/capabilities/get-crypto-history";
 import { getCryptoQuote } from "@providersv2/providers/infoway/capabilities/get-crypto-quote";
 import { getStockBasicInfo } from "@providersv2/providers/infoway/capabilities/get-stock-basic-info";
@@ -15,7 +14,6 @@ describe("infoway REST capability metadata contract", () => {
     ["get-stock-history", getStockHistory],
     ["get-crypto-history", getCryptoHistory],
     ["get-stock-basic-info", getStockBasicInfo],
-    ["get-crypto-basic-info", getCryptoBasicInfo],
     ["get-market-status", getMarketStatus],
     ["get-trading-days", getTradingDays],
     ["get-support-list", getSupportList],

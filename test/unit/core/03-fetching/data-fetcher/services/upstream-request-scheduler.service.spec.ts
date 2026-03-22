@@ -19,7 +19,7 @@ describe("UpstreamRequestSchedulerService", () => {
     process.env = {
       ...originalEnv,
       UPSTREAM_SCHEDULER_ENABLED: "true",
-      UPSTREAM_SCHEDULER_ALLOWLIST: "infoway:get-stock-quote,infoway:get-market-status,infoway:get-stock-basic-info,infoway:get-stock-history,infoway:get-crypto-quote,infoway:get-crypto-basic-info,infoway:get-crypto-history",
+      UPSTREAM_SCHEDULER_ALLOWLIST: "infoway:get-stock-quote,infoway:get-market-status,infoway:get-stock-basic-info,infoway:get-stock-history,infoway:get-crypto-quote,infoway:get-crypto-history",
       UPSTREAM_SCHEDULER_DEFAULT_RPS: "1000",
       UPSTREAM_SCHEDULER_429_COOLDOWN_MS: "100",
       UPSTREAM_SCHEDULER_QUOTE_MERGE_WINDOW_MS: "50",
@@ -759,43 +759,6 @@ describe("UpstreamRequestSchedulerService", () => {
 
     // stock 的发车不需要等 crypto 的 100ms 冷却
     expect(timestamps[1] - timestamps[0]).toBeLessThan(100);
-  });
-
-  it("会在短窗口内合并 get-crypto-basic-info 并按 symbol 拆分结果", async () => {
-    const scheduler = new UpstreamRequestSchedulerService();
-    const execute = jest.fn(async (symbolsOverride: string[]) => ({
-      data: symbolsOverride.map((symbol) => ({
-        symbol,
-        name: symbol === "BTCUSDT" ? "Bitcoin" : "Ethereum",
-      })),
-    }));
-
-    const resultPromiseA = scheduler.schedule({
-      provider: "infoway",
-      capability: "get-crypto-basic-info",
-      symbols: ["BTCUSDT"],
-      options: { market: "CRYPTO" },
-      execute,
-    });
-    const resultPromiseB = scheduler.schedule({
-      provider: "infoway",
-      capability: "get-crypto-basic-info",
-      symbols: ["ETHUSDT"],
-      options: { market: "CRYPTO" },
-      execute,
-    });
-
-    await jest.advanceTimersByTimeAsync(100);
-
-    await expect(resultPromiseA).resolves.toEqual({
-      data: [{ symbol: "BTCUSDT", name: "Bitcoin" }],
-    });
-    await expect(resultPromiseB).resolves.toEqual({
-      data: [{ symbol: "ETHUSDT", name: "Ethereum" }],
-    });
-
-    expect(execute).toHaveBeenCalledTimes(1);
-    expect(execute).toHaveBeenCalledWith(["BTCUSDT", "ETHUSDT"]);
   });
 
   // ========== 二次修复：共享调度域最小发车间隔覆盖测试 ==========
