@@ -65,21 +65,29 @@
 export class ProvidersV2Module {}
 ```
 
-### 步骤 5：在注册表显式注册
+### 步骤 5：把 Provider 纳入 manifest 与能力级优先级配置
 
-在 `ProviderRegistryService` 中：
+当前实现不是在 `ProviderRegistryService` 里手写 `registerProvider(newProvider, priority)`。
 
-1. 构造函数注入新 Provider。
-2. `onModuleInit()` 调用 `registerProvider(newProvider, priority)`。
+实际接入点有两处：
+
+1. 在 `src/providersv2/provider-id.constants.ts` 的 `ACTIVE_PROVIDER_MANIFEST_DEFINITIONS` 中加入新 Provider 的 `key / module / providerToken / aliases`。
+2. 按需要在环境变量中配置能力级优先级：
+   - `PROVIDER_PRIORITY_DEFAULT`
+   - `PROVIDER_PRIORITY_<CAPABILITY_KEY>`
 
 文件：
 
+- `src/providersv2/provider-id.constants.ts`
+- `src/providersv2/providers.module.ts`
 - `src/providersv2/provider-registry.service.ts`
+- `.env.example`
 
 说明：
 
-- `priority` 数字越小优先级越高。
-- 未传 priority 时默认值为 `1`。
+- `ProviderRegistryService` 启动时会按 manifest 显式解析 provider token 并注册。
+- provider 排序不再由代码里的数字 `priority` 决定，而是由能力级 env 决定。
+- 未配置的 provider 会自动追加到末尾，避免因为漏配导致能力不可用。
 
 ## 3. 什么时候需要改 capability 常量/映射
 
@@ -110,8 +118,9 @@ export class ProvidersV2Module {}
 1. `registry.getProvider("<provider>")` 能拿到实例。
 2. `registry.getCapability("<provider>", "<capability>")` 返回非空。
 3. `registry.getBestProvider("<capability>", "<market>")` 能选中新 Provider（按优先级预期）。
-4. REST 端到端请求成功。
-5. Stream 订阅、取消订阅、重连都能正常工作。
+4. `registry.getProviderSelectionDiagnostics("<capability>", "<market>")` 能看到 `candidatesBefore / configuredOrder / selectedProvider / selectionReason`。
+5. REST 端到端请求成功。
+6. Stream 订阅、取消订阅、重连都能正常工作。
 
 ## 7. 常见失败原因
 
