@@ -375,6 +375,7 @@ describe("DataFetcherService upstream scheduler integration", () => {
     };
     const scheduler = {
       shouldSchedule: jest.fn().mockReturnValue(false),
+      isAllowlisted: jest.fn().mockReturnValue(false),
       schedule: jest.fn(),
     };
     const service = new DataFetcherService(registry as any, scheduler as any);
@@ -590,5 +591,83 @@ describe("DataFetcherService upstream 429 passthrough", () => {
         BusinessErrorCode.RESOURCE_EXHAUSTED,
       );
     }
+  });
+});
+
+
+describe("DataFetcherService crypto scheduler integration", () => {
+  const provider = "infoway";
+
+  it("infoway:get-crypto-quote 命中 scheduler 时注入 s 字段 symbolExtractor", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ s: "BTCUSDT", p: "65000" }] });
+    const registry = {
+      getCapability: jest.fn(() => createCapability(CAPABILITY_NAMES.GET_CRYPTO_QUOTE, executeMock)),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn(async (request: any) => {
+        expect(typeof request.symbolExtractor).toBe("function");
+        expect(request.symbolExtractor({ s: "BTCUSDT" })).toBe("BTCUSDT");
+        expect(request.symbolExtractor({ symbol: "ETHUSDT" })).toBe("ETHUSDT");
+        return { data: [{ s: "BTCUSDT", p: "65000" }] };
+      }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_CRYPTO_QUOTE,
+      symbols: ["BTCUSDT"],
+      apiType: "rest",
+      options: { realtime: true, market: "CRYPTO" },
+    } as any);
+
+    expect(scheduler.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider,
+        capability: CAPABILITY_NAMES.GET_CRYPTO_QUOTE,
+        mergeMode: "merge_by_request_signature",
+        symbolExtractor: expect.any(Function),
+      }),
+    );
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(result.data).toEqual([{ s: "BTCUSDT", p: "65000" }]);
+  });
+
+  it("infoway:get-crypto-history 命中 scheduler 时注入 single_symbol_only mergeMode", async () => {
+    const executeMock = jest.fn().mockResolvedValue({ data: [{ symbol: "BTCUSDT" }] });
+    const registry = {
+      getCapability: jest.fn(() =>
+        createCapability(CAPABILITY_NAMES.GET_CRYPTO_HISTORY, executeMock),
+      ),
+      getProvider: jest.fn(),
+    };
+    const scheduler = {
+      shouldSchedule: jest.fn().mockReturnValue(true),
+      schedule: jest.fn(async (request: any) => {
+        expect(request.mergeMode).toBe("single_symbol_only");
+        return { data: [{ symbol: "BTCUSDT" }] };
+      }),
+    };
+    const service = new DataFetcherService(registry as any, scheduler as any);
+
+    const result = await service.fetchRawData({
+      provider,
+      capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+      symbols: ["BTCUSDT"],
+      apiType: "rest",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+    } as any);
+
+    expect(scheduler.schedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider,
+        capability: CAPABILITY_NAMES.GET_CRYPTO_HISTORY,
+        mergeMode: "single_symbol_only",
+      }),
+    );
+    expect(executeMock).not.toHaveBeenCalled();
+    expect(result.data).toEqual([{ symbol: "BTCUSDT" }]);
   });
 });

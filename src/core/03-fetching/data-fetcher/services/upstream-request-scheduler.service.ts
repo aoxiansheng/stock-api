@@ -38,6 +38,15 @@ export class UpstreamRequestSchedulerService {
   private readonly allowlist = this.parseAllowlist(
     process.env.UPSTREAM_SCHEDULER_ALLOWLIST,
   );
+
+  /** 首次加载时打印 allowlist 内容，方便排查配置问题 */
+  private readonly _logAllowlistOnce = (() => {
+    this.logger.log("上游调度器 allowlist 已加载", {
+      enabled: this.enabled,
+      allowlist: Array.from(this.allowlist),
+      source: process.env.UPSTREAM_SCHEDULER_ALLOWLIST ? "env" : "default",
+    });
+  })();
   private readonly defaultRps = this.parseInteger(
     process.env.UPSTREAM_SCHEDULER_DEFAULT_RPS,
     UPSTREAM_SCHEDULER_DEFAULTS.DEFAULT_RPS,
@@ -78,6 +87,11 @@ export class UpstreamRequestSchedulerService {
 
     const allowlistKey = this.buildAllowlistKey(provider, capability);
     return this.allowlist.has(allowlistKey);
+  }
+
+  /** 仅检查 provider:capability 是否在 allowlist 中，不考虑 enabled/apiType */
+  isAllowlisted(provider: string, capability: string): boolean {
+    return this.allowlist.has(this.buildAllowlistKey(provider, capability));
   }
 
   async schedule(request: UpstreamScheduleRequest): Promise<unknown> {
@@ -359,7 +373,9 @@ export class UpstreamRequestSchedulerService {
   private shouldResolveTasksBySymbol(capability: string): boolean {
     return (
       capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_QUOTE ||
-      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_BASIC_INFO
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_BASIC_INFO ||
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_CRYPTO_QUOTE ||
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_CRYPTO_BASIC_INFO
     );
   }
 
@@ -443,10 +459,16 @@ export class UpstreamRequestSchedulerService {
   }
 
   private getMergeWindowMs(capability: string): number {
-    if (capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_QUOTE) {
+    if (
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_QUOTE ||
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_CRYPTO_QUOTE
+    ) {
       return this.quoteMergeWindowMs;
     }
-    if (capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_BASIC_INFO) {
+    if (
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_BASIC_INFO ||
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_CRYPTO_BASIC_INFO
+    ) {
       return this.basicInfoMergeWindowMs;
     }
     return 0;
@@ -471,7 +493,10 @@ export class UpstreamRequestSchedulerService {
 
     const market = String(options.market || "").trim().toUpperCase();
 
-    if (capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_QUOTE) {
+    if (
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_QUOTE ||
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_CRYPTO_QUOTE
+    ) {
       return buildUpstreamMergeKey(provider, capability, {
         market,
         realtime: Boolean(options.realtime),
@@ -488,7 +513,10 @@ export class UpstreamRequestSchedulerService {
       });
     }
 
-    if (capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_BASIC_INFO) {
+    if (
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_STOCK_BASIC_INFO ||
+      capability === UPSTREAM_SCHEDULER_CAPABILITIES.GET_CRYPTO_BASIC_INFO
+    ) {
       return buildUpstreamMergeKey(provider, capability, {
         market,
         signature: stableStringify({

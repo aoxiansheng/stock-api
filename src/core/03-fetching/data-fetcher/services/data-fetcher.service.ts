@@ -537,6 +537,18 @@ export class DataFetcherService implements IDataFetcher {
         normalizedApiType,
       )
     ) {
+      if (
+        this.upstreamRequestScheduler &&
+        normalizedApiType === "rest" &&
+        !this.upstreamRequestScheduler.isAllowlisted(provider, capability)
+      ) {
+        this.logger.debug("回源请求未进入上游调度器（allowlist 未命中）", {
+          provider,
+          capability,
+          requestId,
+          symbolsCount: symbols.length,
+        });
+      }
       return await execute(symbols);
     }
 
@@ -561,7 +573,8 @@ export class DataFetcherService implements IDataFetcher {
 
     if (
       providerKey === "infoway" &&
-      capabilityKey === CAPABILITY_NAMES.GET_STOCK_QUOTE.toLowerCase()
+      (capabilityKey === CAPABILITY_NAMES.GET_STOCK_QUOTE.toLowerCase() ||
+        capabilityKey === CAPABILITY_NAMES.GET_CRYPTO_QUOTE.toLowerCase())
     ) {
       return this.infowayQuoteSymbolExtractor;
     }

@@ -94,6 +94,7 @@ async function main() {
   const allowUpstreamErrors = parseBoolean(args["allow-upstream-errors"], false);
   const strictSymbolMatch = parseBoolean(args["strict-symbol-match"], true);
   const timestampArg = String(args.timestamp || "").trim();
+  const useSmartCache = parseBoolean(args["use-smart-cache"], false);
 
   assert(symbols.length === 1, "get-crypto-history 仅支持单标的", { symbols });
   assertStrictCryptoSymbols(symbols);
@@ -104,7 +105,7 @@ async function main() {
   const requestOptions = {
     market,
     klineNum,
-    useSmartCache: false,
+    useSmartCache,
   };
   if (provider) {
     requestOptions.preferredProvider = provider;
@@ -173,6 +174,7 @@ async function main() {
       {
         endpoint: "POST /api/v1/receiver/data",
         receiverType,
+        testPath: useSmartCache ? "smart-cache + scheduler" : "scheduler-only (bypass cache)",
         requestedSymbols: symbols,
         requestedProvider: provider || null,
         returnedCount: rows.length,

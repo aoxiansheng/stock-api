@@ -2,6 +2,7 @@ jest.mock("@common/logging/index", () => ({
   createLogger: () => ({
     debug: jest.fn(),
     log: jest.fn(),
+    info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
   }),
@@ -18,7 +19,7 @@ describe("UpstreamRequestSchedulerService", () => {
     process.env = {
       ...originalEnv,
       UPSTREAM_SCHEDULER_ENABLED: "true",
-      UPSTREAM_SCHEDULER_ALLOWLIST: "infoway:get-stock-quote,infoway:get-market-status,infoway:get-stock-basic-info",
+      UPSTREAM_SCHEDULER_ALLOWLIST: "infoway:get-stock-quote,infoway:get-market-status,infoway:get-stock-basic-info,infoway:get-stock-history,infoway:get-crypto-quote,infoway:get-crypto-basic-info,infoway:get-crypto-history",
       UPSTREAM_SCHEDULER_DEFAULT_RPS: "1000",
       UPSTREAM_SCHEDULER_429_COOLDOWN_MS: "100",
       UPSTREAM_SCHEDULER_QUOTE_MERGE_WINDOW_MS: "50",
@@ -366,5 +367,192 @@ describe("UpstreamRequestSchedulerService", () => {
     });
   });
 
+  it("会在短窗口内合并 get-crypto-quote 并按 symbol 拆分结果", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const execute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({
+        symbol,
+        lastPrice: symbol === "BTCUSDT" ? 65000 : 3200,
+      })),
+    }));
+
+    const resultPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["BTCUSDT"],
+      options: { realtime: true },
+      execute,
+    });
+    const resultPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["ETHUSDT"],
+      options: { realtime: true },
+      execute,
+    });
+
+    await jest.advanceTimersByTimeAsync(60);
+
+    const resultA = await resultPromiseA;
+    const resultB = await resultPromiseB;
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(["BTCUSDT", "ETHUSDT"]);
+    expect(resultA).toEqual({
+      data: [{ symbol: "BTCUSDT", lastPrice: 65000 }],
+    });
+    expect(resultB).toEqual({
+      data: [{ symbol: "ETHUSDT", lastPrice: 3200 }],
+    });
+  });
+
+  it("single_symbol_only 模式下不同 symbol 的 crypto history 请求不会合并发车", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const execute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol })),
+    }));
+
+    const resultPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["BTCUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute,
+    });
+    const resultPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["ETHUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute,
+    });
+
+    await jest.advanceTimersByTimeAsync(20);
+
+    await expect(resultPromiseA).resolves.toEqual({
+      data: [{ symbol: "BTCUSDT" }],
+    });
+    await expect(resultPromiseB).resolves.toEqual({
+      data: [{ symbol: "ETHUSDT" }],
+    });
+
+    expect(execute).toHaveBeenCalledTimes(2);
+    expect(execute).toHaveBeenNthCalledWith(1, ["BTCUSDT"]);
+    expect(execute).toHaveBeenNthCalledWith(2, ["ETHUSDT"]);
+  });
+
+  it("single_symbol_only 模式下同 symbol 的 crypto history 请求会 single-flight 复用", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const execute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({ symbol, points: 10 })),
+    }));
+
+    const resultPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["BTCUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute,
+    });
+    const resultPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-history",
+      symbols: ["BTCUSDT"],
+      mergeMode: "single_symbol_only",
+      options: { market: "CRYPTO", klineType: 1, klineNum: 5 },
+      execute,
+    });
+
+    await jest.advanceTimersByTimeAsync(20);
+
+    await expect(resultPromiseA).resolves.toEqual({
+      data: [{ symbol: "BTCUSDT", points: 10 }],
+    });
+    await expect(resultPromiseB).resolves.toEqual({
+      data: [{ symbol: "BTCUSDT", points: 10 }],
+    });
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(["BTCUSDT"]);
+  });
+
+  it("crypto quote 遇到 429 后会进入冷却窗口", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const timestamps: number[] = [];
+    const firstExecute = jest.fn(async () => {
+      timestamps.push(Date.now());
+      throw new Error("429 too many requests");
+    });
+    const secondExecute = jest.fn(async () => {
+      timestamps.push(Date.now());
+      return { data: [{ symbol: "ETHUSDT", lastPrice: 3200 }] };
+    });
+
+    const firstPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["BTCUSDT"],
+      options: { realtime: true },
+      execute: firstExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(60);
+    await expect(firstPromise).rejects.toThrow("429");
+
+    const secondPromise = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-quote",
+      symbols: ["ETHUSDT"],
+      options: { realtime: true },
+      execute: secondExecute,
+    });
+
+    await jest.advanceTimersByTimeAsync(100);
+    await expect(secondPromise).resolves.toEqual({
+      data: [{ symbol: "ETHUSDT", lastPrice: 3200 }],
+    });
+
+    expect(timestamps[1]).toBeGreaterThanOrEqual(timestamps[0] + 100);
+  });
+
+  it("会在短窗口内合并 get-crypto-basic-info 并按 symbol 拆分结果", async () => {
+    const scheduler = new UpstreamRequestSchedulerService();
+    const execute = jest.fn(async (symbolsOverride: string[]) => ({
+      data: symbolsOverride.map((symbol) => ({
+        symbol,
+        name: symbol === "BTCUSDT" ? "Bitcoin" : "Ethereum",
+      })),
+    }));
+
+    const resultPromiseA = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-basic-info",
+      symbols: ["BTCUSDT"],
+      options: { market: "CRYPTO" },
+      execute,
+    });
+    const resultPromiseB = scheduler.schedule({
+      provider: "infoway",
+      capability: "get-crypto-basic-info",
+      symbols: ["ETHUSDT"],
+      options: { market: "CRYPTO" },
+      execute,
+    });
+
+    await jest.advanceTimersByTimeAsync(100);
+
+    await expect(resultPromiseA).resolves.toEqual({
+      data: [{ symbol: "BTCUSDT", name: "Bitcoin" }],
+    });
+    await expect(resultPromiseB).resolves.toEqual({
+      data: [{ symbol: "ETHUSDT", name: "Ethereum" }],
+    });
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(["BTCUSDT", "ETHUSDT"]);
+  });
 
 });

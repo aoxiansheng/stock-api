@@ -115,13 +115,14 @@ async function main() {
   );
   const strictSymbolMatch = parseBoolean(args["strict-symbol-match"], true);
   const sampleLimit = Math.max(1, Number(args["sample-limit"] || 5));
+  const useSmartCache = parseBoolean(args["use-smart-cache"], false);
 
   assert(symbols.length > 0, "symbols 不能为空");
   assertStrictCryptoSymbols(symbols);
 
   const requestOptions = {
     realtime,
-    useSmartCache: false,
+    useSmartCache,
     market,
   };
   if (provider) {
@@ -194,6 +195,7 @@ async function main() {
         endpoint: "POST /api/v1/receiver/data",
         receiverType,
         market,
+        testPath: useSmartCache ? "smart-cache + scheduler" : "scheduler-only (bypass cache)",
         requestedSymbols: symbols,
         requestedProvider: provider || null,
         returnedCount: rows.length,
